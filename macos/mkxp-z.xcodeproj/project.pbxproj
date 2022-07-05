@@ -105,10 +105,6 @@
 		3B1BC0E4266F7C2800794D22 /* iniconfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3B1BC0E0266F7C0C00794D22 /* iniconfig.cpp */; };
 		3B1BC0EC266F924B00794D22 /* libuchardet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B1BC0EB266F924B00794D22 /* libuchardet.a */; };
 		3B1BC0ED266F924B00794D22 /* libuchardet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B1BC0EB266F924B00794D22 /* libuchardet.a */; };
-		3B1C230B25A144A10075EF5D /* libruby.3.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B1C230A25A144A10075EF5D /* libruby.3.1.dylib */; };
-		3B1C230C25A144A40075EF5D /* libruby.3.1.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B1C230A25A144A10075EF5D /* libruby.3.1.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		3B1C230E25A144BF0075EF5D /* libruby.3.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B1C230D25A144BF0075EF5D /* libruby.3.1.dylib */; };
-		3B1C230F25A144C90075EF5D /* libruby.3.1.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B1C230D25A144BF0075EF5D /* libruby.3.1.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		3B1C233025A16CB20075EF5D /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BE081582568D3A60006849F /* AppKit.framework */; };
 		3B1C233525A17C670075EF5D /* Assets.bundle in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3BA08EA4256641ED00449CFF /* Assets.bundle */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		3B1C233925A17CB80075EF5D /* Assets.bundle in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3BA08EA4256641ED00449CFF /* Assets.bundle */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -199,7 +195,6 @@
 		3B1C23D825A19C600075EF5D /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BE081532568D3A60006849F /* CoreVideo.framework */; };
 		3B1C23D925A19C600075EF5D /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BE081562568D3A60006849F /* CoreGraphics.framework */; };
 		3B1C23DA25A19C600075EF5D /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BE081502568D3A50006849F /* libbz2.tbd */; };
-		3B1C23DB25A19C600075EF5D /* libruby.3.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B1C230A25A144A10075EF5D /* libruby.3.1.dylib */; };
 		3B1C23DC25A19C600075EF5D /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BE081512568D3A60006849F /* CoreAudio.framework */; };
 		3B1C23DD25A19C600075EF5D /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BD2B46925651C1B003DAD8A /* AudioToolbox.framework */; };
 		3B1C23DE25A19C600075EF5D /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BD2B46725651C00003DAD8A /* Foundation.framework */; };
@@ -214,15 +209,11 @@
 		3B1C23E925A19C600075EF5D /* Assets.bundle in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3BA08EA4256641ED00449CFF /* Assets.bundle */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		3B1C23EB25A19C600075EF5D /* mkxp.json in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3BD2B7282565B35D003DAD8A /* mkxp.json */; };
 		3B1C23ED25A19C600075EF5D /* libfluidsynth.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B522DA1259BAA13003301C4 /* libfluidsynth.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		3B1C23EE25A19C600075EF5D /* libruby.3.1.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B1C230A25A144A10075EF5D /* libruby.3.1.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		3B1C23FD25A19FB40075EF5D /* steamshim_mac_helpers.mm in Sources */ = {isa = PBXBuildFile; fileRef = 3B1C23FC25A19FB40075EF5D /* steamshim_mac_helpers.mm */; };
 		3B1C241225A1A7120075EF5D /* libsteam_api.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B1C241125A1A7120075EF5D /* libsteam_api.dylib */; };
 		3B1C242025A1A8660075EF5D /* libsteam_api.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B1C241125A1A7120075EF5D /* libsteam_api.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		3B1C242625A1A90B0075EF5D /* shim in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3B1C235625A199370075EF5D /* shim */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		3B1C242B25A1AA1F0075EF5D /* steamshim_child.c in Sources */ = {isa = PBXBuildFile; fileRef = 3B1C236925A19B960075EF5D /* steamshim_child.c */; };
-		3B251DA626DA2CFA00E5D09B /* 3.1.0 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3B251DA526DA2CFA00E5D09B /* 3.1.0 */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		3B251DA826DA2E9000E5D09B /* 3.1.0 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3B251DA526DA2CFA00E5D09B /* 3.1.0 */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		3B251DAC26DA2EC200E5D09B /* 3.1.0 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3B251DA526DA2CFA00E5D09B /* 3.1.0 */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		3B312843259E7DC1002EAB43 /* miniffi.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3B312842259E7DC1002EAB43 /* miniffi.cpp */; };
 		3B312844259E7DC1002EAB43 /* miniffi.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3B312842259E7DC1002EAB43 /* miniffi.cpp */; };
 		3B3F7D1D25B19F6E00EA5F1C /* settingsmenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 3B3F7D1725B19DEC00EA5F1C /* settingsmenu.xib */; };
@@ -368,13 +359,11 @@
 		3BBE87FA2705A73400A574AE /* Assets.bundle in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3BA08EA4256641ED00449CFF /* Assets.bundle */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		3BBE87FB2705A73400A574AE /* steam_appid.txt in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3B1C243E25A1B8D20075EF5D /* steam_appid.txt */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		3BBE87FD2705A73400A574AE /* mkxp.json in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3BD2B7282565B35D003DAD8A /* mkxp.json */; };
-		3BBE87FF2705A73400A574AE /* 3.1.0 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3B251DA526DA2CFA00E5D09B /* 3.1.0 */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		3BBE88012705A73400A574AE /* libfluidsynth.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B522DA1259BAA13003301C4 /* libfluidsynth.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		3BBE88022705A73400A574AE /* libEGL.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B5E1F0925A881FB0086FFDC /* libEGL.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		3BBE88042705A73400A574AE /* libsteam_api.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B1C241125A1A7120075EF5D /* libsteam_api.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		3BBE88052705A73400A574AE /* libGLESv2.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B5E1F0A25A881FB0086FFDC /* libGLESv2.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		3BBE880B2705AA8F00A574AE /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B522DC8259BFEDF003301C4 /* libcrypto.a */; };
-		3BBE880D2705AAC900A574AE /* libruby.3.1.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B1C230D25A144BF0075EF5D /* libruby.3.1.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		3BBE880E2705AAF200A574AE /* libogg.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BC65D822584F3780063AFF1 /* libogg.a */; };
 		3BBE880F2705AAFF00A574AE /* libSDL2_ttf.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BC65D832584F3780063AFF1 /* libSDL2_ttf.a */; };
 		3BBE88102705AB0400A574AE /* libvorbisenc.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BC65D7A2584F3780063AFF1 /* libvorbisenc.a */; };
@@ -385,7 +374,6 @@
 		3BBE88172705AC0C00A574AE /* libSDL2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BC65D862584F3780063AFF1 /* libSDL2.a */; };
 		3BBE88182705AC1400A574AE /* libturbojpeg.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BC65D7E2584F3780063AFF1 /* libturbojpeg.a */; };
 		3BBE881A2705AC2B00A574AE /* libvorbis.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BC65D852584F3780063AFF1 /* libvorbis.a */; };
-		3BBE881B2705AC3100A574AE /* libruby.3.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B1C230D25A144BF0075EF5D /* libruby.3.1.dylib */; };
 		3BBE881C2705AC3700A574AE /* libSDL2_sound.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BF5B4BC2685881C00A3B240 /* libSDL2_sound.a */; };
 		3BBE881D2705AC3F00A574AE /* libvorbisfile.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BC65D812584F3780063AFF1 /* libvorbisfile.a */; };
 		3BBE881E2705AC4200A574AE /* libSDL2_image.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BEA5D7125AC3CE300B6E359 /* libSDL2_image.a */; };
@@ -523,6 +511,18 @@
 		96573E83279152DC002C3E77 /* TouchBar.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 96573E80279152DC002C3E77 /* TouchBar.xcassets */; };
 		96573E84279152DC002C3E77 /* TouchBar.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 96573E80279152DC002C3E77 /* TouchBar.xcassets */; };
 		96D8EDD128728DCE00A331EA /* gamecontrollerdb.txt in Resources */ = {isa = PBXBuildFile; fileRef = 96D8EDD028728DCA00A331EA /* gamecontrollerdb.txt */; };
+		96D8EDDC2874332300A331EA /* 2.4.0 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 96D8EDD92874324500A331EA /* 2.4.0 */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		96D8EDDD2874332B00A331EA /* 2.4.0 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 96D8EDD92874324500A331EA /* 2.4.0 */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		96D8EDDE2874333200A331EA /* 2.4.0 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 96D8EDD92874324500A331EA /* 2.4.0 */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		96D8EDDF2874333B00A331EA /* 2.4.0 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 96D8EDD92874324500A331EA /* 2.4.0 */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		96D8EDE02874335700A331EA /* libruby.2.4.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 96D8EDDB2874328700A331EA /* libruby.2.4.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		96D8EDE12874335F00A331EA /* libruby.2.4.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 96D8EDDA2874326D00A331EA /* libruby.2.4.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		96D8EDE22874337300A331EA /* libruby.2.4.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 96D8EDDB2874328700A331EA /* libruby.2.4.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		96D8EDE32874338E00A331EA /* libruby.2.4.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 96D8EDDA2874326D00A331EA /* libruby.2.4.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		96D8EDE4287433AC00A331EA /* libruby.2.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 96D8EDDA2874326D00A331EA /* libruby.2.4.dylib */; };
+		96D8EDE5287433B700A331EA /* libruby.2.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 96D8EDDA2874326D00A331EA /* libruby.2.4.dylib */; };
+		96D8EDE6287433CD00A331EA /* libruby.2.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 96D8EDDB2874328700A331EA /* libruby.2.4.dylib */; };
+		96D8EDE7287433D200A331EA /* libruby.2.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 96D8EDDB2874328700A331EA /* libruby.2.4.dylib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -629,7 +629,7 @@
 			files = (
 				3B1C23ED25A19C600075EF5D /* libfluidsynth.dylib in Embed Frameworks */,
 				3B5E1F1525A881FE0086FFDC /* libEGL.dylib in Embed Frameworks */,
-				3B1C23EE25A19C600075EF5D /* libruby.3.1.dylib in Embed Frameworks */,
+				96D8EDE32874338E00A331EA /* libruby.2.4.dylib in Embed Frameworks */,
 				3B1C242025A1A8660075EF5D /* libsteam_api.dylib in Embed Frameworks */,
 				3B5E1F1825A882000086FFDC /* libGLESv2.dylib in Embed Frameworks */,
 			);
@@ -652,7 +652,7 @@
 			dstPath = Ruby;
 			dstSubfolderSpec = 7;
 			files = (
-				3B251DA626DA2CFA00E5D09B /* 3.1.0 in CopyFiles */,
+				96D8EDDC2874332300A331EA /* 2.4.0 in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -662,7 +662,7 @@
 			dstPath = Ruby;
 			dstSubfolderSpec = 7;
 			files = (
-				3B251DA826DA2E9000E5D09B /* 3.1.0 in CopyFiles */,
+				96D8EDDD2874332B00A331EA /* 2.4.0 in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -672,7 +672,7 @@
 			dstPath = Ruby;
 			dstSubfolderSpec = 7;
 			files = (
-				3B251DAC26DA2EC200E5D09B /* 3.1.0 in CopyFiles */,
+				96D8EDDF2874333B00A331EA /* 2.4.0 in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -683,8 +683,8 @@
 			dstSubfolderSpec = 10;
 			files = (
 				3B5E1F1F25A8820D0086FFDC /* libEGL.dylib in Embed Frameworks */,
+				96D8EDE02874335700A331EA /* libruby.2.4.dylib in Embed Frameworks */,
 				3B522DA9259BAA42003301C4 /* libfluidsynth.dylib in Embed Frameworks */,
-				3B1C230F25A144C90075EF5D /* libruby.3.1.dylib in Embed Frameworks */,
 				3B5E1F2025A8820F0086FFDC /* libGLESv2.dylib in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
@@ -697,8 +697,8 @@
 			dstSubfolderSpec = 10;
 			files = (
 				3B5E1F1D25A882090086FFDC /* libEGL.dylib in Embed Frameworks */,
+				96D8EDE12874335F00A331EA /* libruby.2.4.dylib in Embed Frameworks */,
 				3B522DAA259BAA4A003301C4 /* libfluidsynth.dylib in Embed Frameworks */,
-				3B1C230C25A144A40075EF5D /* libruby.3.1.dylib in Embed Frameworks */,
 				3B5E1F1E25A8820B0086FFDC /* libGLESv2.dylib in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
@@ -795,7 +795,7 @@
 			dstPath = Ruby;
 			dstSubfolderSpec = 7;
 			files = (
-				3BBE87FF2705A73400A574AE /* 3.1.0 in CopyFiles */,
+				96D8EDDE2874333200A331EA /* 2.4.0 in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -805,9 +805,9 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				3BBE880D2705AAC900A574AE /* libruby.3.1.dylib in Embed Frameworks */,
 				3BBE88012705A73400A574AE /* libfluidsynth.dylib in Embed Frameworks */,
 				3BBE88022705A73400A574AE /* libEGL.dylib in Embed Frameworks */,
+				96D8EDE22874337300A331EA /* libruby.2.4.dylib in Embed Frameworks */,
 				3BBE88042705A73400A574AE /* libsteam_api.dylib in Embed Frameworks */,
 				3BBE88052705A73400A574AE /* libGLESv2.dylib in Embed Frameworks */,
 			);
@@ -989,8 +989,6 @@
 		3B1BC0E0266F7C0C00794D22 /* iniconfig.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = iniconfig.cpp; sourceTree = "<group>"; };
 		3B1BC0E6266F8E8700794D22 /* dependencies.make */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.make; name = dependencies.make; path = Dependencies/dependencies.make; sourceTree = "<group>"; };
 		3B1BC0EB266F924B00794D22 /* libuchardet.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libuchardet.a; path = "Dependencies/build-macosx-x86_64/lib/libuchardet.a"; sourceTree = "<group>"; };
-		3B1C230A25A144A10075EF5D /* libruby.3.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libruby.3.1.dylib; path = "Dependencies/build-macosx-x86_64/lib/libruby.3.1.dylib"; sourceTree = "<group>"; };
-		3B1C230D25A144BF0075EF5D /* libruby.3.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libruby.3.1.dylib; path = "Dependencies/build-macosx-universal/lib/libruby.3.1.dylib"; sourceTree = "<group>"; };
 		3B1C231E25A15FB20075EF5D /* mkxp.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = mkxp.xcconfig; path = config/mkxp.xcconfig; sourceTree = "<group>"; };
 		3B1C231F25A15FB20075EF5D /* mkxp.Intel.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = mkxp.Intel.xcconfig; path = config/mkxp.Intel.xcconfig; sourceTree = "<group>"; };
 		3B1C232025A15FB20075EF5D /* mkxp.Universal.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = mkxp.Universal.xcconfig; path = config/mkxp.Universal.xcconfig; sourceTree = "<group>"; };
@@ -1004,7 +1002,6 @@
 		3B1C240C25A1A4C50075EF5D /* steamshim.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = steamshim.xcconfig; path = config/steamshim.xcconfig; sourceTree = "<group>"; };
 		3B1C241125A1A7120075EF5D /* libsteam_api.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsteam_api.dylib; path = Dependencies/Frameworks/steam/sdk/redistributable_bin/osx/libsteam_api.dylib; sourceTree = "<group>"; };
 		3B1C243E25A1B8D20075EF5D /* steam_appid.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = steam_appid.txt; path = config/steam_appid.txt; sourceTree = "<group>"; };
-		3B251DA526DA2CFA00E5D09B /* 3.1.0 */ = {isa = PBXFileReference; lastKnownFileType = folder; name = 3.1.0; path = "Dependencies/build-macosx-x86_64/lib/ruby/3.1.0"; sourceTree = "<group>"; };
 		3B312841259E7DC1002EAB43 /* miniffi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = miniffi.h; sourceTree = "<group>"; };
 		3B312842259E7DC1002EAB43 /* miniffi.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = miniffi.cpp; sourceTree = "<group>"; };
 		3B3F7D1725B19DEC00EA5F1C /* settingsmenu.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = settingsmenu.xib; path = views/settingsmenu.xib; sourceTree = "<group>"; };
@@ -1112,6 +1109,9 @@
 		96573E7B27913B46002C3E77 /* TouchBar.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; name = TouchBar.h; path = views/TouchBar.h; sourceTree = "<group>"; };
 		96573E80279152DC002C3E77 /* TouchBar.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = TouchBar.xcassets; path = views/TouchBar.xcassets; sourceTree = "<group>"; };
 		96D8EDD028728DCA00A331EA /* gamecontrollerdb.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = gamecontrollerdb.txt; path = ../assets/gamecontrollerdb.txt; sourceTree = "<group>"; };
+		96D8EDD92874324500A331EA /* 2.4.0 */ = {isa = PBXFileReference; lastKnownFileType = folder; name = 2.4.0; path = "Dependencies/build-macosx-x86_64/lib/ruby/2.4.0"; sourceTree = "<group>"; };
+		96D8EDDA2874326D00A331EA /* libruby.2.4.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libruby.2.4.dylib; path = "Dependencies/build-macosx-x86_64/lib/libruby.2.4.dylib"; sourceTree = "<group>"; };
+		96D8EDDB2874328700A331EA /* libruby.2.4.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libruby.2.4.dylib; path = "Dependencies/build-macosx-universal/lib/libruby.2.4.dylib"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1139,6 +1139,7 @@
 				3B1C23CB25A19C600075EF5D /* libogg.a in Frameworks */,
 				3B1C23CC25A19C600075EF5D /* libSDL2.a in Frameworks */,
 				3B1C23CD25A19C600075EF5D /* libturbojpeg.a in Frameworks */,
+				96D8EDE4287433AC00A331EA /* libruby.2.4.dylib in Frameworks */,
 				3B1C23CE25A19C600075EF5D /* libpng.a in Frameworks */,
 				3B5E1F0E25A881FB0086FFDC /* libEGL.dylib in Frameworks */,
 				3B1C23CF25A19C600075EF5D /* libvorbis.a in Frameworks */,
@@ -1151,7 +1152,6 @@
 				3B1C23D925A19C600075EF5D /* CoreGraphics.framework in Frameworks */,
 				3B1C23DA25A19C600075EF5D /* libbz2.tbd in Frameworks */,
 				3B480EA125DCD176001686B4 /* GameController.framework in Frameworks */,
-				3B1C23DB25A19C600075EF5D /* libruby.3.1.dylib in Frameworks */,
 				3B1C23DC25A19C600075EF5D /* CoreAudio.framework in Frameworks */,
 				3B1C23DD25A19C600075EF5D /* AudioToolbox.framework in Frameworks */,
 				3B1C23DE25A19C600075EF5D /* Foundation.framework in Frameworks */,
@@ -1191,11 +1191,11 @@
 				3BBE87DD2705A73400A574AE /* libEGL.dylib in Frameworks */,
 				3BBE88212705AD3D00A574AE /* libpng16.a in Frameworks */,
 				3BBE881A2705AC2B00A574AE /* libvorbis.a in Frameworks */,
+				96D8EDE7287433D200A331EA /* libruby.2.4.dylib in Frameworks */,
 				3BBE87E02705A73400A574AE /* IOKit.framework in Frameworks */,
 				3BBE87E12705A73400A574AE /* Carbon.framework in Frameworks */,
 				3BBE87E22705A73400A574AE /* Metal.framework in Frameworks */,
 				3BBE87E32705A73400A574AE /* ForceFeedback.framework in Frameworks */,
-				3BBE881B2705AC3100A574AE /* libruby.3.1.dylib in Frameworks */,
 				3BBE881C2705AC3700A574AE /* libSDL2_sound.a in Frameworks */,
 				3BBE87E52705A73400A574AE /* CoreVideo.framework in Frameworks */,
 				3BBE87E62705A73400A574AE /* CoreGraphics.framework in Frameworks */,
@@ -1241,13 +1241,13 @@
 				3BC65E232584F4290063AFF1 /* libfreetype.a in Frameworks */,
 				3BC65DFA2584F3AD0063AFF1 /* CoreGraphics.framework in Frameworks */,
 				3BEA5D7225AC3CE300B6E359 /* libSDL2_image.a in Frameworks */,
+				96D8EDE6287433CD00A331EA /* libruby.2.4.dylib in Frameworks */,
 				3B522DCA259BFEE0003301C4 /* libcrypto.a in Frameworks */,
 				3BC65DFB2584F3AD0063AFF1 /* libbz2.tbd in Frameworks */,
 				3BC65DFC2584F3AD0063AFF1 /* CoreAudio.framework in Frameworks */,
 				3BC65DFD2584F3AD0063AFF1 /* AudioToolbox.framework in Frameworks */,
 				3B5E1F0F25A881FB0086FFDC /* libGLESv2.dylib in Frameworks */,
 				3BC65E212584F4290063AFF1 /* libopenal.a in Frameworks */,
-				3B1C230E25A144BF0075EF5D /* libruby.3.1.dylib in Frameworks */,
 				3B97F77025E6178200A569B5 /* GameController.framework in Frameworks */,
 				3BC65DFF2584F3AD0063AFF1 /* Foundation.framework in Frameworks */,
 				3BC65E242584F4290063AFF1 /* libvorbisfile.a in Frameworks */,
@@ -1277,6 +1277,7 @@
 				3BE08109256879FE0006849F /* libSDL2.a in Frameworks */,
 				3BE0814A2568A5F60006849F /* libturbojpeg.a in Frameworks */,
 				3BE081462568A5C60006849F /* libpng.a in Frameworks */,
+				96D8EDE5287433B700A331EA /* libruby.2.4.dylib in Frameworks */,
 				3B5E1F0C25A881FB0086FFDC /* libEGL.dylib in Frameworks */,
 				3BE08104256879FE0006849F /* libvorbis.a in Frameworks */,
 				3BD2B6E72565AEC0003DAD8A /* IOKit.framework in Frameworks */,
@@ -1288,7 +1289,6 @@
 				3B10EC5C2568D40500372D13 /* CoreGraphics.framework in Frameworks */,
 				3BE081592568D3A60006849F /* libbz2.tbd in Frameworks */,
 				3B480E9F25DCD174001686B4 /* GameController.framework in Frameworks */,
-				3B1C230B25A144A10075EF5D /* libruby.3.1.dylib in Frameworks */,
 				3B10EC632568D40C00372D13 /* CoreAudio.framework in Frameworks */,
 				3BA08E9B256638C900449CFF /* AudioToolbox.framework in Frameworks */,
 				3BD2B6F12565AEC0003DAD8A /* Foundation.framework in Frameworks */,
@@ -1635,7 +1635,7 @@
 		3B251DA226DA2C8600E5D09B /* Ruby Standard Library */ = {
 			isa = PBXGroup;
 			children = (
-				3B251DA526DA2CFA00E5D09B /* 3.1.0 */,
+				96D8EDD92874324500A331EA /* 2.4.0 */,
 			);
 			name = "Ruby Standard Library";
 			sourceTree = "<group>";
@@ -1724,7 +1724,7 @@
 				3BF5B4BC2685881C00A3B240 /* libSDL2_sound.a */,
 				3BAEB1432673DBE700AC177B /* libuchardet.a */,
 				3B522DA1259BAA13003301C4 /* libfluidsynth.dylib */,
-				3B1C230D25A144BF0075EF5D /* libruby.3.1.dylib */,
+				96D8EDDB2874328700A331EA /* libruby.2.4.dylib */,
 				96563584279A5ADA003D6A75 /* libtheora.a */,
 				3BC65D822584F3780063AFF1 /* libogg.a */,
 				3BC65D842584F3780063AFF1 /* libopenal.a */,
@@ -1851,7 +1851,7 @@
 				3BE081452568A5C60006849F /* libpng.a */,
 				3BE081492568A5F60006849F /* libturbojpeg.a */,
 				3BE080FF256879FE0006849F /* libphysfs.a */,
-				3B1C230A25A144A10075EF5D /* libruby.3.1.dylib */,
+				96D8EDDA2874326D00A331EA /* libruby.2.4.dylib */,
 				3BE080E9256879FC0006849F /* libpixman-1.a */,
 				96563581279A5ABD003D6A75 /* libtheora.a */,
 				3BE080F0256879FD0006849F /* libSDL2_image.a */,
@@ -2955,7 +2955,7 @@
 					"$(DEPENDENCY_SEARCH_PATH)/include/SDL2",
 					"$(DEPENDENCY_SEARCH_PATH)/include/pixman-1",
 					"$(DEPENDENCY_SEARCH_PATH)/include/ruby-$(MRI_VERSION)",
-					"$(DEPENDENCY_SEARCH_PATH)/include/ruby-$(MRI_VERSION)/arm64-darwin",
+					"$(DEPENDENCY_SEARCH_PATH)/include/ruby-$(MRI_VERSION)/-darwin",
 					"$(DEPENDENCY_SEARCH_PATH)/include/AL",
 					"$(DEPENDENCY_SEARCH_PATH)/include/openssl",
 					"$(DEPENDENCY_SEARCH_PATH)/include/uchardet",
@@ -3042,7 +3042,7 @@
 					"$(DEPENDENCY_SEARCH_PATH)/include/SDL2",
 					"$(DEPENDENCY_SEARCH_PATH)/include/pixman-1",
 					"$(DEPENDENCY_SEARCH_PATH)/include/ruby-$(MRI_VERSION)",
-					"$(DEPENDENCY_SEARCH_PATH)/include/ruby-$(MRI_VERSION)/arm64-darwin",
+					"$(DEPENDENCY_SEARCH_PATH)/include/ruby-$(MRI_VERSION)/-darwin",
 					"$(DEPENDENCY_SEARCH_PATH)/include/AL",
 					"$(DEPENDENCY_SEARCH_PATH)/include/openssl",
 					"$(DEPENDENCY_SEARCH_PATH)/include/uchardet",
@@ -3128,7 +3128,7 @@
 					"$(DEPENDENCY_SEARCH_PATH)/include/SDL2",
 					"$(DEPENDENCY_SEARCH_PATH)/include/pixman-1",
 					"$(DEPENDENCY_SEARCH_PATH)/include/ruby-$(MRI_VERSION)",
-					"$(DEPENDENCY_SEARCH_PATH)/include/ruby-$(MRI_VERSION)/arm64-darwin",
+					"$(DEPENDENCY_SEARCH_PATH)/include/ruby-$(MRI_VERSION)/-darwin",
 					"$(DEPENDENCY_SEARCH_PATH)/include/AL",
 					"$(DEPENDENCY_SEARCH_PATH)/include/uchardet",
 					"$(DEPENDENCY_SEARCH_PATH)/include/openssl",
@@ -3209,7 +3209,7 @@
 					"$(DEPENDENCY_SEARCH_PATH)/include/SDL2",
 					"$(DEPENDENCY_SEARCH_PATH)/include/pixman-1",
 					"$(DEPENDENCY_SEARCH_PATH)/include/ruby-$(MRI_VERSION)",
-					"$(DEPENDENCY_SEARCH_PATH)/include/ruby-$(MRI_VERSION)/arm64-darwin",
+					"$(DEPENDENCY_SEARCH_PATH)/include/ruby-$(MRI_VERSION)/-darwin",
 					"$(DEPENDENCY_SEARCH_PATH)/include/AL",
 					"$(DEPENDENCY_SEARCH_PATH)/include/uchardet",
 					"$(DEPENDENCY_SEARCH_PATH)/include/openssl",
