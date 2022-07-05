@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "3B1C236D25A19C600075EF5D"
-               BuildableName = "Z-steam.app"
+               BuildableName = "Nephilim.app"
                BlueprintName = "Z-steam"
                ReferencedContainer = "container:mkxp-z.xcodeproj">
             </BuildableReference>
@@ -45,7 +45,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "3B1C236D25A19C600075EF5D"
-            BuildableName = "Z-steam.app"
+            BuildableName = "Nephilim.app"
             BlueprintName = "Z-steam"
             ReferencedContainer = "container:mkxp-z.xcodeproj">
          </BuildableReference>
@@ -75,7 +75,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "3B1C236D25A19C600075EF5D"
-            BuildableName = "Z-steam.app"
+            BuildableName = "Nephilim.app"
             BlueprintName = "Z-steam"
             ReferencedContainer = "container:mkxp-z.xcodeproj">
          </BuildableReference>
