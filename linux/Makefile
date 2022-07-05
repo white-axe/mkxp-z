@@ -340,7 +340,7 @@ $(DOWNLOADS)/ruby/configure: $(DOWNLOADS)/ruby/*.c
 	cd $(DOWNLOADS)/ruby; autoreconf -i
 
 $(DOWNLOADS)/ruby/*.c:
-	$(CLONE) $(GITLAB)/mkxp-z/ruby $(DOWNLOADS)/ruby -b ruby_2_4;
+	$(CLONE) $(GITLAB)/mkxp-z/ruby $(DOWNLOADS)/ruby -b symphony-of-war;
 
 # ====
 init_dirs:
