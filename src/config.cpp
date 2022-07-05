@@ -364,13 +364,13 @@ void Config::readGameINI() {
     }
     
     if (game.title.empty() || !convSuccess)
-        game.title = "mkxp-z";
+        game.title = "SoW: The Nephilim Saga";
     
     if (dataPathOrg.empty())
         dataPathOrg = ".";
     
     if (dataPathApp.empty())
-        dataPathApp = game.title;
+        dataPathApp = "Nephilim";
     
     customDataPath = prefPath(dataPathOrg.c_str(), dataPathApp.c_str());
     

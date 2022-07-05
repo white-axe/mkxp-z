@@ -14,7 +14,7 @@ BLOCK "StringFileInfo"
 BLOCK "040904b0"
 {
 VALUE "FileVersion",        "2.4.0\0"
-VALUE "OriginalFilename",   "mkxp-z.exe\0"
+VALUE "OriginalFilename",   "nephilim.exe\0"
 VALUE "ProductName",        "mkxp-z\0"
 VALUE "ProductVersion",     "2.4.0\0"
 }

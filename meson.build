@@ -140,7 +140,7 @@ else
     endif
 endif
 
-exe_name = meson.project_name()
+exe_name = 'nephilim'
 
 if host_system == 'linux' and get_option('appimage') == false
     exe_name += '.' + host_machine.cpu()
@@ -170,7 +170,7 @@ if steamworks == true
         shim_args += '-DSTEAMSHIM_DEBUG'
     endif
 
-    executable(meson.project_name(),
+    executable('nephilim',
         sources: files('steamshim/steamshim_parent.cpp'),
         dependencies: steamlib,
         cpp_args: shim_args,

@@ -5,7 +5,7 @@
 	<key>CFBundleExecutable</key>
 	<string>$(MKXPZ_EXECUTABLE_NAME)</string>
 	<key>CFBundleGetInfoString</key>
-	<string>mkxp-z</string>
+	<string>Symphony of War: The Nephilim Saga</string>
 	<key>CFBundleIconFile</key>
 	<string>icon.icns</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>mkxp-z</string>
+	<string>SoW: The Nephilim Saga</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
