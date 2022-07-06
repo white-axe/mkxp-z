@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "3BD2B64B2565AEC0003DAD8A"
-               BuildableName = "Nephilim.app"
+               BuildableName = "SymphonyOfWar.app"
                BlueprintName = "Z-intel"
                ReferencedContainer = "container:mkxp-z.xcodeproj">
             </BuildableReference>
@@ -45,7 +45,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "3BD2B64B2565AEC0003DAD8A"
-            BuildableName = "Nephilim.app"
+            BuildableName = "SymphonyOfWar.app"
             BlueprintName = "Z-intel"
             ReferencedContainer = "container:mkxp-z.xcodeproj">
          </BuildableReference>
@@ -75,7 +75,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "3BD2B64B2565AEC0003DAD8A"
-            BuildableName = "Nephilim.app"
+            BuildableName = "SymphonyOfWar.app"
             BlueprintName = "Z-intel"
             ReferencedContainer = "container:mkxp-z.xcodeproj">
          </BuildableReference>

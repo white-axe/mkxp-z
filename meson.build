@@ -137,7 +137,7 @@ else
     endif
 endif
 
-exe_name = 'nephilim'
+exe_name = 'SymphonyOfWar'
 
 if host_system == 'linux' and get_option('appimage') == false
     exe_name += '.' + host_machine.cpu()
@@ -167,7 +167,7 @@ if steamworks == true
         shim_args += '-DSTEAMSHIM_DEBUG'
     endif
 
-    executable('nephilim',
+    executable('SymphonyOfWar',
         sources: files('steamshim/steamshim_parent.cpp'),
         dependencies: steamlib,
         cpp_args: shim_args,

@@ -996,7 +996,7 @@
 		3B1C236725A19B960075EF5D /* steamshim_parent.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = steamshim_parent.cpp; path = ../steamshim/steamshim_parent.cpp; sourceTree = "<group>"; };
 		3B1C236825A19B960075EF5D /* steamshim_child.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = steamshim_child.h; path = ../steamshim/steamshim_child.h; sourceTree = "<group>"; };
 		3B1C236925A19B960075EF5D /* steamshim_child.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = steamshim_child.c; path = ../steamshim/steamshim_child.c; sourceTree = "<group>"; };
-		3B1C23F225A19C600075EF5D /* Nephilim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nephilim.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3B1C23F225A19C600075EF5D /* SymphonyOfWar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SymphonyOfWar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B1C23FC25A19FB40075EF5D /* steamshim_mac_helpers.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = steamshim_mac_helpers.mm; path = ../steamshim/steamshim_mac_helpers.mm; sourceTree = "<group>"; };
 		3B1C240025A19FD60075EF5D /* steamshim_mac_helpers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = steamshim_mac_helpers.h; path = ../steamshim/steamshim_mac_helpers.h; sourceTree = "<group>"; };
 		3B1C240C25A1A4C50075EF5D /* steamshim.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = steamshim.xcconfig; path = config/steamshim.xcconfig; sourceTree = "<group>"; };
@@ -1046,7 +1046,7 @@
 		3BA69452263DAB53004194EB /* lzw.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lzw.h; sourceTree = "<group>"; };
 		3BA69453263DAB53004194EB /* libnsgif.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = libnsgif.h; sourceTree = "<group>"; };
 		3BAEB1432673DBE700AC177B /* libuchardet.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libuchardet.a; path = "Dependencies/build-macosx-universal/lib/libuchardet.a"; sourceTree = "<group>"; };
-		3BBE88092705A73400A574AE /* Nephilim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nephilim.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3BBE88092705A73400A574AE /* SymphonyOfWar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SymphonyOfWar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3BC65D7A2584F3780063AFF1 /* libvorbisenc.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libvorbisenc.a; path = "Dependencies/build-macosx-universal/lib/libvorbisenc.a"; sourceTree = "<group>"; };
 		3BC65D7B2584F3780063AFF1 /* libphysfs.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libphysfs.a; path = "Dependencies/build-macosx-universal/lib/libphysfs.a"; sourceTree = "<group>"; };
 		3BC65D7D2584F3780063AFF1 /* libfreetype.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfreetype.a; path = "Dependencies/build-macosx-universal/lib/libfreetype.a"; sourceTree = "<group>"; };
@@ -1060,7 +1060,7 @@
 		3BC65D872584F3780063AFF1 /* libpng16.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libpng16.a; path = "Dependencies/build-macosx-universal/lib/libpng16.a"; sourceTree = "<group>"; };
 		3BC65D882584F3780063AFF1 /* libpixman-1.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "libpixman-1.a"; path = "Dependencies/build-macosx-universal/lib/libpixman-1.a"; sourceTree = "<group>"; };
 		3BC65D892584F3910063AFF1 /* libSDL2main.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDL2main.a; path = "Dependencies/build-macosx-universal/lib/libSDL2main.a"; sourceTree = "<group>"; };
-		3BC65E152584F3AD0063AFF1 /* Nephilim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nephilim.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3BC65E152584F3AD0063AFF1 /* SymphonyOfWar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SymphonyOfWar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3BD2B3AF25651885003DAD8A /* mkxp.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = mkxp.entitlements; sourceTree = "<group>"; };
 		3BD2B46525651BF3003DAD8A /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 		3BD2B46625651BFC003DAD8A /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
@@ -1068,7 +1068,7 @@
 		3BD2B46825651C12003DAD8A /* libiconv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libiconv.tbd; path = usr/lib/libiconv.tbd; sourceTree = SDKROOT; };
 		3BD2B46925651C1B003DAD8A /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		3BD2B47A256534BA003DAD8A /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
-		3BD2B7252565AEC0003DAD8A /* Nephilim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nephilim.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3BD2B7252565AEC0003DAD8A /* SymphonyOfWar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SymphonyOfWar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3BD2B7272565B343003DAD8A /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = ../README.md; sourceTree = "<group>"; };
 		3BD2B7282565B35D003DAD8A /* mkxp.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = mkxp.json; path = ../mkxp.json; sourceTree = "<group>"; };
 		3BDB23E22564546E00C4A63D /* icon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = icon.icns; sourceTree = "<group>"; };
@@ -1799,12 +1799,12 @@
 		3BDB22F72564501400C4A63D /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				3BD2B7252565AEC0003DAD8A /* Nephilim.app */,
+				3BD2B7252565AEC0003DAD8A /* SymphonyOfWar.app */,
 				3BA08EA4256641ED00449CFF /* Assets.bundle */,
-				3BC65E152584F3AD0063AFF1 /* Nephilim.app */,
+				3BC65E152584F3AD0063AFF1 /* SymphonyOfWar.app */,
 				3B1C235625A199370075EF5D /* shim */,
-				3B1C23F225A19C600075EF5D /* Nephilim.app */,
-				3BBE88092705A73400A574AE /* Nephilim.app */,
+				3B1C23F225A19C600075EF5D /* SymphonyOfWar.app */,
+				3BBE88092705A73400A574AE /* SymphonyOfWar.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1920,7 +1920,7 @@
 			);
 			name = "Z-steam";
 			productName = PlayerLegacy;
-			productReference = 3B1C23F225A19C600075EF5D /* Nephilim.app */;
+			productReference = 3B1C23F225A19C600075EF5D /* SymphonyOfWar.app */;
 			productType = "com.apple.product-type.application";
 		};
 		3BA08EA3256641ED00449CFF /* Assets */ = {
@@ -1963,7 +1963,7 @@
 			);
 			name = "Z-steam-universal";
 			productName = PlayerLegacy;
-			productReference = 3BBE88092705A73400A574AE /* Nephilim.app */;
+			productReference = 3BBE88092705A73400A574AE /* SymphonyOfWar.app */;
 			productType = "com.apple.product-type.application";
 		};
 		3BC65D8A2584F3AD0063AFF1 /* Z-universal */ = {
@@ -1985,7 +1985,7 @@
 			);
 			name = "Z-universal";
 			productName = PlayerLegacy;
-			productReference = 3BC65E152584F3AD0063AFF1 /* Nephilim.app */;
+			productReference = 3BC65E152584F3AD0063AFF1 /* SymphonyOfWar.app */;
 			productType = "com.apple.product-type.application";
 		};
 		3BD2B64B2565AEC0003DAD8A /* Z-intel */ = {
@@ -2007,7 +2007,7 @@
 			);
 			name = "Z-intel";
 			productName = PlayerLegacy;
-			productReference = 3BD2B7252565AEC0003DAD8A /* Nephilim.app */;
+			productReference = 3BD2B7252565AEC0003DAD8A /* SymphonyOfWar.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -2537,7 +2537,7 @@
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/Dependencies/Frameworks/steam/sdk/redistributable_bin/osx";
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.nephilim.steam;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.symphony.steam;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -2603,7 +2603,7 @@
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/Dependencies/Frameworks/steam/sdk/redistributable_bin/osx";
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.nephilim.steam;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.symphony.steam;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -2680,8 +2680,8 @@
 				MTL_FAST_MATH = YES;
 				OTHER_CODE_SIGN_FLAGS = "--deep";
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.nephilim.steam;
-				PRODUCT_NAME = Nephilim;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.symphony.steam;
+				PRODUCT_NAME = SymphonyOfWar;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Debug;
@@ -2754,8 +2754,8 @@
 				MTL_FAST_MATH = YES;
 				OTHER_CODE_SIGN_FLAGS = "--deep";
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.nephilim.steam;
-				PRODUCT_NAME = Nephilim;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.symphony.steam;
+				PRODUCT_NAME = SymphonyOfWar;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Release;
@@ -2979,8 +2979,8 @@
 				MTL_FAST_MATH = YES;
 				OTHER_CODE_SIGN_FLAGS = "--deep";
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.nephilim.steam;
-				PRODUCT_NAME = Nephilim;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.symphony.steam;
+				PRODUCT_NAME = SymphonyOfWar;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Debug;
@@ -3066,8 +3066,8 @@
 				MTL_FAST_MATH = YES;
 				OTHER_CODE_SIGN_FLAGS = "--deep";
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.nephilim.steam;
-				PRODUCT_NAME = Nephilim;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.symphony.steam;
+				PRODUCT_NAME = SymphonyOfWar;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Release;
@@ -3150,8 +3150,8 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.nephilim;
-				PRODUCT_NAME = Nephilim;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.symphony;
+				PRODUCT_NAME = SymphonyOfWar;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Debug;
@@ -3232,8 +3232,8 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.nephilim;
-				PRODUCT_NAME = Nephilim;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.symphony;
+				PRODUCT_NAME = SymphonyOfWar;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Release;
@@ -3302,8 +3302,8 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.nephilim;
-				PRODUCT_NAME = Nephilim;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.symphony;
+				PRODUCT_NAME = SymphonyOfWar;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Debug;
@@ -3370,8 +3370,8 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.nephilim;
-				PRODUCT_NAME = Nephilim;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ddg.symphony;
+				PRODUCT_NAME = SymphonyOfWar;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Release;
