@@ -14,7 +14,7 @@ BLOCK "StringFileInfo"
 BLOCK "040904b0"
 {
 VALUE "FileVersion",        "2.4.0\0"
-VALUE "OriginalFilename",   "Symphony.exe\0"
+VALUE "OriginalFilename",   "SymphonyOfWar.exe\0"
 VALUE "ProductName",        "mkxp-z\0"
 VALUE "ProductVersion",     "2.4.0\0"
 }
