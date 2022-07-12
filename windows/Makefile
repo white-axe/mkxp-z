@@ -312,9 +312,9 @@ $(DOWNLOADS)/openssl/Configure:
 	$(CLONE) $(GITHUB)/openssl/openssl $(DOWNLOADS)/openssl -c advice.detachedHead=false --branch OpenSSL_1_1_1i
 
 # Standard ruby
-ruby: init_dirs openssl $(BUILD_PREFIX)/$(RB_PREFIX)-ruby240.dll
+ruby: init_dirs openssl $(BUILD_PREFIX)/$(RB_PREFIX)-ruby310.dll
 
-$(BUILD_PREFIX)/$(RB_PREFIX)-ruby240.dll: $(DOWNLOADS)/ruby/Makefile
+$(BUILD_PREFIX)/$(RB_PREFIX)-ruby310.dll: $(DOWNLOADS)/ruby/Makefile
 	cd $(DOWNLOADS)/ruby; \
 	make -j$(NPROC); make install
 
@@ -326,7 +326,7 @@ $(DOWNLOADS)/ruby/configure: $(DOWNLOADS)/ruby/*.c
 	cd $(DOWNLOADS)/ruby; autoreconf -i
 
 $(DOWNLOADS)/ruby/*.c:
-	$(CLONE) $(GITLAB)/mkxp-z/ruby $(DOWNLOADS)/ruby -b symphony-of-war;
+	$(CLONE) $(GITLAB)/mkxp-z/ruby $(DOWNLOADS)/ruby -b mkxp-z-3.1;
 
 # ====
 init_dirs:

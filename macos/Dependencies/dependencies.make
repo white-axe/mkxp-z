@@ -316,12 +316,12 @@ $(DOWNLOADS)/openssl/Configure:
 	cd $(DOWNLOADS)/openssl; git checkout OpenSSL_1_1_1i
 
 # Standard ruby
-ruby: init_dirs openssl $(LIBDIR)/libruby.2.4.dylib
+ruby: init_dirs openssl $(LIBDIR)/libruby.3.1.dylib
 
-$(LIBDIR)/libruby.2.4.dylib: $(DOWNLOADS)/ruby/Makefile
+$(LIBDIR)/libruby.3.1.dylib: $(DOWNLOADS)/ruby/Makefile
 	cd $(DOWNLOADS)/ruby; \
 	$(CONFIGURE_ENV) make -j$(NPROC); $(CONFIGURE_ENV) make install
-	install_name_tool -id @rpath/libruby.2.4.dylib $(LIBDIR)/libruby.2.4.dylib
+	install_name_tool -id @rpath/libruby.3.1.dylib $(LIBDIR)/libruby.3.1.dylib
 
 $(DOWNLOADS)/ruby/Makefile: $(DOWNLOADS)/ruby/configure
 	cd $(DOWNLOADS)/ruby; \
@@ -331,7 +331,7 @@ $(DOWNLOADS)/ruby/configure: $(DOWNLOADS)/ruby/*.c
 	cd $(DOWNLOADS)/ruby; autoreconf -i
 
 $(DOWNLOADS)/ruby/*.c:
-	$(CLONE) $(GITLAB)/mkxp-z/ruby $(DOWNLOADS)/ruby --single-branch -b symphony-of-war;
+	$(CLONE) $(GITLAB)/mkxp-z/ruby $(DOWNLOADS)/ruby --single-branch -b mkxp-z-3.1;
 
 # ====
 init_dirs:
