@@ -3,6 +3,7 @@ TARGETFLAGS := $(TARGETFLAGS) -m$(SDK)-version-min=$(MINIMUM_REQUIRED)
 DEPLOYMENT_TARGET_ENV := $(shell ruby -e 'puts "$(SDK)".upcase')_DEPLOYMENT_TARGET=$(MINIMUM_REQUIRED)
 BUILD_PREFIX := ${PWD}/build-$(SDK)-$(ARCH)
 LIBDIR := $(BUILD_PREFIX)/lib
+BINDIR := $(BUILD_PREFIX)/bin
 INCLUDEDIR := $(BUILD_PREFIX)/include
 DOWNLOADS := ${PWD}/downloads/$(HOST)
 NPROC := $(shell sysctl -n hw.ncpu)
@@ -14,6 +15,9 @@ GIT := git
 CLONE := $(GIT) clone -q
 GITHUB := https://github.com
 GITLAB := https://gitlab.com
+
+
+AC_VER := 2.69
 
 # need to set the build variable because Ruby is picky
 ifeq "$(strip $(shell uname -m))" "arm64"
@@ -47,7 +51,6 @@ RUBY_CONFIGURE_ARGS := \
 	--enable-install-static-library \
 	--enable-shared \
 	--with-out-ext=fiddle,gdbm,win32ole,win32 \
-	--with-static-linked-ext \
 	--disable-rubygems \
 	--disable-install-doc \
 	--build=$(RBUILD) \
@@ -315,23 +318,42 @@ $(DOWNLOADS)/openssl/Configure:
 	$(CLONE) $(GITHUB)/openssl/openssl $(DOWNLOADS)/openssl; \
 	cd $(DOWNLOADS)/openssl; git checkout OpenSSL_1_1_1i
 
-# Standard ruby
-ruby: init_dirs openssl $(LIBDIR)/libruby.3.1.dylib
+# You probably need an old version of autoconf,
+# more recent versions break some things, especially older versions of ruby
 
-$(LIBDIR)/libruby.3.1.dylib: $(DOWNLOADS)/ruby/Makefile
+autoconf: init_dirs $(BINDIR)/autoconf
+
+$(BINDIR)/autoconf: $(DOWNLOADS)/autoconf-$(AC_VER)/Makefile
+	cd $(DOWNLOADS)/autoconf-$(AC_VER); make; make install
+
+$(DOWNLOADS)/autoconf-$(AC_VER)/Makefile: $(DOWNLOADS)/autoconf-$(AC_VER)/configure
+	cd $(DOWNLOADS)/autoconf-$(AC_VER); $(CONFIGURE)
+
+$(DOWNLOADS)/autoconf-$(AC_VER)/configure: $(DOWNLOADS)/autoconf-$(AC_VER).tar.xz
+	cd $(DOWNLOADS); \
+	tar -xJf autoconf-$(AC_VER).tar.xz; \
+
+$(DOWNLOADS)/autoconf-$(AC_VER).tar.xz:
+	curl https://ftp.gnu.org/gnu/autoconf/autoconf-$(AC_VER).tar.xz > $(DOWNLOADS)/autoconf-$(AC_VER).tar.xz
+
+
+# Standard ruby
+ruby: init_dirs autoconf openssl $(LIBDIR)/libruby.2.4.dylib
+
+$(LIBDIR)/libruby.2.4.dylib: $(DOWNLOADS)/ruby/Makefile
 	cd $(DOWNLOADS)/ruby; \
 	$(CONFIGURE_ENV) make -j$(NPROC); $(CONFIGURE_ENV) make install
-	install_name_tool -id @rpath/libruby.3.1.dylib $(LIBDIR)/libruby.3.1.dylib
+	install_name_tool -id @rpath/libruby.2.4.dylib $(LIBDIR)/libruby.2.4.dylib
 
 $(DOWNLOADS)/ruby/Makefile: $(DOWNLOADS)/ruby/configure
 	cd $(DOWNLOADS)/ruby; \
 	$(CONFIGURE) $(RUBY_CONFIGURE_ARGS) $(RUBY_FLAGS)
 
 $(DOWNLOADS)/ruby/configure: $(DOWNLOADS)/ruby/*.c
-	cd $(DOWNLOADS)/ruby; autoreconf -i
+	cd $(DOWNLOADS)/ruby; $(BINDIR)/autoconf
 
 $(DOWNLOADS)/ruby/*.c:
-	$(CLONE) $(GITLAB)/mkxp-z/ruby $(DOWNLOADS)/ruby --single-branch -b mkxp-z-3.1;
+	$(CLONE) $(GITLAB)/mkxp-z/ruby $(DOWNLOADS)/ruby --single-branch -b symphony-of-war;
 
 # ====
 init_dirs:
@@ -348,4 +370,4 @@ clean-compiled:
 	-rm -rf build-$(SDK)-$(ARCH)
 
 deps-core: libtheora libvorbis pixman libpng libjpeg physfs uchardet sdl2 sdl2image sdlsound sdl2ttf openal openssl
-everything: deps-core ruby
+everything: deps-core autoconf ruby

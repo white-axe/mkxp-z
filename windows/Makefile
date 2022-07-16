@@ -10,6 +10,7 @@ RUBY_FLAGS := ${RUBY_FLAGS}
 
 BUILD_PREFIX := ${PWD}/build-$(ARCH)
 LIBDIR := $(BUILD_PREFIX)/lib
+BINDIR := $(BUILD_PREFIX)/bin
 INCLUDEDIR := $(BUILD_PREFIX)/include
 DOWNLOADS := ${PWD}/downloads/$(ARCH)
 NPROC := $(shell nproc)
@@ -21,6 +22,8 @@ GIT := git
 CLONE := $(GIT) clone -q
 GITHUB := https://github.com
 GITLAB := https://gitlab.com
+
+AC_VER := 2.69
 
 CONFIGURE_ENV := \
 	PKG_CONFIG_LIBDIR=$(PKG_CONFIG_LIBDIR) \
@@ -38,7 +41,6 @@ RUBY_CONFIGURE_ARGS := \
 	--enable-install-static-library \
 	--disable-install-doc \
 	--with-out-ext=openssl,readline,dbm,gdbm,win32ole \
-	--with-static-linked-ext \
 	--disable-rubygems \
 	--without-gmp
 
@@ -311,10 +313,28 @@ $(DOWNLOADS)/openssl/Makefile: $(DOWNLOADS)/openssl/Configure
 $(DOWNLOADS)/openssl/Configure:
 	$(CLONE) $(GITHUB)/openssl/openssl $(DOWNLOADS)/openssl -c advice.detachedHead=false --branch OpenSSL_1_1_1i
 
-# Standard ruby
-ruby: init_dirs openssl $(BUILD_PREFIX)/$(RB_PREFIX)-ruby310.dll
+# You probably need an old version of autoconf,
+# more recent versions break some things, especially older versions of ruby
 
-$(BUILD_PREFIX)/$(RB_PREFIX)-ruby310.dll: $(DOWNLOADS)/ruby/Makefile
+autoconf: init_dirs $(BINDIR)/autoconf
+
+$(BINDIR)/autoconf: $(DOWNLOADS)/autoconf-$(AC_VER)/Makefile
+	cd $(DOWNLOADS)/autoconf-$(AC_VER); make; make install
+
+$(DOWNLOADS)/autoconf-$(AC_VER)/Makefile: $(DOWNLOADS)/autoconf-$(AC_VER)/configure
+	cd $(DOWNLOADS)/autoconf-$(AC_VER); $(CONFIGURE)
+
+$(DOWNLOADS)/autoconf-$(AC_VER)/configure: $(DOWNLOADS)/autoconf-$(AC_VER).tar.xz
+	cd $(DOWNLOADS); \
+	tar -xJf autoconf-$(AC_VER).tar.xz; \
+
+$(DOWNLOADS)/autoconf-$(AC_VER).tar.xz:
+	curl https://ftp.gnu.org/gnu/autoconf/autoconf-$(AC_VER).tar.xz > $(DOWNLOADS)/autoconf-$(AC_VER).tar.xz
+
+# Standard ruby
+ruby: init_dirs autoconf openssl $(BUILD_PREFIX)/$(RB_PREFIX)-ruby240.dll
+
+$(BUILD_PREFIX)/$(RB_PREFIX)-ruby240.dll: $(DOWNLOADS)/ruby/Makefile
 	cd $(DOWNLOADS)/ruby; \
 	make -j$(NPROC); make install
 
@@ -323,10 +343,10 @@ $(DOWNLOADS)/ruby/Makefile: $(DOWNLOADS)/ruby/configure
 	$(CONFIGURE) $(RUBY_CONFIGURE_ARGS) $(RUBY_FLAGS)
 
 $(DOWNLOADS)/ruby/configure: $(DOWNLOADS)/ruby/*.c
-	cd $(DOWNLOADS)/ruby; autoreconf -i
+	cd $(DOWNLOADS)/ruby; $(BINDIR)/autoconf
 
 $(DOWNLOADS)/ruby/*.c:
-	$(CLONE) $(GITLAB)/mkxp-z/ruby $(DOWNLOADS)/ruby -b mkxp-z-3.1;
+	$(CLONE) $(GITLAB)/mkxp-z/ruby $(DOWNLOADS)/ruby -b symphony-of-war;
 
 # ====
 init_dirs:
@@ -338,4 +358,4 @@ clean-downloads:
 	-rm -rf downloads
 
 deps-core: libtheora libvorbis pixman libpng libjpeg physfs sdl2 sdl2image sdlsound sdl2ttf openal openssl fluidsynth uchardet
-everything: deps-core ruby
+everything: deps-core autoconf ruby
