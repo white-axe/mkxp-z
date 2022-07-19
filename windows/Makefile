@@ -230,7 +230,7 @@ $(LIBDIR)/libnyquist.a: $(DOWNLOADS)/libnyquist/cmakebuild/Makefile
 $(DOWNLOADS)/libnyquist/cmakebuild/Makefile: $(DOWNLOADS)/libnyquist/CMakeLists.txt
 	cd $(DOWNLOADS)/libnyquist; mkdir -p cmakebuild; cd cmakebuild; \
 	$(CMAKE) \
-	-DLIBNYQUIST_BUILD_EXAMPLES=no \
+	-DLIBNYQUIST_BUILD_EXAMPLE=no \
 	-DCMAKE_CXX_STANDARD=11
 
 $(DOWNLOADS)/libnyquist/CMakeLists.txt:
