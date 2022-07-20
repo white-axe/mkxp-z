@@ -3438,10 +3438,11 @@
 					"$(PROJECT_DIR)/Dependencies/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.12.2;
-				ONLY_ACTIVE_ARCH = NO;
+				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = "-fdeclspec";
 				PRODUCT_BUNDLE_IDENTIFIER = "org.zoro.mkxp-z";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
 				WARNING_CFLAGS = "-Wno-documentation";
 			};
 			name = Debug;
@@ -3511,6 +3512,7 @@
 				OTHER_CFLAGS = "-fdeclspec";
 				PRODUCT_BUNDLE_IDENTIFIER = "org.zoro.mkxp-z";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
 				WARNING_CFLAGS = "-Wno-documentation";
 			};
 			name = Release;
