@@ -3132,8 +3132,8 @@
 					"$(DEPENDENCY_SEARCH_PATH)/include/ruby-$(MRI_VERSION)",
 					"$(DEPENDENCY_SEARCH_PATH)/include/ruby-$(MRI_VERSION)/-darwin",
 					"$(DEPENDENCY_SEARCH_PATH)/include/AL",
-					"$(DEPENDENCY_SEARCH_PATH)/include/uchardet",
 					"$(DEPENDENCY_SEARCH_PATH)/include/openssl",
+					"$(DEPENDENCY_SEARCH_PATH)/include/uchardet",
 					"$(PROJECT_DIR)/Dependencies/Frameworks/ANGLE",
 				);
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -3214,8 +3214,8 @@
 					"$(DEPENDENCY_SEARCH_PATH)/include/ruby-$(MRI_VERSION)",
 					"$(DEPENDENCY_SEARCH_PATH)/include/ruby-$(MRI_VERSION)/-darwin",
 					"$(DEPENDENCY_SEARCH_PATH)/include/AL",
-					"$(DEPENDENCY_SEARCH_PATH)/include/uchardet",
 					"$(DEPENDENCY_SEARCH_PATH)/include/openssl",
+					"$(DEPENDENCY_SEARCH_PATH)/include/uchardet",
 					"$(PROJECT_DIR)/Dependencies/Frameworks/ANGLE",
 				);
 				LD_RUNPATH_SEARCH_PATHS = (
