@@ -1105,6 +1105,7 @@
 		96573E7A27913B46002C3E77 /* TouchBar.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = TouchBar.mm; path = views/TouchBar.mm; sourceTree = "<group>"; };
 		96573E7B27913B46002C3E77 /* TouchBar.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; name = TouchBar.h; path = views/TouchBar.h; sourceTree = "<group>"; };
 		96573E80279152DC002C3E77 /* TouchBar.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = TouchBar.xcassets; path = views/TouchBar.xcassets; sourceTree = "<group>"; };
+		968CB90E288E46F4008BC75D /* rapidcsv.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = rapidcsv.h; sourceTree = "<group>"; };
 		96D8EDD028728DCA00A331EA /* gamecontrollerdb.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = gamecontrollerdb.txt; path = ../assets/gamecontrollerdb.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -1394,6 +1395,7 @@
 				3B1BC0DF266F7C0C00794D22 /* iniconfig.h */,
 				3B1BC0E0266F7C0C00794D22 /* iniconfig.cpp */,
 				3B609374268274CE0038E9D6 /* encoding.h */,
+				968CB90E288E46F4008BC75D /* rapidcsv.h */,
 			);
 			path = util;
 			sourceTree = "<group>";
