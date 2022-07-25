@@ -703,7 +703,7 @@ RB_METHOD(mkxpParseCSV) {
     VALUE ret = rb_ary_new();
     std::stringstream stream(RSTRING_PTR(str));
     try {
-        rapidcsv::Document doc(stream);
+        rapidcsv::Document doc(stream, rapidcsv::LabelParams(), rapidcsv::SeparatorParams(',', false, true, true, true));
         for (int r = 0; r < doc.GetRowCount(); r++) {
             VALUE col = rb_ary_new();
             for (int c = 0; c < doc.GetColumnCount(); c++) {
