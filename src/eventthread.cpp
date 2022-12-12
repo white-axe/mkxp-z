@@ -152,11 +152,11 @@ void EventThread::process(RGSSThreadData &rtData)
     fullscreen = rtData.config.fullscreen;
     int toggleFSMod = rtData.config.anyAltToggleFS ? KMOD_ALT : KMOD_LALT;
     
-    if (rtData.config.printFPS)
+    bool displayingFPS = rtData.config.displayFPS;
+    
+    if (displayingFPS || rtData.config.printFPS)
         fps.sendUpdates.set();
-    
-    bool displayingFPS = false;
-    
+
     bool cursorInWindow = false;
     /* Will be updated eventually */
     SDL_Rect gameScreen = { 0, 0, 0, 0 };
