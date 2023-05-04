@@ -10,6 +10,11 @@ jobs:
     name: Windows
     runs-on: windows-latest
     steps:
+      - uses: benjlevesque/short-sha@v2.2
+        id: short-sha
+        with:
+          length: 6
+
       - uses: msys2/setup-msys2@v2
         with:
           msystem: mingw64
@@ -63,7 +68,7 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: mkxp-z.windows.${{github.ref_name}}-${{github.sha}}
+          name: mkxp-z.windows.${{github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: |
             build/artifact/*.dll
             build/artifact/*.exe
@@ -71,9 +76,14 @@ jobs:
             build/artifact/stdlib/
 
   build-linux:
-    name: Linux x86_64
-    runs-on: ubuntu-latest
+    name: Ubuntu 22.04
+    runs-on: ubuntu-22.04
     steps:
+      - uses: benjlevesque/short-sha@v2.2
+        id: short-sha
+        with:
+          length: 6
+
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -109,13 +119,18 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: mkxp-z.linux.${{github.ref_name}}-${{github.sha}}
+          name: mkxp-z.linux.${{github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/local/
 
   build-macos:
     name: macOS
     runs-on: macos-latest
     steps:
+      - uses: benjlevesque/short-sha@v2.2
+        id: short-sha
+        with:
+          length: 6
+
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -126,7 +141,7 @@ jobs:
             macos/Dependencies/build-macosx-arm64
             macos/Dependencies/build-macosx-universal
             macos/Dependencies/downloads
-          key: mac-${{ hashFiles('macos/Dependencies/dependencies.make,macos/Dependencies/.Intel,macos/Dependencies/.AppleSilicon,macos/Dependencies/setup,macos/Dependencies/make_macuniversal') }}
+          key: mac-${{ hashFiles('macos/Dependencies/*.make', 'macos/Dependencies/*.sh') }}
 
       - name: Install Homebrew tools
         run: |
@@ -151,5 +166,5 @@ jobs:
       - name: Upload archive
         uses: actions/upload-artifact@v3
         with:
-          name: mkxp-z.macos.${{github.ref_name}}-${{github.sha}}
+          name: mkxp-z.macos.${{github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/Build/Products/Release/Z-universal.app.zip
