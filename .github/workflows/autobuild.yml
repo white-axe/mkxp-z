@@ -27,6 +27,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - uses: actions/cache@v3
+        with:
+          path: |
+            windows/build-mingw64
+            windows/downloads
+          key: win-${{ hashFiles('windows/Makefile') }}
+
       - name: Build all dependencies
         shell: msys2 {0}
         run: |
@@ -70,6 +77,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - uses: actions/cache@v3
+        with:
+          path: |
+            linux/build-x86_64
+            linux/downloads
+          key: lin-${{ hashFiles('linux/Makefile') }}
+
       - name: Install apt dependencies
         run: sudo apt install git build-essential cmake meson autoconf automake libtool pkg-config ruby bison zlib1g-dev libbz2-dev xorg-dev libgl1-mesa-dev libasound2-dev libpulse-dev -y
 
@@ -104,6 +118,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            macos/Dependencies/build-macosx-x86_64
+            macos/Dependencies/build-macosx-arm64
+            macos/Dependencies/build-macosx-universal
+            macos/Dependencies/downloads
+          key: mac-${{ hashFiles('macos/Dependencies/dependencies.make,macos/Dependencies/.Intel,macos/Dependencies/.AppleSilicon,macos/Dependencies/setup,macos/Dependencies/make_macuniversal') }}
 
       - name: Install Homebrew tools
         run: |
