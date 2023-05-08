@@ -164,7 +164,7 @@ $(DOWNLOADS)/physfs/cmakebuild/Makefile: $(DOWNLOADS)/physfs/CMakeLists.txt
 	$(CMAKE) -DPHYSFS_BUILD_STATIC=true -DPHYSFS_BUILD_SHARED=false
 
 $(DOWNLOADS)/physfs/CMakeLists.txt:
-	$(CLONE) $(GITHUB)/mkxp-z/physfs $(DOWNLOADS)/physfs
+	$(CLONE) $(GITHUB)/mkxp-z/physfs -b release-3.2.0 $(DOWNLOADS)/physfs
 
 # libpng
 libpng: init_dirs $(LIBDIR)/libpng.a
@@ -198,19 +198,17 @@ $(DOWNLOADS)/libjpeg/CMakeLists.txt:
 # SDL2
 sdl2: init_dirs $(LIBDIR)/libSDL2.a
 
-$(LIBDIR)/libSDL2.a: $(DOWNLOADS)/sdl2/Makefile
+$(LIBDIR)/libSDL2.a: $(DOWNLOADS)/sdl2/cmakebuild/Makefile
+	cd $(DOWNLOADS)/sdl2/cmakebuild; \
+	make -j$(NPROC); make install
+
+$(DOWNLOADS)/sdl2/cmakebuild/Makefile: $(DOWNLOADS)/sdl2/CMakeLists.txt
 	cd $(DOWNLOADS)/sdl2; \
-	make -j$(NPROC); make install;
+	mkdir cmakebuild; cd cmakebuild; \
+	$(CMAKE) -DBUILD_SHARED_LIBS=no
 
-$(DOWNLOADS)/sdl2/Makefile: $(DOWNLOADS)/sdl2/configure
-	cd $(DOWNLOADS)/sdl2; \
-	$(CONFIGURE) --enable-static=true --enable-shared=false $(SDL_FLAGS)
-
-$(DOWNLOADS)/sdl2/configure: $(DOWNLOADS)/sdl2/autogen.sh
-	cd $(DOWNLOADS)/sdl2; ./autogen.sh
-
-$(DOWNLOADS)/sdl2/autogen.sh:
-	$(CLONE) $(GITHUB)/mkxp-z/SDL $(DOWNLOADS)/sdl2 -b mkxp-z; cd $(DOWNLOADS)/sdl2
+$(DOWNLOADS)/sdl2/CMakeLists.txt:
+	$(CLONE) $(GITHUB)/mkxp-z/SDL $(DOWNLOADS)/sdl2 -b mkxp-z-2.26
 
 # SDL2 (Image)
 sdl2image: init_dirs sdl2 libpng libjpeg $(LIBDIR)/libSDL2_image.a
@@ -325,15 +323,18 @@ $(DOWNLOADS)/openssl/Configure:
 	$(CLONE) $(GITHUB)/openssl/openssl $(DOWNLOADS)/openssl --single-branch --branch OpenSSL_1_1_1i --depth 1
 
 # Standard ruby
-ruby: init_dirs openssl $(BUILD_PREFIX)/libruby.so.3.1
+ruby: init_dirs openssl $(LIBDIR)/libruby.so.3.1
 
-$(BUILD_PREFIX)/libruby.so.3.1: $(DOWNLOADS)/ruby/Makefile
+$(LIBDIR)/libruby.so.3.1: $(DOWNLOADS)/ruby/Makefile
 	cd $(DOWNLOADS)/ruby; \
 	make -j$(NPROC); make install
 
 $(DOWNLOADS)/ruby/Makefile: $(DOWNLOADS)/ruby/configure
 	cd $(DOWNLOADS)/ruby; \
-	$(CONFIGURE) $(RUBY_CONFIGURE_ARGS) $(RUBY_FLAGS)
+	export $(CONFIGURE_ENV); \
+	export CFLAGS="-flto $$CFLAGS"; \
+	export LDFLAGS="-flto $$LDFLAGS"; \
+	./configure $(CONFIGURE_ARGS) $(RUBY_CONFIGURE_ARGS) $(RUBY_FLAGS)
 
 $(DOWNLOADS)/ruby/configure: $(DOWNLOADS)/ruby/*.c
 	cd $(DOWNLOADS)/ruby; autoreconf -i

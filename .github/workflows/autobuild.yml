@@ -13,7 +13,7 @@ jobs:
       - uses: benjlevesque/short-sha@v2.2
         id: short-sha
         with:
-          length: 6
+          length: 7
 
       - uses: msys2/setup-msys2@v2
         with:
@@ -82,7 +82,7 @@ jobs:
       - uses: benjlevesque/short-sha@v2.2
         id: short-sha
         with:
-          length: 6
+          length: 7
 
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -129,7 +129,13 @@ jobs:
       - uses: benjlevesque/short-sha@v2.2
         id: short-sha
         with:
-          length: 6
+          length: 7
+
+      - name: Remove pre-existing homebrew packages
+        run: |
+          export PKGS=$(brew list)
+          echo "$PKGS"
+          brew remove --force $PKGS
 
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -151,7 +157,7 @@ jobs:
       - name: Build all dependencies
         run: |
           cd macos/Dependencies
-          ./setup
+          ./setup.sh
 
       - name: Build app
         run: |

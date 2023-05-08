@@ -1,14 +1,13 @@
-SDKROOT := $(shell xcrun -sdk $(SDK) --show-sdk-path)
-TARGETFLAGS := $(TARGETFLAGS) -m$(SDK)-version-min=$(MINIMUM_REQUIRED)
-DEPLOYMENT_TARGET_ENV := $(shell ruby -e 'puts "$(SDK)".upcase')_DEPLOYMENT_TARGET=$(MINIMUM_REQUIRED)
-BUILD_PREFIX := ${PWD}/build-$(SDK)-$(ARCH)
+TARGETFLAGS := $(TARGETFLAGS) -mmacosx-version-min=$(MINIMUM_REQUIRED)
+DEPLOYMENT_TARGET_ENV := MACOSX_DEPLOYMENT_TARGET=$(MINIMUM_REQUIRED)
+BUILD_PREFIX := ${PWD}/build-macosx-$(ARCH)
 LIBDIR := $(BUILD_PREFIX)/lib
 INCLUDEDIR := $(BUILD_PREFIX)/include
 DOWNLOADS := ${PWD}/downloads/$(HOST)
 NPROC := $(shell sysctl -n hw.ncpu)
 CFLAGS := -I$(INCLUDEDIR) $(TARGETFLAGS) $(DEFINES) -O3
 LDFLAGS := -L$(LIBDIR)
-CC      := xcrun -sdk $(SDK) clang -arch $(ARCH) -isysroot $(SDKROOT)
+CC      := clang -arch $(ARCH)
 PKG_CONFIG_LIBDIR := $(BUILD_PREFIX)/lib/pkgconfig
 GIT := git
 CLONE := $(GIT) clone -q
@@ -34,7 +33,6 @@ CONFIGURE_ARGS := \
 CMAKE_ARGS := \
 	-DCMAKE_INSTALL_PREFIX="$(BUILD_PREFIX)" \
 	-DCMAKE_PREFIX_PATH="$(BUILD_PREFIX)" \
-	-DCMAKE_OSX_SYSROOT=$(SDKROOT) \
 	-DCMAKE_OSX_ARCHITECTURES=$(ARCH) \
 	-DCMAKE_OSX_DEPLOYMENT_TARGET=$(MINIMUM_REQUIRED) \
 	-DCMAKE_C_FLAGS="$(CFLAGS)" \
@@ -50,6 +48,7 @@ RUBY_CONFIGURE_ARGS := \
 	--with-out-ext=fiddle,gdbm,win32ole,win32 \
 	--with-static-linked-ext \
 	--disable-rubygems \
+	--without-gmp \
 	--disable-install-doc \
 	--build=$(RBUILD) \
 	${EXTRA_RUBY_CONFIG_ARGS}
@@ -161,7 +160,7 @@ $(DOWNLOADS)/physfs/cmakebuild/Makefile: $(DOWNLOADS)/physfs/CMakeLists.txt
 	$(CMAKE) -DPHYSFS_BUILD_STATIC=true -DPHYSFS_BUILD_SHARED=false
 
 $(DOWNLOADS)/physfs/CMakeLists.txt:
-	$(CLONE) $(GITHUB)/mkxp-z/physfs $(DOWNLOADS)/physfs
+	$(CLONE) $(GITHUB)/mkxp-z/physfs -b release-3.2.0 $(DOWNLOADS)/physfs
 
 # libpng
 libpng: init_dirs $(LIBDIR)/libpng.a
@@ -181,20 +180,17 @@ $(DOWNLOADS)/libpng/configure:
 # SDL2
 sdl2: init_dirs $(LIBDIR)/libSDL2.a
 
-$(LIBDIR)/libSDL2.a: $(DOWNLOADS)/sdl2/Makefile
+$(LIBDIR)/libSDL2.a: $(DOWNLOADS)/sdl2/cmakebuild/Makefile
+	cd $(DOWNLOADS)/sdl2/cmakebuild; \
+	make -j$(NPROC); make install
+
+$(DOWNLOADS)/sdl2/cmakebuild/Makefile: $(DOWNLOADS)/sdl2/CMakeLists.txt
 	cd $(DOWNLOADS)/sdl2; \
-	make -j$(NPROC); make install;
+	mkdir cmakebuild; cd cmakebuild; \
+	$(CMAKE) -DBUILD_SHARED_LIBS=no
 
-$(DOWNLOADS)/sdl2/Makefile: $(DOWNLOADS)/sdl2/configure
-	cd $(DOWNLOADS)/sdl2; \
-	$(CONFIGURE) --enable-static=true --enable-shared=false \
-	--enable-video-x11=false $(SDL_FLAGS)
-
-$(DOWNLOADS)/sdl2/configure: $(DOWNLOADS)/sdl2/autogen.sh
-	cd $(DOWNLOADS)/sdl2; ./autogen.sh
-
-$(DOWNLOADS)/sdl2/autogen.sh:
-	$(CLONE) $(GITHUB)/mkxp-z/SDL $(DOWNLOADS)/sdl2 -b mkxp-z; cd $(DOWNLOADS)/sdl2
+$(DOWNLOADS)/sdl2/CMakeLists.txt:
+	$(CLONE) $(GITHUB)/mkxp-z/SDL $(DOWNLOADS)/sdl2 -b mkxp-z-2.26
 	
 # SDL_image
 sdl2image: init_dirs sdl2 $(LIBDIR)/libSDL2_image.a
@@ -311,7 +307,10 @@ $(LIBDIR)/libruby.3.1.dylib: $(DOWNLOADS)/ruby/Makefile
 
 $(DOWNLOADS)/ruby/Makefile: $(DOWNLOADS)/ruby/configure
 	cd $(DOWNLOADS)/ruby; \
-	$(CONFIGURE) $(RUBY_CONFIGURE_ARGS) $(RUBY_FLAGS)
+	export $(CONFIGURE_ENV); \
+	export CFLAGS="-flto=full -DRUBY_FUNCTION_NAME_STRING=__func__ $$CFLAGS"; \
+	export LDFLAGS="-flto=full $$LDFLAGS"; \
+	./configure $(CONFIGURE_ARGS) $(RUBY_CONFIGURE_ARGS) $(RUBY_FLAGS)
 
 $(DOWNLOADS)/ruby/configure: $(DOWNLOADS)/ruby/*.c
 	cd $(DOWNLOADS)/ruby; autoreconf -i
@@ -331,7 +330,7 @@ clean-downloads:
 	-rm -rf downloads/$(HOST)
 
 clean-compiled:
-	-rm -rf build-$(SDK)-$(ARCH)
+	-rm -rf build-macosx-$(ARCH)
 
 deps-core: libtheora libvorbis pixman libpng physfs uchardet sdl2 sdl2image sdlsound sdl2ttf openal openssl
 everything: deps-core ruby
