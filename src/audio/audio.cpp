@@ -213,9 +213,9 @@ struct AudioPrivate
                             
                             if (!track->noResumeStop)
                                 track->stream.play();
+                            
+                            meWatch.state = MeNotPlaying;
                         }
-                        
-                        meWatch.state = MeNotPlaying;
                         
                         track->unlockStream();
                     }
@@ -296,8 +296,12 @@ void Audio::bgmPlay(const char *filename,
                     int track)
 {
     if (track == -127) {
-        for (auto track : p->bgmTracks)
-            track->stop();
+        for (int i = 0; i < (int)p->bgmTracks.size(); i++) {
+            if (i == 0) {
+                continue;
+            }
+            p->bgmTracks[i]->stop();
+        }
         
         track = 0;
     }
