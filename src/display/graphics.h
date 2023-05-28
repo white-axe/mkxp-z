@@ -58,6 +58,11 @@ public:
 
 	int width() const;
 	int height() const;
+	int widthHires() const;
+	int heightHires() const;
+	bool isPingPongFramebufferActive() const;
+    int displayContentWidth() const;
+    int displayContentHeight() const;
     int displayWidth() const;
     int displayHeight() const;
 	void resizeScreen(int width, int height);
