@@ -1152,6 +1152,15 @@ void Graphics::update(bool checkForShutdown) {
     p->threadData->rqWindowAdjust.wait();
     p->last_update = shState->runTime();
     
+    // update Input.repeat timing, rounding the framerate to the nearest 2
+    {
+        static const double mult = 2.0;
+        double afr = std::abs(averageFrameRate()); // abs shouldn't be necessary but that's ok
+        afr += mult / 2;
+        afr -= std::fmod(afr, mult);
+        shState->input().recalcRepeat(std::floor(afr));
+    }
+    
     if (checkForShutdown)
         p->checkShutDownReset();
     
@@ -1315,7 +1324,7 @@ void Graphics::setFrameRate(int value) {
         return;
     
     p->fpsLimiter.setDesiredFPS(p->frameRate);
-    shState->input().recalcRepeat((unsigned int)p->frameRate);
+    //shState->input().recalcRepeat((unsigned int)p->frameRate);
 }
 
 double Graphics::averageFrameRate() {
