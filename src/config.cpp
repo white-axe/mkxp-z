@@ -174,7 +174,7 @@ void Config::read(int argc, char *argv[]) {
         {"BGMTrackCount", 1},
         {"customScript", ""},
         {"pathCache", true},
-        {"useScriptNames", 1},
+        {"useScriptNames", true},
         {"preloadScript", json::array({})},
         {"RTP", json::array({})},
         {"fontSub", json::array({})},
