@@ -328,6 +328,13 @@ void EventThread::process(RGSSThreadData &rtData)
                 
                 if (event.key.keysym.scancode == SDL_SCANCODE_F1 && rtData.config.enableSettings)
                 {
+                    // Do not open settings menu until initializing shared state.
+                    // Opening before initializing shared state will crash (segmentation fault).
+                    if (!shState)
+                    {
+                        break;
+                    }
+
 #ifndef MKXPZ_BUILD_XCODE
                     if (!sMenu)
                     {
