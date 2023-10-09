@@ -208,11 +208,14 @@ $(DOWNLOADS)/sdl2_image/cmakebuild/Makefile: $(DOWNLOADS)/sdl2_image/CMakeLists.
 	-DSDL2IMAGE_JPG_SHARED=no \
 	-DSDL2IMAGE_JXL=yes \
 	-DSDL2IMAGE_JXL_SHARED=no \
-	-DSDL2IMAGE_BACKEND_IMAGEIO=no
+	-DSDL2IMAGE_BACKEND_IMAGEIO=no \
+	-DSDL2IMAGE_VENDORED=yes
 	
 
 $(DOWNLOADS)/sdl2_image/CMakeLists.txt:
-	$(CLONE) $(GITHUB)/mkxp-z/SDL_image $(DOWNLOADS)/sdl2_image -b mkxp-z
+	$(CLONE) $(GITHUB)/mkxp-z/SDL_image $(DOWNLOADS)/sdl2_image -b mkxp-z; \
+	cd $(DOWNLOADS)/sdl2_image; \
+	./external/download.sh
 
 
 # SDL_sound
