@@ -5,6 +5,9 @@ on:
   push:
     branches: ['dev', 'autobuild']
     paths-ignore: ['*.md', '*.json', '*.png']
+  pull_request:
+    branches: ['dev', 'autobuild']
+    paths-ignore: ['*.md', '*.json', '*.png']
 
 jobs:
   build-windows:
