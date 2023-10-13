@@ -8,6 +8,8 @@ sdl2 = dependency('SDL2', static: build_static)
 sdl_sound = compilers['cpp'].find_library('SDL2_sound')
 sdl2_ttf = dependency('SDL2_ttf', static: build_static)
 freetype = dependency('freetype2', static: build_static)
+# As currently no pkg-config file is generated for sdl2_image, and pkg-config is the default option for meson detecting dependencies, pkg-config will fail to find sdl2_image.pc in the build's lib/pkgconfig folder and instead pull it from the locally installed packages if it exists.
+# Changing the dependency search method to cmake allows meson to prioritize the version of sdl2_image we are building instead.
 sdl2_image = dependency('SDL2_image', modules: ['SDL2_image::SDL2_image-static', 'SDL2_image::brotlidec-static', 'SDL2_image::brotlicommon-static', 'SDL2_image::hwy', 'SDL2_image::jxl_dec-static'], static: build_static, method: 'cmake')
 pixman = dependency('pixman-1', static: build_static)
 png = dependency('libpng', static: build_static)
