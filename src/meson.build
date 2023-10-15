@@ -15,12 +15,9 @@ uchardet = dependency('uchardet', static: build_static)
 
 # As no pkg-config file is generated for sdl2_image, and pkg-config is the default option for meson detecting dependencies, pkg-config will fail to find sdl2_image.pc in the build's lib/pkgconfig folder and instead pull it from the locally installed packages if it exists.
 # We should first check to see if cmake can find our sdl2_image sub project and use that, then check using pkg-config as normal if we are not building the sub project.
-sdl2_image_cmake = dependency('SDL2_image', modules: ['SDL2_image::SDL2_image-static', 'SDL2_image::brotlidec-static', 'SDL2_image::brotlicommon-static', 'SDL2_image::hwy', 'SDL2_image::jxl_dec-static'], static: build_static, method: 'cmake', required: false)
-if sdl2_image_cmake.found() == true
-    global_dependencies += [sdl2_image_cmake]
-else
+sdl2_image = dependency('SDL2_image', modules: ['SDL2_image::SDL2_image-static', 'SDL2_image::brotlidec-static', 'SDL2_image::brotlicommon-static', 'SDL2_image::hwy', 'SDL2_image::jxl_dec-static'], static: build_static, method: 'cmake', required: false)
+if sdl2_image.found() == false
     sdl2_image = dependency('SDL2_image', modules: ['SDL2_image::SDL2_image-static', 'SDL2_image::brotlidec-static', 'SDL2_image::brotlicommon-static', 'SDL2_image::hwy', 'SDL2_image::jxl_dec-static'], static: build_static)
-    global_dependencies += [sdl2_image]
 endif
 
 if host_system == 'windows'
@@ -91,7 +88,7 @@ global_include_dirs += include_directories('.',
     'util', 'util/sigslot', 'util/sigslot/adapter'
 )
 
-global_dependencies += [openal, zlib, bz2, sdl2, sdl_sound, pixman, physfs, theora, vorbisfile, vorbis, ogg, sdl2_ttf, freetype, png, iconv, uchardet]
+global_dependencies += [openal, zlib, bz2, sdl2, sdl_sound, pixman, physfs, theora, vorbisfile, vorbis, ogg, sdl2_ttf, freetype, sdl2_image, png, iconv, uchardet]
 if host_system == 'windows'
     global_dependencies += compilers['cpp'].find_library('wsock32')
 endif
