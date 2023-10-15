@@ -42,6 +42,13 @@
     // "rgssVersion": 1,
 
 
+    // Continuously display average FPS in window title.
+    // This can always be toggled with F2 at runtime.
+    // (default: disabled)
+    //
+    // "displayFPS": false,
+
+
     // Continuously print average FPS to console.
     // This setting does not affect the window title
     // FPS display toggled via F2
