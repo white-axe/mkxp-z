@@ -8,13 +8,20 @@ sdl2 = dependency('SDL2', static: build_static)
 sdl_sound = compilers['cpp'].find_library('SDL2_sound')
 sdl2_ttf = dependency('SDL2_ttf', static: build_static)
 freetype = dependency('freetype2', static: build_static)
-# As currently no pkg-config file is generated for sdl2_image, and pkg-config is the default option for meson detecting dependencies, pkg-config will fail to find sdl2_image.pc in the build's lib/pkgconfig folder and instead pull it from the locally installed packages if it exists.
-# Changing the dependency search method to cmake allows meson to prioritize the version of sdl2_image we are building instead.
-sdl2_image = dependency('SDL2_image', modules: ['SDL2_image::SDL2_image-static', 'SDL2_image::brotlidec-static', 'SDL2_image::brotlicommon-static', 'SDL2_image::hwy', 'SDL2_image::jxl_dec-static'], static: build_static, method: 'cmake')
 pixman = dependency('pixman-1', static: build_static)
 png = dependency('libpng', static: build_static)
 zlib = dependency('zlib', static: build_static)
 uchardet = dependency('uchardet', static: build_static)
+
+# As no pkg-config file is generated for sdl2_image, and pkg-config is the default option for meson detecting dependencies, pkg-config will fail to find sdl2_image.pc in the build's lib/pkgconfig folder and instead pull it from the locally installed packages if it exists.
+# We should first check to see if cmake can find our sdl2_image sub project and use that, then check using pkg-config as normal if we are not building the sub project.
+sdl2_image_cmake = dependency('SDL2_image', modules: ['SDL2_image::SDL2_image-static', 'SDL2_image::brotlidec-static', 'SDL2_image::brotlicommon-static', 'SDL2_image::hwy', 'SDL2_image::jxl_dec-static'], static: build_static, method: 'cmake', required: false)
+sdl2_image = dependency('SDL2_image', modules: ['SDL2_image::SDL2_image-static', 'SDL2_image::brotlidec-static', 'SDL2_image::brotlicommon-static', 'SDL2_image::hwy', 'SDL2_image::jxl_dec-static'], static: build_static)
+if sdl2_image_cmake.found() == true
+    global_dependencies += [sdl2_image_cmake]
+else
+    global_dependencies += [sdl2_image]
+endif
 
 if host_system == 'windows'
     bz2 = dependency('bzip2', static: build_static)
@@ -84,7 +91,7 @@ global_include_dirs += include_directories('.',
     'util', 'util/sigslot', 'util/sigslot/adapter'
 )
 
-global_dependencies += [openal, zlib, bz2, sdl2, sdl_sound, pixman, physfs, theora, vorbisfile, vorbis, ogg, sdl2_ttf, freetype, sdl2_image, png, iconv, uchardet]
+global_dependencies += [openal, zlib, bz2, sdl2, sdl_sound, pixman, physfs, theora, vorbisfile, vorbis, ogg, sdl2_ttf, freetype, png, iconv, uchardet]
 if host_system == 'windows'
     global_dependencies += compilers['cpp'].find_library('wsock32')
 endif
