@@ -25,6 +25,8 @@ Despite the fact that it was made with Essentials games in mind, there is nothin
 
 It supports Windows, Linux and both Intel and Apple Silicon versions of macOS.
 
+It is licensed under the GNU General Public License v2+.
+
 ## Bindings
 Bindings provide the glue code for an interpreted language environment to run game scripts in. mkxp-z focuses on MRI and as such the mruby and null bindings are not included.
 
