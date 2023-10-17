@@ -51,8 +51,11 @@ In the RMXP version of RGSS, fonts are loaded directly from system specific sear
 If a requested font is not found, no error is generated. Instead, a built-in font is used. By default, this font is Liberation Sans.
 
 ## What doesn't work
+
 * wma audio files
-* Creating Bitmaps with sizes greater than your hardware's texture size limit (around 16384 on modern cards).
+* Creating Bitmaps with sizes greater than your hardware's texture size limit.
+  * To find the limit of various GPU's, [the OpenGL Hardware Database](https://opengl.gpuinfo.org/displaycapability.php?name=GL_MAX_TEXTURE_SIZE) is useful.
+  * Modern GPU's tend to have a limit of 32 kibipixels for NVIDIA, 16 kibipixels for AMD, Intel, Apple, and LLVMpipe, and 8 kibipixels for Mali and PowerVR. You should check the above database to be sure.
   * There is an exception to this, called *mega surface*. When a Bitmap bigger than the texture limit is created from a file, it is not stored in VRAM, but regular RAM. Its sole purpose is to be used as a tileset bitmap. Any other operation to it (besides blitting to a regular Bitmap) will result in an error.
  
 ## Notable Thanks
