@@ -66,8 +66,8 @@ public:
 	         const Bitmap &source, IntRect rect,
 	         int opacity = 255);
 
-	void stretchBlt(const IntRect &destRect,
-	                const Bitmap &source, const IntRect &sourceRect,
+	void stretchBlt(IntRect destRect,
+	                const Bitmap &source, IntRect sourceRect,
 	                int opacity = 255);
 
 	void fillRect(int x, int y,
