@@ -63,7 +63,7 @@ public:
 	IntRect rect() const;
 
 	void blt(int x, int y,
-	         const Bitmap &source, IntRect rect,
+	         const Bitmap &source, const IntRect &rect,
 	         int opacity = 255);
 
 	void stretchBlt(IntRect destRect,
