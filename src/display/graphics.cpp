@@ -1083,14 +1083,7 @@ struct GraphicsPrivate {
         
         swapGLBuffer();
         
-        SDL_LockMutex(avgFPSLock);
-        if (avgFPSData.size() > 40)
-            avgFPSData.erase(avgFPSData.begin());
-        
-        double time = shState->runTime();
-        avgFPSData.push_back(time - last_avg_update);
-        last_avg_update = time;
-        SDL_UnlockMutex(avgFPSLock);
+        updateAvgFPS();
     }
     
     void checkSyncLock() {
@@ -1129,6 +1122,17 @@ struct GraphicsPrivate {
         if (!(force || multithreadedMode)) return;
         
         SDL_UnlockMutex(glResourceLock);
+    }
+
+    void updateAvgFPS() {
+        SDL_LockMutex(avgFPSLock);
+        if (avgFPSData.size() > 40)
+            avgFPSData.erase(avgFPSData.begin());
+        
+        double time = shState->runTime();
+        avgFPSData.push_back(time - last_avg_update);
+        last_avg_update = time;
+        SDL_UnlockMutex(avgFPSLock);
     }
 };
 
@@ -1309,6 +1313,8 @@ void Graphics::transition(int duration, const char *filename, int vague) {
         GLMeta::blitEnd();
         
         p->swapGLBuffer();
+        /* Call this manually, as redrawScreen() is not called during this loop. */
+        p->updateAvgFPS();
     }
     
     glState.blend.pop();
