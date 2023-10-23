@@ -1058,128 +1058,164 @@ void Bitmap::stretchBlt(IntRect destRect,
         return;
     
     SDL_Surface *srcSurf = source.megaSurface();
+    SDL_Surface *blitTemp = 0;
+    bool touchesTaintedArea = p->touchesTaintedArea(destRect);
     
-    if (srcSurf && shState->config().subImageFix)
-    {
-        /* Blit from software surface, for broken GL drivers */
-        Vec2i gpTexSize;
-        shState->ensureTexSize(sourceRect.w, sourceRect.h, gpTexSize);
-        shState->bindTex();
-        
-        GLMeta::subRectImageUpload(srcSurf->w, sourceRect.x, sourceRect.y, 0, 0,
-                                   sourceRect.w, sourceRect.h, srcSurf, GL_RGBA);
-        GLMeta::subRectImageEnd();
-        
-        SimpleShader &shader = shState->shaders().simple;
-        shader.bind();
-        shader.setTranslation(Vec2i());
-        shader.setTexSize(gpTexSize);
-        
-        p->pushSetViewport(shader);
-        p->bindFBO();
-        
-        Quad &quad = shState->gpQuad();
-        quad.setTexRect(FloatRect(0, 0, sourceRect.w, sourceRect.h));
-        quad.setPosRect(destRect);
-        
-        p->blitQuad(quad);
-        p->popViewport();
-        
-        p->addTaintedArea(destRect);
-        p->onModified();
-        
-        return;
-    }
-    else if (srcSurf)
-    {
-        /* Blit from software surface */
-        /* Don't do transparent blits for now */
-        if (opacity < 255)
-            source.ensureNonMega();
-        
-        SDL_Rect srcRect = sourceRect;
-        SDL_Rect dstRect = destRect;
-        SDL_Rect btmRect = { 0, 0, width(), height() };
-        SDL_Rect bltRect;
-        
-        if (SDL_IntersectRect(&btmRect, &dstRect, &bltRect) != SDL_TRUE)
-            return;
-        
-        int bpp;
-        Uint32 rMask, gMask, bMask, aMask;
-        SDL_PixelFormatEnumToMasks(SDL_PIXELFORMAT_ABGR8888,
-                                   &bpp, &rMask, &gMask, &bMask, &aMask);
-        SDL_Surface *blitTemp =
-        SDL_CreateRGBSurface(0, destRect.w, destRect.h, bpp, rMask, gMask, bMask, aMask);
-        
-        SDL_BlitScaled(srcSurf, &srcRect, blitTemp, 0);
-        
-        TEX::bind(getGLTypes().tex);
-        
-        if (bltRect.w == dstRect.w && bltRect.h == dstRect.h)
-        {
-            /* Dest rectangle lies within bounding box */
-            TEX::uploadSubImage(destRect.x, destRect.y,
-                                destRect.w, destRect.h,
-                                blitTemp->pixels, GL_RGBA);
-        }
-        else
-        {
-            /* Clipped blit */
-            GLMeta::subRectImageUpload(blitTemp->w, bltRect.x - dstRect.x, bltRect.y - dstRect.y,
-                                       bltRect.x, bltRect.y, bltRect.w, bltRect.h, blitTemp, GL_RGBA);
-            GLMeta::subRectImageEnd();
-        }
-        
-        SDL_FreeSurface(blitTemp);
-        
-        p->onModified();
-        return;
-    }
-    
-    if (opacity == 255 && !p->touchesTaintedArea(destRect))
+    if (!srcSurf && opacity == 255 && !touchesTaintedArea)
     {
         /* Fast blit */
         GLMeta::blitBegin(getGLTypes());
         GLMeta::blitSource(source.getGLTypes());
-        GLMeta::blitRectangle(sourceRect, destRect);
+        GLMeta::blitRectangle(sourceRect, destRect, false);
         GLMeta::blitEnd();
     }
     else
     {
-        /* Fragment pipeline */
-        float normOpacity = (float) opacity / 255.0f;
-        
-        TEXFBO &gpTex = shState->gpTexFBO(destRect.w, destRect.h);
-        
-        GLMeta::blitBegin(gpTex);
-        GLMeta::blitSource(getGLTypes());
-        GLMeta::blitRectangle(destRect, Vec2i());
-        GLMeta::blitEnd();
-        
-        FloatRect bltSubRect((float) sourceRect.x / source.width(),
-                             (float) sourceRect.y / source.height(),
-                             ((float) source.width() / sourceRect.w) * ((float) destRect.w / gpTex.width),
-                             ((float) source.height() / sourceRect.h) * ((float) destRect.h / gpTex.height));
-        
-        BltShader &shader = shState->shaders().blt;
-        shader.bind();
-        shader.setDestination(gpTex.tex);
-        shader.setSubRect(bltSubRect);
-        shader.setOpacity(normOpacity);
-        
-        Quad &quad = shState->gpQuad();
-        quad.setTexPosRect(sourceRect, destRect);
-        quad.setColor(Vec4(1, 1, 1, normOpacity));
-        
-        source.p->bindTexture(shader, false);
-        p->bindFBO();
-        p->pushSetViewport(shader);
-        
-        p->blitQuad(quad);
-        
-        p->popViewport();
+        if (srcSurf)
+        {
+            SDL_Rect srcRect = sourceRect;
+            bool subImageFix = shState->config().subImageFix;
+            bool srcRectTooBig = srcRect.w > glState.caps.maxTexSize ||
+                                 srcRect.h > glState.caps.maxTexSize;
+            bool srcSurfTooBig = srcSurf->w > glState.caps.maxTexSize || 
+                                 srcSurf->h > glState.caps.maxTexSize;
+            
+            if (srcRectTooBig || srcSurfTooBig)
+            {
+                int error;
+                if (srcRectTooBig)
+                {
+                    /* We have to resize it here anyway, so use software resizing */
+                    blitTemp =
+                        SDL_CreateRGBSurface(0, abs(destRect.w), abs(destRect.h), p->format->BitsPerPixel,
+                                             p->format->Rmask, p->format->Gmask,
+                                             p->format->Bmask, p->format->Amask);
+                    if (!blitTemp)
+                        throw Exception(Exception::SDLError, "Error creating temporary surface for blitting: %s",
+                                        SDL_GetError());
+                    
+                    error = SDL_BlitScaled(srcSurf, &srcRect, blitTemp, 0);
+                }
+                else
+                {
+                    /* Just crop it, let the shader resize it later */
+                    blitTemp =
+                        SDL_CreateRGBSurface(0, sourceRect.w, sourceRect.h, p->format->BitsPerPixel,
+                                             p->format->Rmask, p->format->Gmask,
+                                             p->format->Bmask, p->format->Amask);
+                    if (!blitTemp)
+                        throw Exception(Exception::SDLError, "Error creating temporary surface for blitting: %s",
+                                        SDL_GetError());
+                    
+                    error = SDL_BlitSurface(srcSurf, &srcRect, blitTemp, 0);
+                }
+                
+                if (error)
+                {
+                    SDL_FreeSurface(blitTemp);
+                    throw Exception(Exception::SDLError, "Failed to blit surface: %s", SDL_GetError());
+                }
+                
+                srcSurf = blitTemp;
+                
+                sourceRect.w = srcSurf->w;
+                sourceRect.h = srcSurf->h;
+                sourceRect.x = 0;
+                sourceRect.y = 0;
+            }
+            
+            if (opacity == 255 && !touchesTaintedArea)
+            {
+                if (!subImageFix &&
+                    sourceRect.w == destRect.w && sourceRect.h == destRect.h &&
+                    srcSurf->w == sourceRect.w && srcSurf->h == sourceRect.h)
+                {
+                    /* No scaling needed */
+                    TEX::bind(getGLTypes().tex);
+                    TEX::uploadSubImage(destRect.x, destRect.y,
+                                        destRect.w, destRect.h,
+                                        srcSurf->pixels, GL_RGBA);
+                }
+                else
+                {
+                    /* Resizing or subImageFix involved: need to use intermediary TexFBO */
+                    TEXFBO &gpTF = shState->gpTexFBO(srcSurf->w, srcSurf->h);
+                    
+                    TEX::bind(gpTF.tex);
+                    TEX::uploadSubImage(0, 0, srcSurf->w, srcSurf->h, srcSurf->pixels, GL_RGBA);
+                    
+                    GLMeta::blitBegin(getGLTypes());
+                    GLMeta::blitSource(gpTF);
+                    GLMeta::blitRectangle(sourceRect, destRect, false);
+                    GLMeta::blitEnd();
+                }
+            }
+        }
+        if (opacity < 255 || touchesTaintedArea)
+        {
+            /* We're touching a tainted area or still need to reduce opacity */
+             
+            /* Fragment pipeline */
+            float normOpacity = (float) opacity / 255.0f;
+            
+            TEXFBO &gpTex = shState->gpTexFBO(abs(destRect.w), abs(destRect.h));
+            Vec2i gpTexSize;
+            
+            GLMeta::blitBegin(gpTex);
+            GLMeta::blitSource(getGLTypes());
+            GLMeta::blitRectangle(destRect, IntRect(0, 0, abs(destRect.w), abs(destRect.h)));
+            GLMeta::blitEnd();
+            
+            int sourceWidth, sourceHeight;
+            FloatRect bltSubRect;
+            if (srcSurf)
+            {
+                shState->ensureTexSize(srcSurf->w, srcSurf->h, gpTexSize);
+                sourceWidth = gpTexSize.x;
+                sourceHeight = gpTexSize.y;
+            }
+            else
+            {
+                sourceWidth = source.width();
+                sourceHeight = source.height();
+            }
+            bltSubRect = FloatRect((float) sourceRect.x / sourceWidth,
+                                   (float) sourceRect.y / sourceHeight,
+                                   ((float) sourceWidth / sourceRect.w) * ((float) abs(destRect.w) / gpTex.width),
+                                   ((float) sourceHeight / sourceRect.h) * ((float) abs(destRect.h) / gpTex.height));
+            
+            BltShader &shader = shState->shaders().blt;
+            shader.bind();
+            if (srcSurf)
+            {
+                shState->bindTex();
+                TEX::uploadSubImage(0, 0, srcSurf->w, srcSurf->h, srcSurf->pixels, GL_RGBA);
+                shader.setTexSize(gpTexSize);
+            }
+            else
+            {
+                source.p->bindTexture(shader, false);
+            }
+            shader.setSource();
+            shader.setDestination(gpTex.tex);
+            shader.setSubRect(bltSubRect);
+            shader.setOpacity(normOpacity);
+            
+            Quad &quad = shState->gpQuad();
+            quad.setTexPosRect(sourceRect, destRect);
+            quad.setColor(Vec4(1, 1, 1, normOpacity));
+            
+            p->bindFBO();
+            p->pushSetViewport(shader);
+            
+            p->blitQuad(quad);
+            
+            p->popViewport();
+        }
     }
+    
+    if (blitTemp)
+        SDL_FreeSurface(blitTemp);
     
     p->addTaintedArea(destRect);
     p->onModified();
