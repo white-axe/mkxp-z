@@ -125,9 +125,10 @@ global_include_dirs += include_directories('src', 'binding')
 rpath = ''
 
 if host_system == 'windows'
-    subdir('windows')
+    windows_resource_directory = get_option('windows_resource_directory')
+    subdir(windows_resource_directory)
     global_sources += windows_resources
-    global_include_dirs += include_directories('windows')
+    global_include_dirs += include_directories(windows_resource_directory)
 else
     subdir('linux')
     rpath = '$ORIGIN/lib'
