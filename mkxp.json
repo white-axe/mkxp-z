@@ -77,18 +77,15 @@
     // "fixedAspectRatio": true,
 
 
-    // Apply linear interpolation when game screen
+    // Apply smooth interpolation when game screen
     // is upscaled
-    // (default: disabled)
+    // 0: Nearest-Neighbor
+    // 1: Bilinear
+    // 2: (Reserved)
+    // 3: Lanczos3
+    // (default: 0)
     //
-    // "smoothScaling": false,
-
-
-    // Apply Lanczos3 interpolation when game screen
-    // is upscaled (typically higher quality than linear)
-    // (default: disabled)
-    //
-    // "lanczos3Scaling": false,
+    // "smoothScaling": 0,
 
 
     // Replace the game's Bitmap files with external high-res files
