@@ -324,8 +324,10 @@
     //
     // "pathCache": true,
 
-    // Add 'rtp1', 'rtp2.zip' and 'game.rgssad' to the
-    // asset search path (multiple allowed)
+    // Add 'rtp1', 'rtp2.zip' and 'game.rgssad' to the asset search path
+    // (multiple allowed). You can use folders, RGSS archives, and any archive
+    // formats supported by PhysicsFS; see the compatibility list at:
+    // https://www.icculus.org/physfs/docs/html/
     // (default: none)
     //
     // "RTP": ["/path/to/rtp1",
