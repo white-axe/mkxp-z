@@ -181,6 +181,7 @@ void Config::read(int argc, char *argv[]) {
         {"useScriptNames", 1},
         {"preloadScript", json::array({})},
         {"RTP", json::array({})},
+        {"patches", json::array({})},
         {"fontSub", json::array({})},
         {"rubyLoadpath", json::array({})},
         {"JITEnable", false},
@@ -297,6 +298,7 @@ try { exp } catch (...) {}
     
     fillStringVec(opts["preloadScript"], preloadScripts);
     fillStringVec(opts["RTP"], rtps);
+    fillStringVec(opts["patches"], patches);
     fillStringVec(opts["fontSub"], fontSubs);
     fillStringVec(opts["rubyLoadpath"], rubyLoadpaths);
     
