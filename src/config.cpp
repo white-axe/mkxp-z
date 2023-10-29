@@ -276,6 +276,9 @@ try { exp } catch (...) {}
     SET_OPT(frameSkip, boolean);
     SET_OPT(syncToRefreshrate, boolean);
     fillStringVec(opts["solidFonts"], solidFonts);
+    for (std::string & solidFont : solidFonts)
+        std::transform(solidFont.begin(), solidFont.end(), solidFont.begin(),
+            [](unsigned char c) { return std::tolower(c); });
 #ifdef __APPLE__
     SET_OPT(preferMetalRenderer, boolean);
 #endif
@@ -298,6 +301,9 @@ try { exp } catch (...) {}
     fillStringVec(opts["preloadScript"], preloadScripts);
     fillStringVec(opts["RTP"], rtps);
     fillStringVec(opts["fontSub"], fontSubs);
+    for (std::string & fontSub : fontSubs)
+        std::transform(fontSub.begin(), fontSub.end(), fontSub.begin(),
+            [](unsigned char c) { return std::tolower(c); });
     fillStringVec(opts["rubyLoadpath"], rubyLoadpaths);
     
     auto &bnames = opts["bindingNames"].as_object();

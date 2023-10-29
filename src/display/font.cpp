@@ -32,6 +32,8 @@
 
 #include <string>
 #include <utility>
+#include <algorithm>
+#include <cctype>
 
 #ifdef MKXPZ_BUILD_XCODE
 #include "filesystem/filesystem.h"
@@ -149,6 +151,9 @@ void SharedFontState::initFontSetCB(SDL_RWops &ops,
 	std::string family = TTF_FontFaceFamilyName(font);
 	std::string style = TTF_FontFaceStyleName(font);
 
+	std::transform(family.begin(), family.end(), family.begin(),
+		[](unsigned char c){ return std::tolower(c); });
+
 	TTF_CloseFont(font);
 
 	FontSet &set = p->sets[family];
@@ -162,6 +167,9 @@ void SharedFontState::initFontSetCB(SDL_RWops &ops,
 _TTF_Font *SharedFontState::getFont(std::string family,
                                     int size)
 {
+	std::transform(family.begin(), family.end(), family.begin(),
+		[](unsigned char c){ return std::tolower(c); });
+
 	if (family.empty())
 		family = p->defaultFamily;
 
@@ -219,6 +227,9 @@ _TTF_Font *SharedFontState::getFont(std::string family,
 
 bool SharedFontState::fontPresent(std::string family) const
 {
+	std::transform(family.begin(), family.end(), family.begin(),
+		[](unsigned char c){ return std::tolower(c); });
+
 	/* Check for substitutions */
 	if (p->subs.contains(family))
 		family = p->subs[family];
