@@ -28,6 +28,8 @@
 #include "util.h"
 #include "config.h"
 
+#include "debugwriter.h"
+
 #include <string>
 #include <utility>
 
@@ -251,6 +253,17 @@ void pickExistingFontName(const std::vector<std::string> &names,
 		{
 			out = names[i];
 			return;
+		}
+		else
+		{
+			if (i == 0)
+			{
+				Debug() << "Primary font not found:" << names[i];
+			}
+			else
+			{
+				Debug() << "Fallback font not found:" << names[i];
+			}
 		}
 	}
 
