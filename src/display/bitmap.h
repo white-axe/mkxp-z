@@ -68,7 +68,7 @@ public:
 
 	void stretchBlt(IntRect destRect,
 	                const Bitmap &source, IntRect sourceRect,
-	                int opacity = 255);
+	                int opacity = 255, bool smooth = false);
 
 	void fillRect(int x, int y,
 	              int width, int height,

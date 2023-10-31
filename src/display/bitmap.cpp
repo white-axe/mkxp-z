@@ -1007,7 +1007,7 @@ static bool shrinkRects(int &sourcePos, int &sourceLen, const int &sBitmapLen,
 
 void Bitmap::stretchBlt(IntRect destRect,
                         const Bitmap &source, IntRect sourceRect,
-                        int opacity)
+                        int opacity, bool smooth)
 {
     guardDisposed();
 
@@ -1058,7 +1058,7 @@ void Bitmap::stretchBlt(IntRect destRect,
         /* Fast blit */
         GLMeta::blitBegin(getGLTypes());
         GLMeta::blitSource(source.getGLTypes());
-        GLMeta::blitRectangle(sourceRect, destRect, false);
+        GLMeta::blitRectangle(sourceRect, destRect, smooth);
         GLMeta::blitEnd();
     }
     else
@@ -1138,7 +1138,7 @@ void Bitmap::stretchBlt(IntRect destRect,
                     
                     GLMeta::blitBegin(getGLTypes());
                     GLMeta::blitSource(gpTF);
-                    GLMeta::blitRectangle(sourceRect, destRect, false);
+                    GLMeta::blitRectangle(sourceRect, destRect, smooth);
                     GLMeta::blitEnd();
                 }
             }
@@ -1200,9 +1200,15 @@ void Bitmap::stretchBlt(IntRect destRect,
             p->bindFBO();
             p->pushSetViewport(shader);
             
+            if (smooth)
+                TEX::setSmooth(true);
+            
             p->blitQuad(quad);
             
             p->popViewport();
+            
+            if (smooth)
+                TEX::setSmooth(false);
         }
     }
     
@@ -1948,8 +1954,6 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
     SDL_Color c = fontColor.toSDLColor();
     c.a = 255;
     
-    float txtAlpha = fontColor.norm.w;
-    
     SDL_Surface *txtSurf;
     
     if (p->font->isSolid())
@@ -2021,131 +2025,20 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
     if (squeeze > 1)
         squeeze = 1;
     
-    FloatRect posRect(alignX, alignY, txtSurf->w * squeeze, txtSurf->h);
+    IntRect destRect(alignX, alignY, 0, 0);
+    destRect.w = std::min(rect.w, (int)(txtSurf->w * squeeze));
+    destRect.h = std::min(rect.h, txtSurf->h);
     
-    Vec2i gpTexSize;
-    shState->ensureTexSize(txtSurf->w, txtSurf->h, gpTexSize);
+    destRect.w = std::min(destRect.w, width() - destRect.x);
+    destRect.h = std::min(destRect.h, height() - destRect.y);
     
-    bool fastBlit = !p->touchesTaintedArea(posRect) && txtAlpha == 1.0f;
+    IntRect sourceRect;
+    sourceRect.w = destRect.w / squeeze;
+    sourceRect.h = destRect.h;
     
-    if (fastBlit)
-    {
-        if (squeeze == 1.0f && !shState->config().subImageFix)
-        {
-            /* Even faster: upload directly to bitmap texture.
-             * We have to make sure the posRect lies within the texture
-             * boundaries or texSubImage will generate errors.
-             * If it partly lies outside bounds we have to upload
-             * the clipped visible part of it. */
-            SDL_Rect btmRect;
-            btmRect.x = btmRect.y = 0;
-            btmRect.w = width();
-            btmRect.h = height();
-            
-            SDL_Rect txtRect;
-            txtRect.x = posRect.x;
-            txtRect.y = posRect.y;
-            txtRect.w = posRect.w;
-            txtRect.h = posRect.h;
-            
-            SDL_Rect inters;
-            
-            /* If we have no intersection at all,
-             * there's nothing to upload to begin with */
-            if (SDL_IntersectRect(&btmRect, &txtRect, &inters))
-            {
-                bool subImage = false;
-                int subSrcX = 0, subSrcY = 0;
-                
-                if (inters.w != txtRect.w || inters.h != txtRect.h)
-                {
-                    /* Clip the text surface */
-                    subSrcX = inters.x - txtRect.x;
-                    subSrcY = inters.y - txtRect.y;
-                    subImage = true;
-                    
-                    posRect.x = inters.x;
-                    posRect.y = inters.y;
-                    posRect.w = inters.w;
-                    posRect.h = inters.h;
-                }
-                
-                TEX::bind(p->gl.tex);
-                
-                if (!subImage)
-                {
-                    TEX::uploadSubImage(posRect.x, posRect.y,
-                                        posRect.w, posRect.h,
-                                        txtSurf->pixels, GL_RGBA);
-                }
-                else
-                {
-                    GLMeta::subRectImageUpload(txtSurf->w, subSrcX, subSrcY,
-                                               posRect.x, posRect.y,
-                                               posRect.w, posRect.h,
-                                               txtSurf, GL_RGBA);
-                    GLMeta::subRectImageEnd();
-                }
-            }
-        }
-        else
-        {
-            /* Squeezing involved: need to use intermediary TexFBO */
-            TEXFBO &gpTF = shState->gpTexFBO(txtSurf->w, txtSurf->h);
-            
-            TEX::bind(gpTF.tex);
-            TEX::uploadSubImage(0, 0, txtSurf->w, txtSurf->h, txtSurf->pixels, GL_RGBA);
-            
-            GLMeta::blitBegin(p->gl);
-            GLMeta::blitSource(gpTF);
-            GLMeta::blitRectangle(IntRect(0, 0, txtSurf->w, txtSurf->h),
-                                  posRect, true);
-            GLMeta::blitEnd();
-        }
-    }
-    else
-    {
-        /* Aquire a partial copy of the destination
-         * buffer we're about to render to */
-        TEXFBO &gpTex2 = shState->gpTexFBO(posRect.w, posRect.h);
-        
-        GLMeta::blitBegin(gpTex2);
-        GLMeta::blitSource(p->gl);
-        GLMeta::blitRectangle(posRect, Vec2i());
-        GLMeta::blitEnd();
-        
-        FloatRect bltRect(0, 0,
-                          (float) (gpTexSize.x * squeeze) / gpTex2.width,
-                          (float) gpTexSize.y / gpTex2.height);
-        
-        BltShader &shader = shState->shaders().blt;
-        shader.bind();
-        shader.setTexSize(gpTexSize);
-        shader.setSource();
-        shader.setDestination(gpTex2.tex);
-        shader.setSubRect(bltRect);
-        shader.setOpacity(txtAlpha);
-        
-        shState->bindTex();
-        TEX::uploadSubImage(0, 0, txtSurf->w, txtSurf->h, txtSurf->pixels, GL_RGBA);
-        TEX::setSmooth(true);
-        
-        Quad &quad = shState->gpQuad();
-        quad.setTexRect(FloatRect(0, 0, txtSurf->w, txtSurf->h));
-        quad.setPosRect(posRect);
-        
-        p->bindFBO();
-        p->pushSetViewport(shader);
-        
-        p->blitQuad(quad);
-        
-        p->popViewport();
-    }
-    
-    SDL_FreeSurface(txtSurf);
-    p->addTaintedArea(posRect);
-    
-    p->onModified();
+    Bitmap txtBitmap(txtSurf, nullptr, true);
+    bool smooth = squeeze != 1.0f;
+    stretchBlt(destRect, txtBitmap, sourceRect, fontColor.alpha, smooth);
 }
 
 /* http://www.lemoda.net/c/utf8-to-ucs2/index.html */
