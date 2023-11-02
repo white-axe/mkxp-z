@@ -150,7 +150,7 @@
     // A list of fonts to render without alpha blending.
     // (default: none)
     //
-    // "solidFonts": ["Arial", "Times New Roman"]
+    // "solidFonts": ["Arial", "Times New Roman"],
 
 
     // Prefer the use of Metal over OpenGL on macOS.
@@ -284,9 +284,11 @@
     // execution starts
     // (default: none)
     //
-    // "preloadScript": ["scripts/preload/ruby18_wrap.rb",
-    //                   "scripts/preload/mkxp_wrap.rb",
-    //                   "scripts/preload/win32_wrap.rb"],
+    // "preloadScript": [
+    //     "scripts/preload/ruby18_wrap.rb",
+    //     "scripts/preload/mkxp_wrap.rb",
+    //     "scripts/preload/win32_wrap.rb"
+    // ],
 
 
     // Index all accesible assets via their lower case path
@@ -299,9 +301,11 @@
     // asset search path (multiple allowed)
     // (default: none)
     //
-    // "RTP": ["/path/to/rtp1",
-    //         "/path/to/rtp2.zip",
-    //         "/path/to/game.rgssad"],
+    // "RTP": [
+    //     "/path/to/rtp1",
+    //     "/path/to/rtp2.zip",
+    //     "/path/to/game.rgssad"
+    // ],
 
 
     // Use the script's name as filename in warnings and error messages
@@ -321,8 +325,10 @@
     // requested by RGSS.
     // (default: none)
     //
-    // "fontSub": ["Arial>Open Sans",
-    //             "Times New Roman>Liberation Serif"]
+    // "fontSub": [
+    //     "Arial>Open Sans",
+    //     "Times New Roman>Liberation Serif"
+    // ],
 
 
     // Because mkxp is usually distributed as a stand alone
@@ -333,8 +339,10 @@
     // link all required gems into libruby.so.
     // (default: none)
     //
-    // "rubyLoadpath": ["/usr/lib64/ruby/",
-    //                  "/usr/local/share/ruby/site_ruby"],
+    // "rubyLoadpath": [
+    //     "/usr/lib64/ruby/",
+    //     "/usr/local/share/ruby/site_ruby"
+    // ],
 
     // Determines whether MJIT is enabled. This probably
     // won't work unless you also have the header file
