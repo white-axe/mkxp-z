@@ -152,7 +152,7 @@
     //
     // "solidFonts": [
     //     "Arial",
-    //     "Times New Roman"
+    //     "Times New Roman",
     // ],
 
 
@@ -290,7 +290,7 @@
     // "preloadScript": [
     //     "scripts/preload/ruby18_wrap.rb",
     //     "scripts/preload/mkxp_wrap.rb",
-    //     "scripts/preload/win32_wrap.rb"
+    //     "scripts/preload/win32_wrap.rb",
     // ],
 
 
@@ -307,7 +307,7 @@
     // "RTP": [
     //     "/path/to/rtp1",
     //     "/path/to/rtp2.zip",
-    //     "/path/to/game.rgssad"
+    //     "/path/to/game.rgssad",
     // ],
 
 
@@ -330,7 +330,7 @@
     //
     // "fontSub": [
     //     "Arial>Open Sans",
-    //     "Times New Roman>Liberation Serif"
+    //     "Times New Roman>Liberation Serif",
     // ],
 
 
@@ -344,7 +344,7 @@
     //
     // "rubyLoadpath": [
     //     "/usr/lib64/ruby/",
-    //     "/usr/local/share/ruby/site_ruby"
+    //     "/usr/local/share/ruby/site_ruby",
     // ],
 
     // Determines whether MJIT is enabled. This probably
