@@ -64,7 +64,7 @@ struct ALStream
 	AtomicFlag threadTermReq;
 
 	AtomicFlag needsRewind;
-	float startOffset;
+	double startOffset;
 
 	float pitch;
 
@@ -95,13 +95,13 @@ struct ALStream
 	void close();
 	void open(const std::string &filename);
 	void stop();
-	void play(float offset = 0);
+	void play(double offset = 0);
 	void pause();
 
 	void setVolume(float value);
 	void setPitch(float value);
 	State queryState();
-	float queryOffset();
+	double queryOffset();
 	bool queryNativePitch();
 
 private:
@@ -109,7 +109,7 @@ private:
 	void openSource(const std::string &filename);
 
 	void stopStream();
-	void startStream(float offset);
+	void startStream(double offset);
 	void pauseStream();
 	void resumeStream();
 
