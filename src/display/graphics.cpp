@@ -179,7 +179,9 @@ struct Movie
                 SDL_Delay(VIDEO_DELAY);
             }
         }
-        videoBitmap = new Bitmap(video->width, video->height);
+        // Create this Bitmap without a hires replacement, because we don't
+        // support hires replacement for Movies yet.
+        videoBitmap = new Bitmap(video->width, video->height, true);
         audioQueueHead = NULL;
         audioQueueTail = NULL;
         
