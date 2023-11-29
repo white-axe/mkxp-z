@@ -111,7 +111,7 @@ struct Config {
     std::vector<std::string> fontSubs;
     
     std::vector<std::string> rubyLoadpaths;
-    
+
     /* Editor flags */
     struct {
         bool debug;
@@ -136,6 +136,8 @@ struct Config {
     struct {
         bool enabled;
     } yjit;
+
+    bool dumpAtlas;
 
     // Keybinding action name mappings
     struct {

@@ -460,4 +460,10 @@
     //  "x": ...
     // }
 
+
+    // Dump tile atlas (for debugging purposes)
+    // (default: false)
+    //
+    // "dumpAtlas": false,
+
 }
