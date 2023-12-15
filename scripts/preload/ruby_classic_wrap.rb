@@ -1,6 +1,7 @@
 # ruby_classic_wrap.rb
+# Author: WaywardHeart (2023)
 
-# Creative Commons CC0: To the extent possible under law, the author(s) have
+# Creative Commons CC0: To the extent possible under law, WaywardHeart has
 # dedicated all copyright and related and neighboring rights to this script
 # to the public domain worldwide.
 # https://creativecommons.org/publicdomain/zero/1.0/
