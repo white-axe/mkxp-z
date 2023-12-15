@@ -318,7 +318,7 @@
     // execution starts
     // (default: none)
     //
-    // "preloadScript": ["scripts/preload/ruby18_wrap.rb",
+    // "preloadScript": ["scripts/preload/ruby_classic_wrap.rb",
     //                   "scripts/preload/mkxp_wrap.rb",
     //                   "scripts/preload/win32_wrap.rb"],
 
