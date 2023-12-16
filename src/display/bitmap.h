@@ -42,7 +42,7 @@ public:
 	Bitmap(int width, int height, bool isHires = false);
 	Bitmap(void *pixeldata, int width, int height);
 	Bitmap(TEXFBO &other);
-	Bitmap(SDL_Surface *imgSurf, SDL_Surface *imgSurfHires);
+	Bitmap(SDL_Surface *imgSurf, SDL_Surface *imgSurfHires, bool forceMega = false);
 
 	/* Clone constructor */
     
@@ -50,7 +50,7 @@ public:
 	Bitmap(const Bitmap &other, int frame = -2);
 	~Bitmap();
 
-	void initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool freeSurface);
+	void initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool forceMega = false);
 
 	int width()  const;
 	int height() const;

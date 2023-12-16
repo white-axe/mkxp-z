@@ -621,7 +621,7 @@ Bitmap::Bitmap(const char *filename)
 
     SDL_Surface *imgSurf = handler.surface;
 
-    initFromSurface(imgSurf, hiresBitmap, true);
+    initFromSurface(imgSurf, hiresBitmap, false);
 }
 
 Bitmap::Bitmap(int width, int height, bool isHires)
@@ -789,7 +789,7 @@ Bitmap::Bitmap(TEXFBO &other)
     p->addTaintedArea(rect());
 }
 
-Bitmap::Bitmap(SDL_Surface *imgSurf, SDL_Surface *imgSurfHires)
+Bitmap::Bitmap(SDL_Surface *imgSurf, SDL_Surface *imgSurfHires, bool forceMega)
 {
     Bitmap *hiresBitmap = nullptr;
 
@@ -799,7 +799,7 @@ Bitmap::Bitmap(SDL_Surface *imgSurf, SDL_Surface *imgSurfHires)
         hiresBitmap->setLores(this);
     }
 
-    initFromSurface(imgSurf, hiresBitmap, false);
+    initFromSurface(imgSurf, hiresBitmap, forceMega);
 }
 
 Bitmap::~Bitmap()
@@ -807,17 +807,13 @@ Bitmap::~Bitmap()
     dispose();
 }
 
-void Bitmap::initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool freeSurface)
+void Bitmap::initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool forceMega)
 {
     p->ensureFormat(imgSurf, SDL_PIXELFORMAT_ABGR8888);
     
-    if (imgSurf->w > glState.caps.maxTexSize || imgSurf->h > glState.caps.maxTexSize)
+    if (imgSurf->w > glState.caps.maxTexSize || imgSurf->h > glState.caps.maxTexSize || forceMega)
     {
         /* Mega surface */
-
-        if(!freeSurface) {
-            throw Exception(Exception::RGSSError, "Cloning Mega Bitmap from Surface not supported");
-        }
 
         p = new BitmapPrivate(this);
         p->selfHires = hiresBitmap;
@@ -848,10 +844,6 @@ void Bitmap::initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool fre
         
         TEX::bind(p->gl.tex);
         TEX::uploadImage(p->gl.width, p->gl.height, imgSurf->pixels, GL_RGBA);
-        
-        if (freeSurface) {
-            SDL_FreeSurface(imgSurf);
-        }
     }
     
     p->addTaintedArea(rect());
