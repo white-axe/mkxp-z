@@ -28,6 +28,7 @@
 #include "config.h"
 #include "debugwriter.h"
 #include "disposable.h"
+#include "etc.h"
 #include "etc-internal.h"
 #include "eventthread.h"
 #include "filesystem.h"
@@ -178,7 +179,9 @@ struct Movie
                 SDL_Delay(VIDEO_DELAY);
             }
         }
-        videoBitmap = new Bitmap(video->width, video->height);
+        // Create this Bitmap without a hires replacement, because we don't
+        // support hires replacement for Movies yet.
+        videoBitmap = new Bitmap(video->width, video->height, true);
         audioQueueHead = NULL;
         audioQueueTail = NULL;
         
@@ -772,6 +775,7 @@ struct GraphicsPrivate {
      * RGSS renders at (settable with Graphics.resize_screen).
      * Can only be changed from within RGSS */
     Vec2i scRes;
+    Vec2i scResLores;
     
     /* Screen size, to which the rendered frames are scaled up.
      * This can be smaller than the window size when fixed aspect
@@ -828,7 +832,7 @@ struct GraphicsPrivate {
     IntruList<Disposable> dispList;
     
     GraphicsPrivate(RGSSThreadData *rtData)
-    : scRes(DEF_SCREEN_W, DEF_SCREEN_H), scSize(scRes),
+    : scRes(DEF_SCREEN_W, DEF_SCREEN_H), scResLores(scRes), scSize(scRes),
     winSize(rtData->config.defScreenW, rtData->config.defScreenH),
     screen(scRes.x, scRes.y), threadData(rtData),
     glCtx(SDL_GL_GetCurrentContext()), multithreadedMode(true),
@@ -999,11 +1003,15 @@ struct GraphicsPrivate {
     }
     
     void compositeToBuffer(TEXFBO &buffer) {
+        compositeToBufferScaled(buffer, scRes.x, scRes.y);
+    }
+
+    void compositeToBufferScaled(TEXFBO &buffer, int destWidth, int destHeight) {
         screen.composite();
         
         GLMeta::blitBegin(buffer);
         GLMeta::blitSource(screen.getPP().frontBuffer());
-        GLMeta::blitRectangle(IntRect(0, 0, scRes.x, scRes.y), Vec2i());
+        GLMeta::blitRectangle(IntRect(0, 0, scRes.x, scRes.y), IntRect(0, 0, destWidth, destHeight));
         GLMeta::blitEnd();
     }
     
@@ -1015,13 +1023,13 @@ struct GraphicsPrivate {
                                       (scSize.y + scOffset.y),
                                       scSize.x,
                                       -scSize.y),
-                              threadData->config.smoothScaling);
+                              threadData->config.smoothScaling == Bilinear);
     }
     
     void metaBlitBufferFlippedScaled(const Vec2i &sourceSize, bool forceNearestNeighbor=false) {
         GLMeta::blitRectangle(IntRect(0, 0, sourceSize.x, sourceSize.y),
                               IntRect(scOffset.x, scSize.y+scOffset.y, scSize.x, -scSize.y),
-                              !forceNearestNeighbor && threadData->config.smoothScaling);
+                              !forceNearestNeighbor && threadData->config.smoothScaling == Bilinear);
     }
     
     void redrawScreen() {
@@ -1229,22 +1237,28 @@ void Graphics::transition(int duration, const char *filename, int vague) {
     TransShader &transShader = shState->shaders().trans;
     SimpleTransShader &simpleShader = shState->shaders().simpleTrans;
     
+    // Handle high-res.
+    Vec2i transSize(p->scResLores.x, p->scResLores.y);
+
     if (transMap) {
         TransShader &shader = transShader;
         shader.bind();
         shader.applyViewportProj();
         shader.setFrozenScene(p->frozenScene.tex);
         shader.setCurrentScene(currentScene.tex);
+        if (transMap->hasHires()) {
+            Debug() << "BUG: High-res Graphics transMap not implemented";
+        }
         shader.setTransMap(transMap->getGLTypes().tex);
         shader.setVague(vague / 256.0f);
-        shader.setTexSize(p->scRes);
+        shader.setTexSize(transSize);
     } else {
         SimpleTransShader &shader = simpleShader;
         shader.bind();
         shader.applyViewportProj();
         shader.setFrozenScene(p->frozenScene.tex);
         shader.setCurrentScene(currentScene.tex);
-        shader.setTexSize(p->scRes);
+        shader.setTexSize(transSize);
     }
     
     glState.blend.pushSet(false);
@@ -1389,18 +1403,38 @@ void Graphics::fadein(int duration) {
 }
 
 Bitmap *Graphics::snapToBitmap() {
-    Bitmap *bitmap = new Bitmap(width(), height());
-    
-    p->compositeToBuffer(bitmap->getGLTypes());
-    
-    /* Taint entire bitmap */
-    bitmap->taintArea(IntRect(0, 0, width(), height()));
-    return bitmap;
+    if (shState->config().enableHires) {
+        // TODO: Maybe don't reconstruct this struct every time?
+        TEXFBO tf;
+        tf.width = width();
+        tf.height = height();
+        tf.selfHires = &p->screen.getPP().frontBuffer();
+
+        return new Bitmap(tf);
+    }
+
+    return new Bitmap(p->screen.getPP().frontBuffer());
 }
 
-int Graphics::width() const { return p->scRes.x; }
+int Graphics::width() const { return p->scResLores.x; }
 
-int Graphics::height() const { return p->scRes.y; }
+int Graphics::height() const { return p->scResLores.y; }
+
+int Graphics::widthHires() const { return p->scRes.x; }
+
+int Graphics::heightHires() const { return p->scRes.y; }
+
+bool Graphics::isPingPongFramebufferActive() const {
+    return p->screen.getPP().frontBuffer().fbo == FBO::boundFramebufferID || p->screen.getPP().backBuffer().fbo == FBO::boundFramebufferID;
+}
+
+int Graphics::displayContentWidth() const {
+    return p->scSize.x;
+}
+
+int Graphics::displayContentHeight() const {
+    return p->scSize.y;
+}
 
 int Graphics::displayWidth() const {
     SDL_DisplayMode dm{};
@@ -1418,12 +1452,21 @@ void Graphics::resizeScreen(int width, int height) {
     p->threadData->rqWindowAdjust.wait();
     p->checkResize(true);
     
+    Vec2i sizeLores(width, height);
+
+    if (shState->config().enableHires) {
+        double framebufferScalingFactor = shState->config().framebufferScalingFactor;
+        width = (int)lround(framebufferScalingFactor * width);
+        height = (int)lround(framebufferScalingFactor * height);
+    }
+
     Vec2i size(width, height);
     
     if (p->scRes == size)
         return;
     
     p->scRes = size;
+    p->scResLores = sizeLores;
     
     p->screen.setResolution(width, height);
     
@@ -1459,6 +1502,10 @@ bool Graphics::updateMovieInput(Movie *movie) {
 }
 
 void Graphics::playMovie(const char *filename, int volume_, bool skippable) {
+    if (shState->config().enableHires) {
+        Debug() << "BUG: High-res Graphics playMovie not implemented";
+    }
+
     Movie *movie = new Movie(skippable);
     MovieOpenHandler handler(movie->srcOps);
     shState->fileSystem().openRead(handler, filename);
@@ -1569,13 +1616,13 @@ void Graphics::setFixedAspectRatio(bool value)
     p->updateScreenResoRatio(p->threadData);
 }
 
-bool Graphics::getSmoothScaling() const
+int Graphics::getSmoothScaling() const
 {
     // Same deal as with fixed aspect ratio
     return shState->config().smoothScaling;
 }
 
-void Graphics::setSmoothScaling(bool value)
+void Graphics::setSmoothScaling(int value)
 {
     shState->config().smoothScaling = value;
 }

@@ -91,6 +91,7 @@ public:
 
 protected:
 	void init();
+	virtual bool framebufferScalingAllowed();
 
 	GLint u_texSizeInv, u_translation;
 };
@@ -226,6 +227,9 @@ public:
 
 	void setGray(float value);
 
+protected:
+	virtual bool framebufferScalingAllowed();
+
 private:
 	GLint u_gray;
 };
@@ -337,6 +341,17 @@ protected:
 	GLint u_sourceSize;
 };
 
+class BicubicShader : public Lanczos3Shader
+{
+public:
+	BicubicShader();
+
+	void setSharpness(int sharpness);
+
+protected:
+	GLint u_bc;
+};
+
 /* Global object containing all available shaders */
 struct ShaderSet
 {
@@ -358,6 +373,7 @@ struct ShaderSet
 	SimpleMatrixShader simpleMatrix;
 	BlurShader blur;
 	TilemapVXShader tilemapVX;
+	BicubicShader bicubic;
 	Lanczos3Shader lanczos3;
 };
 

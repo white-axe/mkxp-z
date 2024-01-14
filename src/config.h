@@ -43,8 +43,12 @@ struct Config {
     bool winResizable;
     bool fullscreen;
     bool fixedAspectRatio;
-    bool smoothScaling;
-    bool lanczos3Scaling;
+    int smoothScaling;
+    int bicubicSharpness;
+    bool enableHires;
+    double textureScalingFactor;
+    double framebufferScalingFactor;
+    double atlasScalingFactor;
     bool vsync;
     
     int defScreenW;
@@ -103,11 +107,12 @@ struct Config {
     std::vector<std::string> launchArgs;
     std::vector<std::string> preloadScripts;
     std::vector<std::string> rtps;
+    std::vector<std::string> patches;
     
     std::vector<std::string> fontSubs;
     
     std::vector<std::string> rubyLoadpaths;
-    
+
     /* Editor flags */
     struct {
         bool debug;
@@ -132,6 +137,8 @@ struct Config {
     struct {
         bool enabled;
     } yjit;
+
+    bool dumpAtlas;
 
     // Keybinding action name mappings
     struct {

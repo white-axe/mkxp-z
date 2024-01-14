@@ -77,18 +77,52 @@
     // "fixedAspectRatio": true,
 
 
-    // Apply linear interpolation when game screen
+    // Apply smooth interpolation when game screen
     // is upscaled
-    // (default: disabled)
+    // 0: Nearest-Neighbor
+    // 1: Bilinear
+    // 2: Bicubic
+    // 3: Lanczos3
+    // (default: 0)
     //
-    // "smoothScaling": false,
+    // "smoothScaling": 0,
 
 
-    // Apply Lanczos3 interpolation when game screen
-    // is upscaled (typically higher quality than linear)
+    // Sharpness when using Bicubic scaling.
+    // A good starting range is 0 to 100,
+    // but you may wish to go outside that range in either direction.
+    // (default: 100)
+    //
+    // "bicubicSharpness": 100,
+
+
+    // Replace the game's Bitmap files with external high-res files
+    // provided in the "Hires" directory.
+    // (You'll also need to set the below Scaling Factors.)
     // (default: disabled)
     //
-    // "lanczos3Scaling": false,
+    // "enableHires": false,
+
+
+    // Scaling factor for textures (e.g. Bitmaps)
+    // (higher values will look better if you use high-res textures)
+    // (default: 1.0)
+    //
+    // "textureScalingFactor": 4.0,
+
+
+    // Scaling factor for screen framebuffer
+    // (higher values will look better if you use high-res textures)
+    // (default: 1.0)
+    //
+    // "framebufferScalingFactor": 4.0,
+
+
+    // Scaling factor for tileset atlas
+    // (higher values will look better if you use high-res textures)
+    // (default: 1.0)
+    //
+    // "atlasScalingFactor": 4.0,
 
 
     // Sync screen redraws to the monitor refresh rate
@@ -288,7 +322,7 @@
     // (default: none)
     //
     // "preloadScript": [
-    //     "scripts/preload/ruby18_wrap.rb",
+    //     "scripts/preload/ruby_classic_wrap.rb",
     //     "scripts/preload/mkxp_wrap.rb",
     //     "scripts/preload/win32_wrap.rb",
     // ],
@@ -300,14 +334,26 @@
     //
     // "pathCache": true,
 
-    // Add 'rtp1', 'rtp2.zip' and 'game.rgssad' to the
-    // asset search path (multiple allowed)
+    // Add 'rtp1', 'rtp2.zip' and 'game.rgssad' to the asset search path
+    // (multiple allowed). You can use folders, RGSS archives, and any archive
+    // formats supported by PhysicsFS; see the compatibility list at:
+    // https://www.icculus.org/physfs/docs/html/
     // (default: none)
     //
     // "RTP": [
     //     "/path/to/rtp1",
     //     "/path/to/rtp2.zip",
     //     "/path/to/game.rgssad",
+    // ],
+
+    // Similar to the RTP option, except items are loaded before
+    // the game archive and folder, for incremental game updates
+    // or modding.
+    // (default: none)
+    //
+    // "patches": [
+    //     "/path/to/patch1.zip",
+    //     "/path/to/patch2",
     // ],
 
 
@@ -434,5 +480,11 @@
     //  "b": "Cancel",
     //  "x": ...,
     // },
+
+
+    // Dump tile atlas (for debugging purposes)
+    // (default: false)
+    //
+    // "dumpAtlas": false,
 
 }

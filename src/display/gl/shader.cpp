@@ -20,6 +20,8 @@
 */
 
 #include "shader.h"
+#include "config.h"
+#include "graphics.h"
 #include "sharedstate.h"
 #include "glstate.h"
 #include "exception.h"
@@ -44,6 +46,7 @@
 #include "simpleAlphaUni.frag.xxd"
 #include "tilemap.frag.xxd"
 #include "flashMap.frag.xxd"
+#include "bicubic.frag.xxd"
 #include "lanczos3.frag.xxd"
 #include "minimal.vert.xxd"
 #include "simple.vert.xxd"
@@ -293,8 +296,19 @@ void ShaderBase::init()
 
 void ShaderBase::applyViewportProj()
 {
+	// High-res: scale the matrix if we're rendering to the PingPong framebuffer.
 	const IntRect &vp = glState.viewport.get();
-	projMat.set(Vec2i(vp.w, vp.h));
+	if (shState->config().enableHires && shState->graphics().isPingPongFramebufferActive() && framebufferScalingAllowed()) {
+		projMat.set(Vec2i(shState->graphics().width(), shState->graphics().height()));
+	}
+	else {
+		projMat.set(Vec2i(vp.w, vp.h));
+	}
+}
+
+bool ShaderBase::framebufferScalingAllowed()
+{
+	return true;
 }
 
 void ShaderBase::setTexSize(const Vec2i &value)
@@ -593,6 +607,13 @@ GrayShader::GrayShader()
 	GET_U(gray);
 }
 
+bool GrayShader::framebufferScalingAllowed()
+{
+	// This shader is used with input textures that have already had a
+	// framebuffer scale applied. So we don't want to double-apply it.
+	return false;
+}
+
 void GrayShader::setGray(float value)
 {
 	gl.Uniform1f(u_gray, value);
@@ -745,6 +766,22 @@ void BltShader::setSubRect(const FloatRect &value)
 void BltShader::setOpacity(float value)
 {
 	gl.Uniform1f(u_opacity, value);
+}
+
+BicubicShader::BicubicShader()
+{
+	INIT_SHADER(simple, bicubic, BicubicShader);
+
+	ShaderBase::init();
+
+	GET_U(texOffsetX);
+	GET_U(sourceSize);
+	GET_U(bc);
+}
+
+void BicubicShader::setSharpness(int sharpness)
+{
+	gl.Uniform2f(u_bc, 1.f - sharpness * 0.01f, sharpness * 0.005f);
 }
 
 Lanczos3Shader::Lanczos3Shader()

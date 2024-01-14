@@ -200,6 +200,14 @@ struct Rect : public Serializable
 	sigslot::signal<> valueChanged;
 };
 
+enum InterpolationMethod
+{
+	NearestNeighbor = 0,
+	Bilinear = 1,
+	Bicubic = 2,
+	Lanczos3 = 3,
+};
+
 /* For internal use.
  * All drawable classes have properties of one or more of the above
  * types, which in an interpreted environment act as independent

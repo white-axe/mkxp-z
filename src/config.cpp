@@ -134,8 +134,12 @@ void Config::read(int argc, char *argv[]) {
         {"winResizable", true},
         {"fullscreen", false},
         {"fixedAspectRatio", true},
-        {"smoothScaling", false},
-        {"lanczos3Scaling", false},
+        {"smoothScaling", 0},
+        {"bicubicSharpness", 100},
+        {"enableHires", false},
+        {"textureScalingFactor", 1.},
+        {"framebufferScalingFactor", 1.},
+        {"atlasScalingFactor", 1.},
         {"vsync", false},
         {"defScreenW", 0},
         {"defScreenH", 0},
@@ -174,9 +178,10 @@ void Config::read(int argc, char *argv[]) {
         {"BGMTrackCount", 1},
         {"customScript", ""},
         {"pathCache", true},
-        {"useScriptNames", 1},
+        {"useScriptNames", true},
         {"preloadScript", json::array({})},
         {"RTP", json::array({})},
+        {"patches", json::array({})},
         {"fontSub", json::array({})},
         {"rubyLoadpath", json::array({})},
         {"JITEnable", false},
@@ -184,6 +189,7 @@ void Config::read(int argc, char *argv[]) {
         {"JITMaxCache", 100},
         {"JITMinCalls", 10000},
         {"YJITEnable", false},
+        {"dumpAtlas", false},
         {"bindingNames", json::object({
             {"a", "A"},
             {"b", "B"},
@@ -259,8 +265,12 @@ try { exp } catch (...) {}
     SET_OPT(printFPS, boolean);
     SET_OPT(fullscreen, boolean);
     SET_OPT(fixedAspectRatio, boolean);
-    SET_OPT(smoothScaling, boolean);
-    SET_OPT(lanczos3Scaling, boolean);
+    SET_OPT(smoothScaling, integer);
+    SET_OPT(bicubicSharpness, integer);
+    SET_OPT(enableHires, boolean);
+    SET_OPT(textureScalingFactor, number);
+    SET_OPT(framebufferScalingFactor, number);
+    SET_OPT(atlasScalingFactor, number);
     SET_OPT(winResizable, boolean);
     SET_OPT(vsync, boolean);
     SET_STRINGOPT(windowTitle, windowTitle);
@@ -268,6 +278,9 @@ try { exp } catch (...) {}
     SET_OPT(frameSkip, boolean);
     SET_OPT(syncToRefreshrate, boolean);
     fillStringVec(opts["solidFonts"], solidFonts);
+    for (std::string & solidFont : solidFonts)
+        std::transform(solidFont.begin(), solidFont.end(), solidFont.begin(),
+            [](unsigned char c) { return std::tolower(c); });
 #ifdef __APPLE__
     SET_OPT(preferMetalRenderer, boolean);
 #endif
@@ -286,10 +299,15 @@ try { exp } catch (...) {}
     SET_OPT_CUSTOMKEY(BGM.trackCount, BGMTrackCount, integer);
     SET_STRINGOPT(customScript, customScript);
     SET_OPT(useScriptNames, boolean);
+    SET_OPT(dumpAtlas, boolean);
     
     fillStringVec(opts["preloadScript"], preloadScripts);
     fillStringVec(opts["RTP"], rtps);
+    fillStringVec(opts["patches"], patches);
     fillStringVec(opts["fontSub"], fontSubs);
+    for (std::string & fontSub : fontSubs)
+        std::transform(fontSub.begin(), fontSub.end(), fontSub.begin(),
+            [](unsigned char c) { return std::tolower(c); });
     fillStringVec(opts["rubyLoadpath"], rubyLoadpaths);
     
     auto &bnames = opts["bindingNames"].as_object();

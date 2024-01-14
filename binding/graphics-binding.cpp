@@ -19,6 +19,7 @@
  ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
 #include "graphics.h"
 #include "sharedstate.h"
 #include "binding-util.h"
@@ -367,7 +368,7 @@ DEF_GRA_PROP_B(ShowCursor)
 DEF_GRA_PROP_F(Scale)
 DEF_GRA_PROP_B(Frameskip)
 DEF_GRA_PROP_B(FixedAspectRatio)
-DEF_GRA_PROP_B(SmoothScaling)
+DEF_GRA_PROP_I(SmoothScaling)
 DEF_GRA_PROP_B(IntegerScaling)
 DEF_GRA_PROP_B(LastMileScaling)
 DEF_GRA_PROP_B(Threadsafe)

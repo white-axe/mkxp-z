@@ -39,16 +39,24 @@ class Bitmap : public Disposable
 {
 public:
 	Bitmap(const char *filename);
-	Bitmap(int width, int height);
-    Bitmap(void *pixeldata, int width, int height);
+	Bitmap(int width, int height, bool isHires = false);
+	Bitmap(void *pixeldata, int width, int height);
+	Bitmap(TEXFBO &other);
+	Bitmap(SDL_Surface *imgSurf, SDL_Surface *imgSurfHires);
+
 	/* Clone constructor */
     
     // frame is -2 for "any and all", -1 for "current", anything else for a specific frame
 	Bitmap(const Bitmap &other, int frame = -2);
 	~Bitmap();
 
+	void initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool freeSurface);
+
 	int width()  const;
 	int height() const;
+	bool hasHires() const;
+	DECL_ATTR(Hires, Bitmap*)
+	void setLores(Bitmap *lores);
 	bool isMega() const;
     bool isAnimated() const;
 
@@ -160,6 +168,8 @@ public:
 	static int maxSize();
     
     bool invalid() const;
+
+    void assumeRubyGC();
 
 private:
 	void releaseResources();
