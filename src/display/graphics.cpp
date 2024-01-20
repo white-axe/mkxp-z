@@ -1403,6 +1403,8 @@ void Graphics::fadein(int duration) {
 }
 
 Bitmap *Graphics::snapToBitmap() {
+    p->screen.composite();
+
     if (shState->config().enableHires) {
         // TODO: Maybe don't reconstruct this struct every time?
         TEXFBO tf;
