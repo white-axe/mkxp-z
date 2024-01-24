@@ -65,9 +65,10 @@ void vaoBind(VAO &vao);
 void vaoUnbind(VAO &vao);
 
 /* EXT_framebuffer_blit */
-void blitBegin(TEXFBO &target, bool preferHires = false);
-void blitBeginScreen(const Vec2i &size);
-void blitSource(TEXFBO &source);
+bool blitScaleIsOne(TEXFBO &target, bool targetPreferHires, const IntRect &targetRect, TEXFBO &source, const IntRect &sourceRect);
+void blitBegin(TEXFBO &target, bool preferHires = false, bool scaleIsOne = false);
+void blitBeginScreen(const Vec2i &size, bool scaleIsOne = false);
+void blitSource(TEXFBO &source, bool scaleIsOne = false);
 void blitRectangle(const IntRect &src, const Vec2i &dstPos);
 void blitRectangle(const IntRect &src, const IntRect &dst,
                    bool smooth = false);

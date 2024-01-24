@@ -543,8 +543,10 @@ public:
                  * be turned on, so turn it off temporarily */
                 glState.scissorTest.pushSet(false);
                 
-                GLMeta::blitBegin(pp.frontBuffer());
-                GLMeta::blitSource(pp.backBuffer());
+                bool scaleIsOne = GLMeta::blitScaleIsOne(pp.frontBuffer(), false, geometry.rect, pp.backBuffer(), geometry.rect);
+
+                GLMeta::blitBegin(pp.frontBuffer(), false, scaleIsOne);
+                GLMeta::blitSource(pp.backBuffer(), scaleIsOne);
                 GLMeta::blitRectangle(geometry.rect, Vec2i());
                 GLMeta::blitEnd();
                 
@@ -1009,8 +1011,10 @@ struct GraphicsPrivate {
     void compositeToBufferScaled(TEXFBO &buffer, int destWidth, int destHeight) {
         screen.composite();
         
-        GLMeta::blitBegin(buffer);
-        GLMeta::blitSource(screen.getPP().frontBuffer());
+        bool scaleIsOne = GLMeta::blitScaleIsOne(buffer, false, IntRect(0, 0, destWidth, destHeight), screen.getPP().frontBuffer(), IntRect(0, 0, scRes.x, scRes.y));
+
+        GLMeta::blitBegin(buffer, false, scaleIsOne);
+        GLMeta::blitSource(screen.getPP().frontBuffer(), scaleIsOne);
         GLMeta::blitRectangle(IntRect(0, 0, scRes.x, scRes.y), IntRect(0, 0, destWidth, destHeight));
         GLMeta::blitEnd();
     }
@@ -1038,8 +1042,10 @@ struct GraphicsPrivate {
         // maybe unspaghetti this later
         if (integerScaleStepApplicable() && !integerLastMileScaling)
         {
-            GLMeta::blitBeginScreen(winSize);
-            GLMeta::blitSource(screen.getPP().frontBuffer());
+            bool scaleIsOne = GLMeta::blitScaleIsOne(integerScaleBuffer, false, IntRect(0, 0, scSize.x, scSize.y), screen.getPP().frontBuffer(), IntRect(0, 0, scRes.x, scRes.y));
+
+            GLMeta::blitBeginScreen(winSize, scaleIsOne);
+            GLMeta::blitSource(screen.getPP().frontBuffer(), scaleIsOne);
             
             FBO::clear();
             metaBlitBufferFlippedScaled(scRes, true);
@@ -1051,9 +1057,11 @@ struct GraphicsPrivate {
         
         if (integerScaleStepApplicable())
         {
+            bool scaleIsOne = GLMeta::blitScaleIsOne(integerScaleBuffer, false, IntRect(0, 0, integerScaleBuffer.width, integerScaleBuffer.height), screen.getPP().frontBuffer(), IntRect(0, 0, scRes.x, scRes.y));
+
             assert(integerScaleBuffer.tex != TEX::ID(0));
-            GLMeta::blitBegin(integerScaleBuffer);
-            GLMeta::blitSource(screen.getPP().frontBuffer());
+            GLMeta::blitBegin(integerScaleBuffer, false, scaleIsOne);
+            GLMeta::blitSource(screen.getPP().frontBuffer(), scaleIsOne);
             
             GLMeta::blitRectangle(IntRect(0, 0, scRes.x, scRes.y),
                                   IntRect(0, 0, integerScaleBuffer.width, integerScaleBuffer.height),
@@ -1062,20 +1070,30 @@ struct GraphicsPrivate {
             GLMeta::blitEnd();
         }
         
-        GLMeta::blitBeginScreen(winSize);
-        //GLMeta::blitSource(screen.getPP().frontBuffer());
-        
+
         Vec2i sourceSize;
-        
+
         if (integerScaleActive)
         {
-            GLMeta::blitSource(integerScaleBuffer);
             sourceSize = Vec2i(integerScaleBuffer.width, integerScaleBuffer.height);
         }
         else
         {
-            GLMeta::blitSource(screen.getPP().frontBuffer());
             sourceSize = scRes;
+        }
+
+        bool scaleIsOne = GLMeta::blitScaleIsOne(integerScaleBuffer, false, IntRect(0, 0, scSize.x, scSize.y), integerScaleActive ? integerScaleBuffer : screen.getPP().frontBuffer(), IntRect(0, 0, sourceSize.x, sourceSize.y));
+
+        GLMeta::blitBeginScreen(winSize, scaleIsOne);
+        //GLMeta::blitSource(screen.getPP().frontBuffer(), scaleIsOne);
+
+        if (integerScaleActive)
+        {
+            GLMeta::blitSource(integerScaleBuffer, scaleIsOne);
+        }
+        else
+        {
+            GLMeta::blitSource(screen.getPP().frontBuffer(), scaleIsOne);
         }
         
         FBO::clear();
@@ -1305,8 +1323,10 @@ void Graphics::transition(int duration, const char *filename, int vague) {
         FBO::unbind();
         FBO::clear();
         
-        GLMeta::blitBeginScreen(Vec2i(p->winSize));
-        GLMeta::blitSource(transBuffer);
+        bool scaleIsOne = GLMeta::blitScaleIsOne(p->integerScaleBuffer, false, IntRect(0, 0, p->scSize.x, p->scSize.y), transBuffer, IntRect(0, 0, p->scRes.x, p->scRes.y));
+
+        GLMeta::blitBeginScreen(Vec2i(p->winSize), scaleIsOne);
+        GLMeta::blitSource(transBuffer, scaleIsOne);
         p->metaBlitBufferFlippedScaled();
         GLMeta::blitEnd();
         
@@ -1362,8 +1382,10 @@ void Graphics::fadeout(int duration) {
         setBrightness(diff + (curr / duration) * i);
         
         if (p->frozen) {
-            GLMeta::blitBeginScreen(p->scSize);
-            GLMeta::blitSource(p->frozenScene);
+            bool scaleIsOne = GLMeta::blitScaleIsOne(p->integerScaleBuffer, false, IntRect(0, 0, p->scSize.x, p->scSize.y), p->frozenScene, IntRect(0, 0, p->scRes.x, p->scRes.y));
+
+            GLMeta::blitBeginScreen(p->scSize, scaleIsOne);
+            GLMeta::blitSource(p->frozenScene, scaleIsOne);
             
             FBO::clear();
             p->metaBlitBufferFlippedScaled();
@@ -1387,8 +1409,10 @@ void Graphics::fadein(int duration) {
         setBrightness(curr + (diff / duration) * i);
         
         if (p->frozen) {
-            GLMeta::blitBeginScreen(p->scSize);
-            GLMeta::blitSource(p->frozenScene);
+            bool scaleIsOne = GLMeta::blitScaleIsOne(p->integerScaleBuffer, false, IntRect(0, 0, p->scSize.x, p->scSize.y), p->frozenScene, IntRect(0, 0, p->scRes.x, p->scRes.y));
+
+            GLMeta::blitBeginScreen(p->scSize, scaleIsOne);
+            GLMeta::blitSource(p->frozenScene, scaleIsOne);
             
             FBO::clear();
             p->metaBlitBufferFlippedScaled();
@@ -1695,8 +1719,11 @@ void Graphics::repaintWait(const AtomicFlag &exitCond, bool checkReset) {
     
     /* Repaint the screen with the last good frame we drew */
     TEXFBO &lastFrame = p->screen.getPP().frontBuffer();
-    GLMeta::blitBeginScreen(p->winSize);
-    GLMeta::blitSource(lastFrame);
+
+    bool scaleIsOne = GLMeta::blitScaleIsOne(p->integerScaleBuffer, false, IntRect(0, 0, p->scSize.x, p->scSize.y), lastFrame, IntRect(0, 0, p->scRes.x, p->scRes.y));
+
+    GLMeta::blitBeginScreen(p->winSize, scaleIsOne);
+    GLMeta::blitSource(lastFrame, scaleIsOne);
     
     while (!exitCond) {
         shState->checkShutdown();

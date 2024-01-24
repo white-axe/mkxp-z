@@ -140,7 +140,36 @@ void vaoUnbind(VAO &vao)
 
 #define HAVE_NATIVE_BLIT gl.BlitFramebuffer
 
-static void _blitBegin(FBO::ID fbo, const Vec2i &size)
+bool blitScaleIsOne(TEXFBO &target, bool targetPreferHires, const IntRect &targetRect, TEXFBO &source, const IntRect &sourceRect)
+{
+	int targetWidth = targetRect.w;
+	int targetHeight = targetRect.h;
+
+	int sourceWidth = sourceRect.w;
+	int sourceHeight = sourceRect.h;
+
+	if (targetPreferHires && target.selfHires != nullptr)
+	{
+		targetWidth *= target.selfHires->width;
+		targetWidth /= target.width;
+
+		targetHeight *= target.selfHires->height;
+		targetHeight /= target.height;
+	}
+
+	if (source.selfHires != nullptr)
+	{
+		sourceWidth *= source.selfHires->width;
+		sourceWidth /= source.width;
+
+		sourceHeight *= source.selfHires->height;
+		sourceHeight /= source.height;
+	}
+
+	return targetWidth == sourceWidth && targetHeight == sourceHeight;
+}
+
+static void _blitBegin(FBO::ID fbo, const Vec2i &size, bool scaleIsOne)
 {
 	if (HAVE_NATIVE_BLIT)
 	{
@@ -152,7 +181,7 @@ static void _blitBegin(FBO::ID fbo, const Vec2i &size)
 		FBO::bind(fbo);
 		glState.viewport.pushSet(IntRect(0, 0, size.x, size.y));
 
-		switch (shState->config().smoothScaling)
+		switch (scaleIsOne ? NearestNeighbor : shState->config().smoothScaling)
 		{
 		case Bicubic:
 		{
@@ -210,7 +239,7 @@ int blitSrcWidthHires = 1;
 int blitSrcHeightLores = 1;
 int blitSrcHeightHires = 1;
 
-void blitBegin(TEXFBO &target, bool preferHires)
+void blitBegin(TEXFBO &target, bool preferHires, bool scaleIsOne)
 {
 	blitDstWidthLores = target.width;
 	blitDstHeightLores = target.height;
@@ -218,26 +247,26 @@ void blitBegin(TEXFBO &target, bool preferHires)
 	if (preferHires && target.selfHires != nullptr) {
 		blitDstWidthHires = target.selfHires->width;
 		blitDstHeightHires = target.selfHires->height;
-		_blitBegin(target.selfHires->fbo, Vec2i(target.selfHires->width, target.selfHires->height));
+		_blitBegin(target.selfHires->fbo, Vec2i(target.selfHires->width, target.selfHires->height), scaleIsOne);
 	}
 	else {
 		blitDstWidthHires = blitDstWidthLores;
 		blitDstHeightHires = blitDstHeightLores;
-		_blitBegin(target.fbo, Vec2i(target.width, target.height));
+		_blitBegin(target.fbo, Vec2i(target.width, target.height), scaleIsOne);
 	}
 }
 
-void blitBeginScreen(const Vec2i &size)
+void blitBeginScreen(const Vec2i &size, bool scaleIsOne)
 {
 	blitDstWidthLores = 1;
 	blitDstWidthHires = 1;
 	blitDstHeightLores = 1;
 	blitDstHeightHires = 1;
 
-	_blitBegin(FBO::ID(0), size);
+	_blitBegin(FBO::ID(0), size, scaleIsOne);
 }
 
-void blitSource(TEXFBO &source)
+void blitSource(TEXFBO &source, bool scaleIsOne)
 {
 	blitSrcWidthLores = source.width;
 	blitSrcHeightLores = source.height;
@@ -256,7 +285,7 @@ void blitSource(TEXFBO &source)
 	}
 	else
 	{
-		switch (shState->config().smoothScaling)
+		switch (scaleIsOne ? NearestNeighbor : shState->config().smoothScaling)
 		{
 		case Bicubic:
 		{
