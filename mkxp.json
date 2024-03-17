@@ -193,7 +193,10 @@
     // A list of fonts to render without alpha blending.
     // (default: none)
     //
-    // "solidFonts": ["Arial", "Times New Roman"]
+    // "solidFonts": [
+    //     "Arial",
+    //     "Times New Roman",
+    // ],
 
 
     // Prefer the use of Metal over OpenGL on macOS.
@@ -327,9 +330,11 @@
     // execution starts
     // (default: none)
     //
-    // "preloadScript": ["scripts/preload/ruby_classic_wrap.rb",
-    //                   "scripts/preload/mkxp_wrap.rb",
-    //                   "scripts/preload/win32_wrap.rb"],
+    // "preloadScript": [
+    //     "scripts/preload/ruby_classic_wrap.rb",
+    //     "scripts/preload/mkxp_wrap.rb",
+    //     "scripts/preload/win32_wrap.rb",
+    // ],
 
 
     // Index all accesible assets via their lower case path
@@ -344,17 +349,21 @@
     // https://www.icculus.org/physfs/docs/html/
     // (default: none)
     //
-    // "RTP": ["/path/to/rtp1",
-    //         "/path/to/rtp2.zip",
-    //         "/path/to/game.rgssad"],
+    // "RTP": [
+    //     "/path/to/rtp1",
+    //     "/path/to/rtp2.zip",
+    //     "/path/to/game.rgssad",
+    // ],
 
     // Similar to the RTP option, except items are loaded before
     // the game archive and folder, for incremental game updates
     // or modding.
     // (default: none)
     //
-    // "patches": ["/path/to/patch1.zip",
-    //         "/path/to/patch2"],
+    // "patches": [
+    //     "/path/to/patch1.zip",
+    //     "/path/to/patch2",
+    // ],
 
 
     // Use the script's name as filename in warnings and error messages
@@ -374,8 +383,10 @@
     // requested by RGSS.
     // (default: none)
     //
-    // "fontSub": ["Arial>Open Sans",
-    //             "Times New Roman>Liberation Serif"]
+    // "fontSub": [
+    //     "Arial>Open Sans",
+    //     "Times New Roman>Liberation Serif",
+    // ],
 
 
     // Because mkxp is usually distributed as a stand alone
@@ -386,8 +397,10 @@
     // link all required gems into libruby.so.
     // (default: none)
     //
-    // "rubyLoadpath": ["/usr/lib64/ruby/",
-    //                  "/usr/local/share/ruby/site_ruby"],
+    // "rubyLoadpath": [
+    //     "/usr/lib64/ruby/",
+    //     "/usr/local/share/ruby/site_ruby",
+    // ],
 
     // Determines whether MJIT is enabled. This probably
     // won't work unless you also have the header file
@@ -444,13 +457,13 @@
     // and audibly cutting each other off, try increasing
     // this number. Maximum: 64.
     //
-    // "SESourceCount": 6
+    // "SESourceCount": 6,
     
     // Number of streams to open for BGM tracks. If the game
     // needs multitrack audio, this should be set to as many
     // available tracks as the game needs. Maximum: 16.
     //
-    // "BGMTrackCount": 1
+    // "BGMTrackCount": 1,
 
 
     // The Windows game executable name minus ".exe". By default
@@ -463,7 +476,7 @@
     // "Game.rgssad", but specifying the executable name here
     // is a tiny bit less intrusive.
     //
-    // "execName": "Game"
+    // "execName": "Game",
     
     // You can define alternate terminology for the different
     // inputs recognized by RPG Maker. A, B, C, X, Y, Z, L, and R
@@ -474,8 +487,8 @@
     // "bindingNames": {
     //  "c": "Confirm",
     //  "b": "Cancel",
-    //  "x": ...
-    // }
+    //  "x": ...,
+    // },
 
 
     // Dump tile atlas (for debugging purposes)
