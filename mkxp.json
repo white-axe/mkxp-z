@@ -89,6 +89,13 @@
     // "smoothScaling": 0,
 
 
+    // Apply mipmap interpolation when game screen
+    // is downscaled
+    // (default: false)
+    //
+    // "smoothScalingMipmaps": false,
+
+
     // Sharpness when using Bicubic scaling.
     // A good starting range is 0 to 100,
     // but you may wish to go outside that range in either direction.
