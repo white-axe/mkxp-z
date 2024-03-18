@@ -2000,6 +2000,8 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
         int rectHeight = rect.h * p->selfHires->height() / height();
 
         p->selfHires->drawText(IntRect(rectX, rectY, rectWidth, rectHeight), str, align);
+
+        return;
     }
 
     std::string fixed = fixupString(str);
