@@ -1086,7 +1086,16 @@ void Bitmap::stretchBlt(IntRect destRect,
                         throw Exception(Exception::SDLError, "Error creating temporary surface for blitting: %s",
                                         SDL_GetError());
                     
-                    error = SDL_BlitScaled(srcSurf, &srcRect, blitTemp, 0);
+                    if (smooth)
+                    {
+                        error = SDL_SoftStretchLinear(srcSurf, &srcRect, blitTemp, 0);
+                        smooth = false;
+                    }
+                    else
+                    {
+                        SDL_Rect tmpRect = {0, 0, blitTemp->w, blitTemp->h};
+                        error = SDL_LowerBlitScaled(srcSurf, &srcRect, blitTemp, &tmpRect);
+                    }
                 }
                 else
                 {
@@ -1099,7 +1108,8 @@ void Bitmap::stretchBlt(IntRect destRect,
                         throw Exception(Exception::SDLError, "Error creating temporary surface for blitting: %s",
                                         SDL_GetError());
                     
-                    error = SDL_BlitSurface(srcSurf, &srcRect, blitTemp, 0);
+                    SDL_Rect tmpRect = {0, 0, blitTemp->w, blitTemp->h};
+                    error = SDL_LowerBlit(srcSurf, &srcRect, blitTemp, &tmpRect);
                 }
                 
                 if (error)
