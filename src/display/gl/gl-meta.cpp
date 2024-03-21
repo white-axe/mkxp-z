@@ -138,7 +138,7 @@ void vaoUnbind(VAO &vao)
 	}
 }
 
-#define HAVE_NATIVE_BLIT gl.BlitFramebuffer
+#define HAVE_NATIVE_BLIT (gl.BlitFramebuffer && shState->config().smoothScaling <= Bilinear && shState->config().smoothScalingDown <= Bilinear)
 
 int blitScaleIsSpecial(TEXFBO &target, bool targetPreferHires, const IntRect &targetRect, TEXFBO &source, const IntRect &sourceRect)
 {

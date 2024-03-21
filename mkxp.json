@@ -243,7 +243,9 @@
     // capable of it. Some drivers carry buggy
     // implementations of this functionality, so
     // disabling it can be used as a workaround.
-    // Does nothing on macOS.
+    // Does nothing on macOS. Force-disabled when
+    // smoothScaling or smoothScalingDown isn't
+    // Nearest-Neighbor or Bilinear.
     // (default: disabled)
     //
     // "enableBlitting": false,
