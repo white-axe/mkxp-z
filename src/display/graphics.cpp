@@ -834,7 +834,10 @@ struct GraphicsPrivate {
     IntruList<Disposable> dispList;
     
     GraphicsPrivate(RGSSThreadData *rtData)
-    : scRes(DEF_SCREEN_W, DEF_SCREEN_H), scResLores(scRes), scSize(scRes),
+    : scResLores(DEF_SCREEN_W, DEF_SCREEN_H),
+    scRes(rtData->config.enableHires ? (int)lround(rtData->config.framebufferScalingFactor * DEF_SCREEN_W) : DEF_SCREEN_W,
+        rtData->config.enableHires ? (int)lround(rtData->config.framebufferScalingFactor * DEF_SCREEN_H) : DEF_SCREEN_H),
+    scSize(scRes),
     winSize(rtData->config.defScreenW, rtData->config.defScreenH),
     screen(scRes.x, scRes.y), threadData(rtData),
     glCtx(SDL_GL_GetCurrentContext()), multithreadedMode(true),
@@ -1165,10 +1168,6 @@ Graphics::Graphics(RGSSThreadData *data) {
         p->fpsLimiter.setDesiredFPS(data->config.fixedFramerate);
     } else if (data->config.fixedFramerate < 0) {
         p->fpsLimiter.disabled = true;
-    }
-
-    if (shState->config().enableHires) {
-        resizeScreen(p->scResLores.x, p->scResLores.y);
     }
 }
 
