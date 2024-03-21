@@ -1166,6 +1166,10 @@ Graphics::Graphics(RGSSThreadData *data) {
     } else if (data->config.fixedFramerate < 0) {
         p->fpsLimiter.disabled = true;
     }
+
+    if (shState->config().enableHires) {
+        resizeScreen(p->scResLores.x, p->scResLores.y);
+    }
 }
 
 Graphics::~Graphics() { delete p; }
@@ -1492,7 +1496,7 @@ void Graphics::resizeScreen(int width, int height) {
 
     Vec2i size(width, height);
     
-    if (p->scRes == size)
+    if (p->scRes == size && p->scResLores == sizeLores)
         return;
     
     p->scRes = size;
