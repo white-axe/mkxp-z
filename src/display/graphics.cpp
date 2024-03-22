@@ -834,7 +834,10 @@ struct GraphicsPrivate {
     IntruList<Disposable> dispList;
     
     GraphicsPrivate(RGSSThreadData *rtData)
-    : scRes(DEF_SCREEN_W, DEF_SCREEN_H), scResLores(scRes), scSize(scRes),
+    : scResLores(DEF_SCREEN_W, DEF_SCREEN_H),
+    scRes(rtData->config.enableHires ? (int)lround(rtData->config.framebufferScalingFactor * DEF_SCREEN_W) : DEF_SCREEN_W,
+        rtData->config.enableHires ? (int)lround(rtData->config.framebufferScalingFactor * DEF_SCREEN_H) : DEF_SCREEN_H),
+    scSize(scRes),
     winSize(rtData->config.defScreenW, rtData->config.defScreenH),
     screen(scRes.x, scRes.y), threadData(rtData),
     glCtx(SDL_GL_GetCurrentContext()), multithreadedMode(true),
@@ -1492,7 +1495,7 @@ void Graphics::resizeScreen(int width, int height) {
 
     Vec2i size(width, height);
     
-    if (p->scRes == size)
+    if (p->scRes == size && p->scResLores == sizeLores)
         return;
     
     p->scRes = size;
