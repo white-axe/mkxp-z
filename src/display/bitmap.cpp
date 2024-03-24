@@ -1052,6 +1052,7 @@ void Bitmap::stretchBlt(IntRect destRect,
     SDL_Surface *srcSurf = source.megaSurface();
     SDL_Surface *blitTemp = 0;
     bool touchesTaintedArea = p->touchesTaintedArea(destRect);
+    bool unpack_subimage = srcSurf && gl.unpack_subimage;
     
     if (!srcSurf && opacity == 255 && !touchesTaintedArea)
     {
@@ -1069,8 +1070,10 @@ void Bitmap::stretchBlt(IntRect destRect,
             bool subImageFix = shState->config().subImageFix;
             bool srcRectTooBig = srcRect.w > glState.caps.maxTexSize ||
                                  srcRect.h > glState.caps.maxTexSize;
-            bool srcSurfTooBig = srcSurf->w > glState.caps.maxTexSize || 
-                                 srcSurf->h > glState.caps.maxTexSize;
+            bool srcSurfTooBig = !unpack_subimage && (
+                                     srcSurf->w > glState.caps.maxTexSize || 
+                                     srcSurf->h > glState.caps.maxTexSize
+                                 );
             
             if (srcRectTooBig || srcSurfTooBig)
             {
@@ -1096,6 +1099,7 @@ void Bitmap::stretchBlt(IntRect destRect,
                         SDL_Rect tmpRect = {0, 0, blitTemp->w, blitTemp->h};
                         error = SDL_LowerBlitScaled(srcSurf, &srcRect, blitTemp, &tmpRect);
                     }
+                    unpack_subimage = false;
                 }
                 else
                 {
@@ -1130,24 +1134,51 @@ void Bitmap::stretchBlt(IntRect destRect,
             {
                 if (!subImageFix &&
                     sourceRect.w == destRect.w && sourceRect.h == destRect.h &&
-                    srcSurf->w == sourceRect.w && srcSurf->h == sourceRect.h)
+                    (unpack_subimage || (srcSurf->w == sourceRect.w && srcSurf->h == sourceRect.h))
+                   )
                 {
                     /* No scaling needed */
                     TEX::bind(getGLTypes().tex);
+                    if (unpack_subimage)
+                    {
+                        gl.PixelStorei(GL_UNPACK_ROW_LENGTH, srcSurf->w);
+                        gl.PixelStorei(GL_UNPACK_SKIP_PIXELS, sourceRect.x);
+                        gl.PixelStorei(GL_UNPACK_SKIP_ROWS, sourceRect.y);
+                    }
                     TEX::uploadSubImage(destRect.x, destRect.y,
                                         destRect.w, destRect.h,
                                         srcSurf->pixels, GL_RGBA);
+                    
+                    if (unpack_subimage)
+                        GLMeta::subRectImageEnd();
                 }
                 else
                 {
                     /* Resizing or subImageFix involved: need to use intermediary TexFBO */
-                    TEXFBO &gpTF = shState->gpTexFBO(srcSurf->w, srcSurf->h);
+                    TEXFBO *gpTF;
+                    if (unpack_subimage)
+                        gpTF = &shState->gpTexFBO(sourceRect.w, sourceRect.h);
+                    else
+                        gpTF = &shState->gpTexFBO(srcSurf->w, srcSurf->h);
+                    TEX::bind(gpTF->tex);
                     
-                    TEX::bind(gpTF.tex);
-                    TEX::uploadSubImage(0, 0, srcSurf->w, srcSurf->h, srcSurf->pixels, GL_RGBA);
+                    if (unpack_subimage)
+                    {
+                        gl.PixelStorei(GL_UNPACK_ROW_LENGTH, srcSurf->w);
+                        gl.PixelStorei(GL_UNPACK_SKIP_PIXELS, sourceRect.x);
+                        gl.PixelStorei(GL_UNPACK_SKIP_ROWS, sourceRect.y);
+                        sourceRect.x = 0;
+                        sourceRect.y = 0;
+                        TEX::uploadSubImage(0, 0, sourceRect.w, sourceRect.h, srcSurf->pixels, GL_RGBA);
+                        GLMeta::subRectImageEnd();
+                    }
+                    else
+                    {
+                        TEX::uploadSubImage(0, 0, srcSurf->w, srcSurf->h, srcSurf->pixels, GL_RGBA);
+                    }
                     
                     GLMeta::blitBegin(getGLTypes());
-                    GLMeta::blitSource(gpTF);
+                    GLMeta::blitSource(*gpTF);
                     GLMeta::blitRectangle(sourceRect, destRect, smooth);
                     GLMeta::blitEnd();
                 }
@@ -1172,9 +1203,34 @@ void Bitmap::stretchBlt(IntRect destRect,
             FloatRect bltSubRect;
             if (srcSurf)
             {
-                shState->ensureTexSize(srcSurf->w, srcSurf->h, gpTexSize);
+                if (unpack_subimage)
+                {
+                    shState->ensureTexSize(sourceRect.w, sourceRect.h, gpTexSize);
+                }
+                else
+                {
+                    shState->ensureTexSize(srcSurf->w, srcSurf->h, gpTexSize);
+                }
                 sourceWidth = gpTexSize.x;
                 sourceHeight = gpTexSize.y;
+                
+                shState->bindTex();
+                
+                if (unpack_subimage)
+                {
+                    gl.PixelStorei(GL_UNPACK_ROW_LENGTH, srcSurf->w);
+                    gl.PixelStorei(GL_UNPACK_SKIP_PIXELS, sourceRect.x);
+                    gl.PixelStorei(GL_UNPACK_SKIP_ROWS, sourceRect.y);
+                    sourceRect.x = 0;
+                    sourceRect.y = 0;
+                    
+                    TEX::uploadSubImage(0, 0, sourceRect.w, sourceRect.h, srcSurf->pixels, GL_RGBA);
+                    GLMeta::subRectImageEnd();
+                }
+                else
+                {
+                    TEX::uploadSubImage(0, 0, srcSurf->w, srcSurf->h, srcSurf->pixels, GL_RGBA);
+                }
             }
             else
             {
@@ -1190,8 +1246,6 @@ void Bitmap::stretchBlt(IntRect destRect,
             shader.bind();
             if (srcSurf)
             {
-                shState->bindTex();
-                TEX::uploadSubImage(0, 0, srcSurf->w, srcSurf->h, srcSurf->pixels, GL_RGBA);
                 shader.setTexSize(gpTexSize);
             }
             else
