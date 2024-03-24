@@ -925,7 +925,7 @@ void Bitmap::blt(int x, int y,
     if (source.isDisposed())
         return;
     
-    stretchBlt(IntRect(x, y, rect.w, rect.h),
+    stretchBlt(IntRect(x, y, abs(rect.w), abs(rect.h)),
                source, rect, opacity);
 }
 
