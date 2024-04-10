@@ -202,10 +202,13 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
 		if (shState->config().dumpAtlas)
 		{
 			Bitmap dump(atlas);
-			dump.saveToFile("dumped_atlas.png");
 			if (dump.hasHires())
 			{
 				dump.getHires()->saveToFile("dumped_atlas_hires.png");
+			}
+			else
+			{
+				dump.saveToFile("dumped_atlas.png");
 			}
 		}
 	}
