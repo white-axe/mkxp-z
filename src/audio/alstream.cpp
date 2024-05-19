@@ -90,18 +90,7 @@ void ALStream::close()
 
 void ALStream::open(const std::string &filename)
 {
-	checkStopped();
-
-	switch (state)
-	{
-	case Playing:
-	case Paused:
-		stopStream();
-	case Stopped:
-		closeSource();
-	case Closed:
-		openSource(filename);
-	}
+	openSource(filename);
 
 	state = Stopped;
 }
@@ -201,32 +190,27 @@ void ALStream::closeSource()
 
 struct ALStreamOpenHandler : FileSystem::OpenHandler
 {
-	SDL_RWops *srcOps;
 	bool looped;
 	ALDataSource *source;
 	int fallbackMode;
 	std::string errorMsg;
 
-	ALStreamOpenHandler(SDL_RWops &srcOps, bool looped)
-	    : srcOps(&srcOps), looped(looped), source(0), fallbackMode(0)
+	ALStreamOpenHandler(bool looped)
+	    : looped(looped), source(0), fallbackMode(0)
 	{}
 
 	bool tryRead(SDL_RWops &ops, const char *ext)
 	{
-		/* Copy this because we need to keep it around,
-		 * as we will continue reading data from it later */
-		*srcOps = ops;
-
 		/* Try to read ogg file signature */
 		char sig[5] = { 0 };
-		SDL_RWread(srcOps, sig, 1, 4);
-		SDL_RWseek(srcOps, 0, RW_SEEK_SET);
+		SDL_RWread(&ops, sig, 1, 4);
+		SDL_RWseek(&ops, 0, RW_SEEK_SET);
 
 		try
 		{
 			if (!strcmp(sig, "OggS"))
 			{
-				source = createVorbisSource(*srcOps, looped);
+				source = createVorbisSource(ops, looped);
 				return true;
 			}
 
@@ -236,12 +220,12 @@ struct ALStreamOpenHandler : FileSystem::OpenHandler
 
 				if (HAVE_FLUID)
 				{
-					source = createMidiSource(*srcOps, looped);
+					source = createMidiSource(ops, looped);
 					return true;
 				}
 			}
 
-			source = createSDLSource(*srcOps, ext, STREAM_BUF_SIZE, looped, fallbackMode);
+			source = createSDLSource(ops, ext, STREAM_BUF_SIZE, looped, fallbackMode);
 		}
 		catch (const Exception &e)
 		{
@@ -257,21 +241,31 @@ struct ALStreamOpenHandler : FileSystem::OpenHandler
 
 void ALStream::openSource(const std::string &filename)
 {
-	ALStreamOpenHandler handler(srcOps, looped);
-	shState->fileSystem().openRead(handler, filename.c_str());
-	source = handler.source;
-	needsRewind.clear();
+	ALStreamOpenHandler handler(looped);
+	try
+	{
+		shState->fileSystem().openRead(handler, filename.c_str());
+	} catch (const Exception &e)
+	{
+		/* If no file was found then we leave the stream open.
+		 * A PHYSFSError means we found a match but couldn't
+		 * open the file, so we'll close it in that case. */
+		if (e.type != Exception::NoFileError)
+			close();
+		
+		throw e;
+	}
+
+	close();
 
 	// Try fallback mode, e.g. for handling S32->F32 sample format conversion
-	if (!source)
+	if (!handler.source)
 	{
 		handler.fallbackMode = 1;
 		shState->fileSystem().openRead(handler, filename.c_str());
-		source = handler.source;
-		needsRewind.clear();
 	}
 
-	if (!source)
+	if (!handler.source)
 	{
 		char buf[512];
 		snprintf(buf, sizeof(buf), "Unable to decode audio stream: %s: %s",
@@ -279,6 +273,9 @@ void ALStream::openSource(const std::string &filename)
 
 		Debug() << buf;
 	}
+	
+	source = handler.source;
+	needsRewind.clear();
 }
 
 void ALStream::stopStream()
