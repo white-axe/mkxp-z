@@ -872,6 +872,8 @@ void Bitmap::initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool for
         
         TEX::bind(p->gl.tex);
         TEX::uploadImage(p->gl.width, p->gl.height, imgSurf->pixels, GL_RGBA);
+        
+        SDL_FreeSurface(imgSurf);
     }
     
     p->addTaintedArea(rect());
