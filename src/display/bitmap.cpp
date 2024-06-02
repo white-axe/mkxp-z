@@ -2220,10 +2220,12 @@ void Bitmap::setFont(Font &value)
 void Bitmap::setInitFont(Font *value)
 {
     if (hasHires()) {
-        Font *hiresFont = new Font(*value);
-        // Disable the illegal font size check when creating a high-res font.
-        hiresFont->setSize(hiresFont->getSize() * p->selfHires->width() / width(), false);
-        p->selfHires->setInitFont(hiresFont);
+        Font *hiresFont = p->selfHires->p->font;
+        if (hiresFont && hiresFont != &shState->defaultFont())
+        {
+            // Disable the illegal font size check when creating a high-res font.
+            hiresFont->setSize(hiresFont->getSize() * p->selfHires->width() / width(), false);
+        }
     }
 
     p->font = value;
