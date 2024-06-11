@@ -528,14 +528,15 @@ RB_METHOD(mkxpSystemMemory) {
     return INT2NUM(SDL_GetSystemRAM());
 }
 
-RB_METHOD(mkxpReloadPathCache) {
+RB_METHOD_GUARD(mkxpReloadPathCache) {
     RB_UNUSED_PARAM;
     
-    GUARD_EXC(shState->fileSystem().reloadPathCache(););
+    shState->fileSystem().reloadPathCache();
     return Qnil;
 }
+RB_METHOD_GUARD_END
 
-RB_METHOD(mkxpAddPath) {
+RB_METHOD_GUARD(mkxpAddPath) {
     RB_UNUSED_PARAM;
     
     VALUE path, mountpoint, reload;
@@ -545,36 +546,32 @@ RB_METHOD(mkxpAddPath) {
     
     const char *mp = (mountpoint == Qnil) ? 0 : RSTRING_PTR(mountpoint);
     
-    try {
-        bool rl = true;
-        if (reload != Qnil)
-            rb_bool_arg(reload, &rl);
-        
-        shState->fileSystem().addPath(RSTRING_PTR(path), mp, rl);
-    } catch (Exception &e) {
-        raiseRbExc(e);
-    }
+    bool rl = true;
+    if (reload != Qnil)
+        rb_bool_arg(reload, &rl);
+    
+    shState->fileSystem().addPath(RSTRING_PTR(path), mp, rl);
+    
     return path;
 }
+RB_METHOD_GUARD_END
 
-RB_METHOD(mkxpRemovePath) {
+RB_METHOD_GUARD(mkxpRemovePath) {
     RB_UNUSED_PARAM;
     
     VALUE path, reload;
     rb_scan_args(argc, argv, "11", &path, &reload);
     SafeStringValue(path);
     
-    try {
-        bool rl = true;
-        if (reload != Qnil)
-            rb_bool_arg(reload, &rl);
-        
-        shState->fileSystem().removePath(RSTRING_PTR(path), rl);
-    } catch (Exception &e) {
-        raiseRbExc(e);
-    }
+    bool rl = true;
+    if (reload != Qnil)
+        rb_bool_arg(reload, &rl);
+    
+    shState->fileSystem().removePath(RSTRING_PTR(path), rl);
+    
     return path;
 }
+RB_METHOD_GUARD_END
 
 RB_METHOD(mkxpFileExists) {
     RB_UNUSED_PARAM;
@@ -601,24 +598,25 @@ RB_METHOD(mkxpSetDefaultFontFamily) {
     return Qnil;
 }
 
-RB_METHOD(mkxpStringToUTF8) {
+RB_METHOD_GUARD(mkxpStringToUTF8) {
     RB_UNUSED_PARAM;
     
     rb_check_argc(argc, 0);
     
     std::string ret(RSTRING_PTR(self), RSTRING_LEN(self));
-    GUARD_EXC(ret = Encoding::convertString(ret); );
+    ret = Encoding::convertString(ret);
     
     return rb_utf8_str_new(ret.c_str(), ret.length());
 }
+RB_METHOD_GUARD_END
 
-RB_METHOD(mkxpStringToUTF8Bang) {
+RB_METHOD_GUARD(mkxpStringToUTF8Bang) {
     RB_UNUSED_PARAM;
     
     rb_check_argc(argc, 0);
     
     std::string ret(RSTRING_PTR(self), RSTRING_LEN(self));
-    GUARD_EXC(ret = Encoding::convertString(ret); );
+    ret = Encoding::convertString(ret);
     
     rb_str_resize(self, ret.length());
     memcpy(RSTRING_PTR(self), ret.c_str(), RSTRING_LEN(self));
@@ -629,6 +627,7 @@ RB_METHOD(mkxpStringToUTF8Bang) {
     
     return self;
 }
+RB_METHOD_GUARD_END
 
 #ifdef __APPLE__
 #define OPENCMD "open "
@@ -641,7 +640,7 @@ RB_METHOD(mkxpStringToUTF8Bang) {
 #define OPENARGS ""
 #endif
 
-RB_METHOD(mkxpLaunch) {
+RB_METHOD_GUARD(mkxpLaunch) {
     RB_UNUSED_PARAM;
     
     VALUE cmdname, args;
@@ -674,11 +673,12 @@ RB_METHOD(mkxpLaunch) {
     }
     
     if (std::system(command.c_str()) != 0) {
-        raiseRbExc(Exception(Exception::MKXPError, "Failed to launch \"%s\"", RSTRING_PTR(cmdname)));
+        throw Exception(Exception::MKXPError, "Failed to launch \"%s\"", RSTRING_PTR(cmdname));
     }
     
     return RUBY_Qnil;
 }
+RB_METHOD_GUARD_END
 
 json5pp::value loadUserSettings() {
     json5pp::value ret;
@@ -722,7 +722,7 @@ RB_METHOD(mkxpGetJSONSetting) {
     
 }
 
-RB_METHOD(mkxpSetJSONSetting) {
+RB_METHOD_GUARD(mkxpSetJSONSetting) {
     RB_UNUSED_PARAM;
     
     VALUE sname, svalue;
@@ -736,6 +736,7 @@ RB_METHOD(mkxpSetJSONSetting) {
     
     return Qnil;
 }
+RB_METHOD_GUARD_END
 
 RB_METHOD(mkxpGetAllJSONSettings) {
     RB_UNUSED_PARAM;
