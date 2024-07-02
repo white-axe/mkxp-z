@@ -805,6 +805,8 @@ Bitmap::Bitmap(SDL_Surface *imgSurf, SDL_Surface *imgSurfHires, bool forceMega)
 Bitmap::~Bitmap()
 {
     dispose();
+
+    loresDispCon.disconnect();
 }
 
 void Bitmap::initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool forceMega)
@@ -897,6 +899,7 @@ void Bitmap::setLores(Bitmap *lores) {
     guardDisposed();
 
     p->selfLores = lores;
+    loresDispCon = lores->wasDisposed.connect(&Bitmap::loresDisposal, this);
 }
 
 bool Bitmap::isMega() const{
@@ -2602,4 +2605,10 @@ void Bitmap::releaseResources()
         shState->texPool().release(p->gl);
     
     delete p;
+}
+
+void Bitmap::loresDisposal()
+{
+    loresDispCon.disconnect();
+    dispose();
 }
