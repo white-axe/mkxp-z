@@ -7,7 +7,7 @@
 # all copyright and related or neighboring rights to win32_wrap.rb.
 # https://creativecommons.org/publicdomain/zero/1.0/
 
-# Edits by Splendide Imaginarius (2023) also CC0.
+# Edits by Splendide Imaginarius (2023-2024) also CC0.
 
 # This preload script provides a subset of Win32API in a cross-platform way, so
 # you can play Win32API-based games on Linux and macOS.
@@ -183,17 +183,17 @@ def common_keystate(vkey)
 	states = get_raw_keystates
 	pressed = false
 
-	if vkey == :LBUTTON
+	if vkey_name == :LBUTTON
 		pressed = Input.press?(Input::MOUSELEFT)
-	elsif vkey == :RBUTTON
+	elsif vkey_name == :RBUTTON
 		pressed = Input.press?(Input::MOUSERIGHT)
-	elsif vkey == :MBUTTON
+	elsif vkey_name == :MBUTTON
 		pressed = Input.press?(Input::MOUSEMIDDLE)
-	elsif vkey == :SHIFT
+	elsif vkey_name == :SHIFT
 		pressed = double_state(states, :LSHIFT, :RSHIFT)
-	elsif vkey == :MENU
+	elsif vkey_name == :MENU
 		pressed = double_state(states, :LALT, :RALT)
-	elsif vkey == :CONTROL
+	elsif vkey_name == :CONTROL
 		pressed = double_state(states, :LCTRL, :RCTRL)
 	else
 		scan = nil
