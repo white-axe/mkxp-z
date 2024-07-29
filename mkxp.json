@@ -325,9 +325,9 @@
 
 
     // Allow symlinks for game assets to be followed
-    // (default: disabled)
+    // (default: enabled)
     //
-    // "allowSymlinks": false,
+    // "allowSymlinks": true,
 
 
     // Organisation / company and application / game
