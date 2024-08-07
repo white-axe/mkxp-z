@@ -185,7 +185,7 @@ namespace Source
 				}
 				break;
 		}
-		alSourcef(id.al, AL_GAIN, value * 0.8f);
+		alSourcef(id.al, AL_GAIN, value);
 	}
 
 	inline void setPitch(Source::ID id, float value)
