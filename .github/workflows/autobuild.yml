@@ -22,6 +22,7 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           msystem: mingw64
+          # zip is just used for artifact compression at the end.
           install: >-
             base-devel
             git
@@ -31,6 +32,7 @@ jobs:
             mingw-w64-x86_64-meson
             mingw-w64-x86_64-autotools
             mingw-w64-x86_64-gcc
+            zip
 
 
       - name: Checkout repository
@@ -71,17 +73,16 @@ jobs:
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
+          cd ..
+          # Zipping before uploading decreases the upload time considerably.
+          # Unfortunately this results in double-zipping; tracked at:
+          # https://github.com/actions/upload-artifact/issues/426
+          zip -r artifact.zip artifact
 
       - uses: actions/upload-artifact@v3
         with:
           name: mkxp-z.windows.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
-          path: |
-            build/artifact/*.dll
-            build/artifact/*.exe
-            build/artifact/mkxp.json
-            build/artifact/LICENSE.mkxp-z-with-https.txt
-            build/artifact/scripts/
-            build/artifact/stdlib/
+          path: build/artifact.zip
 
   build-linux-native:
     name: Ubuntu 22.04 x86_64
@@ -129,6 +130,9 @@ jobs:
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
           cd ..
+          # Zipping before uploading preserves +x permissions.
+          # Unfortunately this results in double-zipping; tracked at:
+          # https://github.com/actions/upload-artifact/issues/426
           zip -r local.zip local
 
       - uses: actions/upload-artifact@v3
