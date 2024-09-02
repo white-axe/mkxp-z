@@ -21,7 +21,7 @@
 
 export ARCH=armv7
 export ARCH_OPENSSL=armv4
-export ARCH_CFLAGS="-mcpu=generic-armv7-a+fp -mtune=generic-armv7-a+fp"
+export ARCH_CFLAGS="-mcpu=generic-armv7-a+vfpv3-d16 -mtune=generic-armv7-a+vfpv3-d16"
 export ARCH_CONFIGURE=arm-linux-gnueabihf
 export CC="$ARCH_CONFIGURE-gcc"
 export ARCH_CMAKE_TOOLCHAIN=toolchain-arm32.cmake
