@@ -121,7 +121,6 @@ struct AudioStream
 	} fadeIn;
 
 	AudioStream(ALStream::LoopMode loopMode,
-	            AL::Source::VolumeScale volumeScale,
 	            const std::string &threadId);
 	~AudioStream();
 

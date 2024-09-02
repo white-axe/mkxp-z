@@ -93,8 +93,6 @@ struct Config {
     std::string execName;
     std::string titleLanguage;
     
-    int volumeScale;
-    
     struct {
         std::string soundFont;
         bool chorus;

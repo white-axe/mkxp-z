@@ -178,7 +178,6 @@ void Config::read(int argc, char *argv[]) {
         {"dataPathApp", ""},
         {"iconPath", ""},
         {"execName", "Game"},
-        {"volumeScale", 0},
         {"midiSoundFont", ""},
         {"midiChorus", false},
         {"midiReverb", false},
@@ -307,7 +306,6 @@ try { exp } catch (...) {}
     SET_OPT(anyAltToggleFS, boolean);
     SET_OPT(enableReset, boolean);
     SET_OPT(enableSettings, boolean);
-    SET_OPT(volumeScale, integer);
     SET_STRINGOPT(midi.soundFont, midiSoundFont);
     SET_OPT_CUSTOMKEY(midi.chorus, midiChorus, boolean);
     SET_OPT_CUSTOMKEY(midi.reverb, midiReverb, boolean);

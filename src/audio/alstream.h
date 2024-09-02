@@ -47,8 +47,6 @@ struct ALStream
 	bool looped;
 	State state;
 
-	AL::Source::VolumeScale volumeScale;
-
 	ALDataSource *source;
 	SDL_Thread *thread;
 
@@ -91,7 +89,6 @@ struct ALStream
 	};
 
 	ALStream(LoopMode loopMode,
-	         AL::Source::VolumeScale volumeScale,
 	         const std::string &threadId);
 	~ALStream();
 
