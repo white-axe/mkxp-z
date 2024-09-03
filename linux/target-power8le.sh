@@ -20,7 +20,7 @@
 # cp "/usr/lib/$ARCH_CONFIGURE/$("$ARCH_CONFIGURE-objdump" -p local/lib64/libruby.so* | grep -i NEEDED | grep -Eo 'libcrypt.so.[0-9\.]+')" local/lib64/
 
 export ARCH=power8le
-export ARCH_OPENSSL=ppc64le
+export ARCH_OPENSSL=linux-ppc64le
 export ARCH_CFLAGS="-mcpu=power8 -mtune=power8"
 export ARCH_CONFIGURE=powerpc64le-linux-gnu
 export CC="$ARCH_CONFIGURE-gcc"

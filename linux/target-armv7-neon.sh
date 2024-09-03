@@ -20,7 +20,7 @@
 # cp "/usr/lib/$ARCH_CONFIGURE/$("$ARCH_CONFIGURE-objdump" -p local/lib64/libruby.so* | grep -i NEEDED | grep -Eo 'libcrypt.so.[0-9\.]+')" local/lib64/
 
 export ARCH=armv7-neon
-export ARCH_OPENSSL=armv4
+export ARCH_OPENSSL=linux-armv4
 export ARCH_CFLAGS="-mcpu=generic-armv7-a+neon -mtune=generic-armv7-a+neon"
 export ARCH_CONFIGURE=arm-linux-gnueabihf
 export CC="$ARCH_CONFIGURE-gcc"
