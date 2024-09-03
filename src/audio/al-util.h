@@ -172,9 +172,10 @@ namespace Source
 	inline void setVolume(Source::ID id, float value)
 	{
 		/*
-		 * RPG Maker uses a -35 decibel scale for volume. 100% volume is -0.35 dB, 99%
-		 * volume is -0.7 dB, 98% volume is -1.05 dB and so on. 0% volume is an
-		 * exception - the scale is hardcoded to be silent at 0% volume.
+		 * RPG Maker uses a -35 decibel scale for volume. 100% volume is 0 dB, 99%
+		 * volume is -0.35 dB, 98% volume is -0.7 dB, 97% volume is -1.05 dB and so
+		 * on. 0% volume is an exception - the scale is hardcoded to be silent at 0%
+		 * volume.
 		 *
 		 * This was deduced by running an RPG Maker XP game in Wine and attaching
 		 * winedbg to the game, with a breakpoint set in the
