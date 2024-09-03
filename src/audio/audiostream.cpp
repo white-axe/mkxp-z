@@ -260,7 +260,7 @@ float AudioStream::playingOffset()
 
 void AudioStream::updateVolume()
 {
-	float vol = GLOBAL_VOLUME;
+	float vol = 1.0f;
 
 	for (size_t i = 0; i < VolumeTypeCount; ++i)
 		vol *= volumes[i];
@@ -361,9 +361,7 @@ void AudioStream::fadeInThread()
 			break;
 		}
 
-		/* Quadratic increase (not really the same as
-		 * in RMVXA, but close enough) */
-		setVolume(FadeIn, prog*prog);
+		setVolume(FadeIn, prog);
 
 		unlockStream();
 
