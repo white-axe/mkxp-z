@@ -1,5 +1,5 @@
 ARCH ?= $(shell uname -m)
-ARCH_OPENSSL ?= $(ARCH)
+ARCH_OPENSSL ?= linux-$(ARCH)
 ARCH_CFLAGS ?=
 ARCH_CONFIGURE ?= $(shell gcc -dumpmachine)
 
