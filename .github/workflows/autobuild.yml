@@ -151,13 +151,11 @@ jobs:
           - arch_mkxpz: armv6
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
-            # GCC doesn't like the -mcpu flags, TODO investigate.
-            experimental: true
+            experimental: false
           - arch_mkxpz: armv7
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
-            # GCC doesn't like the -mcpu flags, TODO investigate.
-            experimental: true
+            experimental: false
           - arch_mkxpz: armv7-neon
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
