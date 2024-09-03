@@ -20,7 +20,7 @@
 # cp "/usr/lib/$ARCH_CONFIGURE/$("$ARCH_CONFIGURE-objdump" -p local/lib64/libruby.so* | grep -i NEEDED | grep -Eo 'libcrypt.so.[0-9\.]+')" local/lib64/
 
 export ARCH=armv6
-export ARCH_OPENSSL=armv4
+export ARCH_OPENSSL=linux-armv4
 # -march flags from:
 # https://raspberrypi.stackexchange.com/questions/2046/which-cpu-flags-are-suitable-for-gcc-on-raspberry-pi
 # https://stackoverflow.com/questions/35132319/build-for-armv6-with-gnueabihf
