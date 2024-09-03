@@ -631,15 +631,9 @@ struct MidiSource : ALDataSource, MidiReadHandler
 			throw Exception(Exception::MKXPError, "Reading midi data failed");
 		}
 
-		try
-		{
-			readMidi(this, data);
-		}
-		catch (const Exception &)
-		{
-			SDL_RWclose(&ops);
-			throw;
-		}
+		SDL_RWclose(&ops);
+
+		readMidi(this, data);
 
 		synth = shState->midiState().allocateSynth();
 
