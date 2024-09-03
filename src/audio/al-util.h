@@ -29,6 +29,8 @@
 #include <assert.h>
 #include <cmath>
 
+#define GLOBAL_VOLUME 1.0f
+
 namespace AL
 {
 
@@ -172,7 +174,7 @@ namespace Source
 		if (value > FLT_EPSILON) {
 			value = std::pow(10.0f, -(35.0f / 20.0f) * (1.0f - value));
 		}
-		alSourcef(id.al, AL_GAIN, value);
+		alSourcef(id.al, AL_GAIN, value * GLOBAL_VOLUME);
 	}
 
 	inline void setPitch(Source::ID id, float value)
