@@ -164,8 +164,7 @@ struct VorbisSource : ALDataSource
 			currentFrame = 0;
 		}
 
-		// TODO: We're flooring here when we probably should be rounding.
-		currentFrame = seconds * info.rate;
+		currentFrame = lround(seconds * info.rate);
 
 		if (loop.valid && currentFrame > loop.end)
 			currentFrame = loop.start;
