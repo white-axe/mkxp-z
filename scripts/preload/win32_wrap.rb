@@ -123,7 +123,9 @@ module Scancodes
 
 		:NUMLOCK => 0x90, :SCROLL => 0x91,
 		:LSHIFT => 0xA0, :RSHIFT => 0xA1, :LCONTROL => 0xA2, :RCONTROL => 0xA3,
-		:LMENU => 0xA4, :RMENU => 0xA5, :OEM_1 => 0xBA,
+		:LMENU => 0xA4, :RMENU => 0xA5,
+		
+		:OEM_1 => 0xBA,
 		:OEM_PLUS => 0xBB, :OEM_COMMA => 0xBC, :OEM_MINUS => 0xBD, :OEM_PERIOD => 0xBE,
 		:OEM_2 => 0xBF, :OEM_3 => 0xC0, :OEM_4 => 0xDB, :OEM_5 => 0xDC,
 		:OEM_6 => 0xDD, :OEM_7 => 0xDE
@@ -147,11 +149,14 @@ module Scancodes
 
 		:NUMLOCK => :NUMLOCKCLEAR, :SCROLL => :SCROLLLOCK,
 		:LCONTROL => :LCTRL, :RCONTROL => :RCTRL,
-		# FIXME: Fill these out
-		:LMENU => :LALT, :RMENU => :RALT, :OEM_1 => :SEMICOLON,
-		:OEM_PLUS => :UNKNOWN, :OEM_COMMA => :UNKNOWN, :OEM_MINUS => :UNKNOWN, :OEM_PERIOD => :UNKNOWN,
-		:OEM_2 => :UNKNOWN, :OEM_3 => :UNKNOWN, :OEM_4 => :UNKNOWN, :OEM_5 => :UNKNOWN,
-		:OEM_6 => :UNKNOWN, :OEM_7 => :UNKNOWN
+		:LMENU => :LALT, :RMENU => :RALT,
+		
+		# These are OEM and can vary by country
+		# Values taken from Joiplay's src/input.cpp
+		:OEM_1 => :SEMICOLON,
+		:OEM_PLUS => :EQUALS, :OEM_COMMA => :COMMA, :OEM_MINUS => :MINUS, :OEM_PERIOD => :PERIOD,
+		:OEM_2 => :SLASH, :OEM_3 => :GRAVE, :OEM_4 => :LEFTBRACKET, :OEM_5 => :BACKSLASH,
+		:OEM_6 => :RIGHTBRACKET, :OEM_7 => :APOSTROPHE
 	}
 
 	WIN2SDL.default = :UNKNOWN
