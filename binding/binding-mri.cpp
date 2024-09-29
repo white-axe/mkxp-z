@@ -693,7 +693,7 @@ RB_METHOD_GUARD(mkxpLaunch) {
 }
 RB_METHOD_GUARD_END
 
-RB_METHOD(mkxpParseCSV) {
+RB_METHOD_GUARD(mkxpParseCSV) {
     RB_UNUSED_PARAM;
     
     VALUE str;
@@ -713,11 +713,12 @@ RB_METHOD(mkxpParseCSV) {
             rb_ary_push(ret, col);
         }
     } catch (std::exception &e) {
-        raiseRbExc(Exception(Exception::MKXPError, "Failed to parse CSV: %s", e.what()));
+        throw Exception(Exception::MKXPError, "Failed to parse CSV: %s", e.what());
     }
-    
+
     return ret;
 }
+RB_METHOD_GUARD_END
 
 json5pp::value loadUserSettings() {
     json5pp::value ret;
