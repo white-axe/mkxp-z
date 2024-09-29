@@ -153,9 +153,8 @@ struct SDLSoundSource : ALDataSource
 		else
 		{
 			// Unfortunately there is no easy API in SDL_sound for seeking with better precision than 1ms.
-			// TODO: Work around this by manually consuming the remaining samples.
-			// TODO: Also we're flooring here when we probably should be rounding.
-			Sound_Seek(sample, static_cast<uint32_t>(seconds * 1000));
+			// TODO: Work around this by flooring instead of rounding, and then manually consuming the remaining samples.
+			Sound_Seek(sample, static_cast<uint32_t>(lround(seconds * 1000)));
 		}
 	}
 
