@@ -737,16 +737,16 @@ Bitmap::Bitmap(const Bitmap &other, int frame)
             throw e;
         }
         
-        GLMeta::blitBegin(p->gl);
+        GLMeta::blitBegin(p->gl, false, SameScale);
         // Blit just the current frame of the other animated bitmap
         if (!other.isAnimated() || frame == -1) {
-            GLMeta::blitSource(other.getGLTypes());
+            GLMeta::blitSource(other.getGLTypes(), SameScale);
         }
         else {
             auto &frames = other.getFrames();
-            GLMeta::blitSource(frames[clamp(frame, 0, (int)frames.size() - 1)]);
+            GLMeta::blitSource(frames[clamp(frame, 0, (int)frames.size() - 1)], SameScale);
         }
-        GLMeta::blitRectangle(rect(), rect(), true);
+        GLMeta::blitRectangle(rect(), rect());
         GLMeta::blitEnd();
     }
     else {
@@ -768,9 +768,9 @@ Bitmap::Bitmap(const Bitmap &other, int frame)
                 throw e;
             }
             
-            GLMeta::blitBegin(newframe);
-            GLMeta::blitSource(sourceframe);
-            GLMeta::blitRectangle(rect(), rect(), true);
+            GLMeta::blitBegin(newframe, false, SameScale);
+            GLMeta::blitSource(sourceframe, SameScale);
+            GLMeta::blitRectangle(rect(), rect());
             GLMeta::blitEnd();
             
             p->animation.frames.push_back(newframe);
@@ -806,9 +806,9 @@ Bitmap::Bitmap(TEXFBO &other)
 
     // Skip blitting to lores texture, since only the hires one will be displayed.
     if (p->selfHires == nullptr) {
-        GLMeta::blitBegin(p->gl);
-        GLMeta::blitSource(other);
-        GLMeta::blitRectangle(rect(), rect(), true);
+        GLMeta::blitBegin(p->gl, false, SameScale);
+        GLMeta::blitSource(other, SameScale);
+        GLMeta::blitRectangle(rect(), rect());
         GLMeta::blitEnd();
     }
 
@@ -1086,10 +1086,16 @@ void Bitmap::stretchBlt(IntRect destRect,
     SDL_Surface *blitTemp = 0;
     bool touchesTaintedArea = p->touchesTaintedArea(destRect);
     bool unpack_subimage = srcSurf && gl.unpack_subimage;
-    
+
+    const bool scaleIsOne = sourceRect.w == destRect.w && sourceRect.h == destRect.h;
+    if (scaleIsOne) {
+        smooth = false;
+    }
+
     if (!srcSurf && opacity == 255 && !touchesTaintedArea)
     {
         /* Fast blit */
+        // TODO: Use bitmapSmoothScaling/bitmapSmoothScalingDown configs for this.
         GLMeta::blitBegin(getGLTypes());
         GLMeta::blitSource(source.getGLTypes());
         GLMeta::blitRectangle(sourceRect, destRect, smooth);
@@ -1227,8 +1233,8 @@ void Bitmap::stretchBlt(IntRect destRect,
             TEXFBO &gpTex = shState->gpTexFBO(abs(destRect.w), abs(destRect.h));
             Vec2i gpTexSize;
             
-            GLMeta::blitBegin(gpTex);
-            GLMeta::blitSource(getGLTypes());
+            GLMeta::blitBegin(gpTex, false, SameScale);
+            GLMeta::blitSource(getGLTypes(), SameScale);
             GLMeta::blitRectangle(destRect, IntRect(0, 0, abs(destRect.w), abs(destRect.h)));
             GLMeta::blitEnd();
             
@@ -2432,9 +2438,9 @@ int Bitmap::addFrame(Bitmap &source, int position)
         p->surface = 0;
     }
     else {
-        GLMeta::blitBegin(newframe);
-        GLMeta::blitSource(source.getGLTypes());
-        GLMeta::blitRectangle(rect(), rect(), true);
+        GLMeta::blitBegin(newframe, false, SameScale);
+        GLMeta::blitSource(source.getGLTypes(), SameScale);
+        GLMeta::blitRectangle(rect(), rect());
         GLMeta::blitEnd();
     }
     
