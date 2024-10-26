@@ -368,6 +368,15 @@
     // ],
 
 
+    // Define raw scripts to be executed before the 
+    // rgss_main execution starts for RGSS 3.
+    // (default: none)
+    //
+    // "postloadScript": [
+    //     "/path/to/script.rb",
+    // ],
+
+
     // Index all accesible assets via their lower case path
     // (emulates windows case insensitivity)
     // (default: enabled)

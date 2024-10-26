@@ -811,9 +811,54 @@ static bool processReset(bool rubyExc) {
 	return 0;
 }
 
+#if RAPI_FULL > 187
+static VALUE newStringUTF8(const char *string, long length) {
+    return rb_enc_str_new(string, length, rb_utf8_encoding());
+}
+#else
+#define newStringUTF8 rb_str_new
+#endif
+
+struct evalArg {
+    VALUE string;
+    VALUE filename;
+};
+
+static VALUE evalHelper(evalArg *arg) {
+    VALUE argv[] = {arg->string, Qnil, arg->filename};
+    return rb_funcall2(Qnil, rb_intern("eval"), ARRAY_SIZE(argv), argv);
+}
+
+static VALUE evalString(VALUE string, VALUE filename, int *state) {
+    evalArg arg = {string, filename};
+    return rb_protect((VALUE(*)(VALUE))evalHelper, (VALUE)&arg, state);
+}
+
+static void runCustomScript(const std::string &filename) {
+    std::string scriptData;
+    
+    if (!readFileSDL(filename.c_str(), scriptData)) {
+        showMsg(std::string("Unable to open '") + filename + "'");
+        return;
+    }
+    
+    evalString(newStringUTF8(scriptData.c_str(), scriptData.size()),
+               newStringUTF8(filename.c_str(), filename.size()), NULL);
+}
+
 RB_METHOD_GUARD(mriRgssMain) {
     RB_UNUSED_PARAM;
-    
+
+    /* Execute postload scripts */
+    const Config &conf = shState->rtData().config;
+    for (std::vector<std::string>::const_iterator i = conf.postloadScripts.begin();
+        i != conf.postloadScripts.end(); ++i)
+    {
+        if (shState->rtData().rqTerm)
+            break;
+        runCustomScript(*i);
+    }
+
     while (true) {
         VALUE exc = Qnil;
 #if RAPI_FULL < 270
@@ -878,41 +923,6 @@ RB_METHOD(_kernelCaller) {
     rb_funcall2(rb_ary_entry(trace, len - 1), rb_intern("gsub!"), 2, args);
     
     return trace;
-}
-
-#if RAPI_FULL > 187
-static VALUE newStringUTF8(const char *string, long length) {
-    return rb_enc_str_new(string, length, rb_utf8_encoding());
-}
-#else
-#define newStringUTF8 rb_str_new
-#endif
-
-struct evalArg {
-    VALUE string;
-    VALUE filename;
-};
-
-static VALUE evalHelper(evalArg *arg) {
-    VALUE argv[] = {arg->string, Qnil, arg->filename};
-    return rb_funcall2(Qnil, rb_intern("eval"), ARRAY_SIZE(argv), argv);
-}
-
-static VALUE evalString(VALUE string, VALUE filename, int *state) {
-    evalArg arg = {string, filename};
-    return rb_protect((VALUE(*)(VALUE))evalHelper, (VALUE)&arg, state);
-}
-
-static void runCustomScript(const std::string &filename) {
-    std::string scriptData;
-    
-    if (!readFileSDL(filename.c_str(), scriptData)) {
-        showMsg(std::string("Unable to open '") + filename + "'");
-        return;
-    }
-    
-    evalString(newStringUTF8(scriptData.c_str(), scriptData.size()),
-               newStringUTF8(filename.c_str(), filename.size()), NULL);
 }
 
 VALUE kernelLoadDataInt(const char *filename, bool rubyExc, bool raw);
