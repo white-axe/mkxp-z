@@ -61,6 +61,7 @@ if get_option('retro') == true
             '-Wno-unused-value',
             '-Wno-unused-variable',
             '-Wno-unused-but-set-variable',
+            '-DWASM_RT_TRAP_HANDLER=mkxp_sandbox_trap_handler',
         ],
         link_args: [
             '-Wl,--no-undefined',
