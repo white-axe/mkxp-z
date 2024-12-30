@@ -23,7 +23,6 @@
 #define MKXPZ_SANDBOX_H
 
 #include <memory>
-#include <vector>
 #include "types.h"
 
 typedef usize VALUE;
@@ -41,7 +40,6 @@ struct Sandbox {
     std::shared_ptr<struct w2c_ruby> ruby;
     std::unique_ptr<struct w2c_wasi__snapshot__preview1> wasi;
 
-    static std::vector<const char *> get_args();
     usize sandbox_malloc(usize size);
     void sandbox_free(usize ptr);
 

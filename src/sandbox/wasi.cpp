@@ -48,9 +48,7 @@ namespace mkxp_retro {
 
 #define WASM_MEM(address) ((void *)&wasi->ruby->w2c_memory.data[address])
 
-wasi_t::w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby, std::vector<const char *> args) : ruby(ruby), args(args), dist_source(NULL), dist(NULL), argv_buf_size(0) {
-    for (unsigned int i = 0; i < args.size(); ++i) this->argv_buf_size += std::strlen(args[i]) + 1;
-
+wasi_t::w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby) : ruby(ruby), dist_source(NULL), dist(NULL) {
     // Open the zip file for /mkxp-retro-dist
     dist_source = zip_source_buffer_create(mkxp_retro_dist_zip, mkxp_retro_dist_zip_len, 0, NULL);
     if (dist_source == NULL) {
@@ -235,19 +233,13 @@ void wasi_t::deallocate_file_descriptor(u32 fd) {
 
 u32 w2c_wasi__snapshot__preview1_args_get(wasi_t *wasi, usize argv, usize argv_buf) {
     WASI_DEBUG("args_get()\n");
-    for (unsigned int i = 0; i < wasi->args.size(); ++i) {
-        std::strcpy((char *)WASM_MEM(argv_buf), wasi->args[i]);
-        WASM_SET(usize, argv, argv_buf);
-        argv += sizeof(usize);
-        argv_buf += std::strlen(wasi->args[i]) + 1;
-    }
     return WASI_ESUCCESS;
 }
 
 u32 w2c_wasi__snapshot__preview1_args_sizes_get(wasi_t *wasi, usize argc, usize argv_buf_size) {
     WASI_DEBUG("args_sizes_get(0x%08x, 0x%08x)\n", argc, argv_buf_size);
-    WASM_SET(u32, argc, wasi->args.size());
-    WASM_SET(u32, argv_buf_size, wasi->argv_buf_size);
+    WASM_SET(u32, argc, 0);
+    WASM_SET(u32, argv_buf_size, 0);
     return WASI_ESUCCESS;
 }
 

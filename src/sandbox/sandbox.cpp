@@ -44,26 +44,6 @@ extern "C" void mkxp_sandbox_trap_handler(wasm_rt_trap_t code) {
     throw SandboxTrapException();
 }
 
-std::vector<const char *> Sandbox::get_args() {
-    std::vector<const char *> args{"mkxp-z"};
-    args.push_back("-e ");
-    if (MJIT_ENABLED) {
-        std::string verboseLevel("--mjit-verbose=");
-        std::string maxCache("--mjit-max-cache=");
-        std::string minCalls("--mjit-min-calls=");
-        args.push_back("--mjit");
-        verboseLevel += std::to_string(MJIT_VERBOSE);
-        maxCache += std::to_string(MJIT_MAX_CACHE);
-        minCalls += std::to_string(MJIT_MIN_CALLS);
-        args.push_back(verboseLevel.c_str());
-        args.push_back(maxCache.c_str());
-        args.push_back(minCalls.c_str());
-    } else if (YJIT_ENABLED) {
-        args.push_back("--yjit");
-    }
-    return args;
-}
-
 usize Sandbox::sandbox_malloc(usize size) {
     usize buf = w2c_ruby_mkxp_sandbox_malloc(RB, size);
 
@@ -80,22 +60,40 @@ void Sandbox::sandbox_free(usize ptr) {
     w2c_ruby_mkxp_sandbox_free(RB, ptr);
 }
 
-Sandbox::Sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby, get_args())) {
+Sandbox::Sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)) {
     try {
         // Initialize the sandbox
         wasm_rt_init();
         wasm2c_ruby_instantiate(RB, wasi.get());
         w2c_ruby_mkxp_sandbox_init(RB);
 
+        // Determine Ruby command-line arguments
+        std::vector<std::string> args{"mkxp-z"};
+        args.push_back("-e ");
+        if (MJIT_ENABLED) {
+            std::string verboseLevel("--mjit-verbose=");
+            std::string maxCache("--mjit-max-cache=");
+            std::string minCalls("--mjit-min-calls=");
+            args.push_back("--mjit");
+            verboseLevel += std::to_string(MJIT_VERBOSE);
+            maxCache += std::to_string(MJIT_MAX_CACHE);
+            minCalls += std::to_string(MJIT_MIN_CALLS);
+            args.push_back(verboseLevel.c_str());
+            args.push_back(maxCache.c_str());
+            args.push_back(minCalls.c_str());
+        } else if (YJIT_ENABLED) {
+            args.push_back("--yjit");
+        }
+
         // Copy all the command-line arguments into the sandbox (sandboxed code can't access memory that's outside the sandbox!)
-        usize argv_buf = sandbox_malloc(wasi->args.size() * sizeof(usize));
-        for (usize i = 0; i < wasi->args.size(); ++i) {
-            usize arg_buf = sandbox_malloc(std::strlen(wasi->args[i]) + 1);
-            std::strcpy((char *)WASM_MEM(arg_buf), wasi->args[i]);
+        usize argv_buf = sandbox_malloc(args.size() * sizeof(usize));
+        for (usize i = 0; i < args.size(); ++i) {
+            usize arg_buf = sandbox_malloc(args[i].length() + 1);
+            std::strcpy((char *)WASM_MEM(arg_buf), args[i].c_str());
             WASM_SET(usize, argv_buf + i * sizeof(usize), arg_buf);
         }
         usize sysinit_buf = sandbox_malloc(sizeof(usize) + sizeof(u32));
-        WASM_SET(u32, sysinit_buf + sizeof(usize), wasi->args.size());
+        WASM_SET(u32, sysinit_buf + sizeof(usize), args.size());
         WASM_SET(usize, sysinit_buf, argv_buf);
 
         // Pass the command-line arguments to Ruby
@@ -103,7 +101,7 @@ Sandbox::Sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby, get_args()
         AWAIT(w2c_ruby_ruby_init_stack(RB, ruby->w2c_0x5F_stack_pointer));
         AWAIT(w2c_ruby_ruby_init(RB));
         usize node;
-        AWAIT(node = w2c_ruby_ruby_options(RB, wasi->args.size(), argv_buf));
+        AWAIT(node = w2c_ruby_ruby_options(RB, args.size(), argv_buf));
 
         // Start up Ruby executable node
         bool valid;
@@ -113,7 +111,7 @@ Sandbox::Sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby, get_args()
         if (valid) {
             AWAIT(state = w2c_ruby_ruby_exec_node(RB, WASM_GET(u32, state_buf)));
         }
-        if (state || !valid) {
+        if (!valid || state) {
             throw SandboxNodeException();
         }
         sandbox_free(state_buf);

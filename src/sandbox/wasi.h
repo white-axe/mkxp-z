@@ -226,7 +226,6 @@ struct dist_stat_info {
 
 typedef struct w2c_wasi__snapshot__preview1 {
     std::shared_ptr<struct w2c_ruby> ruby;
-    std::vector<const char *> args;
     zip_source_t *dist_source;
     zip_t *dist;
     std::vector<dist_path_entry_t> dist_path_cache;
@@ -238,7 +237,7 @@ typedef struct w2c_wasi__snapshot__preview1 {
     // List of vacant WASI file descriptors so that we can reallocate vacant WASI file descriptors in O(1) amortized time.
     std::vector<u32> vacant_fds;
 
-    w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby, std::vector<const char *> args);
+    w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby);
     ~w2c_wasi__snapshot__preview1();
     struct dist_stat_info dist_stat(const char *path, u32 path_len);
     struct dist_stat_info dist_stat_entry(struct file_entry &entry);
