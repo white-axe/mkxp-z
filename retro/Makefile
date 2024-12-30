@@ -1,5 +1,7 @@
 # Configure flags are based on the ones from https://github.com/ruby/ruby.wasm
 
+RUBY_VERSION ?= 3.3
+
 CC ?= gcc
 CXX ?= g++
 WASI_SDK ?= /opt/wasi-sdk
@@ -58,7 +60,7 @@ $(DOWNLOADS)/ruby/Makefile: $(DOWNLOADS)/ruby/configure $(LIBDIR)/bin/ruby $(LIB
 	./configure \
 	--prefix=/mkxp-retro-dist \
 	--host wasm32-wasip1 \
-	--build $$($(LIBDIR)/bin/ruby -e 'puts(RbConfig::CONFIG["host"])') \
+	--build $(shell $(LIBDIR)/bin/ruby -e 'puts(RbConfig::CONFIG["host"])') \
 	--with-static-linked-ext \
 	--with-ext=bigdecimal,cgi/escape,continuation,coverage,date,dbm,digest/bubblebabble,digest,digest/md5,digest/rmd160,digest/sha1,digest/sha2,etc,fcntl,fiber,gdbm,json,json/generator,json/parser,nkf,objspace,pathname,psych,racc/cparse,rbconfig/sizeof,ripper,stringio,strscan,monitor,zlib,openssl \
 	--with-libyaml-dir=$(LIBDIR)/usr/local \
@@ -73,6 +75,7 @@ $(DOWNLOADS)/ruby/Makefile: $(DOWNLOADS)/ruby/configure $(LIBDIR)/bin/ruby $(LIB
 	debugflags=-g \
 	cppflags= \
 	wasmoptflags='-O3 -g --pass-arg=asyncify-ignore-imports' \
+	$(shell $(LIBDIR)/bin/ruby -e 'puts "ac_cv_func_dlopen=no" if RUBY_VERSION.start_with? "3.2."') \
 	--disable-install-doc
 
 $(DOWNLOADS)/ruby/configure: $(DOWNLOADS)/baseruby/configure
@@ -94,8 +97,9 @@ $(DOWNLOADS)/baseruby/configure: $(DOWNLOADS)/baseruby/configure.ac
 	autoreconf -i
 
 $(DOWNLOADS)/baseruby/configure.ac:
+	if ! ruby -e 'exit 1 if $(RUBY_VERSION) < 3.2'; then echo -e '\e[91m[ERROR] Ruby version must be at least 3.2 because earlier versions do not have WebAssembly support\e[0m'; exit 1; fi; \
 	mkdir -p $(DOWNLOADS); \
-	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/baseruby -b ruby_3_3
+	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/baseruby -b ruby_$(shell echo $(RUBY_VERSION) | sed -e 's/\./_/g')
 
 # libyaml
 
