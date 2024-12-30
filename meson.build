@@ -31,6 +31,49 @@ global_args += '-DHAVE_NANOSLEEP'
 # Ext libs
 # ====================
 
+if get_option('retro')
+    retro_phase1 = get_option('retro_phase1_path')
+    library(
+        'retro-' + meson.project_name(),
+        dependencies: [
+            compilers['cpp'].find_library('zip', required: true),
+        ],
+        c_args: [
+            '-fno-optimize-sibling-calls',
+            '-frounding-math',
+            '-fsignaling-nans',
+            '-Wno-unused-function',
+            '-Wno-unused-value',
+            '-Wno-unused-variable',
+            '-Wno-unused-but-set-variable',
+        ],
+        link_args: [
+            '-Wl,--no-undefined',
+            '-Wl,--version-script=' + join_paths(meson.current_source_dir(), 'retro/link.T'),
+        ],
+        include_directories: [
+            include_directories(retro_phase1),
+            include_directories(join_paths(retro_phase1, 'wasm2c')),
+        ],
+        sources: [
+            'src/core.cpp',
+            'src/sandbox/sandbox.cpp',
+            'src/sandbox/wasi.cpp',
+            join_paths(retro_phase1, 'wasm2c/wasm-rt-impl.c'),
+            join_paths(retro_phase1, 'wasm2c/wasm-rt-mem-impl.c'),
+            join_paths(retro_phase1, 'mkxp-retro-dist.zip.c'),
+            join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_0.c'),
+            join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_1.c'),
+            join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_2.c'),
+            join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_3.c'),
+            join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_4.c'),
+            join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_5.c'),
+            join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_6.c'),
+            join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_7.c'),
+        ],
+    )
+else
+
 # STEAMWORKS
 
 steamworks = false
@@ -195,3 +238,5 @@ executable(exe_name,
     win_subsystem: 'windows',
     install: (host_system != 'windows')
 )
+
+endif

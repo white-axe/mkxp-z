@@ -3,11 +3,12 @@ name: Automatic Build
 
 on:
   push:
-    branches: ['dev', 'autobuild']
+    branches: ['dev', 'autobuild', 'libretro']
     paths-ignore: ['*.md', '*.json', '*.png']
   pull_request:
-    branches: ['dev', 'autobuild']
+    branches: ['dev', 'autobuild', 'libretro']
     paths-ignore: ['*.md', '*.json', '*.png']
+  workflow_dispatch:
 
 jobs:
   build-windows:
@@ -298,3 +299,71 @@ jobs:
         with:
           name: mkxp-z.macos.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/Build/Products/Release/Z-universal.app.zip
+
+  build-retro-phase1:
+    name: Libretro phase 1
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            retro/build
+          key: retro-phase1-${{ hashFiles('retro/Makefile') }}
+
+      - name: Install apt dependencies
+        run: |
+          sudo apt update
+          sudo apt install git curl build-essential automake libtool binaryen wabt zip -y
+
+      - name: Download WASI SDK
+        run: |
+          curl -Lo ${{ runner.temp }}/wasi-sdk.tar.gz https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-21/wasi-sdk-21.0-linux.tar.gz
+          mkdir ${{ runner.temp }}/wasi-sdk
+          tar xzf ${{ runner.temp }}/wasi-sdk.tar.gz -C ${{ runner.temp }}/wasi-sdk --strip-components=1
+          rm ${{ runner.temp }}/wasi-sdk.tar.gz
+
+      - name: Build phase 1
+        run: |
+          cd retro
+          make WASI_SDK=${{ runner.temp }}/wasi-sdk
+          cd ..
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: retro-phase1
+          path: retro/build/retro-phase1
+
+  build-retro-phase2-linux-native:
+    needs: build-retro-phase1
+    name: Libretro Linux x86_64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: retro-phase1
+          path: retro/build/retro-phase1
+
+      - name: Install apt dependencies
+        run: |
+          sudo apt update
+          sudo apt install git curl build-essential automake libtool meson libzip-dev -y
+
+      - name: Build phase 2
+        run: |
+          mkdir ${{ runner.temp }}/retro-phase2
+          cp retro/core.info ${{ runner.temp }}/retro-phase2/libretro-mkxp-z.info
+          meson setup build -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          cd build
+          ninja
+          mv libretro-mkxp-z.so ${{ runner.temp }}/retro-phase2
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libretro-mkxp-z.linux.x86_64
+          path: ${{ runner.temp }}/retro-phase2
