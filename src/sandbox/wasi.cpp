@@ -22,13 +22,8 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
-#include <dirent.h>
-#include <fcntl.h>
 #include <random>
-#include <sys/stat.h>
-#include <utility>
 #include <zip.h>
-#include <zipconf.h>
 #include "wasi.h"
 #include "sandbox.h"
 #include <mkxp-retro-ruby/mkxp-retro-ruby.h>
@@ -53,7 +48,7 @@ namespace mkxp_retro {
 
 #define WASM_MEM(address) ((void *)&wasi->ruby->w2c_memory.data[address])
 
-wasi_t::w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby, std::vector<const char *> args) : ruby(ruby), args(args), argv_buf_size(0), dist_source(NULL), dist(NULL) {
+wasi_t::w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby, std::vector<const char *> args) : ruby(ruby), args(args), dist_source(NULL), dist(NULL), argv_buf_size(0) {
     for (unsigned int i = 0; i < args.size(); ++i) this->argv_buf_size += std::strlen(args[i]) + 1;
 
     // Open the zip file for /mkxp-retro-dist
@@ -70,6 +65,9 @@ wasi_t::w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby, std:
     zip_int64_t num_entries = zip_get_num_entries(dist, 0);
     for (zip_int64_t i = 0; i < num_entries; ++i) {
         std::string name(zip_get_name(dist, i, 0));
+        if (!name.empty() && name.back() == '/') {
+            name.pop_back();
+        }
         u32 n_slashes = 0;
         for (u32 i = 0; i < name.length(); ++i) {
             if (name[i] == '/') {
@@ -583,7 +581,7 @@ u32 w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, u32 fd, usize buf, u32
                         ++n_slashes;
                     }
                 }
-                auto it = std::upper_bound(wasi->dist_path_cache.begin(), wasi->dist_path_cache.end(), std::make_pair(n_slashes, prefix_str));
+                auto it = std::lower_bound(wasi->dist_path_cache.begin(), wasi->dist_path_cache.end(), std::make_pair(n_slashes, prefix_str));
                 it += cookie;
                 while (it != wasi->dist_path_cache.end() && it->first == n_slashes && std::strncmp(it->second.c_str(), prefix_str.c_str(), prefix_str.length()) == 0) {
                     ++cookie;
@@ -592,7 +590,7 @@ u32 w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, u32 fd, usize buf, u32
                         ++it;
                         continue;
                     }
-                    u32 suffix_length = info.filetype == WASI_IFDIR ? it->second.length() - prefix_str.length() - 1 : it->second.length() - prefix_str.length();
+                    u32 suffix_length = it->second.length() - prefix_str.length();
                     if (buf - original_buf + 8 > buf_len) {
                         WASM_SET(u32, result, buf - original_buf);
                         return WASI_ESUCCESS;
