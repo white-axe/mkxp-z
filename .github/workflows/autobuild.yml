@@ -352,7 +352,7 @@ jobs:
       - name: Install apt dependencies
         run: |
           sudo apt update
-          sudo apt install git curl build-essential automake libtool meson libzip-dev -y
+          sudo apt install git curl build-essential automake libtool meson cmake zlib1g-dev -y
 
       - name: Build phase 2
         run: |
