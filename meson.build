@@ -31,7 +31,7 @@ global_args += '-DHAVE_NANOSLEEP'
 # Ext libs
 # ====================
 
-if get_option('retro')
+if get_option('retro') == true
     retro_phase1 = get_option('retro_phase1_path')
     library(
         'retro-' + meson.project_name(),
