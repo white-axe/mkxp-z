@@ -1,5 +1,5 @@
 /*
-** main.cpp
+** core.cpp
 **
 ** This file is part of mkxp.
 **
