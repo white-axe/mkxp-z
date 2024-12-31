@@ -311,7 +311,7 @@ jobs:
         with:
           path: |
             retro/build
-          key: retro-phase1-${{ hashFiles('retro/Makefile') }}
+          key: retro-phase1-${{ hashFiles('retro/Makefile', 'retro/extra-ruby-bindings.h') }}
 
       - name: Install apt dependencies
         run: |
