@@ -22,7 +22,6 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
-#include <fcntl.h>
 #include <random>
 #include <zip.h>
 #include "wasi.h"
@@ -275,7 +274,7 @@ void wasi_t::deallocate_file_descriptor(u32 fd) {
     if (!fdtable.empty() && fd == fdtable.size() - 1) {
         fdtable.pop_back();
     } else {
-        fdtable[fd] = {.type = file_entry::VACANT};
+        fdtable[fd].type = file_entry::VACANT;
         vacant_fds.push_back(fd);
     }
 }
@@ -707,7 +706,60 @@ u32 w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, u32 fd, usize buf, u32
 
 u32 w2c_wasi__snapshot__preview1_fd_renumber(wasi_t *wasi, u32 fd, u32 to) {
     WASI_DEBUG("fd_renumber(%u, %u)\n", fd, to);
-    return WASI_ENOSYS;
+
+    if (fd >= wasi->fdtable.size()) {
+        return WASI_EBADF;
+    }
+
+    switch (wasi->fdtable[fd].type) {
+        case file_entry::VACANT:
+            return WASI_EBADF;
+
+        case file_entry::STDIN:
+        case file_entry::STDOUT:
+        case file_entry::STDERR:
+        case file_entry::ZIP:
+            return WASI_EINVAL;
+
+        case file_entry::ZIPFILE:
+        case file_entry::ZIPDIR:
+            break;
+    }
+
+    if (fd == to) {
+        return WASI_ESUCCESS;
+    }
+
+    if (to >= wasi->fdtable.size()) return WASI_EBADF;
+
+    switch (wasi->fdtable[to].type) {
+        case file_entry::VACANT:
+            return WASI_EBADF;
+
+        case file_entry::STDIN:
+        case file_entry::STDOUT:
+        case file_entry::STDERR:
+        case file_entry::ZIP:
+            return WASI_EINVAL;
+
+        case file_entry::ZIPDIR:
+        case file_entry::ZIPFILE:
+            wasi->deallocate_file_descriptor(to);
+            if (to == wasi->fdtable.size()) {
+                wasi->fdtable.push_back(wasi->fdtable[fd]);
+            } else {
+                wasi->fdtable[to] = wasi->fdtable[fd];
+            }
+            if (!wasi->fdtable.empty() && fd == wasi->fdtable.size() - 1) {
+                wasi->fdtable.pop_back();
+            } else {
+                wasi->fdtable[fd].type = file_entry::VACANT;
+                wasi->vacant_fds.push_back(fd);
+            }
+            return WASI_ESUCCESS;
+    }
+
+    return WASI_EBADF;
 }
 
 u32 w2c_wasi__snapshot__preview1_fd_seek(wasi_t *wasi, u32 fd, u64 offset, u32 whence, usize result) {
