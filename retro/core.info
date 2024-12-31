@@ -1,7 +1,7 @@
 # Software Information
 display_name = "RPG Maker XP/VX/VX Ace (mkxp-z)"
 authors = "mkxp-z"
-supported_extensions = "mkxp|mkxpz|zip|json|ini|rxproj|rvproj|rvproj2"
+supported_extensions = "mkxp|mkxpz|json|ini|rxproj|rvproj|rvproj2"
 corename = "mkxp-z"
 categories = "Game engine"
 license = "GPLv2"

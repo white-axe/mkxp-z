@@ -44,7 +44,7 @@ struct Sandbox {
     void sandbox_free(usize ptr);
 
     public:
-    Sandbox();
+    Sandbox(const char *game_path);
     ~Sandbox();
     VALUE rb_eval_string(const char *str);
 };

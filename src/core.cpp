@@ -38,15 +38,17 @@ static void fallback_log(enum retro_log_level level, const char *fmt, ...) {
 
 static uint32_t *frame_buf;
 static std::unique_ptr<Sandbox> sandbox;
+static const char *game_path = NULL;
 
 static bool init_sandbox() {
     sandbox.reset();
 
     try {
-        sandbox.reset(new Sandbox());
+        sandbox.reset(new Sandbox(game_path));
 
         sandbox->rb_eval_string("puts 'Hello, World!'");
         sandbox->rb_eval_string("require 'zlib'; p Zlib::Deflate::deflate('hello')");
+        sandbox->rb_eval_string("p Dir.glob '/mkxp-retro-game/*'");
     } catch (SandboxException) {
         log_printf(RETRO_LOG_ERROR, "Failed to initialize Ruby\n");
         sandbox.reset();
@@ -114,7 +116,7 @@ void retro_get_system_info(struct retro_system_info *info) {
     std::memset(info, 0, sizeof *info);
     info->library_name = "mkxp-z";
     info->library_version = "rolling";
-    info->valid_extensions = "mkxp|mkxpz|zip|json|ini|rxproj|rvproj|rvproj2";
+    info->valid_extensions = "mkxp|mkxpz|json|ini|rxproj|rvproj|rvproj2";
     info->need_fullpath = true;
     info->block_extract = true;
 }
@@ -173,6 +175,7 @@ bool retro_load_game(const struct retro_game_info *info) {
         log_printf(RETRO_LOG_ERROR, "This core cannot start without a game\n");
         return false;
     }
+    game_path = info->path;
 
     enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
     if (!environment(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt)) {

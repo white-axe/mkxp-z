@@ -23,6 +23,7 @@
 #define MKXPZ_SANDBOX_WASI_H
 
 #include <memory>
+#include <string>
 #include <vector>
 #include <zip.h>
 #include "types.h"
@@ -187,38 +188,64 @@
 #define WASI_SOCK_SHUTDOWN (1 << 28)
 #define WASI_SOCK_ACCEPT (1 << 29)
 
+typedef std::pair<u32, std::string> path_cache_entry_t;
+
+struct wasi_zip_container {
+    private:
+    zip_source_t *const source;
+
+    public:
+    zip_t *const zip;
+    std::vector<path_cache_entry_t> path_cache;
+    wasi_zip_container();
+    wasi_zip_container(const char *path, zip_flags_t flags);
+    wasi_zip_container(const void *buffer, zip_uint64_t length, zip_flags_t flags);
+    ~wasi_zip_container();
+};
+
+struct wasi_zip_file_container {
+    zip_file_t *const file;
+    wasi_zip_file_container();
+    wasi_zip_file_container(wasi_zip_container &zip, zip_uint64_t index, zip_flags_t flags);
+    ~wasi_zip_file_container();
+};
+
 struct wasi_zip_handle {
-    zip_t *zip; // Zip handle that can be used with libzip
-    const char *path; // Mount point of this archive relative to the root of the virtual filesystem, normalized to start with one leading slash and no trailing slashes (e.g. "/example/path")
+    std::shared_ptr<struct wasi_zip_container> zip; // Zip handle that can be used with libzip
+    std::string path; // Mount point of this archive relative to the root of the virtual filesystem, normalized to start with one leading slash and no trailing slashes (e.g. "/example/path")
 };
 
 struct wasi_zip_dir_handle {
     zip_uint64_t index; // Index of this directory within the zip file
-    char *path; // Path of this directory relative to the root of the zip file, normalized to start with no leading slashes or dots and one trailing slash (e.g. "example/path/")
+    std::string path; // Path of this directory relative to the root of the zip file, normalized to start with no leading slashes or dots and one trailing slash (e.g. "example/path/")
     u32 parent_fd; // WASI file descriptor of the zip file that contains this directory
 };
 
 struct wasi_zip_file_handle {
     zip_uint64_t index; // Index of this file within the zip file
-    zip_file_t *zip_file_handle; // Handle to this file that can be used with libzip
+    struct wasi_zip_file_container zip_file_handle; // Handle to this file that can be used with libzip
     u32 parent_fd; // WASI file descriptor of the zip file that contains this file
 };
 
-typedef std::pair<u32, std::string> dist_path_entry_t;
+struct undefined {};
 
 struct file_entry {
     enum {
         STDIN, // This file descriptor is standard input. The `handle` field is undefined.
         STDOUT, // This file descriptor is standard output. The `handle` field is undefined.
         STDERR, // This file descriptor is standard error. The `handle` field is undefined.
-        ZIP, // This file descriptor is a read-only zip file. The `handle` field is a `struct wasi_zip_handle *`.
-        ZIPDIR, // This file descriptor is a directory inside of a zip file. The `handle` field is a `struct wasi_zip_dir_handle *`.
-        ZIPFILE, // This file descriptor is a file inside of a zip file. The `handle` field is a `struct wasi_zip_file_handle *`.
-        VACANT, // Indicates this is a vacant file descriptor that doesn't correspond to a file.
+        ZIP, // This file descriptor is a read-only zip file. The `handle` field is a `struct wasi_zip_handle`.
+        ZIPDIR, // This file descriptor is a directory inside of a zip file. The `handle` field is a `struct wasi_zip_dir_handle`.
+        ZIPFILE, // This file descriptor is a file inside of a zip file. The `handle` field is a `struct wasi_zip_file_handle`.
+        VACANT, // Indicates this is a vacant file descriptor that doesn't correspond to a file. The `handle` field is undefined.
     } type;
 
     // The file/directory handle that the file descriptor corresponds to. The exact type of this handle depends on the type of file descriptor.
     void *handle;
+
+    struct wasi_zip_handle *zip_handle();
+    struct wasi_zip_dir_handle *zip_dir_handle();
+    struct wasi_zip_file_handle *zip_file_handle();
 };
 
 struct wasi_zip_stat {
@@ -233,10 +260,9 @@ struct wasi_zip_stat {
 
 typedef struct w2c_wasi__snapshot__preview1 {
     std::shared_ptr<struct w2c_ruby> ruby;
-    zip_source_t *dist_source;
-    zip_t *dist;
-    std::vector<dist_path_entry_t> dist_path_cache;
-    u32 argv_buf_size;
+
+    std::shared_ptr<struct wasi_zip_container> dist;
+    std::shared_ptr<struct wasi_zip_container> game;
 
     // WASI file descriptor table. Maps WASI file descriptors (unsigned 32-bit integers) to file handles.
     std::vector<file_entry> fdtable;
@@ -244,7 +270,7 @@ typedef struct w2c_wasi__snapshot__preview1 {
     // List of vacant WASI file descriptors so that we can reallocate vacant WASI file descriptors in O(1) amortized time.
     std::vector<u32> vacant_fds;
 
-    w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby);
+    w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby, const char *game_path);
     ~w2c_wasi__snapshot__preview1();
     u32 allocate_file_descriptor();
     void deallocate_file_descriptor(u32 fd);

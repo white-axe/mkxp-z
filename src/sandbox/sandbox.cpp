@@ -60,7 +60,7 @@ void Sandbox::sandbox_free(usize ptr) {
     w2c_ruby_mkxp_sandbox_free(RB, ptr);
 }
 
-Sandbox::Sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)) {
+Sandbox::Sandbox(const char *game_path) : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby, game_path)) {
     try {
         // Initialize the sandbox
         wasm_rt_init();
