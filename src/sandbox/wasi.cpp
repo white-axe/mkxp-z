@@ -80,7 +80,14 @@ wasi_t::w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby) : ru
     fdtable.push_back({.type = file_entry::STDIN});
     fdtable.push_back({.type = file_entry::STDOUT});
     fdtable.push_back({.type = file_entry::STDERR});
-    fdtable.push_back({.type = file_entry::DIST});
+
+    struct wasi_zip_handle *dist_handle = (struct wasi_zip_handle *)std::malloc(sizeof(struct wasi_zip_handle));
+    if (dist_handle == NULL) {
+        throw SandboxOutOfMemoryException();
+    }
+    dist_handle->zip = dist;
+    dist_handle->path = "/mkxp-retro-dist";
+    fdtable.push_back({.type = file_entry::ZIP, .handle = dist_handle});
 }
 
 wasi_t::~w2c_wasi__snapshot__preview1() {
@@ -98,8 +105,9 @@ wasi_t::~w2c_wasi__snapshot__preview1() {
     }
 }
 
-struct dist_stat_info wasi_t::dist_stat(const char *path, u32 path_len) {
-    dist_stat_info info;
+// Gets information about a file or directory at a certain path within a zip file.
+static struct wasi_zip_stat wasi_zip_stat(zip_t *zip, const char *path, u32 path_len) {
+    struct wasi_zip_stat info;
     zip_stat_t stat;
 
     char *buf = (char *)std::calloc(path_len + 2, 1);
@@ -135,7 +143,7 @@ struct dist_stat_info wasi_t::dist_stat(const char *path, u32 path_len) {
         return info;
     }
 
-    if (zip_stat(dist, ptr, 0, &stat) == 0) {
+    if (zip_stat(zip, ptr, 0, &stat) == 0) {
         std::free(buf);
         info.exists = true;
         info.filetype = WASI_IFREG;
@@ -146,7 +154,7 @@ struct dist_stat_info wasi_t::dist_stat(const char *path, u32 path_len) {
     }
 
     ptr[std::strlen(ptr)] = '/';
-    if (zip_stat(dist, ptr, 0, &stat) == 0) {
+    if (zip_stat(zip, ptr, 0, &stat) == 0) {
         std::free(buf);
         info.exists = true;
         info.filetype = WASI_IFDIR;
@@ -161,25 +169,14 @@ struct dist_stat_info wasi_t::dist_stat(const char *path, u32 path_len) {
     return info;
 }
 
-u32 wasi_t::allocate_file_descriptor() {
-    if (vacant_fds.empty()) {
-        u32 fd = fdtable.size();
-        fdtable.push_back({.type = file_entry::VACANT});
-        return fd;
-    } else {
-        u32 fd = vacant_fds.back();
-        vacant_fds.pop_back();
-        return fd;
-    }
-}
-
-struct dist_stat_info wasi_t::dist_stat_entry(struct file_entry &entry) {
-    dist_stat_info info;
+// Gets information about a file or directory at a certain index within a zip file.
+static struct wasi_zip_stat wasi_zip_stat_entry(zip_t *zip, struct file_entry &entry) {
+    struct wasi_zip_stat info;
     zip_stat_t stat;
 
     switch (entry.type) {
-        case file_entry::DISTDIR:
-            if (zip_stat_index(dist, ((struct distdir_handle *)entry.handle)->index, 0, &stat) == 0) {
+        case file_entry::ZIPDIR:
+            if (zip_stat_index(zip, ((struct wasi_zip_dir_handle *)entry.handle)->index, 0, &stat) == 0) {
                 info.exists = true;
                 info.filetype = WASI_IFDIR;
                 info.inode = stat.index;
@@ -190,8 +187,8 @@ struct dist_stat_info wasi_t::dist_stat_entry(struct file_entry &entry) {
             }
             return info;
 
-        case file_entry::DISTFILE:
-            if (zip_stat_index(dist, ((struct distfile_handle *)entry.handle)->index, 0, &stat) == 0) {
+        case file_entry::ZIPFILE:
+            if (zip_stat_index(zip, ((struct wasi_zip_file_handle *)entry.handle)->index, 0, &stat) == 0) {
                 info.exists = true;
                 info.filetype = WASI_IFREG;
                 info.inode = stat.index;
@@ -208,15 +205,31 @@ struct dist_stat_info wasi_t::dist_stat_entry(struct file_entry &entry) {
     }
 }
 
+u32 wasi_t::allocate_file_descriptor() {
+    if (vacant_fds.empty()) {
+        u32 fd = fdtable.size();
+        fdtable.push_back({.type = file_entry::VACANT});
+        return fd;
+    } else {
+        u32 fd = vacant_fds.back();
+        vacant_fds.pop_back();
+        return fd;
+    }
+}
+
 void wasi_t::deallocate_file_descriptor(u32 fd) {
     switch (fdtable[fd].type) {
-        case file_entry::DISTDIR:
-            std::free(((struct distdir_handle *)fdtable[fd].handle)->path);
+        case file_entry::ZIP:
             std::free(fdtable[fd].handle);
             break;
 
-        case file_entry::DISTFILE:
-            zip_fclose(((struct distfile_handle *)fdtable[fd].handle)->zip_file_handle);
+        case file_entry::ZIPDIR:
+            std::free(((struct wasi_zip_dir_handle *)fdtable[fd].handle)->path);
+            std::free(fdtable[fd].handle);
+            break;
+
+        case file_entry::ZIPFILE:
+            zip_fclose(((struct wasi_zip_file_handle *)fdtable[fd].handle)->zip_file_handle);
             std::free(fdtable[fd].handle);
             break;
 
@@ -286,11 +299,11 @@ u32 w2c_wasi__snapshot__preview1_fd_close(wasi_t *wasi, u32 fd) {
         case file_entry::STDIN:
         case file_entry::STDOUT:
         case file_entry::STDERR:
-        case file_entry::DIST:
+        case file_entry::ZIP:
             return WASI_EINVAL;
 
-        case file_entry::DISTDIR:
-        case file_entry::DISTFILE:
+        case file_entry::ZIPDIR:
+        case file_entry::ZIPFILE:
             wasi->deallocate_file_descriptor(fd);
             return WASI_ESUCCESS;
     }
@@ -317,15 +330,15 @@ u32 w2c_wasi__snapshot__preview1_fd_fdstat_get(wasi_t *wasi, u32 fd, usize resul
         case file_entry::STDIN:
         case file_entry::STDOUT:
         case file_entry::STDERR:
-        case file_entry::DISTFILE:
+        case file_entry::ZIPFILE:
             WASM_SET(u8, result, WASI_IFCHR); // fs_filetype
             WASM_SET(u16, result + 2, 0); // fs_flags
             WASM_SET(u64, result + 8, WASI_FD_READ | WASI_FD_WRITE | WASI_FD_FILESTAT_GET); // fs_rights_base
             WASM_SET(u64, result + 16, 0); // fs_rights_inheriting
             return WASI_ESUCCESS;
 
-        case file_entry::DIST:
-        case file_entry::DISTDIR:
+        case file_entry::ZIP:
+        case file_entry::ZIPDIR:
             WASM_SET(u8, result, WASI_IFDIR); // fs_filetype
             WASM_SET(u16, result + 2, 0); // fs_flags
             WASM_SET(u64, result + 8, WASI_PATH_OPEN | WASI_FD_READDIR | WASI_PATH_FILESTAT_GET | WASI_FD_FILESTAT_GET); // fs_rights_base
@@ -350,9 +363,9 @@ u32 w2c_wasi__snapshot__preview1_fd_fdstat_set_flags(wasi_t *wasi, u32 fd, u32 f
         case file_entry::STDIN:
         case file_entry::STDOUT:
         case file_entry::STDERR:
-        case file_entry::DIST:
-        case file_entry::DISTDIR:
-        case file_entry::DISTFILE:
+        case file_entry::ZIP:
+        case file_entry::ZIPDIR:
+        case file_entry::ZIPFILE:
             return WASI_ESUCCESS;
     }
 
@@ -373,8 +386,8 @@ u32 w2c_wasi__snapshot__preview1_fd_filestat_get(wasi_t *wasi, u32 fd, usize res
         case file_entry::STDIN:
         case file_entry::STDOUT:
         case file_entry::STDERR:
-            WASM_SET(u64, result, wasi->fdtable[fd].type); // dev
-            WASM_SET(u64, result + 8, fd); // ino
+            WASM_SET(u64, result, fd); // dev
+            WASM_SET(u64, result + 8, 0); // ino
             WASM_SET(u8, result + 16, WASI_IFCHR); // filetype
             WASM_SET(u32, result + 24, 1); // nlink
             WASM_SET(u64, result + 32, 0); // size
@@ -383,13 +396,13 @@ u32 w2c_wasi__snapshot__preview1_fd_filestat_get(wasi_t *wasi, u32 fd, usize res
             WASM_SET(u64, result + 56, 0); // ctim
             return WASI_ESUCCESS;
 
-        case file_entry::DIST:
+        case file_entry::ZIP:
             {
-                struct dist_stat_info info = wasi->dist_stat("", 0);
+                struct wasi_zip_stat info = wasi_zip_stat(((struct wasi_zip_handle *)wasi->fdtable[fd].handle)->zip, "", 0);
                 if (!info.exists) {
                     return WASI_ENOENT;
                 }
-                WASM_SET(u64, result, wasi->fdtable[fd].type); // dev
+                WASM_SET(u64, result, fd); // dev
                 WASM_SET(u64, result + 8, info.inode); // ino
                 WASM_SET(u8, result + 16, info.filetype); // filetype
                 WASM_SET(u32, result + 24, 1); // nlink
@@ -400,14 +413,14 @@ u32 w2c_wasi__snapshot__preview1_fd_filestat_get(wasi_t *wasi, u32 fd, usize res
                 return WASI_ESUCCESS;
             }
 
-        case file_entry::DISTDIR:
-        case file_entry::DISTFILE:
+        case file_entry::ZIPDIR:
+        case file_entry::ZIPFILE:
             {
-                struct dist_stat_info info = wasi->dist_stat_entry(wasi->fdtable[fd]);
+                struct wasi_zip_stat info = wasi_zip_stat_entry(((struct wasi_zip_handle *)wasi->fdtable[wasi->fdtable[fd].type == file_entry::ZIPDIR ? ((struct wasi_zip_dir_handle *)wasi->fdtable[fd].handle)->parent_fd : ((struct wasi_zip_file_handle *)wasi->fdtable[fd].handle)->parent_fd].handle)->zip, wasi->fdtable[fd]);
                 if (!info.exists) {
                     return WASI_ENOENT;
                 }
-                WASM_SET(u64, result, wasi->fdtable[fd].type); // dev
+                WASM_SET(u64, result, wasi->fdtable[fd].type == file_entry::ZIPDIR ? ((struct wasi_zip_dir_handle *)wasi->fdtable[fd].handle)->parent_fd : ((struct wasi_zip_file_handle *)wasi->fdtable[fd].handle)->parent_fd); // dev
                 WASM_SET(u64, result + 8, info.inode); // ino
                 WASM_SET(u8, result + 16, info.filetype); // filetype
                 WASM_SET(u32, result + 24, 1); // nlink
@@ -458,15 +471,15 @@ u32 w2c_wasi__snapshot__preview1_fd_prestat_dir_name(wasi_t *wasi, u32 fd, usize
         case file_entry::VACANT:
             return WASI_EBADF;
 
-        case file_entry::DIST:
-            std::strncpy((char *)WASM_MEM(path), "/mkxp-retro-dist", path_len);
+        case file_entry::ZIP:
+            std::strncpy((char *)WASM_MEM(path), ((struct wasi_zip_handle *)wasi->fdtable[fd].handle)->path, path_len);
             return WASI_ESUCCESS;
 
         case file_entry::STDIN:
         case file_entry::STDOUT:
         case file_entry::STDERR:
-        case file_entry::DISTDIR:
-        case file_entry::DISTFILE:
+        case file_entry::ZIPDIR:
+        case file_entry::ZIPFILE:
             return WASI_EINVAL;
     }
 
@@ -484,16 +497,16 @@ u32 w2c_wasi__snapshot__preview1_fd_prestat_get(wasi_t *wasi, u32 fd, usize resu
         case file_entry::VACANT:
             return WASI_EBADF;
 
-        case file_entry::DIST:
+        case file_entry::ZIP:
             WASM_SET(u32, result, 0);
-            WASM_SET(u32, result + 4, std::strlen("/mkxp-retro-dist"));
+            WASM_SET(u32, result + 4, std::strlen(((struct wasi_zip_handle *)wasi->fdtable[fd].handle)->path));
             return WASI_ESUCCESS;
 
         case file_entry::STDIN:
         case file_entry::STDOUT:
         case file_entry::STDERR:
-        case file_entry::DISTDIR:
-        case file_entry::DISTFILE:
+        case file_entry::ZIPDIR:
+        case file_entry::ZIPFILE:
             return WASI_EINVAL;
     }
 
@@ -522,15 +535,15 @@ u32 w2c_wasi__snapshot__preview1_fd_read(wasi_t *wasi, u32 fd, usize iovs, u32 i
             WASM_SET(u32, result, 0);
             return WASI_ESUCCESS;
 
-        case file_entry::DIST:
-        case file_entry::DISTDIR:
+        case file_entry::ZIP:
+        case file_entry::ZIPDIR:
             return WASI_EINVAL;
 
-        case file_entry::DISTFILE:
+        case file_entry::ZIPFILE:
             {
                 u32 size = 0;
                 while (iovs_len > 0) {
-                    zip_int64_t n = zip_fread(((distfile_handle *)wasi->fdtable[fd].handle)->zip_file_handle, WASM_MEM(WASM_GET(u32, iovs)), WASM_GET(u32, iovs + 4));
+                    zip_int64_t n = zip_fread(((struct wasi_zip_file_handle *)wasi->fdtable[fd].handle)->zip_file_handle, WASM_MEM(WASM_GET(u32, iovs)), WASM_GET(u32, iovs + 4));
                     if (n < 0) return WASI_EIO;
                     size += n;
                     iovs += 8;
@@ -558,14 +571,14 @@ u32 w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, u32 fd, usize buf, u32
         case file_entry::STDIN:
         case file_entry::STDOUT:
         case file_entry::STDERR:
-        case file_entry::DISTFILE:
+        case file_entry::ZIPFILE:
             return WASI_EINVAL;
 
-        case file_entry::DIST:
-        case file_entry::DISTDIR:
+        case file_entry::ZIP:
+        case file_entry::ZIPDIR:
             {
                 usize original_buf = buf;
-                const char *prefix = wasi->fdtable[fd].type == file_entry::DIST ? "" : ((distdir_handle *)wasi->fdtable[fd].handle)->path;
+                const char *prefix = wasi->fdtable[fd].type == file_entry::ZIP ? "" : ((struct wasi_zip_dir_handle *)wasi->fdtable[fd].handle)->path;
                 std::string prefix_str(prefix);
                 u32 n_slashes = 0;
                 for (u32 i = 0; i < prefix_str.length(); ++i) {
@@ -577,7 +590,7 @@ u32 w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, u32 fd, usize buf, u32
                 it += cookie;
                 while (it != wasi->dist_path_cache.end() && it->first == n_slashes && std::strncmp(it->second.c_str(), prefix_str.c_str(), prefix_str.length()) == 0) {
                     ++cookie;
-                    dist_stat_info info = wasi->dist_stat(it->second.c_str(), it->second.length());
+                    struct wasi_zip_stat info = wasi_zip_stat(wasi->fdtable[fd].type == file_entry::ZIP ? ((struct wasi_zip_handle *)wasi->fdtable[fd].handle)->zip : ((struct wasi_zip_handle *)wasi->fdtable[((struct wasi_zip_dir_handle *)wasi->fdtable[fd].handle)->parent_fd].handle)->zip, it->second.c_str(), it->second.length());
                     if (!info.exists) {
                         ++it;
                         continue;
@@ -634,11 +647,11 @@ u32 w2c_wasi__snapshot__preview1_fd_renumber(wasi_t *wasi, u32 fd, u32 to) {
         case file_entry::STDIN:
         case file_entry::STDOUT:
         case file_entry::STDERR:
-        case file_entry::DIST:
+        case file_entry::ZIP:
             return WASI_EINVAL;
 
-        case file_entry::DISTFILE:
-        case file_entry::DISTDIR:
+        case file_entry::ZIPFILE:
+        case file_entry::ZIPDIR:
             break;
     }
 
@@ -655,11 +668,11 @@ u32 w2c_wasi__snapshot__preview1_fd_renumber(wasi_t *wasi, u32 fd, u32 to) {
         case file_entry::STDIN:
         case file_entry::STDOUT:
         case file_entry::STDERR:
-        case file_entry::DIST:
+        case file_entry::ZIP:
             return WASI_EINVAL;
 
-        case file_entry::DISTDIR:
-        case file_entry::DISTFILE:
+        case file_entry::ZIPDIR:
+        case file_entry::ZIPFILE:
             wasi->deallocate_file_descriptor(to);
             if (to == wasi->fdtable.size()) {
                 wasi->fdtable.push_back(wasi->fdtable[fd]);
@@ -702,12 +715,12 @@ u32 w2c_wasi__snapshot__preview1_fd_tell(wasi_t *wasi, u32 fd, usize result) {
         case file_entry::STDIN:
         case file_entry::STDOUT:
         case file_entry::STDERR:
-        case file_entry::DIST:
-        case file_entry::DISTDIR:
+        case file_entry::ZIP:
+        case file_entry::ZIPDIR:
             return WASI_EINVAL;
 
-        case file_entry::DISTFILE:
-            WASM_SET(u64, result, zip_ftell(((distfile_handle *)wasi->fdtable[fd].handle)->zip_file_handle));
+        case file_entry::ZIPFILE:
+            WASM_SET(u64, result, zip_ftell(((struct wasi_zip_file_handle *)wasi->fdtable[fd].handle)->zip_file_handle));
             return WASI_ESUCCESS;
     }
 
@@ -751,11 +764,11 @@ u32 w2c_wasi__snapshot__preview1_fd_write(wasi_t *wasi, u32 fd, usize iovs, u32 
                 return WASI_ESUCCESS;
             }
 
-        case file_entry::DIST:
-        case file_entry::DISTDIR:
+        case file_entry::ZIP:
+        case file_entry::ZIPDIR:
             return WASI_EINVAL;
 
-        case file_entry::DISTFILE:
+        case file_entry::ZIPFILE:
             return WASI_EROFS;
     }
 
@@ -781,16 +794,16 @@ u32 w2c_wasi__snapshot__preview1_path_filestat_get(wasi_t *wasi, u32 fd, u32 fla
         case file_entry::STDIN:
         case file_entry::STDOUT:
         case file_entry::STDERR:
-        case file_entry::DISTFILE:
+        case file_entry::ZIPFILE:
             return WASI_EINVAL;
 
-        case file_entry::DIST:
+        case file_entry::ZIP:
             {
-                struct dist_stat_info info = wasi->dist_stat((char *)WASM_MEM(path), path_len);
+                struct wasi_zip_stat info = wasi_zip_stat(((struct wasi_zip_handle *)wasi->fdtable[fd].handle)->zip, (char *)WASM_MEM(path), path_len);
                 if (!info.exists) {
                     return WASI_ENOENT;
                 }
-                WASM_SET(u64, result, wasi->fdtable[fd].type); // dev
+                WASM_SET(u64, result, fd); // dev
                 WASM_SET(u64, result + 8, info.inode); // ino
                 WASM_SET(u8, result + 16, info.filetype); // filetype
                 WASM_SET(u32, result + 24, 1); // nlink
@@ -801,20 +814,20 @@ u32 w2c_wasi__snapshot__preview1_path_filestat_get(wasi_t *wasi, u32 fd, u32 fla
                 return WASI_ESUCCESS;
             }
 
-        case file_entry::DISTDIR:
+        case file_entry::ZIPDIR:
             {
-                char *buf = (char *)std::calloc(std::strlen(((struct distdir_handle *)wasi->fdtable[fd].handle)->path) + path_len + 1, 1);
+                char *buf = (char *)std::calloc(std::strlen(((struct wasi_zip_dir_handle *)wasi->fdtable[fd].handle)->path) + path_len + 1, 1);
                 if (buf == NULL) {
                     throw SandboxOutOfMemoryException();
                 }
-                std::strcpy(buf, ((struct distdir_handle *)wasi->fdtable[fd].handle)->path);
+                std::strcpy(buf, ((struct wasi_zip_dir_handle *)wasi->fdtable[fd].handle)->path);
                 std::strncat(buf, (char *)WASM_MEM(path), path_len);
-                struct dist_stat_info info = wasi->dist_stat(buf, std::strlen(buf));
+                struct wasi_zip_stat info = wasi_zip_stat(((struct wasi_zip_handle *)wasi->fdtable[((struct wasi_zip_dir_handle *)wasi->fdtable[fd].handle)->parent_fd].handle)->zip, buf, std::strlen(buf));
                 if (!info.exists) {
                     return WASI_ENOENT;
                 }
                 std::free(buf);
-                WASM_SET(u64, result, wasi->fdtable[fd].type); // dev
+                WASM_SET(u64, result, ((struct wasi_zip_dir_handle *)wasi->fdtable[fd].handle)->parent_fd); // dev
                 WASM_SET(u64, result + 8, info.inode); // ino
                 WASM_SET(u8, result + 16, info.filetype); // filetype
                 WASM_SET(u32, result + 24, 1); // nlink
@@ -853,25 +866,25 @@ u32 w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, u32 fd, u32 dirflags, u
         case file_entry::STDIN:
         case file_entry::STDOUT:
         case file_entry::STDERR:
-        case file_entry::DISTFILE:
+        case file_entry::ZIPFILE:
             return WASI_EINVAL;
 
-        case file_entry::DIST:
-        case file_entry::DISTDIR:
+        case file_entry::ZIP:
+        case file_entry::ZIPDIR:
             {
-                char *path_buf = (char *)std::calloc(wasi->fdtable[fd].type == file_entry::DISTDIR ? std::strlen(((struct distdir_handle *)wasi->fdtable[fd].handle)->path) + path_len + 1 : path_len + 1, 1);
+                char *path_buf = (char *)std::calloc(wasi->fdtable[fd].type == file_entry::ZIPDIR ? std::strlen(((struct wasi_zip_dir_handle *)wasi->fdtable[fd].handle)->path) + path_len + 1 : path_len + 1, 1);
                 if (path_buf == NULL) {
                     throw SandboxOutOfMemoryException();
                 }
-                if (wasi->fdtable[fd].type == file_entry::DISTDIR) {
-                    std::strcpy(path_buf, ((struct distdir_handle *)wasi->fdtable[fd].handle)->path);
+                if (wasi->fdtable[fd].type == file_entry::ZIPDIR) {
+                    std::strcpy(path_buf, ((struct wasi_zip_dir_handle *)wasi->fdtable[fd].handle)->path);
                 }
                 std::strncat(path_buf, (char *)WASM_MEM(path), path_len);
-                struct dist_stat_info info = wasi->dist_stat(path_buf, std::strlen(path_buf));
+                struct wasi_zip_stat info = wasi_zip_stat(wasi->fdtable[fd].type == file_entry::ZIP ? ((struct wasi_zip_handle *)wasi->fdtable[fd].handle)->zip : ((struct wasi_zip_handle *)wasi->fdtable[((struct wasi_zip_dir_handle *)wasi->fdtable[fd].handle)->parent_fd].handle)->zip, path_buf, std::strlen(path_buf));
                 if (!info.exists) {
                     return WASI_ENOENT;
                 }
-                void *handle = std::malloc(info.filetype == WASI_IFDIR ? sizeof(struct distdir_handle) : sizeof(struct distfile_handle));
+                void *handle = std::malloc(info.filetype == WASI_IFDIR ? sizeof(struct wasi_zip_dir_handle) : sizeof(struct wasi_zip_file_handle));
                 if (handle == NULL) {
                     std::free(path_buf);
                     throw SandboxOutOfMemoryException();
@@ -886,22 +899,24 @@ u32 w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, u32 fd, u32 dirflags, u
                     std::memcpy(new_path_buf, path_buf + info.path_offset, info.path_len);
                     new_path_buf[info.path_len] = '/';
                     new_path_buf[info.path_len + 1] = 0;
-                    ((struct distdir_handle *)handle)->index = info.inode;
-                    ((struct distdir_handle *)handle)->path = new_path_buf;
+                    ((struct wasi_zip_dir_handle *)handle)->index = info.inode;
+                    ((struct wasi_zip_dir_handle *)handle)->path = new_path_buf;
+                    ((struct wasi_zip_dir_handle *)handle)->parent_fd = wasi->fdtable[fd].type == file_entry::ZIPDIR ? ((struct wasi_zip_dir_handle *)wasi->fdtable[fd].handle)->parent_fd : fd;
                     u32 new_fd = wasi->allocate_file_descriptor();
                     WASM_SET(u32, result, new_fd);
-                    wasi->fdtable[new_fd] = {.type = file_entry::DISTDIR, .handle = handle};
+                    wasi->fdtable[new_fd] = {.type = file_entry::ZIPDIR, .handle = handle};
                 } else {
-                    ((struct distfile_handle *)handle)->index = info.inode;
-                    ((struct distfile_handle *)handle)->zip_file_handle = zip_fopen_index(wasi->dist, info.inode, 0);
-                    if (((struct distfile_handle *)handle)->zip_file_handle == NULL) {
+                    ((struct wasi_zip_file_handle *)handle)->index = info.inode;
+                    ((struct wasi_zip_file_handle *)handle)->zip_file_handle = zip_fopen_index(wasi->fdtable[fd].type == file_entry::ZIP ? ((struct wasi_zip_handle *)wasi->fdtable[fd].handle)->zip : ((struct wasi_zip_handle *)wasi->fdtable[((struct wasi_zip_dir_handle *)wasi->fdtable[fd].handle)->parent_fd].handle)->zip, info.inode, 0);
+                    ((struct wasi_zip_file_handle *)handle)->parent_fd = wasi->fdtable[fd].type == file_entry::ZIPDIR ? ((struct wasi_zip_dir_handle *)wasi->fdtable[fd].handle)->parent_fd : fd;
+                    if (((struct wasi_zip_file_handle *)handle)->zip_file_handle == NULL) {
                         std::free(path_buf);
                         std::free(handle);
                         throw SandboxOutOfMemoryException();
                     }
                     u32 new_fd = wasi->allocate_file_descriptor();
                     WASM_SET(u32, result, new_fd);
-                    wasi->fdtable[new_fd] = {.type = file_entry::DISTFILE, .handle = handle};
+                    wasi->fdtable[new_fd] = {.type = file_entry::ZIPFILE, .handle = handle};
                 }
                 std::free(path_buf);
                 return WASI_ESUCCESS;

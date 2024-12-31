@@ -1,7 +1,7 @@
 # Software Information
 display_name = "RPG Maker XP/VX/VX Ace (mkxp-z)"
 authors = "mkxp-z"
-supported_extensions = "zip"
+supported_extensions = "mkxp|mkxpz|zip|json|ini|rxproj|rvproj|rvproj2"
 corename = "mkxp-z"
 categories = "Game engine"
 license = "GPLv2"
@@ -13,7 +13,7 @@ systemname = "RPG Maker XP/VX/VX Ace Game Engine"
 
 # Libretro Features
 database = "RPG Maker"
-supports_no_game = "true"
+supports_no_game = "false"
 savestate = "false"
 savestate_features = "null"
 

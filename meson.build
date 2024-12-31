@@ -63,6 +63,9 @@ if get_option('retro') == true
             '-Wno-unused-but-set-variable',
             '-DWASM_RT_TRAP_HANDLER=mkxp_sandbox_trap_handler',
         ],
+        cpp_args: [
+            '-DMKXPZ_RETRO',
+        ],
         link_args: [
             '-Wl,--no-undefined',
             '-Wl,--version-script=' + join_paths(meson.current_source_dir(), 'retro/link.T'),

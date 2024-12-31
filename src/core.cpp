@@ -66,9 +66,6 @@ void retro_set_environment(retro_environment_t cb) {
         log_printf = fallback_log;
     }
 
-    bool support_no_game = true;
-    cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, &support_no_game);
-
     perf = {
         .get_time_usec = nullptr,
         .get_cpu_features = nullptr,
@@ -114,11 +111,12 @@ unsigned int retro_api_version() {
 }
 
 void retro_get_system_info(struct retro_system_info *info) {
-    std::memset(info, 0, sizeof(*info));
+    std::memset(info, 0, sizeof *info);
     info->library_name = "mkxp-z";
     info->library_version = "rolling";
-    info->need_fullpath = false;
-    info->valid_extensions = "zip";
+    info->valid_extensions = "mkxp|mkxpz|zip|json|ini|rxproj|rvproj|rvproj2";
+    info->need_fullpath = true;
+    info->block_extract = true;
 }
 
 void retro_get_system_av_info(struct retro_system_av_info *info) {
@@ -171,6 +169,11 @@ void retro_cheat_set(unsigned int index, bool enabled, const char *code) {
 }
 
 bool retro_load_game(const struct retro_game_info *info) {
+    if (info == NULL) {
+        log_printf(RETRO_LOG_ERROR, "This core cannot start without a game\n");
+        return false;
+    }
+
     enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
     if (!environment(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt)) {
         log_printf(RETRO_LOG_ERROR, "XRGB8888 is not supported\n");
