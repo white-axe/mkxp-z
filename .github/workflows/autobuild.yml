@@ -455,5 +455,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: libretro-mkxp-z.linux.x86_64
+          name: libretro-mkxp-z.linux.${{ matrix.arch_mkxpz }}
           path: ${{ runner.temp }}/retro-phase2

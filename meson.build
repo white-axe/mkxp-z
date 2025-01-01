@@ -2,11 +2,9 @@ project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=0.56.0', defau
 
 host_system = host_machine.system()
 
-if host_system == 'darwin'
+if get_option('retro') == false and host_system == 'darwin'
     error('\nThis Meson project no longer supports macOS. Please use the Xcode project instead.')
 endif
-
-xxd = find_program('xxd', native: true)
 
 git_hash = run_command('git', 'rev-parse', '--short', 'HEAD').stdout().strip()
 
@@ -94,6 +92,8 @@ if get_option('retro') == true
         ],
     )
 else
+
+xxd = find_program('xxd', native: true)
 
 # STEAMWORKS
 
