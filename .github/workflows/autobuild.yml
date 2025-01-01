@@ -336,10 +336,77 @@ jobs:
           name: retro-phase1
           path: retro/build/retro-phase1
 
-  build-retro-phase2-linux-native:
+  build-retro-phase2-windows:
     needs: build-retro-phase1
-    name: Libretro Linux x86_64
+    name: Libretro Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: retro-phase1
+          path: retro/build/retro-phase1
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: mingw64
+          install: base-devel git mingw-w64-x86_64-cmake mingw-w64-x86_64-meson mingw-w64-x86_64-autotools mingw-w64-x86_64-gcc mingw-w64-x86_64-zlib
+
+      - name: Build phase 2
+        shell: msys2 {0}
+        run: |
+          runner_temp="$(python -c 'r"${{ runner.temp }}".replace("\\", "/")')"
+          mkdir "$runner_temp"/retro-phase2
+          cp retro/core.info "$runner_temp"/retro-phase2/libretro-mkxp-z.info
+          meson setup build -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          cd build
+          ninja
+          ls
+          mv libretro-mkxp-z.dll "$runner_temp"/retro-phase2
+          mv "$runner_temp"/retro-phase2 .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libretro-mkxp-z.windows
+          path: retro-phase2
+
+  build-retro-phase2-linux:
+    needs: build-retro-phase1
+    name: Libretro Linux ${{ matrix.arch_mkxpz }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch_mkxpz: x86_64
+            arch_debian: amd64
+            arch_gcc: x86_64-linux-gnu
+          - arch_mkxpz: armv6
+            arch_debian: armhf
+            arch_gcc: arm-linux-gnueabihf
+          - arch_mkxpz: armv7
+            arch_debian: armhf
+            arch_gcc: arm-linux-gnueabihf
+          - arch_mkxpz: armv7-neon
+            arch_debian: armhf
+            arch_gcc: arm-linux-gnueabihf
+          - arch_mkxpz: arm64
+            arch_debian: arm64
+            arch_gcc: aarch64-linux-gnu
+          - arch_mkxpz: power8le
+            arch_debian: ppc64el
+            arch_gcc: powerpc64le-linux-gnu
+          - arch_mkxpz: power9le
+            arch_debian: ppc64el
+            arch_gcc: powerpc64le-linux-gnu
+          - arch_mkxpz: s390x
+            arch_debian: s390x
+            arch_gcc: s390x-linux-gnu
+          - arch_mkxpz: riscv64
+            arch_debian: riscv64
+            arch_gcc: riscv64-linux-gnu
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -351,14 +418,37 @@ jobs:
 
       - name: Install apt dependencies
         run: |
+          if [ '${{ matrix.arch_mkxpz }}' != 'x86_64' ]
+          then
+            codename=$(grep VERSION_CODENAME /etc/os-release | cut -f 2 -d '=')
+            sudo sed -i 's/^Types: deb$/Types: deb\nArchitectures: amd64/g' /etc/apt/sources.list.d/ubuntu.sources
+            sudo dpkg --add-architecture ${{ matrix.arch_debian }}
+            echo 'Types: deb' | sudo tee -a /etc/apt/sources.list.d/ubuntu.sources
+            echo "Architectures: ${{ matrix.arch_debian }}" | sudo tee -a /etc/apt/sources.list.d/ubuntu.sources
+            echo 'URIs: http://ports.ubuntu.com/' | sudo tee -a /etc/apt/sources.list.d/ubuntu.sources
+            echo "Suites: $codename $codename-updates" | sudo tee -a /etc/apt/sources.list.d/ubuntu.sources
+            echo 'Components: main universe' | sudo tee -a /etc/apt/sources.list.d/ubuntu.sources
+          fi
           sudo apt update
-          sudo apt install git curl build-essential automake libtool meson cmake zlib1g-dev -y
+          sudo apt install git curl build-essential automake libtool meson cmake -y
+          if [ '${{ matrix.arch_mkxpz }}' != 'x86_64' ]
+          then
+            sudo apt install gcc-${{ matrix.arch_gcc }} g++-${{ matrix.arch_gcc }} zlib1g-dev:${{ matrix.arch_debian }} -y
+          else
+            sudo apt install zlib1g-dev -y
+          fi
 
       - name: Build phase 2
         run: |
           mkdir ${{ runner.temp }}/retro-phase2
           cp retro/core.info ${{ runner.temp }}/retro-phase2/libretro-mkxp-z.info
-          meson setup build -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          if [ '${{ matrix.arch_mkxpz }}' != 'x86_64' ]
+          then
+            cross_arg='--cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt'
+          else
+            cross_arg=
+          fi
+          meson setup build $cross_arg -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja
           mv libretro-mkxp-z.so ${{ runner.temp }}/retro-phase2

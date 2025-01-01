@@ -35,18 +35,20 @@ if get_option('retro') == true
     retro_phase1 = get_option('retro_phase1_path')
     cmake = import('cmake')
     libzip_options = cmake.subproject_options()
-    libzip_options.add_cmake_defines({'CMAKE_POSITION_INDEPENDENT_CODE': true})
-    libzip_options.add_cmake_defines({'BUILD_SHARED_LIBS': false})
-    libzip_options.add_cmake_defines({'LIBZIP_DO_INSTALL': false})
-    libzip_options.add_cmake_defines({'ENABLE_COMMONCRYPTO': false})
-    libzip_options.add_cmake_defines({'ENABLE_GNUTLS': false})
-    libzip_options.add_cmake_defines({'ENABLE_MBEDTLS': false})
-    libzip_options.add_cmake_defines({'ENABLE_OPENSSL': false})
-    libzip_options.add_cmake_defines({'ENABLE_WINDOWS_CRYPTO': false})
-    libzip_options.add_cmake_defines({'ENABLE_FDOPEN': false})
-    libzip_options.add_cmake_defines({'ENABLE_BZIP2': false})
-    libzip_options.add_cmake_defines({'ENABLE_LZMA': false})
-    libzip_options.add_cmake_defines({'ENABLE_ZSTD': false})
+    libzip_options.add_cmake_defines({
+        'CMAKE_POSITION_INDEPENDENT_CODE': true,
+        'BUILD_SHARED_LIBS': false,
+        'LIBZIP_DO_INSTALL': false,
+        'ENABLE_COMMONCRYPTO': false,
+        'ENABLE_GNUTLS': false,
+        'ENABLE_MBEDTLS': false,
+        'ENABLE_OPENSSL': false,
+        'ENABLE_WINDOWS_CRYPTO': false,
+        'ENABLE_FDOPEN': false,
+        'ENABLE_BZIP2': false,
+        'ENABLE_LZMA': false,
+        'ENABLE_ZSTD': false,
+    })
     library(
         'retro-' + meson.project_name(),
         dependencies: [
