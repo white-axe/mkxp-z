@@ -352,7 +352,7 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           msystem: mingw64
-          install: base-devel git mingw-w64-x86_64-pkgconf mingw-w64-x86_64-cmake mingw-w64-x86_64-meson mingw-w64-x86_64-autotools mingw-w64-x86_64-gcc mingw-w64-x86_64-zlib
+          install: base-devel git mingw-w64-x86_64-cmake mingw-w64-x86_64-meson mingw-w64-x86_64-autotools mingw-w64-x86_64-gcc mingw-w64-x86_64-zlib
 
       - name: Build phase 2
         shell: msys2 {0}
@@ -429,7 +429,7 @@ jobs:
             echo 'Components: main universe' | sudo tee -a /etc/apt/sources.list.d/ubuntu.sources
           fi
           sudo apt update
-          sudo apt install git curl build-essential pkgconf automake libtool meson cmake -y
+          sudo apt install git curl build-essential automake libtool meson cmake -y
           if [ '${{ matrix.arch_mkxpz }}' != 'x86_64' ]
           then
             sudo apt install gcc-${{ matrix.arch_gcc }} g++-${{ matrix.arch_gcc }} zlib1g-dev:${{ matrix.arch_debian }} -y
@@ -486,7 +486,7 @@ jobs:
         run: |
           mkdir ${{ runner.temp }}/retro-phase2
           cp retro/core.info ${{ runner.temp }}/retro-phase2/libretro-mkxp-z.info
-          PKG_CONFIG_PATH=${{ runner.temp }}/deps/share/pkgconfig meson setup build -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          PKG_CONFIG_PATH=${{ runner.temp }}/deps/share/pkgconfig meson setup build -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1 -Dretro_lookup_method=pkg-config
           cd build
           ninja
           mv libretro-mkxp-z.dylib ${{ runner.temp }}/retro-phase2

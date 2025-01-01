@@ -31,7 +31,9 @@ global_args += '-DHAVE_NANOSLEEP'
 
 if get_option('retro') == true
     retro_phase1 = get_option('retro_phase1_path')
+
     cmake = import('cmake')
+
     libzip_options = cmake.subproject_options()
     libzip_options.add_cmake_defines({
         'CMAKE_POSITION_INDEPENDENT_CODE': true,
@@ -47,12 +49,18 @@ if get_option('retro') == true
         'ENABLE_LZMA': false,
         'ENABLE_ZSTD': false,
     })
+
+    retro_deps = []
+    if get_option('retro_lookup_method') == 'pkg-config'
+        retro_deps += dependency('zlib', static: true)
+    else
+        retro_deps += compilers['cpp'].find_library('z', required: true, static: true)
+    endif
+    retro_deps += cmake.subproject('libzip', options: libzip_options).dependency('zip')
+
     library(
         'retro-' + meson.project_name(),
-        dependencies: [
-            dependency('zlib', static: true),
-            cmake.subproject('libzip', options: libzip_options).dependency('zip'),
-        ],
+        dependencies: retro_deps,
         c_args: [
             '-fno-optimize-sibling-calls',
             '-frounding-math',
