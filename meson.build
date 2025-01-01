@@ -74,10 +74,7 @@ if get_option('retro') == true
         cpp_args: [
             '-DMKXPZ_RETRO',
         ],
-        link_args: [
-            '-Wl,--no-undefined',
-            '-Wl,--version-script=' + join_paths(meson.current_source_dir(), 'retro/link.T'),
-        ],
+        gnu_symbol_visibility: 'hidden',
         include_directories: [
             include_directories(retro_phase1),
             include_directories(join_paths(retro_phase1, 'wasm2c')),
