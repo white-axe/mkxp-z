@@ -279,48 +279,48 @@ void wasi_t::deallocate_file_descriptor(u32 fd) {
     }
 }
 
-u32 w2c_wasi__snapshot__preview1_args_get(wasi_t *wasi, usize argv, usize argv_buf) {
+extern "C" u32 w2c_wasi__snapshot__preview1_args_get(wasi_t *wasi, usize argv, usize argv_buf) {
     WASI_DEBUG("args_get()\n");
     return WASI_ESUCCESS;
 }
 
-u32 w2c_wasi__snapshot__preview1_args_sizes_get(wasi_t *wasi, usize argc, usize argv_buf_size) {
+extern "C" u32 w2c_wasi__snapshot__preview1_args_sizes_get(wasi_t *wasi, usize argc, usize argv_buf_size) {
     WASI_DEBUG("args_sizes_get(0x%08x, 0x%08x)\n", argc, argv_buf_size);
     WASM_SET(u32, argc, 0);
     WASM_SET(u32, argv_buf_size, 0);
     return WASI_ESUCCESS;
 }
 
-u32 w2c_wasi__snapshot__preview1_clock_res_get(wasi_t *wasi, u32 id, usize result) {
+extern "C" u32 w2c_wasi__snapshot__preview1_clock_res_get(wasi_t *wasi, u32 id, usize result) {
     WASI_DEBUG("clock_res_get(%u)\n", id);
     WASM_SET(u64, result, 1000L);
     return WASI_ESUCCESS;
 }
 
-u32 w2c_wasi__snapshot__preview1_clock_time_get(wasi_t *wasi, u32 id, u64 precision, usize result) {
+extern "C" u32 w2c_wasi__snapshot__preview1_clock_time_get(wasi_t *wasi, u32 id, u64 precision, usize result) {
     WASI_DEBUG("clock_time_get(%u, %lu)\n", id, precision);
     WASM_SET(u64, result, mkxp_retro::perf.get_time_usec != nullptr ? mkxp_retro::perf.get_time_usec() * 1000L : 0);
     return WASI_ESUCCESS;
 }
 
-u32 w2c_wasi__snapshot__preview1_environ_get(wasi_t *wasi, usize environ, usize environ_buf) {
-    WASI_DEBUG("environ_get(0x%08x, 0x%08x)\n", environ, environ_buf);
+extern "C" u32 w2c_wasi__snapshot__preview1_environ_get(wasi_t *wasi, usize env, usize env_buf) {
+    WASI_DEBUG("environ_get(0x%08x, 0x%08x)\n", env, env_buf);
     return WASI_ESUCCESS;
 }
 
-u32 w2c_wasi__snapshot__preview1_environ_sizes_get(wasi_t *wasi, usize env_size, usize env_buf_size) {
+extern "C" u32 w2c_wasi__snapshot__preview1_environ_sizes_get(wasi_t *wasi, usize env_size, usize env_buf_size) {
     WASI_DEBUG("environ_sizes_get()\n");
     WASM_SET(u32, env_size, 0);
     WASM_SET(u32, env_buf_size, 0);
     return WASI_ESUCCESS;
 }
 
-u32 w2c_wasi__snapshot__preview1_fd_advise(wasi_t *wasi, u32 fd, u64 offset, u64 len, u32 advice) {
+extern "C" u32 w2c_wasi__snapshot__preview1_fd_advise(wasi_t *wasi, u32 fd, u64 offset, u64 len, u32 advice) {
     WASI_DEBUG("fd_advise(%u, %lu, %lu, 0x%08x)\n", fd, offset, len, advice);
     return WASI_ENOSYS;
 }
 
-u32 w2c_wasi__snapshot__preview1_fd_close(wasi_t *wasi, u32 fd) {
+extern "C" u32 w2c_wasi__snapshot__preview1_fd_close(wasi_t *wasi, u32 fd) {
     WASI_DEBUG("fd_close(%u)\n", fd);
 
     if (fd >= wasi->fdtable.size()) {
@@ -346,12 +346,12 @@ u32 w2c_wasi__snapshot__preview1_fd_close(wasi_t *wasi, u32 fd) {
     return WASI_EBADF;
 }
 
-u32 w2c_wasi__snapshot__preview1_fd_datasync(wasi_t *wasi, u32 fd) {
+extern "C" u32 w2c_wasi__snapshot__preview1_fd_datasync(wasi_t *wasi, u32 fd) {
     WASI_DEBUG("fd_datasync(%u)\n", fd);
     return WASI_ENOSYS;
 }
 
-u32 w2c_wasi__snapshot__preview1_fd_fdstat_get(wasi_t *wasi, u32 fd, usize result) {
+extern "C" u32 w2c_wasi__snapshot__preview1_fd_fdstat_get(wasi_t *wasi, u32 fd, usize result) {
     WASI_DEBUG("fd_fdstat_get(%u)\n", fd);
 
     if (fd >= wasi->fdtable.size()) {
@@ -384,7 +384,7 @@ u32 w2c_wasi__snapshot__preview1_fd_fdstat_get(wasi_t *wasi, u32 fd, usize resul
     return WASI_EBADF;
 }
 
-u32 w2c_wasi__snapshot__preview1_fd_fdstat_set_flags(wasi_t *wasi, u32 fd, u32 flags) {
+extern "C" u32 w2c_wasi__snapshot__preview1_fd_fdstat_set_flags(wasi_t *wasi, u32 fd, u32 flags) {
     WASI_DEBUG("fd_fdstat_set_flags(%u, %u)\n", fd, flags);
 
     if (fd >= wasi->fdtable.size()) {
@@ -407,7 +407,7 @@ u32 w2c_wasi__snapshot__preview1_fd_fdstat_set_flags(wasi_t *wasi, u32 fd, u32 f
     return WASI_EBADF;
 }
 
-u32 w2c_wasi__snapshot__preview1_fd_filestat_get(wasi_t *wasi, u32 fd, usize result) {
+extern "C" u32 w2c_wasi__snapshot__preview1_fd_filestat_get(wasi_t *wasi, u32 fd, usize result) {
     WASI_DEBUG("fd_filestat_get(%u)\n", fd);
 
     if (fd >= wasi->fdtable.size()) {
@@ -476,7 +476,7 @@ u32 w2c_wasi__snapshot__preview1_fd_filestat_get(wasi_t *wasi, u32 fd, usize res
     return WASI_EBADF;
 }
 
-u32 w2c_wasi__snapshot__preview1_fd_filestat_set_size(wasi_t *wasi, u32 fd, u64 size) {
+extern "C" u32 w2c_wasi__snapshot__preview1_fd_filestat_set_size(wasi_t *wasi, u32 fd, u64 size) {
     WASI_DEBUG("fd_filestat_set_size(%u, %lu)\n", fd, size);
 
     if (fd >= wasi->fdtable.size()) {
@@ -496,12 +496,12 @@ u32 w2c_wasi__snapshot__preview1_fd_filestat_set_size(wasi_t *wasi, u32 fd, u64 
     return WASI_EBADF;
 }
 
-u32 w2c_wasi__snapshot__preview1_fd_pread(wasi_t *wasi, u32 fd, usize iovs, u32 iovs_len, u64 offset, usize result) {
+extern "C" u32 w2c_wasi__snapshot__preview1_fd_pread(wasi_t *wasi, u32 fd, usize iovs, u32 iovs_len, u64 offset, usize result) {
     WASI_DEBUG("fd_pread(%u, 0x%08x (%u), %lu)\n", fd, iovs, iovs_len, offset);
     return WASI_ENOSYS;
 }
 
-u32 w2c_wasi__snapshot__preview1_fd_prestat_dir_name(wasi_t *wasi, u32 fd, usize path, u32 path_len) {
+extern "C" u32 w2c_wasi__snapshot__preview1_fd_prestat_dir_name(wasi_t *wasi, u32 fd, usize path, u32 path_len) {
     WASI_DEBUG("fd_prestat_dir_name(%u, 0x%x (%u))\n", fd, path, path_len);
 
     if (fd >= wasi->fdtable.size()) {
@@ -527,7 +527,7 @@ u32 w2c_wasi__snapshot__preview1_fd_prestat_dir_name(wasi_t *wasi, u32 fd, usize
     return WASI_EBADF;
 }
 
-u32 w2c_wasi__snapshot__preview1_fd_prestat_get(wasi_t *wasi, u32 fd, usize result) {
+extern "C" u32 w2c_wasi__snapshot__preview1_fd_prestat_get(wasi_t *wasi, u32 fd, usize result) {
     WASI_DEBUG("fd_prestat_get(%u)\n", fd);
 
     if (fd >= wasi->fdtable.size()) {
@@ -554,12 +554,12 @@ u32 w2c_wasi__snapshot__preview1_fd_prestat_get(wasi_t *wasi, u32 fd, usize resu
     return WASI_EBADF;
 }
 
-u32 w2c_wasi__snapshot__preview1_fd_pwrite(wasi_t *wasi, u32 fd, usize iovs, u32 iovs_len, u64 offset, usize result) {
+extern "C" u32 w2c_wasi__snapshot__preview1_fd_pwrite(wasi_t *wasi, u32 fd, usize iovs, u32 iovs_len, u64 offset, usize result) {
     WASI_DEBUG("fd_pwrite(%u, 0x%08x (%u), %lu)\n", fd, iovs, iovs_len, offset);
     return WASI_ENOSYS;
 }
 
-u32 w2c_wasi__snapshot__preview1_fd_read(wasi_t *wasi, u32 fd, usize iovs, u32 iovs_len, usize result) {
+extern "C" u32 w2c_wasi__snapshot__preview1_fd_read(wasi_t *wasi, u32 fd, usize iovs, u32 iovs_len, usize result) {
     WASI_DEBUG("fd_read(%u, 0x%08x (%u))\n", fd, iovs, iovs_len);
 
     if (fd >= wasi->fdtable.size()) {
@@ -598,7 +598,7 @@ u32 w2c_wasi__snapshot__preview1_fd_read(wasi_t *wasi, u32 fd, usize iovs, u32 i
     return WASI_EBADF;
 }
 
-u32 w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, u32 fd, usize buf, u32 buf_len, u64 cookie, usize result) {
+extern "C" u32 w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, u32 fd, usize buf, u32 buf_len, u64 cookie, usize result) {
     WASI_DEBUG("fd_readdir(%u, 0x%08x (%u), %lu)\n", fd, buf, buf_len, cookie);
 
     if (fd >= wasi->fdtable.size()) {
@@ -704,7 +704,7 @@ u32 w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, u32 fd, usize buf, u32
     return WASI_EBADF;
 }
 
-u32 w2c_wasi__snapshot__preview1_fd_renumber(wasi_t *wasi, u32 fd, u32 to) {
+extern "C" u32 w2c_wasi__snapshot__preview1_fd_renumber(wasi_t *wasi, u32 fd, u32 to) {
     WASI_DEBUG("fd_renumber(%u, %u)\n", fd, to);
 
     if (fd >= wasi->fdtable.size()) {
@@ -762,17 +762,17 @@ u32 w2c_wasi__snapshot__preview1_fd_renumber(wasi_t *wasi, u32 fd, u32 to) {
     return WASI_EBADF;
 }
 
-u32 w2c_wasi__snapshot__preview1_fd_seek(wasi_t *wasi, u32 fd, u64 offset, u32 whence, usize result) {
+extern "C" u32 w2c_wasi__snapshot__preview1_fd_seek(wasi_t *wasi, u32 fd, u64 offset, u32 whence, usize result) {
     WASI_DEBUG("fd_seek(%u, %lu, %u)\n", fd, offset, whence);
     return WASI_ENOSYS;
 }
 
-u32 w2c_wasi__snapshot__preview1_fd_sync(wasi_t *wasi, u32 fd) {
+extern "C" u32 w2c_wasi__snapshot__preview1_fd_sync(wasi_t *wasi, u32 fd) {
     WASI_DEBUG("fd_sync(%u)\n", fd);
     return WASI_ENOSYS;
 }
 
-u32 w2c_wasi__snapshot__preview1_fd_tell(wasi_t *wasi, u32 fd, usize result) {
+extern "C" u32 w2c_wasi__snapshot__preview1_fd_tell(wasi_t *wasi, u32 fd, usize result) {
     WASI_DEBUG("fd_tell(%u)\n", fd);
 
     if (fd >= wasi->fdtable.size()) {
@@ -798,7 +798,7 @@ u32 w2c_wasi__snapshot__preview1_fd_tell(wasi_t *wasi, u32 fd, usize result) {
     return WASI_EBADF;
 }
 
-u32 w2c_wasi__snapshot__preview1_fd_write(wasi_t *wasi, u32 fd, usize iovs, u32 iovs_len, usize result) {
+extern "C" u32 w2c_wasi__snapshot__preview1_fd_write(wasi_t *wasi, u32 fd, usize iovs, u32 iovs_len, usize result) {
     WASI_DEBUG("fd_write(%u, 0x%08x (%u))\n", fd, iovs, iovs_len);
 
     if (fd >= wasi->fdtable.size()) {
@@ -846,12 +846,12 @@ u32 w2c_wasi__snapshot__preview1_fd_write(wasi_t *wasi, u32 fd, usize iovs, u32 
     return WASI_EBADF;
 }
 
-u32 w2c_wasi__snapshot__preview1_path_create_directory(wasi_t *wasi, u32 fd, usize path, u32 path_len) {
+extern "C" u32 w2c_wasi__snapshot__preview1_path_create_directory(wasi_t *wasi, u32 fd, usize path, u32 path_len) {
     WASI_DEBUG("path_create_directory(%u, \"%.*s\")\n", fd, path_len, (char *)WASM_MEM(path));
     return WASI_ENOSYS;
 }
 
-u32 w2c_wasi__snapshot__preview1_path_filestat_get(wasi_t *wasi, u32 fd, u32 flags, usize path, u32 path_len, usize result) {
+extern "C" u32 w2c_wasi__snapshot__preview1_path_filestat_get(wasi_t *wasi, u32 fd, u32 flags, usize path, u32 path_len, usize result) {
     WASI_DEBUG("path_filestat_get(%u, %u, \"%.*s\")\n", fd, flags, path_len, (char *)WASM_MEM(path));
 
     if (fd >= wasi->fdtable.size()) {
@@ -913,17 +913,17 @@ u32 w2c_wasi__snapshot__preview1_path_filestat_get(wasi_t *wasi, u32 fd, u32 fla
     return WASI_EBADF;
 }
 
-u32 w2c_wasi__snapshot__preview1_path_filestat_set_times(wasi_t *wasi, u32 fd, u32 flags, usize path, u32 path_len, u64 atim, u64 ntim, u32 fst_flags) {
+extern "C" u32 w2c_wasi__snapshot__preview1_path_filestat_set_times(wasi_t *wasi, u32 fd, u32 flags, usize path, u32 path_len, u64 atim, u64 ntim, u32 fst_flags) {
     WASI_DEBUG("path_filestat_set_times(%u, %u, \"%.*s\", %lu, %lu, %u)\n", fd, flags, path_len, (char *)WASM_MEM(path), atim, ntim, fst_flags);
     return WASI_ENOSYS;
 }
 
-u32 w2c_wasi__snapshot__preview1_path_link(wasi_t *wasi, u32 old_fd, u32 old_flags, usize old_path, u32 old_path_len, u32 new_fd, usize new_path, u32 new_path_len) {
+extern "C" u32 w2c_wasi__snapshot__preview1_path_link(wasi_t *wasi, u32 old_fd, u32 old_flags, usize old_path, u32 old_path_len, u32 new_fd, usize new_path, u32 new_path_len) {
     WASI_DEBUG("path_link(%u, %u, \"%.*s\", %u, \"%.*s\")\n", old_fd, old_flags, old_path_len, (char *)WASM_MEM(old_path), new_fd, new_path_len, (char *)WASM_MEM(new_path));
     return WASI_ENOSYS;
 }
 
-u32 w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, u32 fd, u32 dirflags, usize path, u32 path_len, u32 oflags, u64 fs_base_rights, u64 fs_rights_inheriting, u32 fdflags, usize result) {
+extern "C" u32 w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, u32 fd, u32 dirflags, usize path, u32 path_len, u32 oflags, u64 fs_base_rights, u64 fs_rights_inheriting, u32 fdflags, usize result) {
     WASI_DEBUG("path_open(%u, %u, \"%.*s\", %u, %lu, %lu, %u)\n", fd, dirflags, path_len, (char *)WASM_MEM(path), oflags, fs_base_rights, fs_rights_inheriting, fdflags);
 
     if (fd >= wasi->fdtable.size()) {
@@ -1010,42 +1010,42 @@ u32 w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, u32 fd, u32 dirflags, u
     return WASI_EBADF;
 }
 
-u32 w2c_wasi__snapshot__preview1_path_readlink(wasi_t *wasi, u32 fd, usize path, u32 path_len, usize buf, u32 buf_len, usize result) {
+extern "C" u32 w2c_wasi__snapshot__preview1_path_readlink(wasi_t *wasi, u32 fd, usize path, u32 path_len, usize buf, u32 buf_len, usize result) {
     WASI_DEBUG("path_readlink(%u, \"%.*s\", 0x%08x (%u))\n", fd, path_len, (char *)WASM_MEM(path), buf, buf_len);
     return WASI_ENOSYS;
 }
 
-u32 w2c_wasi__snapshot__preview1_path_remove_directory(wasi_t *wasi, u32 fd, usize path, u32 path_len) {
+extern "C" u32 w2c_wasi__snapshot__preview1_path_remove_directory(wasi_t *wasi, u32 fd, usize path, u32 path_len) {
     WASI_DEBUG("path_remove_directory(%u, \"%.*s\")\n", fd, path_len, (char *)WASM_MEM(path));
     return WASI_ENOSYS;
 }
 
-u32 w2c_wasi__snapshot__preview1_path_rename(wasi_t *wasi, u32 fd, usize old_path, u32 old_path_len, u32 new_fd, usize new_path, u32 new_path_len) {
+extern "C" u32 w2c_wasi__snapshot__preview1_path_rename(wasi_t *wasi, u32 fd, usize old_path, u32 old_path_len, u32 new_fd, usize new_path, u32 new_path_len) {
     WASI_DEBUG("path_rename(%u, \"%.*s\", %u, \"%.*s\")\n", fd, old_path_len, (char *)WASM_MEM(old_path), new_fd, new_path_len, (char *)WASM_MEM(new_path));
     return WASI_ENOSYS;
 }
 
-u32 w2c_wasi__snapshot__preview1_path_symlink(wasi_t *wasi, usize old_path, u32 old_path_len, u32 fd, usize new_path, u32 new_path_len) {
+extern "C" u32 w2c_wasi__snapshot__preview1_path_symlink(wasi_t *wasi, usize old_path, u32 old_path_len, u32 fd, usize new_path, u32 new_path_len) {
     WASI_DEBUG("path_symlink(\"%.*s\", %u, \"%.*s\")\n", old_path_len, (char *)WASM_MEM(old_path), fd, new_path_len, (char *)WASM_MEM(new_path));
     return WASI_ENOSYS;
 }
 
-u32 w2c_wasi__snapshot__preview1_path_unlink_file(wasi_t *wasi, u32 fd, usize path, u32 path_len) {
+extern "C" u32 w2c_wasi__snapshot__preview1_path_unlink_file(wasi_t *wasi, u32 fd, usize path, u32 path_len) {
     WASI_DEBUG("path_unlink_file(%u, \"%.*s\")\n", fd, path_len, (char *)WASM_MEM(path));
     return WASI_ENOSYS;
 }
 
-u32 w2c_wasi__snapshot__preview1_poll_oneoff(wasi_t *wasi, usize in, usize out, u32 nsubscriptions, usize result) {
+extern "C" u32 w2c_wasi__snapshot__preview1_poll_oneoff(wasi_t *wasi, usize in, usize out, u32 nsubscriptions, usize result) {
     WASI_DEBUG("poll_oneoff(0x%08x, 0x%08x, %u)\n", in, out, nsubscriptions);
     return WASI_ENOSYS;
 }
 
-void w2c_wasi__snapshot__preview1_proc_exit(wasi_t *wasi, u32 rval) {
+extern "C" void w2c_wasi__snapshot__preview1_proc_exit(wasi_t *wasi, u32 rval) {
     WASI_DEBUG("proc_exit(%u)\n", rval);
     throw SandboxTrapException();
 }
 
-u32 w2c_wasi__snapshot__preview1_random_get(wasi_t *wasi, usize buf, u32 buf_len) {
+extern "C" u32 w2c_wasi__snapshot__preview1_random_get(wasi_t *wasi, usize buf, u32 buf_len) {
     WASI_DEBUG("random_get(0x%08x (%u))\n", buf, buf_len);
 
     static std::random_device dev;

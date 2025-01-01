@@ -58,7 +58,7 @@ static bool init_sandbox() {
     return true;
 }
 
-void retro_set_environment(retro_environment_t cb) {
+extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
     environment = cb;
 
     struct retro_log_callback log;
@@ -80,39 +80,39 @@ void retro_set_environment(retro_environment_t cb) {
     cb(RETRO_ENVIRONMENT_GET_PERF_INTERFACE, &perf);
 }
 
-void retro_set_video_refresh(retro_video_refresh_t cb) {
+extern "C" RETRO_API void retro_set_video_refresh(retro_video_refresh_t cb) {
     video_refresh = cb;
 }
 
-void retro_set_audio_sample(retro_audio_sample_t cb) {
+extern "C" RETRO_API void retro_set_audio_sample(retro_audio_sample_t cb) {
     audio_sample = cb;
 }
 
-void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb) {
+extern "C" RETRO_API void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb) {
     audio_sample_batch = cb;
 }
 
-void retro_set_input_poll(retro_input_poll_t cb) {
+extern "C" RETRO_API void retro_set_input_poll(retro_input_poll_t cb) {
     input_poll = cb;
 }
 
-void retro_set_input_state(retro_input_state_t cb) {
+extern "C" RETRO_API void retro_set_input_state(retro_input_state_t cb) {
     input_state = cb;
 }
 
-void retro_init() {
+extern "C" RETRO_API void retro_init() {
     frame_buf = (uint32_t *)std::calloc(640 * 480, sizeof(uint32_t));
 }
 
-void retro_deinit() {
+extern "C" RETRO_API void retro_deinit() {
     std::free(frame_buf);
 }
 
-unsigned int retro_api_version() {
+extern "C" RETRO_API unsigned int retro_api_version() {
     return RETRO_API_VERSION;
 }
 
-void retro_get_system_info(struct retro_system_info *info) {
+extern "C" RETRO_API void retro_get_system_info(struct retro_system_info *info) {
     std::memset(info, 0, sizeof *info);
     info->library_name = "mkxp-z";
     info->library_version = "rolling";
@@ -121,7 +121,7 @@ void retro_get_system_info(struct retro_system_info *info) {
     info->block_extract = true;
 }
 
-void retro_get_system_av_info(struct retro_system_av_info *info) {
+extern "C" RETRO_API void retro_get_system_av_info(struct retro_system_av_info *info) {
     std::memset(info, 0, sizeof *info);
     info->timing = {
         .fps = 60.0,
@@ -136,41 +136,41 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
     };
 }
 
-void retro_set_controller_port_device(unsigned int port, unsigned int device) {
+extern "C" RETRO_API void retro_set_controller_port_device(unsigned int port, unsigned int device) {
 
 }
 
-void retro_reset() {
+extern "C" RETRO_API void retro_reset() {
     init_sandbox();
 }
 
-void retro_run() {
+extern "C" RETRO_API void retro_run() {
     input_poll();
     video_refresh(frame_buf, 640, 480, 640 * 4);
     audio_sample(0, 0);
 }
 
-size_t retro_serialize_size() {
+extern "C" RETRO_API size_t retro_serialize_size() {
     return 0;
 }
 
-bool retro_serialize(void *data, size_t size) {
+extern "C" RETRO_API bool retro_serialize(void *data, size_t size) {
     return true;
 }
 
-bool retro_unserialize(const void *data, size_t size) {
+extern "C" RETRO_API bool retro_unserialize(const void *data, size_t size) {
     return true;
 }
 
-void retro_cheat_reset() {
+extern "C" RETRO_API void retro_cheat_reset() {
 
 }
 
-void retro_cheat_set(unsigned int index, bool enabled, const char *code) {
+extern "C" RETRO_API void retro_cheat_set(unsigned int index, bool enabled, const char *code) {
 
 }
 
-bool retro_load_game(const struct retro_game_info *info) {
+extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
     if (info == NULL) {
         log_printf(RETRO_LOG_ERROR, "This core cannot start without a game\n");
         return false;
@@ -186,22 +186,22 @@ bool retro_load_game(const struct retro_game_info *info) {
     return init_sandbox();
 }
 
-bool retro_load_game_special(unsigned int type, const struct retro_game_info *info, size_t num) {
+extern "C" RETRO_API bool retro_load_game_special(unsigned int type, const struct retro_game_info *info, size_t num) {
     return false;
 }
 
-void retro_unload_game() {
+extern "C" RETRO_API void retro_unload_game() {
     sandbox.reset();
 }
 
-unsigned int retro_get_region() {
+extern "C" RETRO_API unsigned int retro_get_region() {
     return RETRO_REGION_NTSC;
 }
 
-void *retro_get_memory_data(unsigned int id) {
+extern "C" RETRO_API void *retro_get_memory_data(unsigned int id) {
     return NULL;
 }
 
-size_t retro_get_memory_size(unsigned int id) {
+extern "C" RETRO_API size_t retro_get_memory_size(unsigned int id) {
     return 0;
 }
