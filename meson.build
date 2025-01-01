@@ -50,7 +50,7 @@ if get_option('retro') == true
     library(
         'retro-' + meson.project_name(),
         dependencies: [
-            compilers['cpp'].find_library('z', required: true, static: true),
+            dependency('zlib', static: true),
             cmake.subproject('libzip', options: libzip_options).dependency('zip'),
         ],
         c_args: [

@@ -352,7 +352,7 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           msystem: mingw64
-          install: base-devel git mingw-w64-x86_64-cmake mingw-w64-x86_64-meson mingw-w64-x86_64-autotools mingw-w64-x86_64-gcc mingw-w64-x86_64-zlib
+          install: base-devel git mingw-w64-x86_64-pkgconf mingw-w64-x86_64-cmake mingw-w64-x86_64-meson mingw-w64-x86_64-autotools mingw-w64-x86_64-gcc mingw-w64-x86_64-zlib
 
       - name: Build phase 2
         shell: msys2 {0}
@@ -363,7 +363,6 @@ jobs:
           meson setup build -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja
-          ls
           mv libretro-mkxp-z.dll "$runner_temp"/retro-phase2
           mv "$runner_temp"/retro-phase2 .
 
@@ -430,7 +429,7 @@ jobs:
             echo 'Components: main universe' | sudo tee -a /etc/apt/sources.list.d/ubuntu.sources
           fi
           sudo apt update
-          sudo apt install git curl build-essential automake libtool meson cmake -y
+          sudo apt install git curl build-essential pkgconf automake libtool meson cmake -y
           if [ '${{ matrix.arch_mkxpz }}' != 'x86_64' ]
           then
             sudo apt install gcc-${{ matrix.arch_gcc }} g++-${{ matrix.arch_gcc }} zlib1g-dev:${{ matrix.arch_debian }} -y
@@ -456,4 +455,43 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: libretro-mkxp-z.linux.${{ matrix.arch_mkxpz }}
+          path: ${{ runner.temp }}/retro-phase2
+
+  build-retro-phase2-macos:
+    needs: build-retro-phase1
+    name: Libretro macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: retro-phase1
+          path: retro/build/retro-phase1
+
+      - name: Install dependencies
+        run: |
+          brew install -q git make pkgconf meson cmake
+
+      - name: Build zlib
+        run: |
+          git clone https://github.com/madler/zlib ${{ runner.temp }}/zlib -b v1.3.1
+          cd ${{ runner.temp }}/zlib
+          cmake -DCMAKE_MAKE_PROGRAM=gmake -DCMAKE_INSTALL_PREFIX=${{ runner.temp }}/deps -B build
+          cmake --build build
+          cmake --install build
+
+      - name: Build phase 2
+        run: |
+          mkdir ${{ runner.temp }}/retro-phase2
+          cp retro/core.info ${{ runner.temp }}/retro-phase2/libretro-mkxp-z.info
+          PKG_CONFIG_PATH=${{ runner.temp }}/deps/share/pkgconfig meson setup build -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          cd build
+          ninja
+          mv libretro-mkxp-z.dylib ${{ runner.temp }}/retro-phase2
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libretro-mkxp-z.macos
           path: ${{ runner.temp }}/retro-phase2
