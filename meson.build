@@ -69,12 +69,16 @@ if get_option('retro') == true
             '-Wno-unused-value',
             '-Wno-unused-variable',
             '-Wno-unused-but-set-variable',
+            '-Wno-ignored-optimization-argument',
             '-DWASM_RT_TRAP_HANDLER=mkxp_sandbox_trap_handler',
         ],
         cpp_args: [
             '-DMKXPZ_RETRO',
         ],
-        gnu_symbol_visibility: 'hidden',
+        link_args: [
+            host_system == 'darwin' ? '' : ('-Wl,--version-script=' + join_paths(meson.current_source_dir(), 'retro/link.T')),
+        ],
+        gnu_symbol_visibility: host_system == 'darwin' ? 'hidden' : '',
         include_directories: [
             include_directories(retro_phase1),
             include_directories(join_paths(retro_phase1, 'wasm2c')),
