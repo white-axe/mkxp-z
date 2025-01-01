@@ -37,7 +37,6 @@
 #define WASM_NULL 0
 #define WASM_MEM(address) ((void *)&ruby->w2c_memory.data[address])
 #define AWAIT(statement) do statement; while (w2c_ruby_mkxp_sandbox_yield(RB))
-#define VALIDATE_MALLOC(ptr) do { if (ptr == WASM_NULL || ptr >= ruby.w2c_memory.size) throw SandboxOutOfMemoryException(); } while (0)
 
 // This function is imported by wasm-rt-impl.c from wasm2c
 extern "C" void mkxp_sandbox_trap_handler(wasm_rt_trap_t code) {

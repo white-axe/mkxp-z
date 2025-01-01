@@ -1,6 +1,7 @@
 project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=0.56.0', default_options: ['cpp_std=c++14', 'buildtype=release'])
 
 host_system = host_machine.system()
+host_endian = host_machine.endian()
 
 if get_option('retro') == false and host_system == 'darwin'
     error('\nThis Meson project no longer supports macOS. Please use the Xcode project instead.')
@@ -58,6 +59,14 @@ if get_option('retro') == true
     endif
     retro_deps += cmake.subproject('libzip', options: libzip_options).dependency('zip')
 
+    retro_defines = [
+        '-DWASM_RT_TRAP_HANDLER=mkxp_sandbox_trap_handler',
+        '-DMKXPZ_RETRO=1',
+    ]
+    if host_endian == 'big'
+        retro_defines += '-DWABT_BIG_ENDIAN=1'
+    endif
+
     library(
         'retro-' + meson.project_name(),
         dependencies: retro_deps,
@@ -70,11 +79,8 @@ if get_option('retro') == true
             '-Wno-unused-variable',
             '-Wno-unused-but-set-variable',
             '-Wno-ignored-optimization-argument',
-            '-DWASM_RT_TRAP_HANDLER=mkxp_sandbox_trap_handler',
-        ],
-        cpp_args: [
-            '-DMKXPZ_RETRO',
-        ],
+        ] + retro_defines,
+        cpp_args: retro_defines,
         link_args: [
             host_system == 'darwin' ? '' : ('-Wl,--version-script=' + join_paths(meson.current_source_dir(), 'retro/link.T')),
         ],

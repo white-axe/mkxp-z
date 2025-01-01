@@ -364,12 +364,11 @@ jobs:
           cd build
           ninja
           mv libretro-mkxp-z.dll "$runner_temp"/retro-phase2
-          mv "$runner_temp"/retro-phase2 .
 
       - uses: actions/upload-artifact@v4
         with:
           name: libretro-mkxp-z.windows
-          path: retro-phase2
+          path: ${{ runner.temp }}/retro-phase2
 
   build-retro-phase2-linux:
     needs: build-retro-phase1
