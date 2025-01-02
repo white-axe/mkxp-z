@@ -1,0 +1,51 @@
+diff --git a/build/cmake/CMakeLists.txt b/CMakeLists.txt
+rename from build/cmake/CMakeLists.txt
+rename to CMakeLists.txt
+--- a/build/cmake/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -23,8 +23,8 @@ cmake_policy(VERSION ${ZSTD_CMAKE_POLICY_VERSION})
+ 
+ set(CMAKE_BUILD_WITH_INSTALL_RPATH on)
+ 
+-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules")
+-set(ZSTD_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../..")
++list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build/cmake/CMakeModules")
++set(ZSTD_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+ set(LIBRARY_DIR ${ZSTD_SOURCE_DIR}/lib)
+ # Parse version
+ include(GetZstdLibraryVersion)
+@@ -143,7 +143,7 @@ endif ()
+ #-----------------------------------------------------------------------------
+ # Add source directories
+ #-----------------------------------------------------------------------------
+-add_subdirectory(lib)
++add_subdirectory(build/cmake/lib)
+ 
+ option(ZSTD_PROGRAMS_LINK_SHARED "PROGRAMS LINK SHARED" OFF)
+ 
+@@ -186,7 +186,7 @@ add_custom_target(clean-all
+ #-----------------------------------------------------------------------------
+ include(CMakePackageConfigHelpers)
+ write_basic_package_version_file(
+-    "${CMAKE_CURRENT_BINARY_DIR}/zstdConfigVersion.cmake"
++    "${CMAKE_CURRENT_BINARY_DIR}/build/cmake/zstdConfigVersion.cmake"
+     VERSION ${zstd_VERSION}
+     COMPATIBILITY SameMajorVersion
+     )
+@@ -205,12 +205,12 @@ install(EXPORT zstdExports
+     DESTINATION ${ConfigPackageLocation}
+     )
+ configure_package_config_file(
+-    zstdConfig.cmake.in
+-    "${CMAKE_CURRENT_BINARY_DIR}/zstdConfig.cmake"
++    build/cmake/zstdConfig.cmake.in
++    "${CMAKE_CURRENT_BINARY_DIR}/build/cmake/zstdConfig.cmake"
+     INSTALL_DESTINATION ${ConfigPackageLocation}
+ )
+ install(FILES
+-    "${CMAKE_CURRENT_BINARY_DIR}/zstdConfig.cmake"
+-    "${CMAKE_CURRENT_BINARY_DIR}/zstdConfigVersion.cmake"
++    "${CMAKE_CURRENT_BINARY_DIR}/build/cmake/zstdConfig.cmake"
++    "${CMAKE_CURRENT_BINARY_DIR}/build/cmake/zstdConfigVersion.cmake"
+     DESTINATION ${ConfigPackageLocation}
+     )

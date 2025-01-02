@@ -24,4 +24,3 @@ option('gfx_backend', type: 'combo', value: 'gl', choices: ['gl', 'gles'], descr
 
 option('retro', type: 'boolean', value: false, description: 'Build a libretro core instead of an executable')
 option('retro_phase1_path', type: 'string', value: '', description: 'Path to retro-phase1 for libretro builds')
-option('retro_lookup_method', type: 'combo', value: 'compiler', choices: ['compiler', 'pkg-config'], description: 'Method to use to locate software libraries for libretro builds')

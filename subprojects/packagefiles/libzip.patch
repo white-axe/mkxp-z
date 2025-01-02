@@ -1,0 +1,101 @@
+# This patch prevents libzip's build system from trying to look for zlib, bzip2, lzma and zstd since Meson already handles that.
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -198,66 +198,17 @@ int main(int argc, char *argv[]) { }" HAVE_NULLABLE)
+ 
+ test_big_endian(WORDS_BIGENDIAN)
+ 
+-find_package(ZLIB 1.1.2 REQUIRED)
+-# so developers on systems where zlib is named differently (Windows, sometimes)
+-# can override the name used in the pkg-config file
+-if (NOT ZLIB_LINK_LIBRARY_NAME)
+-  set(ZLIB_LINK_LIBRARY_NAME "z")
+-
+-  # Get the correct name in common cases
+-  list(LENGTH ZLIB_LIBRARIES N_ZLIB_LIBRARIES)
+-  if(N_ZLIB_LIBRARIES EQUAL 1)
+-    set(ZLIB_FILENAME ${ZLIB_LIBRARIES})
+-  elseif(N_ZLIB_LIBRARIES EQUAL 4)
+-    # ZLIB_LIBRARIES might have the target_link_library() format like
+-    # "optimized;path/to/zlib.lib;debug;path/to/zlibd.lib". Use the 'optimized'
+-    # case unless we know we are in a Debug build.
+-    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+-      list(FIND ZLIB_LIBRARIES "debug" ZLIB_LIBRARIES_INDEX_OF_CONFIG)
+-    else()
+-      list(FIND ZLIB_LIBRARIES "optimized" ZLIB_LIBRARIES_INDEX_OF_CONFIG)
+-    endif()
+-    if(ZLIB_LIBRARIES_INDEX_OF_CONFIG GREATER_EQUAL 0)
+-      math(EXPR ZLIB_FILENAME_INDEX "${ZLIB_LIBRARIES_INDEX_OF_CONFIG}+1")
+-      list(GET ZLIB_LIBRARIES ${ZLIB_FILENAME_INDEX} ZLIB_FILENAME)
+-    endif()
+-  endif()
+-  if(ZLIB_FILENAME)
+-    get_filename_component(ZLIB_FILENAME ${ZLIB_FILENAME} NAME_WE)
+-    string(REGEX REPLACE "^lib" "" ZLIB_LINK_LIBRARY_NAME ${ZLIB_FILENAME})
+-  endif()
+-endif(NOT ZLIB_LINK_LIBRARY_NAME)
+ 
+ if(ENABLE_BZIP2)
+-  find_package(BZip2)
+-  if(BZIP2_FOUND)
+     set(HAVE_LIBBZ2 1)
+-  else()
+-    message(WARNING "-- bzip2 library not found; bzip2 support disabled")
+-  endif(BZIP2_FOUND)
+ endif(ENABLE_BZIP2)
+ 
+ if(ENABLE_LZMA)
+-  find_package(LibLZMA 5.2)
+-  if(LIBLZMA_FOUND)
+     set(HAVE_LIBLZMA 1)
+-  else()
+-    message(WARNING "-- lzma library not found; lzma/xz support disabled")
+-  endif(LIBLZMA_FOUND)
+ endif(ENABLE_LZMA)
+ 
+ if(ENABLE_ZSTD)
+-  find_package(zstd 1.4.0)
+-  if(zstd_FOUND)
+     set(HAVE_LIBZSTD 1)
+-    if(TARGET zstd::libzstd_shared AND BUILD_SHARED_LIBS)
+-      set(zstd_TARGET zstd::libzstd_shared)
+-    else()
+-      set(zstd_TARGET zstd::libzstd_static)
+-    endif()
+-  else()
+-    message(WARNING "-- zstd library not found; zstandard support disabled")
+-  endif(zstd_FOUND)
+ endif(ENABLE_ZSTD)
+ 
+ if (COMMONCRYPTO_FOUND)
+diff --git a/lib/CMakeLists.txt b/lib/CMakeLists.txt
+--- a/lib/CMakeLists.txt
++++ b/lib/CMakeLists.txt
+@@ -140,17 +140,14 @@ endif(WIN32)
+ 
+ if(HAVE_LIBBZ2)
+   target_sources(zip PRIVATE zip_algorithm_bzip2.c)
+-  target_link_libraries(zip PRIVATE BZip2::BZip2)
+ endif()
+ 
+ if(HAVE_LIBLZMA)
+   target_sources(zip PRIVATE zip_algorithm_xz.c)
+-  target_link_libraries(zip PRIVATE LibLZMA::LibLZMA)
+ endif()
+ 
+ if(HAVE_LIBZSTD)
+   target_sources(zip PRIVATE zip_algorithm_zstd.c)
+-  target_link_libraries(zip PRIVATE ${zstd_TARGET})
+ endif()
+ 
+ if(HAVE_COMMONCRYPTO)
+@@ -178,7 +175,6 @@ if(SHARED_LIB_VERSIONNING)
+   set_target_properties(zip PROPERTIES VERSION 5.5 SOVERSION 5 MACHO_CURRENT_VERSION 6.5 MACHO_COMPATIBILITY_VERSION 6)
+ endif()
+ 
+-target_link_libraries(zip PRIVATE ZLIB::ZLIB)
+ target_include_directories(zip
+   PUBLIC
+   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>

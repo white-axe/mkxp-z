@@ -1,4 +1,4 @@
-project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=0.56.0', default_options: ['cpp_std=c++14', 'buildtype=release'])
+project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=0.63.0', default_options: ['cpp_std=c++14', 'buildtype=release'])
 
 host_system = host_machine.system()
 host_endian = host_machine.endian()
@@ -35,29 +35,66 @@ if get_option('retro') == true
 
     cmake = import('cmake')
 
+    zlib_options = cmake.subproject_options()
+    zlib_options.add_cmake_defines({
+        'CMAKE_POSITION_INDEPENDENT_CODE': true,
+        'BUILD_SHARED_LIBS': false,
+        'ZLIB_BUILD_EXAMPLES': false,
+    })
+
+    bzip2_options = cmake.subproject_options()
+    bzip2_options.add_cmake_defines({
+        'CMAKE_POSITION_INDEPENDENT_CODE': true,
+        'ENABLE_STATIC_LIB': true,
+        'ENABLE_LIB_ONLY': true,
+    })
+
+    bzip2_options = cmake.subproject_options()
+    bzip2_options.add_cmake_defines({
+        'CMAKE_POSITION_INDEPENDENT_CODE': true,
+        'ENABLE_STATIC_LIB': true,
+        'ENABLE_LIB_ONLY': true,
+    })
+
+    lzma_options = cmake.subproject_options()
+    lzma_options.add_cmake_defines({
+        'CMAKE_POSITION_INDEPENDENT_CODE': true,
+        'BUILD_SHARED_LIBS': false,
+        'ENABLE_NLS': false,
+        'ENABLE_THREADS': 'OFF',
+    })
+
+    zstd_options = cmake.subproject_options()
+    zstd_options.add_cmake_defines({
+        'CMAKE_POSITION_INDEPENDENT_CODE': true,
+        'ZSTD_BUILD_STATIC': true,
+        'ZSTD_BUILD_SHARED': false,
+        'ZSTD_BUILD_PROGRAMS': false,
+        'ZSTD_BUILD_TESTS': false,
+        'ZSTD_BUILD_CONTRIB': false,
+        'ZSTD_MULTITHREAD_SUPPORT': false,
+    })
+
     libzip_options = cmake.subproject_options()
     libzip_options.add_cmake_defines({
         'CMAKE_POSITION_INDEPENDENT_CODE': true,
         'BUILD_SHARED_LIBS': false,
         'LIBZIP_DO_INSTALL': false,
+        'BUILD_TOOLS': false,
+        'BUILD_REGRESS': false,
+        'BUILD_OSSFUZZ': false,
+        'BUILD_EXAMPLES': false,
+        'BUILD_DOC': false,
         'ENABLE_COMMONCRYPTO': false,
         'ENABLE_GNUTLS': false,
         'ENABLE_MBEDTLS': false,
         'ENABLE_OPENSSL': false,
         'ENABLE_WINDOWS_CRYPTO': false,
         'ENABLE_FDOPEN': false,
-        'ENABLE_BZIP2': false,
-        'ENABLE_LZMA': false,
-        'ENABLE_ZSTD': false,
+        'ENABLE_BZIP2': true,
+        'ENABLE_LZMA': true,
+        'ENABLE_ZSTD': true,
     })
-
-    retro_deps = []
-    if get_option('retro_lookup_method') == 'pkg-config'
-        retro_deps += dependency('zlib', static: true)
-    else
-        retro_deps += compilers['cpp'].find_library('z', required: true, static: true)
-    endif
-    retro_deps += cmake.subproject('libzip', options: libzip_options).dependency('zip')
 
     retro_defines = [
         '-DWASM_RT_TRAP_HANDLER=mkxp_sandbox_trap_handler',
@@ -69,7 +106,13 @@ if get_option('retro') == true
 
     library(
         'retro-' + meson.project_name(),
-        dependencies: retro_deps,
+        dependencies: [
+            cmake.subproject('zlib', options: zlib_options).dependency('zlibstatic'),
+            cmake.subproject('bzip2', options: bzip2_options).dependency('bz2_static'),
+            cmake.subproject('lzma', options: lzma_options).dependency('liblzma'),
+            cmake.subproject('zstd', options: zstd_options).dependency('libzstd_static'),
+            cmake.subproject('libzip', options: libzip_options).dependency('zip'),
+        ],
         c_args: [
             '-fno-optimize-sibling-calls',
             '-frounding-math',
@@ -81,10 +124,7 @@ if get_option('retro') == true
             '-Wno-ignored-optimization-argument',
         ] + retro_defines,
         cpp_args: retro_defines,
-        link_args: [
-            host_system == 'darwin' ? '' : ('-Wl,--version-script=' + join_paths(meson.current_source_dir(), 'retro/link.T')),
-        ],
-        gnu_symbol_visibility: host_system == 'darwin' ? 'hidden' : '',
+        gnu_symbol_visibility: 'hidden',
         include_directories: [
             include_directories(retro_phase1),
             include_directories(join_paths(retro_phase1, 'wasm2c')),

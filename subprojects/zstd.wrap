@@ -1,0 +1,5 @@
+[wrap-git]
+url = https://github.com/facebook/zstd
+revision = v1.5.6
+depth = 1
+diff_files = zstd.patch
