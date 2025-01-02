@@ -48,6 +48,7 @@ $(LIBDIR)/ruby.wasm $(OUTDIR)/mkxp-retro-dist.zip.c: $(DOWNLOADS)/ruby/Makefile
 	make -j$(NPROC); \
 	make install DESTDIR=$(OUTDIR); \
 	mv $(OUTDIR)/mkxp-retro-dist/bin/ruby $(LIBDIR)/ruby.wasm; \
+	rm $(OUTDIR)/mkxp-retro-dist/lib/libruby-static.a; \
 	cd $(OUTDIR)/mkxp-retro-dist; \
 	zip -r $(OUTDIR)/mkxp-retro-dist.zip *; \
 	rm -r $(OUTDIR)/mkxp-retro-dist; \
