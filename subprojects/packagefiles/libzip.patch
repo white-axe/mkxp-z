@@ -99,3 +99,53 @@ diff --git a/lib/CMakeLists.txt b/lib/CMakeLists.txt
  target_include_directories(zip
    PUBLIC
    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
+diff --git a/lib/zip_algorithm_bzip2.c b/lib/zip_algorithm_bzip2.c
+--- a/lib/zip_algorithm_bzip2.c
++++ b/lib/zip_algorithm_bzip2.c
+@@ -33,7 +33,7 @@
+ 
+ #include "zipint.h"
+ 
+-#include <bzlib.h>
++#include "../../bzip2/bzlib.h"
+ #include <limits.h>
+ #include <stdlib.h>
+ 
+diff --git a/lib/zip_algorithm_deflate.c b/lib/zip_algorithm_deflate.c
+--- a/lib/zip_algorithm_deflate.c
++++ b/lib/zip_algorithm_deflate.c
+@@ -35,7 +35,7 @@
+ 
+ #include <limits.h>
+ #include <stdlib.h>
+-#include <zlib.h>
++#include "../../zlib/zlib.h"
+ 
+ struct ctx {
+     zip_error_t *error;
+diff --git a/lib/zip_algorithm_xz.c b/lib/zip_algorithm_xz.c
+--- a/lib/zip_algorithm_xz.c
++++ b/lib/zip_algorithm_xz.c
+@@ -35,7 +35,7 @@
+ #include "zipint.h"
+ 
+ #include <limits.h>
+-#include <lzma.h>
++#include "../../lzma/src/liblzma/api/lzma.h"
+ #include <stdlib.h>
+ #include <zlib.h>
+ 
+diff --git a/lib/zip_algorithm_zstd.c b/lib/zip_algorithm_zstd.c
+--- a/lib/zip_algorithm_zstd.c
++++ b/lib/zip_algorithm_zstd.c
+@@ -34,8 +34,8 @@
+ #include "zipint.h"
+ 
+ #include <stdlib.h>
+-#include <zstd.h>
+-#include <zstd_errors.h>
++#include "../../zstd/lib/zstd.h"
++#include "../../zstd/lib/zstd_errors.h"
+ 
+ struct ctx {
+     zip_error_t *error;

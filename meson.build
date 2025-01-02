@@ -49,13 +49,6 @@ if get_option('retro') == true
         'ENABLE_LIB_ONLY': true,
     })
 
-    bzip2_options = cmake.subproject_options()
-    bzip2_options.add_cmake_defines({
-        'CMAKE_POSITION_INDEPENDENT_CODE': true,
-        'ENABLE_STATIC_LIB': true,
-        'ENABLE_LIB_ONLY': true,
-    })
-
     lzma_options = cmake.subproject_options()
     lzma_options.add_cmake_defines({
         'CMAKE_POSITION_INDEPENDENT_CODE': true,
