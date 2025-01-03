@@ -117,6 +117,9 @@ if get_option('retro') == true
             '-Wno-ignored-optimization-argument',
         ] + retro_defines,
         cpp_args: retro_defines,
+        link_args: [
+            host_system == 'cygwin' or host_system == 'windows' ? '-static' : '', # We need to statically link the C++ standard library (libstdc++/libc++), the compiler runtime library (libgcc/compiler-rt) and libpthread on Windows
+        ],
         gnu_symbol_visibility: 'hidden',
         include_directories: [
             include_directories(retro_phase1),
