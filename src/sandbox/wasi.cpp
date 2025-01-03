@@ -21,6 +21,8 @@
 
 #include <cstring>
 #include <algorithm>
+#include <iterator>
+#include <list>
 #include <random>
 #include <sstream>
 #include <zip.h>
@@ -155,24 +157,53 @@ static struct wasi_zip_stat wasi_zip_stat(zip_t *zip, const char *path, u32 path
     struct wasi_zip_stat info;
     zip_stat_t stat;
 
-    std::string normalized_path(path, strlen_safe(path, path_len));
-
-    // Trim leading '/' and '.' from the path
-    info.path_offset = 0;
-    info.path_len = normalized_path.length();
-    while (normalized_path[info.path_offset] == '/' || (normalized_path[info.path_offset] == '.' && (info.path_offset >= normalized_path.length() - 1 || normalized_path[info.path_offset + 1] == '/'))) {
-        ++info.path_offset;
-        --info.path_len;
+    std::list<std::string> list;
+    std::string component;
+    std::istringstream stream(std::string(path, strlen_safe(path, path_len)));
+    while (std::getline(stream, component, '/')) {
+        list.push_front(component);
     }
 
-    // Trim trailing '/' from the path
-    while (info.path_len != 0 && normalized_path[info.path_len - 1] == '/') {
-        --info.path_len;
+    // Normalize the path
+    for (auto it = list.begin(); it != list.end();) {
+        if (it->empty() || *it == ".") {
+            list.erase(it++);
+        } else {
+            ++it;
+        }
+    }
+    for (auto it = list.begin(); it != list.end();) {
+        if (*it == "..") {
+            while (std::next(it) != list.end() && *std::next(it) == "..") {
+                ++it;
+            }
+            while (*it == "..") {
+                if (std::next(it) != list.end()) {
+                    list.erase(std::next(it));
+                }
+                if (it == list.begin()) {
+                    list.erase(it);
+                    it = list.begin();
+                    break;
+                } else {
+                    list.erase(it--);
+                }
+            }
+        } else {
+            ++it;
+        }
     }
 
-    normalized_path = normalized_path.substr(info.path_offset, info.path_len);
+    list.reverse();
+    for (auto it = list.begin(); it != list.end();) {
+        info.normalized_path.append(*it);
+        if (std::next(it) != list.end()) {
+            info.normalized_path.push_back('/');
+        }
+        list.erase(it++);
+    }
 
-    if (normalized_path.length() == 0) {
+    if (info.normalized_path.length() == 0) {
         info.exists = true;
         info.filetype = WASI_IFDIR;
         info.inode = -1;
@@ -181,7 +212,7 @@ static struct wasi_zip_stat wasi_zip_stat(zip_t *zip, const char *path, u32 path
         return info;
     }
 
-    if (zip_stat(zip, normalized_path.c_str(), 0, &stat) == 0) {
+    if (zip_stat(zip, info.normalized_path.c_str(), 0, &stat) == 0) {
         info.exists = true;
         info.filetype = WASI_IFREG;
         info.inode = stat.index;
@@ -190,8 +221,8 @@ static struct wasi_zip_stat wasi_zip_stat(zip_t *zip, const char *path, u32 path
         return info;
     }
 
-    normalized_path.push_back('/');
-    if (zip_stat(zip, normalized_path.c_str(), 0, &stat) == 0) {
+    info.normalized_path.push_back('/');
+    if (zip_stat(zip, info.normalized_path.c_str(), 0, &stat) == 0) {
         info.exists = true;
         info.filetype = WASI_IFDIR;
         info.inode = stat.index;
@@ -619,9 +650,6 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, u32 fd, usi
             {
                 usize original_buf = buf;
                 std::string *prefix = wasi->fdtable[fd].type == wasi_fd_type::ZIP ? NULL : &wasi->fdtable[fd].zip_dir_handle()->path;
-                if (prefix != NULL && *prefix == "/") {
-                    prefix = NULL;
-                }
 
                 u32 n_slashes = 0;
                     if (prefix != NULL) {
@@ -953,16 +981,13 @@ extern "C" u32 w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, u32 fd, u32 
                 }
 
                 if (info.filetype == WASI_IFDIR) {
-                    new_path = new_path.substr(info.path_offset, info.path_len);
-                    new_path.push_back('/');
-
                     struct wasi_zip_dir_handle *handle = (struct wasi_zip_dir_handle *)std::malloc(sizeof(struct wasi_zip_dir_handle));
                     if (handle == NULL) {
                         throw SandboxOutOfMemoryException();
                     }
                     new(handle) (struct wasi_zip_dir_handle){
                         .index = info.inode,
-                        .path = new_path,
+                        .path = info.normalized_path,
                         .parent_fd = wasi->fdtable[fd].type == wasi_fd_type::ZIPDIR ? wasi->fdtable[fd].zip_dir_handle()->parent_fd : fd,
                     };
 

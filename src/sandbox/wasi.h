@@ -256,8 +256,7 @@ struct wasi_zip_stat {
     u64 inode;
     u64 size;
     u64 mtime;
-    u32 path_offset;
-    u32 path_len;
+    std::string normalized_path;
 };
 
 typedef struct w2c_wasi__snapshot__preview1 {
