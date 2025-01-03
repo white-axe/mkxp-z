@@ -97,6 +97,12 @@ if get_option('retro') == true
         retro_defines += '-DWABT_BIG_ENDIAN=1'
     endif
 
+    retro_link_args = []
+    if host_system == 'cygwin'
+        # We need to statically link the C++ standard library (libstdc++/libc++), the compiler runtime library (libgcc/compiler-rt) and libpthread in MSYS2 builds for Windows
+        retro_link_args += '-static'
+    endif
+
     library(
         'retro-' + meson.project_name(),
         dependencies: [
@@ -117,9 +123,7 @@ if get_option('retro') == true
             '-Wno-ignored-optimization-argument',
         ] + retro_defines,
         cpp_args: retro_defines,
-        link_args: [
-            host_system == 'cygwin' or host_system == 'windows' ? '-static' : '', # We need to statically link the C++ standard library (libstdc++/libc++), the compiler runtime library (libgcc/compiler-rt) and libpthread on Windows
-        ],
+        link_args: retro_link_args,
         gnu_symbol_visibility: 'hidden',
         include_directories: [
             include_directories(retro_phase1),

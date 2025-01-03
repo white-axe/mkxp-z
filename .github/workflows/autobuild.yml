@@ -356,7 +356,7 @@ jobs:
       - name: Build phase 2
         shell: msys2 {0}
         run: |
-          runner_temp="$(cygpath "$(python -c 'print(r"${{ runner.temp }}")')")"
+          runner_temp="$(cygpath '${{ runner.temp }}')"
           mkdir "$runner_temp"/retro-phase2
           cp retro/core.info "$runner_temp"/retro-phase2/libretro-mkxp-z.info
           meson setup build -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
