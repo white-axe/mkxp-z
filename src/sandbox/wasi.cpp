@@ -127,7 +127,7 @@ wasi_t::w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby, cons
     if (dist_handle == NULL) {
         throw SandboxOutOfMemoryException();
     }
-    dist_handle->zip = dist;
+    new(&dist_handle->zip) std::shared_ptr<struct wasi_zip_container>(dist);
     new(&dist_handle->path) std::string("/mkxp-retro-dist");
     fdtable.push_back({.type = file_entry::ZIP, .handle = dist_handle});
 
@@ -135,7 +135,7 @@ wasi_t::w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby, cons
     if (game_handle == NULL) {
         throw SandboxOutOfMemoryException();
     }
-    game_handle->zip = game;
+    new(&game_handle->zip) std::shared_ptr<struct wasi_zip_container>(game);
     new(&game_handle->path) std::string("/mkxp-retro-game");
     fdtable.push_back({.type = file_entry::ZIP, .handle = game_handle});
 }
