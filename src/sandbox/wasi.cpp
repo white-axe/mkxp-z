@@ -48,15 +48,15 @@ namespace mkxp_retro {
 
 #define WASM_MEM(address) ((void *)&wasi->ruby->w2c_memory.data[address])
 
-struct wasi_zip_handle *file_entry::zip_handle() {
+struct wasi_zip_handle *wasi_file_entry::zip_handle() {
     return (wasi_zip_handle *)handle;
 }
 
-struct wasi_zip_dir_handle *file_entry::zip_dir_handle() {
+struct wasi_zip_dir_handle *wasi_file_entry::zip_dir_handle() {
     return (wasi_zip_dir_handle *)handle;
 }
 
-struct wasi_zip_file_handle *file_entry::zip_file_handle() {
+struct wasi_zip_file_handle *wasi_file_entry::zip_file_handle() {
     return (wasi_zip_file_handle *)handle;
 }
 
@@ -119,25 +119,23 @@ wasi_t::w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby, cons
     }
 
     // Initialize WASI file descriptor table
-    fdtable.push_back({.type = file_entry::STDIN});
-    fdtable.push_back({.type = file_entry::STDOUT});
-    fdtable.push_back({.type = file_entry::STDERR});
+    fdtable.push_back({.type = wasi_fd_type::STDIN});
+    fdtable.push_back({.type = wasi_fd_type::STDOUT});
+    fdtable.push_back({.type = wasi_fd_type::STDERR});
 
     struct wasi_zip_handle *dist_handle = (struct wasi_zip_handle *)std::malloc(sizeof(struct wasi_zip_handle));
     if (dist_handle == NULL) {
         throw SandboxOutOfMemoryException();
     }
-    new(&dist_handle->zip) std::shared_ptr<struct wasi_zip_container>(dist);
-    new(&dist_handle->path) std::string("/mkxp-retro-dist");
-    fdtable.push_back({.type = file_entry::ZIP, .handle = dist_handle});
+    new(dist_handle) (struct wasi_zip_handle){.zip = dist, .path = "/mkxp-retro-dist"};
+    fdtable.push_back({.type = wasi_fd_type::ZIP, .handle = dist_handle});
 
     struct wasi_zip_handle *game_handle = (struct wasi_zip_handle *)std::malloc(sizeof(struct wasi_zip_handle));
     if (game_handle == NULL) {
         throw SandboxOutOfMemoryException();
     }
-    new(&game_handle->zip) std::shared_ptr<struct wasi_zip_container>(game);
-    new(&game_handle->path) std::string("/mkxp-retro-game");
-    fdtable.push_back({.type = file_entry::ZIP, .handle = game_handle});
+    new(game_handle) (struct wasi_zip_handle){.zip = game, .path = "/mkxp-retro-game"};
+    fdtable.push_back({.type = wasi_fd_type::ZIP, .handle = game_handle});
 }
 
 wasi_t::~w2c_wasi__snapshot__preview1() {
@@ -212,12 +210,12 @@ static struct wasi_zip_stat wasi_zip_stat(zip_t *zip, const char *path, u32 path
 }
 
 // Gets information about a file or directory at a certain index within a zip file.
-static struct wasi_zip_stat wasi_zip_stat_entry(zip_t *zip, struct file_entry &entry) {
+static struct wasi_zip_stat wasi_zip_stat_entry(zip_t *zip, struct wasi_file_entry &entry) {
     struct wasi_zip_stat info;
     zip_stat_t stat;
 
     switch (entry.type) {
-        case file_entry::ZIPDIR:
+        case wasi_fd_type::ZIPDIR:
             if (zip_stat_index(zip, entry.zip_dir_handle()->index, 0, &stat) == 0) {
                 info.exists = true;
                 info.filetype = WASI_IFDIR;
@@ -229,7 +227,7 @@ static struct wasi_zip_stat wasi_zip_stat_entry(zip_t *zip, struct file_entry &e
             }
             return info;
 
-        case file_entry::ZIPFILE:
+        case wasi_fd_type::ZIPFILE:
             if (zip_stat_index(zip, entry.zip_file_handle()->index, 0, &stat) == 0) {
                 info.exists = true;
                 info.filetype = WASI_IFREG;
@@ -247,10 +245,10 @@ static struct wasi_zip_stat wasi_zip_stat_entry(zip_t *zip, struct file_entry &e
     }
 }
 
-u32 wasi_t::allocate_file_descriptor() {
+u32 wasi_t::allocate_file_descriptor(enum wasi_fd_type type, void *handle) {
     if (vacant_fds.empty()) {
         u32 fd = fdtable.size();
-        fdtable.push_back({.type = file_entry::VACANT});
+        fdtable.push_back({.type = type, .handle = handle});
         return fd;
     } else {
         u32 fd = vacant_fds.back();
@@ -260,21 +258,27 @@ u32 wasi_t::allocate_file_descriptor() {
 }
 
 void wasi_t::deallocate_file_descriptor(u32 fd) {
-    switch (fdtable[fd].type) {
-        case file_entry::ZIP:
-        case file_entry::ZIPDIR:
-        case file_entry::ZIPFILE:
-            std::free(fdtable[fd].handle);
-            break;
-
-        default:
-            break;
+    if (fdtable[fd].handle != NULL) {
+        switch (fdtable[fd].type) {
+            case wasi_fd_type::ZIP:
+                fdtable[fd].zip_handle()->~wasi_zip_handle();
+                break;
+            case wasi_fd_type::ZIPDIR:
+                fdtable[fd].zip_dir_handle()->~wasi_zip_dir_handle();
+                break;
+            case wasi_fd_type::ZIPFILE:
+                fdtable[fd].zip_file_handle()->~wasi_zip_file_handle();
+                break;
+            default:
+                break;
+        }
+        std::free(fdtable[fd].handle);
     }
 
     if (!fdtable.empty() && fd == fdtable.size() - 1) {
         fdtable.pop_back();
     } else {
-        fdtable[fd].type = file_entry::VACANT;
+        fdtable[fd] = {.type = wasi_fd_type::VACANT, .handle = NULL};
         vacant_fds.push_back(fd);
     }
 }
@@ -328,17 +332,17 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_close(wasi_t *wasi, u32 fd) {
     }
 
     switch (wasi->fdtable[fd].type) {
-        case file_entry::VACANT:
+        case wasi_fd_type::VACANT:
             return WASI_EBADF;
 
-        case file_entry::STDIN:
-        case file_entry::STDOUT:
-        case file_entry::STDERR:
-        case file_entry::ZIP:
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+        case wasi_fd_type::ZIP:
             return WASI_EINVAL;
 
-        case file_entry::ZIPDIR:
-        case file_entry::ZIPFILE:
+        case wasi_fd_type::ZIPDIR:
+        case wasi_fd_type::ZIPFILE:
             wasi->deallocate_file_descriptor(fd);
             return WASI_ESUCCESS;
     }
@@ -359,21 +363,21 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_fdstat_get(wasi_t *wasi, u32 fd, 
     }
 
     switch (wasi->fdtable[fd].type) {
-        case file_entry::VACANT:
+        case wasi_fd_type::VACANT:
             return WASI_EBADF;
 
-        case file_entry::STDIN:
-        case file_entry::STDOUT:
-        case file_entry::STDERR:
-        case file_entry::ZIPFILE:
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+        case wasi_fd_type::ZIPFILE:
             WASM_SET(u8, result, WASI_IFCHR); // fs_filetype
             WASM_SET(u16, result + 2, 0); // fs_flags
             WASM_SET(u64, result + 8, WASI_FD_READ | WASI_FD_WRITE | WASI_FD_FILESTAT_GET); // fs_rights_base
             WASM_SET(u64, result + 16, 0); // fs_rights_inheriting
             return WASI_ESUCCESS;
 
-        case file_entry::ZIP:
-        case file_entry::ZIPDIR:
+        case wasi_fd_type::ZIP:
+        case wasi_fd_type::ZIPDIR:
             WASM_SET(u8, result, WASI_IFDIR); // fs_filetype
             WASM_SET(u16, result + 2, 0); // fs_flags
             WASM_SET(u64, result + 8, WASI_PATH_OPEN | WASI_FD_READDIR | WASI_PATH_FILESTAT_GET | WASI_FD_FILESTAT_GET); // fs_rights_base
@@ -392,15 +396,15 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_fdstat_set_flags(wasi_t *wasi, u3
     }
 
     switch (wasi->fdtable[fd].type) {
-        case file_entry::VACANT:
+        case wasi_fd_type::VACANT:
             return WASI_EBADF;
 
-        case file_entry::STDIN:
-        case file_entry::STDOUT:
-        case file_entry::STDERR:
-        case file_entry::ZIP:
-        case file_entry::ZIPDIR:
-        case file_entry::ZIPFILE:
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+        case wasi_fd_type::ZIP:
+        case wasi_fd_type::ZIPDIR:
+        case wasi_fd_type::ZIPFILE:
             return WASI_ESUCCESS;
     }
 
@@ -415,12 +419,12 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_filestat_get(wasi_t *wasi, u32 fd
     }
 
     switch (wasi->fdtable[fd].type) {
-        case file_entry::VACANT:
+        case wasi_fd_type::VACANT:
             return WASI_EBADF;
 
-        case file_entry::STDIN:
-        case file_entry::STDOUT:
-        case file_entry::STDERR:
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
             WASM_SET(u64, result, fd); // dev
             WASM_SET(u64, result + 8, 0); // ino
             WASM_SET(u8, result + 16, WASI_IFCHR); // filetype
@@ -431,7 +435,7 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_filestat_get(wasi_t *wasi, u32 fd
             WASM_SET(u64, result + 56, 0); // ctim
             return WASI_ESUCCESS;
 
-        case file_entry::ZIP:
+        case wasi_fd_type::ZIP:
             {
                 struct wasi_zip_stat info = wasi_zip_stat(wasi->fdtable[fd].zip_handle()->zip->zip, "", 0);
                 if (!info.exists) {
@@ -448,10 +452,10 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_filestat_get(wasi_t *wasi, u32 fd
                 return WASI_ESUCCESS;
             }
 
-        case file_entry::ZIPDIR:
-        case file_entry::ZIPFILE:
+        case wasi_fd_type::ZIPDIR:
+        case wasi_fd_type::ZIPFILE:
             {
-                u32 parent_fd = wasi->fdtable[fd].type == file_entry::ZIPDIR
+                u32 parent_fd = wasi->fdtable[fd].type == wasi_fd_type::ZIPDIR
                     ? wasi->fdtable[fd].zip_dir_handle()->parent_fd
                     : wasi->fdtable[fd].zip_file_handle()->parent_fd;
                 struct wasi_zip_stat info = wasi_zip_stat_entry(
@@ -484,9 +488,9 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_filestat_set_size(wasi_t *wasi, u
     }
 
     switch (wasi->fdtable[fd].type) {
-        case file_entry::STDIN:
-        case file_entry::STDOUT:
-        case file_entry::STDERR:
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
             return WASI_EINVAL;
 
         default:
@@ -509,18 +513,18 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_prestat_dir_name(wasi_t *wasi, u3
     }
 
     switch (wasi->fdtable[fd].type) {
-        case file_entry::VACANT:
+        case wasi_fd_type::VACANT:
             return WASI_EBADF;
 
-        case file_entry::ZIP:
+        case wasi_fd_type::ZIP:
             std::strncpy((char *)WASM_MEM(path), wasi->fdtable[fd].zip_handle()->path.c_str(), path_len);
             return WASI_ESUCCESS;
 
-        case file_entry::STDIN:
-        case file_entry::STDOUT:
-        case file_entry::STDERR:
-        case file_entry::ZIPDIR:
-        case file_entry::ZIPFILE:
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+        case wasi_fd_type::ZIPDIR:
+        case wasi_fd_type::ZIPFILE:
             return WASI_EINVAL;
     }
 
@@ -535,19 +539,19 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_prestat_get(wasi_t *wasi, u32 fd,
     }
 
     switch (wasi->fdtable[fd].type) {
-        case file_entry::VACANT:
+        case wasi_fd_type::VACANT:
             return WASI_EBADF;
 
-        case file_entry::ZIP:
+        case wasi_fd_type::ZIP:
             WASM_SET(u32, result, 0);
             WASM_SET(u32, result + 4, wasi->fdtable[fd].zip_handle()->path.length());
             return WASI_ESUCCESS;
 
-        case file_entry::STDIN:
-        case file_entry::STDOUT:
-        case file_entry::STDERR:
-        case file_entry::ZIPDIR:
-        case file_entry::ZIPFILE:
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+        case wasi_fd_type::ZIPDIR:
+        case wasi_fd_type::ZIPFILE:
             return WASI_EINVAL;
     }
 
@@ -567,20 +571,20 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_read(wasi_t *wasi, u32 fd, usize 
     }
 
     switch (wasi->fdtable[fd].type) {
-        case file_entry::VACANT:
+        case wasi_fd_type::VACANT:
             return WASI_EBADF;
 
-        case file_entry::STDIN:
-        case file_entry::STDOUT:
-        case file_entry::STDERR:
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
             WASM_SET(u32, result, 0);
             return WASI_ESUCCESS;
 
-        case file_entry::ZIP:
-        case file_entry::ZIPDIR:
+        case wasi_fd_type::ZIP:
+        case wasi_fd_type::ZIPDIR:
             return WASI_EINVAL;
 
-        case file_entry::ZIPFILE:
+        case wasi_fd_type::ZIPFILE:
             {
                 u32 size = 0;
                 while (iovs_len > 0) {
@@ -606,20 +610,20 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, u32 fd, usi
     }
 
     switch (wasi->fdtable[fd].type) {
-        case file_entry::VACANT:
+        case wasi_fd_type::VACANT:
             return WASI_EBADF;
 
-        case file_entry::STDIN:
-        case file_entry::STDOUT:
-        case file_entry::STDERR:
-        case file_entry::ZIPFILE:
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+        case wasi_fd_type::ZIPFILE:
             return WASI_EINVAL;
 
-        case file_entry::ZIP:
-        case file_entry::ZIPDIR:
+        case wasi_fd_type::ZIP:
+        case wasi_fd_type::ZIPDIR:
             {
                 usize original_buf = buf;
-                std::string *prefix = wasi->fdtable[fd].type == file_entry::ZIP ? NULL : &wasi->fdtable[fd].zip_dir_handle()->path;
+                std::string *prefix = wasi->fdtable[fd].type == wasi_fd_type::ZIP ? NULL : &wasi->fdtable[fd].zip_dir_handle()->path;
                 if (prefix != NULL && *prefix == "/") {
                     prefix = NULL;
                 }
@@ -633,7 +637,7 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, u32 fd, usi
                     }
                 }
 
-                std::shared_ptr<struct wasi_zip_container> zip = wasi->fdtable[fd].type == file_entry::ZIP
+                std::shared_ptr<struct wasi_zip_container> zip = wasi->fdtable[fd].type == wasi_fd_type::ZIP
                     ? wasi->fdtable[fd].zip_handle()->zip
                     : wasi->fdtable[wasi->fdtable[fd].zip_dir_handle()->parent_fd].zip_handle()->zip;
 
@@ -648,7 +652,7 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, u32 fd, usi
                     ++cookie;
 
                     struct wasi_zip_stat info = wasi_zip_stat(
-                        wasi->fdtable[fd].type == file_entry::ZIP
+                        wasi->fdtable[fd].type == wasi_fd_type::ZIP
                             ? wasi->fdtable[fd].zip_handle()->zip->zip
                             : wasi->fdtable[wasi->fdtable[fd].zip_dir_handle()->parent_fd].zip_handle()->zip->zip,
                         it->second.c_str(),
@@ -712,17 +716,17 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_renumber(wasi_t *wasi, u32 fd, u3
     }
 
     switch (wasi->fdtable[fd].type) {
-        case file_entry::VACANT:
+        case wasi_fd_type::VACANT:
             return WASI_EBADF;
 
-        case file_entry::STDIN:
-        case file_entry::STDOUT:
-        case file_entry::STDERR:
-        case file_entry::ZIP:
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+        case wasi_fd_type::ZIP:
             return WASI_EINVAL;
 
-        case file_entry::ZIPFILE:
-        case file_entry::ZIPDIR:
+        case wasi_fd_type::ZIPFILE:
+        case wasi_fd_type::ZIPDIR:
             break;
     }
 
@@ -733,17 +737,17 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_renumber(wasi_t *wasi, u32 fd, u3
     if (to >= wasi->fdtable.size()) return WASI_EBADF;
 
     switch (wasi->fdtable[to].type) {
-        case file_entry::VACANT:
+        case wasi_fd_type::VACANT:
             return WASI_EBADF;
 
-        case file_entry::STDIN:
-        case file_entry::STDOUT:
-        case file_entry::STDERR:
-        case file_entry::ZIP:
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+        case wasi_fd_type::ZIP:
             return WASI_EINVAL;
 
-        case file_entry::ZIPDIR:
-        case file_entry::ZIPFILE:
+        case wasi_fd_type::ZIPDIR:
+        case wasi_fd_type::ZIPFILE:
             wasi->deallocate_file_descriptor(to);
             if (to == wasi->fdtable.size()) {
                 wasi->fdtable.push_back(wasi->fdtable[fd]);
@@ -753,7 +757,7 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_renumber(wasi_t *wasi, u32 fd, u3
             if (!wasi->fdtable.empty() && fd == wasi->fdtable.size() - 1) {
                 wasi->fdtable.pop_back();
             } else {
-                wasi->fdtable[fd].type = file_entry::VACANT;
+                wasi->fdtable[fd] = {.type = wasi_fd_type::VACANT, .handle = NULL};
                 wasi->vacant_fds.push_back(fd);
             }
             return WASI_ESUCCESS;
@@ -780,17 +784,17 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_tell(wasi_t *wasi, u32 fd, usize 
     }
 
     switch (wasi->fdtable[fd].type) {
-        case file_entry::VACANT:
+        case wasi_fd_type::VACANT:
             return WASI_EBADF;
 
-        case file_entry::STDIN:
-        case file_entry::STDOUT:
-        case file_entry::STDERR:
-        case file_entry::ZIP:
-        case file_entry::ZIPDIR:
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+        case wasi_fd_type::ZIP:
+        case wasi_fd_type::ZIPDIR:
             return WASI_EINVAL;
 
-        case file_entry::ZIPFILE:
+        case wasi_fd_type::ZIPFILE:
             WASM_SET(u64, result, zip_ftell(wasi->fdtable[fd].zip_file_handle()->zip_file_handle.file));
             return WASI_ESUCCESS;
     }
@@ -806,15 +810,15 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_write(wasi_t *wasi, u32 fd, usize
     }
 
     switch (wasi->fdtable[fd].type) {
-        case file_entry::VACANT:
+        case wasi_fd_type::VACANT:
             return WASI_EBADF;
 
-        case file_entry::STDIN:
+        case wasi_fd_type::STDIN:
             WASM_SET(u32, result, 0);
             return WASI_ESUCCESS;
 
-        case file_entry::STDOUT:
-        case file_entry::STDERR:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
             {
                 u32 size = 0;
                 while (iovs_len > 0) {
@@ -824,7 +828,7 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_write(wasi_t *wasi, u32 fd, usize
                     }
                     std::strncpy(buf, (char *)WASM_MEM(WASM_GET(u32, iovs)), WASM_GET(u32, iovs + 4));
                     for (char *ptr = std::strtok(buf, "\n"); ptr != NULL; ptr = std::strtok(NULL, "\n")) {
-                        mkxp_retro::log_printf(wasi->fdtable[fd].type == file_entry::STDOUT ? RETRO_LOG_INFO : RETRO_LOG_ERROR, "%s\n", ptr);
+                        mkxp_retro::log_printf(wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? RETRO_LOG_INFO : RETRO_LOG_ERROR, "%s\n", ptr);
                     }
                     std::free(buf);
                     size += WASM_GET(u32, iovs + 4);
@@ -835,11 +839,11 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_write(wasi_t *wasi, u32 fd, usize
                 return WASI_ESUCCESS;
             }
 
-        case file_entry::ZIP:
-        case file_entry::ZIPDIR:
+        case wasi_fd_type::ZIP:
+        case wasi_fd_type::ZIPDIR:
             return WASI_EINVAL;
 
-        case file_entry::ZIPFILE:
+        case wasi_fd_type::ZIPFILE:
             return WASI_EROFS;
     }
 
@@ -859,16 +863,16 @@ extern "C" u32 w2c_wasi__snapshot__preview1_path_filestat_get(wasi_t *wasi, u32 
     }
 
     switch (wasi->fdtable[fd].type) {
-        case file_entry::VACANT:
+        case wasi_fd_type::VACANT:
             return WASI_EBADF;
 
-        case file_entry::STDIN:
-        case file_entry::STDOUT:
-        case file_entry::STDERR:
-        case file_entry::ZIPFILE:
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+        case wasi_fd_type::ZIPFILE:
             return WASI_EINVAL;
 
-        case file_entry::ZIP:
+        case wasi_fd_type::ZIP:
             {
                 struct wasi_zip_stat info = wasi_zip_stat(wasi->fdtable[fd].zip_handle()->zip->zip, (char *)WASM_MEM(path), path_len);
                 if (!info.exists) {
@@ -885,7 +889,7 @@ extern "C" u32 w2c_wasi__snapshot__preview1_path_filestat_get(wasi_t *wasi, u32 
                 return WASI_ESUCCESS;
             }
 
-        case file_entry::ZIPDIR:
+        case wasi_fd_type::ZIPDIR:
             {
                 char *buf = (char *)std::calloc(wasi->fdtable[fd].zip_dir_handle()->path.length() + path_len + 1, 1);
                 if (buf == NULL) {
@@ -894,10 +898,10 @@ extern "C" u32 w2c_wasi__snapshot__preview1_path_filestat_get(wasi_t *wasi, u32 
                 std::strcpy(buf, wasi->fdtable[fd].zip_dir_handle()->path.c_str());
                 std::strncat(buf, (char *)WASM_MEM(path), path_len);
                 struct wasi_zip_stat info = wasi_zip_stat(wasi->fdtable[wasi->fdtable[fd].zip_dir_handle()->parent_fd].zip_handle()->zip->zip, buf, std::strlen(buf));
+                std::free(buf);
                 if (!info.exists) {
                     return WASI_ENOENT;
                 }
-                std::free(buf);
                 WASM_SET(u64, result, wasi->fdtable[fd].zip_dir_handle()->parent_fd); // dev
                 WASM_SET(u64, result + 8, info.inode); // ino
                 WASM_SET(u8, result + 16, info.filetype); // filetype
@@ -931,36 +935,37 @@ extern "C" u32 w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, u32 fd, u32 
     }
 
     switch (wasi->fdtable[fd].type) {
-        case file_entry::VACANT:
+        case wasi_fd_type::VACANT:
             return WASI_EBADF;
 
-        case file_entry::STDIN:
-        case file_entry::STDOUT:
-        case file_entry::STDERR:
-        case file_entry::ZIPFILE:
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+        case wasi_fd_type::ZIPFILE:
             return WASI_EINVAL;
 
-        case file_entry::ZIP:
-        case file_entry::ZIPDIR:
+        case wasi_fd_type::ZIP:
+        case wasi_fd_type::ZIPDIR:
             {
-                char *path_buf = (char *)std::calloc(wasi->fdtable[fd].type == file_entry::ZIPDIR ? wasi->fdtable[fd].zip_dir_handle()->path.length() + path_len + 1 : path_len + 1, 1);
+                char *path_buf = (char *)std::calloc(wasi->fdtable[fd].type == wasi_fd_type::ZIPDIR ? wasi->fdtable[fd].zip_dir_handle()->path.length() + path_len + 1 : path_len + 1, 1);
                 if (path_buf == NULL) {
                     throw SandboxOutOfMemoryException();
                 }
 
-                if (wasi->fdtable[fd].type == file_entry::ZIPDIR) {
+                if (wasi->fdtable[fd].type == wasi_fd_type::ZIPDIR) {
                     std::strcpy(path_buf, wasi->fdtable[fd].zip_dir_handle()->path.c_str());
                 }
                 std::strncat(path_buf, (char *)WASM_MEM(path), path_len);
 
                 struct wasi_zip_stat info = wasi_zip_stat(
-                    wasi->fdtable[fd].type == file_entry::ZIP
+                    wasi->fdtable[fd].type == wasi_fd_type::ZIP
                         ? wasi->fdtable[fd].zip_handle()->zip->zip
                         : wasi->fdtable[wasi->fdtable[fd].zip_dir_handle()->parent_fd].zip_handle()->zip->zip,
                     path_buf,
                     std::strlen(path_buf)
                 );
                 if (!info.exists) {
+                    std::free(path_buf);
                     return WASI_ENOENT;
                 }
 
@@ -974,13 +979,13 @@ extern "C" u32 w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, u32 fd, u32 
                     if (handle == NULL) {
                         throw SandboxOutOfMemoryException();
                     }
-                    handle->index = info.inode;
-                    new(&handle->path) std::string(new_path);
-                    handle->parent_fd = wasi->fdtable[fd].type == file_entry::ZIPDIR ? wasi->fdtable[fd].zip_dir_handle()->parent_fd : fd;
+                    new(handle) (struct wasi_zip_dir_handle){
+                        .index = info.inode,
+                        .path = new_path,
+                        .parent_fd = wasi->fdtable[fd].type == wasi_fd_type::ZIPDIR ? wasi->fdtable[fd].zip_dir_handle()->parent_fd : fd,
+                    };
 
-                    u32 new_fd = wasi->allocate_file_descriptor();
-                    WASM_SET(u32, result, new_fd);
-                    wasi->fdtable[new_fd] = {.type = file_entry::ZIPDIR, .handle = handle};
+                    WASM_SET(u32, result, wasi->allocate_file_descriptor(wasi_fd_type::ZIPDIR, handle));
                 } else {
                     std::free(path_buf);
 
@@ -988,19 +993,19 @@ extern "C" u32 w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, u32 fd, u32 
                     if (handle == NULL) {
                         throw SandboxOutOfMemoryException();
                     }
-                    handle->index = info.inode;
-                    new(&handle->zip_file_handle) wasi_zip_file_container(
-                        wasi->fdtable[fd].type == file_entry::ZIP
-                            ? *wasi->fdtable[fd].zip_handle()->zip
-                            : *wasi->fdtable[wasi->fdtable[fd].zip_dir_handle()->parent_fd].zip_handle()->zip,
-                        info.inode,
-                        0
-                    );
-                    handle->parent_fd = wasi->fdtable[fd].type == file_entry::ZIPDIR ? wasi->fdtable[fd].zip_dir_handle()->parent_fd : fd;
+                    new(handle) (struct wasi_zip_file_handle){
+                        .index = info.inode,
+                        .zip_file_handle = wasi_zip_file_container(
+                            wasi->fdtable[fd].type == wasi_fd_type::ZIP
+                                ? *wasi->fdtable[fd].zip_handle()->zip
+                                : *wasi->fdtable[wasi->fdtable[fd].zip_dir_handle()->parent_fd].zip_handle()->zip,
+                            info.inode,
+                            0
+                        ),
+                        .parent_fd = wasi->fdtable[fd].type == wasi_fd_type::ZIPDIR ? wasi->fdtable[fd].zip_dir_handle()->parent_fd : fd,
+                    };
 
-                    u32 new_fd = wasi->allocate_file_descriptor();
-                    WASM_SET(u32, result, new_fd);
-                    wasi->fdtable[new_fd] = {.type = file_entry::ZIPFILE, .handle = handle};
+                    WASM_SET(u32, result, wasi->allocate_file_descriptor(wasi_fd_type::ZIPFILE, handle));
                 }
 
                 return WASI_ESUCCESS;

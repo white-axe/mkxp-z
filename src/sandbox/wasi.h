@@ -229,16 +229,18 @@ struct wasi_zip_file_handle {
 
 struct undefined {};
 
-struct file_entry {
-    enum {
-        STDIN, // This file descriptor is standard input. The `handle` field is undefined.
-        STDOUT, // This file descriptor is standard output. The `handle` field is undefined.
-        STDERR, // This file descriptor is standard error. The `handle` field is undefined.
-        ZIP, // This file descriptor is a read-only zip file. The `handle` field is a `struct wasi_zip_handle`.
-        ZIPDIR, // This file descriptor is a directory inside of a zip file. The `handle` field is a `struct wasi_zip_dir_handle`.
-        ZIPFILE, // This file descriptor is a file inside of a zip file. The `handle` field is a `struct wasi_zip_file_handle`.
-        VACANT, // Indicates this is a vacant file descriptor that doesn't correspond to a file. The `handle` field is undefined.
-    } type;
+enum wasi_fd_type {
+    STDIN, // This file descriptor is standard input. The `handle` field is null.
+    STDOUT, // This file descriptor is standard output. The `handle` field is null.
+    STDERR, // This file descriptor is standard error. The `handle` field is null.
+    ZIP, // This file descriptor is a read-only zip file. The `handle` field is a `struct wasi_zip_handle *`.
+    ZIPDIR, // This file descriptor is a directory inside of a zip file. The `handle` field is a `struct wasi_zip_dir_handle *`.
+    ZIPFILE, // This file descriptor is a file inside of a zip file. The `handle` field is a `struct wasi_zip_file_handle *`.
+    VACANT, // Indicates this is a vacant file descriptor that doesn't correspond to a file. The `handle` field is null.
+};
+
+struct wasi_file_entry {
+    wasi_fd_type type;
 
     // The file/directory handle that the file descriptor corresponds to. The exact type of this handle depends on the type of file descriptor.
     void *handle;
@@ -265,14 +267,14 @@ typedef struct w2c_wasi__snapshot__preview1 {
     std::shared_ptr<struct wasi_zip_container> game;
 
     // WASI file descriptor table. Maps WASI file descriptors (unsigned 32-bit integers) to file handles.
-    std::vector<file_entry> fdtable;
+    std::vector<wasi_file_entry> fdtable;
 
     // List of vacant WASI file descriptors so that we can reallocate vacant WASI file descriptors in O(1) amortized time.
     std::vector<u32> vacant_fds;
 
     w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby, const char *game_path);
     ~w2c_wasi__snapshot__preview1();
-    u32 allocate_file_descriptor();
+    u32 allocate_file_descriptor(enum wasi_fd_type type, void *handle = NULL);
     void deallocate_file_descriptor(u32 fd);
 } wasi_t;
 
