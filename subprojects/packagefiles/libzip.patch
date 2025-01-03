@@ -131,7 +131,7 @@ diff --git a/lib/zip_algorithm_xz.c b/lib/zip_algorithm_xz.c
  
  #include <limits.h>
 -#include <lzma.h>
-+#include "../../lzma/src/liblzma/api/lzma.h"
++#include "../../liblzma/src/liblzma/api/lzma.h"
  #include <stdlib.h>
  #include <zlib.h>
  

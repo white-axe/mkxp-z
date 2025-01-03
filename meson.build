@@ -108,7 +108,7 @@ if get_option('retro') == true
         dependencies: [
             cmake.subproject('zlib', options: zlib_options).dependency('zlibstatic'),
             cmake.subproject('bzip2', options: bzip2_options).dependency('bz2_static'),
-            cmake.subproject('lzma', options: lzma_options).dependency('liblzma'),
+            cmake.subproject('liblzma', options: lzma_options).dependency('liblzma'),
             cmake.subproject('zstd', options: zstd_options).dependency('libzstd_static'),
             cmake.subproject('libzip', options: libzip_options).dependency('zip'),
         ],
