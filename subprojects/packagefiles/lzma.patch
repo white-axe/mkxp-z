@@ -1,0 +1,13 @@
+# Fixes a compilation error when compiling liblzma in MSYS2.
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -204,7 +204,6 @@ if((MINGW OR CYGWIN) AND (
+     # in PACKAGE_NAME_DEFINITION works with gcc and clang too so we don't need
+     # to worry how to pass different flags to windres and the C compiler.
+     # Keep the original PACKAGE_NAME intact for generation of liblzma.pc.
+-    string(APPEND CMAKE_RC_FLAGS " --use-temp-file")
+     string(REPLACE " " "\\x20" PACKAGE_NAME_DEFINITION "${PACKAGE_NAME}")
+ 
+     # Use octal because "Program Files" would become \x20F.
