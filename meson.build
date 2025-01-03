@@ -98,7 +98,7 @@ if get_option('retro') == true
     endif
 
     retro_link_args = []
-    if host_system == 'cygwin'
+    if host_system == 'windows' or host_system == 'cygwin'
         # We need to statically link the C++ standard library (libstdc++/libc++), the compiler runtime library (libgcc/compiler-rt) and libpthread in MSYS2 builds for Windows
         retro_link_args += '-static'
     endif
