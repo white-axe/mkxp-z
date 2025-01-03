@@ -468,13 +468,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install -q git meson cmake
+          brew install -q git gpatch meson cmake
 
       - name: Build phase 2
         run: |
           mkdir ${{ runner.temp }}/retro-phase2
           cp retro/core.info ${{ runner.temp }}/retro-phase2/libretro-mkxp-z.info
-          meson setup build -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          PATH="$HOMEBREW_PREFIX/opt/gpatch/libexec/gnubin:$PATH" meson setup build -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
           mv libretro-mkxp-z.dylib ${{ runner.temp }}/retro-phase2
