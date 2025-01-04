@@ -126,8 +126,10 @@ if get_option('retro') == true
         link_args: retro_link_args,
         gnu_symbol_visibility: 'hidden',
         include_directories: [
-            include_directories(retro_phase1),
+            include_directories('.'),
+            include_directories(join_paths(retro_phase1)),
             include_directories(join_paths(retro_phase1, 'wasm2c')),
+            include_directories(join_paths(retro_phase1, 'mkxp-retro-ruby')),
         ],
         sources: [
             'src/core.cpp',
@@ -135,6 +137,7 @@ if get_option('retro') == true
             'src/sandbox/wasi.cpp',
             join_paths(retro_phase1, 'wasm2c/wasm-rt-impl.c'),
             join_paths(retro_phase1, 'wasm2c/wasm-rt-mem-impl.c'),
+            join_paths(retro_phase1, 'mkxp-sandbox-bindgen.cpp'),
             join_paths(retro_phase1, 'mkxp-retro-dist.zip.c'),
             join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_0.c'),
             join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_1.c'),

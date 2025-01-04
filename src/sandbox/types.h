@@ -41,4 +41,12 @@ typedef float f32;
 typedef double f64;
 #endif // WASM_RT_CORE_TYPES_DEFINED
 
+struct SandboxException {};
+// The call to `ruby_executable_node()` or `ruby_exec_node()` failed when initializing Ruby.
+struct SandboxNodeException : SandboxException {};
+// Failed to allocate memory.
+struct SandboxOutOfMemoryException : SandboxException {};
+// An exception occurred inside of Ruby and was not caught.
+struct SandboxTrapException : SandboxException {};
+
 #endif // MKXPZ_SANDBOX_TYPES_H

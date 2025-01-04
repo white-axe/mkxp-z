@@ -24,7 +24,7 @@
 #include <string>
 #include <wasm-rt.h>
 #include "wasi.h"
-#include <mkxp-retro-ruby/mkxp-retro-ruby.h>
+#include <mkxp-retro-ruby.h>
 #include "sandbox.h"
 
 #define MJIT_ENABLED 0
@@ -59,7 +59,7 @@ void Sandbox::sandbox_free(usize ptr) {
     w2c_ruby_mkxp_sandbox_free(RB, ptr);
 }
 
-Sandbox::Sandbox(const char *game_path) : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby, game_path)) {
+Sandbox::Sandbox(const char *game_path) : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby, game_path)), bind(ruby) {
     try {
         // Initialize the sandbox
         wasm_rt_init();
@@ -144,13 +144,4 @@ Sandbox::~Sandbox() {
     } catch (SandboxTrapException) {}
     wasm2c_ruby_free(RB);
     wasm_rt_free();
-}
-
-VALUE Sandbox::rb_eval_string(const char *str) {
-    usize buf = sandbox_malloc(std::strlen(str) + 1);
-    std::strcpy((char *)WASM_MEM(buf), str);
-    VALUE val;
-    AWAIT(val = w2c_ruby_rb_eval_string(RB, buf));
-    sandbox_free(buf);
-    return val;
 }

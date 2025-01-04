@@ -316,7 +316,7 @@ jobs:
       - name: Install apt dependencies
         run: |
           sudo apt update
-          sudo apt install git curl build-essential automake libtool binaryen wabt zip -y
+          sudo apt install git curl build-essential automake libtool binaryen wabt zip universal-ctags -y
 
       - name: Download WASI SDK
         run: |

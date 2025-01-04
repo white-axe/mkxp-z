@@ -28,7 +28,7 @@
 #include <zip.h>
 #include "wasi.h"
 #include "sandbox.h"
-#include <mkxp-retro-ruby/mkxp-retro-ruby.h>
+#include <mkxp-retro-ruby.h>
 #include "../core.h"
 
 extern unsigned char mkxp_retro_dist_zip[];

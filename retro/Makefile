@@ -2,11 +2,17 @@
 
 RUBY_VERSION ?= 3.3
 
-CC ?= gcc
-CXX ?= g++
 WASI_SDK ?= /opt/wasi-sdk
 WASM_OPT ?= wasm-opt
 WASM2C ?= wasm2c
+CTAGS ?= ctags
+
+CC ?= gcc
+CXX ?= g++
+LD ?= ld
+AR ?= ar
+RANLIB ?= ranlib
+NATIVE_TOOLCHAIN := CC=$(CC) CXX=$(CXX) LD=$(LD) AR=$(AR) RANLIB=$(RANLIB)
 
 WASI_CC := $(WASI_SDK)/bin/clang
 WASI_CXX := $(WASI_SDK)/bin/clang++
@@ -20,12 +26,13 @@ BUILD_PREFIX := ${PWD}/build
 OUTDIR := $(BUILD_PREFIX)/retro-phase1
 LIBDIR := $(BUILD_PREFIX)/lib
 DOWNLOADS := $(BUILD_PREFIX)/downloads
+RUBY := $(LIBDIR)/bin/ruby
 CURL := curl -s
 GIT := git
 CLONE := $(GIT) clone -q --depth 1
 GITHUB := https://github.com
 
-default: $(OUTDIR)/mkxp-retro-dist.zip.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/wasm2c/wasm-rt-impl.c $(OUTDIR)/wasm2c/wasm-rt-mem-impl.c $(OUTDIR)/libretro.h
+default: $(OUTDIR)/mkxp-retro-dist.zip.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h $(OUTDIR)/wasm2c/wasm-rt-impl.c $(OUTDIR)/wasm2c/wasm-rt-mem-impl.c $(OUTDIR)/libretro.h
 
 $(OUTDIR)/libretro.h:
 	mkdir -p $(OUTDIR); \
@@ -36,7 +43,7 @@ $(OUTDIR)/wasm2c/wasm-rt-impl.c $(OUTDIR)/wasm2c/wasm-rt-mem-impl.c:
 	$(CLONE) $(GITHUB)/WebAssembly/wabt $(DOWNLOADS)/wabt -b 1.0.36; \
 	cp -r $(DOWNLOADS)/wabt/wasm2c $(OUTDIR)
 
-# Ruby
+# Cross ruby
 
 $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h: $(LIBDIR)/ruby.wasm
 	mkdir -p $(OUTDIR)/mkxp-retro-ruby; \
@@ -56,18 +63,18 @@ $(LIBDIR)/ruby.wasm $(OUTDIR)/mkxp-retro-dist.zip.c: $(DOWNLOADS)/ruby/Makefile
 	xxd -i mkxp-retro-dist.zip mkxp-retro-dist.zip.c; \
 	rm mkxp-retro-dist.zip
 
-$(DOWNLOADS)/ruby/Makefile: $(DOWNLOADS)/ruby/configure $(LIBDIR)/bin/ruby $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a $(LIBDIR)/usr/local/lib/libssl.a
+$(DOWNLOADS)/ruby/Makefile: $(DOWNLOADS)/ruby/configure $(RUBY) $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a $(LIBDIR)/usr/local/lib/libssl.a
 	cd $(DOWNLOADS)/ruby; \
 	./configure \
 	--prefix=/mkxp-retro-dist \
 	--host wasm32-wasip1 \
-	--build $(shell $(LIBDIR)/bin/ruby -e 'puts(RbConfig::CONFIG["host"])') \
+	--build $(shell $(RUBY) -e 'puts(RbConfig::CONFIG["host"])') \
 	--with-static-linked-ext \
 	--with-ext=bigdecimal,cgi/escape,continuation,coverage,date,dbm,digest/bubblebabble,digest,digest/md5,digest/rmd160,digest/sha1,digest/sha2,etc,fcntl,fiber,gdbm,json,json/generator,json/parser,nkf,objspace,pathname,psych,racc/cparse,rbconfig/sizeof,ripper,stringio,strscan,monitor,zlib,openssl \
 	--with-libyaml-dir=$(LIBDIR)/usr/local \
 	--with-zlib-dir=$(LIBDIR)/usr/local \
 	--with-openssl-dir=$(LIBDIR)/usr/local \
-	--with-baseruby=$(LIBDIR)/bin/ruby \
+	--with-baseruby=$(RUBY) \
 	WASMOPT=$(WASM_OPT) \
 	WASI_SDK_PATH=$(WASI_SDK) \
 	$(WASI_TOOLCHAIN) \
@@ -76,21 +83,32 @@ $(DOWNLOADS)/ruby/Makefile: $(DOWNLOADS)/ruby/configure $(LIBDIR)/bin/ruby $(LIB
 	debugflags=-g \
 	cppflags= \
 	wasmoptflags='-O3 -g --pass-arg=asyncify-ignore-imports' \
-	$(shell $(LIBDIR)/bin/ruby -e 'puts "ac_cv_func_dlopen=no" if RUBY_VERSION.start_with? "3.2."') \
+	$(shell $(RUBY) -e 'puts "ac_cv_func_dlopen=no" if RUBY_VERSION.start_with? "3.2."') \
 	--disable-install-doc
 
 $(DOWNLOADS)/ruby/configure: $(DOWNLOADS)/baseruby/configure
 	cp -r $(DOWNLOADS)/baseruby $(DOWNLOADS)/ruby; \
 	echo '#include "${PWD}/extra-ruby-bindings.h"' >> $(DOWNLOADS)/ruby/main.c
 
-$(LIBDIR)/bin/ruby: $(DOWNLOADS)/baseruby/Makefile
+# Base ruby
+
+$(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h: $(LIBDIR)/tags $(RUBY)
+	cd $(LIBDIR); \
+	$(RUBY) ${PWD}/sandbox-bindgen.rb; \
+	mv mkxp-sandbox-bindgen.h $(OUTDIR); \
+	mv mkxp-sandbox-bindgen.cpp $(OUTDIR)
+
+$(LIBDIR)/tags: $(LIBDIR)/include/ruby-$(RUBY_VERSION).0
+	$(CTAGS) -R --output-format=e-ctags --fields=S --kinds-c=p --kinds-c++=p -o $(LIBDIR)/tags $(LIBDIR)/include/ruby-$(RUBY_VERSION).0
+
+$(RUBY) $(LIBDIR)/include/ruby-$(RUBY_VERSION).0: $(DOWNLOADS)/baseruby/Makefile
 	cd $(DOWNLOADS)/baseruby; \
 	make -j$(NPROC); \
 	make install
 
 $(DOWNLOADS)/baseruby/Makefile: $(DOWNLOADS)/baseruby/configure
 	cd $(DOWNLOADS)/baseruby; \
-	./configure --prefix=$(LIBDIR) --disable-install-doc
+	./configure --prefix=$(LIBDIR) $(NATIVE_TOOLCHAIN) --disable-install-doc
 
 $(DOWNLOADS)/baseruby/configure: $(DOWNLOADS)/baseruby/configure.ac
 	cd $(DOWNLOADS)/baseruby; \

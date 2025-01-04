@@ -23,17 +23,8 @@
 #define MKXPZ_SANDBOX_H
 
 #include <memory>
+#include <mkxp-sandbox-bindgen.h>
 #include "types.h"
-
-typedef usize VALUE;
-
-struct SandboxException {};
-// The call to `ruby_executable_node()` or `ruby_exec_node()` failed when initializing Ruby.
-struct SandboxNodeException : SandboxException {};
-// Failed to allocate memory.
-struct SandboxOutOfMemoryException : SandboxException {};
-// An exception occurred inside of Ruby and was not caught.
-struct SandboxTrapException : SandboxException {};
 
 struct Sandbox {
     private:
@@ -44,9 +35,9 @@ struct Sandbox {
     void sandbox_free(usize ptr);
 
     public:
+    SandboxBind bind;
     Sandbox(const char *game_path);
     ~Sandbox();
-    VALUE rb_eval_string(const char *str);
 };
 
 #endif // MKXPZ_SANDBOX_H

@@ -40,15 +40,25 @@ static uint32_t *frame_buf;
 static std::unique_ptr<Sandbox> sandbox;
 static const char *game_path = NULL;
 
+static VALUE my_cpp_func(w2c_ruby *ruby, int32_t argc, wasm_ptr_t argv, VALUE self) {
+    log_printf(RETRO_LOG_INFO, "Hello from Ruby land! my_cpp_func(argc=%d, argv=0x%08x, self=0x%08x)\n", argc, argv, self);
+    return self;
+}
+
 static bool init_sandbox() {
     sandbox.reset();
 
     try {
         sandbox.reset(new Sandbox(game_path));
 
-        sandbox->rb_eval_string("puts 'Hello, World!'");
-        sandbox->rb_eval_string("require 'zlib'; p Zlib::Deflate::deflate('hello')");
-        sandbox->rb_eval_string("p Dir.glob '/mkxp-retro-game/*'");
+        sandbox->bind.rb_eval_string("puts 'Hello, World!'");
+
+        sandbox->bind.rb_eval_string("require 'zlib'; p Zlib::Deflate::deflate('hello')");
+
+        sandbox->bind.rb_define_global_function("my_cpp_func", (VALUE (*)(void *, ANYARGS))my_cpp_func, -1);
+        sandbox->bind.rb_eval_string("my_cpp_func(1, nil, 3, 'this is a string', :symbol, 2)");
+
+        sandbox->bind.rb_eval_string("p Dir.glob '/mkxp-retro-game/*'");
     } catch (SandboxException) {
         log_printf(RETRO_LOG_ERROR, "Failed to initialize Ruby\n");
         sandbox.reset();
