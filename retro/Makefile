@@ -78,7 +78,19 @@ $(LIBDIR)/ruby.wasm $(OUTDIR)/mkxp-retro-dist.zip.c: $(DOWNLOADS)/ruby/Makefile
 	xxd -i mkxp-retro-dist.zip mkxp-retro-dist.zip.c; \
 	rm mkxp-retro-dist.zip
 
-$(DOWNLOADS)/ruby/Makefile: $(DOWNLOADS)/ruby/configure $(RUBY) $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a $(LIBDIR)/usr/local/lib/libssl.a
+$(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h: $(LIBDIR)/tags $(RUBY)
+	cd $(LIBDIR); \
+	$(RUBY) ${PWD}/sandbox-bindgen.rb; \
+	mv mkxp-sandbox-bindgen.h $(OUTDIR); \
+	mv mkxp-sandbox-bindgen.cpp $(OUTDIR)
+
+$(LIBDIR)/tags: $(LIBDIR)/tags.c
+	$(CTAGS) -R --fields=S --kinds-c=p --kinds-c++=p -o $(LIBDIR)/tags $(LIBDIR)/tags.c
+
+$(LIBDIR)/tags.c: $(DOWNLOADS)/ruby/.ext/include/wasm32-wasip1/ruby/config.h
+	echo '#include <ruby.h>' | $(WASI_CC) -E -I$(DOWNLOADS)/ruby/include -I$(DOWNLOADS)/ruby/.ext/include/wasm32-wasip1 -o $(LIBDIR)/tags.c -
+
+$(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/wasm32-wasip1/ruby/config.h: $(DOWNLOADS)/ruby/configure $(RUBY) $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a $(LIBDIR)/usr/local/lib/libssl.a
 	cd $(DOWNLOADS)/ruby; \
 	./configure \
 	--prefix=/mkxp-retro-dist \
@@ -106,18 +118,6 @@ $(DOWNLOADS)/ruby/configure: $(DOWNLOADS)/baseruby/configure
 	echo '#include "${PWD}/extra-ruby-bindings.h"' >> $(DOWNLOADS)/ruby/main.c
 
 # Base ruby
-
-$(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h: $(LIBDIR)/tags $(RUBY)
-	cd $(LIBDIR); \
-	$(RUBY) ${PWD}/sandbox-bindgen.rb; \
-	mv mkxp-sandbox-bindgen.h $(OUTDIR); \
-	mv mkxp-sandbox-bindgen.cpp $(OUTDIR)
-
-$(LIBDIR)/tags: $(LIBDIR)/tags.c
-	$(CTAGS) -R --fields=S --kinds-c=p --kinds-c++=p -o $(LIBDIR)/tags $(LIBDIR)/tags.c
-
-$(LIBDIR)/tags.c: $(RUBY) $(LIBDIR)/include/ruby-$(RUBY_VERSION).0
-	echo '#include <ruby.h>' | $(CC) -E -I$(LIBDIR)/include/ruby-$(RUBY_VERSION).0 -I$(LIBDIR)/include/ruby-$(RUBY_VERSION).0/$(shell $(RUBY) -e 'puts RUBY_PLATFORM') -o $(LIBDIR)/tags.c -
 
 $(RUBY) $(LIBDIR)/include/ruby-$(RUBY_VERSION).0: $(DOWNLOADS)/baseruby/Makefile
 	cd $(DOWNLOADS)/baseruby; \
