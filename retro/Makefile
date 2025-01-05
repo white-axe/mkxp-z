@@ -46,7 +46,8 @@ clean:
 clean-ruby-bindings:
 	rm -f $(OUTDIR)/mkxp-sandbox-bindgen.cpp; \
 	rm -f $(OUTDIR)/mkxp-sandbox-bindgen.h; \
-	rm -f $(LIBDIR)/tags
+	rm -f $(LIBDIR)/tags.c; \
+	rm -f $(LIBDIR)/tags; \
 
 $(OUTDIR)/libretro.h:
 	mkdir -p $(OUTDIR); \
@@ -112,8 +113,11 @@ $(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h: $(LIBDIR)/t
 	mv mkxp-sandbox-bindgen.h $(OUTDIR); \
 	mv mkxp-sandbox-bindgen.cpp $(OUTDIR)
 
-$(LIBDIR)/tags: $(LIBDIR)/include/ruby-$(RUBY_VERSION).0
-	$(CTAGS) -R --fields=S --kinds-c=p --kinds-c++=p -o $(LIBDIR)/tags $(LIBDIR)/include/ruby-$(RUBY_VERSION).0
+$(LIBDIR)/tags: $(LIBDIR)/tags.c
+	$(CTAGS) -R --fields=S --kinds-c=p --kinds-c++=p -o $(LIBDIR)/tags $(LIBDIR)/tags.c
+
+$(LIBDIR)/tags.c: $(RUBY) $(LIBDIR)/include/ruby-$(RUBY_VERSION).0
+	echo '#include <ruby.h>' | $(CC) -E -I$(LIBDIR)/include/ruby-$(RUBY_VERSION).0 -I$(LIBDIR)/include/ruby-$(RUBY_VERSION).0/$(shell $(RUBY) -e 'puts RUBY_PLATFORM') -o $(LIBDIR)/tags.c -
 
 $(RUBY) $(LIBDIR)/include/ruby-$(RUBY_VERSION).0: $(DOWNLOADS)/baseruby/Makefile
 	cd $(DOWNLOADS)/baseruby; \

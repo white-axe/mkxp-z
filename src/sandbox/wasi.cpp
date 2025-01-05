@@ -27,7 +27,6 @@
 #include <sstream>
 #include <zip.h>
 #include "wasi.h"
-#include "sandbox.h"
 #include <mkxp-retro-ruby.h>
 #include "../core.h"
 

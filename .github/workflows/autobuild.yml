@@ -310,8 +310,8 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: |
-            retro/build
-          key: retro-phase1-${{ hashFiles('retro/Makefile', 'retro/extra-ruby-bindings.h') }}
+            retro/build/retro-phase1
+          key: retro-phase1-${{ hashFiles('retro/Makefile', 'retro/extra-ruby-bindings.h', 'retro/sandbox-bindgen.rb') }}
 
       - name: Install apt dependencies
         run: |
