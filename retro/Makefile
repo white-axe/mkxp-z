@@ -32,7 +32,21 @@ GIT := git
 CLONE := $(GIT) clone -q --depth 1
 GITHUB := https://github.com
 
-default: $(OUTDIR)/mkxp-retro-dist.zip.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h $(OUTDIR)/wasm2c/wasm-rt-impl.c $(OUTDIR)/wasm2c/wasm-rt-mem-impl.c $(OUTDIR)/libretro.h
+all default: deps ruby-dist ruby-bindings
+
+ruby-dist: $(OUTDIR)/mkxp-retro-dist.zip.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h
+
+ruby-bindings: $(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h
+
+deps: $(OUTDIR)/libretro.h $(OUTDIR)/wasm2c/wasm-rt-impl.c $(OUTDIR)/wasm2c/wasm-rt-mem-impl.c
+
+clean:
+	rm -rf $(BUILD_PREFIX)
+
+clean-ruby-bindings:
+	rm -f $(OUTDIR)/mkxp-sandbox-bindgen.cpp; \
+	rm -f $(OUTDIR)/mkxp-sandbox-bindgen.h; \
+	rm -f $(LIBDIR)/tags
 
 $(OUTDIR)/libretro.h:
 	mkdir -p $(OUTDIR); \
@@ -99,7 +113,7 @@ $(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h: $(LIBDIR)/t
 	mv mkxp-sandbox-bindgen.cpp $(OUTDIR)
 
 $(LIBDIR)/tags: $(LIBDIR)/include/ruby-$(RUBY_VERSION).0
-	$(CTAGS) -R --output-format=e-ctags --fields=S --kinds-c=p --kinds-c++=p -o $(LIBDIR)/tags $(LIBDIR)/include/ruby-$(RUBY_VERSION).0
+	$(CTAGS) -R --fields=S --kinds-c=p --kinds-c++=p -o $(LIBDIR)/tags $(LIBDIR)/include/ruby-$(RUBY_VERSION).0
 
 $(RUBY) $(LIBDIR)/include/ruby-$(RUBY_VERSION).0: $(DOWNLOADS)/baseruby/Makefile
 	cd $(DOWNLOADS)/baseruby; \

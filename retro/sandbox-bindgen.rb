@@ -60,7 +60,7 @@ ARG_HANDLERS = {
     buf_size: 'PREV_ARG * sizeof(wasm_ptr_t)',
     serialize: <<~HEREDOC
       for (int i = 0; i < PREV_ARG; ++i) {
-          ((wasm_ptr_t *)module_instance->w2c_memory.data + BUF)[i] = SERIALIZE_PTR(ARG[i]);
+          ((wasm_ptr_t *)(module_instance->w2c_memory.data + BUF))[i] = SERIALIZE_PTR(ARG[i]);
       }
     HEREDOC
   },
@@ -355,7 +355,7 @@ File.readlines('tags', chomp: true).each do |line|
         std::va_list a;
         va_start(a, a#{args.length - 2});
         for (long i = 0; i < a#{args.length - 2}; ++i) {
-            ((wasm_ptr_t *)module_instance->w2c_memory.data + v)[i] = SERIALIZE_PTR(va_arg(a, wasm_ptr_t));
+            ((wasm_ptr_t *)(module_instance->w2c_memory.data + v))[i] = SERIALIZE_PTR(va_arg(a, wasm_ptr_t));
         }
         va_end(a);
       HEREDOC
@@ -378,7 +378,7 @@ File.readlines('tags', chomp: true).each do |line|
             throw SandboxOutOfMemoryException();
         }
         for (wasm_ptr_t i = 0; i < n; ++i) {
-            ((wasm_ptr_t *)module_instance->w2c_memory.data + v)[i] = SERIALIZE_PTR(va_arg(a, wasm_ptr_t));
+            ((wasm_ptr_t *)(module_instance->w2c_memory.data + v))[i] = SERIALIZE_PTR(va_arg(a, wasm_ptr_t));
         }
       HEREDOC
       binding += "\n"
