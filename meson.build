@@ -127,7 +127,7 @@ if get_option('retro') == true
         gnu_symbol_visibility: 'hidden',
         include_directories: [
             include_directories('.'),
-            include_directories(join_paths(retro_phase1)),
+            include_directories(retro_phase1),
             include_directories(join_paths(retro_phase1, 'wasm2c')),
             include_directories(join_paths(retro_phase1, 'mkxp-retro-ruby')),
         ],

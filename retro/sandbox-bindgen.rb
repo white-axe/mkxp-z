@@ -156,6 +156,7 @@ HEADER_START = <<~HEREDOC
 
   struct SandboxBind {
       private:
+      wasm_ptr_t next_func_ptr;
       std::shared_ptr<struct w2c_#{MODULE_NAME}> module_instance;
       wasm_ptr_t _sbindgen_malloc(wasm_ptr_t);
       wasm_ptr_t _sbindgen_create_func_ptr();
@@ -208,7 +209,7 @@ PRELUDE = <<~HEREDOC
   #define SERIALIZE_PTR(value) SERIALIZE_#{MEMORY64 ? '64' : '32'}(value)
 
 
-  SandboxBind::SandboxBind(std::shared_ptr<struct w2c_#{MODULE_NAME}> m) : module_instance(m) {}
+  SandboxBind::SandboxBind(std::shared_ptr<struct w2c_#{MODULE_NAME}> m) : next_func_ptr(m->w2c_T0.size), module_instance(m) {}
 
 
   wasm_ptr_t SandboxBind::_sbindgen_malloc(wasm_ptr_t size) {
@@ -225,34 +226,32 @@ PRELUDE = <<~HEREDOC
 
 
   wasm_ptr_t SandboxBind::_sbindgen_create_func_ptr() {
-      wasm_ptr_t ptr = module_instance->w2c_T0.size;
-
-      if (ptr < module_instance->w2c_T0.max_size) {
-          ++module_instance->w2c_T0.size;
-          return ptr;
+      if (next_func_ptr < module_instance->w2c_T0.max_size) {
+          return next_func_ptr++;
       }
 
       // Make sure that an integer overflow won't occur if we double the max size of the funcref table
       wasm_ptr_t new_max_size;
-      if (__builtin_mul_overflow(module_instance->w2c_T0.max_size, 2, &new_max_size)) {
+      if (__builtin_add_overflow(module_instance->w2c_T0.max_size, module_instance->w2c_T0.max_size, &new_max_size)) {
           return -1;
       }
 
       // Double the max size of the funcref table
+      wasm_ptr_t old_max_size = module_instance->w2c_T0.max_size;
       module_instance->w2c_T0.max_size = new_max_size;
 
       // Double the size of the funcref table buffer
-      if (wasm_rt_grow_funcref_table(&module_instance->w2c_T0, module_instance->w2c_T0.size, wasm_rt_funcref_t {
+      if (wasm_rt_grow_funcref_table(&module_instance->w2c_T0, old_max_size, wasm_rt_funcref_t {
           .func_type = wasm2c_ruby_get_func_type(0, 0),
           .func = NULL,
           .func_tailcallee = {.fn = NULL},
           .module_instance = module_instance.get(),
-      }) != ptr) {
+      }) != old_max_size) {
+          module_instance->w2c_T0.max_size = old_max_size;
           return -1;
       }
 
-      ++module_instance->w2c_T0.size;
-      return ptr;
+      return next_func_ptr++;
   }
 
 
