@@ -1,206 +1,210 @@
 # Configure flags are based on the ones from https://github.com/ruby/ruby.wasm
 
 RUBY_VERSION ?= 3.3
-
+LIBRETRO_REF ?= 80d7a25029b9c60f3c71cda49108f4545897d195
+LIBYAML_VERSION ?= 0.2.5
+ZLIB_VERSION ?= 1.3.1
+OPENSSL_VERSION ?= 3.2.0
+WASM_RT_VERSION ?= 1.0.36
+TARGET ?= wasm32-wasip1
 WASI_SDK ?= /opt/wasi-sdk
 WASM_OPT ?= wasm-opt
 WASM2C ?= wasm2c
 CTAGS ?= ctags
-
-CC ?= gcc
-CXX ?= g++
+AUTORECONF ?= autoreconf
+CURL ?= curl
+GIT ?= git
+ZIP ?= zip
+XXD ?= xxd
+CC ?= cc
+CXX ?= c++
 LD ?= ld
 AR ?= ar
 RANLIB ?= ranlib
-NATIVE_TOOLCHAIN := CC=$(CC) CXX=$(CXX) LD=$(LD) AR=$(AR) RANLIB=$(RANLIB)
+NM ?= nm
+OBJCOPY ?= objcopy
+OBJDUMP ?= objdump
+STRIP ?= strip
 
-WASI_CC := $(WASI_SDK)/bin/clang
-WASI_CXX := $(WASI_SDK)/bin/clang++
-WASI_LD := $(WASI_SDK)/bin/clang
-WASI_AR := $(WASI_SDK)/bin/llvm-ar
-WASI_RANLIB := $(WASI_SDK)/bin/llvm-ranlib
-WASI_TOOLCHAIN := CC=$(WASI_CC) CXX=$(WASI_CXX) LD=$(WASI_LD) AR=$(WASI_AR) RANLIB=$(WASI_RANLIB)
-
-NPROC := $(shell nproc)
 BUILD_PREFIX := ${PWD}/build
 OUTDIR := $(BUILD_PREFIX)/retro-phase1
 LIBDIR := $(BUILD_PREFIX)/lib
 DOWNLOADS := $(BUILD_PREFIX)/downloads
 RUBY := $(LIBDIR)/bin/ruby
-CURL := curl -s
-GIT := git
 CLONE := $(GIT) clone -q --depth 1
 GITHUB := https://github.com
+WASI_CC := $(WASI_SDK)/bin/clang
+WASI_CXX := $(WASI_SDK)/bin/clang++
+WASI_LD := $(WASI_SDK)/bin/clang
+WASI_AR := $(WASI_SDK)/bin/llvm-ar
+WASI_RANLIB := $(WASI_SDK)/bin/llvm-ranlib
+WASI_NM := $(WASI_SDK)/bin/llvm-nm
+WASI_OBJCOPY := $(WASI_SDK)/bin/llvm-objcopy
+WASI_OBJDUMP := $(WASI_SDK)/bin/llvm-objdump
+WASI_STRIP := $(WASI_SDK)/bin/llvm-strip
+NATIVE_TOOLCHAIN := CC=$(CC) CXX=$(CXX) LD=$(LD) AR=$(AR) RANLIB=$(RANLIB) NM=$(NM) OBJCOPY=$(OBJCOPY) OBJDUMP=$(OBJDUMP) STRIP=$(STRIP)
+WASI_TOOLCHAIN := CC=$(WASI_CC) CXX=$(WASI_CXX) LD=$(WASI_LD) AR=$(WASI_AR) RANLIB=$(WASI_RANLIB) NM=$(WASI_NM) OBJCOPY=$(WASI_OBJCOPY) OBJDUMP=$(WASI_OBJDUMP) STRIP=$(WASI_STRIP)
 
 all default: deps ruby-dist ruby-bindings
 
-ruby-dist: $(OUTDIR)/mkxp-retro-dist.zip.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h
+ruby-dist: $(OUTDIR)/mkxp-retro-dist.zip.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_0.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_1.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_2.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_3.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_4.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_5.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_6.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_7.c
 
 ruby-bindings: $(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h
 
-deps: $(OUTDIR)/libretro.h $(OUTDIR)/wasm2c/wasm-rt-impl.c $(OUTDIR)/wasm2c/wasm-rt-mem-impl.c
+deps: $(OUTDIR)/libretro.h $(OUTDIR)/wasm2c/wasm-rt.h $(OUTDIR)/wasm2c/wasm-rt-impl.c $(OUTDIR)/wasm2c/wasm-rt-mem-impl.c
 
-clean:
-	rm -rf $(BUILD_PREFIX)
+clean: clean-ruby-dist clean-ruby-bindings clean-deps
+	rm -rf $(LIBDIR)/*
+	rm -rf $(DOWNLOADS)/*
+
+clean-ruby-dist:
+	rm -f $(OUTDIR)/mkxp-retro-dist.zip.c
+	rm -rf $(OUTDIR)/mkxp-retro-ruby
 
 clean-ruby-bindings:
-	rm -f $(OUTDIR)/mkxp-sandbox-bindgen.cpp; \
-	rm -f $(OUTDIR)/mkxp-sandbox-bindgen.h; \
-	rm -f $(LIBDIR)/tags.c; \
-	rm -f $(LIBDIR)/tags; \
+	rm -f $(OUTDIR)/mkxp-sandbox-bindgen.cpp
+	rm -f $(OUTDIR)/mkxp-sandbox-bindgen.h
+	rm -f $(LIBDIR)/tags.c
+	rm -f $(LIBDIR)/tags
+
+clean-deps:
+	rm -f $(OUTDIR)/libretro.h
+	rm -rf $(OUTDIR)/wasm2c
 
 $(OUTDIR)/libretro.h:
-	mkdir -p $(OUTDIR); \
-	$(CURL) -Lo $(OUTDIR)/libretro.h https://raw.githubusercontent.com/libretro/libretro-common/80d7a25029b9c60f3c71cda49108f4545897d195/include/libretro.h # 2024-12-22
+	mkdir -p $(OUTDIR)
+	$(CURL) -s -L -o $(OUTDIR)/libretro.h https://raw.githubusercontent.com/libretro/libretro-common/$(LIBRETRO_REF)/include/libretro.h
 
-$(OUTDIR)/wasm2c/wasm-rt-impl.c $(OUTDIR)/wasm2c/wasm-rt-mem-impl.c:
-	mkdir -p $(DOWNLOADS); \
-	$(CLONE) $(GITHUB)/WebAssembly/wabt $(DOWNLOADS)/wabt -b 1.0.36; \
+$(OUTDIR)/wasm2c/wasm-rt.h $(OUTDIR)/wasm2c/wasm-rt-impl.c $(OUTDIR)/wasm2c/wasm-rt-mem-impl.c &:
+	mkdir -p $(DOWNLOADS)
+	$(CLONE) $(GITHUB)/WebAssembly/wabt $(DOWNLOADS)/wabt -b $(WASM_RT_VERSION)
 	cp -r $(DOWNLOADS)/wabt/wasm2c $(OUTDIR)
 
 # Cross ruby
 
-$(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h: $(LIBDIR)/ruby.wasm
-	mkdir -p $(OUTDIR)/mkxp-retro-ruby; \
+$(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_0.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_1.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_2.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_3.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_4.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_5.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_6.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_7.c &: $(LIBDIR)/ruby.wasm
+	mkdir -p $(OUTDIR)/mkxp-retro-ruby
 	$(WASM2C) $(LIBDIR)/ruby.wasm -n ruby --num-outputs=8 -o $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.c
 
-$(LIBDIR)/ruby.wasm $(OUTDIR)/mkxp-retro-dist.zip.c: $(DOWNLOADS)/ruby/Makefile
-	mkdir -p $(OUTDIR); \
-	cd $(DOWNLOADS)/ruby; \
-	make -j$(NPROC); \
-	make install DESTDIR=$(OUTDIR); \
-	mv $(OUTDIR)/mkxp-retro-dist/bin/ruby $(LIBDIR)/ruby.wasm; \
-	rm $(OUTDIR)/mkxp-retro-dist/lib/libruby-static.a; \
-	cd $(OUTDIR)/mkxp-retro-dist; \
-	zip -r $(OUTDIR)/mkxp-retro-dist.zip *; \
-	rm -r $(OUTDIR)/mkxp-retro-dist; \
-	cd $(OUTDIR); \
-	xxd -i mkxp-retro-dist.zip mkxp-retro-dist.zip.c; \
-	rm mkxp-retro-dist.zip
+$(LIBDIR)/ruby.wasm $(OUTDIR)/mkxp-retro-dist.zip.c &: $(DOWNLOADS)/ruby/Makefile
+	mkdir -p $(OUTDIR)
+	cd $(DOWNLOADS)/ruby && $(MAKE) install DESTDIR=$(OUTDIR)
+	mv $(OUTDIR)/mkxp-retro-dist/bin/ruby $(LIBDIR)/ruby.wasm
+	rm $(OUTDIR)/mkxp-retro-dist/lib/libruby-static.a
+	cd $(OUTDIR)/mkxp-retro-dist && $(ZIP) -r $(OUTDIR)/mkxp-retro-dist.zip *
+	rm -r $(OUTDIR)/mkxp-retro-dist
+	cd $(OUTDIR) && $(XXD) -i mkxp-retro-dist.zip mkxp-retro-dist.zip.c
+	rm $(OUTDIR)/mkxp-retro-dist.zip
 
-$(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h: $(LIBDIR)/tags $(RUBY)
-	cd $(LIBDIR); \
-	$(RUBY) ${PWD}/sandbox-bindgen.rb; \
-	mv mkxp-sandbox-bindgen.h $(OUTDIR); \
-	mv mkxp-sandbox-bindgen.cpp $(OUTDIR)
+$(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h &: sandbox-bindgen.rb $(LIBDIR)/tags $(RUBY)
+	cd $(LIBDIR) && $(RUBY) ${PWD}/sandbox-bindgen.rb
+	mv $(LIBDIR)/mkxp-sandbox-bindgen.h $(OUTDIR)
+	mv $(LIBDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)
 
-$(LIBDIR)/tags: $(LIBDIR)/tags.c
+$(LIBDIR)/tags: $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.h
+	echo '#include <ruby.h>' | $(WASI_CC) -E -I$(DOWNLOADS)/ruby/include -I$(DOWNLOADS)/ruby/.ext/include/$(TARGET) -o $(LIBDIR)/tags.c -
 	$(CTAGS) -R --fields=S --kinds-c=p --kinds-c++=p -o $(LIBDIR)/tags $(LIBDIR)/tags.c
 
-$(LIBDIR)/tags.c: $(DOWNLOADS)/ruby/.ext/include/wasm32-wasip1/ruby/config.h
-	echo '#include <ruby.h>' | $(WASI_CC) -E -I$(DOWNLOADS)/ruby/include -I$(DOWNLOADS)/ruby/.ext/include/wasm32-wasip1 -o $(LIBDIR)/tags.c -
+$(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.h &: $(DOWNLOADS)/ruby/configure $(RUBY) extra-ruby-bindings.h $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a $(LIBDIR)/usr/local/lib/libssl.a
+	cd $(DOWNLOADS)/ruby && ./configure \
+		--prefix=/mkxp-retro-dist \
+		--host $(TARGET) \
+		--build $(shell $(RUBY) -e 'puts(RbConfig::CONFIG["host"])') \
+		--with-static-linked-ext \
+		--with-ext=bigdecimal,cgi/escape,continuation,coverage,date,dbm,digest/bubblebabble,digest,digest/md5,digest/rmd160,digest/sha1,digest/sha2,etc,fcntl,fiber,gdbm,json,json/generator,json/parser,nkf,objspace,pathname,psych,racc/cparse,rbconfig/sizeof,ripper,stringio,strscan,monitor,zlib,openssl \
+		--with-libyaml-dir=$(LIBDIR)/usr/local \
+		--with-zlib-dir=$(LIBDIR)/usr/local \
+		--with-openssl-dir=$(LIBDIR)/usr/local \
+		--with-baseruby=$(RUBY) \
+		WASMOPT=$(WASM_OPT) \
+		WASI_SDK_PATH=$(WASI_SDK) \
+		$(WASI_TOOLCHAIN) \
+		LDFLAGS='-Wl,--export-dynamic,--stack-first,-z,stack-size=16777216' \
+		XCFLAGS='-DWASM_SETJMP_STACK_BUFFER_SIZE=24576 -DWASM_FIBER_STACK_BUFFER_SIZE=24576 -DWASM_SCAN_STACK_BUFFER_SIZE=24576' \
+		debugflags=-g \
+		cppflags= \
+		wasmoptflags='-O4 -g --pass-arg=asyncify-ignore-imports' \
+		$(shell $(RUBY) -e 'puts "ac_cv_func_dlopen=no" if RUBY_VERSION.split(".")[..1].join(".").to_f < 3.3') \
+		--disable-install-doc
 
-$(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/wasm32-wasip1/ruby/config.h: $(DOWNLOADS)/ruby/configure $(RUBY) $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a $(LIBDIR)/usr/local/lib/libssl.a
-	cd $(DOWNLOADS)/ruby; \
-	./configure \
-	--prefix=/mkxp-retro-dist \
-	--host wasm32-wasip1 \
-	--build $(shell $(RUBY) -e 'puts(RbConfig::CONFIG["host"])') \
-	--with-static-linked-ext \
-	--with-ext=bigdecimal,cgi/escape,continuation,coverage,date,dbm,digest/bubblebabble,digest,digest/md5,digest/rmd160,digest/sha1,digest/sha2,etc,fcntl,fiber,gdbm,json,json/generator,json/parser,nkf,objspace,pathname,psych,racc/cparse,rbconfig/sizeof,ripper,stringio,strscan,monitor,zlib,openssl \
-	--with-libyaml-dir=$(LIBDIR)/usr/local \
-	--with-zlib-dir=$(LIBDIR)/usr/local \
-	--with-openssl-dir=$(LIBDIR)/usr/local \
-	--with-baseruby=$(RUBY) \
-	WASMOPT=$(WASM_OPT) \
-	WASI_SDK_PATH=$(WASI_SDK) \
-	$(WASI_TOOLCHAIN) \
-	LDFLAGS='-Wl,--export-dynamic,--stack-first,-z,stack-size=16777216' \
-	XCFLAGS='-DWASM_SETJMP_STACK_BUFFER_SIZE=24576 -DWASM_FIBER_STACK_BUFFER_SIZE=24576 -DWASM_SCAN_STACK_BUFFER_SIZE=24576' \
-	debugflags=-g \
-	cppflags= \
-	wasmoptflags='-O3 -g --pass-arg=asyncify-ignore-imports' \
-	$(shell $(RUBY) -e 'puts "ac_cv_func_dlopen=no" if RUBY_VERSION.start_with? "3.2."') \
-	--disable-install-doc
+$(DOWNLOADS)/ruby/configure: $(DOWNLOADS)/ruby/configure.ac $(RUBY)
+	cd $(DOWNLOADS)/ruby && $(RUBY) tool/downloader.rb -d tool -e gnu config.guess config.sub
+	cd $(DOWNLOADS)/ruby && $(AUTORECONF) -i
 
-$(DOWNLOADS)/ruby/configure: $(DOWNLOADS)/baseruby/configure
-	cp -r $(DOWNLOADS)/baseruby $(DOWNLOADS)/ruby; \
+$(DOWNLOADS)/ruby/configure.ac:
+	mkdir -p $(DOWNLOADS)
+	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/ruby -b ruby_$(shell echo $(RUBY_VERSION) | sed -e 's/\./_/g')
 	echo '#include "${PWD}/extra-ruby-bindings.h"' >> $(DOWNLOADS)/ruby/main.c
 
 # Base ruby
 
-$(RUBY) $(LIBDIR)/include/ruby-$(RUBY_VERSION).0: $(DOWNLOADS)/baseruby/Makefile
-	cd $(DOWNLOADS)/baseruby; \
-	make -j$(NPROC); \
-	make install
+$(RUBY): $(DOWNLOADS)/baseruby/Makefile
+	cd $(DOWNLOADS)/baseruby && $(MAKE) install
+	if ! $(RUBY) -e 'exit 1 if RUBY_VERSION.split(".")[..1].join(".").to_f < 3.2'; then echo -e '\e[91m[ERROR] Ruby version must be at least 3.2 because earlier versions do not have WebAssembly support\e[0m'; rm $(RUBY); exit 1; fi;
 
 $(DOWNLOADS)/baseruby/Makefile: $(DOWNLOADS)/baseruby/configure
-	cd $(DOWNLOADS)/baseruby; \
-	./configure --prefix=$(LIBDIR) $(NATIVE_TOOLCHAIN) --disable-install-doc
+	cd $(DOWNLOADS)/baseruby && ./configure --prefix=$(LIBDIR) $(NATIVE_TOOLCHAIN) --disable-install-doc
 
 $(DOWNLOADS)/baseruby/configure: $(DOWNLOADS)/baseruby/configure.ac
-	cd $(DOWNLOADS)/baseruby; \
-	ruby tool/downloader.rb -d tool -e gnu config.guess config.sub ; \
-	autoreconf -i
+	cd $(DOWNLOADS)/baseruby && $(AUTORECONF) -i
 
 $(DOWNLOADS)/baseruby/configure.ac:
-	if ! ruby -e 'exit 1 if $(RUBY_VERSION) < 3.2'; then echo -e '\e[91m[ERROR] Ruby version must be at least 3.2 because earlier versions do not have WebAssembly support\e[0m'; exit 1; fi; \
-	mkdir -p $(DOWNLOADS); \
+	mkdir -p $(DOWNLOADS)
 	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/baseruby -b ruby_$(shell echo $(RUBY_VERSION) | sed -e 's/\./_/g')
 
 # libyaml
 
 $(LIBDIR)/usr/local/lib/libyaml.a: $(DOWNLOADS)/libyaml/Makefile
-	cd $(DOWNLOADS)/libyaml; \
-	make -j$(NPROC); \
-	make install DESTDIR=$(LIBDIR)
+	cd $(DOWNLOADS)/libyaml && $(MAKE) install DESTDIR=$(LIBDIR)
 
 $(DOWNLOADS)/libyaml/Makefile: $(DOWNLOADS)/libyaml/configure
-	cd $(DOWNLOADS)/libyaml; \
-	./configure --host wasm32-wasip1 $(WASI_TOOLCHAIN)
+	cd $(DOWNLOADS)/libyaml && ./configure --host $(TARGET) $(WASI_TOOLCHAIN)
 
 $(DOWNLOADS)/libyaml/configure: $(DOWNLOADS)/libyaml/configure.ac
-	cd $(DOWNLOADS)/libyaml; \
-	autoreconf -i
+	cd $(DOWNLOADS)/libyaml && $(AUTORECONF) -i
 
 $(DOWNLOADS)/libyaml/configure.ac:
-	mkdir -p $(DOWNLOADS); \
-	$(CLONE) $(GITHUB)/yaml/libyaml $(DOWNLOADS)/libyaml -b 0.2.5
+	mkdir -p $(DOWNLOADS)
+	$(CLONE) $(GITHUB)/yaml/libyaml $(DOWNLOADS)/libyaml -b $(LIBYAML_VERSION)
 
 # zlib
 
 $(LIBDIR)/usr/local/lib/libz.a: $(DOWNLOADS)/zlib/Makefile
-	cd $(DOWNLOADS)/zlib; \
-	make -j$(NPROC); \
-	make install DESTDIR=$(LIBDIR)
+	cd $(DOWNLOADS)/zlib && $(MAKE) install DESTDIR=$(LIBDIR)
 
 $(DOWNLOADS)/zlib/Makefile: $(DOWNLOADS)/zlib/configure
-	cd $(DOWNLOADS)/zlib; \
-	env CHOST=linux $(WASI_TOOLCHAIN) ./configure --static
+	cd $(DOWNLOADS)/zlib && env CHOST=linux $(WASI_TOOLCHAIN) ./configure --static
 
 $(DOWNLOADS)/zlib/configure:
-	mkdir -p $(DOWNLOADS); \
-	$(CLONE) $(GITHUB)/madler/zlib $(DOWNLOADS)/zlib -b v1.3.1
+	mkdir -p $(DOWNLOADS)
+	$(CLONE) $(GITHUB)/madler/zlib $(DOWNLOADS)/zlib -b v$(ZLIB_VERSION)
 
 # OpenSSL
 
 $(LIBDIR)/usr/local/lib/libssl.a: $(DOWNLOADS)/openssl/Makefile
-	cd $(DOWNLOADS)/openssl; \
-	make -j$(NPROC); \
-	make install_dev DESTDIR=$(LIBDIR)
+	cd $(DOWNLOADS)/openssl && $(MAKE) install_dev DESTDIR=$(LIBDIR)
 
 $(DOWNLOADS)/openssl/Makefile: $(DOWNLOADS)/openssl/Configure
-	cd $(DOWNLOADS)/openssl; \
-	./Configure \
-	gcc \
-	-static \
-	-no-asm \
-	-no-threads \
-	-no-afalgeng \
-	-no-ui-console \
-	-no-tests \
-	-no-sock \
-	-no-dgram \
-	--libdir=lib \
-	-Wl,--allow-undefined \
-	-D_WASI_EMULATED_SIGNAL \
-	-D_WASI_EMULATED_PROCESS_CLOCKS \
-	-D_WASI_EMULATED_MMAN \
-	-D_WASI_EMULATED_GETPID \
-	-DNO_CHMOD \
-	-DHAVE_FORK=0 \
-	$(WASI_TOOLCHAIN)
+	cd $(DOWNLOADS)/openssl && ./Configure \
+		gcc \
+		-static \
+		-no-asm \
+		-no-threads \
+		-no-afalgeng \
+		-no-ui-console \
+		-no-tests \
+		-no-sock \
+		-no-dgram \
+		--libdir=lib \
+		-Wl,--allow-undefined \
+		-D_WASI_EMULATED_SIGNAL \
+		-D_WASI_EMULATED_PROCESS_CLOCKS \
+		-D_WASI_EMULATED_MMAN \
+		-D_WASI_EMULATED_GETPID \
+		-DNO_CHMOD \
+		-DHAVE_FORK=0 \
+		$(WASI_TOOLCHAIN)
 
 $(DOWNLOADS)/openssl/Configure:
-	mkdir -p $(DOWNLOADS); \
-	$(CLONE) $(GITHUB)/openssl/openssl $(DOWNLOADS)/openssl -b openssl-3.2.0
+	mkdir -p $(DOWNLOADS)
+	$(CLONE) $(GITHUB)/openssl/openssl $(DOWNLOADS)/openssl -b openssl-$(OPENSSL_VERSION)

@@ -328,7 +328,7 @@ jobs:
       - name: Build phase 1
         run: |
           cd retro
-          make WASI_SDK=${{ runner.temp }}/wasi-sdk
+          make -j $(nproc) WASI_SDK=${{ runner.temp }}/wasi-sdk
 
       - uses: actions/upload-artifact@v4
         with:
