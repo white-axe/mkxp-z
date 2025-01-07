@@ -21,10 +21,6 @@ CXX ?= c++
 LD ?= ld
 AR ?= ar
 RANLIB ?= ranlib
-NM ?= nm
-OBJCOPY ?= objcopy
-OBJDUMP ?= objdump
-STRIP ?= strip
 
 BUILD_PREFIX := ${PWD}/build
 OUTDIR := $(BUILD_PREFIX)/retro-phase1
@@ -38,12 +34,8 @@ WASI_CXX := $(WASI_SDK)/bin/clang++
 WASI_LD := $(WASI_SDK)/bin/clang
 WASI_AR := $(WASI_SDK)/bin/llvm-ar
 WASI_RANLIB := $(WASI_SDK)/bin/llvm-ranlib
-WASI_NM := $(WASI_SDK)/bin/llvm-nm
-WASI_OBJCOPY := $(WASI_SDK)/bin/llvm-objcopy
-WASI_OBJDUMP := $(WASI_SDK)/bin/llvm-objdump
-WASI_STRIP := $(WASI_SDK)/bin/llvm-strip
-NATIVE_TOOLCHAIN := CC=$(CC) CXX=$(CXX) LD=$(LD) AR=$(AR) RANLIB=$(RANLIB) NM=$(NM) OBJCOPY=$(OBJCOPY) OBJDUMP=$(OBJDUMP) STRIP=$(STRIP)
-WASI_TOOLCHAIN := CC=$(WASI_CC) CXX=$(WASI_CXX) LD=$(WASI_LD) AR=$(WASI_AR) RANLIB=$(WASI_RANLIB) NM=$(WASI_NM) OBJCOPY=$(WASI_OBJCOPY) OBJDUMP=$(WASI_OBJDUMP) STRIP=$(WASI_STRIP)
+NATIVE_TOOLCHAIN := CC=$(CC) CXX=$(CXX) LD=$(LD) AR=$(AR) RANLIB=$(RANLIB)
+WASI_TOOLCHAIN := CC=$(WASI_CC) CXX=$(WASI_CXX) LD=$(WASI_LD) AR=$(WASI_AR) RANLIB=$(WASI_RANLIB)
 
 all default: deps ruby-dist ruby-bindings
 

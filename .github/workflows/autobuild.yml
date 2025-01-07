@@ -307,18 +307,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - uses: actions/cache@v4
+      - id: cache
+        uses: actions/cache@v4
         with:
           path: |
             retro/build/retro-phase1
           key: retro-phase1-${{ hashFiles('retro/Makefile', 'retro/extra-ruby-bindings.h', 'retro/sandbox-bindgen.rb') }}
 
       - name: Install apt dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           sudo apt update
-          sudo apt install git curl build-essential automake libtool binaryen wabt zip universal-ctags -y
+          sudo apt install -y git curl build-essential automake libtool binaryen wabt zip universal-ctags
 
       - name: Download WASI SDK
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           curl -Lo ${{ runner.temp }}/wasi-sdk.tar.gz https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-21/wasi-sdk-21.0-linux.tar.gz
           mkdir ${{ runner.temp }}/wasi-sdk
@@ -326,6 +329,7 @@ jobs:
           rm ${{ runner.temp }}/wasi-sdk.tar.gz
 
       - name: Build phase 1
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           cd retro
           make -j $(nproc) WASI_SDK=${{ runner.temp }}/wasi-sdk
@@ -362,6 +366,7 @@ jobs:
           meson setup build --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
+          strip libretro-mkxp-z.dll
           mv libretro-mkxp-z.dll "$runner_temp"/retro-phase2
 
       - uses: actions/upload-artifact@v4
@@ -427,10 +432,10 @@ jobs:
             echo 'Components: main universe' | sudo tee -a /etc/apt/sources.list.d/ubuntu.sources
           fi
           sudo apt update
-          sudo apt install git build-essential meson cmake -y
+          sudo apt install -y git build-essential meson cmake
           if [ '${{ matrix.arch_mkxpz }}' != 'x86_64' ]
           then
-            sudo apt install gcc-${{ matrix.arch_gcc }} g++-${{ matrix.arch_gcc }} -y
+            sudo apt install -y gcc-${{ matrix.arch_gcc }} g++-${{ matrix.arch_gcc }}
           fi
 
       - name: Build phase 2
@@ -446,6 +451,12 @@ jobs:
           meson setup build $cross_arg --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
+          if [ '${{ matrix.arch_mkxpz }}' != 'x86_64' ]
+          then
+            ${{ matrix.arch_gcc }}-strip libretro-mkxp-z.so
+          else
+            strip libretro-mkxp-z.so
+          fi
           mv libretro-mkxp-z.so ${{ runner.temp }}/retro-phase2
 
       - uses: actions/upload-artifact@v4
@@ -477,6 +488,7 @@ jobs:
           PATH="$HOMEBREW_PREFIX/opt/gpatch/libexec/gnubin:$PATH" meson setup build --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
+          strip libretro-mkxp-z.dylib
           mv libretro-mkxp-z.dylib ${{ runner.temp }}/retro-phase2
 
       - uses: actions/upload-artifact@v4
