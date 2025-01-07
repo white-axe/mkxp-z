@@ -24,8 +24,12 @@
 #include <cstdarg>
 #include <cstring>
 #include <memory>
+#include <boost/asio/coroutine.hpp>
+#include <boost/asio/yield.hpp>
 #include "core.h"
 #include "sandbox/sandbox.h"
+
+#define AWAIT(coroutine, ...) do { coroutine(__VA_ARGS__); if (coroutine.is_complete()) break; yield; } while (1)
 
 using namespace mkxp_retro;
 
@@ -46,19 +50,37 @@ static VALUE my_cpp_func(w2c_ruby *ruby, int32_t argc, wasm_ptr_t argv, VALUE se
 }
 
 static bool init_sandbox() {
+    struct runtime : boost::asio::coroutine {
+        struct rb_eval_string eval;
+        struct rb_define_global_function define;
+
+        void operator()() {
+            reenter (this) {
+                AWAIT(eval, sandbox->bind, "puts 'Hello, World!'");
+
+                eval = rb_eval_string();
+                AWAIT(eval, sandbox->bind, "require 'zlib'; p Zlib::Deflate::deflate('hello')");
+
+                AWAIT(define, sandbox->bind, "my_cpp_func", (VALUE (*)(void *, ANYARGS))my_cpp_func, -1);
+
+                eval = rb_eval_string();
+                AWAIT(eval, sandbox->bind, "my_cpp_func(1, nil, 3, 'this is a string', :symbol, 2)");
+
+                eval = rb_eval_string();
+                AWAIT(eval, sandbox->bind, "p Dir.glob '/mkxp-retro-game/*'");
+            }
+        }
+    };
+
     sandbox.reset();
 
     try {
         sandbox.reset(new Sandbox(game_path));
 
-        sandbox->bind.rb_eval_string("puts 'Hello, World!'");
+        struct runtime runtime;
 
-        sandbox->bind.rb_eval_string("require 'zlib'; p Zlib::Deflate::deflate('hello')");
-
-        sandbox->bind.rb_define_global_function("my_cpp_func", (VALUE (*)(void *, ANYARGS))my_cpp_func, -1);
-        sandbox->bind.rb_eval_string("my_cpp_func(1, nil, 3, 'this is a string', :symbol, 2)");
-
-        sandbox->bind.rb_eval_string("p Dir.glob '/mkxp-retro-game/*'");
+        // TODO: Replace this loop with a stackful executor, otherwise you won't be able to call into the Ruby API from inside of a C/C++ function that is itself called from inside of Ruby.
+        do runtime(); while (w2c_ruby_mkxp_sandbox_yield(&sandbox->module_instance()));
     } catch (SandboxException) {
         log_printf(RETRO_LOG_ERROR, "Failed to initialize Ruby\n");
         sandbox.reset();

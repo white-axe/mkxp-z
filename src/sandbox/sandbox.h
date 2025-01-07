@@ -38,6 +38,7 @@ struct Sandbox {
     SandboxBind bind;
     Sandbox(const char *game_path);
     ~Sandbox();
+    struct w2c_ruby &module_instance();
 };
 
 #endif // MKXPZ_SANDBOX_H

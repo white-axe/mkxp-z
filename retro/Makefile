@@ -86,7 +86,7 @@ $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro
 	mkdir -p $(OUTDIR)/mkxp-retro-ruby
 	$(WASM2C) $(LIBDIR)/ruby.wasm -n ruby --num-outputs=8 -o $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.c
 
-$(LIBDIR)/ruby.wasm $(OUTDIR)/mkxp-retro-dist.zip.c &: $(DOWNLOADS)/ruby/Makefile
+$(LIBDIR)/ruby.wasm $(OUTDIR)/mkxp-retro-dist.zip.c &: $(DOWNLOADS)/ruby/Makefile extra-ruby-bindings.h
 	mkdir -p $(OUTDIR)
 	cd $(DOWNLOADS)/ruby && $(MAKE) install DESTDIR=$(OUTDIR)
 	mv $(OUTDIR)/mkxp-retro-dist/bin/ruby $(LIBDIR)/ruby.wasm
@@ -105,7 +105,7 @@ $(LIBDIR)/tags: $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.h
 	echo '#include <ruby.h>' | $(WASI_CC) -E -I$(DOWNLOADS)/ruby/include -I$(DOWNLOADS)/ruby/.ext/include/$(TARGET) -o $(LIBDIR)/tags.c -
 	$(CTAGS) -R --fields=S --kinds-c=p --kinds-c++=p -o $(LIBDIR)/tags $(LIBDIR)/tags.c
 
-$(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.h &: $(DOWNLOADS)/ruby/configure $(RUBY) extra-ruby-bindings.h $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a $(LIBDIR)/usr/local/lib/libssl.a
+$(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.h &: $(DOWNLOADS)/ruby/configure $(RUBY) $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a $(LIBDIR)/usr/local/lib/libssl.a
 	cd $(DOWNLOADS)/ruby && ./configure \
 		--prefix=/mkxp-retro-dist \
 		--host $(TARGET) \

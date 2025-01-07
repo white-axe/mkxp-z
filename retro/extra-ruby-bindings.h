@@ -21,8 +21,8 @@
 
 /* This file contains bindings that expose low-level functionality of the Ruby VM to the outside of the sandbox it's running in. They can be called from sandbox.cpp. */
 
-#ifndef MKXPZ_SANDBOX_EXTRA_RUBY_BINDINGS_H
-#define MKXPZ_SANDBOX_EXTRA_RUBY_BINDINGS_H
+#ifndef SANDBOX_EXTRA_RUBY_BINDINGS_H
+#define SANDBOX_EXTRA_RUBY_BINDINGS_H
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -31,28 +31,36 @@
 #include "wasm/machine.h"
 #include "wasm/setjmp.h"
 
-#define MKXPZ_SANDBOX_API __attribute__((__visibility__("default")))
+#define MKXP_SANDBOX_API __attribute__((__visibility__("default")))
 
 /* This function should be called immediately after initializing the sandbox to perform initialization, before calling any other functions. */
-MKXPZ_SANDBOX_API void mkxp_sandbox_init(void) {
+MKXP_SANDBOX_API void mkxp_sandbox_init(void) {
     void __wasm_call_ctors(void); /* Defined by wasi-libc from the WASI SDK */
     __wasm_call_ctors();
 }
 
 /* This function should be called immediately before deinitializing the sandbox. */
-MKXPZ_SANDBOX_API void mkxp_sandbox_deinit(void) {
+MKXP_SANDBOX_API void mkxp_sandbox_deinit(void) {
     void __wasm_call_dtors(void); /* Defined by wasi-libc from the WASI SDK */
     __wasm_call_dtors();
 }
 
 /* Exposes the `malloc()` function. */
-MKXPZ_SANDBOX_API void *mkxp_sandbox_malloc(size_t size) {
+MKXP_SANDBOX_API void *mkxp_sandbox_malloc(size_t size) {
     return malloc(size);
 }
 
 /* Exposes the `free()` function. */
-MKXPZ_SANDBOX_API void mkxp_sandbox_free(void *ptr) {
+MKXP_SANDBOX_API void mkxp_sandbox_free(void *ptr) {
     free(ptr);
+}
+
+/* Ruby's `rb_`/`ruby_` functions may return early before they're actually finished running.
+ * You can use `mkxp_sandbox_complete()` to check if the most recent call to a `rb_`/`ruby_` function finished.
+ * If `mkxp_sandbox_complete()` returns false, the `rb_`/`ruby_` function is not done executing yet and needs to be called again with the same arguments. */
+MKXP_SANDBOX_API bool mkxp_sandbox_complete(void) {
+    extern void *rb_asyncify_unwind_buf; /* Defined in wasm/setjmp.c in Ruby source code */
+    return rb_asyncify_unwind_buf == NULL;
 }
 
 /* This function drives Ruby's asynchronous runtime. It's based on the `rb_wasm_rt_start()` function from wasm/runtime.c in the Ruby source code.
@@ -60,13 +68,11 @@ MKXPZ_SANDBOX_API void mkxp_sandbox_free(void *ptr) {
  * If `mkxp_sandbox_yield()` returns false, you may proceed as usual.
  * However, if it returns true, then you need to call the `rb_`/`ruby_` function again with the same arguments
  * and then call `mkxp_sandbox_yield()` again, and repeat until `mkxp_sandbox_yield()` returns false. */
-MKXPZ_SANDBOX_API bool mkxp_sandbox_yield(void) {
+MKXP_SANDBOX_API bool mkxp_sandbox_yield(void) {
     static void (*fiber_entry_point)(void *, void *) = NULL;
     static bool new_fiber_started = false;
     static void *arg0;
     static void *arg1;
-
-    extern void *rb_asyncify_unwind_buf; /* Defined in wasm/setjmp.c in Ruby source code */
 
     void *asyncify_buf;
     bool unwound = false;
@@ -82,7 +88,7 @@ MKXPZ_SANDBOX_API bool mkxp_sandbox_yield(void) {
             unwound = true;
         }
 
-        if (rb_asyncify_unwind_buf == NULL) {
+        if (mkxp_sandbox_complete()) {
             break;
         }
 
@@ -113,4 +119,4 @@ MKXPZ_SANDBOX_API bool mkxp_sandbox_yield(void) {
     return false;
 }
 
-#endif /* MKXPZ_SANDBOX_EXTRA_RUBY_BINDINGS_H */
+#endif /* SANDBOX_EXTRA_RUBY_BINDINGS_H */

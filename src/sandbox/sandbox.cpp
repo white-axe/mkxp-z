@@ -145,3 +145,7 @@ Sandbox::~Sandbox() {
     wasm2c_ruby_free(RB);
     wasm_rt_free();
 }
+
+w2c_ruby &Sandbox::module_instance() {
+    return *ruby;
+}

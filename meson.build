@@ -35,6 +35,12 @@ if get_option('retro') == true
 
     cmake = import('cmake')
 
+    boost_options = cmake.subproject_options()
+    boost_options.add_cmake_defines({
+        'CMAKE_POSITION_INDEPENDENT_CODE': true,
+        'BUILD_TESTING': false,
+    })
+
     zlib_options = cmake.subproject_options()
     zlib_options.add_cmake_defines({
         'CMAKE_POSITION_INDEPENDENT_CODE': true,
@@ -106,6 +112,7 @@ if get_option('retro') == true
     library(
         'retro-' + meson.project_name(),
         dependencies: [
+            cmake.subproject('boost_asio', options: boost_options).dependency('boost_asio'),
             cmake.subproject('zlib', options: zlib_options).dependency('zlibstatic'),
             cmake.subproject('bzip2', options: bzip2_options).dependency('bz2_static'),
             cmake.subproject('liblzma', options: lzma_options).dependency('liblzma'),
