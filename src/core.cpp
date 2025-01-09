@@ -24,24 +24,30 @@
 #include <cstdarg>
 #include <cstring>
 #include <memory>
-#include <boost/asio/coroutine.hpp>
-#include <boost/asio/yield.hpp>
-#include "core.h"
 #include "sandbox/sandbox.h"
+#include "core.h"
 
-#define AWAIT(coroutine, ...) do { coroutine(__VA_ARGS__); if (coroutine.is_complete()) break; yield; } while (1)
+#define SANDBOX_AWAIT(coroutine, ...) \
+    do { \
+        { \
+            auto frame = sandbox->bindings.bind<struct coroutine>(); \
+            frame()(__VA_ARGS__); \
+            if (frame().is_complete()) break; \
+        } \
+        yield; \
+    } while (1)
 
 using namespace mkxp_retro;
 
 static void fallback_log(enum retro_log_level level, const char *fmt, ...) {
-    va_list va;
+    std::va_list va;
     va_start(va, fmt);
-    vfprintf(stderr, fmt, va);
+    std::vfprintf(stderr, fmt, va);
     va_end(va);
 }
 
 static uint32_t *frame_buf;
-static std::unique_ptr<Sandbox> sandbox;
+static std::unique_ptr<struct mkxp_sandbox::sandbox> sandbox;
 static const char *game_path = NULL;
 
 static VALUE my_cpp_func(w2c_ruby *ruby, int32_t argc, wasm_ptr_t argv, VALUE self) {
@@ -50,24 +56,17 @@ static VALUE my_cpp_func(w2c_ruby *ruby, int32_t argc, wasm_ptr_t argv, VALUE se
 }
 
 static bool init_sandbox() {
-    struct runtime : boost::asio::coroutine {
-        struct rb_eval_string eval;
-        struct rb_define_global_function define;
-
+    struct main : boost::asio::coroutine {
         void operator()() {
             reenter (this) {
-                AWAIT(eval, sandbox->bind, "puts 'Hello, World!'");
+                SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "puts 'Hello, World!'");
 
-                eval = rb_eval_string();
-                AWAIT(eval, sandbox->bind, "require 'zlib'; p Zlib::Deflate::deflate('hello')");
+                SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "require 'zlib'; p Zlib::Deflate::deflate('hello')");
 
-                AWAIT(define, sandbox->bind, "my_cpp_func", (VALUE (*)(void *, ANYARGS))my_cpp_func, -1);
+                SANDBOX_AWAIT(mkxp_sandbox::rb_define_global_function, "my_cpp_func", (VALUE (*)(void *, ANYARGS))my_cpp_func, -1);
+                SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "my_cpp_func(1, nil, 3, 'this is a string', :symbol, 2)");
 
-                eval = rb_eval_string();
-                AWAIT(eval, sandbox->bind, "my_cpp_func(1, nil, 3, 'this is a string', :symbol, 2)");
-
-                eval = rb_eval_string();
-                AWAIT(eval, sandbox->bind, "p Dir.glob '/mkxp-retro-game/*'");
+                SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "p Dir.glob '/mkxp-retro-game/*'");
             }
         }
     };
@@ -75,12 +74,8 @@ static bool init_sandbox() {
     sandbox.reset();
 
     try {
-        sandbox.reset(new Sandbox(game_path));
-
-        struct runtime runtime;
-
-        // TODO: Replace this loop with a stackful executor, otherwise you won't be able to call into the Ruby API from inside of a C/C++ function that is itself called from inside of Ruby.
-        do runtime(); while (w2c_ruby_mkxp_sandbox_yield(&sandbox->module_instance()));
+        sandbox.reset(new struct mkxp_sandbox::sandbox(game_path));
+        sandbox->run<struct main>();
     } catch (SandboxException) {
         log_printf(RETRO_LOG_ERROR, "Failed to initialize Ruby\n");
         sandbox.reset();

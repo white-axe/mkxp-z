@@ -488,7 +488,7 @@ jobs:
           PATH="$HOMEBREW_PREFIX/opt/gpatch/libexec/gnubin:$PATH" meson setup build --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
-          strip libretro-mkxp-z.dylib
+          strip -x libretro-mkxp-z.dylib
           mv libretro-mkxp-z.dylib ${{ runner.temp }}/retro-phase2
 
       - uses: actions/upload-artifact@v4

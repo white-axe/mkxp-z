@@ -38,12 +38,14 @@
 #define WASM_MEM(address) ((void *)&ruby->w2c_memory.data[address])
 #define AWAIT(statement) do statement; while (w2c_ruby_mkxp_sandbox_yield(RB))
 
+using namespace mkxp_sandbox;
+
 // This function is imported by wasm-rt-impl.c from wasm2c
 extern "C" void mkxp_sandbox_trap_handler(wasm_rt_trap_t code) {
     throw SandboxTrapException();
 }
 
-usize Sandbox::sandbox_malloc(usize size) {
+usize sandbox::sandbox_malloc(usize size) {
     usize buf = w2c_ruby_mkxp_sandbox_malloc(RB, size);
 
     // Verify that the returned pointer is non-null and the entire allocated buffer is in valid memory
@@ -55,11 +57,11 @@ usize Sandbox::sandbox_malloc(usize size) {
     return buf;
 }
 
-void Sandbox::sandbox_free(usize ptr) {
+void sandbox::sandbox_free(usize ptr) {
     w2c_ruby_mkxp_sandbox_free(RB, ptr);
 }
 
-Sandbox::Sandbox(const char *game_path) : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby, game_path)), bind(ruby) {
+sandbox::sandbox(const char *game_path) : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby, game_path)), bindings(ruby) {
     try {
         // Initialize the sandbox
         wasm_rt_init();
@@ -138,14 +140,10 @@ Sandbox::Sandbox(const char *game_path) : ruby(new struct w2c_ruby), wasi(new wa
     }
 }
 
-Sandbox::~Sandbox() {
+sandbox::~sandbox() {
     try {
         w2c_ruby_mkxp_sandbox_deinit(RB);
     } catch (SandboxTrapException) {}
     wasm2c_ruby_free(RB);
     wasm_rt_free();
-}
-
-w2c_ruby &Sandbox::module_instance() {
-    return *ruby;
 }

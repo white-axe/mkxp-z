@@ -55,8 +55,8 @@ if get_option('retro') == true
         'ENABLE_LIB_ONLY': true,
     })
 
-    lzma_options = cmake.subproject_options()
-    lzma_options.add_cmake_defines({
+    liblzma_options = cmake.subproject_options()
+    liblzma_options.add_cmake_defines({
         'CMAKE_POSITION_INDEPENDENT_CODE': true,
         'BUILD_SHARED_LIBS': false,
         'ENABLE_NLS': false,
@@ -113,9 +113,19 @@ if get_option('retro') == true
         'retro-' + meson.project_name(),
         dependencies: [
             cmake.subproject('boost_asio', options: boost_options).dependency('boost_asio'),
+            cmake.subproject('boost_mp11', options: boost_options).dependency('boost_mp11'),
+            cmake.subproject('boost_describe', options: boost_options).dependency('boost_describe'),
+            cmake.subproject('boost_config', options: boost_options).dependency('boost_config'),
+            cmake.subproject('boost_assert', options: boost_options).dependency('boost_assert'),
+            cmake.subproject('boost_static_assert', options: boost_options).dependency('boost_static_assert'),
+            cmake.subproject('boost_throw_exception', options: boost_options).dependency('boost_throw_exception'),
+            cmake.subproject('boost_core', options: boost_options).dependency('boost_core'),
+            cmake.subproject('boost_container_hash', options: boost_options).dependency('boost_container_hash'),
+            cmake.subproject('boost_type_index', options: boost_options).dependency('boost_type_index'),
+            cmake.subproject('boost_any', options: boost_options).dependency('boost_any'),
             cmake.subproject('zlib', options: zlib_options).dependency('zlibstatic'),
             cmake.subproject('bzip2', options: bzip2_options).dependency('bz2_static'),
-            cmake.subproject('liblzma', options: lzma_options).dependency('liblzma'),
+            cmake.subproject('liblzma', options: liblzma_options).dependency('liblzma'),
             cmake.subproject('zstd', options: zstd_options).dependency('libzstd_static'),
             cmake.subproject('libzip', options: libzip_options).dependency('zip'),
         ],

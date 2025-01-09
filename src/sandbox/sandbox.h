@@ -26,19 +26,29 @@
 #include <mkxp-sandbox-bindgen.h>
 #include "types.h"
 
-struct Sandbox {
-    private:
-    std::shared_ptr<struct w2c_ruby> ruby;
-    std::unique_ptr<struct w2c_wasi__snapshot__preview1> wasi;
+namespace mkxp_sandbox {
+    struct sandbox {
+        private:
+        std::shared_ptr<struct w2c_ruby> ruby;
+        std::unique_ptr<struct w2c_wasi__snapshot__preview1> wasi;
+        usize sandbox_malloc(usize size);
+        void sandbox_free(usize ptr);
 
-    usize sandbox_malloc(usize size);
-    void sandbox_free(usize ptr);
+        public:
+        struct mkxp_sandbox::bindings bindings;
+        sandbox(const char *game_path);
+        ~sandbox();
 
-    public:
-    SandboxBind bind;
-    Sandbox(const char *game_path);
-    ~Sandbox();
-    struct w2c_ruby &module_instance();
-};
+        // TODO: handle Ruby fibers properly instead of crashing whenever Ruby switches to a different fiber than the main one
+        template <typename T> inline void run() {
+            T coroutine = T();
+            do {
+                coroutine();
+                w2c_ruby_mkxp_sandbox_yield(ruby.get());
+            } while (!coroutine.is_complete());
+
+        }
+    };
+}
 
 #endif // MKXPZ_SANDBOX_H
