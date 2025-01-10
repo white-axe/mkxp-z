@@ -55,12 +55,20 @@ MKXP_SANDBOX_API void mkxp_sandbox_free(void *ptr) {
     free(ptr);
 }
 
-/* Ruby's `rb_`/`ruby_` functions may return early before they're actually finished running.
- * You can use `mkxp_sandbox_complete()` to check if the most recent call to a `rb_`/`ruby_` function finished.
- * If `mkxp_sandbox_complete()` returns false, the `rb_`/`ruby_` function is not done executing yet and needs to be called again with the same arguments. */
-MKXP_SANDBOX_API bool mkxp_sandbox_complete(void) {
-    extern void *rb_asyncify_unwind_buf; /* Defined in wasm/setjmp.c in Ruby source code */
-    return rb_asyncify_unwind_buf == NULL;
+static void (*_mkxp_sandbox_fiber_entry_point)(void *, void *) = NULL;
+static void *_mkxp_sandbox_fiber_arg0 = NULL;
+static void *_mkxp_sandbox_fiber_arg1 = NULL;
+
+MKXP_SANDBOX_API void *mkxp_sandbox_fiber_entry_point(void) {
+    return (void *)_mkxp_sandbox_fiber_entry_point;
+}
+
+MKXP_SANDBOX_API void *mkxp_sandbox_fiber_arg0(void) {
+    return _mkxp_sandbox_fiber_arg0;
+}
+
+MKXP_SANDBOX_API void *mkxp_sandbox_fiber_arg1(void) {
+    return _mkxp_sandbox_fiber_arg1;
 }
 
 /* This function drives Ruby's asynchronous runtime. It's based on the `rb_wasm_rt_start()` function from wasm/runtime.c in the Ruby source code.
@@ -69,18 +77,17 @@ MKXP_SANDBOX_API bool mkxp_sandbox_complete(void) {
  * However, if it returns true, then you need to call the `rb_`/`ruby_` function again with the same arguments
  * and then call `mkxp_sandbox_yield()` again, and repeat until `mkxp_sandbox_yield()` returns false. */
 MKXP_SANDBOX_API bool mkxp_sandbox_yield(void) {
-    static void (*fiber_entry_point)(void *, void *) = NULL;
     static bool new_fiber_started = false;
-    static void *arg0;
-    static void *arg1;
 
     void *asyncify_buf;
     bool unwound = false;
 
+    extern void *rb_asyncify_unwind_buf; /* Defined in wasm/setjmp.c in Ruby source code */
+
     while (1) {
         if (unwound) {
-            if (fiber_entry_point != NULL) {
-                fiber_entry_point(arg0, arg1);
+            if (_mkxp_sandbox_fiber_entry_point != NULL) {
+                _mkxp_sandbox_fiber_entry_point(_mkxp_sandbox_fiber_arg0, _mkxp_sandbox_fiber_arg1);
             } else {
                 return true;
             }
@@ -88,7 +95,7 @@ MKXP_SANDBOX_API bool mkxp_sandbox_yield(void) {
             unwound = true;
         }
 
-        if (mkxp_sandbox_complete()) {
+        if (rb_asyncify_unwind_buf == NULL) {
             break;
         }
 
@@ -103,7 +110,7 @@ MKXP_SANDBOX_API bool mkxp_sandbox_yield(void) {
             continue;
         }
 
-        asyncify_buf = rb_wasm_handle_fiber_unwind(&fiber_entry_point, &arg0, &arg1, &new_fiber_started);
+        asyncify_buf = rb_wasm_handle_fiber_unwind(&_mkxp_sandbox_fiber_entry_point, &_mkxp_sandbox_fiber_arg0, &_mkxp_sandbox_fiber_arg1, &new_fiber_started);
         if (asyncify_buf != NULL) {
             asyncify_start_rewind(asyncify_buf);
             continue;
@@ -114,7 +121,7 @@ MKXP_SANDBOX_API bool mkxp_sandbox_yield(void) {
         break;
     }
 
-    fiber_entry_point = NULL;
+    _mkxp_sandbox_fiber_entry_point = NULL;
     new_fiber_started = false;
     return false;
 }

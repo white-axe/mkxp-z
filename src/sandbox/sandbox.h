@@ -39,14 +39,13 @@ namespace mkxp_sandbox {
         sandbox(const char *game_path);
         ~sandbox();
 
-        // TODO: handle Ruby fibers properly instead of crashing whenever Ruby switches to a different fiber than the main one
         template <typename T> inline void run() {
             T coroutine = T();
-            do {
+            for (;;) {
                 coroutine();
+                if (coroutine.is_complete()) break;
                 w2c_ruby_mkxp_sandbox_yield(ruby.get());
-            } while (!coroutine.is_complete());
-
+            }
         }
     };
 }

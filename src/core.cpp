@@ -37,6 +37,16 @@
         yield; \
     } while (1)
 
+#define SANDBOX_AWAIT_AND_SET(variable, coroutine, ...) \
+    do { \
+        { \
+            auto frame = sandbox->bindings.bind<struct coroutine>(); \
+            variable = frame()(__VA_ARGS__); \
+            if (frame().is_complete()) break; \
+        } \
+        yield; \
+    } while (1)
+
 using namespace mkxp_retro;
 
 static void fallback_log(enum retro_log_level level, const char *fmt, ...) {
@@ -50,23 +60,72 @@ static uint32_t *frame_buf;
 static std::unique_ptr<struct mkxp_sandbox::sandbox> sandbox;
 static const char *game_path = NULL;
 
-static VALUE my_cpp_func(w2c_ruby *ruby, int32_t argc, wasm_ptr_t argv, VALUE self) {
-    log_printf(RETRO_LOG_INFO, "Hello from Ruby land! my_cpp_func(argc=%d, argv=0x%08x, self=0x%08x)\n", argc, argv, self);
+static VALUE my_cpp_func(void *_, VALUE self, VALUE args) {
+    struct co : boost::asio::coroutine {
+        inline co(struct mkxp_sandbox::bindings &bind) {}
+
+        void operator()(VALUE args) {
+            reenter (this) {
+                SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "puts 'Hello from Ruby land!'");
+                SANDBOX_AWAIT(mkxp_sandbox::rb_p, args);
+            }
+        }
+    };
+
+    sandbox->bindings.bind<struct co>()()(args);
+
     return self;
 }
 
-static bool init_sandbox() {
-    struct main : boost::asio::coroutine {
+static VALUE func(void *_, VALUE arg) {
+    struct co : boost::asio::coroutine {
+        inline co(struct mkxp_sandbox::bindings &bind) {}
+
         void operator()() {
             reenter (this) {
                 SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "puts 'Hello, World!'");
 
                 SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "require 'zlib'; p Zlib::Deflate::deflate('hello')");
 
-                SANDBOX_AWAIT(mkxp_sandbox::rb_define_global_function, "my_cpp_func", (VALUE (*)(void *, ANYARGS))my_cpp_func, -1);
+                SANDBOX_AWAIT(mkxp_sandbox::rb_define_global_function, "my_cpp_func", (VALUE (*)(void *, ANYARGS))my_cpp_func, -2);
                 SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "my_cpp_func(1, nil, 3, 'this is a string', :symbol, 2)");
 
                 SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "p Dir.glob '/mkxp-retro-game/*'");
+
+                SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "throw 'Throw an error on purpose to see if we can catch it'");
+
+                SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "puts 'Unreachable code'");
+            }
+        }
+    };
+
+    sandbox->bindings.bind<struct co>()()();
+
+    return arg;
+}
+
+static VALUE rescue(void *_, VALUE arg, VALUE error) {
+    struct co : boost::asio::coroutine {
+        inline co(struct mkxp_sandbox::bindings &bind) {}
+
+        void operator()(VALUE error) {
+            reenter (this) {
+                SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "puts 'Entered rescue()'");
+                SANDBOX_AWAIT(mkxp_sandbox::rb_p, error);
+            }
+        }
+    };
+
+    sandbox->bindings.bind<struct co>()()(error);
+
+    return arg;
+}
+
+static bool init_sandbox() {
+    struct main : boost::asio::coroutine {
+        void operator()() {
+            reenter (this) {
+                SANDBOX_AWAIT(mkxp_sandbox::rb_rescue, func, 0, rescue, 0);
             }
         }
     };

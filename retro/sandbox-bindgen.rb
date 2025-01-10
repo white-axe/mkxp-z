@@ -34,8 +34,6 @@ MALLOC_FUNC = 'mkxp_sandbox_malloc'
 # The name of the `free()` binding defined in extra-ruby-bindings.h
 FREE_FUNC = 'mkxp_sandbox_free'
 
-COMPLETE_FUNC = 'mkxp_sandbox_complete'
-
 ################################################################################
 
 IGNORED_FUNCTIONS = Set[
@@ -155,7 +153,9 @@ HEADER_START = <<~HEREDOC
   #include <cstdint>
   #include <cstring>
   #include <memory>
+  #include <unordered_map>
   #include <vector>
+  #include <boost/container_hash/hash.hpp>
   #include <boost/any.hpp>
   #include <boost/asio/coroutine.hpp>
   #include <boost/asio/yield.hpp>
@@ -174,43 +174,78 @@ HEADER_START = <<~HEREDOC
   namespace mkxp_sandbox {
       struct bindings {
           private:
+
+          typedef std::tuple<wasm_ptr_t, wasm_ptr_t, wasm_ptr_t> key_t;
+
+          struct fiber {
+              key_t key;
+              std::vector<boost::any> stack;
+              size_t stack_ptr;
+          };
+
           wasm_ptr_t next_func_ptr;
-          std::shared_ptr<struct w2c_#{MODULE_NAME}> instance;
-          size_t depth;
-          std::vector<boost::any> stack;
+          std::shared_ptr<struct w2c_ruby> instance;
+          std::unordered_map<key_t, struct fiber, boost::hash<key_t>> fibers;
           wasm_ptr_t sbindgen_malloc(wasm_ptr_t);
           wasm_ptr_t sbindgen_create_func_ptr();
 
           public:
-          bindings(std::shared_ptr<struct w2c_#{MODULE_NAME}>);
+
+          bindings(std::shared_ptr<struct w2c_ruby>);
 
           template <typename T> struct stack_frame {
               friend struct bindings;
 
               private:
-              struct bindings &bindings;
+
+              struct bindings &bind;
+              struct fiber &fiber;
               T &inner;
-              static inline T &init(struct bindings &bindings) {
-                  if (bindings.depth == bindings.stack.size()) {
-                      bindings.stack.push_back(T(bindings));
-                  } else if (bindings.depth > bindings.stack.size()) {
+
+              static inline struct fiber &init_fiber(struct bindings &bind) {
+                  key_t key = {
+                       w2c_ruby_mkxp_sandbox_fiber_entry_point(bind.instance.get()),
+                       w2c_ruby_mkxp_sandbox_fiber_arg0(bind.instance.get()),
+                       w2c_ruby_mkxp_sandbox_fiber_arg1(bind.instance.get()),
+                  };
+                  if (bind.fibers.count(key) == 0) {
+                      bind.fibers[key] = (struct fiber){.key = key};
+                  }
+                  return bind.fibers[key];
+              }
+
+              static inline T &init_inner(struct bindings &bind, struct fiber &fiber) {
+                  if (fiber.stack_ptr == fiber.stack.size()) {
+                      fiber.stack.push_back(T(bind));
+                  } else if (fiber.stack_ptr > fiber.stack.size()) {
                       throw SandboxTrapException();
                   }
+
                   try {
-                      return boost::any_cast<T &>(bindings.stack[bindings.depth++]);
+                      T &inner = boost::any_cast<T &>(fiber.stack[fiber.stack_ptr]);
+                      ++fiber.stack_ptr;
+                      return inner;
                   } catch (boost::bad_any_cast &) {
-                      throw SandboxTrapException();
+                      fiber.stack.resize(fiber.stack_ptr++);
+                      fiber.stack.push_back(T(bind));
+                      return boost::any_cast<T &>(fiber.stack.back());
                   }
               }
-              stack_frame(struct bindings &b) : bindings(b), inner(init(b)) {}
+
+              stack_frame(struct bindings &b) : bind(b), fiber(init_fiber(b)), inner(init_inner(b, fiber)) {}
 
               public:
+
               ~stack_frame() {
                   if (inner.is_complete()) {
-                      bindings.stack.pop_back();
+                      fiber.stack.pop_back();
                   }
-                  --bindings.depth;
+                  --fiber.stack_ptr;
+                  if (fiber.stack.empty()) {
+                      bind.fibers.erase(fiber.key);
+                  }
               }
+
               inline T &operator()() {
                   return inner;
               }
@@ -269,7 +304,7 @@ PRELUDE = <<~HEREDOC
   using namespace mkxp_sandbox;
 
 
-  bindings::bindings(std::shared_ptr<struct w2c_#{MODULE_NAME}> m) : next_func_ptr(-1), instance(m), depth(0) {}
+  bindings::bindings(std::shared_ptr<struct w2c_#{MODULE_NAME}> m) : next_func_ptr(-1), instance(m) {}
 
 
   wasm_ptr_t bindings::sbindgen_malloc(wasm_size_t size) {
@@ -297,7 +332,7 @@ PRELUDE = <<~HEREDOC
       // Make sure that an integer overflow won't occur if we double the max size of the funcref table
       wasm_size_t new_max_size;
       if (__builtin_add_overflow(instance->w2c_T0.max_size, instance->w2c_T0.max_size, &new_max_size)) {
-          return 0;
+          return -1;
       }
 
       // Double the max size of the funcref table
@@ -312,7 +347,7 @@ PRELUDE = <<~HEREDOC
           .module_instance = instance.get(),
       }) != old_max_size) {
           instance->w2c_T0.max_size = old_max_size;
-          return 0;
+          return -1;
       }
 
       return next_func_ptr++;
@@ -364,12 +399,7 @@ File.readlines('tags', chomp: true).each do |line|
     if !handler[:func_ptr_args].nil? || handler[:anyargs]
       coroutine_initializer += <<~HEREDOC
         f#{i} = bind.sbindgen_create_func_ptr();
-        if (f#{i} == 0) {
-      HEREDOC
-      buffers.reverse_each { |buf| coroutine_initializer += "    w2c_#{MODULE_NAME}_#{FREE_FUNC}(bind.instance.get(), #{buf});\n" }
-      coroutine_initializer += <<~HEREDOC
-            throw SandboxOutOfMemoryException();
-        }
+        if (f#{i} == (wasm_ptr_t)-1) throw SandboxOutOfMemoryException();
       HEREDOC
       if handler[:anyargs]
         coroutine_initializer += <<~HEREDOC
@@ -395,12 +425,7 @@ File.readlines('tags', chomp: true).each do |line|
     elsif !handler[:buf_size].nil?
       coroutine_initializer += <<~HEREDOC
         f#{i} = bind.sbindgen_malloc(#{handler[:buf_size].gsub('PREV_ARG', "a#{i - 1}").gsub('ARG', "a#{i}")});
-        if (f#{i} == 0) {
-      HEREDOC
-      buffers.reverse_each { |buf| coroutine_initializer += "    w2c_#{MODULE_NAME}_#{FREE_FUNC}(bind.instance.get(), #{buf});\n" }
-      coroutine_initializer += <<~HEREDOC
-            throw SandboxOutOfMemoryException();
-        }
+        if (f#{i} == 0) throw SandboxOutOfMemoryException();
       HEREDOC
       coroutine_initializer += handler[:serialize].gsub('PREV_ARG', "a#{i - 1}").gsub('ARG', "a#{i}").gsub('BUF', "f#{i}")
       coroutine_initializer += "\n"
@@ -419,12 +444,7 @@ File.readlines('tags', chomp: true).each do |line|
     when 'rb_funcall'
       coroutine_initializer += <<~HEREDOC
         f#{args.length - 1} = bind.sbindgen_malloc(a#{args.length - 2} * sizeof(VALUE));
-        if (f#{args.length - 1} == 0) {
-      HEREDOC
-      buffers.reverse_each { |buf| coroutine_initializer += "    w2c_#{MODULE_NAME}_#{FREE_FUNC}(bind.instance.get(), #{buf});\n" }
-      coroutine_initializer += <<~HEREDOC
-            throw SandboxOutOfMemoryException();
-        }
+        if (f#{args.length - 1} == 0) throw SandboxOutOfMemoryException();
         std::va_list a;
         va_start(a, a#{args.length - 2});
         for (long i = 0; i < a#{args.length - 2}; ++i) {
@@ -446,9 +466,6 @@ File.readlines('tags', chomp: true).each do |line|
         f#{args.length - 1} = bind.sbindgen_malloc(n * sizeof(VALUE));
         if (f#{args.length - 1} == 0) {
             va_end(a);
-      HEREDOC
-      buffers.reverse_each { |buf| coroutine_initializer += "    w2c_#{MODULE_NAME}_#{FREE_FUNC}(bind.instance.get(), #{buf});\n" }
-      coroutine_initializer += <<~HEREDOC
             throw SandboxOutOfMemoryException();
         }
         for (wasm_size_t i = 0; i < n; ++i) {
@@ -488,21 +505,24 @@ File.readlines('tags', chomp: true).each do |line|
 
   coroutine_inner = <<~HEREDOC
     #{handler[:primitive] == :void ? '' : 'r = '}w2c_#{MODULE_NAME}_#{func_name}(#{(['bind.instance.get()'] + (0...args.length).map { |i| args[i] == '...' || transformed_args.include?(i) ? "f#{i}" : "a#{i}" }).join(', ')});
-    if (w2c_#{MODULE_NAME}_#{COMPLETE_FUNC}(bind.instance.get())) break;
+    if (w2c_#{MODULE_NAME}_asyncify_get_state(bind.instance.get()) != 1) break;
     yield;
   HEREDOC
 
-  coroutine_finalizer = (0...buffers.length).map { |i| "w2c_#{MODULE_NAME}_#{FREE_FUNC}(bind.instance.get(), #{buffers[buffers.length - 1 - i]});" }
+  coroutine_destructor = buffers.empty? ? '' : <<~HEREDOC
+    #{func_name}::~#{func_name}() {
+    #{(0...buffers.length).map { |i| "    try { if (#{buffers[buffers.length - 1 - i]} != 0) w2c_#{MODULE_NAME}_#{FREE_FUNC}(bind.instance.get(), #{buffers[buffers.length - 1 - i]}); } catch (SandboxTrapException) {}" }.join("\n")}
+    }
+  HEREDOC
 
   coroutine_definition = <<~HEREDOC
-    #{func_name}::#{func_name}(bindings &bind) : bind(bind) {}
     #{coroutine_ret} #{func_name}::operator()(#{coroutine_args.join(', ')}) {#{coroutine_vars.empty? ? '' : (coroutine_vars.map { |var| "\n    #{var} = 0;" }.join + "\n")}
         reenter (this) {
     #{coroutine_initializer.empty? ? '' : (coroutine_initializer.split("\n").map { |line| "        #{line}" }.join("\n") + "\n\n")}        for (;;) {
     #{coroutine_inner.split("\n").map { |line| "            #{line}" }.join("\n")}
-            }#{coroutine_finalizer.empty? ? '' : ("\n\n" + coroutine_finalizer.map { |line| "        #{line}" }.join("\n"))}
+            }
         }#{handler[:primitive] == :void ? '' : "\n\n    return r;"}
-    }
+    }#{coroutine_destructor.empty? ? '' : ("\n" + coroutine_destructor)}
   HEREDOC
 
   coroutine_declaration = <<~HEREDOC
@@ -510,9 +530,9 @@ File.readlines('tags', chomp: true).each do |line|
         friend struct bindings;
         friend struct bindings::stack_frame<struct #{func_name}>;
         #{coroutine_ret} operator()(#{declaration_args.join(', ')});
-        private:
-        #{func_name}(bindings &bind);
-        bindings &bind;
+        #{coroutine_destructor.empty? ? '' : "~#{func_name}();\n    "}private:
+        struct bindings &bind;
+        inline #{func_name}(struct bindings &b) : #{(['bind(b)'] + buffers.map { |buffer| "#{buffer}(0)" }).join(', ')} {}
     #{fields.empty? ? '' : fields.map { |field| "    #{field};\n" }.join}};
   HEREDOC
 
@@ -526,9 +546,9 @@ File.open('mkxp-sandbox-bindgen.h', 'w') do |file|
   for func_name in func_names
     file.write("        friend struct #{func_name};\n")
   end
-  file.write("    };\n")
+  file.write("    };")
   for declaration in declarations
-    file.write("\n" + declaration.split("\n").map { |line| "    #{line}" }.join("\n").rstrip)
+    file.write("\n\n" + declaration.split("\n").map { |line| "    #{line}" }.join("\n").rstrip)
   end
   file.write(HEADER_END)
 end
@@ -536,6 +556,6 @@ File.open('mkxp-sandbox-bindgen.cpp', 'w') do |file|
   file.write(PRELUDE)
   for coroutine in coroutines
     file.write("\n\n")
-    file.write(coroutine.rstrip)
+    file.write(coroutine.rstrip + "\n")
   end
 end
