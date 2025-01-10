@@ -304,6 +304,11 @@ jobs:
     name: Libretro phase 1
     runs-on: ubuntu-24.04
     steps:
+      - id: short-sha
+        uses: benjlevesque/short-sha@v2.2
+        with:
+          length: 7
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -336,7 +341,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: retro-phase1
+          name: retro-phase1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: retro/build/retro-phase1
 
   build-retro-phase2-windows:
@@ -344,12 +349,17 @@ jobs:
     name: Libretro Windows
     runs-on: windows-latest
     steps:
+      - id: short-sha
+        uses: benjlevesque/short-sha@v2.2
+        with:
+          length: 7
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - uses: actions/download-artifact@v4
         with:
-          name: retro-phase1
+          name: retro-phase1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: retro/build/retro-phase1
 
       - uses: msys2/setup-msys2@v2
@@ -371,7 +381,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: libretro-mkxp-z.windows
+          name: libretro-mkxp-z.windows.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/retro-phase2
 
   build-retro-phase2-linux:
@@ -410,12 +420,17 @@ jobs:
             arch_debian: riscv64
             arch_gcc: riscv64-linux-gnu
     steps:
+      - id: short-sha
+        uses: benjlevesque/short-sha@v2.2
+        with:
+          length: 7
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - uses: actions/download-artifact@v4
         with:
-          name: retro-phase1
+          name: retro-phase1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: retro/build/retro-phase1
 
       - name: Install apt dependencies
@@ -461,20 +476,39 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: libretro-mkxp-z.linux.${{ matrix.arch_mkxpz }}
+          name: libretro-mkxp-z.linux.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/retro-phase2
 
   build-retro-phase2-macos:
     needs: build-retro-phase1
-    name: Libretro macOS
+    name: Libretro macOS ${{ matrix.arch_mkxpz }}
     runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch_mkxpz: arm64
+            arch_llvm: aarch64-apple-darwin
+            cpu_family: aarch64
+            cpu: generic-armv8-a
+            endian: little
+          - arch_mkxpz: x86_64
+            arch_llvm: x86_64-apple-darwin
+            cpu_family: x86_64
+            cpu: x86_64
+            endian: little
     steps:
+      - id: short-sha
+        uses: benjlevesque/short-sha@v2.2
+        with:
+          length: 7
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - uses: actions/download-artifact@v4
         with:
-          name: retro-phase1
+          name: retro-phase1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: retro/build/retro-phase1
 
       - name: Install dependencies
@@ -483,9 +517,27 @@ jobs:
 
       - name: Build phase 2
         run: |
+          echo '#!/bin/sh'$'\n''exec clang --target=${{ matrix.arch_llvm }} "$@"' > ${{ runner.temp }}/cc
+          echo '#!/bin/sh'$'\n''exec clang++ --target=${{ matrix.arch_llvm }} "$@"' > ${{ runner.temp }}/c++
+          chmod +x ${{ runner.temp }}/cc
+          chmod +x ${{ runner.temp }}/c++
+
+          echo "[binaries]" | tee -a ${{ runner.temp }}/cross.txt
+          echo "c = '${{ runner.temp }}/cc'" | tee -a ${{ runner.temp }}/cross.txt
+          echo "cpp = '${{ runner.temp }}/c++'" | tee -a ${{ runner.temp }}/cross.txt
+          echo "ar = 'ar'" | tee -a ${{ runner.temp }}/cross.txt
+          echo "strip = 'strip'" | tee -a ${{ runner.temp }}/cross.txt
+          echo "pkgconfig = 'pkg-config'" | tee -a ${{ runner.temp }}/cross.txt
+          echo "cmake = 'cmake'" | tee -a ${{ runner.temp }}/cross.txt
+          echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.txt
+          echo "system = 'darwin'" | tee -a ${{ runner.temp }}/cross.txt
+          echo "cpu_family = '${{ matrix.cpu_family }}'" | tee -a ${{ runner.temp }}/cross.txt
+          echo "cpu = '${{ matrix.cpu }}'" | tee -a ${{ runner.temp }}/cross.txt
+          echo "endian = '${{ matrix.endian }}'" | tee -a ${{ runner.temp }}/cross.txt
+
           mkdir ${{ runner.temp }}/retro-phase2
           cp retro/core.info ${{ runner.temp }}/retro-phase2/libretro-mkxp-z.info
-          PATH="$HOMEBREW_PREFIX/opt/gpatch/libexec/gnubin:$PATH" meson setup build --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          PATH="$HOMEBREW_PREFIX/opt/gpatch/libexec/gnubin:$PATH" meson setup build --cross-file ${{ runner.temp }}/cross.txt --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
           strip -x libretro-mkxp-z.dylib
@@ -493,5 +545,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: libretro-mkxp-z.macos
+          name: libretro-mkxp-z.macos.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/retro-phase2

@@ -51,6 +51,7 @@ if get_option('retro') == true
     bzip2_options = cmake.subproject_options()
     bzip2_options.add_cmake_defines({
         'CMAKE_POSITION_INDEPENDENT_CODE': true,
+        'CMAKE_BUILD_TYPE': 'None',
         'ENABLE_STATIC_LIB': true,
         'ENABLE_LIB_ONLY': true,
     })
@@ -104,9 +105,15 @@ if get_option('retro') == true
     endif
 
     retro_link_args = []
+
+    # We need to statically link the C++ standard library (libstdc++/libc++), the compiler runtime library (libgcc/compiler-rt) and libpthread in MSYS2 builds for Windows
     if host_system == 'windows' or host_system == 'cygwin'
-        # We need to statically link the C++ standard library (libstdc++/libc++), the compiler runtime library (libgcc/compiler-rt) and libpthread in MSYS2 builds for Windows
         retro_link_args += '-static'
+    endif
+
+    # If possible, stop the linker from reexporting the symbols from the static libraries we use (e.g. zlib)
+    if compilers['cpp'].has_link_argument('-Wl,--version-script,' + join_paths(meson.current_source_dir(), 'retro/link.T')) # Only works with GNU linker and LLVM linker
+        retro_link_args += '-Wl,--version-script,' + join_paths(meson.current_source_dir(), 'retro/link.T')
     endif
 
     library(

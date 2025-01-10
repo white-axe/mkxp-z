@@ -21,6 +21,12 @@ CXX ?= c++
 LD ?= ld
 AR ?= ar
 RANLIB ?= ranlib
+CFLAGS ?=
+CXXFLAGS ?=
+LDFLAGS ?=
+WASI_CFLAGS ?= -O3
+WASI_CXXFLAGS ?= -O3
+WASI_LDFLAGS ?=
 
 BUILD_PREFIX := ${PWD}/build
 OUTDIR := $(BUILD_PREFIX)/retro-phase1
@@ -72,15 +78,15 @@ $(OUTDIR)/wasm2c/wasm-rt.h $(OUTDIR)/wasm2c/wasm-rt-impl.c $(OUTDIR)/wasm2c/wasm
 	$(CLONE) $(GITHUB)/WebAssembly/wabt $(DOWNLOADS)/wabt -b $(WASM_RT_VERSION)
 	cp -r $(DOWNLOADS)/wabt/wasm2c $(OUTDIR)
 
-# Cross ruby
+# Cross Ruby (targets WASI)
 
 $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_0.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_1.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_2.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_3.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_4.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_5.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_6.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_7.c &: $(LIBDIR)/ruby.wasm
 	mkdir -p $(OUTDIR)/mkxp-retro-ruby
 	$(WASM2C) $(LIBDIR)/ruby.wasm -n ruby --num-outputs=8 -o $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.c
 
-$(LIBDIR)/ruby.wasm $(OUTDIR)/mkxp-retro-dist.zip.c &: $(DOWNLOADS)/ruby/Makefile extra-ruby-bindings.h
+$(LIBDIR)/ruby.wasm $(OUTDIR)/mkxp-retro-dist.zip.c &: $(DOWNLOADS)/crossruby/Makefile extra-ruby-bindings.h
 	mkdir -p $(OUTDIR)
-	cd $(DOWNLOADS)/ruby && $(MAKE) install DESTDIR=$(OUTDIR)
+	cd $(DOWNLOADS)/crossruby && $(MAKE) install DESTDIR=$(OUTDIR)
 	mv $(OUTDIR)/mkxp-retro-dist/bin/ruby $(LIBDIR)/ruby.wasm
 	rm $(OUTDIR)/mkxp-retro-dist/lib/libruby-static.a
 	cd $(OUTDIR)/mkxp-retro-dist && $(ZIP) -r $(OUTDIR)/mkxp-retro-dist.zip *
@@ -93,12 +99,12 @@ $(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h &: sandbox-b
 	mv $(LIBDIR)/mkxp-sandbox-bindgen.h $(OUTDIR)
 	mv $(LIBDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)
 
-$(LIBDIR)/tags: $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.h
-	echo '#include <ruby.h>' | $(WASI_CC) -E -I$(DOWNLOADS)/ruby/include -I$(DOWNLOADS)/ruby/.ext/include/$(TARGET) -o $(LIBDIR)/tags.c -
-	$(CTAGS) -R --fields=S --kinds-c=p --kinds-c++=p -o $(LIBDIR)/tags $(LIBDIR)/tags.c
+$(LIBDIR)/tags: $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h
+	echo '#include <ruby.h>' | $(WASI_CC) -E -I$(DOWNLOADS)/crossruby/include -I$(DOWNLOADS)/crossruby/.ext/include/$(TARGET) -o $(LIBDIR)/tags.c -
+	$(CTAGS) -R --fields=S --kinds-c=p -o $(LIBDIR)/tags $(LIBDIR)/tags.c
 
-$(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.h &: $(DOWNLOADS)/ruby/configure $(RUBY) $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a $(LIBDIR)/usr/local/lib/libssl.a
-	cd $(DOWNLOADS)/ruby && ./configure \
+$(DOWNLOADS)/crossruby/Makefile $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h &: $(DOWNLOADS)/crossruby/configure $(RUBY) $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a $(LIBDIR)/usr/local/lib/libssl.a
+	cd $(DOWNLOADS)/crossruby && ./configure \
 		--prefix=/mkxp-retro-dist \
 		--host $(TARGET) \
 		--build $(shell $(RUBY) -e 'puts(RbConfig::CONFIG["host"])') \
@@ -111,31 +117,31 @@ $(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.
 		WASMOPT=$(WASM_OPT) \
 		WASI_SDK_PATH=$(WASI_SDK) \
 		$(WASI_TOOLCHAIN) \
-		LDFLAGS='-Wl,--export-dynamic,--stack-first,-z,stack-size=16777216' \
-		XCFLAGS='-DWASM_SETJMP_STACK_BUFFER_SIZE=24576 -DWASM_FIBER_STACK_BUFFER_SIZE=24576 -DWASM_SCAN_STACK_BUFFER_SIZE=24576' \
+		LDFLAGS='-Wl,--export-dynamic,--stack-first,-z,stack-size=16777216 $(WASI_LDFLAGS)' \
+		XCFLAGS='-DWASM_SETJMP_STACK_BUFFER_SIZE=24576 -DWASM_FIBER_STACK_BUFFER_SIZE=24576 -DWASM_SCAN_STACK_BUFFER_SIZE=24576 $(WASI_CFLAGS)' \
 		debugflags=-g \
-		cppflags= \
+		cppflags='$(WASI_CXXFLAGS)' \
 		wasmoptflags='-O4 -g --pass-arg=asyncify-ignore-imports' \
 		$(shell $(RUBY) -e 'puts "ac_cv_func_dlopen=no" if RUBY_VERSION.split(".")[..1].join(".").to_f < 3.3') \
 		--disable-install-doc
 
-$(DOWNLOADS)/ruby/configure: $(DOWNLOADS)/ruby/configure.ac $(RUBY)
-	cd $(DOWNLOADS)/ruby && $(RUBY) tool/downloader.rb -d tool -e gnu config.guess config.sub
-	cd $(DOWNLOADS)/ruby && $(AUTORECONF) -i
+$(DOWNLOADS)/crossruby/configure: $(DOWNLOADS)/crossruby/configure.ac $(RUBY)
+	cd $(DOWNLOADS)/crossruby && $(RUBY) tool/downloader.rb -d tool -e gnu config.guess config.sub
+	cd $(DOWNLOADS)/crossruby && $(AUTORECONF) -i
 
-$(DOWNLOADS)/ruby/configure.ac:
+$(DOWNLOADS)/crossruby/configure.ac:
 	mkdir -p $(DOWNLOADS)
-	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/ruby -b ruby_$(shell echo $(RUBY_VERSION) | sed -e 's/\./_/g')
-	echo '#include "${PWD}/extra-ruby-bindings.h"' >> $(DOWNLOADS)/ruby/main.c
+	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/crossruby -b ruby_$(shell echo $(RUBY_VERSION) | sed -e 's/\./_/g')
+	echo '#include "${PWD}/extra-ruby-bindings.h"' >> $(DOWNLOADS)/crossruby/main.c
 
-# Base ruby
+# Base Ruby (targets the build machine)
 
 $(RUBY): $(DOWNLOADS)/baseruby/Makefile
 	cd $(DOWNLOADS)/baseruby && $(MAKE) install
 	if ! $(RUBY) -e 'exit 1 if RUBY_VERSION.split(".")[..1].join(".").to_f < 3.2'; then echo -e '\e[91m[ERROR] Ruby version must be at least 3.2 because earlier versions do not have WebAssembly support\e[0m'; rm $(RUBY); exit 1; fi;
 
 $(DOWNLOADS)/baseruby/Makefile: $(DOWNLOADS)/baseruby/configure
-	cd $(DOWNLOADS)/baseruby && ./configure --prefix=$(LIBDIR) $(NATIVE_TOOLCHAIN) --disable-install-doc
+	cd $(DOWNLOADS)/baseruby && ./configure --prefix=$(LIBDIR) $(NATIVE_TOOLCHAIN) LDFLAGS='$(LDFLAGS)' XCFLAGS='$(CFLAGS)' cppflags='$(CXXFLAGS)' --disable-install-doc
 
 $(DOWNLOADS)/baseruby/configure: $(DOWNLOADS)/baseruby/configure.ac
 	cd $(DOWNLOADS)/baseruby && $(AUTORECONF) -i
@@ -150,7 +156,7 @@ $(LIBDIR)/usr/local/lib/libyaml.a: $(DOWNLOADS)/libyaml/Makefile
 	cd $(DOWNLOADS)/libyaml && $(MAKE) install DESTDIR=$(LIBDIR)
 
 $(DOWNLOADS)/libyaml/Makefile: $(DOWNLOADS)/libyaml/configure
-	cd $(DOWNLOADS)/libyaml && ./configure --host $(TARGET) $(WASI_TOOLCHAIN)
+	cd $(DOWNLOADS)/libyaml && ./configure --host $(TARGET) $(WASI_TOOLCHAIN) CFLAGS='$(WASI_CFLAGS)' CXXFLAGS='$(WASI_CXXFLAGS)' LDFLAGS='$(WASI_LDFLAGS)'
 
 $(DOWNLOADS)/libyaml/configure: $(DOWNLOADS)/libyaml/configure.ac
 	cd $(DOWNLOADS)/libyaml && $(AUTORECONF) -i
@@ -165,7 +171,7 @@ $(LIBDIR)/usr/local/lib/libz.a: $(DOWNLOADS)/zlib/Makefile
 	cd $(DOWNLOADS)/zlib && $(MAKE) install DESTDIR=$(LIBDIR)
 
 $(DOWNLOADS)/zlib/Makefile: $(DOWNLOADS)/zlib/configure
-	cd $(DOWNLOADS)/zlib && env CHOST=linux $(WASI_TOOLCHAIN) ./configure --static
+	cd $(DOWNLOADS)/zlib && CHOST=linux $(WASI_TOOLCHAIN) CFLAGS='$(WASI_CFLAGS)' CXXFLAGS='$(WASI_CXXFLAGS)' LDFLAGS='$(WASI_LDFLAGS)' ./configure --static
 
 $(DOWNLOADS)/zlib/configure:
 	mkdir -p $(DOWNLOADS)
@@ -177,7 +183,7 @@ $(LIBDIR)/usr/local/lib/libssl.a: $(DOWNLOADS)/openssl/Makefile
 	cd $(DOWNLOADS)/openssl && $(MAKE) install_dev DESTDIR=$(LIBDIR)
 
 $(DOWNLOADS)/openssl/Makefile: $(DOWNLOADS)/openssl/Configure
-	cd $(DOWNLOADS)/openssl && ./Configure \
+	cd $(DOWNLOADS)/openssl && CFLAGS='$(WASI_CFLAGS)' CXXFLAGS='$(WASI_CXXFLAGS)' LDFLAGS='$(WASI_LDFLAGS)' ./Configure \
 		gcc \
 		-static \
 		-no-asm \

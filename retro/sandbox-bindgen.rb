@@ -34,6 +34,10 @@ MALLOC_FUNC = 'mkxp_sandbox_malloc'
 # The name of the `free()` binding defined in extra-ruby-bindings.h
 FREE_FUNC = 'mkxp_sandbox_free'
 
+FIBER_ENTRY_POINT_FUNC = 'mkxp_sandbox_fiber_entry_point'
+FIBER_ARG0_FUNC = 'mkxp_sandbox_fiber_arg0'
+FIBER_ARG1_FUNC = 'mkxp_sandbox_fiber_arg1'
+
 ################################################################################
 
 IGNORED_FUNCTIONS = Set[
@@ -184,14 +188,14 @@ HEADER_START = <<~HEREDOC
           };
 
           wasm_ptr_t next_func_ptr;
-          std::shared_ptr<struct w2c_ruby> instance;
+          std::shared_ptr<struct w2c_#{MODULE_NAME}> instance;
           std::unordered_map<key_t, struct fiber, boost::hash<key_t>> fibers;
           wasm_ptr_t sbindgen_malloc(wasm_ptr_t);
           wasm_ptr_t sbindgen_create_func_ptr();
 
           public:
 
-          bindings(std::shared_ptr<struct w2c_ruby>);
+          bindings(std::shared_ptr<struct w2c_#{MODULE_NAME}>);
 
           template <typename T> struct stack_frame {
               friend struct bindings;
@@ -204,9 +208,9 @@ HEADER_START = <<~HEREDOC
 
               static inline struct fiber &init_fiber(struct bindings &bind) {
                   key_t key = {
-                       w2c_ruby_mkxp_sandbox_fiber_entry_point(bind.instance.get()),
-                       w2c_ruby_mkxp_sandbox_fiber_arg0(bind.instance.get()),
-                       w2c_ruby_mkxp_sandbox_fiber_arg1(bind.instance.get()),
+                       w2c_#{MODULE_NAME}_#{FIBER_ENTRY_POINT_FUNC}(bind.instance.get()),
+                       w2c_#{MODULE_NAME}_#{FIBER_ARG0_FUNC}(bind.instance.get()),
+                       w2c_#{MODULE_NAME}_#{FIBER_ARG1_FUNC}(bind.instance.get()),
                   };
                   if (bind.fibers.count(key) == 0) {
                       bind.fibers[key] = (struct fiber){.key = key};
