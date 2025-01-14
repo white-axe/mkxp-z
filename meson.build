@@ -1,4 +1,4 @@
-project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=0.63.0', default_options: ['cpp_std=c++14', 'buildtype=release'])
+project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=1.3.0', default_options: ['cpp_std=c++14', 'buildtype=release'])
 
 host_system = host_machine.system()
 host_endian = host_machine.endian()
@@ -106,9 +106,15 @@ if get_option('retro') == true
 
     retro_link_args = []
 
-    # We need to statically link the C++ standard library (libstdc++/libc++), the compiler runtime library (libgcc/compiler-rt) and libpthread in MSYS2 builds for Windows
-    if host_system == 'windows' or host_system == 'cygwin'
+    # We need to statically link the C++ standard library (libstdc++/libc++), the compiler runtime library (libgcc/compiler-rt) and libpthread in MSYS2 builds for Windows because those are not part of the operating system
+    if (host_system == 'windows' or host_system == 'cygwin') and compilers['cpp'].has_link_argument('-static')
         retro_link_args += '-static'
+    endif
+
+    # Android doesn't have a built-in C++ standard library, so we need to statically link against the C++ standard library
+    if host_system == 'android'
+        compilers['cpp'].has_link_argument('-static-libstdc++', required: true)
+        retro_link_args += '-static-libstdc++'
     endif
 
     # If possible, stop the linker from reexporting the symbols from the static libraries we use (e.g. zlib)
