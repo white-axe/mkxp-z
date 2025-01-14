@@ -301,7 +301,7 @@ jobs:
           path: build/Build/Products/Release/Z-universal.app.zip
 
   build-retro-phase1:
-    name: Libretro phase 1
+    name: LR phase 1
     runs-on: ubuntu-24.04
     steps:
       - id: short-sha
@@ -346,7 +346,7 @@ jobs:
 
   build-retro-phase2-windows:
     needs: build-retro-phase1
-    name: Libretro Windows
+    name: LR Windows
     runs-on: windows-latest
     steps:
       - id: short-sha
@@ -384,17 +384,14 @@ jobs:
           name: libretro-mkxp-z.windows.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/retro-phase2
 
-  build-retro-phase2-linux:
+  build-retro-phase2-linux-gnu:
     needs: build-retro-phase1
-    name: Libretro Linux ${{ matrix.arch_mkxpz }}
+    name: LR GNU/Linux ${{ matrix.arch_mkxpz }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - arch_mkxpz: x86_64
-            arch_debian: amd64
-            arch_gcc: x86_64-linux-gnu
           - arch_mkxpz: armv6
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
@@ -413,12 +410,15 @@ jobs:
           - arch_mkxpz: power9le
             arch_debian: ppc64el
             arch_gcc: powerpc64le-linux-gnu
-          - arch_mkxpz: s390x
-            arch_debian: s390x
-            arch_gcc: s390x-linux-gnu
           - arch_mkxpz: riscv64
             arch_debian: riscv64
             arch_gcc: riscv64-linux-gnu
+          - arch_mkxpz: s390x
+            arch_debian: s390x
+            arch_gcc: s390x-linux-gnu
+          - arch_mkxpz: x86_64
+            arch_debian: amd64
+            arch_gcc: x86_64-linux-gnu
     steps:
       - id: short-sha
         uses: benjlevesque/short-sha@v2.2
@@ -476,12 +476,219 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: libretro-mkxp-z.linux.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          name: libretro-mkxp-z.linux-gnu.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/retro-phase2
 
-  build-retro-phase2-macos:
+  build-retro-phase2-linux-musl:
     needs: build-retro-phase1
-    name: Libretro macOS ${{ matrix.arch_mkxpz }}
+    name: LR Alpine Linux ${{ matrix.arch_mkxpz }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch_mkxpz: armv6
+            arch_alpine: armhf
+            arch_llvm: arm-alpine-linux-musleabihf
+            cpu_family: arm
+            cpu: generic-armv6zk+vfpv2
+            endian: little
+          - arch_mkxpz: armv7
+            arch_alpine: armv7
+            arch_llvm: armv7-alpine-linux-musleabihf
+            cpu_family: arm
+            cpu: generic-armv7-a+vfpv3-d16
+            endian: little
+          - arch_mkxpz: armv7-neon
+            arch_alpine: armv7
+            arch_llvm: armv7-alpine-linux-musleabihf
+            cpu_family: arm
+            cpu: generic-armv7-a+neon
+            endian: little
+          - arch_mkxpz: arm64
+            arch_alpine: aarch64
+            arch_llvm: aarch64-alpine-linux-musl
+            cpu_family: aarch64
+            cpu: generic-armv8-a
+            endian: little
+          - arch_mkxpz: loongarch64
+            arch_alpine: loongarch64
+            arch_llvm: loongarch64-alpine-linux-musl
+            cpu_family: loongarch64
+            cpu: 3a5000
+            endian: little
+          - arch_mkxpz: power8le
+            arch_alpine: ppc64le
+            arch_llvm: powerpc64le-alpine-linux-musl
+            cpu_family: ppc64
+            cpu: power8
+            endian: little
+          - arch_mkxpz: power9le
+            arch_alpine: ppc64le
+            arch_llvm: powerpc64le-alpine-linux-musl
+            cpu_family: ppc64
+            cpu: power9
+            endian: little
+          - arch_mkxpz: riscv64
+            arch_alpine: riscv64
+            arch_llvm: riscv64gc-alpine-linux-musl
+            cpu_family: riscv64
+            cpu: rv64gc
+            endian: little
+          - arch_mkxpz: s390x
+            arch_alpine: s390x
+            arch_llvm: s390x-alpine-linux-musl
+            cpu_family: s390x
+            cpu: z196
+            endian: big
+          - arch_mkxpz: x86_64
+            arch_alpine: x86_64
+            arch_llvm: x86_64-alpine-linux-musl
+            cpu_family: x86_64
+            cpu: x86_64
+            endian: little
+    steps:
+      - id: short-sha
+        uses: benjlevesque/short-sha@v2.2
+        with:
+          length: 7
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: retro-phase1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          path: retro/build/retro-phase1
+
+      - name: Install apt dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git build-essential clang llvm meson cmake
+
+      - name: Set up sysroot
+        id: sysroot
+        uses: jirutka/setup-alpine@v1
+        with:
+          arch: ${{ matrix.arch_alpine }}
+          branch: latest-stable
+          packages: build-base
+
+      - name: Build phase 2
+        run: |
+          echo '#!/bin/sh'$'\n''exec clang --target=${{ matrix.arch_llvm }} -fuse-ld=lld --sysroot=${{ steps.sysroot.outputs.root-path }} "$@"' > ${{ runner.temp }}/cc
+          echo '#!/bin/sh'$'\n''exec clang++ --target=${{ matrix.arch_llvm }} -fuse-ld=lld --sysroot=${{ steps.sysroot.outputs.root-path }} "$@"' > ${{ runner.temp }}/c++
+          chmod +x ${{ runner.temp }}/cc
+          chmod +x ${{ runner.temp }}/c++
+
+          echo "[binaries]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "c = '${{ runner.temp }}/cc'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpp = '${{ runner.temp }}/c++'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "ar = 'llvm-ar'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "strip = 'llvm-strip'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "system = 'linux'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpu_family = '${{ matrix.cpu_family }}'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpu = '${{ matrix.cpu }}'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "endian = '${{ matrix.endian }}'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "[properties]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "sys_root = '${{ steps.sysroot.outputs.root-path }}'" | tee -a ${{ runner.temp }}/cross.ini
+
+          mkdir ${{ runner.temp }}/retro-phase2
+          cp retro/core.info ${{ runner.temp }}/retro-phase2/libretro-mkxp-z.info
+          meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          cd build
+          ninja -v
+          llvm-strip libretro-mkxp-z.so
+          mv libretro-mkxp-z.so ${{ runner.temp }}/retro-phase2
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libretro-mkxp-z.linux-musl.${{ matrix.arch_mkxpz }}
+          path: ${{ runner.temp }}/retro-phase2
+
+  build-retro-phase2-android:
+    needs: build-retro-phase1
+    name: LR Android ${{ matrix.arch_mkxpz }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch_mkxpz: armv7
+            arch_llvm: armv7a-linux-androideabi21
+            cpu_family: arm
+            cpu: generic-armv7-a
+            endian: little
+          - arch_mkxpz: arm64
+            arch_llvm: aarch64-linux-android21
+            cpu_family: aarch64
+            cpu: generic-armv8-a
+            endian: little
+          - arch_mkxpz: x86
+            arch_llvm: i686-linux-android21
+            cpu_family: x86
+            cpu: i686
+            endian: little
+          - arch_mkxpz: x86_64
+            arch_llvm: x86_64-linux-android21
+            cpu_family: x86_64
+            cpu: x86_64
+            endian: little
+    steps:
+      - id: short-sha
+        uses: benjlevesque/short-sha@v2.2
+        with:
+          length: 7
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: retro-phase1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          path: retro/build/retro-phase1
+
+      - name: Install apt dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git build-essential llvm meson cmake
+
+      - id: ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r27c
+          add-to-path: false
+
+      - name: Build phase 2
+        run: |
+          echo "[binaries]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "c = '${{ steps.ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/${{ matrix.arch_llvm }}-clang'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpp = '${{ steps.ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/${{ matrix.arch_llvm }}-clang++'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "ar = '${{ steps.ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "strip = 'llvm-strip'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "system = 'android'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpu_family = '${{ matrix.cpu_family }}'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpu = '${{ matrix.cpu }}'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "endian = '${{ matrix.endian }}'" | tee -a ${{ runner.temp }}/cross.ini
+
+          mkdir ${{ runner.temp }}/retro-phase2
+          cp retro/core.info ${{ runner.temp }}/retro-phase2/libretro-mkxp-z.info
+          meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          cd build
+          ninja -v
+          llvm-strip libretro-mkxp-z.so
+          mv libretro-mkxp-z.so ${{ runner.temp }}/retro-phase2
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libretro-mkxp-z.android.${{ matrix.arch_mkxpz }}
+          path: ${{ runner.temp }}/retro-phase2
+
+  build-retro-phase2-darwin:
+    needs: build-retro-phase1
+    name: LR Darwin ${{ matrix.arch_mkxpz }}
     runs-on: macos-latest
     strategy:
       fail-fast: false
@@ -522,22 +729,20 @@ jobs:
           chmod +x ${{ runner.temp }}/cc
           chmod +x ${{ runner.temp }}/c++
 
-          echo "[binaries]" | tee -a ${{ runner.temp }}/cross.txt
-          echo "c = '${{ runner.temp }}/cc'" | tee -a ${{ runner.temp }}/cross.txt
-          echo "cpp = '${{ runner.temp }}/c++'" | tee -a ${{ runner.temp }}/cross.txt
-          echo "ar = 'ar'" | tee -a ${{ runner.temp }}/cross.txt
-          echo "strip = 'strip'" | tee -a ${{ runner.temp }}/cross.txt
-          echo "pkgconfig = 'pkg-config'" | tee -a ${{ runner.temp }}/cross.txt
-          echo "cmake = 'cmake'" | tee -a ${{ runner.temp }}/cross.txt
-          echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.txt
-          echo "system = 'darwin'" | tee -a ${{ runner.temp }}/cross.txt
-          echo "cpu_family = '${{ matrix.cpu_family }}'" | tee -a ${{ runner.temp }}/cross.txt
-          echo "cpu = '${{ matrix.cpu }}'" | tee -a ${{ runner.temp }}/cross.txt
-          echo "endian = '${{ matrix.endian }}'" | tee -a ${{ runner.temp }}/cross.txt
+          echo "[binaries]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "c = '${{ runner.temp }}/cc'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpp = '${{ runner.temp }}/c++'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "ar = 'ar'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "strip = 'strip'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "system = 'darwin'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpu_family = '${{ matrix.cpu_family }}'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpu = '${{ matrix.cpu }}'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "endian = '${{ matrix.endian }}'" | tee -a ${{ runner.temp }}/cross.ini
 
           mkdir ${{ runner.temp }}/retro-phase2
           cp retro/core.info ${{ runner.temp }}/retro-phase2/libretro-mkxp-z.info
-          PATH="$HOMEBREW_PREFIX/opt/gpatch/libexec/gnubin:$PATH" meson setup build --cross-file ${{ runner.temp }}/cross.txt --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          PATH="$HOMEBREW_PREFIX/opt/gpatch/libexec/gnubin:$PATH" meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
           strip -x libretro-mkxp-z.dylib
@@ -545,5 +750,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: libretro-mkxp-z.macos.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          name: libretro-mkxp-z.darwin.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/retro-phase2

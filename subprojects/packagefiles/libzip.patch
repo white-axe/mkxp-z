@@ -126,14 +126,17 @@ diff --git a/lib/zip_algorithm_deflate.c b/lib/zip_algorithm_deflate.c
 diff --git a/lib/zip_algorithm_xz.c b/lib/zip_algorithm_xz.c
 --- a/lib/zip_algorithm_xz.c
 +++ b/lib/zip_algorithm_xz.c
-@@ -35,7 +35,7 @@
+@@ -35,9 +35,9 @@
  #include "zipint.h"
  
  #include <limits.h>
 -#include <lzma.h>
 +#include "../../liblzma/src/liblzma/api/lzma.h"
  #include <stdlib.h>
- #include <zlib.h>
+-#include <zlib.h>
++#include "../../zlib/zlib.h"
+ 
+ enum header_state { INCOMPLETE, OUTPUT, DONE };
  
 diff --git a/lib/zip_algorithm_zstd.c b/lib/zip_algorithm_zstd.c
 --- a/lib/zip_algorithm_zstd.c
@@ -149,3 +152,87 @@ diff --git a/lib/zip_algorithm_zstd.c b/lib/zip_algorithm_zstd.c
  
  struct ctx {
      zip_error_t *error;
+diff --git a/lib/zip_dirent.c b/lib/zip_dirent.c
+--- a/lib/zip_dirent.c
++++ b/lib/zip_dirent.c
+@@ -37,7 +37,7 @@
+ #include <string.h>
+ #include <sys/types.h>
+ #include <time.h>
+-#include <zlib.h>
++#include "../../zlib/zlib.h"
+ 
+ #include "zipint.h"
+ 
+diff --git a/lib/zip_error_strerror.c b/lib/zip_error_strerror.c
+--- a/lib/zip_error_strerror.c
++++ b/lib/zip_error_strerror.c
+@@ -35,7 +35,7 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+-#include <zlib.h>
++#include "../../zlib/zlib.h"
+ 
+ #include "zipint.h"
+ 
+diff --git a/lib/zip_io_util.c b/lib/zip_io_util.c
+--- a/lib/zip_io_util.c
++++ b/lib/zip_io_util.c
+@@ -34,7 +34,7 @@
+ #include <limits.h>
+ #include <stdlib.h>
+ #include <string.h>
+-#include <zlib.h>
++#include "../../zlib/zlib.h"
+ 
+ #include "zipint.h"
+ 
+diff --git a/lib/zip_pkware.c b/lib/zip_pkware.c
+--- a/lib/zip_pkware.c
++++ b/lib/zip_pkware.c
+@@ -33,7 +33,7 @@
+ 
+ 
+ #include <stdlib.h>
+-#include <zlib.h>
++#include "../../zlib/zlib.h"
+ 
+ #include "zipint.h"
+ 
+diff --git a/lib/zip_source_crc.c b/lib/zip_source_crc.c
+--- a/lib/zip_source_crc.c
++++ b/lib/zip_source_crc.c
+@@ -34,7 +34,7 @@
+ 
+ #include <limits.h>
+ #include <stdlib.h>
+-#include <zlib.h>
++#include "../../zlib/zlib.h"
+ 
+ #include "zipint.h"
+ 
+diff --git a/lib/zip_string.c b/lib/zip_string.c
+--- a/lib/zip_string.c
++++ b/lib/zip_string.c
+@@ -34,7 +34,7 @@
+ 
+ #include <stdlib.h>
+ #include <string.h>
+-#include <zlib.h>
++#include "../../zlib/zlib.h"
+ 
+ #include "zipint.h"
+ 
+diff --git a/src/zipcmp.c b/src/zipcmp.c
+--- a/src/zipcmp.c
++++ b/src/zipcmp.c
+@@ -45,7 +45,7 @@
+ #ifdef HAVE_FTS_H
+ #include <fts.h>
+ #endif
+-#include <zlib.h>
++#include "../../zlib/zlib.h"
+ 
+ #ifndef HAVE_GETOPT
+ #include "getopt.h"
