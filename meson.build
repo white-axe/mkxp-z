@@ -97,6 +97,7 @@ if get_option('retro') == true
     })
 
     retro_defines = [
+        '-DWASM_RT_SKIP_SIGNAL_RECOVERY',
         '-DWASM_RT_TRAP_HANDLER=mkxp_sandbox_trap_handler',
         '-DMKXPZ_RETRO=1',
     ]
