@@ -74,6 +74,7 @@ if get_option('retro') == true
         'ZSTD_BUILD_TESTS': false,
         'ZSTD_BUILD_CONTRIB': false,
         'ZSTD_MULTITHREAD_SUPPORT': false,
+        'ZSTD_LEGACY_SUPPORT': false,
     })
 
     libzip_options = cmake.subproject_options()

@@ -593,6 +593,7 @@ jobs:
           echo "endian = '${{ matrix.endian }}'" | tee -a ${{ runner.temp }}/cross.ini
           echo "[properties]" | tee -a ${{ runner.temp }}/cross.ini
           echo "sys_root = '${{ steps.sysroot.outputs.root-path }}'" | tee -a ${{ runner.temp }}/cross.ini
+          echo '--------------------------------------------------------------------------------'
 
           mkdir ${{ runner.temp }}/retro-phase2
           cp retro/core.info ${{ runner.temp }}/retro-phase2/libretro-mkxp-z.info
@@ -678,6 +679,7 @@ jobs:
           echo "endian = '${{ matrix.endian }}'" | tee -a ${{ runner.temp }}/cross.ini
           echo "[cmake]" | tee -a ${{ runner.temp }}/cross.ini
           echo "CMAKE_SYSTEM_PROCESSOR = '${{ matrix.arch_cmake }}'" | tee -a ${{ runner.temp }}/cross.ini
+          echo '--------------------------------------------------------------------------------'
 
           mkdir ${{ runner.temp }}/retro-phase2
           cp retro/core.info ${{ runner.temp }}/retro-phase2/libretro-mkxp-z.info
@@ -745,6 +747,7 @@ jobs:
           echo "cpu_family = '${{ matrix.cpu_family }}'" | tee -a ${{ runner.temp }}/cross.ini
           echo "cpu = '${{ matrix.cpu }}'" | tee -a ${{ runner.temp }}/cross.ini
           echo "endian = '${{ matrix.endian }}'" | tee -a ${{ runner.temp }}/cross.ini
+          echo '--------------------------------------------------------------------------------'
 
           mkdir ${{ runner.temp }}/retro-phase2
           cp retro/core.info ${{ runner.temp }}/retro-phase2/libretro-mkxp-z.info
@@ -803,7 +806,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt update
-          apt install -y git python pip ninja-build cmake
+          apt install -y git build-essential pip ninja-build cmake
           pip install meson
 
       - name: Build phase 2
@@ -818,10 +821,17 @@ jobs:
           echo "cpu_family = '${{ matrix.cpu_family }}'" | tee -a ~/cross.ini
           echo "cpu = '${{ matrix.cpu }}'" | tee -a ~/cross.ini
           echo "endian = '${{ matrix.endian }}'" | tee -a ~/cross.ini
+          echo '--------------------------------------------------------------------------------'
 
           mkdir ~/retro-phase2
           cp retro/core.info ~/retro-phase2/libretro-mkxp-z.info
-          meson setup build --cross-file ~/cross.ini -Ddefault_library=static --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          if [ '${{ matrix.arch_devkitpro }}' != 'a64' ] # Enabling LTO with devkitA64 causes "plugin needed to handle lto object" linker error
+          then
+            lto_arg='-Db_lto=true'
+          else
+            lto_arg='-Db_lto=false'
+          fi
+          meson setup build --cross-file ~/cross.ini -Ddefault_library=static --buildtype release $lto_arg -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
           /opt/devkitpro/devkit$(echo ${{ matrix.arch_devkitpro }} | tr a-z A-Z)/bin/${{ matrix.arch_gcc }}-strip libretro-mkxp-z.a
@@ -854,7 +864,7 @@ jobs:
       - name: Install dependencies
         run: |
           apk update
-          apk add git meson cmake
+          apk add git build-base meson cmake
 
       - name: Build phase 2
         run: |
@@ -868,6 +878,7 @@ jobs:
           echo "cpu_family = 'mips64'" | tee -a ~/cross.ini
           echo "cpu = 'mips64el'" | tee -a ~/cross.ini
           echo "endian = 'little'" | tee -a ~/cross.ini
+          echo '--------------------------------------------------------------------------------'
 
           mkdir ~/retro-phase2
           cp retro/core.info ~/retro-phase2/libretro-mkxp-z.info
@@ -904,7 +915,7 @@ jobs:
       - name: Install dependencies
         run: |
           apk update
-          apk add git meson cmake
+          apk add git build-base meson cmake
 
       - name: Build phase 2
         run: |
@@ -918,6 +929,7 @@ jobs:
           echo "cpu_family = 'mips64'" | tee -a ~/cross.ini
           echo "cpu = 'mips64el'" | tee -a ~/cross.ini
           echo "endian = 'little'" | tee -a ~/cross.ini
+          echo '--------------------------------------------------------------------------------'
 
           mkdir ~/retro-phase2
           cp retro/core.info ~/retro-phase2/libretro-mkxp-z.info
