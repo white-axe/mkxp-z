@@ -37,20 +37,20 @@ if get_option('retro') == true
 
     boost_options = cmake.subproject_options()
     boost_options.add_cmake_defines({
-        'CMAKE_POSITION_INDEPENDENT_CODE': true,
+        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_TESTING': false,
     })
 
     zlib_options = cmake.subproject_options()
     zlib_options.add_cmake_defines({
-        'CMAKE_POSITION_INDEPENDENT_CODE': true,
+        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'ZLIB_BUILD_EXAMPLES': false,
     })
 
     bzip2_options = cmake.subproject_options()
     bzip2_options.add_cmake_defines({
-        'CMAKE_POSITION_INDEPENDENT_CODE': true,
+        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'CMAKE_BUILD_TYPE': 'None',
         'ENABLE_STATIC_LIB': true,
         'ENABLE_SHARED_LIB': false,
@@ -59,7 +59,7 @@ if get_option('retro') == true
 
     liblzma_options = cmake.subproject_options()
     liblzma_options.add_cmake_defines({
-        'CMAKE_POSITION_INDEPENDENT_CODE': true,
+        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'ENABLE_NLS': false,
         'ENABLE_THREADS': 'OFF',
@@ -67,7 +67,7 @@ if get_option('retro') == true
 
     zstd_options = cmake.subproject_options()
     zstd_options.add_cmake_defines({
-        'CMAKE_POSITION_INDEPENDENT_CODE': true,
+        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'ZSTD_BUILD_STATIC': true,
         'ZSTD_BUILD_SHARED': false,
         'ZSTD_BUILD_PROGRAMS': false,
@@ -79,7 +79,7 @@ if get_option('retro') == true
 
     libzip_options = cmake.subproject_options()
     libzip_options.add_cmake_defines({
-        'CMAKE_POSITION_INDEPENDENT_CODE': true,
+        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'LIBZIP_DO_INSTALL': false,
         'BUILD_TOOLS': false,

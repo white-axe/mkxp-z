@@ -831,7 +831,7 @@ jobs:
           else
             lto_arg='-Db_lto=false'
           fi
-          meson setup build --cross-file ~/cross.ini -Ddefault_library=static --buildtype release $lto_arg -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          meson setup build --cross-file ~/cross.ini --default-library static --buildtype release $lto_arg -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
           /opt/devkitpro/devkit$(echo ${{ matrix.arch_devkitpro }} | tr a-z A-Z)/bin/${{ matrix.arch_gcc }}-strip libretro-mkxp-z.a
@@ -882,7 +882,7 @@ jobs:
 
           mkdir ~/retro-phase2
           cp retro/core.info ~/retro-phase2/libretro-mkxp-z.info
-          meson setup build --cross-file ~/cross.ini -Ddefault_library=static --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          meson setup build --cross-file ~/cross.ini --default-library static --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
           mips64r5900el-ps2-elf-strip libretro-mkxp-z.a
@@ -933,7 +933,7 @@ jobs:
 
           mkdir ~/retro-phase2
           cp retro/core.info ~/retro-phase2/libretro-mkxp-z.info
-          meson setup build --cross-file ~/cross.ini -Ddefault_library=static --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          meson setup build --cross-file ~/cross.ini --default-library static -Db_staticpic=false --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
           psp-strip libretro-mkxp-z.a
