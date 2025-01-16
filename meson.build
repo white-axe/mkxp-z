@@ -53,6 +53,7 @@ if get_option('retro') == true
         'CMAKE_POSITION_INDEPENDENT_CODE': true,
         'CMAKE_BUILD_TYPE': 'None',
         'ENABLE_STATIC_LIB': true,
+        'ENABLE_SHARED_LIB': false,
         'ENABLE_LIB_ONLY': true,
     })
 
