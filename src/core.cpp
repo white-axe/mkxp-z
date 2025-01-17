@@ -24,8 +24,8 @@
 #include <cstdarg>
 #include <cstring>
 #include <memory>
-#include "sandbox/sandbox.h"
-#include "core.h"
+#include "../binding-sandbox/sandbox.h"
+#include "../binding-sandbox/core.h"
 
 #define SANDBOX_AWAIT(coroutine, ...) \
     do { \

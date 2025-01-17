@@ -167,8 +167,8 @@ if get_option('retro') == true
         ],
         sources: [
             'src/core.cpp',
-            'src/sandbox/sandbox.cpp',
-            'src/sandbox/wasi.cpp',
+            'binding-sandbox/sandbox.cpp',
+            'binding-sandbox/wasi.cpp',
             join_paths(retro_phase1, 'wasm2c/wasm-rt-impl.c'),
             join_paths(retro_phase1, 'wasm2c/wasm-rt-mem-impl.c'),
             join_paths(retro_phase1, 'mkxp-sandbox-bindgen.cpp'),

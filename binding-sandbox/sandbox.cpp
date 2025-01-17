@@ -70,8 +70,7 @@ sandbox::sandbox(const char *game_path) : ruby(new struct w2c_ruby), wasi(new wa
 
         // Determine Ruby command-line arguments
         std::vector<std::string> args{"mkxp-z"};
-        args.push_back("-e");
-        args.push_back("");
+        args.push_back("-e ''");
         if (MJIT_ENABLED) {
             std::string verboseLevel("--mjit-verbose=");
             std::string maxCache("--mjit-max-cache=");

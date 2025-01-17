@@ -84,7 +84,7 @@ $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro
 	mkdir -p $(OUTDIR)/mkxp-retro-ruby
 	$(WASM2C) $(LIBDIR)/ruby.wasm -n ruby --num-outputs=8 -o $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.c
 
-$(LIBDIR)/ruby.wasm $(OUTDIR)/mkxp-retro-dist.zip.c &: $(DOWNLOADS)/crossruby/Makefile extra-ruby-bindings.h
+$(LIBDIR)/ruby.wasm $(OUTDIR)/mkxp-retro-dist.zip.c &: $(DOWNLOADS)/crossruby/Makefile ruby-bindings.h
 	mkdir -p $(OUTDIR)
 	cd $(DOWNLOADS)/crossruby && $(MAKE) install DESTDIR=$(OUTDIR)
 	mv $(OUTDIR)/mkxp-retro-dist/bin/ruby $(LIBDIR)/ruby.wasm
@@ -132,7 +132,7 @@ $(DOWNLOADS)/crossruby/configure: $(DOWNLOADS)/crossruby/configure.ac $(RUBY)
 $(DOWNLOADS)/crossruby/configure.ac:
 	mkdir -p $(DOWNLOADS)
 	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/crossruby -b ruby_$(shell echo $(RUBY_VERSION) | sed -e 's/\./_/g')
-	echo '#include "${PWD}/extra-ruby-bindings.h"' >> $(DOWNLOADS)/crossruby/main.c
+	echo '#include "${PWD}/ruby-bindings.h"' >> $(DOWNLOADS)/crossruby/main.c
 
 # Base Ruby (targets the build machine)
 

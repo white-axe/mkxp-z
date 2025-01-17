@@ -19,10 +19,10 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/* This file contains bindings that expose low-level functionality of the Ruby VM to the outside of the sandbox it's running in. They can be called from sandbox.cpp. */
+/* This file contains bindings that expose low-level functionality of the Ruby VM to the outside of the sandbox it's running in. They are used by sandbox-bindgen. */
 
-#ifndef SANDBOX_EXTRA_RUBY_BINDINGS_H
-#define SANDBOX_EXTRA_RUBY_BINDINGS_H
+#ifndef SANDBOX_RUBY_BINDINGS_H
+#define SANDBOX_RUBY_BINDINGS_H
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -126,4 +126,4 @@ MKXP_SANDBOX_API bool mkxp_sandbox_yield(void) {
     return false;
 }
 
-#endif /* SANDBOX_EXTRA_RUBY_BINDINGS_H */
+#endif /* SANDBOX_RUBY_BINDINGS_H */
