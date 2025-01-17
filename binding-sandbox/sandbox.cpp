@@ -70,7 +70,8 @@ sandbox::sandbox(const char *game_path) : ruby(new struct w2c_ruby), wasi(new wa
 
         // Determine Ruby command-line arguments
         std::vector<std::string> args{"mkxp-z"};
-        args.push_back("-e ''");
+        args.push_back("-v");
+        args.push_back("-e ");
         if (MJIT_ENABLED) {
             std::string verboseLevel("--mjit-verbose=");
             std::string maxCache("--mjit-max-cache=");
@@ -93,12 +94,8 @@ sandbox::sandbox(const char *game_path) : ruby(new struct w2c_ruby), wasi(new wa
             std::strcpy((char *)WASM_MEM(arg_buf), args[i].c_str());
             WASM_SET(usize, argv_buf + i * sizeof(usize), arg_buf);
         }
-        usize sysinit_buf = sandbox_malloc(sizeof(usize) + sizeof(u32));
-        WASM_SET(u32, sysinit_buf + sizeof(usize), args.size());
-        WASM_SET(usize, sysinit_buf, argv_buf);
 
         // Pass the command-line arguments to Ruby
-        w2c_ruby_ruby_sysinit(RB, sysinit_buf + sizeof(usize), sysinit_buf);
         AWAIT(w2c_ruby_ruby_init_stack(RB, ruby->w2c_0x5F_stack_pointer));
         AWAIT(w2c_ruby_ruby_init(RB));
         usize node;
