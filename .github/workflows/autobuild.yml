@@ -289,7 +289,7 @@ jobs:
 
   build-retro-phase1:
     name: LR phase 1
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - id: short-sha
         uses: benjlevesque/short-sha@v2.2
