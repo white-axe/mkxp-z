@@ -366,9 +366,24 @@ HEREDOC
 declarations = []
 coroutines = []
 func_names = []
+globals = []
 
 File.readlines('tags', chomp: true).each do |line|
   line = line.split("\t")
+  next unless line[3] == 'x'
+
+  global_name = line[0]
+  next unless global_name.match?(/^rb_[a-z][A-Z]/)
+
+  signature = line[2]
+  next unless signature.start_with?('/^extern VALUE ')
+
+  globals.append(global_name)
+end
+
+File.readlines('tags', chomp: true).each do |line|
+  line = line.split("\t")
+  next unless line[3] == 'p'
 
   func_name = line[0]
   next unless func_name.start_with?('rb_')
@@ -384,7 +399,7 @@ File.readlines('tags', chomp: true).each do |line|
   next unless RET_HANDLERS.include?(ret)
 
   # Only bind functions whose arguments all match a return type we have a handler for
-  args = line[3]
+  args = line[4]
   next unless args.start_with?('signature:(') && args.end_with?(')')
   args = args[11...-1]
   args = args.gsub('VALUE,VALUE', '$').split(',').map { |arg| arg.gsub('$', 'VALUE,VALUE') }.map { |arg| arg == '...' ? '...' : arg.match?(/\(\* \w+\)/) ? arg.gsub(/\(\* \w+\)/, '(*)') : arg.rpartition(' ')[0].strip }
@@ -547,6 +562,9 @@ end
 
 File.open('mkxp-sandbox-bindgen.h', 'w') do |file|
   file.write(HEADER_START)
+  for global_name in globals
+    file.write("        inline VALUE #{global_name}() { return this->instance->w2c_#{global_name}; }\n")
+  end
   for func_name in func_names
     file.write("        friend struct #{func_name};\n")
   end

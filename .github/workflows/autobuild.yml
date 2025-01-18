@@ -310,7 +310,7 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           sudo apt update
-          sudo apt install -y git curl build-essential automake libtool binaryen wabt zip universal-ctags
+          sudo apt install -y git curl build-essential automake libtool binaryen wabt universal-ctags
 
       - name: Download WASI SDK
         if: steps.cache.outputs.cache-hit != 'true'

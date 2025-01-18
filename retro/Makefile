@@ -6,6 +6,7 @@ LIBYAML_VERSION ?= 0.2.5
 ZLIB_VERSION ?= 1.3.1
 OPENSSL_VERSION ?= 3.2.0
 WASM_RT_VERSION ?= 1.0.36
+P7ZIP_VERSION ?= 17.06
 TARGET ?= wasm32-wasip1
 WASI_SDK ?= /opt/wasi-sdk
 WASM_OPT ?= wasm-opt
@@ -14,7 +15,6 @@ CTAGS ?= ctags
 AUTORECONF ?= autoreconf
 CURL ?= curl
 GIT ?= git
-ZIP ?= zip
 XXD ?= xxd
 CC ?= cc
 CXX ?= c++
@@ -33,6 +33,7 @@ OUTDIR := $(BUILD_PREFIX)/retro-phase1
 LIBDIR := $(BUILD_PREFIX)/lib
 DOWNLOADS := $(BUILD_PREFIX)/downloads
 RUBY := $(LIBDIR)/bin/ruby
+P7ZIP := $(DOWNLOADS)/p7zip/bin/7z
 CLONE := $(GIT) clone -q --depth 1
 GITHUB := https://github.com
 WASI_CC := $(WASI_SDK)/bin/clang
@@ -74,34 +75,45 @@ $(OUTDIR)/libretro.h:
 	$(CURL) -s -L -o $(OUTDIR)/libretro.h https://raw.githubusercontent.com/libretro/libretro-common/$(LIBRETRO_REF)/include/libretro.h
 
 $(OUTDIR)/wasm2c/wasm-rt.h $(OUTDIR)/wasm2c/wasm-rt-impl.c $(OUTDIR)/wasm2c/wasm-rt-mem-impl.c &:
-	mkdir -p $(DOWNLOADS)
+	mkdir -p $(OUTDIR)
 	$(CLONE) $(GITHUB)/WebAssembly/wabt $(DOWNLOADS)/wabt -b $(WASM_RT_VERSION)
 	cp -r $(DOWNLOADS)/wabt/wasm2c $(OUTDIR)
 
 # Cross Ruby (targets WASI)
 
-$(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_0.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_1.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_2.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_3.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_4.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_5.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_6.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_7.c &: $(LIBDIR)/ruby.wasm
+$(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_0.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_1.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_2.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_3.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_4.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_5.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_6.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_7.c &: $(LIBDIR)/mkxp-retro-dist/bin/ruby
 	mkdir -p $(OUTDIR)/mkxp-retro-ruby
-	$(WASM2C) $(LIBDIR)/ruby.wasm -n ruby --num-outputs=8 -o $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.c
+	$(WASM2C) $(LIBDIR)/mkxp-retro-dist/bin/ruby -n ruby --num-outputs=8 -o $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.c
 
-$(LIBDIR)/ruby.wasm $(OUTDIR)/mkxp-retro-dist.zip.c &: $(DOWNLOADS)/crossruby/Makefile ruby-bindings.h
+$(OUTDIR)/mkxp-retro-dist.zip.c: $(LIBDIR)/mkxp-retro-dist.zip
 	mkdir -p $(OUTDIR)
-	cd $(DOWNLOADS)/crossruby && $(MAKE) install DESTDIR=$(OUTDIR)
-	mv $(OUTDIR)/mkxp-retro-dist/bin/ruby $(LIBDIR)/ruby.wasm
-	rm $(OUTDIR)/mkxp-retro-dist/lib/libruby-static.a
-	cd $(OUTDIR)/mkxp-retro-dist && $(ZIP) -r $(OUTDIR)/mkxp-retro-dist.zip *
-	rm -r $(OUTDIR)/mkxp-retro-dist
-	cd $(OUTDIR) && $(XXD) -i mkxp-retro-dist.zip mkxp-retro-dist.zip.c
-	rm $(OUTDIR)/mkxp-retro-dist.zip
+	cd $(LIBDIR) && $(XXD) -i mkxp-retro-dist.zip $(OUTDIR)/mkxp-retro-dist.zip.c
+
+$(LIBDIR)/mkxp-retro-dist.zip: $(LIBDIR)/mkxp-retro-dist/bin/ruby $(P7ZIP)
+	rm -rf $(LIBDIR)/_mkxp-retro-dist
+	cp -r $(LIBDIR)/mkxp-retro-dist $(LIBDIR)/_mkxp-retro-dist
+	rm $(LIBDIR)/_mkxp-retro-dist/bin/ruby
+	rm $(LIBDIR)/_mkxp-retro-dist/lib/libruby-static.a
+	rm -r $(LIBDIR)/_mkxp-retro-dist/include
+	rm -r $(LIBDIR)/_mkxp-retro-dist/share
+	rm -r $(LIBDIR)/_mkxp-retro-dist/lib/ruby/gems/3.3.0/cache/*
+	rm -f $(LIBDIR)/mkxp-retro-dist.zip
+	cd $(LIBDIR)/_mkxp-retro-dist && $(P7ZIP) a -bb3 -mm=zstd -mx=19 $(LIBDIR)/mkxp-retro-dist.zip *
+	rm -r $(LIBDIR)/_mkxp-retro-dist
+
+$(LIBDIR)/mkxp-retro-dist/bin/ruby: $(DOWNLOADS)/crossruby/Makefile ruby-bindings.h
+	cd $(DOWNLOADS)/crossruby && $(MAKE) install DESTDIR=$(LIBDIR)
 
 $(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h &: sandbox-bindgen.rb $(LIBDIR)/tags $(RUBY)
+	mkdir -p $(OUTDIR)
 	cd $(LIBDIR) && $(RUBY) ${PWD}/sandbox-bindgen.rb
 	mv $(LIBDIR)/mkxp-sandbox-bindgen.h $(OUTDIR)
 	mv $(LIBDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)
 
 $(LIBDIR)/tags: $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h
+	mkdir -p $(LIBDIR)
 	echo '#include <ruby.h>' | $(WASI_CC) -E -I$(DOWNLOADS)/crossruby/include -I$(DOWNLOADS)/crossruby/.ext/include/$(TARGET) -o $(LIBDIR)/tags.c -
-	$(CTAGS) -R --fields=S --kinds-c=p -o $(LIBDIR)/tags $(LIBDIR)/tags.c
+	$(CTAGS) -R --fields=kS --kinds-c=px -o $(LIBDIR)/tags $(LIBDIR)/tags.c
 
 $(DOWNLOADS)/crossruby/Makefile $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h &: $(DOWNLOADS)/crossruby/configure $(RUBY) $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a $(LIBDIR)/usr/local/lib/libssl.a
 	cd $(DOWNLOADS)/crossruby && ./configure \
@@ -149,6 +161,15 @@ $(DOWNLOADS)/baseruby/configure: $(DOWNLOADS)/baseruby/configure.ac
 $(DOWNLOADS)/baseruby/configure.ac:
 	mkdir -p $(DOWNLOADS)
 	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/baseruby -b ruby_$(shell echo $(RUBY_VERSION) | sed -e 's/\./_/g')
+
+# p7zip
+
+$(P7ZIP): $(DOWNLOADS)/p7zip/makefile
+	cd $(DOWNLOADS)/p7zip && $(MAKE) 7z $(NATIVE_TOOLCHAIN)
+
+$(DOWNLOADS)/p7zip/makefile:
+	mkdir -p $(DOWNLOADS)
+	$(CLONE) $(GITHUB)/p7zip-project/p7zip $(DOWNLOADS)/p7zip -b v$(P7ZIP_VERSION)
 
 # libyaml
 
