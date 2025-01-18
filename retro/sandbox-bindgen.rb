@@ -242,11 +242,9 @@ HEADER_START = <<~HEREDOC
                       throw SandboxTrapException();
                   }
 
-                  try {
-                      T &inner = boost::any_cast<T &>(fiber.stack[fiber.stack_ptr]);
-                      ++fiber.stack_ptr;
-                      return inner;
-                  } catch (boost::bad_any_cast &) {
+                  if (fiber.stack[fiber.stack_ptr].type() == typeid(T &)) {
+                      return boost::any_cast<T &>(fiber.stack[fiber.stack_ptr++]);
+                  } else {
                       fiber.stack.resize(fiber.stack_ptr++);
                       fiber.stack.push_back(T(bind));
                       return boost::any_cast<T &>(fiber.stack.back());

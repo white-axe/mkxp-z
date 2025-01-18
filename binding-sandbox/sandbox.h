@@ -26,6 +26,29 @@
 #include <mkxp-sandbox-bindgen.h>
 #include "types.h"
 
+#define SANDBOX_AWAIT(coroutine, ...) \
+    do { \
+        { \
+            mkxp_sandbox::bindings::stack_frame<struct coroutine> frame = mkxp_sandbox::sandbox->bindings.bind<struct coroutine>(); \
+            frame()(__VA_ARGS__); \
+            if (frame().is_complete()) break; \
+        } \
+        yield; \
+    } while (1)
+
+#define SANDBOX_AWAIT_AND_SET(variable, coroutine, ...) \
+    do { \
+        { \
+            mkxp_sandbox::bindings::stack_frame<struct coroutine> frame = mkxp_sandbox::sandbox->bindings.bind<struct coroutine>(); \
+            auto ret = frame()(__VA_ARGS__); \
+            if (frame().is_complete()) { \
+                variable = ret; \
+                break; \
+            } \
+        } \
+        yield; \
+    } while (1)
+
 namespace mkxp_sandbox {
     struct sandbox {
         private:
@@ -48,6 +71,8 @@ namespace mkxp_sandbox {
             }
         }
     };
+
+    extern std::unique_ptr<struct mkxp_sandbox::sandbox> sandbox;
 }
 
 #endif // MKXPZ_SANDBOX_H

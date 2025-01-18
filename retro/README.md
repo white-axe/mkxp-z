@@ -16,10 +16,14 @@ This will produce the directory "retro/build/retro-phase1".
 
 # Phase 2
 
-This phase produces the actual core file. Go to the root directory of this repository and run:
+This phase produces the actual core file. You need to have [Meson](https://mesonbuild.com), [Ninja](https://ninja-build.org), [CMake](https://cmake.org), [Git](https://git-scm.com), a C compiler and a C++ compiler. No software libraries are required other than the system libraries.
+
+Go to the root directory of this repository and run:
 
 ```
 meson setup build -Dretro=true -Dretro_phase1_path=path/to/retro-phase1
 cd build
 ninja
 ```
+
+If you have a program named `patch` in your PATH, it has to be GNU patch. If your `patch` program isn't GNU patch (e.g. macOS comes with its own incompatible version of `patch` that will break this build system), either install GNU patch and then temporarily add it to your PATH for the duration of the `meson setup` command, or temporarily remove your `patch` program from the PATH for the duration of the `meson setup` command: the build system will fall back to using `git apply` if `patch` is not found, which will work fine.

@@ -96,7 +96,7 @@ $(LIBDIR)/mkxp-retro-dist.zip: $(LIBDIR)/mkxp-retro-dist/bin/ruby $(P7ZIP)
 	rm $(LIBDIR)/_mkxp-retro-dist/lib/libruby-static.a
 	rm -r $(LIBDIR)/_mkxp-retro-dist/include
 	rm -r $(LIBDIR)/_mkxp-retro-dist/share
-	rm -r $(LIBDIR)/_mkxp-retro-dist/lib/ruby/gems/3.3.0/cache/*
+	rm -r $(LIBDIR)/_mkxp-retro-dist/lib/ruby/gems/$(RUBY_VERSION).0/cache/*
 	rm -f $(LIBDIR)/mkxp-retro-dist.zip
 	cd $(LIBDIR)/_mkxp-retro-dist && $(P7ZIP) a -bb3 -mm=zstd -mx=19 $(LIBDIR)/mkxp-retro-dist.zip *
 	rm -r $(LIBDIR)/_mkxp-retro-dist
@@ -110,10 +110,12 @@ $(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h &: sandbox-b
 	mv $(LIBDIR)/mkxp-sandbox-bindgen.h $(OUTDIR)
 	mv $(LIBDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)
 
-$(LIBDIR)/tags: $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h
+$(LIBDIR)/tags: $(LIBDIR)/tags.c
+	$(CTAGS) -R --fields=kS --kinds-c=epx -o $(LIBDIR)/tags $(LIBDIR)/tags.c
+
+$(LIBDIR)/tags.c: $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h
 	mkdir -p $(LIBDIR)
 	echo '#include <ruby.h>' | $(WASI_CC) -E -I$(DOWNLOADS)/crossruby/include -I$(DOWNLOADS)/crossruby/.ext/include/$(TARGET) -o $(LIBDIR)/tags.c -
-	$(CTAGS) -R --fields=kS --kinds-c=epx -o $(LIBDIR)/tags $(LIBDIR)/tags.c
 
 $(DOWNLOADS)/crossruby/Makefile $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h &: $(DOWNLOADS)/crossruby/configure $(RUBY) $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a $(LIBDIR)/usr/local/lib/libssl.a
 	cd $(DOWNLOADS)/crossruby && ./configure \

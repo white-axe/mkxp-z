@@ -23,29 +23,9 @@
 #include <cstdlib>
 #include <cstdarg>
 #include <cstring>
-#include <memory>
 #include "../binding-sandbox/sandbox.h"
+#include "../binding-sandbox/binding-sandbox.h"
 #include "../binding-sandbox/core.h"
-
-#define SANDBOX_AWAIT(coroutine, ...) \
-    do { \
-        { \
-            auto frame = sandbox->bindings.bind<struct coroutine>(); \
-            frame()(__VA_ARGS__); \
-            if (frame().is_complete()) break; \
-        } \
-        yield; \
-    } while (1)
-
-#define SANDBOX_AWAIT_AND_SET(variable, coroutine, ...) \
-    do { \
-        { \
-            auto frame = sandbox->bindings.bind<struct coroutine>(); \
-            variable = frame()(__VA_ARGS__); \
-            if (frame().is_complete()) break; \
-        } \
-        yield; \
-    } while (1)
 
 using namespace mkxp_retro;
 
@@ -57,12 +37,12 @@ static void fallback_log(enum retro_log_level level, const char *fmt, ...) {
 }
 
 static uint32_t *frame_buf;
-static std::unique_ptr<struct mkxp_sandbox::sandbox> sandbox;
+std::unique_ptr<struct mkxp_sandbox::sandbox> mkxp_sandbox::sandbox;
 static const char *game_path = NULL;
 
 static VALUE my_cpp_func(void *_, VALUE self, VALUE args) {
-    struct co : boost::asio::coroutine {
-        inline co(struct mkxp_sandbox::bindings &bind) {}
+    struct coro : boost::asio::coroutine {
+        inline coro(struct mkxp_sandbox::bindings &bind) {}
 
         void operator()(VALUE args) {
             reenter (this) {
@@ -72,14 +52,14 @@ static VALUE my_cpp_func(void *_, VALUE self, VALUE args) {
         }
     };
 
-    sandbox->bindings.bind<struct co>()()(args);
+    mkxp_sandbox::sandbox->bindings.bind<struct coro>()()(args);
 
     return self;
 }
 
 static VALUE func(void *_, VALUE arg) {
-    struct co : boost::asio::coroutine {
-        inline co(struct mkxp_sandbox::bindings &bind) {}
+    struct coro : boost::asio::coroutine {
+        inline coro(struct mkxp_sandbox::bindings &bind) {}
 
         void operator()() {
             reenter (this) {
@@ -92,6 +72,8 @@ static VALUE func(void *_, VALUE arg) {
 
                 SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "p Dir.glob '/mkxp-retro-game/*'");
 
+                SANDBOX_AWAIT(mkxp_sandbox::run_rmxp_scripts);
+
                 SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "throw 'Throw an error on purpose to see if we can catch it'");
 
                 SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "puts 'Unreachable code'");
@@ -99,24 +81,24 @@ static VALUE func(void *_, VALUE arg) {
         }
     };
 
-    sandbox->bindings.bind<struct co>()()();
+    mkxp_sandbox::sandbox->bindings.bind<struct coro>()()();
 
     return arg;
 }
 
-static VALUE rescue(void *_, VALUE arg, VALUE error) {
-    struct co : boost::asio::coroutine {
-        inline co(struct mkxp_sandbox::bindings &bind) {}
+static VALUE rescue(void *_, VALUE arg, VALUE exception) {
+    struct coro : boost::asio::coroutine {
+        inline coro(struct mkxp_sandbox::bindings &bind) {}
 
-        void operator()(VALUE error) {
+        void operator()(VALUE exception) {
             reenter (this) {
                 SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "puts 'Entered rescue()'");
-                SANDBOX_AWAIT(mkxp_sandbox::rb_p, error);
+                SANDBOX_AWAIT(mkxp_sandbox::rb_p, exception);
             }
         }
     };
 
-    sandbox->bindings.bind<struct co>()()(error);
+    mkxp_sandbox::sandbox->bindings.bind<struct coro>()()(exception);
 
     return arg;
 }
@@ -130,14 +112,14 @@ static bool init_sandbox() {
         }
     };
 
-    sandbox.reset();
+    mkxp_sandbox::sandbox.reset();
 
     try {
-        sandbox.reset(new struct mkxp_sandbox::sandbox(game_path));
-        sandbox->run<struct main>();
+        mkxp_sandbox::sandbox.reset(new struct mkxp_sandbox::sandbox(game_path));
+        mkxp_sandbox::sandbox->run<struct main>();
     } catch (SandboxException) {
         log_printf(RETRO_LOG_ERROR, "Failed to initialize Ruby\n");
-        sandbox.reset();
+        mkxp_sandbox::sandbox.reset();
         return false;
     }
 
@@ -277,7 +259,7 @@ extern "C" RETRO_API bool retro_load_game_special(unsigned int type, const struc
 }
 
 extern "C" RETRO_API void retro_unload_game() {
-    sandbox.reset();
+    mkxp_sandbox::sandbox.reset();
 }
 
 extern "C" RETRO_API unsigned int retro_get_region() {
