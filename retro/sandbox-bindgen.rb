@@ -69,6 +69,13 @@ ARG_HANDLERS = {
       }
     HEREDOC
   },
+  'volatile VALUE *' => {
+    keep: true,
+    buf_size: 'sizeof(VALUE)',
+    serialize: <<~HEREDOC
+      *(VALUE *)(bind.instance->w2c_memory.data + BUF) = SERIALIZE_PTR(*ARG);
+    HEREDOC
+  },
   'VALUE (*)()' => {
     keep: true,
     anyargs: true,
@@ -101,6 +108,8 @@ RET_HANDLERS = {
   'unsigned long' => { primitive: :size },
   'long long' => { primitive: :s64 },
   'unsigned long long' => { primitive: :u64 },
+  'char *' => { primitive: :ptr },
+  'const char *' => { primitive: :ptr },
 }
 
 VAR_TYPE_TABLE = {
@@ -202,6 +211,8 @@ HEADER_START = <<~HEREDOC
           public:
 
           bindings(std::shared_ptr<struct w2c_#{MODULE_NAME}>);
+
+          inline uint8_t *operator*() { return this->instance->w2c_memory.data; }
 
           template <typename T> struct stack_frame {
               friend struct bindings;
@@ -375,6 +386,21 @@ declarations = []
 coroutines = []
 func_names = []
 globals = []
+consts = []
+
+File.readlines('tags', chomp: true).each do |line|
+  line = line.split("\t")
+  next unless line[3] == 'e'
+
+  const_name = line[0]
+  next unless const_name.match?(/^RUBY_Q[a-z]/)
+  const_name = const_name[6..]
+
+  signature = line[2].match(/(?<==) *(?:(?:[1-9][0-9]*)|(?:0x[0-9a-f]+))(?=[,;]?\$\/)/)
+  next if signature.nil?
+
+  consts.append("#define SANDBOX_#{const_name.upcase} #{signature[0].strip}")
+end
 
 File.readlines('tags', chomp: true).each do |line|
   line = line.split("\t")
@@ -545,7 +571,7 @@ File.readlines('tags', chomp: true).each do |line|
   coroutine_definition = <<~HEREDOC
     #{coroutine_ret} #{func_name}::operator()(#{coroutine_args.join(', ')}) {#{coroutine_vars.empty? ? '' : (coroutine_vars.map { |var| "\n    #{var} = 0;" }.join + "\n")}
         reenter (this) {
-    #{coroutine_initializer.empty? ? '' : (coroutine_initializer.split("\n").map { |line| "        #{line}" }.join("\n") + "\n\n")}        for (;;) {
+    #{coroutine_initializer.empty? ? '' : (coroutine_initializer.split("\n").map { |line| "        #{line}".rstrip }.join("\n") + "\n\n")}        for (;;) {
     #{coroutine_inner.split("\n").map { |line| "            #{line}" }.join("\n")}
             }
         }#{handler[:primitive] == :void ? '' : "\n\n    return r;"}
@@ -579,6 +605,10 @@ File.open('mkxp-sandbox-bindgen.h', 'w') do |file|
   file.write("    };")
   for declaration in declarations
     file.write("\n\n" + declaration.split("\n").map { |line| "    #{line}" }.join("\n").rstrip)
+  end
+  file.write("\n\n")
+  for const_declaration in consts
+    file.write(const_declaration + "\n")
   end
   file.write(HEADER_END)
 end

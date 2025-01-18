@@ -113,7 +113,7 @@ $(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h &: sandbox-b
 $(LIBDIR)/tags: $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h
 	mkdir -p $(LIBDIR)
 	echo '#include <ruby.h>' | $(WASI_CC) -E -I$(DOWNLOADS)/crossruby/include -I$(DOWNLOADS)/crossruby/.ext/include/$(TARGET) -o $(LIBDIR)/tags.c -
-	$(CTAGS) -R --fields=kS --kinds-c=px -o $(LIBDIR)/tags $(LIBDIR)/tags.c
+	$(CTAGS) -R --fields=kS --kinds-c=epx -o $(LIBDIR)/tags $(LIBDIR)/tags.c
 
 $(DOWNLOADS)/crossruby/Makefile $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h &: $(DOWNLOADS)/crossruby/configure $(RUBY) $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a $(LIBDIR)/usr/local/lib/libssl.a
 	cd $(DOWNLOADS)/crossruby && ./configure \
