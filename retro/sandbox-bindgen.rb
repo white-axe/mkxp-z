@@ -82,6 +82,13 @@ ARG_HANDLERS = {
     formatter: lambda { |name| "VALUE (*#{name})(void *, ANYARGS)" },
     declaration: 'VALUE (*)(void *, ANYARGS)',
   },
+  'rb_alloc_func_t' => {
+    keep: true,
+    func_ptr_args: [:size],
+    func_ptr_rets: [:size],
+    formatter: lambda { |name| "VALUE (*#{name})(void *, VALUE)" },
+    declaration: 'VALUE (*)(void *, VALUE)',
+  },
   'VALUE (*)(VALUE)' => {
     keep: true,
     func_ptr_args: [:size],

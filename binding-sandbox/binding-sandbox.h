@@ -52,6 +52,7 @@ namespace mkxp_sandbox {
 
         ID id;
         VALUE backtrace;
+        VALUE separator;
         wasm_ptr_t backtrace_str;
 
         void operator()(VALUE exception) {
@@ -60,8 +61,8 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT_AND_SET(id, mkxp_sandbox::rb_intern, "backtrace");
                 SANDBOX_AWAIT_AND_SET(backtrace, mkxp_sandbox::rb_funcall, exception, id, 0);
                 SANDBOX_AWAIT_AND_SET(id, mkxp_sandbox::rb_intern, "join");
-                SANDBOX_AWAIT_AND_SET(backtrace_str, mkxp_sandbox::rb_str_new_cstr, "\n\t");
-                SANDBOX_AWAIT_AND_SET(backtrace, mkxp_sandbox::rb_funcall, backtrace, id, 1, backtrace_str);
+                SANDBOX_AWAIT_AND_SET(separator, mkxp_sandbox::rb_str_new_cstr, "\n\t");
+                SANDBOX_AWAIT_AND_SET(backtrace, mkxp_sandbox::rb_funcall, backtrace, id, 1, separator);
                 SANDBOX_AWAIT_AND_SET(backtrace_str, mkxp_sandbox::rb_string_value_cstr, &backtrace);
                 mkxp_retro::log_printf(RETRO_LOG_ERROR, "%s\n", *mkxp_sandbox::sandbox->bindings + backtrace_str);
             }
@@ -205,7 +206,7 @@ namespace mkxp_sandbox {
                         }
 
                         if (zlib_result != Z_OK) {
-                            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Error decoding script %zu: '%s'\n", i, (const char *)(*mkxp_sandbox::sandbox->bindings + script_name));
+                            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Error decoding script %zu: '%s'\n", i, *mkxp_sandbox::sandbox->bindings + script_name);
                             break;
                         }
                     }
@@ -221,6 +222,13 @@ namespace mkxp_sandbox {
 
                 while (true) {
                     for (i = 0; i < script_count; ++i) {
+                        // Skip this script object if it's not an array
+                        SANDBOX_AWAIT_AND_SET(script, mkxp_sandbox::rb_ary_entry, scripts, i);
+                        SANDBOX_AWAIT_AND_SET(value, mkxp_sandbox::rb_obj_is_kind_of, script, mkxp_sandbox::sandbox->bindings.rb_cArray());
+                        if (value != SANDBOX_TRUE) {
+                            continue;
+                        }
+
                         SANDBOX_AWAIT_AND_SET(script_filename_value, mkxp_sandbox::rb_ary_entry, script, 1);
                         SANDBOX_AWAIT_AND_SET(script_string_value, mkxp_sandbox::rb_ary_entry, script, 3);
                         SANDBOX_AWAIT_AND_SET(value, mkxp_sandbox::eval_script, script_string_value, script_filename_value);
