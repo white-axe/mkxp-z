@@ -1184,7 +1184,6 @@ static void mriBindingExecute() {
     ruby_init();
     
     std::vector<const char*> rubyArgsC{"mkxp-z"};
-    rubyArgsC.push_back("-v");
     rubyArgsC.push_back("-e ");
     void *node;
     if (conf.jit.enabled) {

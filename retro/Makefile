@@ -58,7 +58,7 @@ clean: clean-ruby-dist clean-ruby-bindings clean-deps
 
 clean-ruby-dist:
 	rm -f $(OUTDIR)/mkxp-retro-dist.zip.c
-	rm -rf $(OUTDIR)/mkxp-retro-ruby
+	rm -rf $(LIBDIR)/mkxp-retro-ruby
 
 clean-ruby-bindings:
 	rm -f $(OUTDIR)/mkxp-sandbox-bindgen.cpp
@@ -97,6 +97,7 @@ $(LIBDIR)/mkxp-retro-dist.zip: $(LIBDIR)/mkxp-retro-dist/bin/ruby $(P7ZIP)
 	rm -r $(LIBDIR)/_mkxp-retro-dist/include
 	rm -r $(LIBDIR)/_mkxp-retro-dist/share
 	rm -r $(LIBDIR)/_mkxp-retro-dist/lib/ruby/gems/$(RUBY_VERSION).0/cache/*
+	echo '# This is a Ruby script that does nothing. We make Ruby load this file on startup just because Ruby needs to load a script on startup for some reason. No, we cannot just use `-e`: for some reason that sometimes causes the Ruby VM to crash on startup.' > $(LIBDIR)/_mkxp-retro-dist/bin/mkxp-z
 	rm -f $(LIBDIR)/mkxp-retro-dist.zip
 	cd $(LIBDIR)/_mkxp-retro-dist && $(P7ZIP) a -bb3 -mm=zstd -mx=19 $(LIBDIR)/mkxp-retro-dist.zip *
 	rm -r $(LIBDIR)/_mkxp-retro-dist
