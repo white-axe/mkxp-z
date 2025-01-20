@@ -31,15 +31,6 @@ global_args += '-DHAVE_NANOSLEEP'
 # ====================
 
 if get_option('retro') == true
-    # When Ruby is compiled to wasm32, we need `alignof(std::uint32_t) % 4 == 0`. When Ruby is compiled to wasm64, we need `alignof(std::uint64_t) % 8 == 0`.
-    # Strictly speaking, we only need to check one of these things depending on whether Ruby was compiled for wasm32 or wasm64, but I'm too lazy to figure out whether Ruby was compiled for wasm32 or wasm64 so let's just check both.
-    if compilers['cpp'].alignment('std::uint32_t', prefix: '#include <cstdint>') % 4 != 0
-        error('Alignment of `uint32_t` must be divisible by 4 for Ruby garbage collection to work.')
-    endif
-    if compilers['cpp'].alignment('std::uint64_t', prefix: '#include <cstdint>') % 8 != 0
-        error('Alignment of `uint64_t` must be divisible by 8 for Ruby garbage collection to work.')
-    endif
-
     retro_phase1 = get_option('retro_phase1_path')
 
     cmake = import('cmake')

@@ -357,6 +357,8 @@ PRELUDE = <<~HEREDOC
   #include <cstdarg>
   #include "mkxp-sandbox-bindgen.h"
 
+  static_assert(alignof(VALUE) % sizeof(VALUE) == 0, "Alignment of `VALUE` must be divisible by size of `VALUE` for Ruby garbage collection to work. If you compiled Ruby for wasm64, try compiling it for wasm32 instead.");
+
   #if WABT_BIG_ENDIAN
   #define SERIALIZE_32(value) __builtin_bswap32(value)
   #define SERIALIZE_64(value) __builtin_bswap64(value)
