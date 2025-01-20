@@ -197,8 +197,14 @@ HEADER_START = <<~HEREDOC
           typedef std::tuple<wasm_ptr_t, wasm_ptr_t, wasm_ptr_t> key_t;
 
           struct stack_frame {
+              struct bindings &bind;
+              void (*destructor)(void *ptr);
               boost::typeindex::type_index type;
               wasm_ptr_t ptr;
+              inline stack_frame(struct bindings &bind, void (*destructor)(void *ptr), boost::typeindex::type_index type, wasm_ptr_t ptr) : bind(bind), destructor(destructor), type(type), ptr(ptr) {}
+              inline ~stack_frame() {
+                  destructor(bind.instance->w2c_memory.data + ptr);
+              }
           };
 
           struct fiber {
@@ -228,6 +234,10 @@ HEADER_START = <<~HEREDOC
               struct fiber &fiber;
               wasm_ptr_t ptr;
 
+              static void stack_frame_destructor(void *ptr) {
+                  ((T *)ptr)->~T();
+              }
+
               static inline struct fiber &init_fiber(struct bindings &bind) {
                   key_t key = {
                        w2c_#{MODULE_NAME}_#{FIBER_ENTRY_POINT_FUNC}(bind.instance.get()),
@@ -242,10 +252,12 @@ HEADER_START = <<~HEREDOC
 
               static wasm_ptr_t init_inner(struct bindings &bind, struct fiber &fiber) {
                   if (fiber.stack_ptr == fiber.stack.size()) {
-                      fiber.stack.push_back((struct stack_frame){
-                          .type = boost::typeindex::type_id<T>(),
-                          .ptr = (bind.instance->w2c_0x5F_stack_pointer -= sizeof(T)),
-                      });
+                      fiber.stack.emplace_back(
+                          bind,
+                          stack_frame_destructor,
+                          boost::typeindex::type_id<T>(),
+                          (bind.instance->w2c_0x5F_stack_pointer -= sizeof(T))
+                      );
                       assert(bind.instance->w2c_0x5F_stack_pointer % sizeof(VALUE) == 0);
                       new(bind.instance->w2c_memory.data + bind.instance->w2c_0x5F_stack_pointer) T(bind);
                   } else if (fiber.stack_ptr > fiber.stack.size()) {
@@ -259,10 +271,12 @@ HEADER_START = <<~HEREDOC
                           fiber.stack.pop_back();
                       }
                       ++fiber.stack_ptr;
-                      fiber.stack.push_back((struct stack_frame){
-                          .type = boost::typeindex::type_id<T>(),
-                          .ptr = (bind.instance->w2c_0x5F_stack_pointer -= sizeof(T)),
-                      });
+                      fiber.stack.emplace_back(
+                          bind,
+                          stack_frame_destructor,
+                          boost::typeindex::type_id<T>(),
+                          (bind.instance->w2c_0x5F_stack_pointer -= sizeof(T))
+                      );
                       assert(bind.instance->w2c_0x5F_stack_pointer % sizeof(VALUE) == 0);
                       new(bind.instance->w2c_memory.data + bind.instance->w2c_0x5F_stack_pointer) T(bind);
                       return bind.instance->w2c_0x5F_stack_pointer;
@@ -283,8 +297,6 @@ HEADER_START = <<~HEREDOC
                       assert(fiber.stack.size() == fiber.stack_ptr);
                       assert(fiber.stack.back().ptr == bind.instance->w2c_0x5F_stack_pointer);
                       assert(fiber.stack.back().type == boost::typeindex::type_id<T>());
-
-                      get()->~T();
 
                       fiber.stack.pop_back();
                       bind.instance->w2c_0x5F_stack_pointer += sizeof(T);
