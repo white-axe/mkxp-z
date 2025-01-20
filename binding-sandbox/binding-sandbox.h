@@ -28,9 +28,7 @@
 
 namespace mkxp_sandbox {
     // Gets the length of a Ruby object.
-    struct length : boost::asio::coroutine {
-        inline length(struct mkxp_sandbox::bindings &bind) {}
-
+    SANDBOX_COROUTINE(length,
         ID id;
         VALUE length_value;
         wasm_size_t result;
@@ -44,12 +42,10 @@ namespace mkxp_sandbox {
 
             return result;
         }
-    };
+    )
 
     // Prints the backtrace of a Ruby exception to the log.
-    struct log_backtrace : boost::asio::coroutine {
-        inline log_backtrace(struct mkxp_sandbox::bindings &bind) {}
-
+    SANDBOX_COROUTINE(log_backtrace,
         ID id;
         VALUE backtrace;
         VALUE separator;
@@ -67,15 +63,13 @@ namespace mkxp_sandbox {
                 mkxp_retro::log_printf(RETRO_LOG_ERROR, "%s\n", *mkxp_sandbox::sandbox->bindings + backtrace_str);
             }
         }
-    };
+    )
 
     // Evaluates a script, returning the exception if it encountered an exception or `SANDBOX_UNDEF` otherwise.
-    struct eval_script : boost::asio::coroutine {
+    SANDBOX_COROUTINE(eval_script,
         private:
         static VALUE func(void *_, VALUE arg) {
-            struct coro : boost::asio::coroutine {
-                inline coro(struct mkxp_sandbox::bindings &bind) {}
-
+            SANDBOX_COROUTINE(coro,
                 VALUE string;
                 VALUE filename;
                 ID id;
@@ -88,27 +82,23 @@ namespace mkxp_sandbox {
                         SANDBOX_AWAIT(mkxp_sandbox::rb_funcall, SANDBOX_NIL, id, 3, string, SANDBOX_NIL, filename);
                     }
                 }
-            };
+            )
 
             mkxp_sandbox::sandbox->bindings.bind<struct coro>()()(arg);
             return SANDBOX_UNDEF;
         }
 
         static VALUE rescue(void *_, VALUE arg, VALUE exception) {
-            struct coro : boost::asio::coroutine {
-                inline coro(struct mkxp_sandbox::bindings &bind) {}
-
+            SANDBOX_COROUTINE(coro,
                 VALUE operator()(VALUE exception) {
                     return exception;
                 }
-            };
+            )
 
             return mkxp_sandbox::sandbox->bindings.bind<struct coro>()()(exception);
         }
 
         public:
-        inline eval_script(struct mkxp_sandbox::bindings &bind) {}
-
         VALUE value;
 
         VALUE operator()(VALUE string, VALUE filename) {
@@ -121,13 +111,10 @@ namespace mkxp_sandbox {
 
             return value;
         }
-
-    };
+    )
 
     // Runs the game scripts.
-    struct run_rmxp_scripts : boost::asio::coroutine {
-        inline run_rmxp_scripts(struct mkxp_sandbox::bindings &bind) {}
-
+    SANDBOX_COROUTINE(run_rmxp_scripts,
         VALUE value;
         VALUE scripts;
         wasm_size_t script_count;
@@ -249,7 +236,7 @@ namespace mkxp_sandbox {
                 std::free(decode_buffer);
             }
         }
-    };
+    )
 }
 
 #endif // MKXPZ_BINDING_SANDBOX_H

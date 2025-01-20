@@ -26,10 +26,12 @@
 #include <mkxp-sandbox-bindgen.h>
 #include "types.h"
 
+#define SANDBOX_COROUTINE(name, definition) struct name : boost::asio::coroutine { BOOST_TYPE_INDEX_REGISTER_CLASS inline name(struct mkxp_sandbox::bindings &bind) {} definition };
+
 #define SANDBOX_AWAIT(coroutine, ...) \
     do { \
         { \
-            mkxp_sandbox::bindings::stack_frame<struct coroutine> frame = mkxp_sandbox::sandbox->bindings.bind<struct coroutine>(); \
+            mkxp_sandbox::bindings::stack_frame_guard<struct coroutine> frame = mkxp_sandbox::sandbox->bindings.bind<struct coroutine>(); \
             frame()(__VA_ARGS__); \
             if (frame().is_complete()) break; \
         } \
@@ -39,7 +41,7 @@
 #define SANDBOX_AWAIT_AND_SET(variable, coroutine, ...) \
     do { \
         { \
-            mkxp_sandbox::bindings::stack_frame<struct coroutine> frame = mkxp_sandbox::sandbox->bindings.bind<struct coroutine>(); \
+            mkxp_sandbox::bindings::stack_frame_guard<struct coroutine> frame = mkxp_sandbox::sandbox->bindings.bind<struct coroutine>(); \
             auto ret = frame()(__VA_ARGS__); \
             if (frame().is_complete()) { \
                 variable = ret; \

@@ -41,16 +41,14 @@ std::unique_ptr<struct mkxp_sandbox::sandbox> mkxp_sandbox::sandbox;
 static const char *game_path = NULL;
 
 static VALUE my_cpp_func(void *_, VALUE self, VALUE args) {
-    struct coro : boost::asio::coroutine {
-        inline coro(struct mkxp_sandbox::bindings &bind) {}
-
+    SANDBOX_COROUTINE(coro,
         void operator()(VALUE args) {
             reenter (this) {
                 SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "puts 'Hello from Ruby land!'");
                 SANDBOX_AWAIT(mkxp_sandbox::rb_p, args);
             }
         }
-    };
+    )
 
     mkxp_sandbox::sandbox->bindings.bind<struct coro>()()(args);
 
@@ -58,9 +56,7 @@ static VALUE my_cpp_func(void *_, VALUE self, VALUE args) {
 }
 
 static VALUE func(void *_, VALUE arg) {
-    struct coro : boost::asio::coroutine {
-        inline coro(struct mkxp_sandbox::bindings &bind) {}
-
+    SANDBOX_COROUTINE(coro,
         void operator()() {
             reenter (this) {
                 SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "puts 'Hello, World!'");
@@ -79,7 +75,7 @@ static VALUE func(void *_, VALUE arg) {
                 SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "puts 'Unreachable code'");
             }
         }
-    };
+    )
 
     mkxp_sandbox::sandbox->bindings.bind<struct coro>()()();
 
@@ -87,16 +83,14 @@ static VALUE func(void *_, VALUE arg) {
 }
 
 static VALUE rescue(void *_, VALUE arg, VALUE exception) {
-    struct coro : boost::asio::coroutine {
-        inline coro(struct mkxp_sandbox::bindings &bind) {}
-
+    SANDBOX_COROUTINE(coro,
         void operator()(VALUE exception) {
             reenter (this) {
                 SANDBOX_AWAIT(mkxp_sandbox::rb_eval_string, "puts 'Entered rescue()'");
                 SANDBOX_AWAIT(mkxp_sandbox::rb_p, exception);
             }
         }
-    };
+    )
 
     mkxp_sandbox::sandbox->bindings.bind<struct coro>()()(exception);
 
