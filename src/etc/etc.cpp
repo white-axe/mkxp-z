@@ -24,8 +24,10 @@
 #include "serial-util.h"
 #include "exception.h"
 
+#ifndef MKXPZ_RETRO
 #include <SDL_types.h>
 #include <SDL_pixels.h>
+#endif // MKXPZ_RETRO
 
 Color::Color(double red, double green, double blue, double alpha)
 	: red(red), green(green), blue(blue), alpha(alpha)
@@ -143,6 +145,7 @@ void Color::updateExternal()
 	alpha = norm.w * 255;
 }
 
+#ifndef MKXPZ_RETRO
 SDL_Color Color::toSDLColor() const
 {
 	SDL_Color c;
@@ -153,6 +156,7 @@ SDL_Color Color::toSDLColor() const
 
 	return c;
 }
+#endif // MKXPZ_RETRO
 
 
 Tone::Tone(double red, double green, double blue, double gray)

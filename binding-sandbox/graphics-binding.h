@@ -1,5 +1,5 @@
 /*
-** core.h
+** graphics-binding.h
 **
 ** This file is part of mkxp.
 **
@@ -19,24 +19,19 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MKXPZ_CORE_H
-#define MKXPZ_CORE_H
+#ifndef MKXPZ_SANDBOX_GRAPHICS_BINDING_H
+#define MKXPZ_SANDBOX_GRAPHICS_BINDING_H
 
-#include <libretro.h>
-#include <memory>
-#include "../binding-sandbox/sandbox.h"
+#include "sandbox.h"
 
-namespace mkxp_retro {
-    extern std::unique_ptr<struct mkxp_sandbox::sandbox> sandbox;
-
-    extern retro_log_printf_t log_printf;
-    extern retro_video_refresh_t video_refresh;
-    extern retro_audio_sample_t audio_sample;
-    extern retro_audio_sample_batch_t audio_sample_batch;
-    extern retro_environment_t environment;
-    extern retro_input_poll_t input_poll;
-    extern retro_input_state_t input_state;
-    extern struct retro_perf_callback perf;
+namespace mkxp_sandbox {
+    SANDBOX_COROUTINE(graphics_binding_init,
+        void operator()() {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT(rb_define_module, "Graphics");
+            }
+        }
+    )
 }
 
-#endif // MKXPZ_CORE_H
+#endif // MKXPZ_SANDBOX_GRAPHICS_BINDING_H

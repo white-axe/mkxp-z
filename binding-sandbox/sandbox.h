@@ -31,25 +31,33 @@
 #define SANDBOX_AWAIT(coroutine, ...) \
     do { \
         { \
-            mkxp_sandbox::bindings::stack_frame_guard<struct coroutine> frame = mkxp_sandbox::sandbox->bindings.bind<struct coroutine>(); \
+            mkxp_sandbox::bindings::stack_frame_guard<struct coroutine> frame = mkxp_sandbox::sb()->bind<struct coroutine>(); \
             frame()(__VA_ARGS__); \
             if (frame().is_complete()) break; \
         } \
-        yield; \
+        BOOST_ASIO_CORO_YIELD; \
     } while (1)
 
 #define SANDBOX_AWAIT_AND_SET(variable, coroutine, ...) \
     do { \
         { \
-            mkxp_sandbox::bindings::stack_frame_guard<struct coroutine> frame = mkxp_sandbox::sandbox->bindings.bind<struct coroutine>(); \
+            mkxp_sandbox::bindings::stack_frame_guard<struct coroutine> frame = mkxp_sandbox::sb()->bind<struct coroutine>(); \
             auto ret = frame()(__VA_ARGS__); \
             if (frame().is_complete()) { \
                 variable = ret; \
                 break; \
             } \
         } \
-        yield; \
+        BOOST_ASIO_CORO_YIELD; \
     } while (1)
+
+namespace mkxp_sandbox {
+    struct sandbox;
+}
+
+namespace mkxp_retro {
+    extern std::unique_ptr<struct mkxp_sandbox::sandbox> sandbox;
+}
 
 namespace mkxp_sandbox {
     struct sandbox {
@@ -61,6 +69,8 @@ namespace mkxp_sandbox {
 
         public:
         struct mkxp_sandbox::bindings bindings;
+        inline struct mkxp_sandbox::bindings &operator*() noexcept { return bindings; }
+        inline struct mkxp_sandbox::bindings *operator->() noexcept { return &bindings; }
         sandbox(const char *game_path);
         ~sandbox();
 
@@ -74,7 +84,9 @@ namespace mkxp_sandbox {
         }
     };
 
-    extern std::unique_ptr<struct mkxp_sandbox::sandbox> sandbox;
+    inline struct sandbox &sb() noexcept {
+        return *mkxp_retro::sandbox;
+    }
 }
 
 #endif // MKXPZ_SANDBOX_H

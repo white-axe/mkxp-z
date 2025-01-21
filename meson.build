@@ -101,7 +101,7 @@ if get_option('retro') == true
     retro_defines = [
         '-DWASM_RT_SKIP_SIGNAL_RECOVERY',
         '-DWASM_RT_TRAP_HANDLER=mkxp_sandbox_trap_handler',
-        '-DMKXPZ_RETRO=1',
+        '-DMKXPZ_RETRO',
     ]
     if host_endian == 'big'
         retro_defines += '-DWABT_BIG_ENDIAN=1'
@@ -160,14 +160,22 @@ if get_option('retro') == true
         gnu_symbol_visibility: 'hidden',
         include_directories: [
             include_directories('.'),
+            include_directories('src'),
+            include_directories('src/display'),
+            include_directories('src/etc'),
+            include_directories('src/util'),
             include_directories(retro_phase1),
             include_directories(join_paths(retro_phase1, 'wasm2c')),
             include_directories(join_paths(retro_phase1, 'mkxp-retro-ruby')),
         ],
         sources: [
             'src/core.cpp',
+            'src/etc/etc.cpp',
+            'src/etc/table.cpp',
+            'binding-sandbox/binding-util.cpp',
             'binding-sandbox/sandbox.cpp',
             'binding-sandbox/wasi.cpp',
+            'binding/module_rpg.cpp',
             join_paths(retro_phase1, 'wasm2c/wasm-rt-impl.c'),
             join_paths(retro_phase1, 'wasm2c/wasm-rt-mem-impl.c'),
             join_paths(retro_phase1, 'mkxp-sandbox-bindgen.cpp'),

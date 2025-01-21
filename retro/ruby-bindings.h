@@ -25,6 +25,7 @@
 #define SANDBOX_RUBY_BINDINGS_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include "wasm/asyncify.h"
 #include "wasm/fiber.h"
@@ -55,21 +56,42 @@ MKXP_SANDBOX_API void mkxp_sandbox_free(void *ptr) {
     free(ptr);
 }
 
-static void (*_mkxp_sandbox_fiber_entry_point)(void *, void *) = NULL;
-static void *_mkxp_sandbox_fiber_arg0 = NULL;
-static void *_mkxp_sandbox_fiber_arg1 = NULL;
+/* The offset of the `data` field within a `struct RTypedData`. */
+MKXP_SANDBOX_API size_t mkxp_sandbox_rtypeddata_data_offset = offsetof(struct RTypedData, data);
 
-MKXP_SANDBOX_API void *mkxp_sandbox_fiber_entry_point(void) {
-    return (void *)_mkxp_sandbox_fiber_entry_point;
+/* Calls the `dmark()` function from a `struct RTypedData *` on a given memory location. */
+MKXP_SANDBOX_API void mkxp_sandbox_rtypeddata_dmark(struct RTypedData *data, void *ptr) {
+    if (data->type->function.dmark != NULL) {
+        data->type->function.dmark(ptr);
+    }
 }
 
-MKXP_SANDBOX_API void *mkxp_sandbox_fiber_arg0(void) {
-    return _mkxp_sandbox_fiber_arg0;
+/* Calls the `dfree()` function from a `struct RTypedData *` on a given memory location. */
+MKXP_SANDBOX_API void mkxp_sandbox_rtypeddata_dfree(struct RTypedData *data, void *ptr) {
+    if (data->type->function.dfree != NULL) {
+        data->type->function.dfree(ptr);
+    }
 }
 
-MKXP_SANDBOX_API void *mkxp_sandbox_fiber_arg1(void) {
-    return _mkxp_sandbox_fiber_arg1;
+/* Calls the `dsize()` function from a `struct RTypedData *` on a given memory location. */
+MKXP_SANDBOX_API size_t mkxp_sandbox_rtypeddata_dsize(struct RTypedData *data, const void *ptr) {
+    if (data->type->function.dsize != NULL) {
+        return data->type->function.dsize(ptr);
+    } else {
+        return 0;
+    }
 }
+
+/* Calls the `dcompact()` function from a `struct RTypedData *` on a given memory location. */
+MKXP_SANDBOX_API void mkxp_sandbox_rtypeddata_dcompact(struct RTypedData *data, void *ptr) {
+    if (data->type->function.dcompact != NULL) {
+        data->type->function.dcompact(ptr);
+    }
+}
+
+MKXP_SANDBOX_API void (*mkxp_sandbox_fiber_entry_point)(void *, void *) = NULL;
+MKXP_SANDBOX_API void *mkxp_sandbox_fiber_arg0 = NULL;
+MKXP_SANDBOX_API void *mkxp_sandbox_fiber_arg1 = NULL;
 
 /* This function drives Ruby's asynchronous runtime. It's based on the `rb_wasm_rt_start()` function from wasm/runtime.c in the Ruby source code.
  * After calling any function that starts with `rb_` or `ruby_` other than `ruby_sysinit()`, you need to call `mkxp_sandbox_yield()`.
@@ -86,8 +108,8 @@ MKXP_SANDBOX_API bool mkxp_sandbox_yield(void) {
 
     while (1) {
         if (unwound) {
-            if (_mkxp_sandbox_fiber_entry_point != NULL) {
-                _mkxp_sandbox_fiber_entry_point(_mkxp_sandbox_fiber_arg0, _mkxp_sandbox_fiber_arg1);
+            if (mkxp_sandbox_fiber_entry_point != NULL) {
+                mkxp_sandbox_fiber_entry_point(mkxp_sandbox_fiber_arg0, mkxp_sandbox_fiber_arg1);
             } else {
                 return true;
             }
@@ -110,7 +132,7 @@ MKXP_SANDBOX_API bool mkxp_sandbox_yield(void) {
             continue;
         }
 
-        asyncify_buf = rb_wasm_handle_fiber_unwind(&_mkxp_sandbox_fiber_entry_point, &_mkxp_sandbox_fiber_arg0, &_mkxp_sandbox_fiber_arg1, &new_fiber_started);
+        asyncify_buf = rb_wasm_handle_fiber_unwind(&mkxp_sandbox_fiber_entry_point, &mkxp_sandbox_fiber_arg0, &mkxp_sandbox_fiber_arg1, &new_fiber_started);
         if (asyncify_buf != NULL) {
             asyncify_start_rewind(asyncify_buf);
             continue;
@@ -121,7 +143,7 @@ MKXP_SANDBOX_API bool mkxp_sandbox_yield(void) {
         break;
     }
 
-    _mkxp_sandbox_fiber_entry_point = NULL;
+    mkxp_sandbox_fiber_entry_point = NULL;
     new_fiber_started = false;
     return false;
 }
