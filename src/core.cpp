@@ -41,7 +41,7 @@ static uint32_t *frame_buf;
 std::unique_ptr<struct sandbox> mkxp_retro::sandbox;
 static const char *game_path = NULL;
 
-static VALUE my_cpp_func(void *_, VALUE self, VALUE args) {
+static VALUE my_cpp_func(VALUE self, VALUE args) {
     SANDBOX_COROUTINE(coro,
         void operator()(VALUE args) {
             BOOST_ASIO_CORO_REENTER (this) {
@@ -56,7 +56,7 @@ static VALUE my_cpp_func(void *_, VALUE self, VALUE args) {
     return self;
 }
 
-static VALUE func(void *_, VALUE arg) {
+static VALUE func(VALUE arg) {
     SANDBOX_COROUTINE(coro,
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
@@ -64,7 +64,7 @@ static VALUE func(void *_, VALUE arg) {
 
                 SANDBOX_AWAIT(rb_eval_string, "require 'zlib'; p Zlib::Deflate::deflate('hello')");
 
-                SANDBOX_AWAIT(rb_define_global_function, "my_cpp_func", (VALUE (*)(void *, ANYARGS))my_cpp_func, -2);
+                SANDBOX_AWAIT(rb_define_global_function, "my_cpp_func", (VALUE (*)(ANYARGS))my_cpp_func, -2);
                 SANDBOX_AWAIT(rb_eval_string, "my_cpp_func(1, nil, 3, 'this is a string', :symbol, 2)");
 
                 SANDBOX_AWAIT(rb_eval_string, "p Dir.glob '/mkxp-retro-game/*'");
@@ -83,7 +83,7 @@ static VALUE func(void *_, VALUE arg) {
     return arg;
 }
 
-static VALUE rescue(void *_, VALUE arg, VALUE exception) {
+static VALUE rescue(VALUE arg, VALUE exception) {
     SANDBOX_COROUTINE(coro,
         void operator()(VALUE exception) {
             BOOST_ASIO_CORO_REENTER (this) {

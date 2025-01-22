@@ -41,7 +41,7 @@ namespace mkxp_sandbox {
                 table_type = sb()->rb_data_type("Table", NULL, dfree, NULL, NULL, 0, 0, 0);
                 SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Table", sb()->rb_cObject());
                 SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
-                SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(void *, ...))load, 1);
+                SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(ANYARGS))load, 1);
             }
         }
     )

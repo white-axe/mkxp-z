@@ -41,7 +41,7 @@ namespace mkxp_sandbox {
     // Evaluates a script, returning the exception if it encountered an exception or `SANDBOX_UNDEF` otherwise.
     SANDBOX_COROUTINE(eval_script,
         private:
-        static VALUE func(void *_, VALUE arg) {
+        static VALUE func(VALUE arg) {
             SANDBOX_COROUTINE(coro,
                 VALUE string;
                 VALUE filename;
@@ -61,7 +61,7 @@ namespace mkxp_sandbox {
             return SANDBOX_UNDEF;
         }
 
-        static VALUE rescue(void *_, VALUE arg, VALUE exception) {
+        static VALUE rescue(VALUE arg, VALUE exception) {
             SANDBOX_COROUTINE(coro,
                 VALUE operator()(VALUE exception) {
                     return exception;
@@ -212,7 +212,7 @@ namespace mkxp_sandbox {
     )
 
     SANDBOX_COROUTINE(sandbox_binding_init,
-        static VALUE load_data(void *_, VALUE self, VALUE path) {
+        static VALUE load_data(VALUE self, VALUE path) {
             SANDBOX_COROUTINE(coro,
                 VALUE value;
                 VALUE file;
@@ -246,7 +246,7 @@ namespace mkxp_sandbox {
 
                 SANDBOX_AWAIT(graphics_binding_init);
 
-                SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "load_data", (VALUE (*)(void *, ANYARGS))load_data, 1);
+                SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "load_data", (VALUE (*)(ANYARGS))load_data, 1);
 
                 // TODO: pick the correct module to load depending on RPG Maker version
                 SANDBOX_AWAIT(rb_eval_string, module_rpg1);

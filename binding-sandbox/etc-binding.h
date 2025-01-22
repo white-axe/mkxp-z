@@ -44,7 +44,7 @@ namespace mkxp_sandbox {
                     color_type = sb()->rb_data_type("Color", NULL, dfree, NULL, NULL, 0, 0, 0);
                     SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Color", sb()->rb_cObject());
                     SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
-                    SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(void *, ...))load, 1);
+                    SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(ANYARGS))load, 1);
                 }
             }
         )
@@ -61,7 +61,7 @@ namespace mkxp_sandbox {
                     tone_type = sb()->rb_data_type("Tone", NULL, dfree, NULL, NULL, 0, 0, 0);
                     SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Tone", sb()->rb_cObject());
                     SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
-                    SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(void *, ...))load, 1);
+                    SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(ANYARGS))load, 1);
                 }
             }
         )
@@ -78,7 +78,7 @@ namespace mkxp_sandbox {
                     rect_type = sb()->rb_data_type("Rect", NULL, dfree, NULL, NULL, 0, 0, 0);
                     SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Rect", sb()->rb_cObject());
                     SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
-                    SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(void *, ...))load, 1);
+                    SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(ANYARGS))load, 1);
                 }
             }
         )

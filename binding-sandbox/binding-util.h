@@ -26,7 +26,7 @@
 #include "sandbox.h"
 
 #define SANDBOX_DEF_ALLOC(rbtype) \
-    static VALUE alloc(void *_instance, VALUE _klass) { \
+    static VALUE alloc(VALUE _klass) { \
         SANDBOX_COROUTINE(alloc, \
             VALUE _obj; \
             VALUE operator()(VALUE _klass) { \
@@ -40,7 +40,7 @@
     }
 
 #define SANDBOX_DEF_ALLOC_WITH_INIT(rbtype, initializer) \
-    static VALUE alloc(void *_instance, VALUE _klass) { \
+    static VALUE alloc(VALUE _klass) { \
         SANDBOX_COROUTINE(alloc, \
             VALUE _obj; \
             VALUE operator()(VALUE _klass) { \
@@ -55,12 +55,12 @@
     }
 
 #define SANDBOX_DEF_DFREE(T) \
-    static void dfree(void *_instance, wasm_ptr_t _buf) { \
+    static void dfree(wasm_ptr_t _buf) { \
         delete *(T **)(**mkxp_sandbox::sb() + _buf); \
     }
 
 #define SANDBOX_DEF_LOAD(T) \
-    static VALUE load(void *_instance, VALUE _self, VALUE _serialized) { \
+    static VALUE load(VALUE _self, VALUE _serialized) { \
         SANDBOX_COROUTINE(load, \
             struct mkxp_sandbox::_load::load_struct _data; \
             VALUE operator()(VALUE _self, VALUE _serialized) { \

@@ -112,7 +112,7 @@ $(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h &: sandbox-b
 	mv $(LIBDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)
 
 $(LIBDIR)/tags: $(LIBDIR)/tags.c
-	$(CTAGS) -R --fields=kS --kinds-c=epx -o $(LIBDIR)/tags $(LIBDIR)/tags.c
+	$(CTAGS) --fields=kS --kinds-c=epx -o $(LIBDIR)/tags $(LIBDIR)/tags.c
 
 $(LIBDIR)/tags.c: $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h
 	mkdir -p $(LIBDIR)
