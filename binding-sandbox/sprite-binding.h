@@ -23,12 +23,28 @@
 #define MKXPZ_SANDBOX_SPRITE_BINDING_H
 
 #include "sandbox.h"
+#include "binding-util.h"
+#include "sprite.h"
 
 namespace mkxp_sandbox {
+    static struct mkxp_sandbox::bindings::rb_data_type sprite_type;
+
     SANDBOX_COROUTINE(sprite_binding_init,
+        SANDBOX_DEF_ALLOC(sprite_type)
+        SANDBOX_DEF_DFREE(Sprite)
+
+        static VALUE todo(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            return self;
+        }
+
+        VALUE klass;
+
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT(rb_define_class, "Sprite", sb()->rb_cObject());
+                sprite_type = sb()->rb_data_type("Sprite", NULL, dfree, NULL, NULL, 0, 0, 0);
+                SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Sprite", sb()->rb_cObject());
+                SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
+                SANDBOX_AWAIT(rb_define_method, klass, "bitmap=", (VALUE (*)(ANYARGS))todo, -1);
             }
         }
     )

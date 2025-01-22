@@ -26,6 +26,7 @@
 #include "bitmap.h"
 #include "etc.h"
 #include "etc-internal.h"
+#ifndef MKXPZ_RETRO
 #include "tilequad.h"
 
 #include "gl-util.h"
@@ -33,6 +34,7 @@
 #include "quadarray.h"
 #include "texpool.h"
 #include "glstate.h"
+#endif // MKXPZ_RETRO
 
 #include "sigslot/signal.hpp"
 
@@ -118,6 +120,7 @@ static const uint8_t pauseAniAlpha[] =
 
 static elementsN(pauseAniAlpha);
 
+#ifndef MKXPZ_RETRO
 /* Points to an array of quads which it doesn't own.
  * Useful for setting alpha of quads stored inside
  * bigger arrays */
@@ -136,6 +139,7 @@ struct QuadChunk
 			vert[i].color.w = value;
 	}
 };
+#endif // MKXPZ_RETRO
 
 /* Vocabulary:
  *
@@ -196,6 +200,7 @@ struct WindowPrivate
 	bool opacityDirty;
 	bool baseTexDirty;
 
+#ifndef MKXPZ_RETRO
 	ColorQuadArray baseQuadArray;
 
 	/* Used when opacity < 255 */
@@ -205,6 +210,7 @@ struct WindowPrivate
 	QuadChunk backgroundVert;
 
 	Quad baseTexQuad;
+#endif // MKXPZ_RETRO
 
 	struct WindowControls : public ViewportElement
 	{
@@ -233,6 +239,7 @@ struct WindowPrivate
 
 	WindowControls controlsElement;
 
+#ifndef MKXPZ_RETRO
 	ColorQuadArray controlsQuadArray;
 	int controlsQuadCount;
 
@@ -240,6 +247,7 @@ struct WindowPrivate
 
 	QuadChunk pauseAniVert;
 	QuadChunk cursorVert;
+#endif // MKXPZ_RETRO
 
 	uint8_t cursorAniAlphaIdx;
 	uint8_t pauseAniAlphaIdx;
@@ -272,9 +280,11 @@ struct WindowPrivate
 	{
 		refreshCursorRectCon();
 
+#ifndef MKXPZ_RETRO
 		controlsQuadArray.resize(14);
 		cursorVert.count = 9;
 		pauseAniVert.count = 1;
+#endif // MKXPZ_RETRO
 
 		prepareCon = shState->prepareDraw.connect
 		        (&WindowPrivate::prepare, this);
@@ -282,7 +292,9 @@ struct WindowPrivate
 
 	~WindowPrivate()
 	{
+#ifndef MKXPZ_RETRO
 		shState->texPool().release(baseTex);
+#endif // MKXPZ_RETRO
 		cursorRectCon.disconnect();
 		prepareCon.disconnect();
 
@@ -333,6 +345,7 @@ struct WindowPrivate
 		cornerRects.bl = IntRect(0,    h-16, 16, 16);
 		cornerRects.br = IntRect(w-16, h-16, 16, 16);
 
+#ifndef MKXPZ_RETRO
 		/* Required quad count */
 		int count = 0;
 
@@ -389,6 +402,7 @@ struct WindowPrivate
 
 		FloatRect texRect = FloatRect(0, 0, size.x, size.y);
 		baseTexQuad.setTexPosRect(texRect, texRect);
+#endif // MKXPZ_RETRO
 
 		opacityDirty = true;
 		baseTexDirty = true;
@@ -396,10 +410,12 @@ struct WindowPrivate
 
 	void updateBaseAlpha()
 	{
+#ifndef MKXPZ_RETRO
 		/* This is always applied unconditionally */
 		backgroundVert.setAlpha(backOpacity.norm);
 
 		baseTexQuad.setColor(Vec4(1, 1, 1, opacity.norm));
+#endif // MKXPZ_RETRO
 
 		baseTexDirty = true;
 	}
@@ -407,6 +423,7 @@ struct WindowPrivate
 	void ensureBaseTexReady()
 	{
 		/* Make sure texture is big enough */
+#ifndef MKXPZ_RETRO
 		int newW = baseTex.width;
 		int newH = baseTex.height;
 		bool resizeNeeded = false;
@@ -427,12 +444,14 @@ struct WindowPrivate
 
 		shState->texPool().release(baseTex);
 		baseTex = shState->texPool().request(newW, newH);
+#endif // MKXPZ_RETRO
 
 		baseTexDirty = true;
 	}
 
 	void redrawBaseTex()
 	{
+#ifndef MKXPZ_RETRO
 		/* Discard old buffer */
 		TEX::bind(baseTex.tex);
 		TEX::allocEmpty(baseTex.width, baseTex.height);
@@ -471,10 +490,12 @@ struct WindowPrivate
 		glState.blendMode.pop();
 		glState.viewport.pop();
 		TEX::setSmooth(false);
+#endif // MKXPZ_RETRO
 	}
 
 	void buildControlsVert()
 	{
+#ifndef MKXPZ_RETRO
 		int i = 0;
 		Vertex *vert = controlsQuadArray.vertices.data();
 
@@ -524,6 +545,7 @@ struct WindowPrivate
 
 		controlsQuadArray.commit();
 		controlsQuadCount = i;
+#endif // MKXPZ_RETRO
 	}
 
 	void prepare()
@@ -547,6 +569,7 @@ struct WindowPrivate
 			updateBaseQuadArray = true;
 		}
 
+#ifndef MKXPZ_RETRO
 		if (updateBaseQuadArray)
 			baseQuadArray.commit();
 
@@ -564,6 +587,7 @@ struct WindowPrivate
 				baseTexDirty = false;
 			}
 		}
+#endif // MKXPZ_RETRO
 	}
 
 	void drawBase()
@@ -574,6 +598,7 @@ struct WindowPrivate
 		if (size == Vec2i(0, 0))
 			return;
 
+#ifndef MKXPZ_RETRO
 		SimpleAlphaShader &shader = shState->shaders().simpleAlpha;
 		shader.bind();
 		shader.applyViewportProj();
@@ -595,6 +620,7 @@ struct WindowPrivate
 
 			TEX::setSmooth(false);
 		}
+#endif // MKXPZ_RETRO
 	}
 
 	void drawControls()
@@ -618,6 +644,7 @@ struct WindowPrivate
 		const IntRect windowRect(efPos, size);
 		const IntRect contentsRect(efPos + Vec2i(16), size - Vec2i(32));
 
+#ifndef MKXPZ_RETRO
 		glState.scissorTest.pushSet(true);
 		glState.scissorBox.push();
 		glState.scissorBox.setIntersect(windowRect);
@@ -652,10 +679,12 @@ struct WindowPrivate
 
 		glState.scissorBox.pop();
 		glState.scissorTest.pop();
+#endif // MKXPZ_RETRO
 	}
 
 	void updateControls()
 	{
+#ifndef MKXPZ_RETRO
 		bool updateArray = false;
 
 		if (active && cursorVert.vert)
@@ -680,6 +709,7 @@ struct WindowPrivate
 
 		if (updateArray)
 			controlsQuadArray.commit();
+#endif // MKXPZ_RETRO
 	}
 
 	void stepAnimations()
@@ -746,7 +776,9 @@ void Window::setWindowskin(Bitmap *value)
 		return;
 	}
 
+#ifndef MKXPZ_RETRO
 	value->ensureNonMega();
+#endif // MKXPZ_RETRO
 	
 	p->windowskinDispCon = value->wasDisposed.connect(&WindowPrivate::windowskinDisposal, p);
 }
@@ -771,9 +803,11 @@ void Window::setContents(Bitmap *value)
 
 	p->contentsDispCon = value->wasDisposed.connect(&WindowPrivate::contentsDisposal, p);
 
+#ifndef MKXPZ_RETRO
 	value->ensureNonMega();
 
 	p->contentsQuad.setTexPosRect(value->rect(), value->rect());
+#endif // MKXPZ_RETRO
 }
 
 void Window::setStretch(bool value)
@@ -885,7 +919,9 @@ void Window::setContentsOpacity(int value)
 		return;
 
 	p->contentsOpacity = value;
+#ifndef MKXPZ_RETRO
 	p->contentsQuad.setColor(Vec4(1, 1, 1, p->contentsOpacity.norm));
+#endif // MKXPZ_RETRO
 }
 
 void Window::initDynAttribs()

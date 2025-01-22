@@ -33,6 +33,40 @@ namespace mkxp_sandbox {
         SANDBOX_DEF_ALLOC(bitmap_type)
         SANDBOX_DEF_DFREE(Bitmap)
 
+        static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                Bitmap *bitmap;
+                wasm_ptr_t filename;
+                wasm_size_t width;
+                wasm_size_t height;
+
+                VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        if (argc == 1) {
+                            SANDBOX_AWAIT_AND_SET(filename, rb_string_value_cstr, (VALUE *)(**sb() + argv));
+                            GFX_GUARD_EXC(bitmap = new Bitmap((const char *)(**sb() + filename));)
+                        } else {
+                            SANDBOX_AWAIT_AND_SET(width, rb_num2ulong, ((VALUE *)(**sb() + argv))[0]);
+                            SANDBOX_AWAIT_AND_SET(height, rb_num2ulong, ((VALUE *)(**sb() + argv))[1]);
+                            GFX_GUARD_EXC(bitmap = new Bitmap(width, height);)
+                        }
+
+                        set_private_data(self, bitmap);
+                        //SANDBOX_AWAIT(init_props, bitmap, self); // TODO: implement
+                    }
+
+                    return self;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(argc, argv, self);
+        }
+
+        static VALUE clear(VALUE self) {
+            GFX_GUARD_EXC(get_private_data<Bitmap>(self)->clear());
+            return self;
+        }
+
         VALUE klass;
 
         void operator()() {
@@ -40,6 +74,8 @@ namespace mkxp_sandbox {
                 bitmap_type = sb()->rb_data_type("Bitmap", NULL, dfree, NULL, NULL, 0, 0, 0);
                 SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Bitmap", sb()->rb_cObject());
                 SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
+                SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+                SANDBOX_AWAIT(rb_define_method, klass, "clear", (VALUE (*)(ANYARGS))clear, 0);
             }
         }
     )

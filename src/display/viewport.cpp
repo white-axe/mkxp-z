@@ -24,11 +24,11 @@
 #include "sharedstate.h"
 #include "etc.h"
 #include "util.h"
+#ifndef MKXPZ_RETRO
 #include "quad.h"
 #include "glstate.h"
+#endif // MKXPZ_RETRO
 #include "graphics.h"
-
-#include <SDL_rect.h>
 
 #include "sigslot/signal.hpp"
 
@@ -80,14 +80,10 @@ struct ViewportPrivate
 
 	void recomputeOnScreen()
 	{
-		SDL_Rect r1 = { screenRect.x, screenRect.y,
-		                screenRect.w, screenRect.h };
-
-		SDL_Rect r2 = { rect->x,     rect->y,
-		                rect->width, rect->height };
-
-		SDL_Rect result;
-		isOnScreen = SDL_IntersectRect(&r1, &r2, &result);
+		isOnScreen = screenRect.x < rect->x + rect->width
+			&& rect->x < screenRect.x + screenRect.w
+			&& screenRect.y < rect->y + rect->height
+			&& rect->y < screenRect.y + screenRect.h;
 	}
 
 	bool needsEffectRender(bool flashing)
@@ -117,8 +113,12 @@ Viewport::Viewport()
     : SceneElement(*shState->screen()),
       sceneLink(this)
 {
+#ifdef MKXPZ_RETRO
+	initViewport(0, 0, 640, 480); // TODO: use the actual viewport size
+#else
 	const Graphics &graphics = shState->graphics();
 	initViewport(0, 0, graphics.width(), graphics.height());
+#endif // MKXPZ_RETRO
 }
 
 void Viewport::initViewport(int x, int y, int width, int height)
@@ -193,9 +193,11 @@ void Viewport::composite()
 	if (elements.getSize() == 0 && !renderEffect)
 		return;
 
+#ifndef MKXPZ_RETRO
 	/* Setup scissor */
 	glState.scissorTest.pushSet(true);
 	glState.scissorBox.pushSet(p->rect->toIntRect());
+#endif // MKXPZ_RETRO
 
 	Scene::composite();
 
@@ -205,8 +207,10 @@ void Viewport::composite()
 		scene->requestViewportRender
 		        (p->color->norm, flashColor, p->tone->norm);
 
+#ifndef MKXPZ_RETRO
 	glState.scissorBox.pop();
 	glState.scissorTest.pop();
+#endif // MKXPZ_RETRO
 }
 
 /* SceneElement */

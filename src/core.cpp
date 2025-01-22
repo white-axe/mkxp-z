@@ -109,6 +109,8 @@ static bool init_sandbox() {
 
     mkxp_retro::sandbox.reset();
 
+    SharedState::initInstance(NULL);
+
     try {
         mkxp_retro::sandbox.reset(new struct sandbox(game_path));
         sb().run<struct main>();

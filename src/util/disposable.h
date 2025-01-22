@@ -37,12 +37,16 @@ public:
 	    : disposed(false),
 	      link(this)
 	{
+#ifndef MKXPZ_RETRO
 		shState->graphics().addDisposable(this);
+#endif // MKXPZ_RETRO
 	}
 
 	virtual ~Disposable()
 	{
+#ifndef MKXPZ_RETRO
 		shState->graphics().remDisposable(this);
+#endif // MKXPZ_RETRO
 	}
 
 	void dispose()

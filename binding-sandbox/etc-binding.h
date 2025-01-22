@@ -33,9 +33,43 @@ namespace mkxp_sandbox {
 
     SANDBOX_COROUTINE(etc_binding_init,
         SANDBOX_COROUTINE(color_binding_init,
-            SANDBOX_DEF_ALLOC_WITH_INIT(color_type, new Color())
+            SANDBOX_DEF_ALLOC(color_type)
             SANDBOX_DEF_DFREE(Color)
             SANDBOX_DEF_LOAD(Color)
+
+            static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
+                SANDBOX_COROUTINE(coro,
+                    Color *color;
+                    double red;
+                    double green;
+                    double blue;
+                    double alpha;
+
+                    VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+                        BOOST_ASIO_CORO_REENTER (this) {
+                            if (argc == 0) {
+                                color = new Color();
+                            } else {
+                                SANDBOX_AWAIT_AND_SET(red, rb_num2dbl, ((VALUE *)(**sb() + argv))[0]);
+                                SANDBOX_AWAIT_AND_SET(green, rb_num2dbl, ((VALUE *)(**sb() + argv))[1]);
+                                SANDBOX_AWAIT_AND_SET(blue, rb_num2dbl, ((VALUE *)(**sb() + argv))[2]);
+                                if (argc <= 3) {
+                                    color = new Color(red, green, blue);
+                                } else {
+                                    SANDBOX_AWAIT_AND_SET(alpha, rb_num2dbl, ((VALUE *)(**sb() + argv))[3]);
+                                    color = new Color(red, green, blue, alpha);
+                                }
+                            }
+
+                            set_private_data(self, color);
+                        }
+
+                        return self;
+                    }
+                )
+
+                return sb()->bind<struct coro>()()(argc, argv, self);
+            }
 
             VALUE klass;
 
@@ -44,6 +78,7 @@ namespace mkxp_sandbox {
                     color_type = sb()->rb_data_type("Color", NULL, dfree, NULL, NULL, 0, 0, 0);
                     SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Color", sb()->rb_cObject());
                     SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
+                    SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
                     SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(ANYARGS))load, 1);
                 }
             }

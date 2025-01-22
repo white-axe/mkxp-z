@@ -21,22 +21,33 @@
 
 #include "sharedstate.h"
 
+#include "scene.h"
 #include "util.h"
+#ifndef MKXPZ_RETRO
 #include "filesystem.h"
+#endif // MKXPZ_RETRO
 #include "graphics.h"
+#ifndef MKXPZ_RETRO
 #include "input.h"
 #include "audio.h"
+#endif // MKXPZ_RETRO
 #include "glstate.h"
+#ifndef MKXPZ_RETRO
 #include "shader.h"
 #include "texpool.h"
+#endif // MKXPZ_RETRO
 #include "font.h"
+#ifndef MKXPZ_RETRO
 #include "eventthread.h"
 #include "gl-util.h"
 #include "global-ibo.h"
 #include "quad.h"
+#endif // MKXPZ_RETRO
 #include "binding.h"
 #include "exception.h"
+#ifndef MKXPZ_RETRO
 #include "sharedmidistate.h"
+#endif // MKXPZ_RETRO
 
 #include <unistd.h>
 #include <stdio.h>
@@ -63,9 +74,12 @@ static const char *gameArchExt()
 struct SharedStatePrivate
 {
 	void *bindingData;
+#ifndef MKXPZ_RETRO
 	SDL_Window *sdlWindow;
+#endif // MKXPZ_RETRO
 	Scene *screen;
 
+#ifndef MKXPZ_RETRO
 	FileSystem fileSystem;
 
 	EventThread &eThread;
@@ -88,14 +102,17 @@ struct SharedStatePrivate
 	Font *defaultFont;
 
 	TEX::ID globalTex;
+#endif // MKXPZ_RETRO
 	int globalTexW, globalTexH;
 	bool globalTexDirty;
 
+#ifndef MKXPZ_RETRO
 	TEXFBO gpTexFBO;
 
 	TEXFBO atlasTex;
 
 	Quad gpQuad;
+#endif // MKXPZ_RETRO
 
 	unsigned int stampCounter;
     
@@ -103,6 +120,7 @@ struct SharedStatePrivate
 
 	SharedStatePrivate(RGSSThreadData *threadData)
 	    : bindingData(0),
+#ifndef MKXPZ_RETRO
 	      sdlWindow(threadData->window),
 	      fileSystem(threadData->argv0, threadData->config.allowSymlinks),
 	      eThread(*threadData->ethread),
@@ -114,6 +132,7 @@ struct SharedStatePrivate
 	      audio(*threadData),
 	      _glState(threadData->config),
 	      fontState(threadData->config),
+#endif // MKXPZ_RETRO
 	      stampCounter(0)
 	{}
 	
@@ -122,6 +141,7 @@ struct SharedStatePrivate
         
         startupTime = std::chrono::steady_clock::now();
         
+#ifndef MKXPZ_RETRO
 		/* Shaders have been compiled in ShaderSet's constructor */
 		if (gl.ReleaseShaderCompiler)
 			gl.ReleaseShaderCompiler();
@@ -168,13 +188,16 @@ struct SharedStatePrivate
 		 * no need to do it on startup */
 		if (rgssVer <= 2)
 			midiState.initIfNeeded(threadData->config);
+#endif // MKXPZ_RETRO
 	}
 
 	~SharedStatePrivate()
 	{
+#ifndef MKXPZ_RETRO
 		TEX::del(globalTex);
 		TEXFBO::fini(gpTexFBO);
 		TEXFBO::fini(atlasTex);
+#endif // MKXPZ_RETRO
 	}
 };
 
@@ -184,6 +207,7 @@ void SharedState::initInstance(RGSSThreadData *threadData)
 	 * SharedState depends on GlobalIBO existing,
 	 * Font depends on SharedState existing */
 
+#ifndef MKXPZ_RETRO
 	rgssVersion = threadData->config.rgssVersion;
     
 	_globalIBO = new GlobalIBO();
@@ -191,32 +215,45 @@ void SharedState::initInstance(RGSSThreadData *threadData)
 
 	SharedState::instance = 0;
 	Font *defaultFont = 0;
+#endif // MKXPZ_RETRO
 
 	try
 	{
 		SharedState::instance = new SharedState(threadData);
+#ifndef MKXPZ_RETRO
 		Font::initDefaults(instance->p->fontState);
 		defaultFont = new Font();
+#endif // MKXPZ_RETRO
 	}
 	catch (const Exception &exc)
 	{
+#ifndef MKXPZ_RETRO
 		delete _globalIBO;
+#endif // MKXPZ_RETRO
 		delete SharedState::instance;
+#ifndef MKXPZ_RETRO
 		delete defaultFont;
+#endif // MKXPZ_RETRO
 
 		throw exc;
 	}
 
+#ifndef MKXPZ_RETRO
 	SharedState::instance->p->defaultFont = defaultFont;
+#endif // MKXPZ_RETRO
 }
 
 void SharedState::finiInstance()
 {
+#ifndef MKXPZ_RETRO
 	delete SharedState::instance->p->defaultFont;
+#endif // MKXPZ_RETRO
 
 	delete SharedState::instance;
 
+#ifndef MKXPZ_RETRO
 	delete _globalIBO;
+#endif // MKXPZ_RETRO
 }
 
 void SharedState::setScreen(Scene &screen)
@@ -231,8 +268,11 @@ void SharedState::setScreen(Scene &screen)
 	}
 
 GSATT(void*, bindingData)
+#ifndef MKXPZ_RETRO
 GSATT(SDL_Window*, sdlWindow)
+#endif // MKXPZ_RETRO
 GSATT(Scene*, screen)
+#ifndef MKXPZ_RETRO
 GSATT(FileSystem&, fileSystem)
 GSATT(EventThread&, eThread)
 GSATT(RGSSThreadData&, rtData)
@@ -246,6 +286,7 @@ GSATT(TexPool&, texPool)
 GSATT(Quad&, gpQuad)
 GSATT(SharedFontState&, fontState)
 GSATT(SharedMidiState&, midiState)
+#endif // MKXPZ_RETRO
 
 void SharedState::setBindingData(void *data)
 {
@@ -254,7 +295,9 @@ void SharedState::setBindingData(void *data)
 
 void SharedState::ensureQuadIBO(size_t minSize)
 {
+#ifndef MKXPZ_RETRO
 	_globalIBO->ensureSize(minSize);
+#endif // MKXPZ_RETRO
 }
 
 GlobalIBO &SharedState::globalIBO()
@@ -264,6 +307,7 @@ GlobalIBO &SharedState::globalIBO()
 
 void SharedState::bindTex()
 {
+#ifndef MKXPZ_RETRO
 	TEX::bind(p->globalTex);
 
 	if (p->globalTexDirty)
@@ -271,6 +315,7 @@ void SharedState::bindTex()
 		TEX::allocEmpty(p->globalTexW, p->globalTexH);
 		p->globalTexDirty = false;
 	}
+#endif // MKXPZ_RETRO
 }
 
 void SharedState::ensureTexSize(int minW, int minH, Vec2i &currentSizeOut)
@@ -290,6 +335,7 @@ void SharedState::ensureTexSize(int minW, int minH, Vec2i &currentSizeOut)
 	currentSizeOut = Vec2i(p->globalTexW, p->globalTexH);
 }
 
+#ifndef MKXPZ_RETRO
 TEXFBO &SharedState::gpTexFBO(int minW, int minH)
 {
 	bool needResize = false;
@@ -344,30 +390,37 @@ void SharedState::releaseAtlasTex(TEXFBO &tex)
 
 	p->atlasTex = tex;
 }
+#endif // MKXPZ_RETRO
 
 void SharedState::checkShutdown()
 {
+#ifndef MKXPZ_RETRO
 	if (!p->rtData.rqTerm)
 		return;
 
 	p->rtData.rqTermAck.set();
 	p->texPool.disable();
 	scriptBinding->terminate();
+#endif // MKXPZ_RETRO
 }
 
 void SharedState::checkReset()
 {
+#ifndef MKXPZ_RETRO
 	if (!p->rtData.rqReset)
 		return;
 
 	p->rtData.rqReset.clear();
 	scriptBinding->reset();
+#endif // MKXPZ_RETRO
 }
 
+#ifndef MKXPZ_RETRO
 Font &SharedState::defaultFont() const
 {
 	return *p->defaultFont;
 }
+#endif // MKXPZ_RETRO
 
 double SharedState::runTime() {
     if (!p) return 0;
@@ -387,14 +440,20 @@ SharedState::SharedState(RGSSThreadData *threadData)
 	try
 	{
 		p->init(threadData);
+#ifdef MKXPZ_RETRO
+		p->screen = new Scene(); // TODO: implement
+#else
 		p->screen = p->graphics.getScreen();
+#endif // MKXPZ_RETRO
 	}
 	catch (const Exception &exc)
 	{
+#ifndef MKXPZ_RETRO
 		// If the "error" was the user quitting the game before the path cache finished building,
 		// then just return
 		if (rtData().rqTerm)
 			return;
+#endif // MKXPZ_RETRO
 		
 		delete p;
 		SharedState::instance = 0;

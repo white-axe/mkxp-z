@@ -60,6 +60,8 @@ ARG_HANDLERS = {
   'unsigned long' => { primitive: :size },
   'long long' => { primitive: :s64 },
   'unsigned long long' => { primitive: :u64 },
+  'float' => { primitive: :f32 },
+  'double' => { primitive: :f64 },
   'const char *' => {
     keep: true,
     buf_size: 'std::strlen(ARG) + 1',
@@ -127,6 +129,8 @@ RET_HANDLERS = {
   'unsigned long' => { primitive: :size },
   'long long' => { primitive: :s64 },
   'unsigned long long' => { primitive: :u64 },
+  'float' => { primitive: :f32 },
+  'double' => { primitive: :f64 },
   'char *' => { primitive: :ptr },
   'const char *' => { primitive: :ptr },
 }

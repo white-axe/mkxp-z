@@ -111,7 +111,12 @@ private:
 	GraphicsPrivate *p;
 };
 
-#define GFX_LOCK shState->graphics().lock()
-#define GFX_UNLOCK shState->graphics().unlock()
+#ifdef MKXPZ_RETRO
+#  define GFX_LOCK // TODO
+#  define GFX_UNLOCK // TODO
+#else
+#  define GFX_LOCK shState->graphics().lock()
+#  define GFX_UNLOCK shState->graphics().unlock()
+#endif // MKXPZ_RETRO
 
 #endif // GRAPHICS_H

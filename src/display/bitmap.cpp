@@ -21,6 +21,7 @@
 
 #include "bitmap.h"
 
+#ifndef MKXPZ_RETRO
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
@@ -33,18 +34,25 @@
 #include "gl-meta.h"
 #include "quad.h"
 #include "quadarray.h"
+#endif // MKXPZ_RETRO
 #include "transform.h"
 #include "exception.h"
 
 #include "sharedstate.h"
 #include "glstate.h"
+#ifndef MKXPZ_RETRO
 #include "texpool.h"
 #include "shader.h"
 #include "filesystem.h"
+#endif // MKXPZ_RETRO
 #include "font.h"
+#ifndef MKXPZ_RETRO
 #include "eventthread.h"
+#endif // MKXPZ_RETRO
 #include "graphics.h"
+#ifndef MKXPZ_RETRO
 #include "system.h"
+#endif // MKXPZ_RETRO
 #include "util/util.h"
 
 #include "debugwriter.h"
@@ -163,7 +171,9 @@ struct BitmapPrivate
         bool playing;
         bool needsReset;
         bool loop;
+#ifndef MKXPZ_RETRO
         std::vector<TEXFBO> frames;
+#endif // MKXPZ_RETRO
         float fps;
         int lastFrame;
         double startTime, playTime;
@@ -173,6 +183,7 @@ struct BitmapPrivate
             return floor(lastFrame + (playTime / (1 / fps)));
         }
         
+#ifndef MKXPZ_RETRO
         unsigned int currentFrameI() {
             if (!playing || needsReset) return lastFrame;
             int i = currentFrameIRaw();
@@ -183,6 +194,7 @@ struct BitmapPrivate
             int i = currentFrameI();
             return frames[i];
         }
+#endif // MKXPZ_RETRO
         
         inline void play() {
             playing = true;
@@ -190,17 +202,23 @@ struct BitmapPrivate
         }
         
         inline void stop() {
+#ifndef MKXPZ_RETRO
             lastFrame = currentFrameI();
+#endif // MKXPZ_RETRO
             playing = false;
         }
         
         inline void seek(int frame) {
+#ifndef MKXPZ_RETRO
             lastFrame = clamp(frame, 0, (int)frames.size());
+#endif // MKXPZ_RETRO
         }
         
         void updateTimer() {
             if (needsReset) {
+#ifndef MKXPZ_RETRO
                 lastFrame = currentFrameI();
+#endif // MKXPZ_RETRO
                 playTime = 0;
                 startTime = shState->runTime();
                 needsReset = false;
@@ -214,7 +232,9 @@ struct BitmapPrivate
     
     sigslot::connection prepareCon;
     
+#ifndef MKXPZ_RETRO
     TEXFBO gl;
+#endif // MKXPZ_RETRO
     
     Font *font;
     
@@ -228,6 +248,7 @@ struct BitmapPrivate
      * getPixel calls. Is invalidated any time the bitmap
      * is modified */
     SDL_Surface *surface;
+#ifndef MKXPZ_RETRO
     SDL_PixelFormat *format;
     
     /* The 'tainted' area describes which parts of the
@@ -237,6 +258,7 @@ struct BitmapPrivate
      * in the texture and blit to it directly, saving
      * ourselves the expensive blending calculation */
     pixman_region16_t tainted;
+#endif // MKXPZ_RETRO
 
     // For high-resolution texture replacement.
     Bitmap *selfHires;
@@ -251,7 +273,9 @@ struct BitmapPrivate
     surface(0),
     assumingRubyGC(false)
     {
+#ifndef MKXPZ_RETRO
         format = SDL_AllocFormat(SDL_PIXELFORMAT_ABGR8888);
+#endif // MKXPZ_RETRO
         
         animation.width = 0;
         animation.height = 0;
@@ -265,20 +289,26 @@ struct BitmapPrivate
         
         prepareCon = shState->prepareDraw.connect(&BitmapPrivate::prepare, this);
         
+#ifndef MKXPZ_RETRO
         font = &shState->defaultFont();
         pixman_region_init(&tainted);
+#endif // MKXPZ_RETRO
     }
     
     ~BitmapPrivate()
     {
         prepareCon.disconnect();
+#ifndef MKXPZ_RETRO
         SDL_FreeFormat(format);
         pixman_region_fini(&tainted);
+#endif // MKXPZ_RETRO
     }
     
+#ifndef MKXPZ_RETRO
     TEXFBO &getGLTypes() {
         return (animation.enabled) ? animation.currentFrame() : gl;
     }
+#endif // MKXPZ_RETRO
     
     void prepare()
     {
@@ -289,22 +319,28 @@ struct BitmapPrivate
     
     void allocSurface()
     {
+#ifndef MKXPZ_RETRO
         surface = SDL_CreateRGBSurface(0, gl.width, gl.height, format->BitsPerPixel,
                                        format->Rmask, format->Gmask,
                                        format->Bmask, format->Amask);
+#endif // MKXPZ_RETRO
     }
     
     void clearTaintedArea()
     {
+#ifndef MKXPZ_RETRO
         pixman_region_fini(&tainted);
         pixman_region_init(&tainted);
+#endif // MKXPZ_RETRO
     }
     
     void addTaintedArea(const IntRect &rect)
     {
+#ifndef MKXPZ_RETRO
         IntRect norm = normalizedRect(rect);
         pixman_region_union_rect
         (&tainted, &tainted, norm.x, norm.y, norm.w, norm.h);
+#endif // MKXPZ_RETRO
     }
     
     void substractTaintedArea(const IntRect &rect)
@@ -312,16 +348,21 @@ struct BitmapPrivate
         if (!touchesTaintedArea(rect))
             return;
         
+#ifndef MKXPZ_RETRO
         pixman_region16_t m_reg;
         pixman_region_init_rect(&m_reg, rect.x, rect.y, rect.w, rect.h);
         
         pixman_region_subtract(&tainted, &m_reg, &tainted);
         
         pixman_region_fini(&m_reg);
+#endif // MKXPZ_RETRO
     }
     
     bool touchesTaintedArea(const IntRect &rect)
     {
+#ifdef MKXPZ_RETRO
+        return false; // TODO: implement
+#else
         pixman_box16_t box;
         box.x1 = rect.x;
         box.y1 = rect.y;
@@ -332,6 +373,7 @@ struct BitmapPrivate
         pixman_region_contains_rectangle(&tainted, &box);
         
         return result != PIXMAN_REGION_OUT;
+#endif // MKXPZ_RETRO
     }
     
     void bindTexture(ShaderBase &shader, bool substituteLoresSize = true)
@@ -346,11 +388,14 @@ struct BitmapPrivate
                 Debug() << "BUG: High-res BitmapPrivate bindTexture for animations not implemented";
             }
 
+#ifndef MKXPZ_RETRO
             TEXFBO cframe = animation.currentFrame();
             TEX::bind(cframe.tex);
             shader.setTexSize(Vec2i(cframe.width, cframe.height));
+#endif // MKXPZ_RETRO
             return;
         }
+#ifndef MKXPZ_RETRO
         TEX::bind(gl.tex);
         if (selfLores && substituteLoresSize) {
             shader.setTexSize(Vec2i(selfLores->width(), selfLores->height()));
@@ -358,17 +403,22 @@ struct BitmapPrivate
         else {
             shader.setTexSize(Vec2i(gl.width, gl.height));
         }
+#endif // MKXPZ_RETRO
     }
     
     void bindFBO()
     {
+#ifndef MKXPZ_RETRO
         FBO::bind((animation.enabled) ? animation.currentFrame().fbo : gl.fbo);
+#endif // MKXPZ_RETRO
     }
     
     void pushSetViewport(ShaderBase &shader) const
     {
+#ifndef MKXPZ_RETRO
         glState.viewport.pushSet(IntRect(0, 0, gl.width, gl.height));
         shader.applyViewportProj();
+#endif // MKXPZ_RETRO
     }
     
     void popViewport() const
@@ -379,7 +429,9 @@ struct BitmapPrivate
     void blitQuad(Quad &quad)
     {
         glState.blend.pushSet(false);
+#ifndef MKXPZ_RETRO
         quad.draw();
+#endif // MKXPZ_RETRO
         glState.blend.pop();
     }
     
@@ -388,6 +440,7 @@ struct BitmapPrivate
     {
         bindFBO();
         
+#ifndef MKXPZ_RETRO
         glState.scissorTest.pushSet(true);
         glState.scissorBox.pushSet(normalizedRect(rect));
         glState.clearColor.pushSet(color);
@@ -397,8 +450,10 @@ struct BitmapPrivate
         glState.clearColor.pop();
         glState.scissorBox.pop();
         glState.scissorTest.pop();
+#endif // MKXPZ_RETRO
     }
     
+#ifndef MKXPZ_RETRO
     static void ensureFormat(SDL_Surface *&surf, Uint32 format)
     {
         if (surf->format->format == format)
@@ -408,12 +463,15 @@ struct BitmapPrivate
         SDL_FreeSurface(surf);
         surf = surfConv;
     }
+#endif // MKXPZ_RETRO
     
     void onModified(bool freeSurface = true)
     {
         if (surface && freeSurface)
         {
+#ifndef MKXPZ_RETRO
             SDL_FreeSurface(surface);
+#endif // MKXPZ_RETRO
             surface = 0;
         }
         
@@ -421,6 +479,7 @@ struct BitmapPrivate
     }
 };
 
+#ifndef MKXPZ_RETRO
 struct BitmapOpenHandler : FileSystem::OpenHandler
 {
     // Non-GIF
@@ -487,12 +546,14 @@ struct BitmapOpenHandler : FileSystem::OpenHandler
         return (surface || gif);
     }
 };
+#endif // MKXPZ_RETRO
 
 Bitmap::Bitmap(const char *filename)
 {
     std::string hiresPrefix = "Hires/";
     std::string filenameStd = filename;
     Bitmap *hiresBitmap = nullptr;
+#ifndef MKXPZ_RETRO
     // TODO: once C++20 is required, switch to filenameStd.starts_with(hiresPrefix)
     if (shState->config().enableHires && filenameStd.compare(0, hiresPrefix.size(), hiresPrefix) != 0) {
         // Look for a high-res version of the file.
@@ -632,6 +693,7 @@ Bitmap::Bitmap(const char *filename)
     SDL_Surface *imgSurf = handler.surface;
 
     initFromSurface(imgSurf, hiresBitmap, false);
+#endif // MKXPZ_RETRO
 }
 
 Bitmap::Bitmap(int width, int height, bool isHires)
@@ -641,6 +703,7 @@ Bitmap::Bitmap(int width, int height, bool isHires)
     
     Bitmap *hiresBitmap = nullptr;
 
+#ifndef MKXPZ_RETRO
     if (shState->config().enableHires && !isHires) {
         // Create a high-res version as well.
         double scalingFactor = shState->config().textureScalingFactor;
@@ -658,19 +721,23 @@ Bitmap::Bitmap(int width, int height, bool isHires)
             delete hiresBitmap;
         throw e;
     }
+#endif // MKXPZ_RETRO
     
     p = new BitmapPrivate(this);
+#ifndef MKXPZ_RETRO
     p->gl = tex;
     p->selfHires = hiresBitmap;
     if (p->selfHires != nullptr) {
         p->gl.selfHires = &p->selfHires->getGLTypes();
     }
+#endif // MKXPZ_RETRO
     
     clear();
 }
 
 Bitmap::Bitmap(void *pixeldata, int width, int height)
 {
+#ifndef MKXPZ_RETRO
     SDL_Surface *surface = SDL_CreateRGBSurface(0, width, height, p->format->BitsPerPixel,
                                                 p->format->Rmask,
                                                 p->format->Gmask,
@@ -703,7 +770,9 @@ Bitmap::Bitmap(void *pixeldata, int width, int height)
             throw e;
         }
         
+#endif // MKXPZ_RETRO
         p = new BitmapPrivate(this);
+#ifndef MKXPZ_RETRO
         p->gl = tex;
         
         TEX::bind(p->gl.tex);
@@ -711,6 +780,7 @@ Bitmap::Bitmap(void *pixeldata, int width, int height)
         
         SDL_FreeSurface(surface);
     }
+#endif // MKXPZ_RETRO
     
     p->addTaintedArea(rect());
 }
@@ -730,6 +800,7 @@ Bitmap::Bitmap(const Bitmap &other, int frame)
     
     // TODO: Clean me up
     if (!other.isAnimated() || frame >= -1) {
+#ifndef MKXPZ_RETRO
         try {
             p->gl = shState->texPool().request(other.width(), other.height());
         } catch (const Exception &e) {
@@ -748,6 +819,7 @@ Bitmap::Bitmap(const Bitmap &other, int frame)
         }
         GLMeta::blitRectangle(rect(), rect());
         GLMeta::blitEnd();
+#endif // MKXPZ_RETRO
     }
     else {
         p->animation.enabled = true;
@@ -759,6 +831,7 @@ Bitmap::Bitmap(const Bitmap &other, int frame)
         p->animation.startTime = 0;
         p->animation.loop = other.getLooping();
         
+#ifndef MKXPZ_RETRO
         for (TEXFBO &sourceframe : other.getFrames()) {
             TEXFBO newframe;
             try {
@@ -775,6 +848,7 @@ Bitmap::Bitmap(const Bitmap &other, int frame)
             
             p->animation.frames.push_back(newframe);
         }
+#endif // MKXPZ_RETRO
     }
     
     p->addTaintedArea(rect());
@@ -784,15 +858,18 @@ Bitmap::Bitmap(TEXFBO &other)
 {
     Bitmap *hiresBitmap = nullptr;
 
+#ifndef MKXPZ_RETRO
     if (other.selfHires != nullptr) {
         // Create a high-res version as well.
         hiresBitmap = new Bitmap(*other.selfHires);
         hiresBitmap->setLores(this);
     }
+#endif // MKXPZ_RETRO
 
     p = new BitmapPrivate(this);
     p->selfHires = hiresBitmap;
 
+#ifndef MKXPZ_RETRO
     try {
         p->gl = shState->texPool().request(other.width, other.height);
     } catch (const Exception &e) {
@@ -811,6 +888,7 @@ Bitmap::Bitmap(TEXFBO &other)
         GLMeta::blitRectangle(rect(), rect());
         GLMeta::blitEnd();
     }
+#endif // MKXPZ_RETRO
 
     p->addTaintedArea(rect());
 }
@@ -837,6 +915,7 @@ Bitmap::~Bitmap()
 
 void Bitmap::initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool forceMega)
 {
+#ifndef MKXPZ_RETRO
     p->ensureFormat(imgSurf, SDL_PIXELFORMAT_ABGR8888);
     
     if (imgSurf->w > glState.caps.maxTexSize || imgSurf->h > glState.caps.maxTexSize || forceMega)
@@ -865,8 +944,10 @@ void Bitmap::initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool for
             throw e;
         }
         
+#endif // MKXPZ_RETRO
         p = new BitmapPrivate(this);
         p->selfHires = hiresBitmap;
+#ifndef MKXPZ_RETRO
         p->gl = tex;
         if (p->selfHires != nullptr) {
             p->gl.selfHires = &p->selfHires->getGLTypes();
@@ -877,6 +958,7 @@ void Bitmap::initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool for
         
         SDL_FreeSurface(imgSurf);
     }
+#endif // MKXPZ_RETRO
     
     p->addTaintedArea(rect());
 }
@@ -885,6 +967,9 @@ int Bitmap::width() const
 {
     guardDisposed();
     
+#ifdef MKXPZ_RETRO
+    return 32; // TODO: implement
+#else
     if (p->megaSurface) {
         return p->megaSurface->w;
     }
@@ -894,12 +979,16 @@ int Bitmap::width() const
     }
     
     return p->gl.width;
+#endif // MKXPZ_RETRO
 }
 
 int Bitmap::height() const
 {
     guardDisposed();
     
+#ifdef MKXPZ_RETRO
+    return 32; // TODO: implement
+#else
     if (p->megaSurface)
         return p->megaSurface->h;
     
@@ -907,6 +996,7 @@ int Bitmap::height() const
         return p->animation.height;
     
     return p->gl.height;
+#endif // MKXPZ_RETRO
 }
 
 bool Bitmap::hasHires() const{
@@ -1085,6 +1175,7 @@ void Bitmap::stretchBlt(IntRect destRect,
     SDL_Surface *srcSurf = source.megaSurface();
     SDL_Surface *blitTemp = 0;
     bool touchesTaintedArea = p->touchesTaintedArea(destRect);
+#ifndef MKXPZ_RETRO
     bool unpack_subimage = srcSurf && gl.unpack_subimage;
 
     const bool scaleIsOne = sourceRect.w == destRect.w && sourceRect.h == destRect.h;
@@ -1317,6 +1408,7 @@ void Bitmap::stretchBlt(IntRect destRect,
     
     if (blitTemp)
         SDL_FreeSurface(blitTemp);
+#endif // MKXPZ_RETRO
     
     p->addTaintedArea(destRect);
     p->onModified();
@@ -1385,6 +1477,7 @@ void Bitmap::gradientFillRect(const IntRect &rect,
         p->selfHires->gradientFillRect(IntRect(destX, destY, destWidth, destHeight), color1, color2, vertical);
     }
 
+#ifndef MKXPZ_RETRO
     SimpleColorShader &shader = shState->shaders().simpleColor;
     shader.bind();
     shader.setTranslation(Vec2i());
@@ -1414,6 +1507,7 @@ void Bitmap::gradientFillRect(const IntRect &rect,
     p->blitQuad(quad);
     
     p->popViewport();
+#endif // MKXPZ_RETRO
     
     p->addTaintedArea(rect);
     
@@ -1460,6 +1554,7 @@ void Bitmap::blur()
 
     // TODO: Is there some kind of blur radius that we need to handle for high-res mode?
 
+#ifndef MKXPZ_RETRO
     Quad &quad = shState->gpQuad();
     FloatRect rect(0, 0, width(), height());
     quad.setTexPosRect(rect, rect);
@@ -1495,6 +1590,7 @@ void Bitmap::blur()
     glState.blend.pop();
     
     shState->texPool().release(auxTex);
+#endif // MKXPZ_RETRO
     
     p->onModified();
 }
@@ -1521,6 +1617,7 @@ void Bitmap::radialBlur(int angle, int divisions)
     float opacity   = 1.0f / divisions;
     float baseAngle = -((float) angle / 2);
     
+#ifndef MKXPZ_RETRO
     ColorQuadArray qArray;
     qArray.resize(5);
     
@@ -1597,6 +1694,7 @@ void Bitmap::radialBlur(int angle, int divisions)
     shState->texPool().release(p->gl);
     p->gl = newTex;
     
+#endif // MKXPZ_RETRO
     p->onModified();
 }
 
@@ -1613,17 +1711,20 @@ void Bitmap::clear()
 
     p->bindFBO();
     
+#ifndef MKXPZ_RETRO
     glState.clearColor.pushSet(Vec4());
     
     FBO::clear();
     
     glState.clearColor.pop();
+#endif // MKXPZ_RETRO
     
     p->clearTaintedArea();
     
     p->onModified();
 }
 
+#ifndef MKXPZ_RETRO
 static uint32_t &getPixelAt(SDL_Surface *surf, SDL_PixelFormat *form, int x, int y)
 {
     size_t offset = x*form->BytesPerPixel + y*surf->pitch;
@@ -1631,6 +1732,7 @@ static uint32_t &getPixelAt(SDL_Surface *surf, SDL_PixelFormat *form, int x, int
     
     return *((uint32_t*) bytes);
 }
+#endif // MKXPZ_RETRO
 
 Color Bitmap::getPixel(int x, int y) const
 {
@@ -1689,6 +1791,7 @@ Color Bitmap::getPixel(int x, int y) const
     {
         p->allocSurface();
         
+#ifndef MKXPZ_RETRO
         FBO::bind(p->gl.fbo);
         
         glState.viewport.pushSet(IntRect(0, 0, width(), height()));
@@ -1696,14 +1799,19 @@ Color Bitmap::getPixel(int x, int y) const
         gl.ReadPixels(0, 0, width(), height(), GL_RGBA, GL_UNSIGNED_BYTE, p->surface->pixels);
         
         glState.viewport.pop();
+#endif // MKXPZ_RETRO
     }
     
+#ifdef MKXPZ_RETRO
+    return Color(); // TODO: implement
+#else
     uint32_t pixel = getPixelAt(p->surface, p->format, x, y);
     
     return Color((pixel >> p->format->Rshift) & 0xFF,
                  (pixel >> p->format->Gshift) & 0xFF,
                  (pixel >> p->format->Bshift) & 0xFF,
                  (pixel >> p->format->Ashift) & 0xFF);
+#endif // MKXPZ_RETRO
 }
 
 void Bitmap::setPixel(int x, int y, const Color &color)
@@ -1739,19 +1847,23 @@ void Bitmap::setPixel(int x, int y, const Color &color)
         (uint8_t) clamp<double>(color.alpha, 0, 255)
     };
     
+#ifndef MKXPZ_RETRO
     TEX::bind(p->gl.tex);
     TEX::uploadSubImage(x, y, 1, 1, &pixel, GL_RGBA);
+#endif // MKXPZ_RETRO
     
     p->addTaintedArea(IntRect(x, y, 1, 1));
     
     /* Setting just a single pixel is no reason to throw away the
      * whole cached surface; we can just apply the same change */
     
+#ifndef MKXPZ_RETRO
     if (p->surface)
     {
         uint32_t &surfPixel = getPixelAt(p->surface, p->format, x, y);
         surfPixel = SDL_MapRGBA(p->format, pixel[0], pixel[1], pixel[2], pixel[3]);
     }
+#endif // MKXPZ_RETRO
     
     p->onModified(false);
 }
@@ -1766,6 +1878,7 @@ bool Bitmap::getRaw(void *output, int output_size)
         Debug() << "GAME BUG: Game is calling getRaw on low-res Bitmap; you may want to patch the game to improve graphics quality.";
     }
 
+#ifndef MKXPZ_RETRO
     if (!p->animation.enabled && (p->surface || p->megaSurface)) {
         void *src = (p->megaSurface) ? p->megaSurface->pixels : p->surface->pixels;
         memcpy(output, src, output_size);
@@ -1774,6 +1887,7 @@ bool Bitmap::getRaw(void *output, int output_size)
         FBO::bind(getGLTypes().fbo);
         gl.ReadPixels(0,0,width(),height(),GL_RGBA,GL_UNSIGNED_BYTE,output);
     }
+#endif // MKXPZ_RETRO
     return true;
 }
 
@@ -1794,8 +1908,10 @@ void Bitmap::replaceRaw(void *pixel_data, int size)
     if (size != w*h*4)
         throw Exception(Exception::MKXPError, "Replacement bitmap data is not large enough (given %i bytes, need %i)", size, requiredsize);
     
+#ifndef MKXPZ_RETRO
     TEX::bind(getGLTypes().tex);
     TEX::uploadImage(w, h, pixel_data, GL_RGBA);
+#endif // MKXPZ_RETRO
     
     taintArea(IntRect(0,0,w,h));
     p->onModified();
@@ -1815,12 +1931,14 @@ void Bitmap::saveToFile(const char *filename)
         surf = (p->surface) ? p->surface : p->megaSurface;
     }
     else {
+#ifndef MKXPZ_RETRO
         surf = SDL_CreateRGBSurface(0, width(), height(),p->format->BitsPerPixel, p->format->Rmask,p->format->Gmask,p->format->Bmask,p->format->Amask);
         
         if (!surf)
             throw Exception(Exception::SDLError, "Failed to prepare bitmap for saving: %s", SDL_GetError());
         
         getRaw(surf->pixels, surf->w * surf->h * 4);
+#endif // MKXPZ_RETRO
     }
     
     // Try and determine the intended image format from the filename extension
@@ -1841,6 +1959,7 @@ void Bitmap::saveToFile(const char *filename)
         }
     }
     
+#ifndef MKXPZ_RETRO
     std::string fn_normalized = shState->fileSystem().normalize(filename, 1, 1);
     int rc;
     switch (filetype) {
@@ -1859,6 +1978,7 @@ void Bitmap::saveToFile(const char *filename)
         SDL_FreeSurface(surf);
     
     if (rc) throw Exception(Exception::SDLError, "%s", SDL_GetError());
+#endif // MKXPZ_RETRO
 }
 
 void Bitmap::hueChange(int hue)
@@ -1876,6 +1996,7 @@ void Bitmap::hueChange(int hue)
     if ((hue % 360) == 0)
         return;
     
+#ifndef MKXPZ_RETRO
     TEXFBO newTex = shState->texPool().request(width(), height());
     
     FloatRect texRect(rect());
@@ -1901,6 +2022,7 @@ void Bitmap::hueChange(int hue)
     
     shState->texPool().release(p->gl);
     p->gl = newTex;
+#endif // MKXPZ_RETRO
     
     p->onModified();
 }
@@ -1927,6 +2049,7 @@ static std::string fixupString(const char *str)
     return s;
 }
 
+#ifndef MKXPZ_RETRO
 static void applyShadow(SDL_Surface *&in, const SDL_PixelFormat &fm, const SDL_Color &c)
 {
     SDL_Surface *out = SDL_CreateRGBSurface
@@ -2013,6 +2136,7 @@ static void applyShadow(SDL_Surface *&in, const SDL_PixelFormat &fm, const SDL_C
     SDL_FreeSurface(in);
     in = out;
 }
+#endif // MKXPZ_RETRO
 
 void Bitmap::drawText(const IntRect &rect, const char *str, int align)
 {
@@ -2021,6 +2145,7 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
     GUARD_MEGA;
     GUARD_ANIMATED;
     
+#ifndef MKXPZ_RETRO
     if (hasHires()) {
         Font &loresFont = getFont();
         Font &hiresFont = p->selfHires->getFont();
@@ -2042,6 +2167,7 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
 
         return;
     }
+#endif // MKXPZ_RETRO
 
     std::string fixed = fixupString(str);
     str = fixed.c_str();
@@ -2052,6 +2178,7 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
     if (str[0] == ' ' && str[1] == '\0')
         return;
     
+#ifndef MKXPZ_RETRO
     TTF_Font *font = p->font->getSdlFont();
     const Color &fontColor = p->font->getColor();
     const Color &outColor = p->font->getOutColor();
@@ -2144,6 +2271,7 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
     Bitmap txtBitmap(txtSurf, nullptr, true);
     bool smooth = squeeze != 1.0f;
     stretchBlt(destRect, txtBitmap, sourceRect, fontColor.alpha, smooth);
+#endif // MKXPZ_RETRO
 }
 
 /* http://www.lemoda.net/c/utf8-to-ucs2/index.html */
@@ -2200,6 +2328,9 @@ IntRect Bitmap::textSize(const char *str)
     // TODO: High-res Bitmap textSize not implemented, but I think it's the same as low-res?
     // Need to double-check this.
 
+#ifdef MKXPZ_RETRO
+    return IntRect(); // TODO: implement
+#else
     TTF_Font *font = p->font->getSdlFont();
     
     std::string fixed = fixupString(str);
@@ -2218,6 +2349,7 @@ IntRect Bitmap::textSize(const char *str)
         TTF_GlyphMetrics(font, ucs2, 0, 0, 0, 0, &w);
     
     return IntRect(0, 0, w, h);
+#endif // MKXPZ_RETRO
 }
 
 DEF_ATTR_RD_SIMPLE(Bitmap, Font, Font&, *p->font)
@@ -2225,27 +2357,33 @@ DEF_ATTR_RD_SIMPLE(Bitmap, Font, Font&, *p->font)
 void Bitmap::setFont(Font &value)
 {
     // High-res support handled in drawText, not here.
+#ifndef MKXPZ_RETRO
     *p->font = value;
+#endif // MKXPZ_RETRO
 }
 
 void Bitmap::setInitFont(Font *value)
 {
     if (hasHires()) {
         Font *hiresFont = p->selfHires->p->font;
+#ifndef MKXPZ_RETRO
         if (hiresFont && hiresFont != &shState->defaultFont())
         {
             // Disable the illegal font size check when creating a high-res font.
             hiresFont->setSize(hiresFont->getSize() * p->selfHires->width() / width(), false);
         }
+#endif // MKXPZ_RETRO
     }
 
     p->font = value;
 }
 
+#ifndef MKXPZ_RETRO
 TEXFBO &Bitmap::getGLTypes() const
 {
     return p->getGLTypes();
 }
+#endif // MKXPZ_RETRO
 
 SDL_Surface *Bitmap::surface() const
 {
@@ -2336,7 +2474,11 @@ bool Bitmap::isPlaying() const
     if (p->animation.loop)
         return true;
     
+#ifdef MKXPZ_RETRO
+    return false; // TODO: implement
+#else
     return p->animation.currentFrameIRaw() < p->animation.frames.size();
+#endif // MKXPZ_RETRO
 }
 
 void Bitmap::gotoAndStop(int frame)
@@ -2376,9 +2518,14 @@ int Bitmap::numFrames() const
     }
 
     if (!p->animation.enabled) return 1;
+#ifdef MKXPZ_RETRO
+    return 0; // TODO: implement
+#else
     return (int)p->animation.frames.size();
+#endif // MKXPZ_RETRO
 }
 
+#ifndef MKXPZ_RETRO
 int Bitmap::currentFrameI() const
 {
     guardDisposed();
@@ -2390,6 +2537,7 @@ int Bitmap::currentFrameI() const
     if (!p->animation.enabled) return 0;
     return p->animation.currentFrameI();
 }
+#endif // MKXPZ_RETRO
 
 int Bitmap::addFrame(Bitmap &source, int position)
 {
@@ -2410,6 +2558,7 @@ int Bitmap::addFrame(Bitmap &source, int position)
         throw Exception(Exception::MKXPError, "Animations with varying dimensions are not supported (%ix%i vs %ix%i)",
                         source.width(), source.height(), width(), height());
     
+#ifndef MKXPZ_RETRO
     TEXFBO newframe = shState->texPool().request(source.width(), source.height());
     
     // Convert the bitmap into an animated bitmap if it isn't already one
@@ -2444,14 +2593,23 @@ int Bitmap::addFrame(Bitmap &source, int position)
         GLMeta::blitEnd();
     }
     
+#endif // MKXPZ_RETRO
     int ret;
     
     if (position < 0) {
+#ifndef MKXPZ_RETRO
         p->animation.frames.push_back(newframe);
+#endif // MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+        ret = 0; // TODO: implement
+#else
         ret = (int)p->animation.frames.size();
+#endif // MKXPZ_RETRO
     }
     else {
+#ifndef MKXPZ_RETRO
         p->animation.frames.insert(p->animation.frames.begin() + clamp(position, 0, (int)p->animation.frames.size()), newframe);
+#endif // MKXPZ_RETRO
         ret = position;
     }
     
@@ -2467,6 +2625,7 @@ void Bitmap::removeFrame(int position) {
         Debug() << "BUG: High-res Bitmap removeFrame not implemented";
     }
 
+#ifndef MKXPZ_RETRO
     int pos = (position < 0) ? (int)p->animation.frames.size() - 1 : clamp(position, 0, (int)(p->animation.frames.size() - 1));
     shState->texPool().release(p->animation.frames[pos]);
     p->animation.frames.erase(p->animation.frames.begin() + pos);
@@ -2486,6 +2645,7 @@ void Bitmap::removeFrame(int position) {
         FBO::bind(p->gl.fbo);
         taintArea(rect());
     }
+#endif // MKXPZ_RETRO
 }
 
 void Bitmap::nextFrame()
@@ -2499,11 +2659,13 @@ void Bitmap::nextFrame()
     }
 
     stop();
+#ifndef MKXPZ_RETRO
     if ((uint32_t)p->animation.lastFrame >= p->animation.frames.size() - 1)  {
         if (!p->animation.loop) return;
         p->animation.lastFrame = 0;
         return;
     }
+#endif // MKXPZ_RETRO
     
     p->animation.lastFrame++;
 }
@@ -2524,7 +2686,9 @@ void Bitmap::previousFrame()
             p->animation.lastFrame = 0;
             return;
         }
+#ifndef MKXPZ_RETRO
         p->animation.lastFrame = (int)p->animation.frames.size() - 1;
+#endif // MKXPZ_RETRO
         return;
     }
     
@@ -2547,6 +2711,7 @@ void Bitmap::setAnimationFPS(float FPS)
     if (restart) p->animation.play();
 }
 
+#ifndef MKXPZ_RETRO
 std::vector<TEXFBO> &Bitmap::getFrames() const
 {
     if (hasHires()) {
@@ -2555,6 +2720,7 @@ std::vector<TEXFBO> &Bitmap::getFrames() const
 
     return p->animation.frames;
 }
+#endif // MKXPZ_RETRO
 
 float Bitmap::getAnimationFPS() const
 {
@@ -2617,9 +2783,11 @@ void Bitmap::taintArea(const IntRect &rect)
     p->addTaintedArea(rect);
 }
 
+#ifndef MKXPZ_RETRO
 int Bitmap::maxSize(){
     return glState.caps.maxTexSize;
 }
+#endif // MKXPZ_RETRO
 
 void Bitmap::assumeRubyGC()
 {
@@ -2632,6 +2800,7 @@ void Bitmap::releaseResources()
         delete p->selfHires;
     }
 
+#ifndef MKXPZ_RETRO
     if (p->megaSurface)
         SDL_FreeSurface(p->megaSurface);
     else if (p->animation.enabled) {
@@ -2642,6 +2811,7 @@ void Bitmap::releaseResources()
     }
     else
         shState->texPool().release(p->gl);
+#endif // MKXPZ_RETRO
     
     delete p;
 }

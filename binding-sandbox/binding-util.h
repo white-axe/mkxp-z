@@ -25,6 +25,8 @@
 #include "binding-sandbox/core.h"
 #include "sandbox.h"
 
+#define GFX_GUARD_EXC(exp) exp // TODO: implement
+
 #define SANDBOX_DEF_ALLOC(rbtype) \
     static VALUE alloc(VALUE _klass) { \
         SANDBOX_COROUTINE(alloc, \
@@ -77,6 +79,11 @@
 namespace mkxp_sandbox {
     // Given Ruby typed data `obj`, stores `ptr` into the private data field of `obj`.
     void set_private_data(VALUE obj, void *ptr);
+
+    // Given Ruby typed data `obj`, retrieves the private data field of `obj`.
+    template <typename T> inline T *get_private_data(VALUE obj) {
+        return *(T **)(**sb() + *(wasm_ptr_t *)(**sb() + sb()->rtypeddata_data(obj)));
+    }
 
     // Gets the length of a Ruby object.
     SANDBOX_COROUTINE(get_length,
