@@ -106,7 +106,7 @@ sandbox::sandbox(const char *game_path) : ruby(new struct w2c_ruby), wasi(new wa
         usize state_buf = sandbox_malloc(sizeof(usize));
         AWAIT(valid = w2c_ruby_ruby_executable_node(RB, node, state_buf));
         if (valid) {
-            AWAIT(state = w2c_ruby_ruby_exec_node(RB, WASM_GET(u32, state_buf)));
+            AWAIT(state = w2c_ruby_ruby_exec_node(RB, node));
         }
         if (!valid || state) {
             throw SandboxNodeException();
