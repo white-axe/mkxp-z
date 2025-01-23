@@ -31,6 +31,7 @@
 #include "etc-binding.h"
 #include "font-binding.h"
 #include "graphics-binding.h"
+#include "input-binding.h"
 #include "sprite-binding.h"
 #include "table-binding.h"
 #include "window-binding.h"
@@ -247,6 +248,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(sprite_binding_init);
                 SANDBOX_AWAIT(window_binding_init);
 
+                SANDBOX_AWAIT(input_binding_init);
                 SANDBOX_AWAIT(audio_binding_init);
                 SANDBOX_AWAIT(graphics_binding_init);
 

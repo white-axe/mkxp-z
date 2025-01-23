@@ -174,7 +174,7 @@ end
 $call_type_hash_salt = 0
 
 def call_type_hash(call_type)
-  h = [$call_type_hash_salt, call_type].hash.to_s(36)
+  h = ([$call_type_hash_salt] + call_type).hash.to_s(36)
   if h.start_with?('-')
     h = h[1..]
   end

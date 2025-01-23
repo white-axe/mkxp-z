@@ -74,6 +74,11 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
+        static VALUE update(VALUE self) {
+            GFX_GUARD_EXC(get_private_data<Window>(self)->update();)
+            return SANDBOX_NIL;
+        }
+
         static VALUE get_contents(VALUE self) {
             return sb()->bind<struct rb_iv_get>()()(self, "contents");
         }
@@ -322,6 +327,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Window", sb()->rb_cObject());
                 SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
                 SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+                SANDBOX_AWAIT(rb_define_method, klass, "update", (VALUE (*)(ANYARGS))update, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "windowskin=", (VALUE (*)(ANYARGS))todo, -1);
                 SANDBOX_AWAIT(rb_define_method, klass, "contents", (VALUE (*)(ANYARGS))get_contents, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "contents=", (VALUE (*)(ANYARGS))set_contents, 1);

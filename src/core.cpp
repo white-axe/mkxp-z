@@ -31,6 +31,8 @@
 using namespace mkxp_retro;
 using namespace mkxp_sandbox;
 
+static size_t frame_number = 0;
+
 static void fallback_log(enum retro_log_level level, const char *fmt, ...) {
     std::va_list va;
     va_start(va, fmt);
@@ -91,6 +93,8 @@ static bool init_sandbox() {
         mkxp_retro::sandbox.reset();
         return false;
     }
+
+    frame_number = 0;
 
     return true;
 }
@@ -187,13 +191,14 @@ extern "C" RETRO_API void retro_run() {
     audio_sample(0, 0);
 
     if (mkxp_retro::sandbox.has_value()) {
-        log_printf(RETRO_LOG_INFO, "Tick\n");
+        log_printf(RETRO_LOG_INFO, "[Sandbox] Executing frame %zu\n", ++frame_number);
         try {
             if (sb().run<struct main>()) {
+                log_printf(RETRO_LOG_INFO, "[Sandbox] Ruby terminated normally\n");
                 mkxp_retro::sandbox.reset();
             }
         } catch (SandboxException) {
-            log_printf(RETRO_LOG_ERROR, "Ruby threw an exception\n");
+            log_printf(RETRO_LOG_ERROR, "[Sandbox] Ruby threw an exception\n");
             mkxp_retro::sandbox.reset();
         }
     }
