@@ -138,6 +138,8 @@ if get_option('retro') == true
             cmake.subproject('boost_core', options: boost_options).dependency('boost_core'),
             cmake.subproject('boost_container_hash', options: boost_options).dependency('boost_container_hash'),
             cmake.subproject('boost_type_index', options: boost_options).dependency('boost_type_index'),
+            cmake.subproject('boost_type_traits', options: boost_options).dependency('boost_type_traits'),
+            cmake.subproject('boost_optional', options: boost_options).dependency('boost_optional'),
             cmake.subproject(host_system == 'darwin' ? 'zlib-darwin' : 'zlib', options: zlib_options).dependency('zlibstatic'),
             cmake.subproject('bzip2', options: bzip2_options).dependency('bz2_static'),
             cmake.subproject('liblzma', options: liblzma_options).dependency('liblzma'),

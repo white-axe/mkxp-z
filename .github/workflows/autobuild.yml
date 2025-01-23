@@ -304,7 +304,7 @@ jobs:
         with:
           path: |
             retro/build/retro-phase1
-          key: retro-phase1-${{ hashFiles('retro/Makefile', 'retro/extra-ruby-bindings.h', 'retro/sandbox-bindgen.rb') }}
+          key: retro-phase1-${{ hashFiles('retro/Makefile', 'retro/ruby-bindings.h', 'retro/sandbox-bindgen.rb') }}
 
       - name: Install apt dependencies
         if: steps.cache.outputs.cache-hit != 'true'

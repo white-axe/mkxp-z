@@ -26,8 +26,10 @@
 #include "binding-sandbox/core.h"
 #include "sandbox.h"
 #include "binding-util.h"
+#include "audio-binding.h"
 #include "bitmap-binding.h"
 #include "etc-binding.h"
+#include "font-binding.h"
 #include "graphics-binding.h"
 #include "sprite-binding.h"
 #include "table-binding.h"
@@ -240,10 +242,12 @@ namespace mkxp_sandbox {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT(table_binding_init);
                 SANDBOX_AWAIT(etc_binding_init);
+                SANDBOX_AWAIT(font_binding_init);
                 SANDBOX_AWAIT(bitmap_binding_init);
                 SANDBOX_AWAIT(sprite_binding_init);
                 SANDBOX_AWAIT(window_binding_init);
 
+                SANDBOX_AWAIT(audio_binding_init);
                 SANDBOX_AWAIT(graphics_binding_init);
 
                 SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "load_data", (VALUE (*)(ANYARGS))load_data, 1);

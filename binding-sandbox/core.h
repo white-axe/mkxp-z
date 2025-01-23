@@ -23,11 +23,10 @@
 #define MKXPZ_CORE_H
 
 #include <libretro.h>
-#include <memory>
 #include "../binding-sandbox/sandbox.h"
 
 namespace mkxp_retro {
-    extern std::unique_ptr<struct mkxp_sandbox::sandbox> sandbox;
+    extern boost::optional<struct mkxp_sandbox::sandbox> sandbox;
 
     extern retro_log_printf_t log_printf;
     extern retro_video_refresh_t video_refresh;

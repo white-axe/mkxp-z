@@ -34,10 +34,18 @@
 
 #define MKXP_SANDBOX_API __attribute__((__visibility__("default")))
 
+MKXP_SANDBOX_API struct __rb_wasm_asyncify_jmp_buf mkxp_sandbox_async_buf;
+MKXP_SANDBOX_API void (*mkxp_sandbox_fiber_entry_point)(void *, void *) = NULL;
+MKXP_SANDBOX_API void *mkxp_sandbox_fiber_arg0 = NULL;
+MKXP_SANDBOX_API void *mkxp_sandbox_fiber_arg1 = NULL;
+
 /* This function should be called immediately after initializing the sandbox to perform initialization, before calling any other functions. */
 MKXP_SANDBOX_API void mkxp_sandbox_init(void) {
     void __wasm_call_ctors(void); /* Defined by wasi-libc from the WASI SDK */
     __wasm_call_ctors();
+
+    void async_buf_init(struct __rb_wasm_asyncify_jmp_buf *); /* Defined in wasm/setjmp.c in Ruby source code */
+    async_buf_init(&mkxp_sandbox_async_buf);
 }
 
 /* This function should be called immediately before deinitializing the sandbox. */
@@ -88,10 +96,6 @@ MKXP_SANDBOX_API void mkxp_sandbox_rtypeddata_dcompact(struct RTypedData *data, 
         data->type->function.dcompact(ptr);
     }
 }
-
-MKXP_SANDBOX_API void (*mkxp_sandbox_fiber_entry_point)(void *, void *) = NULL;
-MKXP_SANDBOX_API void *mkxp_sandbox_fiber_arg0 = NULL;
-MKXP_SANDBOX_API void *mkxp_sandbox_fiber_arg1 = NULL;
 
 /* This function drives Ruby's asynchronous runtime. It's based on the `rb_wasm_rt_start()` function from wasm/runtime.c in the Ruby source code.
  * After calling any function that starts with `rb_` or `ruby_` other than `ruby_sysinit()`, you need to call `mkxp_sandbox_yield()`.

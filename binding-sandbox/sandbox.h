@@ -23,6 +23,7 @@
 #define MKXPZ_SANDBOX_H
 
 #include <memory>
+#include <boost/optional.hpp>
 #include <mkxp-sandbox-bindgen.h>
 #include "types.h"
 
@@ -31,7 +32,7 @@
 #define SANDBOX_AWAIT(coroutine, ...) \
     do { \
         { \
-            mkxp_sandbox::bindings::stack_frame_guard<struct coroutine> frame = mkxp_sandbox::sb()->bind<struct coroutine>(); \
+            struct mkxp_sandbox::bindings::stack_frame_guard<struct coroutine> frame = mkxp_sandbox::sb()->bind<struct coroutine>(); \
             frame()(__VA_ARGS__); \
             if (frame().is_complete()) break; \
         } \
@@ -41,7 +42,7 @@
 #define SANDBOX_AWAIT_AND_SET(variable, coroutine, ...) \
     do { \
         { \
-            mkxp_sandbox::bindings::stack_frame_guard<struct coroutine> frame = mkxp_sandbox::sb()->bind<struct coroutine>(); \
+            struct mkxp_sandbox::bindings::stack_frame_guard<struct coroutine> frame = mkxp_sandbox::sb()->bind<struct coroutine>(); \
             auto ret = frame()(__VA_ARGS__); \
             if (frame().is_complete()) { \
                 variable = ret; \
@@ -51,12 +52,19 @@
         BOOST_ASIO_CORO_YIELD; \
     } while (1)
 
+#define SANDBOX_YIELD \
+    do { \
+        sb()._begin_yield(); \
+        BOOST_ASIO_CORO_YIELD; \
+        sb()._end_yield(); \
+    } while (0)
+
 namespace mkxp_sandbox {
     struct sandbox;
 }
 
 namespace mkxp_retro {
-    extern std::unique_ptr<struct mkxp_sandbox::sandbox> sandbox;
+    extern boost::optional<struct mkxp_sandbox::sandbox> sandbox;
 }
 
 namespace mkxp_sandbox {
@@ -64,23 +72,44 @@ namespace mkxp_sandbox {
         private:
         std::shared_ptr<struct w2c_ruby> ruby;
         std::unique_ptr<struct w2c_wasi__snapshot__preview1> wasi;
+        boost::optional<struct mkxp_sandbox::bindings> bindings;
+        bool yielding;
         usize sandbox_malloc(usize size);
         void sandbox_free(usize ptr);
 
         public:
-        struct mkxp_sandbox::bindings bindings;
-        inline struct mkxp_sandbox::bindings &operator*() noexcept { return bindings; }
-        inline struct mkxp_sandbox::bindings *operator->() noexcept { return &bindings; }
+        inline struct mkxp_sandbox::bindings &operator*() noexcept { return *bindings; }
+        inline struct mkxp_sandbox::bindings *operator->() noexcept { return &*bindings; }
         sandbox(const char *game_path);
         ~sandbox();
 
-        template <typename T> inline void run() {
-            T coroutine = T();
+        // Internal utility method of the `SANDBOX_YIELD` macro.
+        inline void _begin_yield() {
+            yielding = true;
+            w2c_ruby_asyncify_start_unwind(ruby.get(), ruby->w2c_mkxp_sandbox_async_buf);
+        }
+
+        // Internal utility method of the `SANDBOX_YIELD` macro.
+        inline void _end_yield() {
+            w2c_ruby_asyncify_stop_rewind(ruby.get());
+            yielding = false;
+        }
+
+        // Executes the given coroutine as the top-level coroutine. Don't call this from inside of another coroutine; use `sb()->bind<T>()` instead.
+        // Returns whether or not the coroutine completed execution.
+        template <typename T> inline bool run() {
+            if (yielding) {
+                w2c_ruby_asyncify_start_rewind(ruby.get(), ruby->w2c_mkxp_sandbox_async_buf);
+            }
             for (;;) {
-                coroutine();
-                if (coroutine.is_complete()) break;
+                {
+                    struct mkxp_sandbox::bindings::stack_frame_guard<T> frame = bindings->bind<T>();
+                    frame()();
+                    if (yielding || frame().is_complete()) break;
+                }
                 w2c_ruby_mkxp_sandbox_yield(ruby.get());
             }
+            return !yielding;
         }
     };
 

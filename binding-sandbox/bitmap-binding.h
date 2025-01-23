@@ -33,6 +33,21 @@ namespace mkxp_sandbox {
         SANDBOX_DEF_ALLOC(bitmap_type)
         SANDBOX_DEF_DFREE(Bitmap)
 
+        SANDBOX_COROUTINE(init_props,
+            VALUE id;
+            VALUE klass;
+            VALUE font;
+
+            void operator()(Bitmap *bitmap, VALUE obj) {
+                BOOST_ASIO_CORO_REENTER (this) {
+                    SANDBOX_AWAIT_AND_SET(id, rb_intern, "Font");
+                    SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                    SANDBOX_AWAIT_AND_SET(font, rb_class_new_instance, 0, NULL, klass);
+                    SANDBOX_AWAIT(rb_iv_set, obj, "font", font);
+                }
+            }
+        )
+
         static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
             SANDBOX_COROUTINE(coro,
                 Bitmap *bitmap;
@@ -52,7 +67,7 @@ namespace mkxp_sandbox {
                         }
 
                         set_private_data(self, bitmap);
-                        //SANDBOX_AWAIT(init_props, bitmap, self); // TODO: implement
+                        SANDBOX_AWAIT(init_props, bitmap, self);
                     }
 
                     return self;
@@ -67,6 +82,98 @@ namespace mkxp_sandbox {
             return self;
         }
 
+        static VALUE fill_rect(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                Bitmap *bitmap;
+                int x;
+                int y;
+                int width;
+                int height;
+
+                VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        bitmap = get_private_data<Bitmap>(self);
+
+                        if (argc == 2) {
+                            GFX_GUARD_EXC(bitmap->fillRect(get_private_data<Rect>(((VALUE *)(**sb() + argv))[0])->toIntRect(), get_private_data<Color>(((VALUE *)(**sb() + argv))[1])->norm);)
+                        } else {
+                            SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                            SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                            SANDBOX_AWAIT_AND_SET(width, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                            SANDBOX_AWAIT_AND_SET(height, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
+                            GFX_GUARD_EXC(bitmap->fillRect(x, y, width, height, get_private_data<Color>(((VALUE *)(**sb() + argv))[1])->norm);)
+                        }
+
+                        set_private_data(self, bitmap);
+                        SANDBOX_AWAIT(init_props, bitmap, self);
+                    }
+
+                    return self;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(argc, argv, self);
+        }
+
+        static VALUE draw_text(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                Bitmap *bitmap;
+                wasm_ptr_t str;
+                int align;
+                int x;
+                int y;
+                int width;
+                int height;
+
+                VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        bitmap = get_private_data<Bitmap>(self);
+
+                        if (argc == 2 || argc == 3) {
+                            SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, (VALUE *)(**sb() + argv) + 1);
+                            if (argc == 2) {
+                                GFX_GUARD_EXC(bitmap->drawText(get_private_data<Rect>(((VALUE *)(**sb() + argv))[0])->toIntRect(), (const char *)(**sb() + str));)
+                            } else {
+                                SANDBOX_AWAIT_AND_SET(align, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                                GFX_GUARD_EXC(bitmap->drawText(get_private_data<Rect>(((VALUE *)(**sb() + argv))[0])->toIntRect(), (const char *)(**sb() + str), align);)
+                            }
+                        } else {
+                            SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                            SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                            SANDBOX_AWAIT_AND_SET(width, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                            SANDBOX_AWAIT_AND_SET(height, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
+                            SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, (VALUE *)(**sb() + argv) + 4);
+                            if (argc < 6) {
+                                GFX_GUARD_EXC(bitmap->drawText(x, y, width, height, (const char *)(**sb() + str));)
+                            } else {
+                                SANDBOX_AWAIT_AND_SET(align, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                                GFX_GUARD_EXC(bitmap->drawText(x, y, width, height, (const char *)(**sb() + str), align);)
+                            }
+                        }
+
+                        set_private_data(self, bitmap);
+                        SANDBOX_AWAIT(init_props, bitmap, self);
+                    }
+
+                    return self;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(argc, argv, self);
+        }
+
+        static VALUE get_font(VALUE self) {
+            return sb()->bind<struct rb_iv_get>()()(self, "font");
+        }
+
+        static VALUE width(VALUE self) {
+            return sb()->bind<struct rb_ull2inum>()()(get_private_data<Bitmap>(self)->width());
+        }
+
+        static VALUE height(VALUE self) {
+            return sb()->bind<struct rb_ull2inum>()()(get_private_data<Bitmap>(self)->height());
+        }
+
         VALUE klass;
 
         void operator()() {
@@ -76,6 +183,11 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
                 SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
                 SANDBOX_AWAIT(rb_define_method, klass, "clear", (VALUE (*)(ANYARGS))clear, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "fill_rect", (VALUE (*)(ANYARGS))fill_rect, -1);
+                SANDBOX_AWAIT(rb_define_method, klass, "draw_text", (VALUE (*)(ANYARGS))draw_text, -1);
+                SANDBOX_AWAIT(rb_define_method, klass, "font", (VALUE (*)(ANYARGS))get_font, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "width", (VALUE (*)(ANYARGS))width, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "height", (VALUE (*)(ANYARGS))height, 0);
             }
         }
     )

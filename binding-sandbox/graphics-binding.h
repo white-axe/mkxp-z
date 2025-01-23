@@ -26,9 +26,32 @@
 
 namespace mkxp_sandbox {
     SANDBOX_COROUTINE(graphics_binding_init,
+        static VALUE update(VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                VALUE operator()(VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_YIELD;
+                    }
+                    return self;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self);
+        }
+
+        static VALUE todo(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            return self;
+        }
+
+        VALUE module;
+
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT(rb_define_module, "Graphics");
+                SANDBOX_AWAIT_AND_SET(module, rb_define_module, "Graphics");
+                SANDBOX_AWAIT(rb_define_module_function, module, "update", (VALUE (*)(ANYARGS))update, 0);
+                SANDBOX_AWAIT(rb_define_module_function, module, "freeze", (VALUE (*)(ANYARGS))todo, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "transition", (VALUE (*)(ANYARGS))todo, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "frame_reset", (VALUE (*)(ANYARGS))todo, -1);
             }
         }
     )
