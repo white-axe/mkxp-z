@@ -92,7 +92,6 @@ namespace mkxp_sandbox {
         // Internal utility method of the `SANDBOX_YIELD` macro.
         inline void _end_yield() {
             w2c_ruby_asyncify_stop_rewind(ruby.get());
-            yielding = false;
         }
 
         // Executes the given coroutine as the top-level coroutine. Don't call this from inside of another coroutine; use `sb()->bind<T>()` instead.
@@ -100,6 +99,7 @@ namespace mkxp_sandbox {
         template <typename T> inline bool run() {
             if (yielding) {
                 w2c_ruby_asyncify_start_rewind(ruby.get(), ruby->w2c_mkxp_sandbox_async_buf);
+                yielding = false;
             }
             for (;;) {
                 {

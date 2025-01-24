@@ -270,7 +270,17 @@ HEADER_START = <<~HEREDOC
 
           public:
 
-          bindings(std::shared_ptr<struct w2c_#{MODULE_NAME}>);
+          inline bindings(std::shared_ptr<struct w2c_#{MODULE_NAME}> m) : next_func_ptr(-1), instance(m) {}
+
+          inline ~bindings() {
+              // Destroy all stack frames in order from top to bottom to enforce a portable, compiler-independent ordering of stack frame destruction
+              // If we let the compiler use its default destructor, the stack frames may not be deallocated in a particular order, which can lead to hard-to-detect bugs if somehow a bug depends on the order in which the stack frames are deallocated
+              for (auto &it : fibers) {
+                  while (!it.second.stack.empty()) {
+                      it.second.stack.pop_back();
+                  }
+              }
+          }
 
           wasm_ptr_t sandbox_malloc(wasm_size_t);
 
@@ -454,9 +464,6 @@ PRELUDE = <<~HEREDOC
   using namespace mkxp_sandbox;
 
 
-  bindings::bindings(std::shared_ptr<struct w2c_#{MODULE_NAME}> m) : next_func_ptr(-1), instance(m) {}
-
-
   wasm_ptr_t bindings::sandbox_malloc(wasm_size_t size) {
       wasm_ptr_t buf = w2c_#{MODULE_NAME}_#{MALLOC_FUNC}(instance.get(), size);
 
@@ -531,7 +538,7 @@ POSTSCRIPT = <<~HEREDOC
 
       if (oom) {
           for (size_t i = 0; i < 2; ++i) {
-              if (ptrs[i] != 0) try { sandbox_free(ptrs[i]); } catch (SandboxTrapException) {}
+              if (ptrs[i] != 0) sandbox_free(ptrs[i]);
           }
           throw SandboxOutOfMemoryException();
       }
@@ -810,7 +817,7 @@ File.readlines('tags', chomp: true).each do |line|
 
   coroutine_destructor = buffers.empty? ? '' : <<~HEREDOC
     #{func_name}::~#{func_name}() {
-    #{(0...buffers.length).map { |i| "    if (#{buffers[buffers.length - 1 - i]} != 0) try { bind.sandbox_free(#{buffers[buffers.length - 1 - i]}); } catch (SandboxTrapException) {}" }.join("\n")}
+    #{(0...buffers.length).map { |i| "    if (#{buffers[buffers.length - 1 - i]} != 0) bind.sandbox_free(#{buffers[buffers.length - 1 - i]});" }.join("\n")}
     }
   HEREDOC
 
