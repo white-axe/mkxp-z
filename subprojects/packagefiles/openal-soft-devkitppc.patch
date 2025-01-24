@@ -1,0 +1,96 @@
+# devkitPPC does not provide POSIX semaphores, which OpenAL Soft needs.
+# However, devkitPPC provides an alternative semaphore implementation in an external library, libogc.
+# This patch makes OpenAL Soft use libogc semaphores if POSIX semaphores is not found.
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -134,6 +134,12 @@ if("${CMAKE_C_PLATFORM_ID}" STREQUAL "QNX")
+     set(INC_PATHS ${INC_PATHS} /usr/include)
+     set(LINKER_FLAGS ${LINKER_FLAGS} -L/usr/lib)
+ endif()
++CHECK_INCLUDE_FILE("semaphore.h" HAVE_SEMAPHORE_H)
++if(NOT HAVE_SEMAPHORE_H)
++    message("semaphore.h not found; using libogc semaphores instead")
++    set(INC_PATHS ${INC_PATHS} "$ENV{DEVKITPRO}/libogc/include")
++    set(INC_PATHS ${INC_PATHS} "$ENV{DEVKITPRO}/libogc/include/ogc")
++endif()
+ 
+ # When the library is built for static linking, apps should define
+ # AL_LIBTYPE_STATIC when including the AL headers.
+diff --git a/common/threads.cpp b/common/threads.cpp
+--- a/common/threads.cpp
++++ b/common/threads.cpp
+@@ -83,8 +83,6 @@ void semaphore::post()
+ void semaphore::wait() noexcept
+ { WaitForSingleObject(static_cast<HANDLE>(mSem), INFINITE); }
+ 
+-bool semaphore::try_wait() noexcept
+-{ return WaitForSingleObject(static_cast<HANDLE>(mSem), 0) == WAIT_OBJECT_0; }
+ 
+ } // namespace al
+ 
+@@ -134,8 +132,6 @@ void semaphore::post()
+ void semaphore::wait() noexcept
+ { dispatch_semaphore_wait(mSem, DISPATCH_TIME_FOREVER); }
+ 
+-bool semaphore::try_wait() noexcept
+-{ return dispatch_semaphore_wait(mSem, DISPATCH_TIME_NOW) == 0; }
+ 
+ } // namespace al
+ 
+@@ -147,27 +143,41 @@ namespace al {
+ 
+ semaphore::semaphore(unsigned int initial)
+ {
++#ifdef LWP_SEM_NULL
++    if(LWP_SemInit(&mSem, initial, 0xffffffff) != 0)
++#else
+     if(sem_init(&mSem, 0, initial) != 0)
++#endif
+         throw std::system_error(std::make_error_code(std::errc::resource_unavailable_try_again));
+ }
+ 
+ semaphore::~semaphore()
++#ifdef LWP_SEM_NULL
++{ LWP_SemDestroy(mSem); }
++#else
+ { sem_destroy(&mSem); }
++#endif
+ 
+ void semaphore::post()
+ {
++#ifdef LWP_SEM_NULL
++    if(LWP_SemPost(mSem) != 0)
++#else
+     if(sem_post(&mSem) != 0)
++#endif
+         throw std::system_error(std::make_error_code(std::errc::value_too_large));
+ }
+ 
+ void semaphore::wait() noexcept
+ {
++#ifdef LWP_SEM_NULL
++    LWP_SemWait(mSem);
++#else
+     while(sem_wait(&mSem) == -1 && errno == EINTR) {
+     }
++#endif
+ }
+ 
+-bool semaphore::try_wait() noexcept
+-{ return sem_trywait(&mSem) == 0; }
+ 
+ } // namespace al
+ 
+diff --git a/common/threads.h b/common/threads.h
+--- a/common/threads.h
++++ b/common/threads.h
+@@ -40,7 +40,6 @@ public:
+ 
+     void post();
+     void wait() noexcept;
+-    bool try_wait() noexcept;
+ };
+ 
+ } // namespace al

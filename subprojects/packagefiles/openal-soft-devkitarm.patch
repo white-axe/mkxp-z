@@ -1,0 +1,18 @@
+# Fixes a compilation error when using the devkitARM toolchain to compile OpenAL Soft.
+# For some reason, there's no implicit casting between `int` and `int32_t` and between `unsigned int` and `uint32_t` in devkitARM even though they're the same size, so we have to do this whole song and dance to appease the compiler.
+
+diff --git a/alc/devformat.h b/alc/devformat.h
+--- a/alc/devformat.h
++++ b/alc/devformat.h
+@@ -73,9 +73,9 @@ struct DevFmtTypeTraits<DevFmtShort> { using Type = int16_t; };
+ template<>
+ struct DevFmtTypeTraits<DevFmtUShort> { using Type = uint16_t; };
+ template<>
+-struct DevFmtTypeTraits<DevFmtInt> { using Type = int32_t; };
++struct DevFmtTypeTraits<DevFmtInt> { static_assert(sizeof(int) == sizeof(int32_t), "`int` should be a 32-bit integer"); using Type = int; };
+ template<>
+-struct DevFmtTypeTraits<DevFmtUInt> { using Type = uint32_t; };
++struct DevFmtTypeTraits<DevFmtUInt> { static_assert(sizeof(unsigned int) == sizeof(uint32_t), "`unsigned int` should be a 32-bit integer"); using Type = unsigned int; };
+ template<>
+ struct DevFmtTypeTraits<DevFmtFloat> { using Type = float; };
+ 

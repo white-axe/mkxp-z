@@ -804,7 +804,7 @@ jobs:
           echo "ar = '/opt/devkitpro/devkit$(echo ${{ matrix.arch_devkitpro }} | tr a-z A-Z)/bin/${{ matrix.arch_gcc }}-ar'" | tee -a ~/cross.ini
           echo "strip = '/opt/devkitpro/devkit$(echo ${{ matrix.arch_devkitpro }} | tr a-z A-Z)/bin/${{ matrix.arch_gcc }}-strip'" | tee -a ~/cross.ini
           echo "[host_machine]" | tee -a ~/cross.ini
-          echo "system = 'none'" | tee -a ~/cross.ini
+          echo "system = 'bare'" | tee -a ~/cross.ini
           echo "cpu_family = '${{ matrix.cpu_family }}'" | tee -a ~/cross.ini
           echo "cpu = '${{ matrix.cpu }}'" | tee -a ~/cross.ini
           echo "endian = '${{ matrix.endian }}'" | tee -a ~/cross.ini
@@ -861,7 +861,7 @@ jobs:
           echo "ar = 'mips64r5900el-ps2-elf-ar'" | tee -a ~/cross.ini
           echo "strip = 'mips64r5900el-ps2-elf-strip'" | tee -a ~/cross.ini
           echo "[host_machine]" | tee -a ~/cross.ini
-          echo "system = 'none'" | tee -a ~/cross.ini
+          echo "system = 'bare'" | tee -a ~/cross.ini
           echo "cpu_family = 'mips64'" | tee -a ~/cross.ini
           echo "cpu = 'mips64el'" | tee -a ~/cross.ini
           echo "endian = 'little'" | tee -a ~/cross.ini
@@ -912,7 +912,7 @@ jobs:
           echo "ar = 'psp-ar'" | tee -a ~/cross.ini
           echo "strip = 'psp-strip'" | tee -a ~/cross.ini
           echo "[host_machine]" | tee -a ~/cross.ini
-          echo "system = 'none'" | tee -a ~/cross.ini
+          echo "system = 'bare'" | tee -a ~/cross.ini
           echo "cpu_family = 'mips64'" | tee -a ~/cross.ini
           echo "cpu = 'mips64el'" | tee -a ~/cross.ini
           echo "endian = 'little'" | tee -a ~/cross.ini
