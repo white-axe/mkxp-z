@@ -137,9 +137,6 @@ sandbox::sandbox(const char *game_path) : ruby(new struct w2c_ruby), wasi(new wa
 
 sandbox::~sandbox() {
     bindings.reset(); // Destroy the bindings before destroying the runtime since the bindings destructor requires the runtime to be alive
-    try {
-        w2c_ruby_mkxp_sandbox_deinit(RB);
-    } catch (SandboxTrapException) {}
     wasm2c_ruby_free(RB);
     wasm_rt_free();
 }
