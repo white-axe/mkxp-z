@@ -98,6 +98,35 @@ if get_option('retro') == true
         'ENABLE_ZSTD': true,
     })
 
+    openal_options = cmake.subproject_options()
+    openal_options.add_cmake_defines({
+        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'LIBTYPE': 'STATIC',
+        'ALSOFT_DLOPEN': false,
+        'ALSOFT_UTILS': false,
+        'ALSOFT_NO_CONFIG_UTIL': true,
+        'ALSOFT_EXAMPLES': false,
+        'ALSOFT_UPDATE_BUILD_VERSION': false,
+        'ALSOFT_BACKEND_PIPEWIRE': false,
+        'ALSOFT_BACKEND_PULSEAUDIO': false,
+        'ALSOFT_BACKEND_ALSA': false,
+        'ALSOFT_BACKEND_OSS': false,
+        'ALSOFT_BACKEND_SOLARIS': false,
+        'ALSOFT_BACKEND_SNDIO': false,
+        'ALSOFT_BACKEND_WINMM': false,
+        'ALSOFT_BACKEND_DSOUND': false,
+        'ALSOFT_BACKEND_WASAPI': false,
+        'ALSOFT_BACKEND_OTHERIO': false,
+        'ALSOFT_BACKEND_JACK': false,
+        'ALSOFT_BACKEND_COREAUDIO': false,
+        'ALSOFT_BACKEND_OBOE': false,
+        'ALSOFT_BACKEND_OPENSL': false,
+        'ALSOFT_BACKEND_PORTAUDIO': false,
+        'ALSOFT_BACKEND_SDL3': false,
+        'ALSOFT_BACKEND_SDL2': false,
+        'ALSOFT_BACKEND_WAVE': false,
+    })
+
     retro_defines = [
         '-DWASM_RT_SKIP_SIGNAL_RECOVERY',
         '-DWASM_RT_TRAP_HANDLER=mkxp_sandbox_trap_handler',
@@ -145,6 +174,7 @@ if get_option('retro') == true
             cmake.subproject('liblzma', options: liblzma_options).dependency('liblzma'),
             cmake.subproject('zstd', options: zstd_options).dependency('libzstd_static'),
             cmake.subproject('libzip', options: libzip_options).dependency('zip'),
+            cmake.subproject('openal-soft', options: openal_options).dependency('OpenAL'),
         ],
         c_args: [
             '-fno-optimize-sibling-calls',

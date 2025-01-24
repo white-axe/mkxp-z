@@ -1,0 +1,5 @@
+[wrap-git]
+url = https://github.com/kcat/openal-soft
+revision = openal-soft-1.21.0
+depth = 1
+diff_files = openal-soft.patch

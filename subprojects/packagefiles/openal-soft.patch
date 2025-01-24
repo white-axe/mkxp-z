@@ -1,0 +1,14 @@
+# Fixes a compilation error when building with C++ standards older than C++17.
+
+diff --git a/common/almalloc.cpp b/common/almalloc.cpp
+--- a/common/almalloc.cpp
++++ b/common/almalloc.cpp
+@@ -20,7 +20,7 @@ void *al_malloc(size_t alignment, size_t size)
+ 
+ #if defined(HAVE_STD_ALIGNED_ALLOC)
+     size = (size+(alignment-1))&~(alignment-1);
+-    return std::aligned_alloc(alignment, size);
++    return aligned_alloc(alignment, size);
+ #elif defined(HAVE_POSIX_MEMALIGN)
+     void *ret{};
+     if(posix_memalign(&ret, alignment, size) == 0)

@@ -16,6 +16,7 @@ AUTORECONF ?= autoreconf
 CURL ?= curl
 GIT ?= git
 XXD ?= xxd
+SED ?= sed
 CC ?= cc
 CXX ?= c++
 LD ?= ld
@@ -69,6 +70,7 @@ clean-ruby-bindings:
 clean-deps:
 	rm -f $(OUTDIR)/libretro.h
 	rm -rf $(OUTDIR)/wasm2c
+	rm -rf $(DOWNLOADS)/wabt
 
 $(OUTDIR)/libretro.h:
 	mkdir -p $(OUTDIR)
@@ -77,6 +79,7 @@ $(OUTDIR)/libretro.h:
 $(OUTDIR)/wasm2c/wasm-rt.h $(OUTDIR)/wasm2c/wasm-rt-impl.c $(OUTDIR)/wasm2c/wasm-rt-mem-impl.c &:
 	mkdir -p $(OUTDIR)
 	$(CLONE) $(GITHUB)/WebAssembly/wabt $(DOWNLOADS)/wabt -b $(WASM_RT_VERSION)
+	$(SED) -i 's/# *define * WASM_RT_C11_AVAILABLE//g' $(DOWNLOADS)/wabt/wasm2c/wasm-rt.h # Stop wasm-rt from trying to use threads because it causes compiler errors on some game console toolchains, and also because OpenAL Soft defines a header file named "threads.h" which conflicts with the C11 threads.h that this file tries to include
 	cp -r $(DOWNLOADS)/wabt/wasm2c $(OUTDIR)
 
 # Cross Ruby (targets WASI)
@@ -146,7 +149,7 @@ $(DOWNLOADS)/crossruby/configure: $(DOWNLOADS)/crossruby/configure.ac $(RUBY)
 
 $(DOWNLOADS)/crossruby/configure.ac:
 	mkdir -p $(DOWNLOADS)
-	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/crossruby -b ruby_$(shell echo $(RUBY_VERSION) | sed -e 's/\./_/g')
+	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/crossruby -b ruby_$(shell echo $(RUBY_VERSION) | $(SED) -e 's/\./_/g')
 	echo '#include "${PWD}/ruby-bindings.h"' >> $(DOWNLOADS)/crossruby/main.c
 
 # Base Ruby (targets the build machine)
@@ -163,7 +166,7 @@ $(DOWNLOADS)/baseruby/configure: $(DOWNLOADS)/baseruby/configure.ac
 
 $(DOWNLOADS)/baseruby/configure.ac:
 	mkdir -p $(DOWNLOADS)
-	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/baseruby -b ruby_$(shell echo $(RUBY_VERSION) | sed -e 's/\./_/g')
+	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/baseruby -b ruby_$(shell echo $(RUBY_VERSION) | $(SED) -e 's/\./_/g')
 
 # p7zip
 
