@@ -98,6 +98,15 @@ if get_option('retro') == true
         'ENABLE_ZSTD': true,
     })
 
+    physfs_options = cmake.subproject_options()
+    physfs_options.add_cmake_defines({
+        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'PHYSFS_BUILD_STATIC': true,
+        'PHYSFS_BUILD_SHARED': false,
+        'PHYSFS_BUILD_TEST': false,
+        'PHYSFS_BUILD_DOCS': false,
+    })
+
     openal_options = cmake.subproject_options()
     openal_options.add_cmake_defines({
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
@@ -174,6 +183,7 @@ if get_option('retro') == true
             cmake.subproject('liblzma', options: liblzma_options).dependency('liblzma'),
             cmake.subproject('zstd', options: zstd_options).dependency('libzstd_static'),
             cmake.subproject('libzip', options: libzip_options).dependency('zip'),
+            cmake.subproject('physfs', options: physfs_options).dependency('physfs-static'),
             cmake.subproject('openal-soft', options: openal_options).dependency('OpenAL'),
         ],
         c_args: [
@@ -200,6 +210,7 @@ if get_option('retro') == true
             include_directories(retro_phase1),
             include_directories(join_paths(retro_phase1, 'wasm2c')),
             include_directories(join_paths(retro_phase1, 'mkxp-retro-ruby')),
+            include_directories(join_paths(retro_phase1, 'sdl/include')),
         ],
         sources: [
             'src/core.cpp',

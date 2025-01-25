@@ -6,6 +6,7 @@ LIBYAML_VERSION ?= 0.2.5
 ZLIB_VERSION ?= 1.3.1
 OPENSSL_VERSION ?= 3.2.0
 WASM_RT_VERSION ?= 1.0.36
+SDL_VERSION ?= 2.30.11
 P7ZIP_VERSION ?= 17.06
 TARGET ?= wasm32-wasip1
 WASI_SDK ?= /opt/wasi-sdk
@@ -51,7 +52,7 @@ ruby-dist: $(OUTDIR)/mkxp-retro-dist.zip.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-
 
 ruby-bindings: $(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h
 
-deps: $(OUTDIR)/libretro.h $(OUTDIR)/wasm2c/wasm-rt.h $(OUTDIR)/wasm2c/wasm-rt-impl.c $(OUTDIR)/wasm2c/wasm-rt-mem-impl.c
+deps: $(OUTDIR)/libretro.h $(OUTDIR)/wasm2c/wasm-rt.h $(OUTDIR)/wasm2c/wasm-rt-impl.c $(OUTDIR)/wasm2c/wasm-rt-mem-impl.c $(OUTDIR)/sdl/include/SDL.h
 
 clean: clean-ruby-dist clean-ruby-bindings clean-deps
 	rm -rf $(LIBDIR)/*
@@ -70,6 +71,7 @@ clean-ruby-bindings:
 clean-deps:
 	rm -f $(OUTDIR)/libretro.h
 	rm -rf $(OUTDIR)/wasm2c
+	rm -rf $(OUTDIR)/sdl
 	rm -rf $(DOWNLOADS)/wabt
 
 $(OUTDIR)/libretro.h:
@@ -77,10 +79,15 @@ $(OUTDIR)/libretro.h:
 	$(CURL) -s -L -o $(OUTDIR)/libretro.h https://raw.githubusercontent.com/libretro/libretro-common/$(LIBRETRO_REF)/include/libretro.h
 
 $(OUTDIR)/wasm2c/wasm-rt.h $(OUTDIR)/wasm2c/wasm-rt-impl.c $(OUTDIR)/wasm2c/wasm-rt-mem-impl.c &:
+	mkdir -p $(DOWNLOADS)
 	mkdir -p $(OUTDIR)
 	$(CLONE) $(GITHUB)/WebAssembly/wabt $(DOWNLOADS)/wabt -b $(WASM_RT_VERSION)
 	$(SED) -i 's/# *define * WASM_RT_C11_AVAILABLE//g' $(DOWNLOADS)/wabt/wasm2c/wasm-rt.h # Stop wasm-rt from trying to use threads because it causes compiler errors on some game console toolchains, and also because OpenAL Soft defines a header file named "threads.h" which conflicts with the C11 threads.h that this file tries to include
 	cp -r $(DOWNLOADS)/wabt/wasm2c $(OUTDIR)
+
+$(OUTDIR)/sdl/include/SDL.h:
+	mkdir -p $(OUTDIR)
+	$(CLONE) $(GITHUB)/libsdl-org/SDL $(OUTDIR)/sdl -b release-$(SDL_VERSION)
 
 # Cross Ruby (targets WASI)
 
