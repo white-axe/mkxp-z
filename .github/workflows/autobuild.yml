@@ -727,6 +727,7 @@ jobs:
           echo "[binaries]" | tee -a ${{ runner.temp }}/cross.ini
           echo "c = '${{ runner.temp }}/cc'" | tee -a ${{ runner.temp }}/cross.ini
           echo "cpp = '${{ runner.temp }}/c++'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "objc = '${{ runner.temp }}/cc'" | tee -a ${{ runner.temp }}/cross.ini
           echo "ar = 'ar'" | tee -a ${{ runner.temp }}/cross.ini
           echo "strip = 'strip'" | tee -a ${{ runner.temp }}/cross.ini
           echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
