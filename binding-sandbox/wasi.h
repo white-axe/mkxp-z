@@ -26,6 +26,7 @@
 #include <string>
 #include <vector>
 #include <zip.h>
+#include "filesystem.h"
 #include "types.h"
 
 // Internal utility macros
@@ -233,6 +234,9 @@ enum wasi_fd_type {
     STDIN, // This file descriptor is standard input. The `handle` field is null.
     STDOUT, // This file descriptor is standard output. The `handle` field is null.
     STDERR, // This file descriptor is standard error. The `handle` field is null.
+    FS, // This file descriptor is a preopened directory handled by the mkxp-z filesystem code. The `handle` field is a `std::string *` containing the path of the directory.
+    FSDIR, // This file descriptor is a directory handled by the mkxp-z filesystem code. The `handle` field is a `std::string *` containing the path of the directory.
+    FSFILE, // This file descriptor is a file handled by the mkxp-z filesystem code. The `handle` field is a `struct FileSystem::File *`.
     ZIP, // This file descriptor is a read-only zip file. The `handle` field is a `struct wasi_zip_handle *`.
     ZIPDIR, // This file descriptor is a directory inside of a zip file. The `handle` field is a `struct wasi_zip_dir_handle *`.
     ZIPFILE, // This file descriptor is a file inside of a zip file. The `handle` field is a `struct wasi_zip_file_handle *`.
@@ -245,6 +249,8 @@ struct wasi_file_entry {
     // The file/directory handle that the file descriptor corresponds to. The exact type of this handle depends on the type of file descriptor.
     void *handle;
 
+    std::string *dir_handle();
+    struct FileSystem::File *file_handle();
     struct wasi_zip_handle *zip_handle();
     struct wasi_zip_dir_handle *zip_dir_handle();
     struct wasi_zip_file_handle *zip_file_handle();
@@ -263,7 +269,6 @@ typedef struct w2c_wasi__snapshot__preview1 {
     std::shared_ptr<struct w2c_ruby> ruby;
 
     std::shared_ptr<struct wasi_zip_container> dist;
-    std::shared_ptr<struct wasi_zip_container> game;
 
     // WASI file descriptor table. Maps WASI file descriptors (unsigned 32-bit integers) to file handles.
     std::vector<wasi_file_entry> fdtable;
@@ -271,7 +276,7 @@ typedef struct w2c_wasi__snapshot__preview1 {
     // List of vacant WASI file descriptors so that we can reallocate vacant WASI file descriptors in O(1) amortized time.
     std::vector<u32> vacant_fds;
 
-    w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby, const char *game_path);
+    w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby);
     ~w2c_wasi__snapshot__preview1();
     u32 allocate_file_descriptor(enum wasi_fd_type type, void *handle = NULL);
     void deallocate_file_descriptor(u32 fd);

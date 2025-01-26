@@ -5,7 +5,7 @@
 #include <SDL_thread.h>
 #include <SDL_rwops.h>
 
-#include <string>
+#include <cstring>
 #include <iostream>
 #include <unistd.h>
 
@@ -121,7 +121,7 @@ private:
 
 		if (eback() == base)
 		{
-			memmove(base, egptr() - pbSize, pbSize);
+			std::memmove(base, egptr() - pbSize, pbSize);
 			start += pbSize;
 		}
 

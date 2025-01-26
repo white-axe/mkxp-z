@@ -24,9 +24,11 @@
 
 #include <libretro.h>
 #include "../binding-sandbox/sandbox.h"
+#include "filesystem.h"
 
 namespace mkxp_retro {
     extern boost::optional<struct mkxp_sandbox::sandbox> sandbox;
+    extern boost::optional<FileSystem> fs;
 
     extern retro_log_printf_t log_printf;
     extern retro_video_refresh_t video_refresh;

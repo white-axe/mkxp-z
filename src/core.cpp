@@ -19,6 +19,7 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstdarg>
@@ -27,6 +28,7 @@
 #include "../binding-sandbox/sandbox.h"
 #include "../binding-sandbox/binding-sandbox.h"
 #include "../binding-sandbox/core.h"
+#include "filesystem.h"
 
 using namespace mkxp_retro;
 using namespace mkxp_sandbox;
@@ -42,7 +44,8 @@ static void fallback_log(enum retro_log_level level, const char *fmt, ...) {
 
 static uint32_t *frame_buf;
 boost::optional<struct sandbox> mkxp_retro::sandbox;
-static const char *game_path = NULL;
+boost::optional<FileSystem> mkxp_retro::fs;
+static std::string game_path;
 
 static VALUE func(VALUE arg) {
     SANDBOX_COROUTINE(coro,
@@ -84,10 +87,35 @@ SANDBOX_COROUTINE(main,
 static bool init_sandbox() {
     mkxp_retro::sandbox.reset();
 
+    fs.reset();
+    fs.emplace((const char *)NULL, false);
+
+    {
+        std::string parsed_game_path(fs->normalize(game_path.c_str(), false, true));
+
+        // If the game path doesn't end with ".mkxp" or ".mkxpz", remove the last component from the path since we want to mount the directory that the file is in, not the file itself.
+        if (
+            !(parsed_game_path.length() >= 5 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 5), ".mkxp") == 0)
+                && !(parsed_game_path.length() >= 5 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 5), ".MKXP") == 0)
+                && !(parsed_game_path.length() >= 6 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 6), ".mkxpz") == 0)
+                && !(parsed_game_path.length() >= 6 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 6), ".MKXPZ") == 0)
+        ) {
+            size_t last_slash_index = parsed_game_path.find_last_of('/');
+            if (last_slash_index == std::string::npos) {
+                last_slash_index = 0;
+            }
+            parsed_game_path = parsed_game_path.substr(0, last_slash_index);
+        }
+
+        fs->addPath(parsed_game_path.c_str(), "/mkxp-retro-game");
+    }
+
+    fs->createPathCache();
+
     SharedState::initInstance(NULL);
 
     try {
-        mkxp_retro::sandbox.emplace(game_path);
+        mkxp_retro::sandbox.emplace();
     } catch (SandboxException) {
         log_printf(RETRO_LOG_ERROR, "Failed to initialize Ruby\n");
         mkxp_retro::sandbox.reset();
@@ -225,7 +253,7 @@ extern "C" RETRO_API void retro_cheat_set(unsigned int index, bool enabled, cons
 }
 
 extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
-    if (info == NULL) {
+    if (info == NULL || info->path == NULL) {
         log_printf(RETRO_LOG_ERROR, "This core cannot start without a game\n");
         return false;
     }
@@ -246,6 +274,8 @@ extern "C" RETRO_API bool retro_load_game_special(unsigned int type, const struc
 
 extern "C" RETRO_API void retro_unload_game() {
     mkxp_retro::sandbox.reset();
+
+    fs.reset();
 }
 
 extern "C" RETRO_API unsigned int retro_get_region() {

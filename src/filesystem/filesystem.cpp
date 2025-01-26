@@ -48,6 +48,7 @@
 #include <direct.h>
 #endif
 
+#ifndef MKXPZ_RETRO
 struct SDLRWIoContext {
   SDL_RWops *ops;
   std::string filename;
@@ -211,6 +212,7 @@ static int SDL_RWopsCloseFree(SDL_RWops *ops) {
 
   return result;
 }
+#endif // MKXPZ_RETRO
 
 /* Copies the first srcN characters from src into dst,
  * or the full string if srcN == -1. Never writes more
@@ -245,6 +247,7 @@ static const char *findExt(const char *filename) {
   return 0;
 }
 
+#ifndef MKXPZ_RETRO
 static void initReadOps(PHYSFS_File *handle, SDL_RWops &ops, bool freeOnClose) {
   ops.size = SDL_RWopsSize;
   ops.seek = SDL_RWopsSeek;
@@ -259,6 +262,7 @@ static void initReadOps(PHYSFS_File *handle, SDL_RWops &ops, bool freeOnClose) {
   ops.type = SDL_RWOPS_PHYSFS;
   ops.hidden.unknown.data1 = handle;
 }
+#endif // MKXPZ_RETRO
 
 static void strTolower(std::string &str) {
   for (size_t i = 0; i < str.size(); ++i)
@@ -326,6 +330,8 @@ FileSystem::~FileSystem() {
 void FileSystem::addPath(const char *path, const char *mountpoint, bool reload) {
   /* Try the normal mount first */
     int state = PHYSFS_mount(path, mountpoint, 1);
+
+#ifndef MKXPZ_RETRO
   if (!state) {
     /* If it didn't work, try mounting via a wrapped
      * SDL_RWops */
@@ -334,6 +340,8 @@ void FileSystem::addPath(const char *path, const char *mountpoint, bool reload) 
     if (io)
       state = PHYSFS_mountIo(io, path, 0, 1);
   }
+#endif // MKXPZ_RETRO
+
     if (!state) {
         PHYSFS_ErrorCode err = PHYSFS_getLastErrorCode();
         throw Exception(Exception::PHYSFSError, "Failed to mount %s (%s)", path, PHYSFS_getErrorByCode(err));
@@ -396,8 +404,10 @@ struct CacheEnumData {
 
 static PHYSFS_EnumerateCallbackResult cacheEnumCB(void *d, const char *origdir,
                                                   const char *fname) {
+#ifndef MKXPZ_RETRO
   if (shState && shState->rtData().rqTerm)
     throw Exception(Exception::MKXPError, "Game close requested. Aborting path cache enumeration.");
+#endif // MKXPZ_RETRO
 
   CacheEnumData &data = *static_cast<CacheEnumData *>(d);
   char fullPath[512];
@@ -494,12 +504,14 @@ static PHYSFS_EnumerateCallbackResult fontSetEnumCB(void *data, const char *dir,
   if (!handle)
     return PHYSFS_ENUM_ERROR;
 
+#ifndef MKXPZ_RETRO
   SDL_RWops ops;
   initReadOps(handle, ops, false);
 
   d->sfs->initFontSetCB(ops, filename);
 
   SDL_RWclose(&ops);
+#endif // MKXPZ_RETRO
 
   return PHYSFS_ENUM_OK;
 }
@@ -600,7 +612,10 @@ openReadEnumCB(void *d, const char *dirpath, const char *filename) {
 
     return PHYSFS_ENUM_ERROR;
   }
+
+#ifndef MKXPZ_RETRO
   initReadOps(phys, data.ops, false);
+#endif // MKXPZ_RETRO
 
   const char *ext = findExt(filename);
 
@@ -667,8 +682,11 @@ void FileSystem::openReadRaw(SDL_RWops &ops, const char *filename,
   if (!handle)
     throw Exception(Exception::NoFileError, "%s", filename);
 
+#ifndef MKXPZ_RETRO
   initReadOps(handle, ops, freeOnClose);
-    return;
+#endif // MKXPZ_RETRO
+
+  return;
 }
 
 std::string FileSystem::normalize(const char *pathname, bool preferred,
@@ -689,4 +707,8 @@ const char *FileSystem::desensitize(const char *filename) {
   if (p->havePathCache && p->pathCache.contains(fn_lower))
     return p->pathCache[fn_lower].c_str();
   return filename;
+}
+
+bool FileSystem::enumerate(const char *path, PHYSFS_EnumerateCallback callback, void *data) {
+  return PHYSFS_enumerate(normalize(path, false, false).c_str(), callback, data) != 0;
 }

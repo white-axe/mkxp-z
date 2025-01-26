@@ -22,6 +22,7 @@
 #ifndef FILESYSTEM_H
 #define FILESYSTEM_H
 
+#include <physfs.h>
 #include <SDL_rwops.h>
 #include <string>
 
@@ -78,6 +79,54 @@ public:
 	bool exists(const char *filename);
 
 	const char *desensitize(const char *filename);
+
+	enum OpenMode
+	{
+		Read,
+		Write,
+		Append,
+	};
+
+	struct File
+	{
+	private:
+		PHYSFS_File *inner;
+		std::string _path;
+
+	public:
+		File(const struct File &) = delete;
+		inline File(FileSystem &fs, const char *filename, OpenMode mode) {
+			_path = fs.normalize(filename, false, false);
+			switch (mode) {
+				case OpenMode::Read:
+					inner = PHYSFS_openRead(_path.c_str());
+					break;
+				case OpenMode::Write:
+					inner = PHYSFS_openWrite(_path.c_str());
+					break;
+				case OpenMode::Append:
+					inner = PHYSFS_openAppend(_path.c_str());
+					break;
+			}
+		}
+		inline ~File() {
+			PHYSFS_close(inner);
+		}
+		inline const char *path() {
+			return _path.c_str();
+		}
+		inline PHYSFS_File *get() {
+			return inner;
+		}
+		inline PHYSFS_File *operator->() {
+			return get();
+		}
+		inline PHYSFS_File &operator*() {
+			return *get();
+		}
+	};
+
+	bool enumerate(const char *path, PHYSFS_EnumerateCallback callback, void *data);
 
 private:
 	FileSystemPrivate *p;

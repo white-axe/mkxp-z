@@ -7,7 +7,7 @@ if get_option('retro') == false and host_system == 'darwin'
     error('\nThis Meson project no longer supports macOS. Please use the Xcode project instead.')
 endif
 
-git_hash = run_command('git', 'rev-parse', '--short', 'HEAD').stdout().strip()
+git_hash = run_command('git', 'rev-parse', '--short', 'HEAD', check: true).stdout().strip()
 
 compilers = {'cpp': meson.get_compiler('cpp')}
 
@@ -203,10 +203,21 @@ if get_option('retro') == true
         include_directories: [
             include_directories('.'),
             include_directories('src'),
+            include_directories('src/audio'),
+            include_directories('src/crypto'),
             include_directories('src/display'),
             include_directories('src/display/gl'),
+            include_directories('src/display/libnsgif'),
+            include_directories('src/display/libnsgif/utils'),
             include_directories('src/etc'),
+            include_directories('src/filesystem'),
+            include_directories('src/filesystem/ghc'),
+            include_directories('src/input'),
+            include_directories('src/net'),
+            include_directories('src/system'),
             include_directories('src/util'),
+            include_directories('src/util/sigslot'),
+            include_directories('src/util/sigslot/adapter'),
             include_directories(retro_phase1),
             include_directories(join_paths(retro_phase1, 'wasm2c')),
             include_directories(join_paths(retro_phase1, 'mkxp-retro-ruby')),
@@ -215,12 +226,15 @@ if get_option('retro') == true
         sources: [
             'src/core.cpp',
             'src/sharedstate.cpp',
+            'src/crypto/rgssad.cpp',
             'src/display/bitmap.cpp',
             'src/display/viewport.cpp',
             'src/display/window.cpp',
             'src/display/gl/scene.cpp',
             'src/etc/etc.cpp',
             'src/etc/table.cpp',
+            'src/filesystem/filesystem.cpp',
+            'src/filesystem/filesystemImpl.cpp',
             'binding-sandbox/binding-util.cpp',
             'binding-sandbox/sandbox.cpp',
             'binding-sandbox/wasi.cpp',

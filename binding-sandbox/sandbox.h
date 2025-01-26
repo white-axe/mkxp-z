@@ -80,7 +80,7 @@ namespace mkxp_sandbox {
         public:
         inline struct mkxp_sandbox::bindings &operator*() noexcept { return *bindings; }
         inline struct mkxp_sandbox::bindings *operator->() noexcept { return &*bindings; }
-        sandbox(const char *game_path);
+        sandbox();
         ~sandbox();
 
         // Internal utility method of the `SANDBOX_YIELD` macro.
