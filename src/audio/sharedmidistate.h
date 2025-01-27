@@ -164,12 +164,14 @@ private:
 	{
 		fluid_synth_t *syn = fluid.new_synth(flSettings);
 
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+		fluid.synth_sfload(syn, "/GMGSx.sf2", 1);
+#else
 		if (!soundFont.empty())
 			fluid.synth_sfload(syn, soundFont.c_str(), 1);
 		else
-#endif // MKXPZ_RETRO
 			Debug() << "Warning: No soundfont specified, sound might be mute";
+#endif // MKXPZ_RETRO
 
 		Synth synth;
 		synth.inUse = usedNow;

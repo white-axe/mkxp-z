@@ -19,6 +19,7 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <cstdarg>
@@ -26,6 +27,8 @@
 #include <boost/optional.hpp>
 #include <AL/alc.h>
 #include <AL/alext.h>
+#include <fluidlite.h>
+#include <fluidsynth_priv.h>
 #include "../binding-sandbox/sandbox.h"
 #include "../binding-sandbox/binding-sandbox.h"
 #include "../binding-sandbox/core.h"
@@ -49,6 +52,9 @@ static inline void *malloc_align(size_t alignment, size_t size) {
 }
 #endif
 
+extern unsigned char GMGSx_sf2[];
+extern unsigned int GMGSx_sf2_len;
+
 static size_t frame_number = 0;
 static ALCdevice *al_device = NULL;
 static ALCcontext *al_context = NULL;
@@ -60,6 +66,21 @@ static void fallback_log(enum retro_log_level level, const char *fmt, ...) {
     va_start(va, fmt);
     std::vfprintf(stderr, fmt, va);
     va_end(va);
+}
+
+static void fluid_log(int level, char *message, void *data) {
+    switch (level) {
+        case FLUID_PANIC:
+            log_printf(RETRO_LOG_ERROR, "fluidsynth: panic: %s\n", message);
+        case FLUID_ERR:
+            log_printf(RETRO_LOG_ERROR, "fluidsynth: error: %s\n", message);
+        case FLUID_WARN:
+            log_printf(RETRO_LOG_WARN, "fluidsynth: warning: %s\n", message);
+        case FLUID_INFO:
+            log_printf(RETRO_LOG_INFO, "fluidsynth: %s\n", message);
+        case FLUID_DBG:
+            log_printf(RETRO_LOG_DEBUG, "fluidsynth: debug: %s\n", message);
+    }
 }
 
 static uint32_t *frame_buf;
@@ -140,6 +161,50 @@ static bool init_sandbox() {
         log_printf(RETRO_LOG_ERROR, "Failed to create OpenAL context\n");
         return false;
     }
+
+    fluid_set_log_function(FLUID_PANIC, fluid_log, NULL);
+    fluid_set_log_function(FLUID_ERR, fluid_log, NULL);
+    fluid_set_log_function(FLUID_WARN, fluid_log, NULL);
+    fluid_set_log_function(FLUID_INFO, fluid_log, NULL);
+    fluid_set_log_function(FLUID_DBG, fluid_log, NULL);
+
+    static fluid_fileapi_t fluid_fileapi = {
+        .free = [](fluid_fileapi_t *f) {
+            return 0;
+        },
+        .fopen = [](fluid_fileapi_t *f, const char *filename) {
+            assert(std::strcmp(filename, "/GMGSx.sf2") == 0);
+            return std::calloc(1, sizeof(long));
+        },
+        .fread = [](void *buf, int count, void *handle) {
+            assert(*(long *)handle + count < GMGSx_sf2_len);
+            std::memcpy(buf, GMGSx_sf2 + *(long *)handle, count);
+            *(long *)handle += count;
+            return (int)FLUID_OK;
+        },
+        .fseek = [](void *handle, long offset, int origin) {
+            switch (origin) {
+                case SEEK_CUR:
+                    *(long *)handle += offset;
+                    break;
+                case SEEK_END:
+                    *(long *)handle = GMGSx_sf2_len + offset;
+                    break;
+                default:
+                    *(long *)handle = offset;
+                    break;
+            }
+            return (int)FLUID_OK;
+        },
+        .fclose = [](void *handle) {
+            std::free(handle);
+            return (int)FLUID_OK;
+        },
+        .ftell = [](void *handle) {
+            return *(long *)handle;
+        },
+    };
+    fluid_set_default_fileapi(&fluid_fileapi);
 
     audio.emplace();
     fs.emplace((const char *)NULL, false);

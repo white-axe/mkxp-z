@@ -52,7 +52,7 @@ ruby-dist: $(OUTDIR)/mkxp-retro-dist.zip.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-
 
 ruby-bindings: $(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h
 
-deps: $(OUTDIR)/libretro.h $(OUTDIR)/wasm2c/wasm-rt.h $(OUTDIR)/wasm2c/wasm-rt-impl.c $(OUTDIR)/wasm2c/wasm-rt-mem-impl.c $(OUTDIR)/sdl/include/SDL.h
+deps: $(OUTDIR)/GMGSx.sf2.c $(OUTDIR)/libretro.h $(OUTDIR)/wasm2c/wasm-rt.h $(OUTDIR)/wasm2c/wasm-rt-impl.c $(OUTDIR)/wasm2c/wasm-rt-mem-impl.c $(OUTDIR)/sdl/include/SDL.h
 
 clean: clean-ruby-dist clean-ruby-bindings clean-deps
 	rm -rf $(LIBDIR)/*
@@ -69,10 +69,15 @@ clean-ruby-bindings:
 	rm -f $(LIBDIR)/tags
 
 clean-deps:
+	rm -f $(OUTDIR)/GMGSx.sf2.c
 	rm -f $(OUTDIR)/libretro.h
 	rm -rf $(OUTDIR)/wasm2c
 	rm -rf $(OUTDIR)/sdl
 	rm -rf $(DOWNLOADS)/wabt
+
+$(OUTDIR)/GMGSx.sf2.c: GMGSx.sf2
+	mkdir -p $(OUTDIR)
+	$(XXD) -i GMGSx.sf2 $(OUTDIR)/GMGSx.sf2.c
 
 $(OUTDIR)/libretro.h:
 	mkdir -p $(OUTDIR)

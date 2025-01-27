@@ -259,6 +259,7 @@ if get_option('retro') == true
             'binding-sandbox/sandbox.cpp',
             'binding-sandbox/wasi.cpp',
             'binding/module_rpg.cpp',
+            join_paths(retro_phase1, 'GMGSx.sf2.c'),
             join_paths(retro_phase1, 'wasm2c/wasm-rt-impl.c'),
             join_paths(retro_phase1, 'wasm2c/wasm-rt-mem-impl.c'),
             join_paths(retro_phase1, 'mkxp-sandbox-bindgen.cpp'),

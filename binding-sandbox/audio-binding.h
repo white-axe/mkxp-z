@@ -44,9 +44,9 @@ namespace mkxp_sandbox {
 
                         SANDBOX_AWAIT_AND_SET(filename, rb_string_value_cstr, (VALUE *)(**sb() + argv));
                         if (argc >= 2) {
-                            SANDBOX_AWAIT_AND_SET(volume, rb_ll2inum, ((VALUE *)(**sb() + argv))[1]);
+                            SANDBOX_AWAIT_AND_SET(volume, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
                             if (argc >= 3) {
-                                SANDBOX_AWAIT_AND_SET(pitch, rb_ll2inum, ((VALUE *)(**sb() + argv))[2]);
+                                SANDBOX_AWAIT_AND_SET(pitch, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
                             }
                         }
 
