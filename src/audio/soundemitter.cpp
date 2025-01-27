@@ -28,7 +28,9 @@
 #include "util.h"
 #include "debugwriter.h"
 
-#include <SDL_sound.h>
+#ifndef MKXPZ_RETRO
+#  include <SDL_sound.h>
+#endif // MKXPZ_RETRO
 
 #define SE_CACHE_MEM (10*1024*1024) // 10 MB
 
@@ -192,8 +194,15 @@ struct SoundOpenHandler : FileSystem::OpenHandler
 	    : buffer(0)
 	{}
 
-	bool tryRead(SDL_RWops &ops, const char *ext)
-	{
+	bool tryRead(
+#ifdef MKXPZ_RETRO
+		struct FileSystem::File &ops,
+#else
+		SDL_RWops &ops,
+#endif // MKXPZ_RETRO
+		const char *ext
+	) {
+#ifndef MKXPZ_RETRO
 		Sound_Sample *sample = Sound_NewSample(&ops, ext, 0, STREAM_BUF_SIZE);
 
 		if (!sample)
@@ -217,6 +226,7 @@ struct SoundOpenHandler : FileSystem::OpenHandler
 							   buffer->bytes, sample->actual.rate);
 
 		Sound_FreeSample(sample);
+#endif // MKXPZ_RETRO
 
 		return true;
 	}
@@ -239,14 +249,25 @@ SoundBuffer *SoundEmitter::allocateBuffer(const std::string &filename)
 	{
 		/* Buffer not in cache, needs to be loaded */
 		SoundOpenHandler handler;
+#ifdef MKXPZ_RETRO
+		std::string path("/mkxp-retro-game/");
+		path.append(filename);
+		mkxp_retro::fs->openRead(handler, path.c_str()); // TODO: move into shState
+#else
 		shState->fileSystem().openRead(handler, filename.c_str());
+#endif // MKXPZ_RETRO
 		buffer = handler.buffer;
 
 		if (!buffer)
 		{
 			char buf[512];
+#ifdef MKXPZ_RETRO
+			snprintf(buf, sizeof(buf), "Unable to decode sound: %s",
+			         filename.c_str());
+#else
 			snprintf(buf, sizeof(buf), "Unable to decode sound: %s: %s",
 			         filename.c_str(), Sound_GetError());
+#endif // MKXPZ_RETRO
 			Debug() << buf;
 
 			return 0;

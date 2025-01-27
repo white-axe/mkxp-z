@@ -19,12 +19,14 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <algorithm>
 #include <cstdio>
+#include <stdlib.h>
 #include <cstdlib>
 #include <cstdarg>
 #include <cstring>
 #include <boost/optional.hpp>
+#include <AL/alc.h>
+#include <AL/alext.h>
 #include "../binding-sandbox/sandbox.h"
 #include "../binding-sandbox/binding-sandbox.h"
 #include "../binding-sandbox/core.h"
@@ -34,6 +36,10 @@ using namespace mkxp_retro;
 using namespace mkxp_sandbox;
 
 static size_t frame_number = 0;
+static ALCdevice *al_device = NULL;
+static ALCcontext *al_context = NULL;
+static LPALCRENDERSAMPLESSOFT alcRenderSamplesSOFT = NULL;
+static int16_t *sound_buf;
 
 static void fallback_log(enum retro_log_level level, const char *fmt, ...) {
     std::va_list va;
@@ -44,6 +50,7 @@ static void fallback_log(enum retro_log_level level, const char *fmt, ...) {
 
 static uint32_t *frame_buf;
 boost::optional<struct sandbox> mkxp_retro::sandbox;
+boost::optional<Audio> mkxp_retro::audio;
 boost::optional<FileSystem> mkxp_retro::fs;
 static std::string game_path;
 
@@ -86,8 +93,41 @@ SANDBOX_COROUTINE(main,
 
 static bool init_sandbox() {
     mkxp_retro::sandbox.reset();
-
     fs.reset();
+    audio.reset();
+    if (al_context != NULL) {
+        alcDestroyContext(al_context);
+        al_context = NULL;
+    }
+    if (al_device != NULL) {
+        alcCloseDevice(al_device);
+        al_device = NULL;
+    }
+
+    alcRenderSamplesSOFT = (LPALCRENDERSAMPLESSOFT)alcGetProcAddress(NULL, "alcRenderSamplesSOFT");
+
+    al_device = ((LPALCLOOPBACKOPENDEVICESOFT)alcGetProcAddress(NULL, "alcLoopbackOpenDeviceSOFT"))(NULL);
+    if (al_device == NULL) {
+        log_printf(RETRO_LOG_ERROR, "Failed to initialize OpenAL loopback device\n");
+        return false;
+    }
+
+    static const ALCint al_attrs[] = {
+        ALC_FORMAT_CHANNELS_SOFT,
+        ALC_STEREO_SOFT,
+        ALC_FORMAT_TYPE_SOFT,
+        ALC_SHORT_SOFT,
+        ALC_FREQUENCY,
+        44100,
+        0,
+    };
+    al_context = alcCreateContext(al_device, al_attrs);
+    if (al_context == NULL || alcMakeContextCurrent(al_context) == AL_FALSE) {
+        log_printf(RETRO_LOG_ERROR, "Failed to create OpenAL context\n");
+        return false;
+    }
+
+    audio.emplace();
     fs.emplace((const char *)NULL, false);
 
     {
@@ -154,7 +194,7 @@ extern "C" RETRO_API void retro_set_video_refresh(retro_video_refresh_t cb) {
 }
 
 extern "C" RETRO_API void retro_set_audio_sample(retro_audio_sample_t cb) {
-    audio_sample = cb;
+
 }
 
 extern "C" RETRO_API void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb) {
@@ -170,7 +210,8 @@ extern "C" RETRO_API void retro_set_input_state(retro_input_state_t cb) {
 }
 
 extern "C" RETRO_API void retro_init() {
-    frame_buf = (uint32_t *)std::calloc(640 * 480, sizeof(uint32_t));
+    frame_buf = (uint32_t *)std::calloc(640 * 480, sizeof *frame_buf);
+    sound_buf = (int16_t *)aligned_alloc(16, 735 * 2 * sizeof *sound_buf);
 }
 
 extern "C" RETRO_API void retro_deinit() {
@@ -215,8 +256,6 @@ extern "C" RETRO_API void retro_reset() {
 
 extern "C" RETRO_API void retro_run() {
     input_poll();
-    video_refresh(frame_buf, 640, 480, 640 * 4);
-    audio_sample(0, 0);
 
     if (mkxp_retro::sandbox.has_value()) {
         log_printf(RETRO_LOG_INFO, "[Sandbox] Executing frame %zu\n", ++frame_number);
@@ -230,6 +269,11 @@ extern "C" RETRO_API void retro_run() {
             mkxp_retro::sandbox.reset();
         }
     }
+
+    video_refresh(frame_buf, 640, 480, 640 * 4);
+
+    alcRenderSamplesSOFT(al_device, sound_buf, 735);
+    audio_sample_batch(sound_buf, 735);
 }
 
 extern "C" RETRO_API size_t retro_serialize_size() {
@@ -274,8 +318,16 @@ extern "C" RETRO_API bool retro_load_game_special(unsigned int type, const struc
 
 extern "C" RETRO_API void retro_unload_game() {
     mkxp_retro::sandbox.reset();
-
     fs.reset();
+    audio.reset();
+    if (al_context != NULL) {
+        alcDestroyContext(al_context);
+        al_context = NULL;
+    }
+    if (al_device != NULL) {
+        alcCloseDevice(al_device);
+        al_device = NULL;
+    }
 }
 
 extern "C" RETRO_API unsigned int retro_get_region() {

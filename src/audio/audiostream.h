@@ -81,6 +81,8 @@ struct AudioStream
 	bool noResumeStop;
 
 	ALStream stream;
+
+#ifndef MKXPZ_RETRO
 	SDL_mutex *streamMut;
 
 	/* Fade out */
@@ -105,7 +107,7 @@ struct AudioStream
 		float msStep;
 
 		/* Ticks at start of fade */
-		uint32_t startTicks;
+		uint64_t startTicks;
 	} fade;
 
 	/* Fade in */
@@ -117,8 +119,9 @@ struct AudioStream
 		SDL_Thread *thread;
 		std::string threadName;
 
-		uint32_t startTicks;
+		uint64_t startTicks;
 	} fadeIn;
+#endif // MKXPZ_RETRO
 
 	AudioStream(ALStream::LoopMode loopMode,
 	            const std::string &threadId);
@@ -150,8 +153,10 @@ private:
 	void finiFadeOutInt();
 	void startFadeIn();
 
+#ifndef MKXPZ_RETRO
 	void fadeOutThread();
 	void fadeInThread();
+#endif // MKXPZ_RETRO
 };
 
 #endif // AUDIOSTREAM_H

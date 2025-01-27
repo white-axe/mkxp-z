@@ -45,9 +45,7 @@
 #endif // MKXPZ_RETRO
 #include "binding.h"
 #include "exception.h"
-#ifndef MKXPZ_RETRO
 #include "sharedmidistate.h"
-#endif // MKXPZ_RETRO
 
 #include <unistd.h>
 #include <stdio.h>
@@ -85,9 +83,10 @@ struct SharedStatePrivate
 	EventThread &eThread;
 	RGSSThreadData &rtData;
 	Config &config;
-
+#endif // MKXPZ_RETRO
 	SharedMidiState midiState;
 
+#ifndef MKXPZ_RETRO
 	Graphics graphics;
 	Input input;
 	Audio audio;
@@ -126,7 +125,13 @@ struct SharedStatePrivate
 	      eThread(*threadData->ethread),
 	      rtData(*threadData),
 	      config(threadData->config),
+#endif // MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+              midiState(),
+#else
 	      midiState(threadData->config),
+#endif // MKXPZ_RETRO
+#ifndef MKXPZ_RETRO
 	      graphics(threadData),
 	      input(*threadData),
 	      audio(*threadData),
@@ -285,8 +290,8 @@ GSATT(ShaderSet&, shaders)
 GSATT(TexPool&, texPool)
 GSATT(Quad&, gpQuad)
 GSATT(SharedFontState&, fontState)
-GSATT(SharedMidiState&, midiState)
 #endif // MKXPZ_RETRO
+GSATT(SharedMidiState&, midiState)
 
 void SharedState::setBindingData(void *data)
 {

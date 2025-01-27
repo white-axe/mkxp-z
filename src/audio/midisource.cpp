@@ -29,13 +29,14 @@
 #include "debugwriter.h"
 #include "fluid-fun.h"
 
-#include <SDL_rwops.h>
+#ifndef MKXPZ_RETRO
+#  include <SDL_rwops.h>
+#endif // MKXPZ_RETRO
 
 #include <assert.h>
 #include <math.h>
 #include <vector>
 #include <algorithm>
-#include <string>
 
 /* Vocabulary:
  *
@@ -613,7 +614,12 @@ struct MidiSource : ALDataSource, MidiReadHandler
 	/* MidiReadHandler (track that's currently being read) */
 	int16_t curTrack;
 
-	MidiSource(SDL_RWops &ops,
+	MidiSource(
+#ifdef MKXPZ_RETRO
+		struct FileSystem::File &ops,
+#else
+		SDL_RWops &ops,
+#endif // MKXPZ_RETRO
 	           bool looped)
 	    : freq(SYNTH_SAMPLERATE),
 	      looped(looped),
@@ -622,16 +628,30 @@ struct MidiSource : ALDataSource, MidiReadHandler
 	      genDeltasCarry(0),
 	      curTrack(-1)
 	{
+#ifdef MKXPZ_RETRO
+		PHYSFS_Stat stat;
+		size_t dataLen = PHYSFS_stat(ops.path(), &stat) ? stat.filesize : 0;
+#else
 		size_t dataLen = SDL_RWsize(&ops);
+#endif // MKXPZ_RETRO
 		std::vector<uint8_t> data(dataLen);
 
-		if (SDL_RWread(&ops, &data[0], 1, dataLen) < dataLen)
-		{
+		if (
+#ifdef MKXPZ_RETRO
+			PHYSFS_readBytes(ops.get(), &data[0], dataLen) < dataLen
+#else
+			SDL_RWread(&ops, &data[0], 1, dataLen) < dataLen
+#endif // MKXPZ_RETRO
+		) {
+#ifndef MKXPZ_RETRO
 			SDL_RWclose(&ops);
+#endif // MKXPZ_RETRO
 			throw Exception(Exception::MKXPError, "Reading midi data failed");
 		}
 
+#ifndef MKXPZ_RETRO
 		SDL_RWclose(&ops);
+#endif // MKXPZ_RETRO
 
 		readMidi(this, data);
 
@@ -910,7 +930,12 @@ struct MidiSource : ALDataSource, MidiReadHandler
 	}
 };
 
-ALDataSource *createMidiSource(SDL_RWops &ops,
+ALDataSource *createMidiSource(
+#ifdef MKXPZ_RETRO
+			struct FileSystem::File &ops,
+#else
+			SDL_RWops &ops,
+#endif // MKXPZ_RETRO
                                bool looped)
 {
 	return new MidiSource(ops, looped);

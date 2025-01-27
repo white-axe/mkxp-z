@@ -36,7 +36,6 @@ extern unsigned int mkxp_retro_dist_zip_len;
 namespace mkxp_retro {
     retro_log_printf_t log_printf;
     retro_video_refresh_t video_refresh;
-    retro_audio_sample_t audio_sample;
     retro_audio_sample_batch_t audio_sample_batch;
     retro_environment_t environment;
     retro_input_poll_t input_poll;

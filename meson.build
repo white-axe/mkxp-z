@@ -136,10 +136,18 @@ if get_option('retro') == true
         'ALSOFT_BACKEND_WAVE': false,
     })
 
+    fluidlite_options = cmake.subproject_options()
+    fluidlite_options.add_cmake_defines({
+        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'FLUIDLITE_BUILD_STATIC': true,
+        'FLUIDLITE_BUILD_SHARED': false,
+    })
+
     retro_defines = [
         '-DWASM_RT_SKIP_SIGNAL_RECOVERY',
         '-DWASM_RT_TRAP_HANDLER=mkxp_sandbox_trap_handler',
         '-DMKXPZ_RETRO',
+        '-DSHARED_FLUID',
     ]
     if host_endian == 'big'
         retro_defines += '-DWABT_BIG_ENDIAN=1'
@@ -185,6 +193,7 @@ if get_option('retro') == true
             cmake.subproject('libzip', options: libzip_options).dependency('zip'),
             cmake.subproject('physfs', options: physfs_options).dependency('physfs-static'),
             cmake.subproject('openal-soft', options: openal_options).dependency('OpenAL'),
+            cmake.subproject('fluidlite', options: fluidlite_options).dependency('fluidlite-static'),
         ],
         c_args: [
             '-fno-optimize-sibling-calls',
@@ -226,6 +235,12 @@ if get_option('retro') == true
         sources: [
             'src/core.cpp',
             'src/sharedstate.cpp',
+            'src/audio/alstream.cpp',
+            'src/audio/audio.cpp',
+            'src/audio/audiostream.cpp',
+            'src/audio/fluid-fun.cpp',
+            'src/audio/midisource.cpp',
+            'src/audio/soundemitter.cpp',
             'src/crypto/rgssad.cpp',
             'src/display/bitmap.cpp',
             'src/display/viewport.cpp',

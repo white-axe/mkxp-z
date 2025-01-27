@@ -24,9 +24,11 @@
 #include "util.h"
 #include "exception.h"
 
-#include <SDL_mutex.h>
-#include <SDL_thread.h>
-#include <SDL_timer.h>
+#ifndef MKXPZ_RETRO
+#  include <SDL_mutex.h>
+#  include <SDL_thread.h>
+#  include <SDL_timer.h>
+#endif // MKXPZ_RETRO
 
 AudioStream::AudioStream(ALStream::LoopMode loopMode,
                          const std::string &threadId)
@@ -40,6 +42,7 @@ AudioStream::AudioStream(ALStream::LoopMode loopMode,
 	for (size_t i = 0; i < VolumeTypeCount; ++i)
 		volumes[i] = 1.0f;
 
+#ifndef MKXPZ_RETRO
 	fade.thread = 0;
 	fade.threadName = std::string("audio_fadeout (") + threadId + ")";
 
@@ -47,10 +50,12 @@ AudioStream::AudioStream(ALStream::LoopMode loopMode,
 	fadeIn.threadName = std::string("audio_fadein (") + threadId + ")";
 
 	streamMut = SDL_CreateMutex();
+#endif // MKXPZ_RETRO
 }
 
 AudioStream::~AudioStream()
 {
+#ifndef MKXPZ_RETRO
 	if (fade.thread)
 	{
 		fade.reqTerm.set();
@@ -62,6 +67,7 @@ AudioStream::~AudioStream()
 		fadeIn.rqTerm.set();
 		SDL_WaitThread(fadeIn.thread, 0);
 	}
+#endif // MKXPZ_RETRO
 
 	lockStream();
 
@@ -70,7 +76,9 @@ AudioStream::~AudioStream()
 
 	unlockStream();
 
+#ifndef MKXPZ_RETRO
 	SDL_DestroyMutex(streamMut);
+#endif // MKXPZ_RETRO
 }
 
 void AudioStream::play(const std::string &filename,
@@ -176,12 +184,14 @@ void AudioStream::fadeOut(int duration)
 	ALStream::State sState = stream.queryState();
 	noResumeStop = true;
 
+#ifndef MKXPZ_RETRO
 	if (fade.active)
 	{
 		unlockStream();
 
 		return;
 	}
+#endif // MKXPZ_RETRO
 
 	if (sState == ALStream::Paused)
 	{
@@ -198,6 +208,7 @@ void AudioStream::fadeOut(int duration)
 		return;
 	}
 
+#ifndef MKXPZ_RETRO
 	if (fade.thread)
 	{
 		fade.reqFini.set();
@@ -209,10 +220,11 @@ void AudioStream::fadeOut(int duration)
 	fade.msStep = 1.0f / duration;
 	fade.reqFini.clear();
 	fade.reqTerm.clear();
-	fade.startTicks = SDL_GetTicks();
+	fade.startTicks = SDL_GetTicks64();
 
 	fade.thread = createSDLThread
 		<AudioStream, &AudioStream::fadeOutThread>(this, fade.threadName);
+#endif // MKXPZ_RETRO
 
 	unlockStream();
 }
@@ -229,12 +241,16 @@ void AudioStream::seek(double offset)
  * protected by a 'lock'/'unlock' pair */
 void AudioStream::lockStream()
 {
+#ifndef MKXPZ_RETRO
 	SDL_LockMutex(streamMut);
+#endif // MKXPZ_RETRO
 }
 
 void AudioStream::unlockStream()
 {
+#ifndef MKXPZ_RETRO
 	SDL_UnlockMutex(streamMut);
+#endif // MKXPZ_RETRO
 }
 
 void AudioStream::setVolume(VolumeType type, float value)
@@ -265,6 +281,7 @@ void AudioStream::updateVolume()
 
 void AudioStream::finiFadeOutInt()
 {
+#ifndef MKXPZ_RETRO
 	if (fade.thread)
 	{
 		fade.reqFini.set();
@@ -278,21 +295,25 @@ void AudioStream::finiFadeOutInt()
 		SDL_WaitThread(fadeIn.thread, 0);
 		fadeIn.thread = 0;
 	}
+#endif // MKXPZ_RETRO
 }
 
 void AudioStream::startFadeIn()
 {
+#ifndef MKXPZ_RETRO
 	/* Previous fadein should always be terminated in play() */
 	assert(!fadeIn.thread);
 
 	fadeIn.rqFini.clear();
 	fadeIn.rqTerm.clear();
-	fadeIn.startTicks = SDL_GetTicks();
+	fadeIn.startTicks = SDL_GetTicks64();
 
 	fadeIn.thread = createSDLThread
 		<AudioStream, &AudioStream::fadeInThread>(this, fadeIn.threadName);
+#endif // MKXPZ_RETRO
 }
 
+#ifndef MKXPZ_RETRO
 void AudioStream::fadeOutThread()
 {
 	while (true)
@@ -303,7 +324,7 @@ void AudioStream::fadeOutThread()
 
 		lockStream();
 
-		uint32_t curDur = SDL_GetTicks() - fade.startTicks;
+		uint64_t curDur = SDL_GetTicks64() - fade.startTicks;
 		float resVol = 1.0f - (curDur*fade.msStep);
 
 		ALStream::State state = stream.queryState();
@@ -341,7 +362,7 @@ void AudioStream::fadeInThread()
 		lockStream();
 
 		/* Fade in duration is always 1 second */
-		uint32_t cur = SDL_GetTicks() - fadeIn.startTicks;
+		uint64_t cur = SDL_GetTicks64() - fadeIn.startTicks;
 		float prog = cur / 1000.0f;
 
 		ALStream::State state = stream.queryState();
@@ -363,3 +384,4 @@ void AudioStream::fadeInThread()
 		SDL_Delay(AUDIO_SLEEP);
 	}
 }
+#endif // MKXPZ_RETRO

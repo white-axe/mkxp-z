@@ -26,14 +26,16 @@
 #include "sharedstate.h"
 #include "sharedmidistate.h"
 #include "eventthread.h"
-#include "sdl-util.h"
 #include "exception.h"
 
 #include <string>
 #include <vector>
 
-#include <SDL_thread.h>
-#include <SDL_timer.h>
+#ifndef MKXPZ_RETRO
+#  include "sdl-util.h"
+#  include <SDL_thread.h>
+#  include <SDL_timer.h>
+#endif // MKXPZ_RETRO
 
 struct AudioPrivate
 {
@@ -42,9 +44,11 @@ struct AudioPrivate
 	AudioStream bgs;
 	AudioStream me;
 
+#ifndef MKXPZ_RETRO
 	SoundEmitter se;
 
 	SyncPoint &syncPoint;
+#endif // MKXPZ_RETRO
     
     float volumeRatio;
 
@@ -61,34 +65,50 @@ struct AudioPrivate
 		BgmFadingIn
 	};
 
+#ifndef MKXPZ_RETRO
 	struct
 	{
 		SDL_Thread *thread;
 		AtomicFlag termReq;
 		MeWatchState state;
 	} meWatch;
+#endif // MKXPZ_RETRO
 
+#ifdef MKXPZ_RETRO
+	AudioPrivate()
+#else
 	AudioPrivate(RGSSThreadData &rtData)
+#endif // MKXPZ_RETRO
 	    : bgs(ALStream::Looped, "bgs"),
 	      me(ALStream::NotLooped, "me"),
+#ifndef MKXPZ_RETRO
 	      se(rtData.config),
 	      syncPoint(rtData.syncPoint),
+#endif // MKXPZ_RETRO
           volumeRatio(1)
 	{
+#ifdef MKXPZ_RETRO
+        for (int i = 0; i < 16; i++) { // TODO: read BGM track count from config
+#else
         for (int i = 0; i < rtData.config.BGM.trackCount; i++) {
+#endif // MKXPZ_RETRO
             std::string id = std::string("bgm" + std::to_string(i));
             bgmTracks.push_back(new AudioStream(ALStream::Looped, id.c_str()));
         }
         
+#ifndef MKXPZ_RETRO
 		meWatch.state = MeNotPlaying;
 		meWatch.thread = createSDLThread
 			<AudioPrivate, &AudioPrivate::meWatchFun>(this, "audio_mewatch");
+#endif // MKXPZ_RETRO
 	}
 
 	~AudioPrivate()
 	{
+#ifndef MKXPZ_RETRO
 		meWatch.termReq.set();
 		SDL_WaitThread(meWatch.thread, 0);
+#endif // MKXPZ_RETRO
         for (auto track : bgmTracks)
             delete track;
 	}
@@ -101,6 +121,7 @@ struct AudioPrivate
         return bgmTracks[index];
     }
 
+#ifndef MKXPZ_RETRO
 	void meWatchFun()
 	{
 		const float fadeOutStep = 1.f / (200  / AUDIO_SLEEP);
@@ -282,11 +303,18 @@ struct AudioPrivate
 			SDL_Delay(AUDIO_SLEEP);
 		}
 	}
+#endif // MKXPZ_RETRO
 };
 
+#ifdef MKXPZ_RETRO
+Audio::Audio()
+	: p(new AudioPrivate())
+{}
+#else
 Audio::Audio(RGSSThreadData &rtData)
 	: p(new AudioPrivate(rtData))
 {}
+#endif // MKXPZ_RETRO
 
 
 void Audio::bgmPlay(const char *filename,
@@ -394,17 +422,23 @@ void Audio::sePlay(const char *filename,
                    int volume,
                    int pitch)
 {
+#ifndef MKXPZ_RETRO
 	p->se.play(filename, volume, pitch);
+#endif // MKXPZ_RETRO
 }
 
 void Audio::seStop()
 {
+#ifndef MKXPZ_RETRO
 	p->se.stop();
+#endif // MKXPZ_RETRO
 }
 
 void Audio::setupMidi()
 {
+#ifndef MKXPZ_RETRO
 	shState->midiState().initIfNeeded(shState->config());
+#endif // MKXPZ_RETRO
 }
 
 double Audio::bgmPos(int track)
@@ -425,7 +459,9 @@ void Audio::reset()
 
 	p->bgs.stop();
 	p->me.stop();
+#ifndef MKXPZ_RETRO
 	p->se.stop();
+#endif // MKXPZ_RETRO
 }
 
 Audio::~Audio() { delete p; }

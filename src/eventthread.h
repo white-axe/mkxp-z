@@ -37,8 +37,12 @@
 #include "sdl-util.h"
 #include "keybindings.h"
 
-struct RGSSThreadData;
+#ifdef MKXPZ_RETRO
+#  include <AL/alc.h>
+#else
 typedef struct MKXPZ_ALCDEVICE ALCdevice;
+#endif // MKXPZ_RETRO
+
 struct SDL_Window;
 union SDL_Event;
 

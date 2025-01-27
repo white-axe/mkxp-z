@@ -23,7 +23,7 @@
 #include "icon.png.xxd"
 #endif
 
-#include <alc.h>
+#include <AL/alc.h>
 
 #include <SDL.h>
 #include <SDL_image.h>

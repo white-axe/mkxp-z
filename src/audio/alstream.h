@@ -23,10 +23,12 @@
 #define ALSTREAM_H
 
 #include "al-util.h"
-#include "sdl-util.h"
+#ifndef MKXPZ_RETRO
+#  include "sdl-util.h"
+#  include <SDL_rwops.h>
+#endif // MKXPZ_RETRO
 
 #include <string>
-#include <SDL_rwops.h>
 
 struct ALDataSource;
 
@@ -48,12 +50,13 @@ struct ALStream
 	State state;
 
 	ALDataSource *source;
+
+#ifndef MKXPZ_RETRO
 	SDL_Thread *thread;
 
 	std::string threadName;
 
 	SDL_mutex *pauseMut;
-	bool preemptPause;
 
 	/* When this flag isn't set and alSrc is
 	 * in 'STOPPED' state, stream isn't over
@@ -64,6 +67,10 @@ struct ALStream
 	AtomicFlag threadTermReq;
 
 	AtomicFlag needsRewind;
+#endif // MKXPZ_RETRO
+
+	bool preemptPause;
+
 	double startOffset;
 
 	float pitch;
@@ -113,8 +120,10 @@ private:
 
 	void checkStopped();
 
+#ifndef MKXPZ_RETRO
 	/* thread func */
 	void streamData();
+#endif // MKXPZ_RETRO
 };
 
 #endif // ALSTREAM_H

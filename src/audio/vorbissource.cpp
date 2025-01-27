@@ -26,20 +26,52 @@
 #include <vorbis/vorbisfile.h>
 #include <vector>
 #include <algorithm>
+#include <cstring>
 
 static size_t vfRead(void *ptr, size_t size, size_t nmemb, void *ops)
 {
+#ifdef MKXPZ_RETRO
+	return PHYSFS_readBytes(static_cast<struct FileSystem::File*>(ops)->get(), ptr, size * nmemb) / size;
+#else
 	return SDL_RWread(static_cast<SDL_RWops*>(ops), ptr, size, nmemb);
+#endif // MKXPZ_RETRO
 }
 
 static int vfSeek(void *ops, ogg_int64_t offset, int whence)
 {
+#ifdef MKXPZ_RETRO
+	switch (whence) {
+		case 1:
+			{
+				ogg_int64_t pos = PHYSFS_tell(static_cast<struct FileSystem::File*>(ops)->get());
+				if (pos >= 0) {
+					offset += pos;
+				}
+			}
+			break;
+		case 2:
+			{
+				PHYSFS_Stat stat;
+				if (PHYSFS_stat(static_cast<struct FileSystem::File*>(ops)->path(), &stat) != 0) {
+					offset += stat.filesize;
+				}
+			}
+			break;
+	}
+	PHYSFS_seek(static_cast<struct FileSystem::File*>(ops)->get(), offset);
+	return offset;
+#else
 	return SDL_RWseek(static_cast<SDL_RWops*>(ops), offset, whence);
+#endif // MKXPZ_RETRO
 }
 
 static long vfTell(void *ops)
 {
+#ifdef MKXPZ_RETRO
+	return PHYSFS_tell(static_cast<struct FileSystem::File*>(ops)->get());
+#else
 	return SDL_RWtell(static_cast<SDL_RWops*>(ops));
+#endif // MKXPZ_RETRO
 }
 
 static ov_callbacks OvCallbacks =
@@ -53,7 +85,11 @@ static ov_callbacks OvCallbacks =
 
 struct VorbisSource : ALDataSource
 {
+#ifdef MKXPZ_RETRO
+	struct FileSystem::File &src;
+#else
 	SDL_RWops src;
+#endif // MKXPZ_RETRO
 
 	OggVorbis_File vf;
 
@@ -78,7 +114,12 @@ struct VorbisSource : ALDataSource
 
 	std::vector<int16_t> sampleBuf;
 
-	VorbisSource(SDL_RWops &ops,
+	VorbisSource(
+#ifdef MKXPZ_RETRO
+			struct FileSystem::File &ops,
+#else
+			SDL_RWops &ops,
+#endif // MKXPZ_RETRO
 	             bool looped)
 	    : src(ops),
 	      currentFrame(0)
@@ -87,7 +128,9 @@ struct VorbisSource : ALDataSource
 
 		if (error)
 		{
+#ifndef MKXPZ_RETRO
 			SDL_RWclose(&src);
+#endif // MKXPZ_RETRO
 			throw Exception(Exception::MKXPError,
 			                "Vorbisfile: Cannot read ogg file");
 		}
@@ -99,7 +142,9 @@ struct VorbisSource : ALDataSource
 		if (info.channels > 2)
 		{
 			ov_clear(&vf);
+#ifndef MKXPZ_RETRO
 			SDL_RWclose(&src);
+#endif // MKXPZ_RETRO
 			throw Exception(Exception::MKXPError,
 			                "Cannot handle audio with more than 2 channels");
 		}
@@ -148,7 +193,9 @@ struct VorbisSource : ALDataSource
 	~VorbisSource()
 	{
 		ov_clear(&vf);
+#ifndef MKXPZ_RETRO
 		SDL_RWclose(&src);
+#endif // MKXPZ_RETRO
 	}
 
 	int sampleRate()
@@ -282,7 +329,12 @@ struct VorbisSource : ALDataSource
 	}
 };
 
-ALDataSource *createVorbisSource(SDL_RWops &ops,
+ALDataSource *createVorbisSource(
+#ifdef MKXPZ_RETRO
+				struct FileSystem::File &ops,
+#else
+				SDL_RWops &ops,
+#endif // MKXPZ_RETRO
                                  bool looped)
 {
 	return new VorbisSource(ops, looped);

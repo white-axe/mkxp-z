@@ -22,10 +22,14 @@
 #ifndef ALUTIL_H
 #define ALUTIL_H
 
-#include <al.h>
-#include <alext.h>
+#include <AL/al.h>
+#include <AL/alext.h>
 
-#include <SDL_audio.h>
+#ifdef MKXPZ_RETRO
+#  include "filesystem.h"
+#else
+#  include <SDL_audio.h>
+#endif // MKXPZ_RETRO
 #include <assert.h>
 #include <cmath>
 
@@ -223,6 +227,7 @@ namespace Source
 
 }
 
+#ifndef MKXPZ_RETRO
 inline uint8_t formatSampleSize(int sdlFormat)
 {
 	switch (sdlFormat)
@@ -249,6 +254,7 @@ inline uint8_t formatSampleSize(int sdlFormat)
 
 	return 0;
 }
+#endif // MKXPZ_RETRO
 
 inline ALenum chooseALFormat(int sampleSize, int channelCount)
 {

@@ -33,6 +33,10 @@
 
 #include <physfs.h>
 
+#ifdef MKXPZ_RETRO
+#  include <boost/optional.hpp>
+#endif // MKXPZ_RETRO
+
 #include <algorithm>
 #include <stack>
 #include <stdio.h>
@@ -542,8 +546,13 @@ void FileSystem::initFontSets(SharedFontState &sfs) {
 }
 
 struct OpenReadEnumData {
-  FileSystem::OpenHandler &handler;
+#ifdef MKXPZ_RETRO
+  boost::optional<struct FileSystem::File> ops;
+#else
   SDL_RWops ops;
+#endif // MKXPZ_RETRO
+
+  FileSystem::OpenHandler &handler;
 
   /* The filename (without directory) we're looking for */
   const char *filename;
@@ -601,6 +610,9 @@ openReadEnumCB(void *d, const char *dirpath, const char *filename) {
   if (data.pathTrans)
     fullPath = (*data.pathTrans)[fullPath].c_str();
 
+#ifdef MKXPZ_RETRO
+  data.ops.emplace(*mkxp_retro::fs, fullPath, FileSystem::OpenMode::Read);
+#else
   PHYSFS_File *phys = PHYSFS_openRead(fullPath);
 
   if (!phys) {
@@ -613,13 +625,16 @@ openReadEnumCB(void *d, const char *dirpath, const char *filename) {
     return PHYSFS_ENUM_ERROR;
   }
 
-#ifndef MKXPZ_RETRO
   initReadOps(phys, data.ops, false);
 #endif // MKXPZ_RETRO
 
   const char *ext = findExt(filename);
 
+#ifdef MKXPZ_RETRO
+  if (data.handler.tryRead(*data.ops, ext))
+#else
   if (data.handler.tryRead(data.ops, ext))
+#endif // MKXPZ_RETRO
     data.stopSearching = true;
 
   ++data.matchCount;
@@ -691,7 +706,13 @@ void FileSystem::openReadRaw(SDL_RWops &ops, const char *filename,
 
 std::string FileSystem::normalize(const char *pathname, bool preferred,
                             bool absolute) {
-    return filesystemImpl::normalizePath(pathname, preferred, absolute);
+  std::string normalized = filesystemImpl::normalizePath(pathname, preferred, absolute);
+#ifdef MKXPZ_RETRO
+  if (!absolute && normalized[0] == '/') {
+    normalized = normalized.substr(1);
+  }
+#endif // MKXPZ_RETRO
+  return normalized;
 }
 
 bool FileSystem::exists(const char *filename) {

@@ -43,13 +43,21 @@ struct SharedMidiState
 {
 	bool inited;
 	std::vector<Synth> synths;
+#ifndef MKXPZ_RETRO
 	const std::string &soundFont;
+#endif // MKXPZ_RETRO
 	fluid_settings_t *flSettings;
 
+#ifdef MKXPZ_RETRO
+	SharedMidiState()
+	    : inited(false)
+	{}
+#else
 	SharedMidiState(const Config &conf)
 	    : inited(false),
 	      soundFont(conf.midi.soundFont)
 	{}
+#endif // MKXPZ_RETRO
 
 	~SharedMidiState()
 	{
@@ -67,6 +75,29 @@ struct SharedMidiState
 		}
 	}
 
+#ifdef MKXPZ_RETRO
+	void initIfNeeded()
+	{
+		if (inited)
+			return;
+
+		inited = true;
+
+		initFluidFunctions();
+
+		if (!HAVE_FLUID)
+			return;
+
+		flSettings = fluid.new_settings();
+		fluid.settings_setnum(flSettings, "synth.gain", 1.0f);
+		fluid.settings_setnum(flSettings, "synth.sample-rate", SYNTH_SAMPLERATE);
+		fluid.settings_setint(flSettings, "synth.chorus.active", 0);
+		fluid.settings_setint(flSettings, "synth.reverb.active", 0);
+
+		for (size_t i = 0; i < SYNTH_INIT_COUNT; ++i)
+			addSynth(false);
+	}
+#else
 	void initIfNeeded(const Config &conf)
 	{
 		if (inited)
@@ -88,6 +119,7 @@ struct SharedMidiState
 		for (size_t i = 0; i < SYNTH_INIT_COUNT; ++i)
 			addSynth(false);
 	}
+#endif // MKXPZ_RETRO
 
 	fluid_synth_t *allocateSynth()
 	{
@@ -132,9 +164,11 @@ private:
 	{
 		fluid_synth_t *syn = fluid.new_synth(flSettings);
 
+#ifndef MKXPZ_RETRO
 		if (!soundFont.empty())
 			fluid.synth_sfload(syn, soundFont.c_str(), 1);
 		else
+#endif // MKXPZ_RETRO
 			Debug() << "Warning: No soundfont specified, sound might be mute";
 
 		Synth synth;

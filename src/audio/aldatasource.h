@@ -53,15 +53,30 @@ struct ALDataSource
 	virtual bool setPitch(float value) = 0;
 };
 
-ALDataSource *createSDLSource(SDL_RWops &ops,
+ALDataSource *createSDLSource(
+#ifdef MKXPZ_RETRO
+				struct FileSystem::File &ops,
+#else
+				SDL_RWops &ops,
+#endif // MKXPZ_RETRO
                               const char *extension,
 			                  uint32_t maxBufSize,
 			                  bool looped);
 
-ALDataSource *createVorbisSource(SDL_RWops &ops,
+ALDataSource *createVorbisSource(
+#ifdef MKXPZ_RETRO
+				struct FileSystem::File &ops,
+#else
+				SDL_RWops &ops,
+#endif // MKXPZ_RETRO
                                  bool looped);
 
-ALDataSource *createMidiSource(SDL_RWops &ops,
+ALDataSource *createMidiSource(
+#ifdef MKXPZ_RETRO
+				struct FileSystem::File &ops,
+#else
+				SDL_RWops &ops,
+#endif // MKXPZ_RETRO
                                bool looped);
 
 #endif // ALDATASOURCE_H

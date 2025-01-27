@@ -22,12 +22,47 @@
 #ifndef MKXPZ_SANDBOX_AUDIO_BINDING_H
 #define MKXPZ_SANDBOX_AUDIO_BINDING_H
 
+#include "binding-sandbox/core.h"
 #include "sandbox.h"
 
 namespace mkxp_sandbox {
     SANDBOX_COROUTINE(audio_binding_init,
         static VALUE todo(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            return self;
+            return SANDBOX_NIL;
+        }
+
+        static VALUE bgm_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                wasm_ptr_t filename;
+                int32_t volume;
+                int32_t pitch;
+
+                VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        volume = 100;
+                        pitch = 100;
+
+                        SANDBOX_AWAIT_AND_SET(filename, rb_string_value_cstr, (VALUE *)(**sb() + argv));
+                        if (argc >= 2) {
+                            SANDBOX_AWAIT_AND_SET(volume, rb_ll2inum, ((VALUE *)(**sb() + argv))[1]);
+                            if (argc >= 3) {
+                                SANDBOX_AWAIT_AND_SET(pitch, rb_ll2inum, ((VALUE *)(**sb() + argv))[2]);
+                            }
+                        }
+
+                        mkxp_retro::audio->bgmPlay((const char *)(**sb() + filename), volume, pitch);
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(argc, argv, self);
+        }
+
+        static VALUE bgm_stop(VALUE self) {
+            mkxp_retro::audio->bgmStop();
+            return SANDBOX_NIL;
         }
 
         VALUE module;
@@ -35,8 +70,8 @@ namespace mkxp_sandbox {
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_AND_SET(module, rb_define_module, "Audio");
-                SANDBOX_AWAIT(rb_define_module_function, module, "bgm_play", (VALUE (*)(ANYARGS))todo, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "bgm_stop", (VALUE (*)(ANYARGS))todo, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "bgm_play", (VALUE (*)(ANYARGS))bgm_play, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "bgm_stop", (VALUE (*)(ANYARGS))bgm_stop, 0);
                 SANDBOX_AWAIT(rb_define_module_function, module, "bgm_fade", (VALUE (*)(ANYARGS))todo, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "bgm_pos", (VALUE (*)(ANYARGS))todo, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "bgm_volume", (VALUE (*)(ANYARGS))todo, -1);

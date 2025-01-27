@@ -2,9 +2,13 @@
 #define FLUIDFUN_H
 
 #ifdef SHARED_FLUID
-# include <fluidsynth.h>
+#  ifdef MKXPZ_RETRO
+#    include <fluidlite.h>
+#  else
+#    include <fluidsynth.h>
+#  endif // MKXPZ_RETRO
 #else
-# define FLUIDSYNTH_VERSION_MAJOR 3
+#  define FLUIDSYNTH_VERSION_MAJOR 3
 #endif
 
 typedef struct _fluid_hashtable_t fluid_settings_t;
@@ -27,7 +31,7 @@ typedef fluid_settings_t* (*NEWFLUIDSETTINGSPROC)(void);
 typedef fluid_synth_t* (*NEWFLUIDSYNTHPROC)(fluid_settings_t* settings);
 typedef void (*DELETEFLUIDSETTINGSPROC)(fluid_settings_t* settings);
 
-#if FLUIDSYNTH_VERSION_MAJOR == 1
+#if (defined(SHARED_FLUID) && defined(MKXPZ_RETRO)) || FLUIDSYNTH_VERSION_MAJOR == 1
 typedef int (*DELETEFLUIDSYNTHPROC)(fluid_synth_t* synth);
 #else
 typedef void (*DELETEFLUIDSYNTHPROC)(fluid_synth_t* synth);
