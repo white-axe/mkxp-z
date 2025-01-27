@@ -51,7 +51,9 @@ struct ALStream
 
 	ALDataSource *source;
 
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+	bool sourceExhausted;
+#else
 	SDL_Thread *thread;
 
 	std::string threadName;
@@ -109,7 +111,16 @@ struct ALStream
 	double queryOffset();
 	bool queryNativePitch();
 
+#ifdef MKXPZ_RETRO
+	void render();
 private:
+#else
+private:
+	void render();
+#endif // MKXPZ_RETRO
+
+	void renderInit();
+
 	void closeSource();
 	void openSource(const std::string &filename);
 

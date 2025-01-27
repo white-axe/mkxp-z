@@ -351,6 +351,7 @@ extern "C" RETRO_API void retro_run() {
 
     video_refresh(frame_buf, 640, 480, 640 * 4);
 
+    audio->render();
     alcRenderSamplesSOFT(al_device, sound_buf, 735);
     audio_sample_batch(sound_buf, 735);
 }

@@ -40,7 +40,9 @@ ALStream::ALStream(LoopMode loopMode,
 	: looped(loopMode == Looped),
 	  state(Closed),
 	  source(0),
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+	  sourceExhausted(false),
+#else
 	  thread(0),
 #endif // MKXPZ_RETRO
 	  preemptPause(false),
@@ -339,7 +341,9 @@ void ALStream::startStream(double offset)
 	startOffset = offset;
 	procFrames = offset * source->sampleRate();
 
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+	renderInit();
+#else
 	thread = createSDLThread
 		<ALStream, &ALStream::streamData>(this, threadName);
 #endif // MKXPZ_RETRO
@@ -406,24 +410,19 @@ void ALStream::checkStopped()
 	state = Stopped;
 }
 
-#ifndef MKXPZ_RETRO
-/* thread func */
-void ALStream::streamData()
-{
-	/* Fill up queue */
+void ALStream::renderInit() {
 	bool firstBuffer = true;
 	ALDataSource::Status status;
-
-	if (threadTermReq)
-		return;
 
 	//if (needsRewind)
 		source->seekToOffset(startOffset);
 
 	for (int i = 0; i < STREAM_BUFS; ++i)
 	{
+#ifndef MKXPZ_RETRO
 		if (threadTermReq)
 			return;
+#endif
 
 		AL::Buffer::ID buf = alBuf[i];
 
@@ -439,90 +438,127 @@ void ALStream::streamData()
 			resumeStream();
 
 			firstBuffer = false;
+#ifndef MKXPZ_RETRO
 			streamInited.set();
+#endif
 		}
 
+#ifndef MKXPZ_RETRO
 		if (threadTermReq)
 			return;
+#endif
 
 		if (status == ALDataSource::EndOfStream)
 		{
+#ifdef MKXPZ_RETRO
+			sourceExhausted = true;
+#else
 			sourceExhausted.set();
+#endif
 			break;
 		}
 	}
+}
+
+void ALStream::render() {
+	ALint procBufs = AL::Source::getProcBufferCount(alSrc);
+
+	while (procBufs--)
+	{
+#ifndef MKXPZ_RETRO
+		if (threadTermReq)
+			break;
+#endif
+
+		AL::Buffer::ID buf = AL::Source::unqueueBuffer(alSrc);
+
+		/* If something went wrong, try again later */
+		if (buf == AL::Buffer::ID(0))
+			break;
+
+		if (buf == lastBuf)
+		{
+			/* Reset the processed sample count so
+			 * querying the playback offset returns 0.0 again */
+			procFrames = source->loopStartFrames();
+			lastBuf = AL::Buffer::ID(0);
+		}
+		else
+		{
+			/* Add the frame count contained in this
+			 * buffer to the total count */
+			ALint bits = AL::Buffer::getBits(buf);
+			ALint size = AL::Buffer::getSize(buf);
+			ALint chan = AL::Buffer::getChannels(buf);
+
+			if (bits != 0 && chan != 0)
+				procFrames += ((size / (bits / 8)) / chan);
+		}
+
+		if (sourceExhausted)
+			continue;
+
+		ALDataSource::Status status = source->fillBuffer(buf);
+
+		if (status == ALDataSource::Error)
+		{
+#ifdef MKXPZ_RETRO
+			sourceExhausted = true;
+#else
+			sourceExhausted.set();
+#endif
+			return;
+		}
+
+		AL::Source::queueBuffer(alSrc, buf);
+
+		/* In case of buffer underrun,
+		 * start playing again */
+		if (AL::Source::getState(alSrc) == AL_STOPPED)
+			AL::Source::play(alSrc);
+
+		/* If this was the last buffer before the data
+		 * source loop wrapped around again, mark it as
+		 * such so we can catch it and reset the processed
+		 * sample count once it gets unqueued */
+		if (status == ALDataSource::WrapAround)
+			lastBuf = buf;
+
+		if (status == ALDataSource::EndOfStream)
+#ifdef MKXPZ_RETRO
+			sourceExhausted = true;
+#else
+			sourceExhausted.set();
+#endif
+	}
+}
+
+#ifndef MKXPZ_RETRO
+/* thread func */
+void ALStream::streamData()
+{
+	if (threadTermReq)
+		return;
+
+	/* Fill up queue */
+	renderInit();
+
+	if (threadTermReq)
+		return;
 
 	/* Wait for buffers to be consumed, then
 	 * refill and queue them up again */
-	while (true)
+	do
 	{
 		shState->rtData().syncPoint.passSecondarySync();
 
-		ALint procBufs = AL::Source::getProcBufferCount(alSrc);
-
-		while (procBufs--)
-		{
-			if (threadTermReq)
-				break;
-
-			AL::Buffer::ID buf = AL::Source::unqueueBuffer(alSrc);
-
-			/* If something went wrong, try again later */
-			if (buf == AL::Buffer::ID(0))
-				break;
-
-			if (buf == lastBuf)
-			{
-				/* Reset the processed sample count so
-				 * querying the playback offset returns 0.0 again */
-				procFrames = source->loopStartFrames();
-				lastBuf = AL::Buffer::ID(0);
-			}
-			else
-			{
-				/* Add the frame count contained in this
-				 * buffer to the total count */
-				ALint bits = AL::Buffer::getBits(buf);
-				ALint size = AL::Buffer::getSize(buf);
-				ALint chan = AL::Buffer::getChannels(buf);
-
-				if (bits != 0 && chan != 0)
-					procFrames += ((size / (bits / 8)) / chan);
-			}
-
-			if (sourceExhausted)
-				continue;
-
-			status = source->fillBuffer(buf);
-
-			if (status == ALDataSource::Error)
-			{
-				sourceExhausted.set();
-				return;
-			}
-
-			AL::Source::queueBuffer(alSrc, buf);
-
-			/* In case of buffer underrun,
-			 * start playing again */
-			if (AL::Source::getState(alSrc) == AL_STOPPED)
-				AL::Source::play(alSrc);
-
-			/* If this was the last buffer before the data
-			 * source loop wrapped around again, mark it as
-			 * such so we can catch it and reset the processed
-			 * sample count once it gets unqueued */
-			if (status == ALDataSource::WrapAround)
-				lastBuf = buf;
-
-			if (status == ALDataSource::EndOfStream)
-				sourceExhausted.set();
-		}
+		render();
 
 		if (threadTermReq)
 			break;
 
 		SDL_Delay(AUDIO_SLEEP);
 	}
+	while (!sourceExhausted);
 }
 #endif // MKXPZ_RETRO

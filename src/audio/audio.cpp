@@ -316,6 +316,13 @@ Audio::Audio(RGSSThreadData &rtData)
 {}
 #endif // MKXPZ_RETRO
 
+#ifdef MKXPZ_RETRO
+void Audio::render() {
+        for (int i = 0; i < (int)p->bgmTracks.size(); i++) {
+            p->bgmTracks[i]->stream.render();
+        }
+}
+#endif
 
 void Audio::bgmPlay(const char *filename,
                     int volume,
