@@ -5,15 +5,14 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -134,6 +134,12 @@ if("${CMAKE_C_PLATFORM_ID}" STREQUAL "QNX")
+@@ -134,6 +134,11 @@ if("${CMAKE_C_PLATFORM_ID}" STREQUAL "QNX")
      set(INC_PATHS ${INC_PATHS} /usr/include)
      set(LINKER_FLAGS ${LINKER_FLAGS} -L/usr/lib)
  endif()
-+CHECK_INCLUDE_FILE("semaphore.h" HAVE_SEMAPHORE_H)
-+if(NOT HAVE_SEMAPHORE_H)
-+    message("semaphore.h not found; using libogc semaphores instead")
++check_symbol_exists(__DEVKITPPC__ "sys/config.h" DEVKITPPC)
++if(DEVKITPPC)
++    set(CPP_DEFS ${CPP_DEFS} MKXPZ_DEVKITPPC)
 +    set(INC_PATHS ${INC_PATHS} "$ENV{DEVKITPRO}/libogc/include")
-+    set(INC_PATHS ${INC_PATHS} "$ENV{DEVKITPRO}/libogc/include/ogc")
 +endif()
  
  # When the library is built for static linking, apps should define
@@ -43,7 +42,7 @@ diff --git a/common/threads.cpp b/common/threads.cpp
  
  semaphore::semaphore(unsigned int initial)
  {
-+#ifdef LWP_SEM_NULL
++#ifdef MKXPZ_DEVKITPPC
 +    if(LWP_SemInit(&mSem, initial, 0xffffffff) != 0)
 +#else
      if(sem_init(&mSem, 0, initial) != 0)
@@ -52,7 +51,7 @@ diff --git a/common/threads.cpp b/common/threads.cpp
  }
  
  semaphore::~semaphore()
-+#ifdef LWP_SEM_NULL
++#ifdef MKXPZ_DEVKITPPC
 +{ LWP_SemDestroy(mSem); }
 +#else
  { sem_destroy(&mSem); }
@@ -60,7 +59,7 @@ diff --git a/common/threads.cpp b/common/threads.cpp
  
  void semaphore::post()
  {
-+#ifdef LWP_SEM_NULL
++#ifdef MKXPZ_DEVKITPPC
 +    if(LWP_SemPost(mSem) != 0)
 +#else
      if(sem_post(&mSem) != 0)
@@ -70,7 +69,7 @@ diff --git a/common/threads.cpp b/common/threads.cpp
  
  void semaphore::wait() noexcept
  {
-+#ifdef LWP_SEM_NULL
++#ifdef MKXPZ_DEVKITPPC
 +    LWP_SemWait(mSem);
 +#else
      while(sem_wait(&mSem) == -1 && errno == EINTR) {
@@ -86,7 +85,20 @@ diff --git a/common/threads.cpp b/common/threads.cpp
 diff --git a/common/threads.h b/common/threads.h
 --- a/common/threads.h
 +++ b/common/threads.h
-@@ -40,7 +40,6 @@ public:
+@@ -14,7 +14,11 @@
+ #if defined(__APPLE__)
+ #include <dispatch/dispatch.h>
+ #elif !defined(_WIN32)
+-#include <semaphore.h>
++#  ifdef MKXPZ_DEVKITPPC
++#    include <ogc/semaphore.h>
++#  else
++#    include <semaphore.h>
++#  endif
+ #endif
+ 
+ void althrd_setname(const char *name);
+@@ -40,7 +44,6 @@ public:
  
      void post();
      void wait() noexcept;

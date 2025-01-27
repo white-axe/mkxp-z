@@ -6,16 +6,16 @@
 
 #include "debugwriter.h"
 
-#if __LINUX__ || __ANDROID__
-#define FLUID_LIB "libfluidsynth.so.3"
+#if defined(__LINUX__) || defined(__ANDROID__)
+#  define FLUID_LIB "libfluidsynth.so.3"
 #elif MKXPZ_BUILD_XCODE
-#define FLUID_LIB "@rpath/libfluidsynth.dylib"
+#  define FLUID_LIB "@rpath/libfluidsynth.dylib"
 #elif __APPLE__
-#define FLUID_LIB "libfluidsynth.3.dylib"
+#  define FLUID_LIB "libfluidsynth.3.dylib"
 #elif __WIN32__
-#define FLUID_LIB "fluidsynth.dll"
-#else
-#error "platform not recognized"
+#  define FLUID_LIB "fluidsynth.dll"
+#elif !defined(SHARED_FLUID)
+#  error "platform not recognized"
 #endif
 
 struct FluidFunctions fluid;

@@ -7,7 +7,7 @@ if get_option('retro') == false and host_system == 'darwin'
     error('\nThis Meson project no longer supports macOS. Please use the Xcode project instead.')
 endif
 
-git_hash = run_command('git', 'rev-parse', '--short', 'HEAD', check: true).stdout().strip()
+git_hash = run_command('git', 'rev-parse', '--short', 'HEAD', check: false).stdout().strip()
 
 compilers = {'cpp': meson.get_compiler('cpp')}
 
@@ -171,30 +171,35 @@ if get_option('retro') == true
         retro_link_args += '-Wl,--version-script,' + join_paths(meson.current_source_dir(), 'retro/link.T')
     endif
 
+    retro_deps = [
+        cmake.subproject('boost_asio', options: boost_options).dependency('boost_asio'),
+        cmake.subproject('boost_mp11', options: boost_options).dependency('boost_mp11'),
+        cmake.subproject('boost_describe', options: boost_options).dependency('boost_describe'),
+        cmake.subproject('boost_config', options: boost_options).dependency('boost_config'),
+        cmake.subproject('boost_assert', options: boost_options).dependency('boost_assert'),
+        cmake.subproject('boost_static_assert', options: boost_options).dependency('boost_static_assert'),
+        cmake.subproject('boost_throw_exception', options: boost_options).dependency('boost_throw_exception'),
+        cmake.subproject('boost_core', options: boost_options).dependency('boost_core'),
+        cmake.subproject('boost_container_hash', options: boost_options).dependency('boost_container_hash'),
+        cmake.subproject('boost_type_index', options: boost_options).dependency('boost_type_index'),
+        cmake.subproject('boost_type_traits', options: boost_options).dependency('boost_type_traits'),
+        cmake.subproject('boost_optional', options: boost_options).dependency('boost_optional'),
+        cmake.subproject(host_system == 'darwin' ? 'zlib-darwin' : 'zlib', options: zlib_options).dependency('zlibstatic'),
+        cmake.subproject('bzip2', options: bzip2_options).dependency('bz2_static'),
+        cmake.subproject('liblzma', options: liblzma_options).dependency('liblzma'),
+        cmake.subproject('zstd', options: zstd_options).dependency('libzstd_static'),
+        cmake.subproject('libzip', options: libzip_options).dependency('zip'),
+        cmake.subproject('physfs', options: physfs_options).dependency('physfs-static'),
+        cmake.subproject('openal-soft', options: openal_options).dependency('OpenAL'),
+        cmake.subproject('fluidlite', options: fluidlite_options).dependency('fluidlite-static'),
+    ]
+    if host_system == 'darwin'
+        retro_deps += compilers['cpp'].find_library('iconv')
+    endif
+
     library(
         'retro-' + meson.project_name(),
-        dependencies: [
-            cmake.subproject('boost_asio', options: boost_options).dependency('boost_asio'),
-            cmake.subproject('boost_mp11', options: boost_options).dependency('boost_mp11'),
-            cmake.subproject('boost_describe', options: boost_options).dependency('boost_describe'),
-            cmake.subproject('boost_config', options: boost_options).dependency('boost_config'),
-            cmake.subproject('boost_assert', options: boost_options).dependency('boost_assert'),
-            cmake.subproject('boost_static_assert', options: boost_options).dependency('boost_static_assert'),
-            cmake.subproject('boost_throw_exception', options: boost_options).dependency('boost_throw_exception'),
-            cmake.subproject('boost_core', options: boost_options).dependency('boost_core'),
-            cmake.subproject('boost_container_hash', options: boost_options).dependency('boost_container_hash'),
-            cmake.subproject('boost_type_index', options: boost_options).dependency('boost_type_index'),
-            cmake.subproject('boost_type_traits', options: boost_options).dependency('boost_type_traits'),
-            cmake.subproject('boost_optional', options: boost_options).dependency('boost_optional'),
-            cmake.subproject(host_system == 'darwin' ? 'zlib-darwin' : 'zlib', options: zlib_options).dependency('zlibstatic'),
-            cmake.subproject('bzip2', options: bzip2_options).dependency('bz2_static'),
-            cmake.subproject('liblzma', options: liblzma_options).dependency('liblzma'),
-            cmake.subproject('zstd', options: zstd_options).dependency('libzstd_static'),
-            cmake.subproject('libzip', options: libzip_options).dependency('zip'),
-            cmake.subproject('physfs', options: physfs_options).dependency('physfs-static'),
-            cmake.subproject('openal-soft', options: openal_options).dependency('OpenAL'),
-            cmake.subproject('fluidlite', options: fluidlite_options).dependency('fluidlite-static'),
-        ],
+        dependencies: retro_deps,
         c_args: [
             '-fno-optimize-sibling-calls',
             '-frounding-math',

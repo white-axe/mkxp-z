@@ -20,7 +20,6 @@
 */
 
 #include <cstdio>
-#include <stdlib.h>
 #include <cstdlib>
 #include <cstdarg>
 #include <cstring>
@@ -34,6 +33,21 @@
 
 using namespace mkxp_retro;
 using namespace mkxp_sandbox;
+
+#if defined(__unix__) || defined(__APPLE__)
+static inline void *malloc_align(size_t alignment, size_t size) {
+    void *mem;
+    return posix_memalign(&mem, alignment, size) ? NULL : mem;
+}
+#elif defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)
+static inline void *malloc_align(size_t alignment, size_t size) {
+    return _aligned_malloc(size, alignment);
+}
+#else
+static inline void *malloc_align(size_t alignment, size_t size) {
+    return aligned_alloc(alignment, size);
+}
+#endif
 
 static size_t frame_number = 0;
 static ALCdevice *al_device = NULL;
@@ -211,7 +225,7 @@ extern "C" RETRO_API void retro_set_input_state(retro_input_state_t cb) {
 
 extern "C" RETRO_API void retro_init() {
     frame_buf = (uint32_t *)std::calloc(640 * 480, sizeof *frame_buf);
-    sound_buf = (int16_t *)aligned_alloc(16, 735 * 2 * sizeof *sound_buf);
+    sound_buf = (int16_t *)malloc_align(16, 735 * 2 * sizeof *sound_buf);
 }
 
 extern "C" RETRO_API void retro_deinit() {

@@ -1,14 +1,78 @@
 # Fixes a compilation error when building with C++ standards older than C++17.
+# Also removes the call to `__android_log_printf()` on Android.
+# Also removes the Apple-specific code from alconfig.cpp.
 
+diff --git a/alc/alconfig.cpp b/alc/alconfig.cpp
+--- a/alc/alconfig.cpp
++++ b/alc/alconfig.cpp
+@@ -362,22 +362,6 @@ void ReadALConfig()
+         fname.clear();
+     }
+ 
+-#ifdef __APPLE__
+-    CFBundleRef mainBundle = CFBundleGetMainBundle();
+-    if(mainBundle)
+-    {
+-        unsigned char fileName[PATH_MAX];
+-        CFURLRef configURL;
+-
+-        if((configURL=CFBundleCopyResourceURL(mainBundle, CFSTR(".alsoftrc"), CFSTR(""), nullptr)) &&
+-           CFURLGetFileSystemRepresentation(configURL, true, fileName, sizeof(fileName)))
+-        {
+-            f = al::ifstream{reinterpret_cast<char*>(fileName)};
+-            if(f.is_open())
+-                LoadConfigFromFile(f);
+-        }
+-    }
+-#endif
+ 
+     if(auto homedir = al::getenv("HOME"))
+     {
+diff --git a/alc/helpers.cpp b/alc/helpers.cpp
+--- a/alc/helpers.cpp
++++ b/alc/helpers.cpp
+@@ -348,22 +348,6 @@ void al_print(LogLevel level, FILE *logfile, const char *fmt, ...)
+         fputs(str, logfile);
+         fflush(logfile);
+     }
+-#ifdef __ANDROID__
+-    auto android_severity = [](LogLevel l) noexcept
+-    {
+-        switch(l)
+-        {
+-        case LogLevel::Trace: return ANDROID_LOG_DEBUG;
+-        case LogLevel::Warning: return ANDROID_LOG_WARN;
+-        case LogLevel::Error: return ANDROID_LOG_ERROR;
+-        /* Should not happen. */
+-        case LogLevel::Disable:
+-            break;
+-        }
+-        return ANDROID_LOG_ERROR;
+-    };
+-    __android_log_print(android_severity(level), "openal", "%s", str);
+-#endif
+ }
+ 
+ 
 diff --git a/common/almalloc.cpp b/common/almalloc.cpp
 --- a/common/almalloc.cpp
 +++ b/common/almalloc.cpp
-@@ -20,7 +20,7 @@ void *al_malloc(size_t alignment, size_t size)
+@@ -18,14 +18,14 @@ void *al_malloc(size_t alignment, size_t size)
+     assert((alignment & (alignment-1)) == 0);
+     alignment = std::max(alignment, alignof(std::max_align_t));
  
- #if defined(HAVE_STD_ALIGNED_ALLOC)
-     size = (size+(alignment-1))&~(alignment-1);
+-#if defined(HAVE_STD_ALIGNED_ALLOC)
+-    size = (size+(alignment-1))&~(alignment-1);
 -    return std::aligned_alloc(alignment, size);
-+    return aligned_alloc(alignment, size);
- #elif defined(HAVE_POSIX_MEMALIGN)
+-#elif defined(HAVE_POSIX_MEMALIGN)
++#if defined(HAVE_POSIX_MEMALIGN)
      void *ret{};
      if(posix_memalign(&ret, alignment, size) == 0)
+         return ret;
+     return nullptr;
++#elif defined(HAVE_STD_ALIGNED_ALLOC)
++    size = (size+(alignment-1))&~(alignment-1);
++    return aligned_alloc(alignment, size);
+ #elif defined(HAVE__ALIGNED_MALLOC)
+     return _aligned_malloc(size, alignment);
+ #else

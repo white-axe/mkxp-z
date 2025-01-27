@@ -1,7 +1,184 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -25,10 +25,6 @@ set(PHYSFS_CPP_SRCS)
+ 
+ # I hate that they define "WIN32" ... we're about to move to Win64...I hope!
+ 
+-if(APPLE)
+-    set(OTHER_LDFLAGS ${OTHER_LDFLAGS} "-framework IOKit -framework Foundation")
+-    list(APPEND PHYSFS_M_SRCS src/physfs_platform_apple.m)
+-endif()
+ 
+ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
+     add_compile_options(-Wall)
+@@ -58,7 +54,7 @@ if(WINRT)
+     list(APPEND PHYSFS_CPP_SRCS src/physfs_platform_winrt.cpp)
+ endif()
+ 
+-if(UNIX AND NOT WIN32 AND NOT APPLE)  # (MingW and such might be UNIX _and_ WINDOWS!)
++if(UNIX AND NOT WIN32)  # (MingW and such might be UNIX _and_ WINDOWS!)
+     find_library(PTHREAD_LIBRARY pthread)
+     if(PTHREAD_LIBRARY)
+         set(OPTIONAL_LIBRARY_LIBS ${OPTIONAL_LIBRARY_LIBS} ${PTHREAD_LIBRARY})
+@@ -172,11 +168,20 @@ if(PHYSFS_BUILD_STATIC)
+ 		set_target_properties(physfs-static PROPERTIES VS_WINRT_COMPONENT True)
+         set_target_properties(physfs-static PROPERTIES STATIC_LIBRARY_FLAGS "/ignore:4264")
+     endif()
++    set(CPP_DEFS)
++    set(INC_PATHS)
++    include(CheckSymbolExists)
++    check_symbol_exists(__DEVKITPPC__ "sys/config.h" DEVKITPPC)
++    if(DEVKITPPC)
++        set(CPP_DEFS ${CPP_DEFS} MKXPZ_DEVKITPPC)
++        set(INC_PATHS ${INC_PATHS} "$ENV{DEVKITPRO}/libogc/include")
++    endif()
+     if(WIN32 OR WINRT OR OS2)
+         # no dll exports from the static library
+-        target_compile_definitions(physfs-static PRIVATE "PHYSFS_STATIC")
++        set(CPP_DEFS ${CPP_DEFS} "PHYSFS_STATIC")
+     endif()
+-    target_include_directories(physfs-static PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>")
++    target_compile_definitions(physfs-static PRIVATE ${CPP_DEFS})
++    target_include_directories(physfs-static PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>" ${INC_PATHS})
+     target_link_libraries(physfs-static PRIVATE ${OPTIONAL_LIBRARY_LIBS} ${OTHER_LDFLAGS})
+     set(PHYSFS_LIB_TARGET physfs-static)
+     list(APPEND PHYSFS_INSTALL_TARGETS "physfs-static")
+diff --git a/src/physfs_platform_posix.c b/src/physfs_platform_posix.c
+--- a/src/physfs_platform_posix.c
++++ b/src/physfs_platform_posix.c
+@@ -19,7 +19,11 @@
+ #include <dirent.h>
+ #include <errno.h>
+ #include <fcntl.h>
+-#include <pthread.h>
++#ifdef MKXPZ_DEVKITPPC
++#  include <ogc/mutex.h>
++#else
++#  include <pthread.h>
++#endif
+ 
+ #include "physfs_internal.h"
+ 
+@@ -369,15 +373,23 @@ int __PHYSFS_platformStat(const char *fname, PHYSFS_Stat *st, const int follow)
+ 
+ typedef struct
+ {
++#ifdef MKXPZ_DEVKITPPC
++    mutex_t mutex;
++#else
+     pthread_mutex_t mutex;
+     pthread_t owner;
++#endif
+     PHYSFS_uint32 count;
+ } PthreadMutex;
+ 
+ 
+ void *__PHYSFS_platformGetThreadID(void)
+ {
++#ifdef MKXPZ_DEVKITPPC
++    return (void *)42;
++#else
+     return ( (void *) ((size_t) pthread_self()) );
++#endif
+ } /* __PHYSFS_platformGetThreadID */
+ 
+ 
+@@ -386,7 +398,11 @@ void *__PHYSFS_platformCreateMutex(void)
+     int rc;
+     PthreadMutex *m = (PthreadMutex *) allocator.Malloc(sizeof (PthreadMutex));
+     BAIL_IF(!m, PHYSFS_ERR_OUT_OF_MEMORY, NULL);
++#ifdef MKXPZ_DEVKITPPC
++    rc = LWP_MutexInit(&m->mutex, false);
++#else
+     rc = pthread_mutex_init(&m->mutex, NULL);
++#endif
+     if (rc != 0)
+     {
+         allocator.Free(m);
+@@ -394,7 +410,9 @@ void *__PHYSFS_platformCreateMutex(void)
+     } /* if */
+ 
+     m->count = 0;
++#ifndef MKXPZ_DEVKITPPC
+     m->owner = (pthread_t) 0xDEADBEEF;
++#endif
+     return ((void *) m);
+ } /* __PHYSFS_platformCreateMutex */
+ 
+@@ -403,11 +421,15 @@ void __PHYSFS_platformDestroyMutex(void *mutex)
+ {
+     PthreadMutex *m = (PthreadMutex *) mutex;
+ 
++#ifdef MKXPZ_DEVKITPPC
++    LWP_MutexDestroy(m->mutex);
++#else
+     /* Destroying a locked mutex is a bug, but we'll try to be helpful. */
+     if ((m->owner == pthread_self()) && (m->count > 0))
+         pthread_mutex_unlock(&m->mutex);
+ 
+     pthread_mutex_destroy(&m->mutex);
++#endif
+     allocator.Free(m);
+ } /* __PHYSFS_platformDestroyMutex */
+ 
+@@ -415,6 +437,10 @@ void __PHYSFS_platformDestroyMutex(void *mutex)
+ int __PHYSFS_platformGrabMutex(void *mutex)
+ {
+     PthreadMutex *m = (PthreadMutex *) mutex;
++#ifdef MKXPZ_DEVKITPPC
++    if (LWP_MutexLock(m->mutex) != 0)
++        return 0;
++#else
+     pthread_t tid = pthread_self();
+     if (m->owner != tid)
+     {
+@@ -422,6 +448,7 @@ int __PHYSFS_platformGrabMutex(void *mutex)
+             return 0;
+         m->owner = tid;
+     } /* if */
++#endif
+ 
+     m->count++;
+     return 1;
+@@ -431,6 +458,9 @@ int __PHYSFS_platformGrabMutex(void *mutex)
+ void __PHYSFS_platformReleaseMutex(void *mutex)
+ {
+     PthreadMutex *m = (PthreadMutex *) mutex;
++#ifdef MKXPZ_DEVKITPPC
++    LWP_MutexUnlock(m->mutex);
++#else
+     assert(m->owner == pthread_self());  /* catch programming errors. */
+     assert(m->count > 0);  /* catch programming errors. */
+     if (m->owner == pthread_self())
+@@ -441,6 +471,7 @@ void __PHYSFS_platformReleaseMutex(void *mutex)
+             pthread_mutex_unlock(&m->mutex);
+         } /* if */
+     } /* if */
++#endif
+ } /* __PHYSFS_platformReleaseMutex */
+ 
+ #endif  /* PHYSFS_PLATFORM_POSIX */
 diff --git a/src/physfs_platforms.h b/src/physfs_platforms.h
 --- a/src/physfs_platforms.h
 +++ b/src/physfs_platforms.h
-@@ -73,7 +73,10 @@
+@@ -31,13 +31,9 @@
+ #elif defined(__OS2__) || defined(OS2)
+ #  define PHYSFS_PLATFORM_OS2 1
+ #elif ((defined __MACH__) && (defined __APPLE__))
+-/* To check if iOS or not, we need to include this file */
+-#  include <TargetConditionals.h>
+-#  if ((TARGET_IPHONE_SIMULATOR) || (TARGET_OS_IPHONE))
+-#     define PHYSFS_NO_CDROM_SUPPORT 1
+-#  endif
+-#  define PHYSFS_PLATFORM_APPLE 1
++#  define PHYSFS_PLATFORM_UNIX 1
+ #  define PHYSFS_PLATFORM_POSIX 1
++#  define PHYSFS_NO_CDROM_SUPPORT 1
+ #elif defined(macintosh)
+ #  error Classic Mac OS support was dropped from PhysicsFS 2.0. Move to OS X.
+ #elif defined(__ANDROID__)
+@@ -73,7 +69,10 @@
  #  define PHYSFS_PLATFORM_UNIX 1
  #  define PHYSFS_PLATFORM_POSIX 1
  #else
