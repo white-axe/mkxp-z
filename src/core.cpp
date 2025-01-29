@@ -128,7 +128,6 @@ SANDBOX_COROUTINE(main,
 
 static bool init_sandbox() {
     mkxp_retro::sandbox.reset();
-    fs.reset();
     audio.reset();
     if (al_context != NULL) {
         alcDestroyContext(al_context);
@@ -138,6 +137,31 @@ static bool init_sandbox() {
         alcCloseDevice(al_device);
         al_device = NULL;
     }
+    fs.reset();
+
+    fs.emplace((const char *)NULL, false);
+
+    {
+        std::string parsed_game_path(fs->normalize(game_path.c_str(), false, true));
+
+        // If the game path doesn't end with ".mkxp" or ".mkxpz", remove the last component from the path since we want to mount the directory that the file is in, not the file itself.
+        if (
+            !(parsed_game_path.length() >= 5 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 5), ".mkxp") == 0)
+                && !(parsed_game_path.length() >= 5 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 5), ".MKXP") == 0)
+                && !(parsed_game_path.length() >= 6 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 6), ".mkxpz") == 0)
+                && !(parsed_game_path.length() >= 6 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 6), ".MKXPZ") == 0)
+        ) {
+            size_t last_slash_index = parsed_game_path.find_last_of('/');
+            if (last_slash_index == std::string::npos) {
+                last_slash_index = 0;
+            }
+            parsed_game_path = parsed_game_path.substr(0, last_slash_index);
+        }
+
+        fs->addPath(parsed_game_path.c_str(), "/mkxp-retro-game");
+    }
+
+    fs->createPathCache();
 
     alcRenderSamplesSOFT = (LPALCRENDERSAMPLESSOFT)alcGetProcAddress(NULL, "alcRenderSamplesSOFT");
 
@@ -207,29 +231,6 @@ static bool init_sandbox() {
     fluid_set_default_fileapi(&fluid_fileapi);
 
     audio.emplace();
-    fs.emplace((const char *)NULL, false);
-
-    {
-        std::string parsed_game_path(fs->normalize(game_path.c_str(), false, true));
-
-        // If the game path doesn't end with ".mkxp" or ".mkxpz", remove the last component from the path since we want to mount the directory that the file is in, not the file itself.
-        if (
-            !(parsed_game_path.length() >= 5 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 5), ".mkxp") == 0)
-                && !(parsed_game_path.length() >= 5 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 5), ".MKXP") == 0)
-                && !(parsed_game_path.length() >= 6 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 6), ".mkxpz") == 0)
-                && !(parsed_game_path.length() >= 6 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 6), ".MKXPZ") == 0)
-        ) {
-            size_t last_slash_index = parsed_game_path.find_last_of('/');
-            if (last_slash_index == std::string::npos) {
-                last_slash_index = 0;
-            }
-            parsed_game_path = parsed_game_path.substr(0, last_slash_index);
-        }
-
-        fs->addPath(parsed_game_path.c_str(), "/mkxp-retro-game");
-    }
-
-    fs->createPathCache();
 
     SharedState::initInstance(NULL);
 
@@ -398,7 +399,6 @@ extern "C" RETRO_API bool retro_load_game_special(unsigned int type, const struc
 
 extern "C" RETRO_API void retro_unload_game() {
     mkxp_retro::sandbox.reset();
-    fs.reset();
     audio.reset();
     if (al_context != NULL) {
         alcDestroyContext(al_context);
@@ -408,6 +408,7 @@ extern "C" RETRO_API void retro_unload_game() {
         alcCloseDevice(al_device);
         al_device = NULL;
     }
+    fs.reset();
 }
 
 extern "C" RETRO_API unsigned int retro_get_region() {

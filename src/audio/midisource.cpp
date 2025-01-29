@@ -616,7 +616,7 @@ struct MidiSource : ALDataSource, MidiReadHandler
 
 	MidiSource(
 #ifdef MKXPZ_RETRO
-		struct FileSystem::File &ops,
+		std::shared_ptr<struct FileSystem::File> ops,
 #else
 		SDL_RWops &ops,
 #endif // MKXPZ_RETRO
@@ -630,7 +630,7 @@ struct MidiSource : ALDataSource, MidiReadHandler
 	{
 #ifdef MKXPZ_RETRO
 		PHYSFS_Stat stat;
-		size_t dataLen = PHYSFS_stat(ops.path(), &stat) ? stat.filesize : 0;
+		size_t dataLen = PHYSFS_stat(ops->path(), &stat) ? stat.filesize : 0;
 #else
 		size_t dataLen = SDL_RWsize(&ops);
 #endif // MKXPZ_RETRO
@@ -638,7 +638,7 @@ struct MidiSource : ALDataSource, MidiReadHandler
 
 		if (
 #ifdef MKXPZ_RETRO
-			PHYSFS_readBytes(ops.get(), &data[0], dataLen) < dataLen
+			PHYSFS_readBytes(ops->get(), &data[0], dataLen) < dataLen
 #else
 			SDL_RWread(&ops, &data[0], 1, dataLen) < dataLen
 #endif // MKXPZ_RETRO
@@ -762,7 +762,7 @@ struct MidiSource : ALDataSource, MidiReadHandler
 	void renderTicks(size_t count, size_t offset)
 	{
 		size_t bufOffset = offset * TICK_FRAMES * 2;
-		int len = count * TICK_FRAMES;
+		uint64_t len = count * TICK_FRAMES;
 		void *buffer = &synthBuf[bufOffset];
 
 		fluid.synth_write_s16(synth, len, buffer, 0, 2, buffer, 1, 2);
@@ -919,7 +919,7 @@ struct MidiSource : ALDataSource, MidiReadHandler
 			tracks[i].reset();
 	}
 
-	uint32_t loopStartFrames() { return 0; }
+	uint64_t loopStartFrames() { return 0; }
 
 	bool setPitch(float value)
 	{
@@ -932,7 +932,7 @@ struct MidiSource : ALDataSource, MidiReadHandler
 
 ALDataSource *createMidiSource(
 #ifdef MKXPZ_RETRO
-			struct FileSystem::File &ops,
+			std::shared_ptr<struct FileSystem::File> ops,
 #else
 			SDL_RWops &ops,
 #endif // MKXPZ_RETRO

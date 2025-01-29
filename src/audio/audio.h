@@ -41,7 +41,7 @@ public:
 #ifdef MKXPZ_RETRO
 	// Render one video frame's worth of audio to OpenAL. This function is only available in libretro builds.
 	void render();
-#endif
+#endif // MKXPZ_RETRO
 
 	void bgmPlay(const char *filename,
 	             int volume = 100,

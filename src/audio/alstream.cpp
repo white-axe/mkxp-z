@@ -209,7 +209,7 @@ struct ALStreamOpenHandler : FileSystem::OpenHandler
 
 	bool tryRead(
 #ifdef MKXPZ_RETRO
-		struct FileSystem::File &ops,
+		std::shared_ptr<struct FileSystem::File> ops,
 #else
 		SDL_RWops &ops,
 #endif // MKXPZ_RETRO
@@ -218,8 +218,8 @@ struct ALStreamOpenHandler : FileSystem::OpenHandler
 		/* Try to read ogg file signature */
 		char sig[5] = { 0 };
 #ifdef MKXPZ_RETRO
-		PHYSFS_readBytes(ops.get(), sig, 4);
-		PHYSFS_seek(ops.get(), 0);
+		PHYSFS_readBytes(ops->get(), sig, 4);
+		PHYSFS_seek(ops->get(), 0);
 #else
 		SDL_RWread(&ops, sig, 1, 4);
 		SDL_RWseek(&ops, 0, RW_SEEK_SET);
@@ -227,13 +227,11 @@ struct ALStreamOpenHandler : FileSystem::OpenHandler
 
 		try
 		{
-#ifndef MKXPZ_RETRO
 			if (!strcmp(sig, "OggS"))
 			{
 				source = createVorbisSource(ops, looped);
 				return true;
 			}
-#endif // MKXPZ_RETRO
 
 			if (!strcmp(sig, "MThd"))
 			{
@@ -250,7 +248,9 @@ struct ALStreamOpenHandler : FileSystem::OpenHandler
 				}
 			}
 
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+			source = createSndfileSource(ops, looped);
+#else
 			source = createSDLSource(ops, ext, STREAM_BUF_SIZE, looped);
 #endif // MKXPZ_RETRO
 		}

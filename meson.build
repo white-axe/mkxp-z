@@ -143,6 +143,38 @@ if get_option('retro') == true
         'FLUIDLITE_BUILD_SHARED': false,
     })
 
+    ogg_options = cmake.subproject_options()
+    ogg_options.add_cmake_defines({
+        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'BUILD_SHARED_LIBS': false,
+        'BUILD_TESTING': false,
+        'BUILD_FRAMEWORK': false,
+    })
+
+    vorbis_options = cmake.subproject_options()
+    vorbis_options.add_cmake_defines({
+        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'BUILD_SHARED_LIBS': false,
+        'BUILD_TESTING': false,
+        'BUILD_FRAMEWORK': false,
+    })
+
+    libsndfile_options = cmake.subproject_options()
+    libsndfile_options.add_cmake_defines({
+        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'BUILD_SHARED_LIBS': false,
+        'BUILD_PROGRAMS': false,
+        'BUILD_EXAMPLES': false,
+        'BUILD_REGTEST': false,
+        'BUILD_TESTING': false,
+        'ENABLE_CPACK': false,
+        'ENABLE_PACKAGE_CONFIG': false,
+        'INSTALL_PKGCONFIG_MODULE': false,
+        'ENABLE_EXTERNAL_LIBS': false,
+        'ENABLE_MPEG': false,
+        'ENABLE_EXPERIMENTAL': false,
+    })
+
     retro_defines = [
         '-DWASM_RT_SKIP_SIGNAL_RECOVERY',
         '-DWASM_RT_TRAP_HANDLER=mkxp_sandbox_trap_handler',
@@ -192,6 +224,10 @@ if get_option('retro') == true
         cmake.subproject('physfs', options: physfs_options).dependency('physfs-static'),
         cmake.subproject('openal-soft', options: openal_options).dependency('OpenAL'),
         cmake.subproject('fluidlite', options: fluidlite_options).dependency('fluidlite-static'),
+        cmake.subproject('ogg', options: ogg_options).dependency('ogg'),
+        cmake.subproject('vorbis', options: vorbis_options).dependency('vorbis'),
+        cmake.subproject('vorbis', options: vorbis_options).dependency('vorbisfile'),
+        cmake.subproject('libsndfile', options: libsndfile_options).dependency('sndfile'),
     ]
     if host_system == 'darwin'
         retro_deps += compilers['cpp'].find_library('iconv')
@@ -245,7 +281,9 @@ if get_option('retro') == true
             'src/audio/audiostream.cpp',
             'src/audio/fluid-fun.cpp',
             'src/audio/midisource.cpp',
+            'src/audio/sndfilesource.cpp',
             'src/audio/soundemitter.cpp',
+            'src/audio/vorbissource.cpp',
             'src/crypto/rgssad.cpp',
             'src/display/bitmap.cpp',
             'src/display/viewport.cpp',

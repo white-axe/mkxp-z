@@ -1,5 +1,5 @@
 /*
-** vorbissource.cpp
+** sndfilesource.cpp
 **
 ** This file is part of mkxp.
 **
@@ -22,68 +22,75 @@
 #include "aldatasource.h"
 #include "exception.h"
 
-#define OV_EXCLUDE_STATIC_CALLBACKS
-#include <vorbis/vorbisfile.h>
+#include <cstdio>
 #include <vector>
-#include <algorithm>
-#include <cstring>
+#include <sndfile.hh>
 
-static size_t vfRead(void *ptr, size_t size, size_t nmemb, void *ops)
-{
+static SF_VIRTUAL_IO sfvirtual = {
+	.get_filelen = [](void *handle) {
 #ifdef MKXPZ_RETRO
-	return PHYSFS_readBytes(static_cast<struct FileSystem::File*>(ops)->get(), ptr, size * nmemb) / size;
+		PHYSFS_Stat stat;
+		return PHYSFS_stat(((struct FileSystem::File *)handle)->path(), &stat) == 0 ? 0 : (sf_count_t)stat.filesize;
 #else
-	return SDL_RWread(static_cast<SDL_RWops*>(ops), ptr, size, nmemb);
+		Sint64 size = 0;
+		Sint64 pos = SDL_RWtell((SDL_RWops *)handle);
+		if (pos >= 0) {
+			size = SDL_RWseek((SDL_RWops *)handle, 0, RW_SEEK_END);
+			SDL_RWseek((SDL_RWops *)handle, pos, RW_SEEK_SET);
+		}
+		return (sf_count_t)size;
 #endif // MKXPZ_RETRO
-}
+	},
 
-static int vfSeek(void *ops, ogg_int64_t offset, int whence)
-{
+	.seek = [](sf_count_t offset, int whence, void *handle) {
 #ifdef MKXPZ_RETRO
-	switch (whence) {
-		case SEEK_CUR:
-			{
-				ogg_int64_t pos = PHYSFS_tell(static_cast<struct FileSystem::File*>(ops)->get());
-				if (pos >= 0) {
-					offset += pos;
+		switch (whence) {
+			case SF_SEEK_CUR:
+				{
+					sf_count_t pos = PHYSFS_tell(((struct FileSystem::File *)handle)->get());
+					if (pos >= 0) {
+						offset += pos;
+					}
 				}
-			}
-			break;
-		case SEEK_END:
-			{
-				PHYSFS_Stat stat;
-				if (PHYSFS_stat(static_cast<struct FileSystem::File*>(ops)->path(), &stat) != 0) {
-					offset += stat.filesize;
+				break;
+			case SF_SEEK_END:
+				{
+					PHYSFS_Stat stat;
+					if (PHYSFS_stat(((struct FileSystem::File *)handle)->path(), &stat) != 0) {
+						offset += stat.filesize;
+					}
 				}
-			}
-			break;
-	}
-	PHYSFS_seek(static_cast<struct FileSystem::File*>(ops)->get(), offset);
-	return offset;
+				break;
+		}
+		PHYSFS_seek(((struct FileSystem::File *)handle)->get(), offset);
+		return offset;
 #else
-	return SDL_RWseek(static_cast<SDL_RWops*>(ops), offset, whence);
+		return (sf_count_t)SDL_RWseek((SDL_RWops *)handle, offset, whence);
 #endif // MKXPZ_RETRO
-}
+	},
 
-static long vfTell(void *ops)
-{
+	.read = [](void *ptr, sf_count_t count, void *handle) {
 #ifdef MKXPZ_RETRO
-	return PHYSFS_tell(static_cast<struct FileSystem::File*>(ops)->get());
+		return (sf_count_t)PHYSFS_readBytes(((struct FileSystem::File *)handle)->get(), ptr, count);
 #else
-	return SDL_RWtell(static_cast<SDL_RWops*>(ops));
+		return (sf_count_t)SDL_RWread((SDL_RWops *)handle, ptr, 1, count);
 #endif // MKXPZ_RETRO
-}
+	},
 
-static ov_callbacks OvCallbacks =
-{
-    vfRead,
-    vfSeek,
-    0,
-    vfTell
+	.write = [](const void *ptr, sf_count_t count, void *handle) {
+		return (sf_count_t)-1;
+	},
+
+	.tell = [](void *handle) {
+#ifdef MKXPZ_RETRO
+		return (sf_count_t)PHYSFS_tell(((struct FileSystem::File *)handle)->get());
+#else
+		return (sf_count_t)SDL_RWtell((SDL_RWops *)handle);
+#endif // MKXPZ_RETRO
+	},
 };
 
-
-struct VorbisSource : ALDataSource
+struct SndfileSource : ALDataSource
 {
 #ifdef MKXPZ_RETRO
 	std::shared_ptr<struct FileSystem::File> src;
@@ -91,18 +98,11 @@ struct VorbisSource : ALDataSource
 	SDL_RWops src;
 #endif // MKXPZ_RETRO
 
-	OggVorbis_File vf;
+	SndfileHandle handle;
 
-	uint32_t currentFrame;
+	uint64_t currentFrame;
 
-	struct
-	{
-		uint64_t start;
-		uint64_t length;
-		uint64_t end;
-		bool valid;
-		bool requested;
-	} loop;
+	bool looped;
 
 	struct
 	{
@@ -114,89 +114,50 @@ struct VorbisSource : ALDataSource
 
 	std::vector<int16_t> sampleBuf;
 
-	VorbisSource(
+	SndfileSource(
 #ifdef MKXPZ_RETRO
 			std::shared_ptr<struct FileSystem::File> ops,
 #else
 			SDL_RWops &ops,
 #endif // MKXPZ_RETRO
-	             bool looped)
+			bool looped)
 	    : src(ops),
-	      currentFrame(0)
-	{
 #ifdef MKXPZ_RETRO
-		int error = ov_open_callbacks(src.get(), &vf, 0, 0, OvCallbacks);
+	      handle(sfvirtual, ops.get()),
 #else
-		int error = ov_open_callbacks(&src, &vf, 0, 0, OvCallbacks);
+	      handle(sfvirtual, &ops),
 #endif // MKXPZ_RETRO
-
-		if (error)
+	      currentFrame(0),
+	      looped(looped)
+	{
+		if (handle.error())
 		{
 #ifndef MKXPZ_RETRO
 			SDL_RWclose(&src);
 #endif // MKXPZ_RETRO
-			throw Exception(Exception::MKXPError,
-			                "Vorbisfile: Cannot read ogg file");
+			throw Exception(Exception::MKXPError, "sndfile: Cannot read file");
 		}
 
 		/* Extract bitstream info */
-		info.channels = vf.vi->channels;
-		info.rate = vf.vi->rate;
+		info.channels = handle.channels();
+		info.rate = handle.samplerate();
 
 		if (info.channels > 2)
 		{
-			ov_clear(&vf);
 #ifndef MKXPZ_RETRO
 			SDL_RWclose(&src);
 #endif // MKXPZ_RETRO
-			throw Exception(Exception::MKXPError,
-			                "Cannot handle audio with more than 2 channels");
+			throw Exception(Exception::MKXPError, "Cannot handle audio with more than 2 channels");
 		}
 
 		info.alFormat = chooseALFormat(sizeof(int16_t), info.channels);
 		info.frameSize = sizeof(int16_t) * info.channels;
 
 		sampleBuf.resize(STREAM_BUF_SIZE);
-
-		loop.requested = looped;
-		loop.valid = false;
-		loop.start = loop.length = 0;
-
-		if (!loop.requested)
-			return;
-
-		/* Try to extract loop info */
-		for (int i = 0; i < vf.vc->comments; ++i)
-		{
-			char *comment = vf.vc->user_comments[i];
-			char *sep = strstr(comment, "=");
-
-			/* No '=' found */
-			if (!sep)
-				continue;
-
-			/* Empty value */
-			if (!*(sep+1))
-				continue;
-
-			*sep = '\0';
-
-			if (!strcmp(comment, "LOOPSTART"))
-				loop.start = strtol(sep+1, 0, 10);
-
-			if (!strcmp(comment, "LOOPLENGTH"))
-				loop.length = strtol(sep+1, 0, 10);
-
-			*sep = '=';
-		}
-
-		loop.end = loop.start + loop.length;
-		loop.valid = (loop.start && loop.length);
 	}
 
-	~VorbisSource()
+	~SndfileSource()
 	{
-		ov_clear(&vf);
 #ifndef MKXPZ_RETRO
 		SDL_RWclose(&src);
 #endif // MKXPZ_RETRO
@@ -209,20 +170,14 @@ struct VorbisSource : ALDataSource
 
 	void seekToOffset(double seconds)
 	{
-		if (seconds <= 0)
+		currentFrame = std::lround(seconds * (double)info.rate);
+
+		if (currentFrame < 0 || currentFrame >= (uint64_t)handle.frames())
 		{
-			ov_raw_seek(&vf, 0);
 			currentFrame = 0;
 		}
 
-		currentFrame = lround(seconds * info.rate);
-
-		if (loop.valid && currentFrame > loop.end)
-			currentFrame = loop.start;
-
-		/* If seeking fails, just seek back to start */
-		if (ov_pcm_seek(&vf, currentFrame) != 0)
-			ov_raw_seek(&vf, 0);
+		handle.seek(currentFrame, SF_SEEK_SET);
 	}
 
 	Status fillBuffer(AL::Buffer::ID alBuffer)
@@ -237,17 +192,16 @@ struct VorbisSource : ALDataSource
 
 		bool readAgain = false;
 
-		if (loop.valid)
+		if (looped)
 		{
-			uint64_t tilLoopEnd = loop.end * info.frameSize;
+			uint64_t tilLoopEnd = handle.frames() * info.frameSize;
 
 			canRead = std::min(availBuf, tilLoopEnd);
 		}
 
 		while (canRead > 16)
 		{
-			long res = ov_read(&vf, static_cast<char*>(bufPtr),
-			                   canRead, 0, sizeof(int16_t), 1, 0);
+			sf_count_t res = handle.read((int16_t *)bufPtr, availBuf / sizeof(int16_t));
 
 			if (res < 0)
 			{
@@ -260,7 +214,7 @@ struct VorbisSource : ALDataSource
 			if (res == 0)
 			{
 				/* EOF */
-				if (loop.requested)
+				if (looped)
 				{
 					retStatus = ALDataSource::WrapAround;
 					seekToOffset(0);
@@ -288,28 +242,26 @@ struct VorbisSource : ALDataSource
 				readAgain = true;
 			}
 
-			bufUsed += (res / sizeof(int16_t));
+			bufUsed += res;
 			bufPtr = &sampleBuf[bufUsed];
-			currentFrame += (res / info.frameSize);
+			currentFrame += (res * sizeof(int16_t)) / info.frameSize;
 
-			if (loop.valid && currentFrame >= loop.end)
+			if (looped && currentFrame >= (uint64_t)handle.frames())
 			{
 				/* Determine how many frames we're
 				 * over the loop end */
-				uint64_t discardFrames = currentFrame - loop.end;
+				uint64_t discardFrames = currentFrame - handle.frames();
 				bufUsed -= discardFrames * info.channels;
 
 				retStatus = ALDataSource::WrapAround;
 
 				/* Seek to loop start */
-				currentFrame = loop.start;
-				if (ov_pcm_seek(&vf, currentFrame) != 0)
-					retStatus = ALDataSource::Error;
+				seekToOffset(0);
 
 				break;
 			}
 
-			canRead -= res;
+			canRead -= res * sizeof(int16_t);
 		}
 
 		if (retStatus != ALDataSource::Error)
@@ -321,10 +273,7 @@ struct VorbisSource : ALDataSource
 
 	uint64_t loopStartFrames()
 	{
-		if (loop.valid)
-			return loop.start;
-		else
-			return 0;
+		return 0;
 	}
 
 	bool setPitch(float)
@@ -333,13 +282,13 @@ struct VorbisSource : ALDataSource
 	}
 };
 
-ALDataSource *createVorbisSource(
+ALDataSource *createSndfileSource(
 #ifdef MKXPZ_RETRO
 				std::shared_ptr<struct FileSystem::File> ops,
 #else
 				SDL_RWops &ops,
 #endif // MKXPZ_RETRO
-                                 bool looped)
+				bool looped)
 {
-	return new VorbisSource(ops, looped);
+	return new SndfileSource(ops, looped);
 }

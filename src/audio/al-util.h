@@ -26,6 +26,7 @@
 #include <AL/alext.h>
 
 #ifdef MKXPZ_RETRO
+#  include <memory>
 #  include "filesystem.h"
 #else
 #  include <SDL_audio.h>

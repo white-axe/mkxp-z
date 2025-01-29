@@ -196,7 +196,7 @@ struct SoundOpenHandler : FileSystem::OpenHandler
 
 	bool tryRead(
 #ifdef MKXPZ_RETRO
-		struct FileSystem::File &ops,
+		std::shared_ptr<struct FileSystem::File> ops,
 #else
 		SDL_RWops &ops,
 #endif // MKXPZ_RETRO

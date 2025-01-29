@@ -22,6 +22,9 @@
 #ifndef FILESYSTEM_H
 #define FILESYSTEM_H
 
+#ifdef MKXPZ_RETRO
+#  include <memory>
+#endif // MKXPZ_RETRO
 #include <physfs.h>
 #include <SDL_rwops.h>
 #include <string>
@@ -112,7 +115,7 @@ public:
 		 * if you need to further read from it later. */
 		virtual bool tryRead(
 #ifdef MKXPZ_RETRO
-			struct File &ops,
+			std::shared_ptr<struct FileSystem::File> ops,
 #else
 			SDL_RWops &ops,
 #endif // MKXPZ_RETRO

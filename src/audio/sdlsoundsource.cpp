@@ -158,7 +158,7 @@ struct SDLSoundSource : ALDataSource
 		}
 	}
 
-	uint32_t loopStartFrames()
+	uint64_t loopStartFrames()
 	{
 		/* Loops from the beginning of the file */
 		return 0;

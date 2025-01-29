@@ -34,6 +34,7 @@
 #include <physfs.h>
 
 #ifdef MKXPZ_RETRO
+#  include <memory>
 #  include <boost/optional.hpp>
 #endif // MKXPZ_RETRO
 
@@ -547,7 +548,7 @@ void FileSystem::initFontSets(SharedFontState &sfs) {
 
 struct OpenReadEnumData {
 #ifdef MKXPZ_RETRO
-  boost::optional<struct FileSystem::File> ops;
+  boost::optional<std::shared_ptr<struct FileSystem::File>> ops;
 #else
   SDL_RWops ops;
 #endif // MKXPZ_RETRO
@@ -611,7 +612,7 @@ openReadEnumCB(void *d, const char *dirpath, const char *filename) {
     fullPath = (*data.pathTrans)[fullPath].c_str();
 
 #ifdef MKXPZ_RETRO
-  data.ops.emplace(*mkxp_retro::fs, fullPath, FileSystem::OpenMode::Read);
+  data.ops.emplace(new FileSystem::File(*mkxp_retro::fs, fullPath, FileSystem::OpenMode::Read));
 #else
   PHYSFS_File *phys = PHYSFS_openRead(fullPath);
 

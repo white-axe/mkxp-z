@@ -1,0 +1,4 @@
+[wrap-git]
+url = https://github.com/libsndfile/libsndfile
+revision = v1.0.30
+depth = 1

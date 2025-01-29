@@ -47,7 +47,7 @@ struct ALDataSource
 	virtual void seekToOffset(double seconds) = 0;
 
 	/* The frame count right after wrap around */
-	virtual uint32_t loopStartFrames() = 0;
+	virtual uint64_t loopStartFrames() = 0;
 
 	/* Returns false if not supported */
 	virtual bool setPitch(float value) = 0;
@@ -55,7 +55,7 @@ struct ALDataSource
 
 ALDataSource *createSDLSource(
 #ifdef MKXPZ_RETRO
-				struct FileSystem::File &ops,
+				std::shared_ptr<struct FileSystem::File> ops,
 #else
 				SDL_RWops &ops,
 #endif // MKXPZ_RETRO
@@ -63,9 +63,17 @@ ALDataSource *createSDLSource(
 			                  uint32_t maxBufSize,
 			                  bool looped);
 
+ALDataSource *createSndfileSource(
+#ifdef MKXPZ_RETRO
+				std::shared_ptr<struct FileSystem::File> ops,
+#else
+				SDL_RWops &ops,
+#endif // MKXPZ_RETRO
+				bool looped);
+
 ALDataSource *createVorbisSource(
 #ifdef MKXPZ_RETRO
-				struct FileSystem::File &ops,
+				std::shared_ptr<struct FileSystem::File> ops,
 #else
 				SDL_RWops &ops,
 #endif // MKXPZ_RETRO
@@ -73,7 +81,7 @@ ALDataSource *createVorbisSource(
 
 ALDataSource *createMidiSource(
 #ifdef MKXPZ_RETRO
-				struct FileSystem::File &ops,
+				std::shared_ptr<struct FileSystem::File> ops,
 #else
 				SDL_RWops &ops,
 #endif // MKXPZ_RETRO
