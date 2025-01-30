@@ -792,7 +792,7 @@ jobs:
 
           mkdir ${{ runner.temp }}/retro-phase2
           cp retro/core.info ${{ runner.temp }}/retro-phase2/mkxp-z_libretro.info
-          CFLAGS='-fexceptions -sASSERTIONS=1' CPPFLAGS='-fexceptions -sASSERTIONS=1' LDFLAGS='-fexceptions -sASSERTIONS=1' meson setup build --cross-file ${{ runner.temp }}/cross.ini --default-library static --buildtype release -Db_lto=false -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CFLAGS='-fexceptions -sASSERTIONS=1' CPPFLAGS='-fexceptions -sASSERTIONS=1' LDFLAGS='-fexceptions -sASSERTIONS=1' meson setup build --cross-file ${{ runner.temp }}/cross.ini --default-library static --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
 
