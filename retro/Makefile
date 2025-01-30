@@ -103,7 +103,7 @@ $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro
 	#     note: (so you should pass 'int' not 'wasm_rt_type_t' to 'va_arg')
 	#     note: if this code is reached, the program will abort
 	# The code will still compile, but like it says, the compiler will sprinkle trap instructions everywhere, so when you run the code it'll crash. Scary! Let's make sure that doesn't happen.
-	if ! for i in $(seq 0 7); do $(SED) -i 's/va_arg(\([a-z_][A-Za-z0-9_]*\), *wasm_rt_type_t)/va_arg(\1, int)/g' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_$$i.c; done; then rm -rf $(OUTDIR)/mkxp-retro-ruby; exit 1; fi
+	if ! for i in $$(seq 0 7); do $(SED) -i 's/va_arg(\([a-z_][A-Za-z0-9_]*\), *wasm_rt_type_t)/va_arg(\1, int)/g' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_$$i.c; done; then rm -rf $(OUTDIR)/mkxp-retro-ruby; exit 1; fi
 
 $(OUTDIR)/mkxp-retro-dist.zip.c: $(LIBDIR)/mkxp-retro-dist.zip
 	mkdir -p $(OUTDIR)

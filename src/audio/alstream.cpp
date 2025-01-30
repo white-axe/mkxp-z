@@ -395,13 +395,13 @@ void ALStream::checkStopped()
 	 * the AL source */
 	if (!streamInited)
 		return;
+#endif // MKXPZ_RETRO
 
 	/* If alSrc isn't playing, but we haven't
 	 * exhausted the data source yet, we're just
 	 * having a buffer underrun */
 	if (!sourceExhausted)
 		return;
-#endif // MKXPZ_RETRO
 
 	if (AL::Source::getState(alSrc) == AL_PLAYING)
 		return;
