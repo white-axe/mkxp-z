@@ -310,7 +310,7 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           sudo apt update
-          sudo apt install -y git curl build-essential automake libtool binaryen wabt universal-ctags
+          sudo apt install -y git curl build-essential automake libtool binaryen wabt zip universal-ctags
 
       - name: Download WASI SDK
         if: steps.cache.outputs.cache-hit != 'true'
@@ -331,7 +331,7 @@ jobs:
           name: retro-phase1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: retro/build/retro-phase1
 
-  build-retro-phase2-windows:
+  build-retro-windows:
     needs: build-retro-phase1
     name: LR Windows
     runs-on: windows-latest
@@ -354,24 +354,24 @@ jobs:
           msystem: mingw64
           install: base-devel git mingw-w64-x86_64-gcc mingw-w64-x86_64-meson mingw-w64-x86_64-cmake
 
-      - name: Build phase 2
+      - name: Build core
         shell: msys2 {0}
         run: |
           runner_temp="$(cygpath '${{ runner.temp }}')"
           mkdir "$runner_temp"/retro-phase2
-          cp retro/core.info "$runner_temp"/retro-phase2/libretro-mkxp-z.info
+          cp retro/core.info "$runner_temp"/retro-phase2/mkxp-z_libretro.info
           meson setup build --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
           strip libretro-mkxp-z.dll
-          mv libretro-mkxp-z.dll "$runner_temp"/retro-phase2
+          mv libretro-mkxp-z.dll "$runner_temp"/retro-phase2/mkxp-z_libretro.dll
 
       - uses: actions/upload-artifact@v4
         with:
           name: libretro-mkxp-z.windows.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/retro-phase2
 
-  build-retro-phase2-linux-gnu:
+  build-retro-linux-gnu:
     needs: build-retro-phase1
     name: LR GNU/Linux ${{ matrix.arch_mkxpz }}
     runs-on: ubuntu-latest
@@ -440,10 +440,10 @@ jobs:
             sudo apt install -y gcc-${{ matrix.arch_gcc }} g++-${{ matrix.arch_gcc }}
           fi
 
-      - name: Build phase 2
+      - name: Build core
         run: |
           mkdir ${{ runner.temp }}/retro-phase2
-          cp retro/core.info ${{ runner.temp }}/retro-phase2/libretro-mkxp-z.info
+          cp retro/core.info ${{ runner.temp }}/retro-phase2/mkxp-z_libretro.info
           if [ '${{ matrix.arch_mkxpz }}' != 'x86_64' ]
           then
             cross_arg='--cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt'
@@ -459,14 +459,14 @@ jobs:
           else
             strip libretro-mkxp-z.so
           fi
-          mv libretro-mkxp-z.so ${{ runner.temp }}/retro-phase2
+          mv libretro-mkxp-z.so ${{ runner.temp }}/retro-phase2/mkxp-z_libretro.so
 
       - uses: actions/upload-artifact@v4
         with:
           name: libretro-mkxp-z.linux-gnu.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/retro-phase2
 
-  build-retro-phase2-linux-musl:
+  build-retro-linux-musl:
     needs: build-retro-phase1
     name: LR Alpine Linux ${{ matrix.arch_mkxpz }}
     runs-on: ubuntu-latest
@@ -561,7 +561,7 @@ jobs:
           branch: latest-stable
           packages: build-base
 
-      - name: Build phase 2
+      - name: Build core
         run: |
           echo '#!/bin/sh'$'\n''exec clang --target=${{ matrix.arch_llvm }} -fuse-ld=lld --sysroot=${{ steps.sysroot.outputs.root-path }} "$@"' > ${{ runner.temp }}/cc
           echo '#!/bin/sh'$'\n''exec clang++ --target=${{ matrix.arch_llvm }} -fuse-ld=lld --sysroot=${{ steps.sysroot.outputs.root-path }} "$@"' > ${{ runner.temp }}/c++
@@ -583,19 +583,19 @@ jobs:
           echo '--------------------------------------------------------------------------------'
 
           mkdir ${{ runner.temp }}/retro-phase2
-          cp retro/core.info ${{ runner.temp }}/retro-phase2/libretro-mkxp-z.info
+          cp retro/core.info ${{ runner.temp }}/retro-phase2/mkxp-z_libretro.info
           meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
           llvm-strip libretro-mkxp-z.so
-          mv libretro-mkxp-z.so ${{ runner.temp }}/retro-phase2
+          mv libretro-mkxp-z.so ${{ runner.temp }}/retro-phase2/mkxp-z_libretro.so
 
       - uses: actions/upload-artifact@v4
         with:
           name: libretro-mkxp-z.linux-musl.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/retro-phase2
 
-  build-retro-phase2-android:
+  build-retro-android:
     needs: build-retro-phase1
     name: LR Android ${{ matrix.arch_mkxpz }}
     runs-on: ubuntu-latest
@@ -652,7 +652,7 @@ jobs:
           ndk-version: r27c
           add-to-path: false
 
-      - name: Build phase 2
+      - name: Build core
         run: |
           echo "[binaries]" | tee -a ${{ runner.temp }}/cross.ini
           echo "c = '${{ steps.ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/${{ matrix.arch_llvm }}-clang'" | tee -a ${{ runner.temp }}/cross.ini
@@ -669,19 +669,19 @@ jobs:
           echo '--------------------------------------------------------------------------------'
 
           mkdir ${{ runner.temp }}/retro-phase2
-          cp retro/core.info ${{ runner.temp }}/retro-phase2/libretro-mkxp-z.info
+          cp retro/core.info ${{ runner.temp }}/retro-phase2/mkxp-z_libretro.info
           ANDROID_NDK=${{ steps.ndk.outputs.ndk-path }} meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
           llvm-strip libretro-mkxp-z.so
-          mv libretro-mkxp-z.so ${{ runner.temp }}/retro-phase2
+          mv libretro-mkxp-z.so ${{ runner.temp }}/retro-phase2/mkxp-z_libretro.so
 
       - uses: actions/upload-artifact@v4
         with:
           name: libretro-mkxp-z.android.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/retro-phase2
 
-  build-retro-phase2-darwin:
+  build-retro-darwin:
     needs: build-retro-phase1
     name: LR Darwin ${{ matrix.arch_mkxpz }}
     runs-on: macos-latest
@@ -717,7 +717,7 @@ jobs:
         run: |
           brew install -q git gpatch meson cmake
 
-      - name: Build phase 2
+      - name: Build core
         run: |
           echo '#!/bin/sh'$'\n''exec clang --target=${{ matrix.arch_llvm }} "$@"' > ${{ runner.temp }}/cc
           echo '#!/bin/sh'$'\n''exec clang++ --target=${{ matrix.arch_llvm }} "$@"' > ${{ runner.temp }}/c++
@@ -737,19 +737,144 @@ jobs:
           echo '--------------------------------------------------------------------------------'
 
           mkdir ${{ runner.temp }}/retro-phase2
-          cp retro/core.info ${{ runner.temp }}/retro-phase2/libretro-mkxp-z.info
+          cp retro/core.info ${{ runner.temp }}/retro-phase2/mkxp-z_libretro.info
           PATH="$HOMEBREW_PREFIX/opt/gpatch/libexec/gnubin:$PATH" meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
           strip -x libretro-mkxp-z.dylib
-          mv libretro-mkxp-z.dylib ${{ runner.temp }}/retro-phase2
+          mv libretro-mkxp-z.dylib ${{ runner.temp }}/retro-phase2/mkxp-z_libretro.dylib
 
       - uses: actions/upload-artifact@v4
         with:
           name: libretro-mkxp-z.darwin.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/retro-phase2
 
-  build-retro-phase2-wiiu:
+  build-retro-emscripten:
+    needs: build-retro-phase1
+    name: LR Emscripten
+    runs-on: ubuntu-latest
+    steps:
+      - id: short-sha
+        uses: benjlevesque/short-sha@v2.2
+        with:
+          length: 7
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: retro-phase1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          path: retro/build/retro-phase1
+
+      - name: Install apt dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git build-essential meson cmake
+
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.46
+
+      - name: Build core
+        run: |
+          echo "[binaries]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "c = 'emcc'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpp = 'em++'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "ar = 'emar'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "system = 'emscripten'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpu_family = 'wasm32'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpu = 'wasm32'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "endian = 'little'" | tee -a ${{ runner.temp }}/cross.ini
+          echo '--------------------------------------------------------------------------------'
+
+          mkdir ${{ runner.temp }}/retro-phase2
+          cp retro/core.info ${{ runner.temp }}/retro-phase2/mkxp-z_libretro.info
+          meson setup build --cross-file ${{ runner.temp }}/cross.ini --default-library static --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          cd build
+          ninja -v
+
+      - name: Link core
+        run: |
+          cd build
+          mkdir mkxp-link
+          cd mkxp-link
+          set -o xtrace
+          find ../ -type f -name '*.a' -print0 | while IFS= read -r -d '' path; do
+            filename="$(basename "$path")"
+            mkdir "$filename.p"
+            cd "$filename.p"
+            emar x "../$path"
+            cd ..
+          done
+          find ./ -type f -name '*.o' -print0 | xargs -0 emcc -r -o ${{ runner.temp }}/libretro-mkxp-z.bc
+
+      - name: Build RetroArch
+        run: |
+          cd ${{ runner.temp }}
+          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest | jq -r '.tag_name')
+          mv libretro-mkxp-z.bc retroarch/libretro_emscripten.bc
+          cd retroarch
+          emmake make -f Makefile.emscripten LIBRETRO=mkxp-z
+          mv mkxp-z_libretro.wasm ${{ runner.temp }}/retro-phase2
+          mv mkxp-z_libretro.js ${{ runner.temp }}/retro-phase2
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libretro-mkxp-z.emscripten.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          path: ${{ runner.temp }}/retro-phase2
+
+  build-retro-vita:
+    needs: build-retro-phase1
+    name: LR PlayStation Vita
+    runs-on: ubuntu-latest
+    container: vitasdk/vitasdk:latest
+    steps:
+      - id: short-sha
+        uses: benjlevesque/short-sha@v2.2
+        with:
+          length: 7
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: retro-phase1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          path: retro/build/retro-phase1
+
+      - name: Install dependencies
+        run: |
+          apk update
+          apk add git build-base meson cmake
+
+      - name: Build core
+        run: |
+          echo "[binaries]" | tee -a ~/cross.ini
+          echo "c = 'arm-vita-eabi-gcc'" | tee -a ~/cross.ini
+          echo "cpp = 'arm-vita-eabi-g++'" | tee -a ~/cross.ini
+          echo "ar = 'arm-vita-eabi-ar'" | tee -a ~/cross.ini
+          echo "[host_machine]" | tee -a ~/cross.ini
+          echo "system = 'bare'" | tee -a ~/cross.ini
+          echo "cpu_family = 'arm'" | tee -a ~/cross.ini
+          echo "cpu = 'generic-armv7-a'" | tee -a ~/cross.ini
+          echo "endian = 'little'" | tee -a ~/cross.ini
+          echo '--------------------------------------------------------------------------------'
+
+          mkdir ~/retro-phase2
+          cp retro/core.info ~/retro-phase2/mkxp-z_libretro.info
+          meson setup build --cross-file ~/cross.ini --default-library static -Db_staticpic=false --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          cd build
+          ninja -v
+          mv libretro-mkxp-z.a ~/retro-phase2/mkxp-z_libretro.a
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libretro-mkxp-z.vita.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          path: ~/retro-phase2
+
+  build-retro-wiiu:
     needs: build-retro-phase1
     name: LR Wii U
     runs-on: ubuntu-latest
@@ -774,13 +899,12 @@ jobs:
           apt install -y git build-essential pip ninja-build cmake
           pip install meson
 
-      - name: Build phase 2
+      - name: Build core
         run: |
           echo "[binaries]" | tee -a ~/cross.ini
           echo "c = '/opt/devkitpro/devkitPPC/bin/powerpc-eabi-gcc'" | tee -a ~/cross.ini
           echo "cpp = '/opt/devkitpro/devkitPPC/bin/powerpc-eabi-g++'" | tee -a ~/cross.ini
           echo "ar = '/opt/devkitpro/devkitPPC/bin/powerpc-eabi-ar'" | tee -a ~/cross.ini
-          echo "strip = '/opt/devkitpro/devkitPPC/bin/powerpc-eabi-strip'" | tee -a ~/cross.ini
           echo "[host_machine]" | tee -a ~/cross.ini
           echo "system = 'bare'" | tee -a ~/cross.ini
           echo "cpu_family = 'ppc'" | tee -a ~/cross.ini
@@ -789,19 +913,18 @@ jobs:
           echo '--------------------------------------------------------------------------------'
 
           mkdir ~/retro-phase2
-          cp retro/core.info ~/retro-phase2/libretro-mkxp-z.info
+          cp retro/core.info ~/retro-phase2/mkxp-z_libretro.info
           meson setup build --cross-file ~/cross.ini --default-library static --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
-          /opt/devkitpro/devkitPPC/bin/powerpc-eabi-strip libretro-mkxp-z.a
-          mv libretro-mkxp-z.a ~/retro-phase2
+          mv libretro-mkxp-z.a ~/retro-phase2/mkxp-z_libretro.a
 
       - uses: actions/upload-artifact@v4
         with:
           name: libretro-mkxp-z.wiiu.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ~/retro-phase2
 
-  build-retro-phase2-switch:
+  build-retro-switch:
     needs: build-retro-phase1
     name: LR Nintendo Switch
     runs-on: ubuntu-latest
@@ -826,13 +949,12 @@ jobs:
           apt install -y git build-essential pip ninja-build cmake
           pip install meson
 
-      - name: Build phase 2
+      - name: Build core
         run: |
           echo "[binaries]" | tee -a ~/cross.ini
           echo "c = '/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc'" | tee -a ~/cross.ini
           echo "cpp = '/opt/devkitpro/devkitA64/bin/aarch64-none-elf-g++'" | tee -a ~/cross.ini
           echo "ar = '/opt/devkitpro/devkitA64/bin/aarch64-none-elf-ar'" | tee -a ~/cross.ini
-          echo "strip = '/opt/devkitpro/devkitA64/bin/aarch64-none-elf-strip'" | tee -a ~/cross.ini
           echo "[host_machine]" | tee -a ~/cross.ini
           echo "system = 'bare'" | tee -a ~/cross.ini
           echo "cpu_family = 'aarch64'" | tee -a ~/cross.ini
@@ -841,13 +963,12 @@ jobs:
           echo '--------------------------------------------------------------------------------'
 
           mkdir ~/retro-phase2
-          cp retro/core.info ~/retro-phase2/libretro-mkxp-z.info
+          cp retro/core.info ~/retro-phase2/mkxp-z_libretro.info
           # Enabling LTO with devkitA64 causes "plugin needed to handle lto object" linker error
           meson setup build --cross-file ~/cross.ini --default-library static --buildtype release -Db_lto=false -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
-          /opt/devkitpro/devkitA64/bin/aarch64-none-elf-strip libretro-mkxp-z.a
-          mv libretro-mkxp-z.a ~/retro-phase2
+          mv libretro-mkxp-z.a ~/retro-phase2/mkxp-z_libretro.a
 
       - uses: actions/upload-artifact@v4
         with:

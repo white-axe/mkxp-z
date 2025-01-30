@@ -3,10 +3,12 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -198,66 +198,17 @@ int main(int argc, char *argv[]) { }" HAVE_NULLABLE)
+@@ -196,68 +196,21 @@ check_c_source_compiles("
+ int foo(char * _Nullable bar);
+ int main(int argc, char *argv[]) { }" HAVE_NULLABLE)
  
- test_big_endian(WORDS_BIGENDIAN)
- 
+-test_big_endian(WORDS_BIGENDIAN)
+-
 -find_package(ZLIB 1.1.2 REQUIRED)
 -# so developers on systems where zlib is named differently (Windows, sometimes)
 -# can override the name used in the pkg-config file
@@ -36,6 +38,10 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
 -    string(REGEX REPLACE "^lib" "" ZLIB_LINK_LIBRARY_NAME ${ZLIB_FILENAME})
 -  endif()
 -endif(NOT ZLIB_LINK_LIBRARY_NAME)
++string(TOLOWER ${CMAKE_SYSTEM_NAME} SYSTEM_LOWER)
++if(NOT SYSTEM_LOWER STREQUAL "emscripten")
++    test_big_endian(WORDS_BIGENDIAN)
++endif()
  
  if(ENABLE_BZIP2)
 -  find_package(BZip2)
@@ -99,6 +105,19 @@ diff --git a/lib/CMakeLists.txt b/lib/CMakeLists.txt
  target_include_directories(zip
    PUBLIC
    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
+diff --git a/lib/compat.h b/lib/compat.h
+--- a/lib/compat.h
++++ b/lib/compat.h
+@@ -154,7 +154,8 @@ typedef off_t zip_off_t;
+ #define ZIP_OFF_MAX ZIP_INT16_MAX
+ #define ZIP_OFF_MIN ZIP_INT16_MIN
+ #else
+-#error unsupported size of off_t
++#define ZIP_OFF_MAX ZIP_INT64_MAX
++#define ZIP_OFF_MIN ZIP_INT64_MIN
+ #endif
+ 
+ #define ZIP_FSEEK_MAX ZIP_OFF_MAX
 diff --git a/lib/zip_algorithm_bzip2.c b/lib/zip_algorithm_bzip2.c
 --- a/lib/zip_algorithm_bzip2.c
 +++ b/lib/zip_algorithm_bzip2.c

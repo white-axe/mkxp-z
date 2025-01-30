@@ -1,0 +1,32 @@
+diff --git a/cmake/SndFileChecks.cmake b/cmake/SndFileChecks.cmake
+--- a/cmake/SndFileChecks.cmake
++++ b/cmake/SndFileChecks.cmake
+@@ -113,13 +113,9 @@ else ()
+ 		set (SF_COUNT_MAX "0x7FFFFFFFFFFFFFFFLL")
+ 		set (SIZEOF_SF_COUNT_T 8)
+ 	else ()
+-		message ("")
+-		message ("*** The configure process has determined that this system is capable")
+-		message ("*** of Large File Support but has not been able to find a type which")
+-		message ("*** is an unambiguous 64 bit file offset.")
+-		message ("*** Please contact the author to help resolve this problem.")
+-		message ("")
+-		message (FATAL_ERROR "Bad file offset type.")
++		set (TYPEOF_SF_COUNT_T "int64_t")
++		set (SF_COUNT_MAX "0x7FFFFFFFFFFFFFFFLL")
++		set (SIZEOF_SF_COUNT_T 8)
+ 	endif ()
+ endif ()
+ 
+@@ -179,7 +175,10 @@ endif ()
+ 
+ check_symbol_exists (S_IRGRP sys/stat.h HAVE_DECL_S_IRGRP)
+ 
+-test_big_endian (WORDS_BIGENDIAN)
++string (TOLOWER ${CMAKE_SYSTEM_NAME} SYSTEM_LOWER)
++if (NOT SYSTEM_LOWER STREQUAL "emscripten")
++	test_big_endian(WORDS_BIGENDIAN)
++endif ()
+ if (WORDS_BIGENDIAN)
+ 	set (CPU_IS_BIG_ENDIAN 1)
+ else ()

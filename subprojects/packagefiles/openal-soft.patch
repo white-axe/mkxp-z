@@ -54,6 +54,15 @@ diff --git a/alc/helpers.cpp b/alc/helpers.cpp
  }
  
  
+@@ -485,7 +469,7 @@ al::vector<std::string> SearchDataFiles(const char *ext, const char *subdir)
+ 
+ void SetRTPriority()
+ {
+-#if defined(HAVE_PTHREAD_SETSCHEDPARAM) && !defined(__OpenBSD__)
++#if defined(HAVE_PTHREAD_SETSCHEDPARAM) && !defined(__OpenBSD__) && !defined(__EMSCRIPTEN__)
+     if(RTPrioLevel > 0)
+     {
+         struct sched_param param{};
 diff --git a/common/almalloc.cpp b/common/almalloc.cpp
 --- a/common/almalloc.cpp
 +++ b/common/almalloc.cpp

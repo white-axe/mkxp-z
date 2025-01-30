@@ -1,3 +1,15 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -66,7 +66,7 @@ set(USIZE32 uint32_t)
+ set(SIZE64 int64_t)
+ set(USIZE64 uint64_t)
+ 
+-include(CheckSizes)
++
+ 
+ configure_file(include/ogg/config_types.h.in include/ogg/config_types.h @ONLY)
+ 
 diff --git a/include/ogg/ogg.h b/include/ogg/ogg.h
 --- a/include/ogg/ogg.h
 +++ b/include/ogg/ogg.h

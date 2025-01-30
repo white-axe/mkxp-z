@@ -1,5 +1,0 @@
-[wrap-git]
-url = https://github.com/ShiftMediaProject/liblzma
-revision = v5.6.3
-depth = 1
-diff_files = liblzma.patch

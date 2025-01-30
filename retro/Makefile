@@ -7,7 +7,6 @@ ZLIB_VERSION ?= 1.3.1
 OPENSSL_VERSION ?= 3.2.0
 WASM_RT_VERSION ?= 1.0.36
 SDL_VERSION ?= 2.30.11
-P7ZIP_VERSION ?= 17.06
 TARGET ?= wasm32-wasip1
 WASI_SDK ?= /opt/wasi-sdk
 WASM_OPT ?= wasm-opt
@@ -16,6 +15,7 @@ CTAGS ?= ctags
 AUTORECONF ?= autoreconf
 CURL ?= curl
 GIT ?= git
+ZIP ?= zip
 XXD ?= xxd
 SED ?= sed
 CC ?= cc
@@ -35,7 +35,6 @@ OUTDIR := $(BUILD_PREFIX)/retro-phase1
 LIBDIR := $(BUILD_PREFIX)/lib
 DOWNLOADS := $(BUILD_PREFIX)/downloads
 RUBY := $(LIBDIR)/bin/ruby
-P7ZIP := $(DOWNLOADS)/p7zip/bin/7z
 CLONE := $(GIT) clone -q --depth 1
 GITHUB := https://github.com
 WASI_CC := $(WASI_SDK)/bin/clang
@@ -99,12 +98,18 @@ $(OUTDIR)/sdl/include/SDL.h:
 $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_0.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_1.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_2.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_3.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_4.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_5.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_6.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_7.c &: $(LIBDIR)/mkxp-retro-dist/bin/ruby
 	mkdir -p $(OUTDIR)/mkxp-retro-ruby
 	$(WASM2C) $(LIBDIR)/mkxp-retro-dist/bin/ruby -n ruby --num-outputs=8 -o $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.c
+	# If we don't do this, the devkitARM and Vita SDK compilers will throw this warning due to some idiosyncrasy in how integer types work in those toolchains:
+	#     warning: 'wasm_rt_type_t' is promoted to 'int' when passed through '...'
+	#     note: (so you should pass 'int' not 'wasm_rt_type_t' to 'va_arg')
+	#     note: if this code is reached, the program will abort
+	# The code will still compile, but like it says, the compiler will sprinkle trap instructions everywhere, so when you run the code it'll crash. Scary! Let's make sure that doesn't happen.
+	if ! for i in $(seq 0 7); do $(SED) -i 's/va_arg(\([a-z_][A-Za-z0-9_]*\), *wasm_rt_type_t)/va_arg(\1, int)/g' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_$$i.c; done; then rm -rf $(OUTDIR)/mkxp-retro-ruby; exit 1; fi
 
 $(OUTDIR)/mkxp-retro-dist.zip.c: $(LIBDIR)/mkxp-retro-dist.zip
 	mkdir -p $(OUTDIR)
 	cd $(LIBDIR) && $(XXD) -i mkxp-retro-dist.zip $(OUTDIR)/mkxp-retro-dist.zip.c
 
-$(LIBDIR)/mkxp-retro-dist.zip: $(LIBDIR)/mkxp-retro-dist/bin/ruby $(P7ZIP)
+$(LIBDIR)/mkxp-retro-dist.zip: $(LIBDIR)/mkxp-retro-dist/bin/ruby
 	rm -rf $(LIBDIR)/_mkxp-retro-dist
 	cp -r $(LIBDIR)/mkxp-retro-dist $(LIBDIR)/_mkxp-retro-dist
 	rm $(LIBDIR)/_mkxp-retro-dist/bin/ruby
@@ -114,7 +119,7 @@ $(LIBDIR)/mkxp-retro-dist.zip: $(LIBDIR)/mkxp-retro-dist/bin/ruby $(P7ZIP)
 	rm -r $(LIBDIR)/_mkxp-retro-dist/lib/ruby/gems/$(RUBY_VERSION).0/cache/*
 	echo '# This is a Ruby script that does nothing. We make Ruby load this file on startup just because Ruby needs to load a script on startup for some reason.' > $(LIBDIR)/_mkxp-retro-dist/bin/mkxp-z
 	rm -f $(LIBDIR)/mkxp-retro-dist.zip
-	cd $(LIBDIR)/_mkxp-retro-dist && $(P7ZIP) a -bb3 -mm=zstd -mx=19 $(LIBDIR)/mkxp-retro-dist.zip *
+	cd $(LIBDIR)/_mkxp-retro-dist && $(ZIP) -r $(LIBDIR)/mkxp-retro-dist.zip *
 	rm -r $(LIBDIR)/_mkxp-retro-dist
 
 $(LIBDIR)/mkxp-retro-dist/bin/ruby: $(DOWNLOADS)/crossruby/Makefile ruby-bindings.h
@@ -179,15 +184,6 @@ $(DOWNLOADS)/baseruby/configure: $(DOWNLOADS)/baseruby/configure.ac
 $(DOWNLOADS)/baseruby/configure.ac:
 	mkdir -p $(DOWNLOADS)
 	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/baseruby -b ruby_$(shell echo $(RUBY_VERSION) | $(SED) -e 's/\./_/g')
-
-# p7zip
-
-$(P7ZIP): $(DOWNLOADS)/p7zip/makefile
-	cd $(DOWNLOADS)/p7zip && $(MAKE) 7z $(NATIVE_TOOLCHAIN)
-
-$(DOWNLOADS)/p7zip/makefile:
-	mkdir -p $(DOWNLOADS)
-	$(CLONE) $(GITHUB)/p7zip-project/p7zip $(DOWNLOADS)/p7zip -b v$(P7ZIP_VERSION)
 
 # libyaml
 

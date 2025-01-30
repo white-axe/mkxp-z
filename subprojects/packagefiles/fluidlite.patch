@@ -1,0 +1,15 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -19,7 +19,10 @@ if("${LOWERCASE_BUILD_TYPE}" STREQUAL "debug")
+     set(DEBUG TRUE)
+ endif()
+ include(TestBigEndian)
+-test_big_endian(WORDS_BIGENDIAN)
++string(TOLOWER ${CMAKE_SYSTEM_NAME} SYSTEM_LOWER)
++if(NOT SYSTEM_LOWER STREQUAL "emscripten")
++    test_big_endian(WORDS_BIGENDIAN)
++endif()
+ include(CheckIncludeFiles)
+ check_include_files("stdlib.h;stdio.h;stdarg.h;string.h;float.h;limits.h;math.h" STDC_HEADERS)
+ set(HAVE_STDLIB_H ${STDC_HEADERS} CACHE INTERNAL "Have include stdlib.h")

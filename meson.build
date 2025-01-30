@@ -48,35 +48,6 @@ if get_option('retro') == true
         'ZLIB_BUILD_EXAMPLES': false,
     })
 
-    bzip2_options = cmake.subproject_options()
-    bzip2_options.add_cmake_defines({
-        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
-        'CMAKE_BUILD_TYPE': 'None',
-        'ENABLE_STATIC_LIB': true,
-        'ENABLE_SHARED_LIB': false,
-        'ENABLE_LIB_ONLY': true,
-    })
-
-    liblzma_options = cmake.subproject_options()
-    liblzma_options.add_cmake_defines({
-        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
-        'BUILD_SHARED_LIBS': false,
-        'ENABLE_NLS': false,
-        'ENABLE_THREADS': 'OFF',
-    })
-
-    zstd_options = cmake.subproject_options()
-    zstd_options.add_cmake_defines({
-        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
-        'ZSTD_BUILD_STATIC': true,
-        'ZSTD_BUILD_SHARED': false,
-        'ZSTD_BUILD_PROGRAMS': false,
-        'ZSTD_BUILD_TESTS': false,
-        'ZSTD_BUILD_CONTRIB': false,
-        'ZSTD_MULTITHREAD_SUPPORT': false,
-        'ZSTD_LEGACY_SUPPORT': false,
-    })
-
     libzip_options = cmake.subproject_options()
     libzip_options.add_cmake_defines({
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
@@ -93,9 +64,9 @@ if get_option('retro') == true
         'ENABLE_OPENSSL': false,
         'ENABLE_WINDOWS_CRYPTO': false,
         'ENABLE_FDOPEN': false,
-        'ENABLE_BZIP2': true,
-        'ENABLE_LZMA': true,
-        'ENABLE_ZSTD': true,
+        'ENABLE_BZIP2': false,
+        'ENABLE_LZMA': false,
+        'ENABLE_ZSTD': false,
     })
 
     physfs_options = cmake.subproject_options()
@@ -186,6 +157,7 @@ if get_option('retro') == true
     endif
 
     retro_link_args = []
+    retro_cppflags = []
 
     # We need to statically link the C++ standard library (libstdc++/libc++), the compiler runtime library (libgcc/compiler-rt) and libpthread in MSYS2 builds for Windows because those are not part of the operating system
     if (host_system == 'windows' or host_system == 'cygwin') and compilers['cpp'].has_link_argument('-static')
@@ -196,6 +168,14 @@ if get_option('retro') == true
     if host_system == 'android'
         compilers['cpp'].has_link_argument('-static-libstdc++', required: true)
         retro_link_args += '-static-libstdc++'
+    endif
+
+    # Enable C++ exceptions when targeting Emscripten because they're disabled by default
+    if host_system == 'emscripten'
+        compilers['cpp'].has_argument('-fexceptions', required: true)
+        compilers['cpp'].has_link_argument('-fexceptions', required: true)
+        retro_cppflags += '-fexceptions'
+        retro_link_args += '-fexceptions'
     endif
 
     # If possible, stop the linker from reexporting the symbols from the static libraries we use (e.g. zlib)
@@ -217,9 +197,6 @@ if get_option('retro') == true
         cmake.subproject('boost_type_traits', options: boost_options).dependency('boost_type_traits'),
         cmake.subproject('boost_optional', options: boost_options).dependency('boost_optional'),
         cmake.subproject(host_system == 'darwin' ? 'zlib-darwin' : 'zlib', options: zlib_options).dependency('zlibstatic'),
-        cmake.subproject('bzip2', options: bzip2_options).dependency('bz2_static'),
-        cmake.subproject('liblzma', options: liblzma_options).dependency('liblzma'),
-        cmake.subproject('zstd', options: zstd_options).dependency('libzstd_static'),
         cmake.subproject('libzip', options: libzip_options).dependency('zip'),
         cmake.subproject('physfs', options: physfs_options).dependency('physfs-static'),
         cmake.subproject('openal-soft', options: openal_options).dependency('OpenAL'),
@@ -247,9 +224,10 @@ if get_option('retro') == true
             '-Wno-ignored-optimization-argument',
             '-Wno-unused-command-line-argument',
         ] + retro_defines,
-        cpp_args: ['-Wno-unused-command-line-argument'] + retro_defines,
+        cpp_args: ['-Wno-unused-command-line-argument'] + retro_cppflags + retro_defines,
         link_args: retro_link_args,
         gnu_symbol_visibility: 'hidden',
+        install: true, # Prevents Meson from creating thin archives when building with `--default-library static`; see https://github.com/mesonbuild/meson/issues/9479
         include_directories: [
             include_directories('.'),
             include_directories('src'),

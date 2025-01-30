@@ -1,4 +1,6 @@
 [wrap-git]
 url = https://github.com/divideconcept/FluidLite
+# 2023-04-18
 revision = d59d2328818f913b7d1a6a59aed695c47a8ce388
 depth = 1
+diff_files = fluidlite.patch
