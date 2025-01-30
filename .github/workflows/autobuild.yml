@@ -782,6 +782,7 @@ jobs:
           echo "c = 'emcc'" | tee -a ${{ runner.temp }}/cross.ini
           echo "cpp = 'em++'" | tee -a ${{ runner.temp }}/cross.ini
           echo "ar = 'emar'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cmake = ['emcmake', 'cmake']" | tee -a ${{ runner.temp }}/cross.ini
           echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
           echo "system = 'emscripten'" | tee -a ${{ runner.temp }}/cross.ini
           echo "cpu_family = 'wasm32'" | tee -a ${{ runner.temp }}/cross.ini
@@ -791,7 +792,7 @@ jobs:
 
           mkdir ${{ runner.temp }}/retro-phase2
           cp retro/core.info ${{ runner.temp }}/retro-phase2/mkxp-z_libretro.info
-          meson setup build --cross-file ${{ runner.temp }}/cross.ini --default-library static --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CFLAGS='-fexceptions -sASSERTIONS=1' CPPFLAGS='-fexceptions -sASSERTIONS=1' LDFLAGS='-fexceptions -sASSERTIONS=1' meson setup build --cross-file ${{ runner.temp }}/cross.ini --default-library static --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
 
@@ -808,15 +809,18 @@ jobs:
             emar x "../$path"
             cd ..
           done
-          find ./ -type f -name '*.o' -print0 | xargs -0 emcc -r -o ${{ runner.temp }}/libretro-mkxp-z.bc
+          find ./ -type f -name '*.o' -print0 | xargs -0 emcc -r -fexceptions -sASSERTIONS=1 -o ${{ runner.temp }}/libretro-mkxp-z.bc
 
       - name: Build RetroArch
         run: |
           cd ${{ runner.temp }}
-          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest | jq -r '.tag_name')
+          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b v1.20.0
           mv libretro-mkxp-z.bc retroarch/libretro_emscripten.bc
           cd retroarch
+          sed -i 's|-Ideps/stb|-Ideps/stb -fexceptions -sASSERTIONS=1|' Makefile.emscripten
+          sed -i 's|-s FULL_ES2=1|-s FULL_ES2=1 -fexceptions -sASSERTIONS=1|' Makefile.emscripten
           emmake make -f Makefile.emscripten LIBRETRO=mkxp-z
+          find . -type f
           mv mkxp-z_libretro.wasm ${{ runner.temp }}/retro-phase2
           mv mkxp-z_libretro.js ${{ runner.temp }}/retro-phase2
 

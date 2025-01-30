@@ -170,14 +170,6 @@ if get_option('retro') == true
         retro_link_args += '-static-libstdc++'
     endif
 
-    # Enable C++ exceptions when targeting Emscripten because they're disabled by default
-    if host_system == 'emscripten'
-        compilers['cpp'].has_argument('-fexceptions', required: true)
-        compilers['cpp'].has_link_argument('-fexceptions', required: true)
-        retro_cppflags += '-fexceptions'
-        retro_link_args += '-fexceptions'
-    endif
-
     # If possible, stop the linker from reexporting the symbols from the static libraries we use (e.g. zlib)
     if compilers['cpp'].has_link_argument('-Wl,--version-script,' + join_paths(meson.current_source_dir(), 'retro/link.T')) # Only works with GNU linker and LLVM linker
         retro_link_args += '-Wl,--version-script,' + join_paths(meson.current_source_dir(), 'retro/link.T')
