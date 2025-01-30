@@ -792,7 +792,7 @@ jobs:
 
           mkdir ${{ runner.temp }}/retro-phase2
           cp retro/core.info ${{ runner.temp }}/retro-phase2/mkxp-z_libretro.info
-          CFLAGS='-fexceptions -sASSERTIONS=1' CPPFLAGS='-fexceptions -sASSERTIONS=1' LDFLAGS='-fexceptions -sASSERTIONS=1' meson setup build --cross-file ${{ runner.temp }}/cross.ini --default-library static --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CFLAGS='-fexceptions -sASSERTIONS=1' CPPFLAGS='-fexceptions -sASSERTIONS=1' LDFLAGS='-fexceptions -sASSERTIONS=1' meson setup build --cross-file ${{ runner.temp }}/cross.ini --default-library static --buildtype release -Db_lto=false -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
 
@@ -803,13 +803,15 @@ jobs:
           cd mkxp-link
           set -o xtrace
           find ../ -type f -name '*.a' -print0 | while IFS= read -r -d '' path; do
+            cp "$path" ${{ runner.temp }}/retro-phase2
             filename="$(basename "$path")"
             mkdir "$filename.p"
             cd "$filename.p"
             emar x "../$path"
             cd ..
           done
-          find ./ -type f -name '*.o' -print0 | xargs -0 emcc -r -fexceptions -sASSERTIONS=1 -o ${{ runner.temp }}/libretro-mkxp-z.bc
+          find ./ -type f -name '*.o' -print0 | xargs -0 emcc -r -fexceptions -sASSERTIONS=1 -sEXPORTED_FUNCTIONS=@../../retro/symbols.txt -o ${{ runner.temp }}/libretro-mkxp-z.bc
+          cp ${{ runner.temp }}/libretro-mkxp-z.bc ${{ runner.temp }}/retro-phase2
 
       - name: Build RetroArch
         run: |
