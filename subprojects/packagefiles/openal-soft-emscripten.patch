@@ -1,6 +1,22 @@
 # This patch applies C++ name mangling to all of OpenAL Soft's functions so that they don't conflict with the functions in Emscripten's OpenAL implementation.
 # Otherwise, the Emscripten build crashes on startup because the Emscripten version of RetroArch also depends on OpenAL, and it will incorrectly try to use our OpenAL implementation instead of Emscripten's.
+# Also stops OpenAL Soft's build system from unconditionally enabling the `-pthread` compiler flag when targeting Emscripten because it causes problems if the rest of mkxp-z isn't also building with pthread support.
 
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -491,7 +491,10 @@ if(NOT WIN32)
+         message(FATAL_ERROR "PThreads is required for non-Windows builds!")
+     endif()
+ 
+-    check_c_compiler_flag(-pthread HAVE_PTHREAD)
++    string(TOLOWER ${CMAKE_SYSTEM_NAME} SYSTEM_LOWER)
++    if(NOT SYSTEM_LOWER STREQUAL "emscripten")
++        check_c_compiler_flag(-pthread HAVE_PTHREAD)
++    endif()
+     if(HAVE_PTHREAD)
+         set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -pthread")
+         set(C_FLAGS ${C_FLAGS} -pthread)
 diff --git a/include/AL/al.h b/include/AL/al.h
 --- a/include/AL/al.h
 +++ b/include/AL/al.h
