@@ -1,0 +1,117 @@
+diff --git a/alc/alc.cpp b/alc/alc.cpp
+--- a/alc/alc.cpp
++++ b/alc/alc.cpp
+@@ -2729,6 +2729,7 @@ ALC_API ALCenum ALC_APIENTRY alcGetEnumValue(ALCdevice *device, const ALCchar *e
+ 
+ ALC_API ALCcontext* ALC_APIENTRY alcCreateContext(ALCdevice *device, const ALCint *attrList) noexcept
+ {
++    TRACE("Creating context");
+     /* Explicitly hold the list lock while taking the StateLock in case the
+      * device is asynchronously destroyed, to ensure this new context is
+      * properly cleaned up after being made.
+@@ -2747,16 +2748,22 @@ ALC_API ALCcontext* ALC_APIENTRY alcCreateContext(ALCdevice *device, const ALCin
+     dev->LastError.store(ALC_NO_ERROR);
+ 
+     const auto attrSpan = SpanFromAttributeList(attrList);
++    TRACE("Updating device params");
+     ALCenum err{UpdateDeviceParams(dev.get(), attrSpan)};
++    TRACE("Updated device params");
+     if(err != ALC_NO_ERROR)
+     {
++        TRACE("Error creating context");
+         alcSetError(dev.get(), err);
++        TRACE("Returning from alcCreateContext");
+         return nullptr;
+     }
+ 
++    TRACE("Setting flags");
+     ContextFlagBitset ctxflags{0};
+     for(size_t i{0};i < attrSpan.size();i+=2)
+     {
++        TRACE("Setting flag {}", i);
+         if(attrSpan[i] == ALC_CONTEXT_FLAGS_EXT)
+         {
+             ctxflags = static_cast<ALuint>(attrSpan[i+1]);
+@@ -2764,14 +2771,21 @@ ALC_API ALCcontext* ALC_APIENTRY alcCreateContext(ALCdevice *device, const ALCin
+         }
+     }
+ 
++    TRACE("Creating context ref");
+     auto context = ContextRef{new(std::nothrow) ALCcontext{dev, ctxflags}};
++    TRACE("Created context ref");
+     if(!context)
+     {
++        TRACE("Error creating context");
+         alcSetError(dev.get(), ALC_OUT_OF_MEMORY);
++        TRACE("Returning from alCreateContext");
+         return nullptr;
+     }
++    TRACE("Initializing context");
+     context->init();
++    TRACE("Initialized context");
+ 
++    TRACE("Initializing volume adjust");
+     if(auto volopt = dev->configValue<float>({}, "volume-adjust"))
+     {
+         const float valf{*volopt};
+@@ -2786,43 +2800,59 @@ ALC_API ALCcontext* ALC_APIENTRY alcCreateContext(ALCdevice *device, const ALCin
+             TRACE("volume-adjust gain: {:f}", context->mGainBoost);
+         }
+     }
++    TRACE("Initialized volume adjust");
+ 
++    TRACE("Initializing context array");
+     {
+         using ContextArray = al::FlexArray<ContextBase*>;
+ 
+         /* Allocate a new context array, which holds 1 more than the current/
+          * old array.
+          */
++        TRACE("Allocating array");
+         auto *oldarray = dev->mContexts.load();
+         auto newarray = ContextArray::Create(oldarray->size() + 1);
++        TRACE("Allocated array");
+ 
+         /* Copy the current/old context handles to the new array, appending the
+          * new context.
+          */
++        TRACE("Copying array");
+         auto iter = std::copy(oldarray->begin(), oldarray->end(), newarray->begin());
+         *iter = context.get();
++        TRACE("Copied array");
+ 
+         /* Store the new context array in the device. Wait for any current mix
+          * to finish before deleting the old array.
+          */
++        TRACE("Storing into array");
+         auto prevarray = dev->mContexts.exchange(std::move(newarray));
++        TRACE("Stored into array");
+         std::ignore = dev->waitForMix();
++        TRACE("Waited for mix");
+     }
++    TRACE("Initialized context array");
+     statelock.unlock();
+ 
++    TRACE("Finding context");
+     {
+         listlock.lock();
+         auto iter = std::lower_bound(ContextList.cbegin(), ContextList.cend(), context.get());
++        TRACE("Binary search finished");
+         ContextList.emplace(iter, context.get());
+         listlock.unlock();
+     }
++    TRACE("Found context");
+ 
++    TRACE("Initializing effect");
+     if(ALeffectslot *slot{context->mDefaultSlot.get()})
+     {
+         ALenum sloterr{slot->initEffect(0, ALCcontext::sDefaultEffect.type,
+             ALCcontext::sDefaultEffect.Props, context.get())};
+-        if(sloterr == AL_NO_ERROR)
++        if(sloterr == AL_NO_ERROR) {
++            TRACE("No errors");
+             slot->updateProps(context.get());
++        }
+         else
+             ERR("Failed to initialize the default effect");
+     }
