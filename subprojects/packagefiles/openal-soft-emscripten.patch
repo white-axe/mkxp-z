@@ -1,0 +1,115 @@
+# This patch applies C++ name mangling to all of OpenAL Soft's functions so that they don't conflict with the functions in Emscripten's OpenAL implementation.
+# Otherwise, the Emscripten build crashes on startup because the Emscripten version of RetroArch also depends on OpenAL, and it will incorrectly try to use our OpenAL implementation instead of Emscripten's.
+
+diff --git a/include/AL/al.h b/include/AL/al.h
+--- a/include/AL/al.h
++++ b/include/AL/al.h
+@@ -1,9 +1,9 @@
+ #ifndef AL_AL_H
+ #define AL_AL_H
+ 
+-#if defined(__cplusplus)
+-extern "C" {
+-#endif
++
++
++
+ 
+ #ifndef AL_API
+  #if defined(AL_LIBTYPE_STATIC)
+@@ -648,8 +648,8 @@ typedef void          (AL_APIENTRY *LPALDOPPLERVELOCITY)(ALfloat value);
+ typedef void          (AL_APIENTRY *LPALSPEEDOFSOUND)(ALfloat value);
+ typedef void          (AL_APIENTRY *LPALDISTANCEMODEL)(ALenum distanceModel);
+ 
+-#if defined(__cplusplus)
+-}  /* extern "C" */
+-#endif
++
++
++
+ 
+ #endif /* AL_AL_H */
+diff --git a/include/AL/alc.h b/include/AL/alc.h
+--- a/include/AL/alc.h
++++ b/include/AL/alc.h
+@@ -1,9 +1,9 @@
+ #ifndef AL_ALC_H
+ #define AL_ALC_H
+ 
+-#if defined(__cplusplus)
+-extern "C" {
+-#endif
++
++
++
+ 
+ #ifndef ALC_API
+  #if defined(AL_LIBTYPE_STATIC)
+@@ -263,8 +263,8 @@ typedef void           (ALC_APIENTRY *LPALCCAPTURESTART)(ALCdevice *device);
+ typedef void           (ALC_APIENTRY *LPALCCAPTURESTOP)(ALCdevice *device);
+ typedef void           (ALC_APIENTRY *LPALCCAPTURESAMPLES)(ALCdevice *device, ALCvoid *buffer, ALCsizei samples);
+ 
+-#if defined(__cplusplus)
+-}
+-#endif
++
++
++
+ 
+ #endif /* AL_ALC_H */
+diff --git a/include/AL/alext.h b/include/AL/alext.h
+--- a/include/AL/alext.h
++++ b/include/AL/alext.h
+@@ -40,9 +40,9 @@ typedef unsigned __int64 uint64_t;
+ #include "alc.h"
+ #include "al.h"
+ 
+-#ifdef __cplusplus
+-extern "C" {
+-#endif
++
++
++
+ 
+ #ifndef AL_LOKI_IMA_ADPCM_format
+ #define AL_LOKI_IMA_ADPCM_format 1
+@@ -578,8 +578,8 @@ AL_API void AL_APIENTRY alGetPointervSOFT(ALenum pname, void **values);
+ #endif
+ #endif
+ 
+-#ifdef __cplusplus
+-}
+-#endif
++
++
++
+ 
+ #endif
+diff --git a/include/AL/efx.h b/include/AL/efx.h
+--- a/include/AL/efx.h
++++ b/include/AL/efx.h
+@@ -6,9 +6,9 @@
+ #include "alc.h"
+ #include "al.h"
+ 
+-#ifdef __cplusplus
+-extern "C" {
+-#endif
++
++
++
+ 
+ #define ALC_EXT_EFX_NAME                         "ALC_EXT_EFX"
+ 
+@@ -755,8 +755,8 @@ AL_API void AL_APIENTRY alGetAuxiliaryEffectSlotfv(ALuint effectslot, ALenum par
+ #define AL_DEFAULT_METERS_PER_UNIT               (1.0f)
+ 
+ 
+-#ifdef __cplusplus
+-}  /* extern "C" */
+-#endif
++
++
++
+ 
+ #endif /* AL_EFX_H */

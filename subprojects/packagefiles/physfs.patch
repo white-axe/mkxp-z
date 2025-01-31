@@ -44,6 +44,38 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
      target_link_libraries(physfs-static PRIVATE ${OPTIONAL_LIBRARY_LIBS} ${OTHER_LDFLAGS})
      set(PHYSFS_LIB_TARGET physfs-static)
      list(APPEND PHYSFS_INSTALL_TARGETS "physfs-static")
+diff --git a/src/physfs.c b/src/physfs.c
+--- a/src/physfs.c
++++ b/src/physfs.c
+@@ -1226,10 +1226,10 @@ int PHYSFS_init(const char *argv0)
+ 
+     if (!initializeMutexes()) goto initFailed;
+ 
+-    baseDir = calculateBaseDir(argv0);
++    baseDir = "/";
+     if (!baseDir) goto initFailed;
+ 
+-    userDir = __PHYSFS_platformCalcUserDir();
++    userDir = "/";
+     if (!userDir) goto initFailed;
+ 
+     /* Platform layer is required to append a dirsep. */
+@@ -1367,13 +1367,13 @@ static int doDeinit(void)
+ 
+     if (baseDir != NULL)
+     {
+-        allocator.Free(baseDir);
++        //allocator.Free(baseDir);
+         baseDir = NULL;
+     } /* if */
+ 
+     if (userDir != NULL)
+     {
+-        allocator.Free(userDir);
++        //allocator.Free(userDir);
+         userDir = NULL;
+     } /* if */
+ 
 diff --git a/src/physfs_platform_posix.c b/src/physfs_platform_posix.c
 --- a/src/physfs_platform_posix.c
 +++ b/src/physfs_platform_posix.c

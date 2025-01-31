@@ -563,14 +563,9 @@ jobs:
 
       - name: Build core
         run: |
-          echo '#!/bin/sh'$'\n''exec clang --target=${{ matrix.arch_llvm }} -fuse-ld=lld --sysroot=${{ steps.sysroot.outputs.root-path }} "$@"' > ${{ runner.temp }}/cc
-          echo '#!/bin/sh'$'\n''exec clang++ --target=${{ matrix.arch_llvm }} -fuse-ld=lld --sysroot=${{ steps.sysroot.outputs.root-path }} "$@"' > ${{ runner.temp }}/c++
-          chmod +x ${{ runner.temp }}/cc
-          chmod +x ${{ runner.temp }}/c++
-
           echo "[binaries]" | tee -a ${{ runner.temp }}/cross.ini
-          echo "c = '${{ runner.temp }}/cc'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "cpp = '${{ runner.temp }}/c++'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "c = ['clang', '--target=${{ matrix.arch_llvm }}', '-fuse-ld=lld', '--sysroot=${{ steps.sysroot.outputs.root-path }}']" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpp = ['clang++', '--target=${{ matrix.arch_llvm }}', '-fuse-ld=lld', '--sysroot=${{ steps.sysroot.outputs.root-path }}']" | tee -a ${{ runner.temp }}/cross.ini
           echo "ar = 'llvm-ar'" | tee -a ${{ runner.temp }}/cross.ini
           echo "strip = 'llvm-strip'" | tee -a ${{ runner.temp }}/cross.ini
           echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
@@ -719,14 +714,9 @@ jobs:
 
       - name: Build core
         run: |
-          echo '#!/bin/sh'$'\n''exec clang --target=${{ matrix.arch_llvm }} "$@"' > ${{ runner.temp }}/cc
-          echo '#!/bin/sh'$'\n''exec clang++ --target=${{ matrix.arch_llvm }} "$@"' > ${{ runner.temp }}/c++
-          chmod +x ${{ runner.temp }}/cc
-          chmod +x ${{ runner.temp }}/c++
-
           echo "[binaries]" | tee -a ${{ runner.temp }}/cross.ini
-          echo "c = '${{ runner.temp }}/cc'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "cpp = '${{ runner.temp }}/c++'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "c = ['clang', '--target=${{ matrix.arch_llvm }}']" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpp = ['clang++', '--target=${{ matrix.arch_llvm }}']" | tee -a ${{ runner.temp }}/cross.ini
           echo "ar = 'ar'" | tee -a ${{ runner.temp }}/cross.ini
           echo "strip = 'strip'" | tee -a ${{ runner.temp }}/cross.ini
           echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
@@ -811,7 +801,6 @@ jobs:
             cd ..
           done
           find ./ -type f -name '*.o' -print0 | xargs -0 emcc -r -fexceptions -sASSERTIONS=1 -o ${{ runner.temp }}/libretro-mkxp-z.bc
-          ../../retro/emscripten-patch.sh ${{ runner.temp }}/libretro-mkxp-z.bc
           cp ${{ runner.temp }}/libretro-mkxp-z.bc ${{ runner.temp }}/retro-phase2
 
       - name: Build RetroArch
