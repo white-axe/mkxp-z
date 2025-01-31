@@ -72,7 +72,7 @@ diff --git a/gzguts.h b/gzguts.h
   * Copyright (C) 2004-2024 Mark Adler
   * For conditions of distribution and use, see copyright notice in zlib.h
   */
-+#ifdef __unix__
++#if defined(__unix__) || defined(__DEVKITPRO__)
 +#  include <unistd.h>
 +#endif
  

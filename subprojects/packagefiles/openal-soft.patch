@@ -1,26 +1,39 @@
-# Fixes a compilation error when building with C++ standards older than C++17.
+# Sets the C standard to C11 instead of C17 since Emscripten doesn't support C17.
 # Also removes the call to `__android_log_printf()` on Android.
 # Also removes the Apple-specific code from alconfig.cpp.
 
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -79,8 +79,8 @@ set(ALSOFT_STD_VERSION_PROPS
+     # Require C++17.
+     CXX_STANDARD 17
+     CXX_STANDARD_REQUIRED TRUE
+-    # Prefer C17, but support earlier when necessary.
+-    C_STANDARD 17)
++
++    C_STANDARD 11)
+ 
+ set(CMAKE_MODULE_PATH "${OpenAL_SOURCE_DIR}/cmake")
+ 
 diff --git a/alc/alconfig.cpp b/alc/alconfig.cpp
 --- a/alc/alconfig.cpp
 +++ b/alc/alconfig.cpp
-@@ -362,22 +362,6 @@ void ReadALConfig()
-         fname.clear();
+@@ -419,21 +419,6 @@ void ReadALConfig()
+         }
      }
  
 -#ifdef __APPLE__
 -    CFBundleRef mainBundle = CFBundleGetMainBundle();
 -    if(mainBundle)
 -    {
--        unsigned char fileName[PATH_MAX];
--        CFURLRef configURL;
+-        CFURLRef configURL{CFBundleCopyResourceURL(mainBundle, CFSTR(".alsoftrc"), CFSTR(""),
+-            nullptr)};
 -
--        if((configURL=CFBundleCopyResourceURL(mainBundle, CFSTR(".alsoftrc"), CFSTR(""), nullptr)) &&
--           CFURLGetFileSystemRepresentation(configURL, true, fileName, sizeof(fileName)))
+-        std::array<unsigned char,PATH_MAX> fileName{};
+-        if(configURL && CFURLGetFileSystemRepresentation(configURL, true, fileName.data(), fileName.size()))
 -        {
--            f = al::ifstream{reinterpret_cast<char*>(fileName)};
--            if(f.is_open())
+-            if(std::ifstream f{reinterpret_cast<char*>(fileName.data())}; f.is_open())
 -                LoadConfigFromFile(f);
 -        }
 -    }
@@ -28,14 +41,26 @@ diff --git a/alc/alconfig.cpp b/alc/alconfig.cpp
  
      if(auto homedir = al::getenv("HOME"))
      {
-diff --git a/alc/helpers.cpp b/alc/helpers.cpp
---- a/alc/helpers.cpp
-+++ b/alc/helpers.cpp
-@@ -348,22 +348,6 @@ void al_print(LogLevel level, FILE *logfile, const char *fmt, ...)
-         fputs(str, logfile);
-         fflush(logfile);
-     }
--#ifdef __ANDROID__
+diff --git a/core/helpers.cpp b/core/helpers.cpp
+--- a/core/helpers.cpp
++++ b/core/helpers.cpp
+@@ -368,7 +368,7 @@ namespace {
+ bool SetRTPriorityPthread(int prio [[maybe_unused]])
+ {
+     int err{ENOTSUP};
+-#if defined(HAVE_PTHREAD_SETSCHEDPARAM) && !defined(__OpenBSD__)
++#if defined(HAVE_PTHREAD_SETSCHEDPARAM) && !defined(__OpenBSD__) && !defined(__EMSCRIPTEN__)
+     /* Get the min and max priority for SCHED_RR. Limit the max priority to
+      * half, for now, to ensure the thread can't take the highest priority and
+      * go rogue.
+diff --git a/core/logging.cpp b/core/logging.cpp
+--- a/core/logging.cpp
++++ b/core/logging.cpp
+@@ -103,23 +103,6 @@ void al_print_impl(LogLevel level, const fmt::string_view fmt, fmt::format_args
+      * non-Release builds.
+      */
+     OutputDebugStringW(utf8_to_wstr(fmt::format("{}{}\n", prefix, msg)).c_str());
+-#elif defined(__ANDROID__)
 -    auto android_severity = [](LogLevel l) noexcept
 -    {
 -        switch(l)
@@ -49,39 +74,9 @@ diff --git a/alc/helpers.cpp b/alc/helpers.cpp
 -        }
 -        return ANDROID_LOG_ERROR;
 -    };
--    __android_log_print(android_severity(level), "openal", "%s", str);
--#endif
- }
+-    /* NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg) */
+-    __android_log_print(android_severity(level), "openal", "%.*s%s", al::sizei(prefix),
+-        prefix.data(), msg.c_str());
+ #endif
  
- 
-@@ -485,7 +469,7 @@ al::vector<std::string> SearchDataFiles(const char *ext, const char *subdir)
- 
- void SetRTPriority()
- {
--#if defined(HAVE_PTHREAD_SETSCHEDPARAM) && !defined(__OpenBSD__)
-+#if defined(HAVE_PTHREAD_SETSCHEDPARAM) && !defined(__OpenBSD__) && !defined(__EMSCRIPTEN__)
-     if(RTPrioLevel > 0)
-     {
-         struct sched_param param{};
-diff --git a/common/almalloc.cpp b/common/almalloc.cpp
---- a/common/almalloc.cpp
-+++ b/common/almalloc.cpp
-@@ -18,14 +18,14 @@ void *al_malloc(size_t alignment, size_t size)
-     assert((alignment & (alignment-1)) == 0);
-     alignment = std::max(alignment, alignof(std::max_align_t));
- 
--#if defined(HAVE_STD_ALIGNED_ALLOC)
--    size = (size+(alignment-1))&~(alignment-1);
--    return std::aligned_alloc(alignment, size);
--#elif defined(HAVE_POSIX_MEMALIGN)
-+#if defined(HAVE_POSIX_MEMALIGN)
-     void *ret{};
-     if(posix_memalign(&ret, alignment, size) == 0)
-         return ret;
-     return nullptr;
-+#elif defined(HAVE_STD_ALIGNED_ALLOC)
-+    size = (size+(alignment-1))&~(alignment-1);
-+    return aligned_alloc(alignment, size);
- #elif defined(HAVE__ALIGNED_MALLOC)
-     return _aligned_malloc(size, alignment);
- #else
+     auto cblock = std::lock_guard{LogCallbackMutex};
