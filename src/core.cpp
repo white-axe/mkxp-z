@@ -59,6 +59,7 @@ static size_t frame_number = 0;
 static ALCdevice *al_device = NULL;
 static ALCcontext *al_context = NULL;
 static LPALCRENDERSAMPLESSOFT alcRenderSamplesSOFT = NULL;
+static LPALCLOOPBACKOPENDEVICESOFT alcLoopbackOpenDeviceSOFT = NULL;
 static int16_t *sound_buf;
 
 static void fallback_log(enum retro_log_level level, const char *fmt, ...) {
@@ -139,6 +140,8 @@ static bool init_sandbox() {
     }
     fs.reset();
 
+    log_printf(RETRO_LOG_INFO, "Initializing filesystem\n");
+
     fs.emplace((const char *)NULL, false);
 
     {
@@ -163,9 +166,27 @@ static bool init_sandbox() {
 
     fs->createPathCache();
 
-    alcRenderSamplesSOFT = (LPALCRENDERSAMPLESSOFT)alcGetProcAddress(NULL, "alcRenderSamplesSOFT");
+    log_printf(RETRO_LOG_INFO, "Initializing audio\n");
 
-    al_device = ((LPALCLOOPBACKOPENDEVICESOFT)alcGetProcAddress(NULL, "alcLoopbackOpenDeviceSOFT"))(NULL);
+    alcLoopbackOpenDeviceSOFT = (LPALCLOOPBACKOPENDEVICESOFT)alcGetProcAddress(NULL, "AlcLoopbackOpenDeviceSOFT");
+    if (alcLoopbackOpenDeviceSOFT == NULL) {
+        alcLoopbackOpenDeviceSOFT = (LPALCLOOPBACKOPENDEVICESOFT)alcGetProcAddress(NULL, "alcLoopbackOpenDeviceSOFT");
+        if (alcLoopbackOpenDeviceSOFT == NULL) {
+            log_printf(RETRO_LOG_ERROR, "OpenAL implementation does not support `alcLoopbackOpenDeviceSOFT`\n");
+            return false;
+        }
+    }
+
+    alcRenderSamplesSOFT = (LPALCRENDERSAMPLESSOFT)alcGetProcAddress(NULL, "AlcRenderSamplesSOFT");
+    if (alcRenderSamplesSOFT == NULL) {
+        alcRenderSamplesSOFT = (LPALCRENDERSAMPLESSOFT)alcGetProcAddress(NULL, "alcRenderSamplesSOFT");
+        if (alcRenderSamplesSOFT == NULL) {
+            log_printf(RETRO_LOG_ERROR, "OpenAL implementation does not support `alcRenderSamplesSOFT`\n");
+            return false;
+        }
+    }
+
+    al_device = alcLoopbackOpenDeviceSOFT(NULL);
     if (al_device == NULL) {
         log_printf(RETRO_LOG_ERROR, "Failed to initialize OpenAL loopback device\n");
         return false;
@@ -231,6 +252,8 @@ static bool init_sandbox() {
     fluid_set_default_fileapi(&fluid_fileapi);
 
     audio.emplace();
+
+    log_printf(RETRO_LOG_INFO, "Initializing sandbox\n");
 
     SharedState::initInstance(NULL);
 
