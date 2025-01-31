@@ -800,7 +800,6 @@ jobs:
             cd ..
           done
           find ./ -type f -name '*.o' -print0 | xargs -0 emcc -r -o ${{ runner.temp }}/libretro-mkxp-z.bc
-          ../../retro/emscripten-patch.sh ${{ runner.temp }}/libretro-mkxp-z.bc
 
       - name: Build RetroArch
         run: |

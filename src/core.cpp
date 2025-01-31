@@ -168,22 +168,16 @@ static bool init_sandbox() {
 
     log_printf(RETRO_LOG_INFO, "Initializing audio\n");
 
-    alcLoopbackOpenDeviceSOFT = (LPALCLOOPBACKOPENDEVICESOFT)alcGetProcAddress(NULL, "AlcLoopbackOpenDeviceSOFT");
+    alcLoopbackOpenDeviceSOFT = (LPALCLOOPBACKOPENDEVICESOFT)alcGetProcAddress(NULL, "alcLoopbackOpenDeviceSOFT");
     if (alcLoopbackOpenDeviceSOFT == NULL) {
-        alcLoopbackOpenDeviceSOFT = (LPALCLOOPBACKOPENDEVICESOFT)alcGetProcAddress(NULL, "alcLoopbackOpenDeviceSOFT");
-        if (alcLoopbackOpenDeviceSOFT == NULL) {
-            log_printf(RETRO_LOG_ERROR, "OpenAL implementation does not support `alcLoopbackOpenDeviceSOFT`\n");
-            return false;
-        }
+        log_printf(RETRO_LOG_ERROR, "OpenAL implementation does not support `alcLoopbackOpenDeviceSOFT`\n");
+        return false;
     }
 
-    alcRenderSamplesSOFT = (LPALCRENDERSAMPLESSOFT)alcGetProcAddress(NULL, "AlcRenderSamplesSOFT");
+    alcRenderSamplesSOFT = (LPALCRENDERSAMPLESSOFT)alcGetProcAddress(NULL, "alcRenderSamplesSOFT");
     if (alcRenderSamplesSOFT == NULL) {
-        alcRenderSamplesSOFT = (LPALCRENDERSAMPLESSOFT)alcGetProcAddress(NULL, "alcRenderSamplesSOFT");
-        if (alcRenderSamplesSOFT == NULL) {
-            log_printf(RETRO_LOG_ERROR, "OpenAL implementation does not support `alcRenderSamplesSOFT`\n");
-            return false;
-        }
+        log_printf(RETRO_LOG_ERROR, "OpenAL implementation does not support `alcRenderSamplesSOFT`\n");
+        return false;
     }
 
     al_device = alcLoopbackOpenDeviceSOFT(NULL);
@@ -274,11 +268,15 @@ extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
     environment = cb;
 
     struct retro_log_callback log;
+#ifndef __EMSCRIPTEN__
     if (cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log)) {
         log_printf = log.log;
     } else {
+#endif // __EMSCRIPTEN__
         log_printf = fallback_log;
+#ifndef __EMSCRIPTEN__
     }
+#endif // __EMSCRIPTEN__
 
     perf = {
         .get_time_usec = nullptr,
