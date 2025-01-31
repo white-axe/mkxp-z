@@ -782,7 +782,7 @@ jobs:
 
           mkdir ${{ runner.temp }}/retro-phase2
           cp retro/core.info ${{ runner.temp }}/retro-phase2/mkxp-z_libretro.info
-          CFLAGS='-sASSERTIONS=1' CPPFLAGS='-sASSERTIONS=1' LDFLAGS='-sASSERTIONS=1' meson setup build --cross-file ${{ runner.temp }}/cross.ini --default-library static --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CFLAGS='' CPPFLAGS='' LDFLAGS='' meson setup build --cross-file ${{ runner.temp }}/cross.ini --default-library static --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
           cd build
           ninja -v
 
@@ -800,7 +800,7 @@ jobs:
             emar x "../$path"
             cd ..
           done
-          find ./ -type f -name '*.o' -print0 | xargs -0 emcc -r -sASSERTIONS=1 -o ${{ runner.temp }}/libretro-mkxp-z.bc
+          find ./ -type f -name '*.o' -print0 | xargs -0 emcc -r -o ${{ runner.temp }}/libretro-mkxp-z.bc
           cp ${{ runner.temp }}/libretro-mkxp-z.bc ${{ runner.temp }}/retro-phase2
 
       - name: Build RetroArch
@@ -809,8 +809,8 @@ jobs:
           git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b v1.20.0
           mv libretro-mkxp-z.bc retroarch/libretro_emscripten.bc
           cd retroarch
-          sed -i 's|-Ideps/stb|-Ideps/stb -sASSERTIONS=1|' Makefile.emscripten
-          sed -i 's|-s FULL_ES2=1|-s FULL_ES2=1 -sASSERTIONS=1|' Makefile.emscripten
+          sed -i 's|-Ideps/stb|-Ideps/stb|' Makefile.emscripten
+          sed -i 's|-s FULL_ES2=1|-s FULL_ES2=1|' Makefile.emscripten
           emmake make -f Makefile.emscripten LIBRETRO=mkxp-z
           find . -type f
           mv mkxp-z_libretro.wasm ${{ runner.temp }}/retro-phase2
