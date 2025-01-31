@@ -87,6 +87,7 @@ if get_option('retro') == true
         'ALSOFT_NO_CONFIG_UTIL': true,
         'ALSOFT_EXAMPLES': false,
         'ALSOFT_UPDATE_BUILD_VERSION': false,
+        'ALSOFT_EMBED_HRTF_DATA': false,
         'ALSOFT_BACKEND_PIPEWIRE': false,
         'ALSOFT_BACKEND_PULSEAUDIO': false,
         'ALSOFT_BACKEND_ALSA': false,

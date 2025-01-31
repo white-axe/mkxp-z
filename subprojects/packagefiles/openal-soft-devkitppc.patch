@@ -5,7 +5,7 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -134,6 +134,11 @@ if("${CMAKE_C_PLATFORM_ID}" STREQUAL "QNX")
+@@ -174,6 +174,11 @@ if("${CMAKE_C_PLATFORM_ID}" STREQUAL "QNX")
      set(INC_PATHS ${INC_PATHS} /usr/include)
      set(LINKER_FLAGS ${LINKER_FLAGS} -L/usr/lib)
  endif()
@@ -17,10 +17,10 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
  
  # When the library is built for static linking, apps should define
  # AL_LIBTYPE_STATIC when including the AL headers.
-diff --git a/common/threads.cpp b/common/threads.cpp
---- a/common/threads.cpp
-+++ b/common/threads.cpp
-@@ -83,8 +83,6 @@ void semaphore::post()
+diff --git a/common/alsem.cpp b/common/alsem.cpp
+--- a/common/alsem.cpp
++++ b/common/alsem.cpp
+@@ -55,8 +55,6 @@ void semaphore::post()
  void semaphore::wait() noexcept
  { WaitForSingleObject(static_cast<HANDLE>(mSem), INFINITE); }
  
@@ -29,7 +29,7 @@ diff --git a/common/threads.cpp b/common/threads.cpp
  
  } // namespace al
  
-@@ -134,8 +132,6 @@ void semaphore::post()
+@@ -83,8 +81,6 @@ void semaphore::post()
  void semaphore::wait() noexcept
  { dispatch_semaphore_wait(mSem, DISPATCH_TIME_FOREVER); }
  
@@ -38,7 +38,7 @@ diff --git a/common/threads.cpp b/common/threads.cpp
  
  } // namespace al
  
-@@ -147,27 +143,41 @@ namespace al {
+@@ -96,27 +92,41 @@ namespace al {
  
  semaphore::semaphore(unsigned int initial)
  {
@@ -82,12 +82,12 @@ diff --git a/common/threads.cpp b/common/threads.cpp
  
  } // namespace al
  
-diff --git a/common/threads.h b/common/threads.h
---- a/common/threads.h
-+++ b/common/threads.h
-@@ -14,7 +14,11 @@
- #if defined(__APPLE__)
- #include <dispatch/dispatch.h>
+diff --git a/common/alsem.h b/common/alsem.h
+--- a/common/alsem.h
++++ b/common/alsem.h
+@@ -11,7 +11,11 @@
+ #include <semaphore.h> /* Fallback option for Apple without a working libdispatch */
+ #endif
  #elif !defined(_WIN32)
 -#include <semaphore.h>
 +#  ifdef MKXPZ_DEVKITPPC
@@ -97,8 +97,8 @@ diff --git a/common/threads.h b/common/threads.h
 +#  endif
  #endif
  
- void althrd_setname(const char *name);
-@@ -40,7 +44,6 @@ public:
+ namespace al {
+@@ -35,7 +39,6 @@ public:
  
      void post();
      void wait() noexcept;
