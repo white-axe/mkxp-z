@@ -265,7 +265,6 @@ if get_option('retro') == true
             'src/etc/etc.cpp',
             'src/etc/table.cpp',
             'src/filesystem/filesystem.cpp',
-            'src/filesystem/filesystemImpl.cpp',
             'binding-sandbox/binding-util.cpp',
             'binding-sandbox/sandbox.cpp',
             'binding-sandbox/wasi.cpp',

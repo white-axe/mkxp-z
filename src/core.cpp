@@ -140,12 +140,10 @@ static bool init_sandbox() {
     }
     fs.reset();
 
-    log_printf(RETRO_LOG_INFO, "Initializing filesystem\n");
-
     fs.emplace((const char *)NULL, false);
 
     {
-        std::string parsed_game_path(fs->normalize(game_path.c_str(), false, true));
+        std::string parsed_game_path(fs->normalize(game_path.c_str(), true, true));
 
         // If the game path doesn't end with ".mkxp" or ".mkxpz", remove the last component from the path since we want to mount the directory that the file is in, not the file itself.
         if (
@@ -165,8 +163,6 @@ static bool init_sandbox() {
     }
 
     fs->createPathCache();
-
-    log_printf(RETRO_LOG_INFO, "Initializing audio\n");
 
     alcLoopbackOpenDeviceSOFT = (LPALCLOOPBACKOPENDEVICESOFT)alcGetProcAddress(NULL, "alcLoopbackOpenDeviceSOFT");
     if (alcLoopbackOpenDeviceSOFT == NULL) {
@@ -246,8 +242,6 @@ static bool init_sandbox() {
     fluid_set_default_fileapi(&fluid_fileapi);
 
     audio.emplace();
-
-    log_printf(RETRO_LOG_INFO, "Initializing sandbox\n");
 
     SharedState::initInstance(NULL);
 

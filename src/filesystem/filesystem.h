@@ -29,9 +29,11 @@
 #include <SDL_rwops.h>
 #include <string>
 
+#ifndef MKXPZ_RETRO
 #include "filesystemImpl.h"
 
 namespace mkxp_fs = filesystemImpl;
+#endif // MKXPZ_RETRO
 
 struct FileSystemPrivate;
 class SharedFontState;

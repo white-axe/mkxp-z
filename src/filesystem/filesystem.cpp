@@ -34,12 +34,15 @@
 #include <physfs.h>
 
 #ifdef MKXPZ_RETRO
+#  include <list>
 #  include <memory>
+#  include <sstream>
 #  include <boost/optional.hpp>
 #endif // MKXPZ_RETRO
 
 #include <algorithm>
 #include <stack>
+#include <string>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -705,15 +708,77 @@ void FileSystem::openReadRaw(SDL_RWops &ops, const char *filename,
   return;
 }
 
+#ifdef MKXPZ_RETRO
+static std::string normalizePath(const char *path, bool absolute) {
+    // Replace backslashes with forward slashes
+    std::string path_str(path);
+    for (size_t i = 0; i < path_str.length(); ++i) {
+        if (path_str[i] == '\\') {
+            path_str[i] = '/';
+        }
+    }
+
+    // Lexically normalize the path
+    std::list<std::string> list;
+    std::string component;
+    std::istringstream stream(path_str);
+    while (std::getline(stream, component, '/')) {
+        list.push_front(component);
+    }
+    for (auto it = list.begin(); it != list.end();) {
+        if (it->empty() || *it == ".") {
+            list.erase(it++);
+        } else {
+            ++it;
+        }
+    }
+    for (auto it = list.begin(); it != list.end();) {
+        if (*it == "..") {
+            while (std::next(it) != list.end() && *std::next(it) == "..") {
+                ++it;
+            }
+            while (*it == "..") {
+                if (std::next(it) != list.end()) {
+                    list.erase(std::next(it));
+                }
+                if (it == list.begin()) {
+                    list.erase(it);
+                    it = list.begin();
+                    break;
+                } else {
+                    list.erase(it--);
+                }
+            }
+        } else {
+            ++it;
+        }
+    }
+
+    // Convert the normalized path back into a string
+    list.reverse();
+    std::string normalized_path;
+    if (absolute) {
+        normalized_path.push_back('/');
+    }
+    for (auto it = list.begin(); it != list.end();) {
+        normalized_path.append(*it);
+        if (std::next(it) != list.end()) {
+            normalized_path.push_back('/');
+        }
+        list.erase(it++);
+    }
+
+    return normalized_path;
+}
+#endif // MKXPZ_RETRO
+
 std::string FileSystem::normalize(const char *pathname, bool preferred,
                             bool absolute) {
-  std::string normalized = filesystemImpl::normalizePath(pathname, preferred, absolute);
 #ifdef MKXPZ_RETRO
-  if (!absolute && normalized[0] == '/') {
-    normalized = normalized.substr(1);
-  }
+  return normalizePath(pathname, absolute);
+#else
+  return filesystemImpl::normalizePath(pathname, preferred, absolute);
 #endif // MKXPZ_RETRO
-  return normalized;
 }
 
 bool FileSystem::exists(const char *filename) {

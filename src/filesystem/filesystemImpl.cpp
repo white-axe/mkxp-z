@@ -79,7 +79,7 @@ std::string filesystemImpl::normalizePath(const char *path, bool preferred, bool
     for (size_t i = 0; i < ret.length(); i++) {
         char sep;
         char sep_alt;
-#if !defined(MKXPZ_RETRO) && defined(__WIN32__)
+#if defined(__WIN32__)
         if (preferred) {
             sep = '\\';
             sep_alt = '/';

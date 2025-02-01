@@ -21,14 +21,13 @@
 
 #include <cstring>
 #include <algorithm>
-#include <iterator>
-#include <list>
 #include <random>
 #include <sstream>
 #include <zip.h>
-#include "wasi.h"
 #include <mkxp-retro-ruby.h>
+#include "filesystem.h"
 #include "core.h"
+#include "wasi.h"
 
 extern unsigned char mkxp_retro_dist_zip[];
 extern unsigned int mkxp_retro_dist_zip_len;
@@ -151,51 +150,7 @@ static struct wasi_zip_stat wasi_zip_stat(zip_t *zip, const char *path, u32 path
     struct wasi_zip_stat info;
     zip_stat_t stat;
 
-    std::list<std::string> list;
-    std::string component;
-    std::istringstream stream(std::string(path, strlen_safe(path, path_len)));
-    while (std::getline(stream, component, '/')) {
-        list.push_front(component);
-    }
-
-    // Normalize the path
-    for (auto it = list.begin(); it != list.end();) {
-        if (it->empty() || *it == ".") {
-            list.erase(it++);
-        } else {
-            ++it;
-        }
-    }
-    for (auto it = list.begin(); it != list.end();) {
-        if (*it == "..") {
-            while (std::next(it) != list.end() && *std::next(it) == "..") {
-                ++it;
-            }
-            while (*it == "..") {
-                if (std::next(it) != list.end()) {
-                    list.erase(std::next(it));
-                }
-                if (it == list.begin()) {
-                    list.erase(it);
-                    it = list.begin();
-                    break;
-                } else {
-                    list.erase(it--);
-                }
-            }
-        } else {
-            ++it;
-        }
-    }
-
-    list.reverse();
-    for (auto it = list.begin(); it != list.end();) {
-        info.normalized_path.append(*it);
-        if (std::next(it) != list.end()) {
-            info.normalized_path.push_back('/');
-        }
-        list.erase(it++);
-    }
+    info.normalized_path = mkxp_retro::fs->normalize(path, true, false);
 
     if (info.normalized_path.length() == 0) {
         info.exists = true;
