@@ -115,3 +115,90 @@ diff --git a/alc/alc.cpp b/alc/alc.cpp
          else
              ERR("Failed to initialize the default effect");
      }
+diff --git a/alc/context.cpp b/alc/context.cpp
+--- a/alc/context.cpp
++++ b/alc/context.cpp
+@@ -158,13 +158,17 @@ ALCcontext::~ALCcontext()
+ 
+ void ALCcontext::init()
+ {
++    TRACE("Initializing default effect");
+     if(sDefaultEffect.type != AL_EFFECT_NULL && mDevice->Type == DeviceType::Playback)
+     {
+         mDefaultSlot = std::make_unique<ALeffectslot>(this);
++        TRACE("aluInitEffectPanning");
+         aluInitEffectPanning(mDefaultSlot->mSlot, this);
+     }
++    TRACE("Initialized default effect");
+ 
+     std::unique_ptr<EffectSlotArray> auxslots;
++    TRACE("Creating effect slots");
+     if(!mDefaultSlot)
+         auxslots = EffectSlot::CreatePtrArray(0);
+     else
+@@ -175,7 +179,9 @@ void ALCcontext::init()
+         mDefaultSlot->mState = SlotState::Playing;
+     }
+     mActiveAuxSlots.store(std::move(auxslots), std::memory_order_relaxed);
++    TRACE("Created effect slots");
+ 
++    TRACE("Creating voice changes");
+     allocVoiceChanges();
+     {
+         VoiceChange *cur{mVoiceChangeTail};
+@@ -183,11 +189,13 @@ void ALCcontext::init()
+             cur = next;
+         mCurrentVoiceChange.store(cur, std::memory_order_relaxed);
+     }
++    TRACE("Created voice changes");
+ 
+     mExtensions = getContextExtensions();
+ 
+     if(sBufferSubDataCompat)
+     {
++        TRACE("sBufferSubDataCompat");
+         auto iter = std::find(mExtensions.begin(), mExtensions.end(), "AL_EXT_SOURCE_RADIUS"sv);
+         if(iter != mExtensions.end()) mExtensions.erase(iter);
+         /* TODO: Would be nice to sort this alphabetically. Needs case-
+@@ -196,9 +204,11 @@ void ALCcontext::init()
+         mExtensions.emplace_back("AL_SOFT_buffer_sub_data"sv);
+     }
+ 
++    TRACE("Initializing extensions");
+ #if ALSOFT_EAX
+     eax_initialize_extensions();
+ #endif // ALSOFT_EAX
++    TRACE("Initialized extensions");
+ 
+     if(!mExtensions.empty())
+     {
+@@ -219,9 +229,11 @@ void ALCcontext::init()
+         mExtensionsString = std::move(extensions);
+     }
+ 
++    TRACE("Setting defaults");
+ #if ALSOFT_EAX
+     eax_set_defaults();
+ #endif
++    TRACE("Set defaults");
+ 
+     mParams.Position = alu::Vector{0.0f, 0.0f, 0.0f, 1.0f};
+     mParams.Matrix = alu::Matrix::Identity();
+@@ -243,12 +255,17 @@ void ALCcontext::init()
+     mParams.mDistanceModel = mDistanceModel;
+ 
+ 
++    TRACE("Creating ring buffer");
+     mAsyncEvents = RingBuffer::Create(1024, sizeof(AsyncEvent), false);
+     StartEventThrd(this);
++    TRACE("Created");
+ 
+ 
++    TRACE("Allocating voices");
+     allocVoices(256);
++    TRACE("Allocated voices");
+     mActiveVoiceCount.store(64, std::memory_order_relaxed);
++    TRACE("ALCcontext::init done");
+ }
+ 
+ void ALCcontext::deinit()
