@@ -7,7 +7,7 @@ if get_option('retro') == false and host_system == 'darwin'
     error('\nThis Meson project no longer supports macOS. Please use the Xcode project instead.')
 endif
 
-git_hash = run_command('git', 'rev-parse', '--short', 'HEAD', check: false).stdout().strip()
+git_hash = run_command('git', 'rev-parse', '--short', 'HEAD', check: true).stdout().strip()
 
 compilers = {'cpp': meson.get_compiler('cpp')}
 
@@ -148,6 +148,8 @@ if get_option('retro') == true
     })
 
     retro_defines = [
+        '-DMKXPZ_VERSION="@0@"'.format(meson.project_version()),
+        '-DMKXPZ_GIT_HASH="@0@"'.format(git_hash),
         '-DWASM_RT_SKIP_SIGNAL_RECOVERY',
         '-DWASM_RT_TRAP_HANDLER=mkxp_sandbox_trap_handler',
         '-DMKXPZ_RETRO',
