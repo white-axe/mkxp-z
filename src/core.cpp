@@ -29,6 +29,7 @@
 #include <AL/alext.h>
 #include <fluidlite.h>
 #include <fluidsynth_priv.h>
+#include "git-hash.h"
 #include "../binding-sandbox/sandbox.h"
 #include "../binding-sandbox/binding-sandbox.h"
 #include "../binding-sandbox/core.h"

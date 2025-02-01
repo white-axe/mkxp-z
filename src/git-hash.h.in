@@ -1,0 +1,3 @@
+#ifndef MKXPZ_GIT_HASH
+#define MKXPZ_GIT_HASH "@MKXPZ_GIT_HASH@"
+#endif /* MKXPZ_GIT_HASH */
