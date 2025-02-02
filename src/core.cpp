@@ -38,20 +38,16 @@
 using namespace mkxp_retro;
 using namespace mkxp_sandbox;
 
-#if defined(__unix__) || defined(__APPLE__)
 static inline void *malloc_align(size_t alignment, size_t size) {
+#if defined(__unix__) || defined(__APPLE__)
     void *mem;
     return posix_memalign(&mem, alignment, size) ? NULL : mem;
-}
 #elif defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)
-static inline void *malloc_align(size_t alignment, size_t size) {
     return _aligned_malloc(size, alignment);
-}
 #else
-static inline void *malloc_align(size_t alignment, size_t size) {
     return aligned_alloc(alignment, size);
-}
 #endif
+}
 
 extern unsigned char GMGSx_sf2[];
 extern unsigned int GMGSx_sf2_len;
@@ -74,14 +70,19 @@ static void fluid_log(int level, char *message, void *data) {
     switch (level) {
         case FLUID_PANIC:
             log_printf(RETRO_LOG_ERROR, "fluidsynth: panic: %s\n", message);
+            break;
         case FLUID_ERR:
             log_printf(RETRO_LOG_ERROR, "fluidsynth: error: %s\n", message);
+            break;
         case FLUID_WARN:
             log_printf(RETRO_LOG_WARN, "fluidsynth: warning: %s\n", message);
+            break;
         case FLUID_INFO:
             log_printf(RETRO_LOG_INFO, "fluidsynth: %s\n", message);
+            break;
         case FLUID_DBG:
             log_printf(RETRO_LOG_DEBUG, "fluidsynth: debug: %s\n", message);
+            break;
     }
 }
 
@@ -377,11 +378,11 @@ extern "C" RETRO_API size_t retro_serialize_size() {
     return 0;
 }
 
-extern "C" RETRO_API bool retro_serialize(void *data, size_t size) {
+extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     return true;
 }
 
-extern "C" RETRO_API bool retro_unserialize(const void *data, size_t size) {
+extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     return true;
 }
 

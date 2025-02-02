@@ -733,7 +733,7 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          brew install -q git gpatch meson cmake
+          brew install -q git meson cmake
 
       - id: short-sha
         name: Get Git commit hash
@@ -763,7 +763,7 @@ jobs:
           echo "cpu = '${{ matrix.cpu }}'" | tee -a ${{ runner.temp }}/cross.ini
           echo "endian = '${{ matrix.endian }}'" | tee -a ${{ runner.temp }}/cross.ini
           echo '--------------------------------------------------------------------------------'
-          PATH="$HOMEBREW_PREFIX/opt/gpatch/libexec/gnubin:$PATH" meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         run: |
@@ -896,7 +896,7 @@ jobs:
           echo "[host_machine]" | tee -a ~/cross.ini
           echo "system = 'bare'" | tee -a ~/cross.ini
           echo "cpu_family = 'arm'" | tee -a ~/cross.ini
-          echo "cpu = 'generic-armv7-a'" | tee -a ~/cross.ini
+          echo "cpu = 'cortex-a9'" | tee -a ~/cross.ini
           echo "endian = 'little'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
@@ -952,7 +952,7 @@ jobs:
           echo "[host_machine]" | tee -a ~/cross.ini
           echo "system = 'bare'" | tee -a ~/cross.ini
           echo "cpu_family = 'ppc'" | tee -a ~/cross.ini
-          echo "cpu = 'ppc'" | tee -a ~/cross.ini
+          echo "cpu = 'ppc750'" | tee -a ~/cross.ini
           echo "endian = 'big'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
@@ -1008,7 +1008,7 @@ jobs:
           echo "[host_machine]" | tee -a ~/cross.ini
           echo "system = 'bare'" | tee -a ~/cross.ini
           echo "cpu_family = 'aarch64'" | tee -a ~/cross.ini
-          echo "cpu = 'generic-armv8-a'" | tee -a ~/cross.ini
+          echo "cpu = 'cortex-a57'" | tee -a ~/cross.ini
           echo "endian = 'little'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"

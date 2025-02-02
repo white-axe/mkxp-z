@@ -1,5 +1,5 @@
 /*
-** extra-ruby-bindings.h
+** ruby-bindings.h
 **
 ** This file is part of mkxp.
 **

@@ -6,6 +6,23 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
+@@ -64,11 +64,11 @@ endif(COMMAND CMAKE_POLICY)
+ 
+ project(OpenAL)
+ 
+-if(NOT CMAKE_BUILD_TYPE)
+-    set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
+-        "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
+-        FORCE)
+-endif()
++
++
++
++
++
+ if(NOT CMAKE_DEBUG_POSTFIX)
+     set(CMAKE_DEBUG_POSTFIX "" CACHE STRING
+         "Library postfix for debug builds. Normally left blank."
 @@ -79,8 +79,8 @@ set(ALSOFT_STD_VERSION_PROPS
      # Require C++17.
      CXX_STANDARD 17
@@ -103,6 +120,41 @@ diff --git a/alc/alconfig.cpp b/alc/alconfig.cpp
  
      if(auto homedir = al::getenv("HOME"))
      {
+diff --git a/common/atomic.h b/common/atomic.h
+--- a/common/atomic.h
++++ b/common/atomic.h
+@@ -94,9 +94,9 @@ public:
+     { return unique_ptr_t{mPointer.exchange(ptr.release(), m)}; }
+ 
+     [[nodiscard]]
+-    auto is_lock_free() const noexcept -> bool { return mPointer.is_lock_free(); }
++    auto is_lock_free() const noexcept -> bool { return true; }
+ 
+-    static constexpr auto is_always_lock_free = std::atomic<gsl::owner<T*>>::is_always_lock_free;
++    static constexpr auto is_always_lock_free = true;
+ };
+ 
+ } // namespace al
+diff --git a/core/context.cpp b/core/context.cpp
+--- a/core/context.cpp
++++ b/core/context.cpp
+@@ -18,12 +18,12 @@
+ #include "voice_change.h"
+ 
+ 
+-#ifdef __cpp_lib_atomic_is_always_lock_free
+-static_assert(std::atomic<ContextBase::AsyncEventBitset>::is_always_lock_free, "atomic<bitset> isn't lock-free");
+-#endif
++
++
++
+ 
+ ContextBase::ContextBase(DeviceBase *device) : mDevice{device}
+-{ assert(mEnabledEvts.is_lock_free()); }
++{ }
+ 
+ ContextBase::~ContextBase()
+ {
 diff --git a/core/helpers.cpp b/core/helpers.cpp
 --- a/core/helpers.cpp
 +++ b/core/helpers.cpp

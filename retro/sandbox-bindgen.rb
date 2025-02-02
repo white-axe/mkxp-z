@@ -340,20 +340,23 @@ HEADER_START = <<~HEREDOC
               }
 
               static wasm_ptr_t init_inner(struct bindings &bind, struct fiber &fiber) {
+                  wasm_ptr_t sp = w2c_#{MODULE_NAME}_rb_wasm_get_stack_pointer(bind.instance.get());
+
                   if (fiber.stack_ptr == fiber.stack.size()) {
                       fiber.stack.emplace_back(
                           bind,
                           stack_frame_destructor,
                           boost::typeindex::type_id<T>(),
-                          (bind.instance->w2c_0x5F_stack_pointer -= sizeof(T))
+                          (sp -= sizeof(T))
                       );
-                      assert(bind.instance->w2c_0x5F_stack_pointer % sizeof(VALUE) == 0);
-                      new(bind.instance->w2c_memory.data + bind.instance->w2c_0x5F_stack_pointer) T(bind);
+                      assert(sp % sizeof(VALUE) == 0);
+                      new(bind.instance->w2c_memory.data + sp) T(bind);
                   } else if (fiber.stack_ptr > fiber.stack.size()) {
                       throw SandboxTrapException();
                   }
 
                   if (fiber.stack[fiber.stack_ptr].type == boost::typeindex::type_id<T>()) {
+                      w2c_#{MODULE_NAME}_rb_wasm_set_stack_pointer(bind.instance.get(), sp);
                       return fiber.stack[fiber.stack_ptr++].ptr;
                   } else {
                       while (fiber.stack.size() > fiber.stack_ptr) {
@@ -364,11 +367,12 @@ HEADER_START = <<~HEREDOC
                           bind,
                           stack_frame_destructor,
                           boost::typeindex::type_id<T>(),
-                          (bind.instance->w2c_0x5F_stack_pointer -= sizeof(T))
+                          (sp -= sizeof(T))
                       );
-                      assert(bind.instance->w2c_0x5F_stack_pointer % sizeof(VALUE) == 0);
-                      new(bind.instance->w2c_memory.data + bind.instance->w2c_0x5F_stack_pointer) T(bind);
-                      return bind.instance->w2c_0x5F_stack_pointer;
+                      assert(sp % sizeof(VALUE) == 0);
+                      new(bind.instance->w2c_memory.data + sp) T(bind);
+                      w2c_#{MODULE_NAME}_rb_wasm_set_stack_pointer(bind.instance.get(), sp);
+                      return sp;
                   }
               }
 
@@ -386,7 +390,7 @@ HEADER_START = <<~HEREDOC
                       assert(fiber.stack.size() == fiber.stack_ptr);
                       assert(fiber.stack.back().type == boost::typeindex::type_id<T>());
 
-                      bind.instance->w2c_0x5F_stack_pointer = fiber.stack.back().ptr + sizeof(T);
+                      w2c_#{MODULE_NAME}_rb_wasm_set_stack_pointer(bind.instance.get(), fiber.stack.back().ptr + sizeof(T));
                       fiber.stack.pop_back();
                   }
 

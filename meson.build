@@ -243,7 +243,7 @@ if get_option('retro') == true
             include_directories(join_paths(retro_phase1, 'sdl/include')),
         ],
         sources: [
-            vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], input: 'src/git-hash.h.in', output: 'git-hash.h', replace_string: '@MKXPZ_GIT_HASH@'),
+            vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h', replace_string: '@MKXPZ_GIT_HASH@'),
             'src/core.cpp',
             'src/sharedstate.cpp',
             'src/audio/alstream.cpp',
@@ -283,7 +283,7 @@ if get_option('retro') == true
     )
 else
 
-global_sources += vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], input: 'src/git-hash.h.in', output: 'git-hash.h', replace_string: '@MKXPZ_GIT_HASH@')
+global_sources += vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h', replace_string: '@MKXPZ_GIT_HASH@')
 
 xxd = find_program('xxd', native: true)
 

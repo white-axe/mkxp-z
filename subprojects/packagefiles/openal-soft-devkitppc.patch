@@ -106,3 +106,32 @@ diff --git a/common/alsem.h b/common/alsem.h
  };
  
  } // namespace al
+diff --git a/common/althrd_setname.cpp b/common/althrd_setname.cpp
+--- a/common/althrd_setname.cpp
++++ b/common/althrd_setname.cpp
+@@ -55,13 +55,25 @@ using setname_t4 = int(*)(pthread_t, const char*, void*);
+ { func(name); }
+ 
+ [[maybe_unused]] void setname_caller(setname_t2 func, const char *name)
++#ifdef MKXPZ_DEVKITPPC
++{ func(42, name); }
++#else
+ { func(pthread_self(), name); }
++#endif
+ 
+ [[maybe_unused]] void setname_caller(setname_t3 func, const char *name)
++#ifdef MKXPZ_DEVKITPPC
++{ func(42, name); }
++#else
+ { func(pthread_self(), name); }
++#endif
+ 
+ [[maybe_unused]] void setname_caller(setname_t4 func, const char *name)
++#ifdef MKXPZ_DEVKITPPC
++{ func(42, "%s", const_cast<char*>(name)); /* NOLINT(*-const-cast) */ }
++#else
+ { func(pthread_self(), "%s", const_cast<char*>(name)); /* NOLINT(*-const-cast) */ }
++#endif
+ 
+ } // namespace
+ 
