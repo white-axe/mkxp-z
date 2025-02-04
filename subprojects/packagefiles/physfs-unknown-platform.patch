@@ -1,0 +1,16 @@
+# Prevents PhysFS from throwing a compiler error when encountering an unsupported platform. Instead, assume it's Unix-like.
+
+--- a/src/physfs_platforms.h
++++ b/src/physfs_platforms.h
+@@ -73,7 +73,10 @@
+ #  define PHYSFS_PLATFORM_UNIX 1
+ #  define PHYSFS_PLATFORM_POSIX 1
+ #else
+-#  error Unknown platform.
++#  warning Unknown platform.
++#  define PHYSFS_PLATFORM_UNIX 1
++#  define PHYSFS_PLATFORM_POSIX 1
++#  define PHYSFS_NO_CDROM_SUPPORT 1
+ #endif
+ 
+ #endif  /* include-once blocker. */

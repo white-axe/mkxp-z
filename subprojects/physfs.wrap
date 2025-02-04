@@ -2,4 +2,4 @@
 url = https://github.com/icculus/physfs
 revision = release-3.2.0
 depth = 1
-diff_files = physfs.patch
+diff_files = physfs-darwin.patch, physfs-devkitppc.patch, physfs-dir.patch, physfs-unknown-platform.patch

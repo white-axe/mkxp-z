@@ -2,4 +2,4 @@
 url = https://github.com/madler/zlib
 revision = v1.3.1
 depth = 1
-diff_files = zlib.patch
+diff_files = zlib-disable-shared.patch, zlib-unistd.patch, zlib-zconf.patch

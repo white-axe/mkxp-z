@@ -1,4 +1,5 @@
-diff --git a/CMakeLists.txt b/CMakeLists.txt
+# Disables checking for endianness when targeting Emscripten because it causes configuration errors, and because we already know Emscripten targets are always little-endian.
+
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -19,7 +19,10 @@ if("${LOWERCASE_BUILD_TYPE}" STREQUAL "debug")

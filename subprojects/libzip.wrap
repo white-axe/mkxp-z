@@ -2,4 +2,4 @@
 url = https://github.com/nih-at/libzip
 revision = v1.11.2
 depth = 1
-diff_files = libzip.patch
+diff_files = libzip-deps.patch, libzip-emscripten-endian.patch

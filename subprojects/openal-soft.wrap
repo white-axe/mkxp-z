@@ -2,4 +2,4 @@
 url = https://github.com/kcat/openal-soft
 revision = 1.24.2
 depth = 1
-diff_files = openal-soft.patch, openal-soft-devkitarm.patch, openal-soft-devkitppc.patch, openal-soft-emscripten.patch
+diff_files = openal-soft-android-log.patch, openal-soft-atomic.patch, openal-soft-buildtype.patch, openal-soft-c11.patch, openal-soft-darwin-log.patch, openal-soft-devkitppc.patch, openal-soft-emscripten-pthread.patch, openal-soft-emscripten-setschedparam.patch, openal-soft-emscripten-symbol-conflict.patch, openal-soft-emscripten-tss.patch, openal-soft-event-thread.patch, openal-soft-int32.patch

@@ -1,0 +1,26 @@
+# Removes the Apple-specific code from alconfig.cpp because we get missing symbol errors otherwise.
+
+--- a/alc/alconfig.cpp
++++ b/alc/alconfig.cpp
+@@ -419,21 +419,6 @@ void ReadALConfig()
+         }
+     }
+ 
+-#ifdef __APPLE__
+-    CFBundleRef mainBundle = CFBundleGetMainBundle();
+-    if(mainBundle)
+-    {
+-        CFURLRef configURL{CFBundleCopyResourceURL(mainBundle, CFSTR(".alsoftrc"), CFSTR(""),
+-            nullptr)};
+-
+-        std::array<unsigned char,PATH_MAX> fileName{};
+-        if(configURL && CFURLGetFileSystemRepresentation(configURL, true, fileName.data(), fileName.size()))
+-        {
+-            if(std::ifstream f{reinterpret_cast<char*>(fileName.data())}; f.is_open())
+-                LoadConfigFromFile(f);
+-        }
+-    }
+-#endif
+ 
+     if(auto homedir = al::getenv("HOME"))
+     {
