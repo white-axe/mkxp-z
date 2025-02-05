@@ -24,8 +24,20 @@
 
 #include <cstdint>
 
-// WebAssembly pointers are currently 32-bit integers, but this may change if we decide to switch to 64-bit WebAssembly in the future! We define a pointer-sized integer here to make it easier to transition to different pointer sizes later.
+#ifdef MKXPZ_RETRO_MEMORY64
+#define usize u64
+typedef int64_t wasm_ssize_t;
+typedef uint64_t wasm_size_t;
+#else
 #define usize u32
+typedef int32_t wasm_ssize_t;
+typedef uint32_t wasm_size_t;
+#endif
+
+#define ANYARGS ...
+typedef wasm_size_t wasm_ptr_t;
+typedef wasm_size_t VALUE;
+typedef wasm_size_t ID;
 
 #ifndef WASM_RT_CORE_TYPES_DEFINED
 #define WASM_RT_CORE_TYPES_DEFINED

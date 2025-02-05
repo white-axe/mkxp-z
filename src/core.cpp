@@ -30,9 +30,9 @@
 #include <fluidlite.h>
 #include <fluidsynth_priv.h>
 #include "git-hash.h"
-#include "../binding-sandbox/sandbox.h"
-#include "../binding-sandbox/binding-sandbox.h"
-#include "../binding-sandbox/core.h"
+#include "binding-sandbox/sandbox.h"
+#include "binding-sandbox/binding-sandbox.h"
+#include "binding-sandbox/core.h"
 #include "filesystem.h"
 
 using namespace mkxp_retro;
