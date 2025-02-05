@@ -23,6 +23,10 @@
 #include "binding-sandbox/core.h"
 
 #define JOYPAD_BUTTON_MAX 16
+#define REPEAT_NONE 255
+#define REPEAT_START 0.4 // TODO: should be 0.375 when RGSS version >= 2
+#define REPEAT_DELAY 0.1
+#define FPS 60.0 // TODO: use the actual FPS
 
 static std::unordered_map<int, uint8_t> codeToJoypadId = {
     {Input::Down, RETRO_DEVICE_ID_JOYPAD_DOWN},
@@ -51,20 +55,20 @@ static const uint8_t otherDirs[4][3] = {
 
 struct InputPrivate
 {
-    int buttonRepeating;
-    size_t buttonRepeatingCount;
-    uint8_t currJoypadState;
-    uint8_t prevJoypadState;
+    uint32_t repeatCount;
+    uint16_t currJoypadState;
+    uint16_t prevJoypadState;
+    uint8_t repeat;
     uint8_t currDir4;
     uint8_t prevDir4;
     uint8_t dir8;
     bool joypadMaskSupported;
 
     InputPrivate() :
-        buttonRepeating(-1),
-        buttonRepeatingCount(0),
+        repeatCount(0),
         currJoypadState(0),
         prevJoypadState(0),
+        repeat(-1),
         currDir4(0),
         prevDir4(0),
         dir8(0),
@@ -74,8 +78,9 @@ struct InputPrivate
     void updateJoypad()
     {
         prevJoypadState = currJoypadState;
+
         if (joypadMaskSupported) {
-            currJoypadState = (uint8_t)mkxp_retro::input_state(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
+            currJoypadState = (uint16_t)mkxp_retro::input_state(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
         } else {
             currJoypadState = 0;
             for (uint8_t i = 0; i < JOYPAD_BUTTON_MAX; ++i) {
@@ -83,6 +88,23 @@ struct InputPrivate
                     currJoypadState |= (1 << i);
                 }
             }
+        }
+
+        if (repeat == REPEAT_NONE) {
+            if (currJoypadState != 0) {
+                for (uint8_t i = 0; i < JOYPAD_BUTTON_MAX; ++i) {
+                    if (currJoypadState & (1 << i)) {
+                        repeat = i;
+                        repeatCount = 0;
+                        break;
+                    }
+                }
+            }
+        } else if (currJoypadState & (1 << repeat)) {
+            __builtin_add_overflow(repeatCount, 1, &repeatCount);
+        } else {
+            repeat = REPEAT_NONE;
+            repeatCount = 0;
         }
     }
 
@@ -169,6 +191,12 @@ struct InputPrivate
         auto it = codeToJoypadId.find(button);
         return it != codeToJoypadId.end() && (prevJoypadState & (1 << it->second));
     }
+
+    bool isRepeat(int button)
+    {
+        auto it = codeToJoypadId.find(button);
+        return it != codeToJoypadId.end() && repeat == it->second;
+    }
 };
 
 Input::Input()
@@ -185,6 +213,7 @@ void Input::update()
 {
     p->updateJoypad();
     p->updateDir4();
+    p->updateDir8();
 }
 
 bool Input::isPressed(int button)
@@ -204,17 +233,17 @@ bool Input::isReleased(int button)
 
 bool Input::isRepeated(int button)
 {
-    return isPressed(button); // TODO
+    return p->isRepeat(button) && (p->repeatCount == 0 || (p->repeatCount >= (size_t)std::ceil(REPEAT_START * FPS) && (p->repeatCount + 1) % (size_t)std::ceil(REPEAT_DELAY * FPS) == 0));
 }
 
 unsigned int Input::count(int button)
 {
-    return 0; // TODO
+    return p->isRepeat(button) ? p->repeatCount : 0;
 }
 
 double Input::repeatTime(int button)
 {
-    return 0.0; // TODO
+    return p->isRepeat(button) ? (double)p->repeatCount / FPS : 0;
 }
 
 bool Input::isPressedEx(int button, bool isVKey)

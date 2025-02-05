@@ -52,7 +52,6 @@ static inline void *malloc_align(size_t alignment, size_t size) {
 extern unsigned char GMGSx_sf2[];
 extern unsigned int GMGSx_sf2_len;
 
-static size_t frame_number = 0;
 static ALCdevice *al_device = NULL;
 static ALCcontext *al_context = NULL;
 static LPALCRENDERSAMPLESSOFT alcRenderSamplesSOFT = NULL;
@@ -259,11 +258,9 @@ static bool init_sandbox() {
         mkxp_retro::sandbox.emplace();
     } catch (SandboxException) {
         log_printf(RETRO_LOG_ERROR, "Failed to initialize Ruby\n");
-        mkxp_retro::sandbox.reset();
+        deinit_sandbox();
         return false;
     }
-
-    frame_number = 0;
 
     return true;
 }
@@ -362,17 +359,20 @@ extern "C" RETRO_API void retro_reset() {
 extern "C" RETRO_API void retro_run() {
     input_poll();
 
-    if (mkxp_retro::sandbox.has_value()) {
-        log_printf(RETRO_LOG_INFO, "[Sandbox] Executing frame %zu\n", ++frame_number);
-        try {
-            if (sb().run<struct main>()) {
-                log_printf(RETRO_LOG_INFO, "[Sandbox] Ruby terminated normally\n");
-                mkxp_retro::sandbox.reset();
-            }
-        } catch (SandboxException) {
-            log_printf(RETRO_LOG_ERROR, "[Sandbox] Ruby threw an exception\n");
-            mkxp_retro::sandbox.reset();
+    if (!mkxp_retro::sandbox.has_value()) {
+        return;
+    }
+
+    try {
+        if (sb().run<struct main>()) {
+            log_printf(RETRO_LOG_INFO, "[Sandbox] Ruby terminated normally\n");
+            deinit_sandbox();
+            return;
         }
+    } catch (SandboxException) {
+        log_printf(RETRO_LOG_ERROR, "[Sandbox] Ruby threw an exception\n");
+        deinit_sandbox();
+        return;
     }
 
     video_refresh(frame_buf, 640, 480, 640 * 4);
