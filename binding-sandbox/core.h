@@ -26,10 +26,12 @@
 #include "../binding-sandbox/sandbox.h"
 #include "audio.h"
 #include "filesystem.h"
+#include "input.h"
 
 namespace mkxp_retro {
     extern boost::optional<struct mkxp_sandbox::sandbox> sandbox;
     extern boost::optional<Audio> audio;
+    extern boost::optional<Input> input;
     extern boost::optional<FileSystem> fs;
 
     extern retro_log_printf_t log_printf;

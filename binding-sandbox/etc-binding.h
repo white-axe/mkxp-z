@@ -64,7 +64,7 @@ namespace mkxp_sandbox {
                             set_private_data(self, color);
                         }
 
-                        return self;
+                        return SANDBOX_NIL;
                     }
                 )
 
@@ -95,7 +95,7 @@ namespace mkxp_sandbox {
                             color->set(red, green, blue, alpha);
                         }
 
-                        return self;
+                        return SANDBOX_NIL;
                     }
                 )
 
@@ -148,7 +148,7 @@ namespace mkxp_sandbox {
                             set_private_data(self, tone);
                         }
 
-                        return self;
+                        return SANDBOX_NIL;
                     }
                 )
 
@@ -179,7 +179,7 @@ namespace mkxp_sandbox {
                             tone->set(red, green, blue, gray);
                         }
 
-                        return self;
+                        return SANDBOX_NIL;
                     }
                 )
 
@@ -228,7 +228,7 @@ namespace mkxp_sandbox {
                             set_private_data(self, rect);
                         }
 
-                        return self;
+                        return SANDBOX_NIL;
                     }
                 )
 
@@ -255,7 +255,7 @@ namespace mkxp_sandbox {
                             rect->set(x, y, width, height);
                         }
 
-                        return self;
+                        return SANDBOX_NIL;
                     }
                 )
 

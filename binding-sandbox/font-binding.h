@@ -29,7 +29,7 @@ namespace mkxp_sandbox {
         VALUE klass;
 
         static VALUE todo(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            return self;
+            return SANDBOX_NIL;
         }
 
         void operator()() {

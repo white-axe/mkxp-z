@@ -32,7 +32,8 @@ namespace mkxp_sandbox {
                     BOOST_ASIO_CORO_REENTER (this) {
                         SANDBOX_YIELD;
                     }
-                    return self;
+
+                    return SANDBOX_NIL;
                 }
             )
 
@@ -40,7 +41,7 @@ namespace mkxp_sandbox {
         }
 
         static VALUE todo(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            return self;
+            return SANDBOX_NIL;
         }
 
         VALUE module;

@@ -34,7 +34,7 @@ namespace mkxp_sandbox {
         SANDBOX_DEF_DFREE(Sprite)
 
         static VALUE todo(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            return self;
+            return SANDBOX_NIL;
         }
 
         VALUE klass;

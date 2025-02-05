@@ -89,6 +89,7 @@ static void fluid_log(int level, char *message, void *data) {
 static uint32_t *frame_buf;
 boost::optional<struct sandbox> mkxp_retro::sandbox;
 boost::optional<Audio> mkxp_retro::audio;
+boost::optional<Input> mkxp_retro::input;
 boost::optional<FileSystem> mkxp_retro::fs;
 static std::string game_path;
 
@@ -129,7 +130,7 @@ SANDBOX_COROUTINE(main,
     }
 )
 
-static bool init_sandbox() {
+static void deinit_sandbox() {
     mkxp_retro::sandbox.reset();
     audio.reset();
     if (al_context != NULL) {
@@ -141,6 +142,13 @@ static bool init_sandbox() {
         al_device = NULL;
     }
     fs.reset();
+    input.reset();
+}
+
+static bool init_sandbox() {
+    deinit_sandbox();
+
+    input.emplace();
 
     fs.emplace((const char *)NULL, false);
 
@@ -415,17 +423,7 @@ extern "C" RETRO_API bool retro_load_game_special(unsigned int type, const struc
 }
 
 extern "C" RETRO_API void retro_unload_game() {
-    mkxp_retro::sandbox.reset();
-    audio.reset();
-    if (al_context != NULL) {
-        alcDestroyContext(al_context);
-        al_context = NULL;
-    }
-    if (al_device != NULL) {
-        alcCloseDevice(al_device);
-        al_device = NULL;
-    }
-    fs.reset();
+    deinit_sandbox();
 }
 
 extern "C" RETRO_API unsigned int retro_get_region() {

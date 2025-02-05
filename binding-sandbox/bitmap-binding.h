@@ -70,7 +70,7 @@ namespace mkxp_sandbox {
                         SANDBOX_AWAIT(init_props, bitmap, self);
                     }
 
-                    return self;
+                    return SANDBOX_NIL;
                 }
             )
 
@@ -79,7 +79,7 @@ namespace mkxp_sandbox {
 
         static VALUE clear(VALUE self) {
             GFX_GUARD_EXC(get_private_data<Bitmap>(self)->clear());
-            return self;
+            return SANDBOX_NIL;
         }
 
         static VALUE fill_rect(int32_t argc, wasm_ptr_t argv, VALUE self) {
@@ -108,7 +108,7 @@ namespace mkxp_sandbox {
                         SANDBOX_AWAIT(init_props, bitmap, self);
                     }
 
-                    return self;
+                    return SANDBOX_NIL;
                 }
             )
 
@@ -155,7 +155,7 @@ namespace mkxp_sandbox {
                         SANDBOX_AWAIT(init_props, bitmap, self);
                     }
 
-                    return self;
+                    return SANDBOX_NIL;
                 }
             )
 

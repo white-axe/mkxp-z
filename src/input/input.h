@@ -22,14 +22,17 @@
 #ifndef INPUT_H
 #define INPUT_H
 
+#include <cstdint>
 #include <unordered_map>
-#include <SDL_gamecontroller.h>
 #include <string>
 #include <vector>
 
+#ifndef MKXPZ_RETRO
+#include <SDL_gamecontroller.h>
 extern std::unordered_map<int, int> vKeyToScancode;
 extern std::unordered_map<std::string, int> strToScancode;
 extern std::unordered_map<std::string, SDL_GameControllerButton> strToGCButton;
+#endif // MKXPZ_RETRO
 
 struct InputPrivate;
 struct RGSSThreadData;
@@ -56,12 +59,12 @@ public:
         MouseX1 = 41, MouseX2 = 42
 	};
     
+#ifndef MKXPZ_RETRO
     void recalcRepeat(unsigned int fps);
+#endif // MKXPZ_RETRO
 
     double getDelta();
 	void update();
-    
-    std::vector<std::string> getBindings(ButtonCode code);
     
 	bool isPressed(int button);
 	bool isTriggered(int button);
@@ -84,6 +87,7 @@ public:
     unsigned int controllerRepeatcount(int button);
     double controllerRepeatTimeEx(int button);
     
+#ifndef MKXPZ_RETRO
     uint8_t *rawKeyStates();
     unsigned int rawKeyStatesLength();
     uint8_t *rawButtonStates();
@@ -92,10 +96,12 @@ public:
     unsigned int rawAxesLength();
     
     short getControllerAxisValue(SDL_GameControllerAxis axis);
+#endif // MKXPZ_RETRO
 
 	int dir4Value();
 	int dir8Value();
 
+#ifndef MKXPZ_RETRO
 	int mouseX();
 	int mouseY();
     int scrollV();
@@ -115,12 +121,19 @@ public:
     
     const char *getAxisName(SDL_GameControllerAxis axis);
     const char *getButtonName(SDL_GameControllerButton button);
+#endif // MKXPZ_RETRO
 
+#ifdef MKXPZ_RETRO
+	Input();
+	~Input();
+private:
+#else
 private:
 	Input(const RGSSThreadData &rtData);
 	~Input();
 
 	friend struct SharedStatePrivate;
+#endif // MKXPZ_RETRO
 
 	InputPrivate *p;
 };
