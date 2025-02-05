@@ -36,21 +36,37 @@ namespace mkxp_sandbox {
                 wasm_ptr_t filename;
                 int32_t volume;
                 int32_t pitch;
+                double pos;
+                int32_t track;
+                bool have_track;
 
                 VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     BOOST_ASIO_CORO_REENTER (this) {
                         volume = 100;
                         pitch = 100;
+                        pos = 0.0;
+                        have_track = false;
 
                         SANDBOX_AWAIT_AND_SET(filename, rb_string_value_cstr, (VALUE *)(**sb() + argv));
                         if (argc >= 2) {
                             SANDBOX_AWAIT_AND_SET(volume, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
                             if (argc >= 3) {
                                 SANDBOX_AWAIT_AND_SET(pitch, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                                if (argc >= 4) {
+                                    SANDBOX_AWAIT_AND_SET(pos, rb_num2dbl, ((VALUE *)(**sb() + argv))[3]);
+                                    if (argc >= 5) {
+                                        SANDBOX_AWAIT_AND_SET(track, rb_num2int, ((VALUE *)(**sb() + argv))[4]);
+                                        have_track = true;
+                                    }
+                                }
                             }
                         }
 
-                        mkxp_retro::audio->bgmPlay((const char *)(**sb() + filename), volume, pitch);
+                        if (have_track) {
+                            mkxp_retro::audio->bgmPlay((const char *)(**sb() + filename), volume, pitch, pos, track);
+                        } else {
+                            mkxp_retro::audio->bgmPlay((const char *)(**sb() + filename), volume, pitch, pos);
+                        }
                     }
 
                     return SANDBOX_NIL;
@@ -65,6 +81,113 @@ namespace mkxp_sandbox {
             return SANDBOX_NIL;
         }
 
+        static VALUE bgs_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                wasm_ptr_t filename;
+                int32_t volume;
+                int32_t pitch;
+                double pos;
+
+                VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        volume = 100;
+                        pitch = 100;
+                        pos = 0.0;
+
+                        SANDBOX_AWAIT_AND_SET(filename, rb_string_value_cstr, (VALUE *)(**sb() + argv));
+                        if (argc >= 2) {
+                            SANDBOX_AWAIT_AND_SET(volume, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                            if (argc >= 3) {
+                                SANDBOX_AWAIT_AND_SET(pitch, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                                if (argc >= 4) {
+                                    SANDBOX_AWAIT_AND_SET(pos, rb_num2dbl, ((VALUE *)(**sb() + argv))[3]);
+                                }
+                            }
+                        }
+
+                        mkxp_retro::audio->bgsPlay((const char *)(**sb() + filename), volume, pitch, pos);
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(argc, argv, self);
+        }
+
+        static VALUE bgs_stop(VALUE self) {
+            mkxp_retro::audio->bgsStop();
+            return SANDBOX_NIL;
+        }
+
+        static VALUE me_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                wasm_ptr_t filename;
+                int32_t volume;
+                int32_t pitch;
+
+                VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        volume = 100;
+                        pitch = 100;
+
+                        SANDBOX_AWAIT_AND_SET(filename, rb_string_value_cstr, (VALUE *)(**sb() + argv));
+                        if (argc >= 2) {
+                            SANDBOX_AWAIT_AND_SET(volume, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                            if (argc >= 3) {
+                                SANDBOX_AWAIT_AND_SET(pitch, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                            }
+                        }
+
+                        mkxp_retro::audio->mePlay((const char *)(**sb() + filename), volume, pitch);
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(argc, argv, self);
+        }
+
+        static VALUE me_stop(VALUE self) {
+            mkxp_retro::audio->meStop();
+            return SANDBOX_NIL;
+        }
+
+        static VALUE se_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                wasm_ptr_t filename;
+                int32_t volume;
+                int32_t pitch;
+
+                VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        volume = 100;
+                        pitch = 100;
+
+                        SANDBOX_AWAIT_AND_SET(filename, rb_string_value_cstr, (VALUE *)(**sb() + argv));
+                        if (argc >= 2) {
+                            SANDBOX_AWAIT_AND_SET(volume, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                            if (argc >= 3) {
+                                SANDBOX_AWAIT_AND_SET(pitch, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                            }
+                        }
+
+                        mkxp_retro::audio->sePlay((const char *)(**sb() + filename), volume, pitch);
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(argc, argv, self);
+        }
+
+        static VALUE se_stop(VALUE self) {
+            mkxp_retro::audio->seStop();
+            return SANDBOX_NIL;
+        }
+
         VALUE module;
 
         void operator()() {
@@ -76,15 +199,15 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_module_function, module, "bgm_pos", (VALUE (*)(ANYARGS))todo, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "bgm_volume", (VALUE (*)(ANYARGS))todo, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "bgm_set_volume", (VALUE (*)(ANYARGS))todo, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "bgs_play", (VALUE (*)(ANYARGS))todo, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "bgs_stop", (VALUE (*)(ANYARGS))todo, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "bgs_play", (VALUE (*)(ANYARGS))bgs_play, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "bgs_stop", (VALUE (*)(ANYARGS))bgs_stop, 0);
                 SANDBOX_AWAIT(rb_define_module_function, module, "bgs_fade", (VALUE (*)(ANYARGS))todo, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "bgs_pos", (VALUE (*)(ANYARGS))todo, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "me_play", (VALUE (*)(ANYARGS))todo, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "me_stop", (VALUE (*)(ANYARGS))todo, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "me_play", (VALUE (*)(ANYARGS))me_play, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "me_stop", (VALUE (*)(ANYARGS))me_stop, 0);
                 SANDBOX_AWAIT(rb_define_module_function, module, "me_fade", (VALUE (*)(ANYARGS))todo, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "se_play", (VALUE (*)(ANYARGS))todo, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "se_stop", (VALUE (*)(ANYARGS))todo, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "se_play", (VALUE (*)(ANYARGS))se_play, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "se_stop", (VALUE (*)(ANYARGS))se_stop, 0);
             }
         }
     )

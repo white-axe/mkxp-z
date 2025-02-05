@@ -26,7 +26,7 @@
 #include <vector>
 #include <sndfile.hh>
 
-static SF_VIRTUAL_IO sfvirtual = {
+SF_VIRTUAL_IO sfvirtual = {
 	.get_filelen = [](void *handle) {
 #ifdef MKXPZ_RETRO
 		PHYSFS_Stat stat;

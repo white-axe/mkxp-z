@@ -44,9 +44,9 @@ struct AudioPrivate
 	AudioStream bgs;
 	AudioStream me;
 
-#ifndef MKXPZ_RETRO
 	SoundEmitter se;
 
+#ifndef MKXPZ_RETRO
 	SyncPoint &syncPoint;
 #endif // MKXPZ_RETRO
     
@@ -429,16 +429,12 @@ void Audio::sePlay(const char *filename,
                    int volume,
                    int pitch)
 {
-#ifndef MKXPZ_RETRO
 	p->se.play(filename, volume, pitch);
-#endif // MKXPZ_RETRO
 }
 
 void Audio::seStop()
 {
-#ifndef MKXPZ_RETRO
 	p->se.stop();
-#endif // MKXPZ_RETRO
 }
 
 void Audio::setupMidi()
