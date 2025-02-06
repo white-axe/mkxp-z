@@ -44,6 +44,10 @@ namespace mkxp_sandbox {
             return SANDBOX_NIL;
         }
 
+        static VALUE todo_number(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            return sb()->bind<struct rb_ll2inum>()()(0);
+        }
+
         VALUE module;
 
         void operator()() {
@@ -53,6 +57,8 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_module_function, module, "freeze", (VALUE (*)(ANYARGS))todo, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "transition", (VALUE (*)(ANYARGS))todo, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "frame_reset", (VALUE (*)(ANYARGS))todo, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "frame_count", (VALUE (*)(ANYARGS))todo_number, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "frame_count=", (VALUE (*)(ANYARGS))todo, -1);
             }
         }
     )

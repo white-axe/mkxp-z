@@ -77,6 +77,19 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
+        static VALUE dispose(VALUE self) {
+            Bitmap *bitmap = get_private_data<Bitmap>(self);
+            if (bitmap != NULL) {
+                bitmap->dispose();
+            }
+            return SANDBOX_NIL;
+        }
+
+        static VALUE disposed(VALUE self) {
+            Bitmap *bitmap = get_private_data<Bitmap>(self);
+            return bitmap == NULL || bitmap->isDisposed() ? SANDBOX_TRUE : SANDBOX_FALSE;
+        }
+
         static VALUE clear(VALUE self) {
             GFX_GUARD_EXC(get_private_data<Bitmap>(self)->clear());
             return SANDBOX_NIL;
@@ -182,6 +195,8 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Bitmap", sb()->rb_cObject());
                 SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
                 SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+                SANDBOX_AWAIT(rb_define_method, klass, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "clear", (VALUE (*)(ANYARGS))clear, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "fill_rect", (VALUE (*)(ANYARGS))fill_rect, -1);
                 SANDBOX_AWAIT(rb_define_method, klass, "draw_text", (VALUE (*)(ANYARGS))draw_text, -1);

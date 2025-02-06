@@ -74,6 +74,19 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
+        static VALUE dispose(VALUE self) {
+            Window *window = get_private_data<Window>(self);
+            if (window != NULL) {
+                window->dispose();
+            }
+            return SANDBOX_NIL;
+        }
+
+        static VALUE disposed(VALUE self) {
+            Window *window = get_private_data<Window>(self);
+            return window == NULL || window->isDisposed() ? SANDBOX_TRUE : SANDBOX_FALSE;
+        }
+
         static VALUE update(VALUE self) {
             GFX_GUARD_EXC(get_private_data<Window>(self)->update();)
             return SANDBOX_NIL;
@@ -328,6 +341,8 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
                 SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
                 SANDBOX_AWAIT(rb_define_method, klass, "update", (VALUE (*)(ANYARGS))update, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "windowskin=", (VALUE (*)(ANYARGS))todo, -1);
                 SANDBOX_AWAIT(rb_define_method, klass, "contents", (VALUE (*)(ANYARGS))get_contents, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "contents=", (VALUE (*)(ANYARGS))set_contents, 1);

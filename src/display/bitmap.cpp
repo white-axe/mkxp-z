@@ -596,7 +596,9 @@ Bitmap::Bitmap(const char *filename)
                                 handler.gif->width, handler.gif->height, glState.caps.maxTexSize, glState.caps.maxTexSize);
         }
         
+#endif // MKXPZ_RETRO
         p = new BitmapPrivate(this);
+#ifndef MKXPZ_RETRO
         
         p->selfHires = hiresBitmap;
         

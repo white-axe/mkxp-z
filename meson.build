@@ -256,6 +256,7 @@ if get_option('retro') == true
             'src/audio/vorbissource.cpp',
             'src/crypto/rgssad.cpp',
             'src/display/bitmap.cpp',
+            'src/display/sprite.cpp',
             'src/display/viewport.cpp',
             'src/display/window.cpp',
             'src/display/gl/scene.cpp',
