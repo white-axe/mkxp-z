@@ -36,7 +36,6 @@ namespace mkxp_sandbox {
         static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
             SANDBOX_COROUTINE(coro,
                 Viewport *viewport;
-                VALUE viewport_obj;
                 int32_t x;
                 int32_t y;
                 int32_t w;

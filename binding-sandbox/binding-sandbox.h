@@ -34,6 +34,7 @@
 #include "input-binding.h"
 #include "sprite-binding.h"
 #include "table-binding.h"
+#include "tilemap-binding.h"
 #include "viewport-binding.h"
 #include "window-binding.h"
 
@@ -248,7 +249,10 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(bitmap_binding_init);
                 SANDBOX_AWAIT(sprite_binding_init);
                 SANDBOX_AWAIT(viewport_binding_init);
+
+                // TODO: pick the correct window and tilemap bindings depending on RPG Maker version
                 SANDBOX_AWAIT(window_binding_init);
+                SANDBOX_AWAIT(tilemap_binding_init);
 
                 SANDBOX_AWAIT(input_binding_init);
                 SANDBOX_AWAIT(audio_binding_init);

@@ -23,14 +23,18 @@
 #define TILEMAPCOMMON_H
 
 #include "table.h"
+#ifndef MKXPZ_RETRO
 #include "gl-util.h"
 #include "gl-meta.h"
+#endif // MKXPZ_RETRO
 #include "sharedstate.h"
+#ifndef MKXPZ_RETRO
 #include "global-ibo.h"
 #include "glstate.h"
 #include "shader.h"
 #include "vertex.h"
 #include "quad.h"
+#endif // MKXPZ_RETRO
 #include "etc-internal.h"
 
 #include <stdint.h>
@@ -114,20 +118,28 @@ struct FlashMap
 {
 	FlashMap()
 		: dirty(false),
+#ifdef MKXPZ_RETRO
+	      data(0)
+#else
 	      data(0),
 	      allocQuads(0)
+#endif // MKXPZ_RETRO
 	{
+#ifndef MKXPZ_RETRO
 		vao.vbo = VBO::gen();
 		vao.ibo = shState->globalIBO().ibo;
 		GLMeta::vaoFillInVertexData<CVertex>(vao);
 
 		GLMeta::vaoInit(vao);
+#endif // MKXPZ_RETRO
 	}
 
 	~FlashMap()
 	{
+#ifndef MKXPZ_RETRO
 		GLMeta::vaoFini(vao);
 		VBO::del(vao.vbo);
+#endif // MKXPZ_RETRO
 		dataCon.disconnect();
 	}
 
@@ -175,6 +187,7 @@ struct FlashMap
 		if (count == 0)
 			return;
 
+#ifndef MKXPZ_RETRO
 		GLMeta::vaoBind(vao);
 		glState.blendMode.pushSet(BlendAddition);
 
@@ -189,6 +202,7 @@ struct FlashMap
 		glState.blendMode.pop();
 
 		GLMeta::vaoUnbind(vao);
+#endif // MKXPZ_RETRO
 	}
 
 private:
@@ -199,7 +213,11 @@ private:
 
 	size_t quadCount() const
 	{
+#ifdef MKXPZ_RETRO
+		return 0; // TODO
+#else
 		return vertices.size() / 4;
+#endif // MKXPZ_RETRO
 	}
 
 	bool sampleFlashColor(Vec4 &out, int x, int y) const
@@ -222,7 +240,9 @@ private:
 
 	void rebuildBuffer()
 	{
+#ifndef MKXPZ_RETRO
 		vertices.clear();
+#endif // MKXPZ_RETRO
 
 		if (!data)
 			return;
@@ -237,14 +257,17 @@ private:
 
 				FloatRect posRect(x*32, y*32, 32, 32);
 
+#ifndef MKXPZ_RETRO
 				CVertex v[4];
 				Quad::setPosRect(v, posRect);
 				Quad::setColor(v, color);
 
 				for (size_t i = 0; i < 4; ++i)
 					vertices.push_back(v[i]);
+#endif // MKXPZ_RETRO
 			}
 
+#ifndef MKXPZ_RETRO
 		if (vertices.size() == 0)
 			return;
 
@@ -262,6 +285,7 @@ private:
 
 		/* Ensure global IBO size */
 		shState->ensureQuadIBO(quadCount());
+#endif // MKXPZ_RETRO
 	}
 
 	bool dirty;
@@ -271,9 +295,11 @@ private:
 
 	IntRect viewp;
 
+#ifndef MKXPZ_RETRO
 	GLMeta::VAO vao;
 	size_t allocQuads;
 	std::vector<CVertex> vertices;
+#endif // MKXPZ_RETRO
 };
 
 #endif // TILEMAPCOMMON_H
