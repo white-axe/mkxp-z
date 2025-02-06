@@ -34,6 +34,7 @@
 #include "input-binding.h"
 #include "sprite-binding.h"
 #include "table-binding.h"
+#include "viewport-binding.h"
 #include "window-binding.h"
 
 extern const char module_rpg1[];
@@ -246,6 +247,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(font_binding_init);
                 SANDBOX_AWAIT(bitmap_binding_init);
                 SANDBOX_AWAIT(sprite_binding_init);
+                SANDBOX_AWAIT(viewport_binding_init);
                 SANDBOX_AWAIT(window_binding_init);
 
                 SANDBOX_AWAIT(input_binding_init);
