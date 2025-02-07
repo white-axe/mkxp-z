@@ -183,8 +183,52 @@ namespace mkxp_sandbox {
             return sb()->bind<struct rb_ull2inum>()()(get_private_data<Bitmap>(self)->width());
         }
 
+        static VALUE rect(VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                ID id;
+                VALUE klass;
+                VALUE obj;
+
+                VALUE operator()(VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_class_new_instance, 0, NULL, klass);
+                        set_private_data(obj, new Rect(get_private_data<Bitmap>(self)->rect()));
+                    }
+
+                    return obj;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self);
+        }
+
         static VALUE height(VALUE self) {
             return sb()->bind<struct rb_ull2inum>()()(get_private_data<Bitmap>(self)->height());
+        }
+
+        static VALUE text_size(VALUE self, VALUE text) {
+            SANDBOX_COROUTINE(coro,
+                wasm_ptr_t str;
+                ID id;
+                VALUE klass;
+                VALUE obj;
+
+                VALUE operator()(VALUE self, VALUE text) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &text);
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Rect");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_class_new_instance, 0, NULL, klass);
+                        set_private_data(obj, new Rect(get_private_data<Bitmap>(self)->textSize((const char *)(**sb() + str))));
+                    }
+
+                    return obj;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, text);
         }
 
         VALUE klass;
@@ -203,6 +247,8 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, klass, "font", (VALUE (*)(ANYARGS))get_font, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "width", (VALUE (*)(ANYARGS))width, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "height", (VALUE (*)(ANYARGS))height, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "rect", (VALUE (*)(ANYARGS))rect, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "text_size", (VALUE (*)(ANYARGS))text_size, 1);
             }
         }
     )

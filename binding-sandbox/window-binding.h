@@ -111,6 +111,15 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self, value);
         }
 
+        static VALUE get_stretch(VALUE self) {
+            return get_private_data<Window>(self)->getStretch() ? SANDBOX_TRUE : SANDBOX_FALSE;
+        }
+
+        static VALUE set_stretch(VALUE self, VALUE value) {
+            GFX_GUARD_EXC(get_private_data<Window>(self)->setStretch(value != SANDBOX_FALSE && value != SANDBOX_NIL);)
+            return value;
+        }
+
         static VALUE get_cursor_rect(VALUE self) {
             return sb()->bind<struct rb_iv_get>()()(self, "cursor_rect");
         }
@@ -136,6 +145,24 @@ namespace mkxp_sandbox {
 
         static VALUE set_active(VALUE self, VALUE value) {
             GFX_GUARD_EXC(get_private_data<Window>(self)->setActive(value != SANDBOX_FALSE && value != SANDBOX_NIL);)
+            return value;
+        }
+
+        static VALUE get_visible(VALUE self) {
+            return get_private_data<Window>(self)->getVisible() ? SANDBOX_TRUE : SANDBOX_FALSE;
+        }
+
+        static VALUE set_visible(VALUE self, VALUE value) {
+            GFX_GUARD_EXC(get_private_data<Window>(self)->setVisible(value != SANDBOX_FALSE && value != SANDBOX_NIL));
+            return value;
+        }
+
+        static VALUE get_pause(VALUE self) {
+            return get_private_data<Window>(self)->getPause() ? SANDBOX_TRUE : SANDBOX_FALSE;
+        }
+
+        static VALUE set_pause(VALUE self, VALUE value) {
+            GFX_GUARD_EXC(get_private_data<Window>(self)->setPause(value != SANDBOX_FALSE && value != SANDBOX_NIL));
             return value;
         }
 
@@ -265,6 +292,27 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self, value);
         }
 
+        static VALUE get_z(VALUE self) {
+            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Window>(self)->getZ());
+        }
+
+        static VALUE set_z(VALUE self, VALUE value) {
+            SANDBOX_COROUTINE(coro,
+                int z;
+
+                VALUE operator()(VALUE self, VALUE value) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT_AND_SET(z, rb_num2int, value);
+                        GFX_GUARD_EXC(get_private_data<Window>(self)->setZ(z));
+                    }
+
+                    return value;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, value);
+        }
+
         static VALUE get_opacity(VALUE self) {
             return sb()->bind<struct rb_ll2inum>()()(get_private_data<Window>(self)->getOpacity());
         }
@@ -346,12 +394,16 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, klass, "windowskin=", (VALUE (*)(ANYARGS))todo, -1);
                 SANDBOX_AWAIT(rb_define_method, klass, "contents", (VALUE (*)(ANYARGS))get_contents, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "contents=", (VALUE (*)(ANYARGS))set_contents, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "stretch=", (VALUE (*)(ANYARGS))todo, -1);
+                SANDBOX_AWAIT(rb_define_method, klass, "stretch", (VALUE (*)(ANYARGS))get_stretch, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "stretch=", (VALUE (*)(ANYARGS))set_stretch, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "cursor_rect", (VALUE (*)(ANYARGS))get_cursor_rect, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "cursor_rect=", (VALUE (*)(ANYARGS))set_cursor_rect, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "active", (VALUE (*)(ANYARGS))get_active, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "active=", (VALUE (*)(ANYARGS))set_active, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "pause=", (VALUE (*)(ANYARGS))todo, -1);
+                SANDBOX_AWAIT(rb_define_method, klass, "visible", (VALUE (*)(ANYARGS))get_visible, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "visible=", (VALUE (*)(ANYARGS))set_visible, 1);
+                SANDBOX_AWAIT(rb_define_method, klass, "pause", (VALUE (*)(ANYARGS))get_pause, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "pause=", (VALUE (*)(ANYARGS))set_pause, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "x", (VALUE (*)(ANYARGS))get_x, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "x=", (VALUE (*)(ANYARGS))set_x, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "y", (VALUE (*)(ANYARGS))get_y, 0);
@@ -370,7 +422,8 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, klass, "back_opacity=", (VALUE (*)(ANYARGS))set_back_opacity, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "contents_opacity", (VALUE (*)(ANYARGS))get_contents_opacity, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "contents_opacity=", (VALUE (*)(ANYARGS))set_contents_opacity, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "z=", (VALUE (*)(ANYARGS))todo, -1);
+                SANDBOX_AWAIT(rb_define_method, klass, "z", (VALUE (*)(ANYARGS))get_z, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "z=", (VALUE (*)(ANYARGS))set_z, 1);
             }
         }
     )

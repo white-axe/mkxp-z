@@ -104,6 +104,13 @@ namespace mkxp_sandbox {
             return viewport == NULL || viewport->isDisposed() ? SANDBOX_TRUE : SANDBOX_FALSE;
         }
 
+        static VALUE update(VALUE self, VALUE value) {
+            GFX_LOCK;
+            get_private_data<Viewport>(self)->update();
+            GFX_UNLOCK;
+            return SANDBOX_NIL;
+        }
+
         static VALUE get_rect(VALUE self) {
             return sb()->bind<struct rb_iv_get>()()(self, "rect");
         }
@@ -234,6 +241,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
                 SANDBOX_AWAIT(rb_define_method, klass, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "update", (VALUE (*)(ANYARGS))update, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "rect", (VALUE (*)(ANYARGS))get_rect, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "rect=", (VALUE (*)(ANYARGS))set_rect, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "color", (VALUE (*)(ANYARGS))get_color, 0);

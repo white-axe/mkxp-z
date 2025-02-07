@@ -196,15 +196,15 @@ namespace mkxp_sandbox {
             return tilemap == NULL || tilemap->isDisposed() ? SANDBOX_TRUE : SANDBOX_FALSE;
         }
 
-        static VALUE autotiles(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "autotiles");
-        }
-
         static VALUE update(VALUE self, VALUE value) {
             GFX_LOCK;
             get_private_data<Tilemap>(self)->update();
             GFX_UNLOCK;
             return SANDBOX_NIL;
+        }
+
+        static VALUE autotiles(VALUE self) {
+            return sb()->bind<struct rb_iv_get>()()(self, "autotiles");
         }
 
         static VALUE get_tileset(VALUE self) {
@@ -322,7 +322,7 @@ namespace mkxp_sandbox {
         }
 
         static VALUE get_visible(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Tilemap>(self)->getOX());
+            return get_private_data<Tilemap>(self)->getVisible() ? SANDBOX_TRUE : SANDBOX_FALSE;
         }
 
         static VALUE set_visible(VALUE self, VALUE value) {
@@ -426,6 +426,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
                 SANDBOX_AWAIT(rb_define_method, klass, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "update", (VALUE (*)(ANYARGS))update, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "autotiles", (VALUE (*)(ANYARGS))autotiles, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "tileset", (VALUE (*)(ANYARGS))get_tileset, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "tileset=", (VALUE (*)(ANYARGS))set_tileset, 1);

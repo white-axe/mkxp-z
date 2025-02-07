@@ -40,6 +40,10 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self);
         }
 
+        static VALUE get_frame_rate(VALUE self) {
+            return sb()->bind<struct rb_float_new>()()(60.0); // TODO: use actual FPS
+        }
+
         static VALUE todo(int32_t argc, wasm_ptr_t argv, VALUE self) {
             return SANDBOX_NIL;
         }
@@ -59,6 +63,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_module_function, module, "frame_reset", (VALUE (*)(ANYARGS))todo, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "frame_count", (VALUE (*)(ANYARGS))todo_number, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "frame_count=", (VALUE (*)(ANYARGS))todo, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "frame_rate", (VALUE (*)(ANYARGS))get_frame_rate, 0);
             }
         }
     )

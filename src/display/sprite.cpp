@@ -53,7 +53,15 @@ struct SpritePrivate
     
     sigslot::connection bitmapDispCon;
     
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+    // TODO: use the corresponding properties from `trans` instead of adding them here separately
+    int x;
+    int y;
+    int ox;
+    int oy;
+    float zoom_x;
+    float zoom_y;
+#else
     Quad quad;
     Transform trans;
 #endif // MKXPZ_RETRO
@@ -109,6 +117,14 @@ struct SpritePrivate
     
     SpritePrivate()
     : bitmap(0),
+#ifdef MKXPZ_RETRO
+    x(0),
+    y(0),
+    ox(0),
+    oy(0),
+    zoom_x(1.0f),
+    zoom_y(1.0f),
+#endif // MKXPZ_RETRO
     srcRect(&tmp.rect),
     mirrored(false),
     bushDepth(0),
@@ -379,7 +395,14 @@ Sprite::~Sprite()
 }
 
 DEF_ATTR_RD_SIMPLE(Sprite, Bitmap,     Bitmap*, p->bitmap)
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+DEF_ATTR_RD_SIMPLE(Sprite, X,          int,     p->x)
+DEF_ATTR_RD_SIMPLE(Sprite, Y,          int,     p->y)
+DEF_ATTR_RD_SIMPLE(Sprite, OX,         int,     p->ox)
+DEF_ATTR_RD_SIMPLE(Sprite, OY,         int,     p->oy)
+DEF_ATTR_RD_SIMPLE(Sprite, ZoomX,      float,   p->zoom_x)
+DEF_ATTR_RD_SIMPLE(Sprite, ZoomY,      float,   p->zoom_y)
+#else
 DEF_ATTR_RD_SIMPLE(Sprite, X,          int,     p->trans.getPosition().x)
 DEF_ATTR_RD_SIMPLE(Sprite, Y,          int,     p->trans.getPosition().y)
 DEF_ATTR_RD_SIMPLE(Sprite, OX,         int,     p->trans.getOrigin().x)

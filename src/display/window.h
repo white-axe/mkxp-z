@@ -58,13 +58,14 @@ public:
 
 	void initDynAttribs();
 
+	void setZ(int value);
+	void setVisible(bool value);
+
 private:
 	WindowPrivate *p;
 
 	void draw();
 	void onGeometryChange(const Scene::Geometry &);
-	void setZ(int value);
-	void setVisible(bool value);
 
 	void onViewportChange();
 
