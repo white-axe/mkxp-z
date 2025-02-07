@@ -104,7 +104,7 @@ namespace mkxp_sandbox {
             return viewport == NULL || viewport->isDisposed() ? SANDBOX_TRUE : SANDBOX_FALSE;
         }
 
-        static VALUE update(VALUE self, VALUE value) {
+        static VALUE update(VALUE self) {
             GFX_LOCK;
             get_private_data<Viewport>(self)->update();
             GFX_UNLOCK;

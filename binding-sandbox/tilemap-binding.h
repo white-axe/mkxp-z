@@ -44,7 +44,7 @@ namespace mkxp_sandbox {
                         BOOST_ASIO_CORO_REENTER (this) {
                             SANDBOX_AWAIT_AND_SET(ary, rb_iv_get, self, "array");
                             SANDBOX_AWAIT_AND_SET(index, rb_num2ulong, i);
-                            SANDBOX_AWAIT_AND_SET(value, rb_ary_entry, ary, i);
+                            SANDBOX_AWAIT_AND_SET(value, rb_ary_entry, ary, index);
                         }
 
                         return value;
@@ -75,7 +75,7 @@ namespace mkxp_sandbox {
                             GFX_LOCK;
                             autotiles->set(index, bitmap);
                             SANDBOX_AWAIT_AND_SET(ary, rb_iv_get, self, "array");
-                            SANDBOX_AWAIT(rb_ary_store, ary, i, obj);
+                            SANDBOX_AWAIT(rb_ary_store, ary, index, obj);
                             GFX_UNLOCK;
                         }
 
@@ -196,7 +196,7 @@ namespace mkxp_sandbox {
             return tilemap == NULL || tilemap->isDisposed() ? SANDBOX_TRUE : SANDBOX_FALSE;
         }
 
-        static VALUE update(VALUE self, VALUE value) {
+        static VALUE update(VALUE self) {
             GFX_LOCK;
             get_private_data<Tilemap>(self)->update();
             GFX_UNLOCK;

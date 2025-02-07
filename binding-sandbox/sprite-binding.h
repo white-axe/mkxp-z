@@ -102,7 +102,7 @@ namespace mkxp_sandbox {
             return sprite == NULL || sprite->isDisposed() ? SANDBOX_TRUE : SANDBOX_FALSE;
         }
 
-        static VALUE update(VALUE self, VALUE value) {
+        static VALUE update(VALUE self) {
             GFX_LOCK;
             get_private_data<Sprite>(self)->update();
             GFX_UNLOCK;
