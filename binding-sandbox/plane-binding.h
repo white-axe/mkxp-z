@@ -129,7 +129,6 @@ namespace mkxp_sandbox {
                 VALUE operator()(VALUE self, VALUE value) {
                     BOOST_ASIO_CORO_REENTER (this) {
                         GFX_GUARD_EXC(get_private_data<Plane>(self)->setColor(*get_private_data<Color>(value)));
-                        SANDBOX_AWAIT(rb_iv_set, self, "color", value);
                     }
 
                     return value;
@@ -148,7 +147,6 @@ namespace mkxp_sandbox {
                 VALUE operator()(VALUE self, VALUE value) {
                     BOOST_ASIO_CORO_REENTER (this) {
                         GFX_GUARD_EXC(get_private_data<Plane>(self)->setTone(*get_private_data<Tone>(value)));
-                        SANDBOX_AWAIT(rb_iv_set, self, "tone", value);
                     }
 
                     return value;

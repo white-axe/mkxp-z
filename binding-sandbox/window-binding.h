@@ -129,7 +129,6 @@ namespace mkxp_sandbox {
                 VALUE operator()(VALUE self, VALUE value) {
                     BOOST_ASIO_CORO_REENTER (this) {
                         GFX_GUARD_EXC(get_private_data<Window>(self)->setCursorRect(*get_private_data<Rect>(value)));
-                        SANDBOX_AWAIT(rb_iv_set, self, "cursor_rect", value);
                     }
 
                     return value;

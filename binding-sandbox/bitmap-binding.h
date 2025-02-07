@@ -116,9 +116,6 @@ namespace mkxp_sandbox {
                             SANDBOX_AWAIT_AND_SET(height, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
                             GFX_GUARD_EXC(bitmap->fillRect(x, y, width, height, get_private_data<Color>(((VALUE *)(**sb() + argv))[4])->norm);)
                         }
-
-                        set_private_data(self, bitmap);
-                        SANDBOX_AWAIT(init_props, bitmap, self);
                     }
 
                     return SANDBOX_NIL;
@@ -165,9 +162,6 @@ namespace mkxp_sandbox {
                                 GFX_GUARD_EXC(bitmap->drawText(x, y, width, height, (const char *)(**sb() + str), align);)
                             }
                         }
-
-                        set_private_data(self, bitmap);
-                        SANDBOX_AWAIT(init_props, bitmap, self);
                     }
 
                     return SANDBOX_NIL;
