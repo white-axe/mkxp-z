@@ -25,16 +25,9 @@
 #include <stdint.h>
 #include <string.h>
 
-#ifdef MKXPZ_RETRO
-#  if WABT_BIG_ENDIAN
-#    error "Non little endian systems not supported"
-#  endif
-#else
-#  include <SDL_endian.h>
-#  if SDL_BYTEORDER != SDL_LIL_ENDIAN
-#    error "Non little endian systems not supported"
-#  endif
-#endif // MKXPZ_RETRO
+#ifdef MKXPZ_BIG_ENDIAN
+#  error "Non little endian systems not supported"
+#endif // MKXPZ_BIG_ENDIAN
 
 static inline int32_t
 readInt32(const char **dataP)

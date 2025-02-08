@@ -22,8 +22,8 @@
 #ifndef ALUTIL_H
 #define ALUTIL_H
 
-#include <AL/al.h>
-#include <AL/alext.h>
+#include <al.h>
+#include <alext.h>
 
 #ifdef MKXPZ_RETRO
 #  include <memory>

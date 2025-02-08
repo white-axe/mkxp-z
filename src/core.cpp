@@ -25,8 +25,8 @@
 #include <cstdarg>
 #include <cstring>
 #include <boost/optional.hpp>
-#include <AL/alc.h>
-#include <AL/alext.h>
+#include <alc.h>
+#include <alext.h>
 #include <fluidlite.h>
 #include <fluidsynth_priv.h>
 #include "git-hash.h"

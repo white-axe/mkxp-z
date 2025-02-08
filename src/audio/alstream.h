@@ -52,7 +52,10 @@ struct ALStream
 	ALDataSource *source;
 
 #ifdef MKXPZ_RETRO
+	bool streamInited;
 	bool sourceExhausted;
+	bool threadTermReq;
+	bool needsRewind;
 #else
 	SDL_Thread *thread;
 

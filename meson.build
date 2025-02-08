@@ -152,7 +152,12 @@ if get_option('retro') == true
         '-DSHARED_FLUID',
     ]
     if host_endian == 'big'
+        retro_defines += '-DMKXPZ_BIG_ENDIAN'
         retro_defines += '-DWABT_BIG_ENDIAN=1'
+    endif
+    if host_system == 'emscripten' or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'check if C++ exceptions are enabled')
+        retro_defines += '-DMKXPZ_NO_EXCEPTIONS'
+        retro_defines += '-DBOOST_NO_EXCEPTIONS'
     endif
 
     retro_link_args = []
@@ -290,6 +295,14 @@ if get_option('retro') == true
 else
 
 global_sources += vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h', replace_string: '@MKXPZ_GIT_HASH@')
+if host_endian == 'big'
+    global_args += '-DMKXPZ_BIG_ENDIAN'
+    global_args += '-DWABT_BIG_ENDIAN=1'
+endif
+if host_system == 'emscripten' or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'check if C++ exceptions are enabled')
+    retro_defines += '-DMKXPZ_NO_EXCEPTIONS'
+    retro_defines += '-DBOOST_NO_EXCEPTIONS'
+endif
 
 xxd = find_program('xxd', native: true)
 

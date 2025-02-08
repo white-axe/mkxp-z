@@ -593,8 +593,10 @@ jobs:
       - name: Configure core
         run: |
           echo "[binaries]" | tee -a ${{ runner.temp }}/cross.ini
-          echo "c = ['clang', '--target=${{ matrix.arch_llvm }}', '-fuse-ld=lld', '--sysroot=${{ steps.sysroot.outputs.root-path }}']" | tee -a ${{ runner.temp }}/cross.ini
-          echo "cpp = ['clang++', '--target=${{ matrix.arch_llvm }}', '-fuse-ld=lld', '--sysroot=${{ steps.sysroot.outputs.root-path }}']" | tee -a ${{ runner.temp }}/cross.ini
+          echo "c = ['clang', '--target=${{ matrix.arch_llvm }}', '--sysroot=${{ steps.sysroot.outputs.root-path }}']" | tee -a ${{ runner.temp }}/cross.ini
+          echo "c_ld = 'lld'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpp = ['clang++', '--target=${{ matrix.arch_llvm }}', '--sysroot=${{ steps.sysroot.outputs.root-path }}']" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpp_ld = 'lld'" | tee -a ${{ runner.temp }}/cross.ini
           echo "ar = 'llvm-ar'" | tee -a ${{ runner.temp }}/cross.ini
           echo "strip = 'llvm-strip'" | tee -a ${{ runner.temp }}/cross.ini
           echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
@@ -604,6 +606,11 @@ jobs:
           echo "endian = '${{ matrix.endian }}'" | tee -a ${{ runner.temp }}/cross.ini
           echo "[properties]" | tee -a ${{ runner.temp }}/cross.ini
           echo "sys_root = '${{ steps.sysroot.outputs.root-path }}'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "[cmake]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "CMAKE_EXE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "CMAKE_MODULE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "CMAKE_SHARED_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "CMAKE_STATIC_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ${{ runner.temp }}/cross.ini
           echo '--------------------------------------------------------------------------------'
           CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
 
