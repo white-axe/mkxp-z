@@ -6,7 +6,6 @@ corename = "mkxp-z"
 categories = "Game engine"
 license = "GPLv2"
 permissions = ""
-display_version = "rolling"
 
 # Hardware Information
 systemname = "RPG Maker XP/VX/VX Ace Game Engine"

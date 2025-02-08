@@ -1,0 +1,42 @@
+# Makes PhysFS treat Apple systems as generic Unix-like systems because otherwise we get a bunch of missing symbol errors.
+
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -25,10 +25,6 @@ set(PHYSFS_CPP_SRCS)
+ 
+ # I hate that they define "WIN32" ... we're about to move to Win64...I hope!
+ 
+-if(APPLE)
+-    set(OTHER_LDFLAGS ${OTHER_LDFLAGS} "-framework IOKit -framework Foundation")
+-    list(APPEND PHYSFS_M_SRCS src/physfs_platform_apple.m)
+-endif()
+ 
+ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
+     add_compile_options(-Wall)
+@@ -58,7 +54,7 @@ if(WINRT)
+     list(APPEND PHYSFS_CPP_SRCS src/physfs_platform_winrt.cpp)
+ endif()
+ 
+-if(UNIX AND NOT WIN32 AND NOT APPLE)  # (MingW and such might be UNIX _and_ WINDOWS!)
++if(UNIX AND NOT WIN32)  # (MingW and such might be UNIX _and_ WINDOWS!)
+     find_library(PTHREAD_LIBRARY pthread)
+     if(PTHREAD_LIBRARY)
+         set(OPTIONAL_LIBRARY_LIBS ${OPTIONAL_LIBRARY_LIBS} ${PTHREAD_LIBRARY})
+--- a/src/physfs_platforms.h
++++ b/src/physfs_platforms.h
+@@ -31,13 +31,9 @@
+ #elif defined(__OS2__) || defined(OS2)
+ #  define PHYSFS_PLATFORM_OS2 1
+ #elif ((defined __MACH__) && (defined __APPLE__))
+-/* To check if iOS or not, we need to include this file */
+-#  include <TargetConditionals.h>
+-#  if ((TARGET_IPHONE_SIMULATOR) || (TARGET_OS_IPHONE))
+-#     define PHYSFS_NO_CDROM_SUPPORT 1
+-#  endif
+-#  define PHYSFS_PLATFORM_APPLE 1
++#  define PHYSFS_PLATFORM_UNIX 1
+ #  define PHYSFS_PLATFORM_POSIX 1
++#  define PHYSFS_NO_CDROM_SUPPORT 1
+ #elif defined(macintosh)
+ #  error Classic Mac OS support was dropped from PhysicsFS 2.0. Move to OS X.
+ #elif defined(__ANDROID__)

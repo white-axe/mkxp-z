@@ -1,27 +1,10 @@
-diff --git a/CMakeLists.txt b/CMakeLists.txt
+# devkitPPC does not provide POSIX semaphores, which OpenAL Soft needs.
+# However, devkitPPC provides an alternative semaphore implementation in an external library, libogc.
+# This patch makes PhysFS use libogc semaphores if POSIX semaphores is not found.
+
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -25,10 +25,6 @@ set(PHYSFS_CPP_SRCS)
- 
- # I hate that they define "WIN32" ... we're about to move to Win64...I hope!
- 
--if(APPLE)
--    set(OTHER_LDFLAGS ${OTHER_LDFLAGS} "-framework IOKit -framework Foundation")
--    list(APPEND PHYSFS_M_SRCS src/physfs_platform_apple.m)
--endif()
- 
- if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
-     add_compile_options(-Wall)
-@@ -58,7 +54,7 @@ if(WINRT)
-     list(APPEND PHYSFS_CPP_SRCS src/physfs_platform_winrt.cpp)
- endif()
- 
--if(UNIX AND NOT WIN32 AND NOT APPLE)  # (MingW and such might be UNIX _and_ WINDOWS!)
-+if(UNIX AND NOT WIN32)  # (MingW and such might be UNIX _and_ WINDOWS!)
-     find_library(PTHREAD_LIBRARY pthread)
-     if(PTHREAD_LIBRARY)
-         set(OPTIONAL_LIBRARY_LIBS ${OPTIONAL_LIBRARY_LIBS} ${PTHREAD_LIBRARY})
-@@ -172,11 +168,20 @@ if(PHYSFS_BUILD_STATIC)
+@@ -172,11 +172,20 @@ if(PHYSFS_BUILD_STATIC)
  		set_target_properties(physfs-static PROPERTIES VS_WINRT_COMPONENT True)
          set_target_properties(physfs-static PROPERTIES STATIC_LIBRARY_FLAGS "/ignore:4264")
      endif()
@@ -44,39 +27,6 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
      target_link_libraries(physfs-static PRIVATE ${OPTIONAL_LIBRARY_LIBS} ${OTHER_LDFLAGS})
      set(PHYSFS_LIB_TARGET physfs-static)
      list(APPEND PHYSFS_INSTALL_TARGETS "physfs-static")
-diff --git a/src/physfs.c b/src/physfs.c
---- a/src/physfs.c
-+++ b/src/physfs.c
-@@ -1226,10 +1226,10 @@ int PHYSFS_init(const char *argv0)
- 
-     if (!initializeMutexes()) goto initFailed;
- 
--    baseDir = calculateBaseDir(argv0);
-+    baseDir = "/";
-     if (!baseDir) goto initFailed;
- 
--    userDir = __PHYSFS_platformCalcUserDir();
-+    userDir = "/";
-     if (!userDir) goto initFailed;
- 
-     /* Platform layer is required to append a dirsep. */
-@@ -1367,13 +1367,13 @@ static int doDeinit(void)
- 
-     if (baseDir != NULL)
-     {
--        allocator.Free(baseDir);
-+        //allocator.Free(baseDir);
-         baseDir = NULL;
-     } /* if */
- 
-     if (userDir != NULL)
-     {
--        allocator.Free(userDir);
-+        //allocator.Free(userDir);
-         userDir = NULL;
-     } /* if */
- 
-diff --git a/src/physfs_platform_posix.c b/src/physfs_platform_posix.c
 --- a/src/physfs_platform_posix.c
 +++ b/src/physfs_platform_posix.c
 @@ -19,7 +19,11 @@
@@ -191,34 +141,3 @@ diff --git a/src/physfs_platform_posix.c b/src/physfs_platform_posix.c
  } /* __PHYSFS_platformReleaseMutex */
  
  #endif  /* PHYSFS_PLATFORM_POSIX */
-diff --git a/src/physfs_platforms.h b/src/physfs_platforms.h
---- a/src/physfs_platforms.h
-+++ b/src/physfs_platforms.h
-@@ -31,13 +31,9 @@
- #elif defined(__OS2__) || defined(OS2)
- #  define PHYSFS_PLATFORM_OS2 1
- #elif ((defined __MACH__) && (defined __APPLE__))
--/* To check if iOS or not, we need to include this file */
--#  include <TargetConditionals.h>
--#  if ((TARGET_IPHONE_SIMULATOR) || (TARGET_OS_IPHONE))
--#     define PHYSFS_NO_CDROM_SUPPORT 1
--#  endif
--#  define PHYSFS_PLATFORM_APPLE 1
-+#  define PHYSFS_PLATFORM_UNIX 1
- #  define PHYSFS_PLATFORM_POSIX 1
-+#  define PHYSFS_NO_CDROM_SUPPORT 1
- #elif defined(macintosh)
- #  error Classic Mac OS support was dropped from PhysicsFS 2.0. Move to OS X.
- #elif defined(__ANDROID__)
-@@ -73,7 +69,10 @@
- #  define PHYSFS_PLATFORM_UNIX 1
- #  define PHYSFS_PLATFORM_POSIX 1
- #else
--#  error Unknown platform.
-+#  warning Unknown platform.
-+#  define PHYSFS_PLATFORM_UNIX 1
-+#  define PHYSFS_PLATFORM_POSIX 1
-+#  define PHYSFS_NO_CDROM_SUPPORT 1
- #endif
- 
- #endif  /* include-once blocker. */

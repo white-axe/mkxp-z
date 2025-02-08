@@ -1,4 +1,5 @@
-diff --git a/cmake/SndFileChecks.cmake b/cmake/SndFileChecks.cmake
+# Disables a check for 64-bit offset types because it breaks Emscripten and PlayStation Vita builds.
+
 --- a/cmake/SndFileChecks.cmake
 +++ b/cmake/SndFileChecks.cmake
 @@ -113,13 +113,9 @@ else ()
@@ -18,15 +19,3 @@ diff --git a/cmake/SndFileChecks.cmake b/cmake/SndFileChecks.cmake
  	endif ()
  endif ()
  
-@@ -179,7 +175,10 @@ endif ()
- 
- check_symbol_exists (S_IRGRP sys/stat.h HAVE_DECL_S_IRGRP)
- 
--test_big_endian (WORDS_BIGENDIAN)
-+string (TOLOWER ${CMAKE_SYSTEM_NAME} SYSTEM_LOWER)
-+if (NOT SYSTEM_LOWER STREQUAL "emscripten")
-+	test_big_endian(WORDS_BIGENDIAN)
-+endif ()
- if (WORDS_BIGENDIAN)
- 	set (CPU_IS_BIG_ENDIAN 1)
- else ()

@@ -1,0 +1,16 @@
+# Disables checking for endianness when targeting Emscripten because it causes configuration errors, and because we already know Emscripten targets are always little-endian.
+
+--- a/cmake/SndFileChecks.cmake
++++ b/cmake/SndFileChecks.cmake
+@@ -179,7 +179,10 @@ endif ()
+ 
+ check_symbol_exists (S_IRGRP sys/stat.h HAVE_DECL_S_IRGRP)
+ 
+-test_big_endian (WORDS_BIGENDIAN)
++string (TOLOWER ${CMAKE_SYSTEM_NAME} SYSTEM_LOWER)
++if (NOT SYSTEM_LOWER STREQUAL "emscripten")
++	test_big_endian (WORDS_BIGENDIAN)
++endif ()
+ if (WORDS_BIGENDIAN)
+ 	set (CPU_IS_BIG_ENDIAN 1)
+ else ()

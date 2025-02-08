@@ -32,15 +32,24 @@ namespace mkxp_sandbox {
                     BOOST_ASIO_CORO_REENTER (this) {
                         SANDBOX_YIELD;
                     }
-                    return self;
+
+                    return SANDBOX_NIL;
                 }
             )
 
             return sb()->bind<struct coro>()()(self);
         }
 
+        static VALUE get_frame_rate(VALUE self) {
+            return sb()->bind<struct rb_float_new>()()(60.0); // TODO: use actual FPS
+        }
+
         static VALUE todo(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            return self;
+            return SANDBOX_NIL;
+        }
+
+        static VALUE todo_number(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            return sb()->bind<struct rb_ll2inum>()()(0);
         }
 
         VALUE module;
@@ -52,6 +61,9 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_module_function, module, "freeze", (VALUE (*)(ANYARGS))todo, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "transition", (VALUE (*)(ANYARGS))todo, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "frame_reset", (VALUE (*)(ANYARGS))todo, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "frame_count", (VALUE (*)(ANYARGS))todo_number, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "frame_count=", (VALUE (*)(ANYARGS))todo, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "frame_rate", (VALUE (*)(ANYARGS))get_frame_rate, 0);
             }
         }
     )

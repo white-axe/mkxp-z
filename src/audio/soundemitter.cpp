@@ -28,7 +28,9 @@
 #include "util.h"
 #include "debugwriter.h"
 
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+#  include <sndfile.hh>
+#else
 #  include <SDL_sound.h>
 #endif // MKXPZ_RETRO
 
@@ -90,9 +92,17 @@ arrayPushBack(std::vector<size_t> &array, size_t size, size_t index)
 	array[size-1] = v;
 }
 
+#ifdef MKXPZ_RETRO
+SoundEmitter::SoundEmitter()
+#else
 SoundEmitter::SoundEmitter(const Config &conf)
+#endif // MKXPZ_RETRO
     : bufferBytes(0),
+#ifdef MKXPZ_RETRO
+      srcCount(6), // TODO: get from config
+#else
       srcCount(conf.SE.sourceCount),
+#endif // MKXPZ_RETRO
       alSrcs(srcCount),
       atchBufs(srcCount),
       srcPrio(srcCount)
@@ -202,29 +212,60 @@ struct SoundOpenHandler : FileSystem::OpenHandler
 #endif // MKXPZ_RETRO
 		const char *ext
 	) {
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+		extern SF_VIRTUAL_IO sfvirtual;
+		SndfileHandle handle(sfvirtual, ops.get());
+#else
 		Sound_Sample *sample = Sound_NewSample(&ops, ext, 0, STREAM_BUF_SIZE);
+#endif // MKXPZ_RETRO
 
+#ifdef MKXPZ_RETRO
+		if (handle.error())
+#else
 		if (!sample)
+#endif // MKXPZ_RETRO
 		{
+#ifndef MKXPZ_RETRO
 			SDL_RWclose(&ops);
+#endif // MKXPZ_RETRO
 			return false;
 		}
 
 		/* Do all of the decoding in the handler so we don't have
 		 * to keep the source ops around */
+#ifdef MKXPZ_RETRO
+		uint8_t sampleSize = 2;
+		uint32_t sampleCount = handle.frames();
+#else
 		uint32_t decBytes = Sound_DecodeAll(sample);
 		uint8_t sampleSize = formatSampleSize(sample->actual.format);
 		uint32_t sampleCount = decBytes / sampleSize;
+#endif // MKXPZ_RETRO
 
 		buffer = new SoundBuffer;
 		buffer->bytes = sampleSize * sampleCount;
 
-		ALenum alFormat = chooseALFormat(sampleSize, sample->actual.channels);
+		ALenum alFormat = chooseALFormat(
+			sampleSize,
+#ifdef MKXPZ_RETRO
+			handle.channels()
+#else
+			sample->actual.channels
+#endif // MKXPZ_RETRO
+		);
 
+#ifdef MKXPZ_RETRO
+		int16_t *buf = (int16_t *)std::malloc(buffer->bytes);
+		if (buf == NULL) {
+			return false;
+		}
+		handle.read(buf, sampleCount);
+		AL::Buffer::uploadData(buffer->alBuffer, alFormat, buf,
+							   buffer->bytes, handle.samplerate());
+		std::free(buf);
+#else
 		AL::Buffer::uploadData(buffer->alBuffer, alFormat, sample->buffer,
 							   buffer->bytes, sample->actual.rate);
-
 		Sound_FreeSample(sample);
 #endif // MKXPZ_RETRO
 

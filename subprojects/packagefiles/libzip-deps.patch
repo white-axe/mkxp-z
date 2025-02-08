@@ -1,14 +1,9 @@
 # This patch prevents libzip's build system from trying to look for zlib, bzip2, lzma and zstd since Meson already handles that.
 
-diff --git a/CMakeLists.txt b/CMakeLists.txt
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -196,68 +196,21 @@ check_c_source_compiles("
- int foo(char * _Nullable bar);
- int main(int argc, char *argv[]) { }" HAVE_NULLABLE)
+@@ -200,64 +200,14 @@ int main(int argc, char *argv[]) { }" HAVE_NULLABLE)
  
--test_big_endian(WORDS_BIGENDIAN)
--
 -find_package(ZLIB 1.1.2 REQUIRED)
 -# so developers on systems where zlib is named differently (Windows, sometimes)
 -# can override the name used in the pkg-config file
@@ -38,11 +33,7 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
 -    string(REGEX REPLACE "^lib" "" ZLIB_LINK_LIBRARY_NAME ${ZLIB_FILENAME})
 -  endif()
 -endif(NOT ZLIB_LINK_LIBRARY_NAME)
-+string(TOLOWER ${CMAKE_SYSTEM_NAME} SYSTEM_LOWER)
-+if(NOT SYSTEM_LOWER STREQUAL "emscripten")
-+    test_big_endian(WORDS_BIGENDIAN)
-+endif()
- 
+-
  if(ENABLE_BZIP2)
 -  find_package(BZip2)
 -  if(BZIP2_FOUND)
@@ -76,7 +67,6 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
  endif(ENABLE_ZSTD)
  
  if (COMMONCRYPTO_FOUND)
-diff --git a/lib/CMakeLists.txt b/lib/CMakeLists.txt
 --- a/lib/CMakeLists.txt
 +++ b/lib/CMakeLists.txt
 @@ -140,17 +140,14 @@ endif(WIN32)
@@ -105,7 +95,6 @@ diff --git a/lib/CMakeLists.txt b/lib/CMakeLists.txt
  target_include_directories(zip
    PUBLIC
    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
-diff --git a/lib/compat.h b/lib/compat.h
 --- a/lib/compat.h
 +++ b/lib/compat.h
 @@ -154,7 +154,8 @@ typedef off_t zip_off_t;
@@ -118,7 +107,6 @@ diff --git a/lib/compat.h b/lib/compat.h
  #endif
  
  #define ZIP_FSEEK_MAX ZIP_OFF_MAX
-diff --git a/lib/zip_algorithm_bzip2.c b/lib/zip_algorithm_bzip2.c
 --- a/lib/zip_algorithm_bzip2.c
 +++ b/lib/zip_algorithm_bzip2.c
 @@ -33,7 +33,7 @@
@@ -130,7 +118,6 @@ diff --git a/lib/zip_algorithm_bzip2.c b/lib/zip_algorithm_bzip2.c
  #include <limits.h>
  #include <stdlib.h>
  
-diff --git a/lib/zip_algorithm_deflate.c b/lib/zip_algorithm_deflate.c
 --- a/lib/zip_algorithm_deflate.c
 +++ b/lib/zip_algorithm_deflate.c
 @@ -35,7 +35,7 @@
@@ -142,7 +129,6 @@ diff --git a/lib/zip_algorithm_deflate.c b/lib/zip_algorithm_deflate.c
  
  struct ctx {
      zip_error_t *error;
-diff --git a/lib/zip_algorithm_xz.c b/lib/zip_algorithm_xz.c
 --- a/lib/zip_algorithm_xz.c
 +++ b/lib/zip_algorithm_xz.c
 @@ -35,9 +35,9 @@
@@ -157,7 +143,6 @@ diff --git a/lib/zip_algorithm_xz.c b/lib/zip_algorithm_xz.c
  
  enum header_state { INCOMPLETE, OUTPUT, DONE };
  
-diff --git a/lib/zip_algorithm_zstd.c b/lib/zip_algorithm_zstd.c
 --- a/lib/zip_algorithm_zstd.c
 +++ b/lib/zip_algorithm_zstd.c
 @@ -34,8 +34,8 @@
@@ -171,7 +156,6 @@ diff --git a/lib/zip_algorithm_zstd.c b/lib/zip_algorithm_zstd.c
  
  struct ctx {
      zip_error_t *error;
-diff --git a/lib/zip_dirent.c b/lib/zip_dirent.c
 --- a/lib/zip_dirent.c
 +++ b/lib/zip_dirent.c
 @@ -37,7 +37,7 @@
@@ -183,7 +167,6 @@ diff --git a/lib/zip_dirent.c b/lib/zip_dirent.c
  
  #include "zipint.h"
  
-diff --git a/lib/zip_error_strerror.c b/lib/zip_error_strerror.c
 --- a/lib/zip_error_strerror.c
 +++ b/lib/zip_error_strerror.c
 @@ -35,7 +35,7 @@
@@ -195,7 +178,6 @@ diff --git a/lib/zip_error_strerror.c b/lib/zip_error_strerror.c
  
  #include "zipint.h"
  
-diff --git a/lib/zip_io_util.c b/lib/zip_io_util.c
 --- a/lib/zip_io_util.c
 +++ b/lib/zip_io_util.c
 @@ -34,7 +34,7 @@
@@ -207,7 +189,6 @@ diff --git a/lib/zip_io_util.c b/lib/zip_io_util.c
  
  #include "zipint.h"
  
-diff --git a/lib/zip_pkware.c b/lib/zip_pkware.c
 --- a/lib/zip_pkware.c
 +++ b/lib/zip_pkware.c
 @@ -33,7 +33,7 @@
@@ -219,7 +200,6 @@ diff --git a/lib/zip_pkware.c b/lib/zip_pkware.c
  
  #include "zipint.h"
  
-diff --git a/lib/zip_source_crc.c b/lib/zip_source_crc.c
 --- a/lib/zip_source_crc.c
 +++ b/lib/zip_source_crc.c
 @@ -34,7 +34,7 @@
@@ -231,7 +211,6 @@ diff --git a/lib/zip_source_crc.c b/lib/zip_source_crc.c
  
  #include "zipint.h"
  
-diff --git a/lib/zip_string.c b/lib/zip_string.c
 --- a/lib/zip_string.c
 +++ b/lib/zip_string.c
 @@ -34,7 +34,7 @@
@@ -243,7 +222,6 @@ diff --git a/lib/zip_string.c b/lib/zip_string.c
  
  #include "zipint.h"
  
-diff --git a/src/zipcmp.c b/src/zipcmp.c
 --- a/src/zipcmp.c
 +++ b/src/zipcmp.c
 @@ -45,7 +45,7 @@

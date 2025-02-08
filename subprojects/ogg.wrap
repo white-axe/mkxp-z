@@ -2,4 +2,4 @@
 url = https://github.com/xiph/ogg
 revision = v1.3.5
 depth = 1
-diff_files = ogg.patch
+diff_files = ogg-deps.patch

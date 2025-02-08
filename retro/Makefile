@@ -1,7 +1,7 @@
 # Configure flags are based on the ones from https://github.com/ruby/ruby.wasm
 
 RUBY_VERSION ?= 3.3
-LIBRETRO_REF ?= 80d7a25029b9c60f3c71cda49108f4545897d195
+LIBRETRO_REF ?= 7e74808db6706b89723811421ed43d8e8fdc6143
 LIBYAML_VERSION ?= 0.2.5
 ZLIB_VERSION ?= 1.3.1
 OPENSSL_VERSION ?= 3.2.0
@@ -26,9 +26,10 @@ RANLIB ?= ranlib
 CFLAGS ?=
 CXXFLAGS ?=
 LDFLAGS ?=
-WASI_CFLAGS ?= -O3
-WASI_CXXFLAGS ?= -O3
+WASI_CFLAGS ?= -Oz -DNDEBUG
+WASI_CXXFLAGS ?= -Oz -DNDEBUG
 WASI_LDFLAGS ?=
+WASM_OPT_FLAGS ?= -Oz
 
 BUILD_PREFIX := ${PWD}/build
 OUTDIR := $(BUILD_PREFIX)/retro-phase1
@@ -153,10 +154,10 @@ $(DOWNLOADS)/crossruby/Makefile $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ru
 		WASI_SDK_PATH=$(WASI_SDK) \
 		$(WASI_TOOLCHAIN) \
 		LDFLAGS='-Wl,--export-dynamic,--stack-first,-z,stack-size=16777216 $(WASI_LDFLAGS)' \
-		XCFLAGS='-DWASM_SETJMP_STACK_BUFFER_SIZE=24576 -DWASM_FIBER_STACK_BUFFER_SIZE=24576 -DWASM_SCAN_STACK_BUFFER_SIZE=24576 $(WASI_CFLAGS)' \
-		debugflags=-g \
+		XCFLAGS='-DWASM_SETJMP_STACK_BUFFER_SIZE=24576 -DWASM_FIBER_STACK_BUFFER_SIZE=24576 -DWASM_SCAN_STACK_BUFFER_SIZE=24576' \
 		cppflags='$(WASI_CXXFLAGS)' \
-		wasmoptflags='-O4 -g --pass-arg=asyncify-ignore-imports' \
+		optflags='$(WASI_CFLAGS) -fno-fast-math' \
+		wasmoptflags='$(WASM_OPT_FLAGS) --pass-arg=asyncify-ignore-imports' \
 		$(shell $(RUBY) -e 'puts "ac_cv_func_dlopen=no" if RUBY_VERSION.split(".")[..1].join(".").to_f < 3.3') \
 		--disable-install-doc
 

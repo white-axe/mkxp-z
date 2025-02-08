@@ -663,7 +663,7 @@ static const Input::ButtonCode otherDirs[4][3] =
     { Input::Left, Input::Right, Input::Up    }, /* Down  */
     { Input::Down, Input::Up,    Input::Right }, /* Left  */
     { Input::Down, Input::Up,    Input::Left  }, /* Right */
-    { Input::Left, Input::Right, Input::Up    }  /* Up    */
+    { Input::Left, Input::Right, Input::Down  }, /* Up    */
 };
 
 struct InputPrivate
@@ -1258,26 +1258,6 @@ void Input::update()
     p->vScrollDistance = SDL_AtomicSet(&EventThread::verticalScrollDistance, 0);
     
     p->last_update = shState->runTime();
-}
-
-std::vector<std::string> Input::getBindings(ButtonCode code) {
-    std::vector<std::string> ret;
-    for (const auto &b : p->kbBindings) {
-        if (b.target != code) continue;
-        ret.push_back(SDL_GetScancodeName(b.source));
-    }
-    
-    for (const auto &b : p->ctrlBBindings) {
-        if (b.target != code) continue;
-        ret.push_back(std::string("CBUTTON") + std::to_string(b.source));
-    }
-    
-    for (const auto &b : p->ctrlABindings) {
-        if (b.target != code) continue;
-        ret.push_back(std::string("CAXIS") + std::to_string(b.source));
-    }
-    
-    return ret;
 }
 
 bool Input::isPressed(int button)

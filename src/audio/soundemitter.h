@@ -49,7 +49,11 @@ struct SoundEmitter
 	/* Indices of sources, sorted by priority (lowest first) */
 	std::vector<size_t> srcPrio;
 
+#ifdef MKXPZ_RETRO
+	SoundEmitter();
+#else
 	SoundEmitter(const Config &conf);
+#endif // MKXPZ_RETRO
 	~SoundEmitter();
 
 	void play(const std::string &filename,

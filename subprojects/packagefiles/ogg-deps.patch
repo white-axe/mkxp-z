@@ -1,16 +1,15 @@
-diff --git a/CMakeLists.txt b/CMakeLists.txt
+# Fixes compilation errors when building other subprojects have Ogg as a dependency (e.g. Vorbis).
+
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -66,7 +66,7 @@ set(USIZE32 uint32_t)
+@@ -66,7 +66,6 @@ set(USIZE32 uint32_t)
  set(SIZE64 int64_t)
  set(USIZE64 uint64_t)
  
 -include(CheckSizes)
-+
  
  configure_file(include/ogg/config_types.h.in include/ogg/config_types.h @ONLY)
  
-diff --git a/include/ogg/ogg.h b/include/ogg/ogg.h
 --- a/include/ogg/ogg.h
 +++ b/include/ogg/ogg.h
 @@ -21,7 +21,7 @@ extern "C" {
@@ -22,7 +21,6 @@ diff --git a/include/ogg/ogg.h b/include/ogg/ogg.h
  
  typedef struct {
    void *iov_base;
-diff --git a/include/ogg/os_types.h b/include/ogg/os_types.h
 --- a/include/ogg/os_types.h
 +++ b/include/ogg/os_types.h
 @@ -151,7 +151,13 @@
@@ -40,7 +38,6 @@ diff --git a/include/ogg/os_types.h b/include/ogg/os_types.h
  
  #endif
  
-diff --git a/ogg.m4 b/ogg.m4
 --- a/ogg.m4
 +++ b/ogg.m4
 @@ -60,7 +60,7 @@ dnl
@@ -61,7 +58,6 @@ diff --git a/ogg.m4 b/ogg.m4
  ],     [ return 0; ],
         [ echo "*** The test program compiled, but did not run. This usually means"
         echo "*** that the run-time linker is not finding Ogg or finding the wrong"
-diff --git a/src/bitwise.c b/src/bitwise.c
 --- a/src/bitwise.c
 +++ b/src/bitwise.c
 @@ -20,7 +20,7 @@
@@ -73,7 +69,6 @@ diff --git a/src/bitwise.c b/src/bitwise.c
  
  #define BUFFER_INCREMENT 256
  
-diff --git a/src/crctable.h b/src/crctable.h
 --- a/src/crctable.h
 +++ b/src/crctable.h
 @@ -10,7 +10,7 @@
@@ -85,7 +80,6 @@ diff --git a/src/crctable.h b/src/crctable.h
  
  static const ogg_uint32_t crc_lookup[8][256]={
  {0x00000000,0x04c11db7,0x09823b6e,0x0d4326d9,0x130476dc,0x17c56b6b,0x1a864db2,0x1e475005,
-diff --git a/src/framing.c b/src/framing.c
 --- a/src/framing.c
 +++ b/src/framing.c
 @@ -26,7 +26,7 @@

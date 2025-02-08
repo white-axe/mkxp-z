@@ -27,7 +27,7 @@
 #include <mkxp-sandbox-bindgen.h>
 #include "types.h"
 
-#define SANDBOX_COROUTINE(name, definition) struct name : boost::asio::coroutine { BOOST_TYPE_INDEX_REGISTER_CLASS inline name(struct mkxp_sandbox::bindings &bind) {} definition };
+#define SANDBOX_COROUTINE(name, definition) struct name : boost::asio::coroutine { BOOST_TYPE_INDEX_REGISTER_CLASS inline name(struct mkxp_sandbox::binding_base &bind) {} definition };
 
 #define SANDBOX_AWAIT(coroutine, ...) \
     do { \

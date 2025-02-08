@@ -2,7 +2,6 @@
 # However, devkitPPC provides an alternative semaphore implementation in an external library, libogc.
 # This patch makes OpenAL Soft use libogc semaphores if POSIX semaphores is not found.
 
-diff --git a/CMakeLists.txt b/CMakeLists.txt
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -174,6 +174,11 @@ if("${CMAKE_C_PLATFORM_ID}" STREQUAL "QNX")
@@ -17,7 +16,6 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
  
  # When the library is built for static linking, apps should define
  # AL_LIBTYPE_STATIC when including the AL headers.
-diff --git a/common/alsem.cpp b/common/alsem.cpp
 --- a/common/alsem.cpp
 +++ b/common/alsem.cpp
 @@ -55,8 +55,6 @@ void semaphore::post()
@@ -82,7 +80,6 @@ diff --git a/common/alsem.cpp b/common/alsem.cpp
  
  } // namespace al
  
-diff --git a/common/alsem.h b/common/alsem.h
 --- a/common/alsem.h
 +++ b/common/alsem.h
 @@ -11,7 +11,11 @@
@@ -106,3 +103,31 @@ diff --git a/common/alsem.h b/common/alsem.h
  };
  
  } // namespace al
+--- a/common/althrd_setname.cpp
++++ b/common/althrd_setname.cpp
+@@ -55,13 +55,25 @@ using setname_t4 = int(*)(pthread_t, const char*, void*);
+ { func(name); }
+ 
+ [[maybe_unused]] void setname_caller(setname_t2 func, const char *name)
++#ifdef MKXPZ_DEVKITPPC
++{ func(42, name); }
++#else
+ { func(pthread_self(), name); }
++#endif
+ 
+ [[maybe_unused]] void setname_caller(setname_t3 func, const char *name)
++#ifdef MKXPZ_DEVKITPPC
++{ func(42, name); }
++#else
+ { func(pthread_self(), name); }
++#endif
+ 
+ [[maybe_unused]] void setname_caller(setname_t4 func, const char *name)
++#ifdef MKXPZ_DEVKITPPC
++{ func(42, "%s", const_cast<char*>(name)); /* NOLINT(*-const-cast) */ }
++#else
+ { func(pthread_self(), "%s", const_cast<char*>(name)); /* NOLINT(*-const-cast) */ }
++#endif
+ 
+ } // namespace
+ 

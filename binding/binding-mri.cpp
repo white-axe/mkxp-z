@@ -64,6 +64,10 @@ extern "C" {
 #include <SDL_loadso.h>
 #include <SDL_power.h>
 
+#ifndef MKXPZ_BUILD_XCODE
+#  include "git-hash.h"
+#endif // MKXPZ_BUILD_XCODE
+
 extern const char module_rpg1[];
 extern const char module_rpg2[];
 extern const char module_rpg3[];

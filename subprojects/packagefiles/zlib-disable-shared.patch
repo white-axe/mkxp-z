@@ -1,29 +1,8 @@
-# This patch prevents zlib's build system from renaming zconf.h to zconf.h.included because libzip won't be able to find zconf.h otherwise.
-# Also prevents the zlib shared library from being compiled to fix builds for homebrew consoles.
-# Also includes unistd.h at the top of gzguts.h, again to fix builds for homebrew consoles.
+# Prevents the zlib shared library from being compiled to fix builds for game consoles.
 
-diff --git a/CMakeLists.txt b/CMakeLists.txt
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -65,17 +65,6 @@ if(MSVC)
-     include_directories(${CMAKE_CURRENT_SOURCE_DIR})
- endif()
- 
--if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
--    # If we're doing an out of source build and the user has a zconf.h
--    # in their source tree...
--    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/zconf.h)
--        message(STATUS "Renaming")
--        message(STATUS "    ${CMAKE_CURRENT_SOURCE_DIR}/zconf.h")
--        message(STATUS "to 'zconf.h.included' because this file is included with zlib")
--        message(STATUS "but CMake generates it automatically in the build directory.")
--        file(RENAME ${CMAKE_CURRENT_SOURCE_DIR}/zconf.h ${CMAKE_CURRENT_SOURCE_DIR}/zconf.h.included)
--  endif()
--endif()
- 
- set(ZLIB_PC ${CMAKE_CURRENT_BINARY_DIR}/zlib.pc)
- configure_file( ${CMAKE_CURRENT_SOURCE_DIR}/zlib.pc.cmakein
-@@ -149,41 +138,8 @@ if(MINGW)
+@@ -149,41 +149,8 @@ if(MINGW)
      set(ZLIB_DLL_SRCS ${CMAKE_CURRENT_BINARY_DIR}/zlib1rc.obj)
  endif(MINGW)
  
@@ -65,16 +44,3 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
  if(NOT SKIP_INSTALL_HEADERS AND NOT SKIP_INSTALL_ALL )
      install(FILES ${ZLIB_PUBLIC_HDRS} DESTINATION "${INSTALL_INC_DIR}")
  endif()
-diff --git a/gzguts.h b/gzguts.h
---- a/gzguts.h
-+++ b/gzguts.h
-@@ -2,6 +2,9 @@
-  * Copyright (C) 2004-2024 Mark Adler
-  * For conditions of distribution and use, see copyright notice in zlib.h
-  */
-+#if defined(__unix__) || defined(__DEVKITPRO__)
-+#  include <unistd.h>
-+#endif
- 
- #ifdef _LARGEFILE64_SOURCE
- #  ifndef _LARGEFILE_SOURCE

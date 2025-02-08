@@ -95,7 +95,7 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
         }
 
         // Pass the command-line arguments to Ruby
-        AWAIT(w2c_ruby_ruby_init_stack(RB, ruby->w2c_0x5F_stack_pointer));
+        AWAIT(w2c_ruby_ruby_init_stack(RB, w2c_ruby_rb_wasm_get_stack_pointer(RB)));
         AWAIT(w2c_ruby_ruby_init(RB));
         usize node;
         AWAIT(node = w2c_ruby_ruby_options(RB, args.size(), argv_buf));

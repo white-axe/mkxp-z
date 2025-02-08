@@ -1,4 +1,5 @@
-diff --git a/CMakeLists.txt b/CMakeLists.txt
+# Prevents Vorbis's build system from trying to look for Ogg externally since Meson already handles that.
+
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -61,8 +61,6 @@ message(STATUS "Configuring ${PROJECT_NAME} ${PROJECT_VERSION}")
@@ -10,7 +11,6 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
  
  add_subdirectory(lib)
  
-diff --git a/include/vorbis/codec.h b/include/vorbis/codec.h
 --- a/include/vorbis/codec.h
 +++ b/include/vorbis/codec.h
 @@ -22,7 +22,7 @@ extern "C"
@@ -22,7 +22,6 @@ diff --git a/include/vorbis/codec.h b/include/vorbis/codec.h
  
  typedef struct vorbis_info{
    int version;
-diff --git a/lib/analysis.c b/lib/analysis.c
 --- a/lib/analysis.c
 +++ b/lib/analysis.c
 @@ -17,7 +17,7 @@
@@ -34,7 +33,6 @@ diff --git a/lib/analysis.c b/lib/analysis.c
  #include "vorbis/codec.h"
  #include "codec_internal.h"
  #include "registry.h"
-diff --git a/lib/bitrate.c b/lib/bitrate.c
 --- a/lib/bitrate.c
 +++ b/lib/bitrate.c
 @@ -17,7 +17,7 @@
@@ -46,7 +44,6 @@ diff --git a/lib/bitrate.c b/lib/bitrate.c
  #include "vorbis/codec.h"
  #include "codec_internal.h"
  #include "os.h"
-diff --git a/lib/block.c b/lib/block.c
 --- a/lib/block.c
 +++ b/lib/block.c
 @@ -20,7 +20,7 @@
@@ -58,7 +55,6 @@ diff --git a/lib/block.c b/lib/block.c
  #include "vorbis/codec.h"
  #include "codec_internal.h"
  
-diff --git a/lib/codebook.c b/lib/codebook.c
 --- a/lib/codebook.c
 +++ b/lib/codebook.c
 @@ -17,7 +17,7 @@
@@ -70,7 +66,6 @@ diff --git a/lib/codebook.c b/lib/codebook.c
  #include "vorbis/codec.h"
  #include "codebook.h"
  #include "scales.h"
-diff --git a/lib/codebook.h b/lib/codebook.h
 --- a/lib/codebook.h
 +++ b/lib/codebook.h
 @@ -17,7 +17,7 @@
@@ -82,7 +77,6 @@ diff --git a/lib/codebook.h b/lib/codebook.h
  
  /* This structure encapsulates huffman and VQ style encoding books; it
     doesn't do anything specific to either.
-diff --git a/lib/envelope.c b/lib/envelope.c
 --- a/lib/envelope.c
 +++ b/lib/envelope.c
 @@ -18,7 +18,7 @@
@@ -94,7 +88,6 @@ diff --git a/lib/envelope.c b/lib/envelope.c
  #include "vorbis/codec.h"
  #include "codec_internal.h"
  
-diff --git a/lib/floor0.c b/lib/floor0.c
 --- a/lib/floor0.c
 +++ b/lib/floor0.c
 @@ -17,7 +17,7 @@
@@ -106,7 +99,6 @@ diff --git a/lib/floor0.c b/lib/floor0.c
  #include "vorbis/codec.h"
  #include "codec_internal.h"
  #include "registry.h"
-diff --git a/lib/floor1.c b/lib/floor1.c
 --- a/lib/floor1.c
 +++ b/lib/floor1.c
 @@ -17,7 +17,7 @@
@@ -118,7 +110,6 @@ diff --git a/lib/floor1.c b/lib/floor1.c
  #include "vorbis/codec.h"
  #include "codec_internal.h"
  #include "registry.h"
-diff --git a/lib/info.c b/lib/info.c
 --- a/lib/info.c
 +++ b/lib/info.c
 @@ -19,7 +19,7 @@
@@ -130,7 +121,6 @@ diff --git a/lib/info.c b/lib/info.c
  #include "vorbis/codec.h"
  #include "codec_internal.h"
  #include "codebook.h"
-diff --git a/lib/mapping0.c b/lib/mapping0.c
 --- a/lib/mapping0.c
 +++ b/lib/mapping0.c
 @@ -18,7 +18,7 @@
@@ -142,7 +132,6 @@ diff --git a/lib/mapping0.c b/lib/mapping0.c
  #include "vorbis/codec.h"
  #include "codec_internal.h"
  #include "codebook.h"
-diff --git a/lib/os.h b/lib/os.h
 --- a/lib/os.h
 +++ b/lib/os.h
 @@ -21,7 +21,7 @@
@@ -154,7 +143,6 @@ diff --git a/lib/os.h b/lib/os.h
  
  #include "misc.h"
  
-diff --git a/lib/res0.c b/lib/res0.c
 --- a/lib/res0.c
 +++ b/lib/res0.c
 @@ -22,7 +22,7 @@
@@ -166,7 +154,6 @@ diff --git a/lib/res0.c b/lib/res0.c
  #include "vorbis/codec.h"
  #include "codec_internal.h"
  #include "registry.h"
-diff --git a/lib/sharedbook.c b/lib/sharedbook.c
 --- a/lib/sharedbook.c
 +++ b/lib/sharedbook.c
 @@ -18,7 +18,7 @@
@@ -178,7 +165,6 @@ diff --git a/lib/sharedbook.c b/lib/sharedbook.c
  #include "os.h"
  #include "misc.h"
  #include "vorbis/codec.h"
-diff --git a/lib/synthesis.c b/lib/synthesis.c
 --- a/lib/synthesis.c
 +++ b/lib/synthesis.c
 @@ -15,7 +15,7 @@
@@ -190,7 +176,6 @@ diff --git a/lib/synthesis.c b/lib/synthesis.c
  #include "vorbis/codec.h"
  #include "codec_internal.h"
  #include "registry.h"
-diff --git a/vq/localcodebook.h b/vq/localcodebook.h
 --- a/vq/localcodebook.h
 +++ b/vq/localcodebook.h
 @@ -17,7 +17,7 @@

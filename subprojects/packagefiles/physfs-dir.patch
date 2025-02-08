@@ -1,0 +1,31 @@
+# Stops PhysFS from trying to get the base directory and user directory because it fails on Emscripten and on game consoles. Instead, we use sane defaults.
+
+--- a/src/physfs.c
++++ b/src/physfs.c
+@@ -1226,10 +1226,10 @@ int PHYSFS_init(const char *argv0)
+ 
+     if (!initializeMutexes()) goto initFailed;
+ 
+-    baseDir = calculateBaseDir(argv0);
++    baseDir = "/";
+     if (!baseDir) goto initFailed;
+ 
+-    userDir = __PHYSFS_platformCalcUserDir();
++    userDir = "/";
+     if (!userDir) goto initFailed;
+ 
+     /* Platform layer is required to append a dirsep. */
+@@ -1367,13 +1367,11 @@ static int doDeinit(void)
+ 
+     if (baseDir != NULL)
+     {
+-        allocator.Free(baseDir);
+         baseDir = NULL;
+     } /* if */
+ 
+     if (userDir != NULL)
+     {
+-        allocator.Free(userDir);
+         userDir = NULL;
+     } /* if */
+ 

@@ -7,8 +7,6 @@ if get_option('retro') == false and host_system == 'darwin'
     error('\nThis Meson project no longer supports macOS. Please use the Xcode project instead.')
 endif
 
-git_hash = run_command('git', 'rev-parse', '--short', 'HEAD', check: false).stdout().strip()
-
 compilers = {'cpp': meson.get_compiler('cpp')}
 
 global_sources = []
@@ -24,7 +22,6 @@ win64 = (sizeof['void*'] != sizeof['long'])
 
 global_args += '-DMKXPZ_BUILD_MESON'
 global_args += '-DMKXPZ_VERSION="@0@"'.format(meson.project_version())
-global_args += '-DMKXPZ_GIT_HASH="@0@"'.format(git_hash)
 global_args += '-DHAVE_NANOSLEEP'
 # ====================
 # Ext libs
@@ -148,6 +145,7 @@ if get_option('retro') == true
     })
 
     retro_defines = [
+        '-DMKXPZ_VERSION="@0@"'.format(meson.project_version()),
         '-DWASM_RT_SKIP_SIGNAL_RECOVERY',
         '-DWASM_RT_TRAP_HANDLER=mkxp_sandbox_trap_handler',
         '-DMKXPZ_RETRO',
@@ -245,6 +243,7 @@ if get_option('retro') == true
             include_directories(join_paths(retro_phase1, 'sdl/include')),
         ],
         sources: [
+            vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h', replace_string: '@MKXPZ_GIT_HASH@'),
             'src/core.cpp',
             'src/sharedstate.cpp',
             'src/audio/alstream.cpp',
@@ -257,13 +256,18 @@ if get_option('retro') == true
             'src/audio/vorbissource.cpp',
             'src/crypto/rgssad.cpp',
             'src/display/bitmap.cpp',
+            'src/display/plane.cpp',
+            'src/display/sprite.cpp',
+            'src/display/tilemap.cpp',
             'src/display/viewport.cpp',
             'src/display/window.cpp',
             'src/display/gl/scene.cpp',
+            'src/display/gl/tileatlas.cpp',
             'src/etc/etc.cpp',
             'src/etc/table.cpp',
             'src/filesystem/filesystem.cpp',
-            'src/filesystem/filesystemImpl.cpp',
+            'src/input/input-retro.cpp',
+            'binding-sandbox/binding-base.cpp',
             'binding-sandbox/binding-util.cpp',
             'binding-sandbox/sandbox.cpp',
             'binding-sandbox/wasi.cpp',
@@ -284,6 +288,8 @@ if get_option('retro') == true
         ],
     )
 else
+
+global_sources += vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h', replace_string: '@MKXPZ_GIT_HASH@')
 
 xxd = find_program('xxd', native: true)
 

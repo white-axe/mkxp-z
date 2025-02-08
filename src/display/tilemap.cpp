@@ -28,15 +28,19 @@
 #include "sharedstate.h"
 #include "config.h"
 #include "debugwriter.h"
+#ifndef MKXPZ_RETRO
 #include "glstate.h"
 #include "gl-util.h"
 #include "gl-meta.h"
 #include "global-ibo.h"
+#endif // MKXPZ_RETRO
 #include "etc-internal.h"
+#ifndef MKXPZ_RETRO
 #include "quadarray.h"
 #include "texpool.h"
 #include "quad.h"
 #include "vertex.h"
+#endif // MKXPZ_RETRO
 #include "tileatlas.h"
 #include "tilemap-common.h"
 
@@ -47,11 +51,15 @@
 #include <algorithm>
 #include <vector>
 
+#ifndef MKXPZ_RETRO
 #include <SDL_surface.h>
+#endif // MKXPZ_RETRO
 
 extern const StaticRect autotileRects[];
 
+#ifndef MKXPZ_RETRO
 typedef std::vector<SVertex> SVVector;
+#endif // MKXPZ_RETRO
 
 static const int tilesetW  = 8 * 32;
 static const int autotileW = 3 * 32;
@@ -187,7 +195,9 @@ static elementsN(flashAlpha);
 
 struct GroundLayer : public ViewportElement
 {
+#ifndef MKXPZ_RETRO
 	GLsizei vboCount;
+#endif // MKXPZ_RETRO
 	TilemapPrivate *p;
 
 	GroundLayer(TilemapPrivate *p, Viewport *viewport);
@@ -205,17 +215,21 @@ struct GroundLayer : public ViewportElement
 struct ZLayer : public ViewportElement
 {
 	size_t index;
+#ifndef MKXPZ_RETRO
 	GLintptr vboOffset;
 	GLsizei vboCount;
+#endif // MKXPZ_RETRO
 	TilemapPrivate *p;
 
 	/* If this layer is part of a batch and not
 	 * the head, it is 'muted' via this flag */
 	bool batchedFlag;
 
+#ifndef MKXPZ_RETRO
 	/* If this layer is a batch head, this variable
 	 * holds the element count of the entire batch */
 	GLsizei vboBatchCount;
+#endif // MKXPZ_RETRO
 
 	ZLayer(TilemapPrivate *p, Viewport *viewport);
 
@@ -249,7 +263,9 @@ struct TilemapPrivate
 
 	/* Tile atlas */
 	struct {
+#ifndef MKXPZ_RETRO
 		TEXFBO gl;
+#endif // MKXPZ_RETRO
 
 		Vec2i size;
 
@@ -274,11 +290,13 @@ struct TilemapPrivate
 	/* Map viewport position */
 	Vec2i viewpPos;
 
+#ifndef MKXPZ_RETRO
 	/* Ground layer vertices */
 	SVVector groundVert;
 
 	/* ZLayer vertices */
 	SVVector zlayerVert[zlayersMax];
+#endif // MKXPZ_RETRO
 
 	/* Base quad indices of each zlayer
 	 * in the shared buffer */
@@ -287,8 +305,10 @@ struct TilemapPrivate
 	/* Shared buffers for all tiles */
 	struct
 	{
+#ifndef MKXPZ_RETRO
 		GLMeta::VAO vao;
 		VBO::ID vbo;
+#endif // MKXPZ_RETRO
 		bool animated;
 
 		/* Animation state */
@@ -370,6 +390,7 @@ struct TilemapPrivate
 		tiles.animated = false;
 		tiles.aniIdx = 0;
 
+#ifndef MKXPZ_RETRO
 		/* Init tile buffers */
 		tiles.vbo = VBO::gen();
 
@@ -378,6 +399,7 @@ struct TilemapPrivate
 		tiles.vao.ibo = shState->globalIBO().ibo;
 
 		GLMeta::vaoInit(tiles.vao);
+#endif // MKXPZ_RETRO
 
 		elem.ground = new GroundLayer(this, viewport);
 
@@ -397,11 +419,13 @@ struct TilemapPrivate
 		for (size_t i = 0; i < zlayersMax; ++i)
 			delete elem.zlayers[i];
 
+#ifndef MKXPZ_RETRO
 		shState->releaseAtlasTex(atlas.gl);
 
 		/* Destroy tile buffers */
 		GLMeta::vaoFini(tiles.vao);
 		VBO::del(tiles.vbo);
+#endif // MKXPZ_RETRO
 
 		/* Disconnect signal handlers */
 		tilesetCon.disconnect();
@@ -433,7 +457,11 @@ struct TilemapPrivate
 		int tsH = tileset->height();
 		atlas.efTilesetH = tsH - (tsH % 32);
 
+#ifdef MKXPZ_RETRO
+		atlas.size = TileAtlas::minSize(atlas.efTilesetH, 2048); // TODO
+#else
 		atlas.size = TileAtlas::minSize(atlas.efTilesetH, glState.caps.maxTexSize);
+#endif // MKXPZ_RETRO
 
 		if (atlas.size.x < 0)
 			throw Exception(Exception::MKXPError,
@@ -529,9 +557,11 @@ struct TilemapPrivate
 	{
 		updateAtlasInfo();
 
+#ifndef MKXPZ_RETRO
 		/* Aquire atlas tex */
 		shState->releaseAtlasTex(atlas.gl);
 		shState->requestAtlasTex(atlas.size.x, atlas.size.y, atlas.gl);
+#endif // MKXPZ_RETRO
 
 		atlasDirty = true;
 	}
@@ -544,6 +574,7 @@ struct TilemapPrivate
 
 		TileAtlas::BlitVec blits = TileAtlas::calcBlits(atlas.efTilesetH, atlas.size);
 
+#ifndef MKXPZ_RETRO
 		/* Clear atlas */
 		FBO::bind(atlas.gl.fbo);
 		glState.clearColor.pushSet(Vec4());
@@ -555,6 +586,7 @@ struct TilemapPrivate
 		glState.clearColor.pop();
 
 		GLMeta::blitBegin(atlas.gl);
+#endif // MKXPZ_RETRO
 
 		/* Blit autotiles */
 		for (size_t i = 0; i < atlas.usableATs.size(); ++i)
@@ -572,6 +604,7 @@ struct TilemapPrivate
 				Debug() << "BUG: High-res Tilemap blit autotiles not implemented";
 			}
 
+#ifndef MKXPZ_RETRO
 			GLMeta::blitSource(autotile->getGLTypes());
 
 			if (atW <= autotileW && tiles.animated && !atlas.smallATs[atInd])
@@ -597,13 +630,17 @@ struct TilemapPrivate
 					GLMeta::blitRectangle(IntRect(0, 0, blitW, blitH),
 					                      Vec2i(0, atInd*autotileH));
 			}
+#endif // MKXPZ_RETRO
 		}
 
+#ifndef MKXPZ_RETRO
 		GLMeta::blitEnd();
+#endif // MKXPZ_RETRO
 
 		/* Blit tileset */
 		if (tileset->megaSurface())
 		{
+#ifndef MKXPZ_RETRO
 			/* Mega surface tileset */
 			SDL_Surface *tsSurf = tileset->megaSurface();
 
@@ -657,6 +694,7 @@ struct TilemapPrivate
 
 				GLMeta::subRectImageEnd();
 			}
+#endif // MKXPZ_RETRO
 
 		}
 		else
@@ -665,6 +703,7 @@ struct TilemapPrivate
 				Debug() << "BUG: High-res Tilemap regular tileset not implemented";
 			}
 
+#ifndef MKXPZ_RETRO
 			/* Regular tileset */
 			GLMeta::blitBegin(atlas.gl);
 			GLMeta::blitSource(tileset->getGLTypes());
@@ -678,6 +717,7 @@ struct TilemapPrivate
 			}
 
 			GLMeta::blitEnd();
+#endif // MKXPZ_RETRO
 		}
 	}
 
@@ -697,6 +737,7 @@ struct TilemapPrivate
 		return value;
 	}
 
+#ifndef MKXPZ_RETRO
 	void handleAutotile(int x, int y, int tileInd, SVVector *array)
 	{
 		/* Which autotile [0-7] */
@@ -739,6 +780,7 @@ struct TilemapPrivate
 				array->push_back(v[j]);
 		}
 	}
+#endif // MKXPZ_RETRO
 
 	void handleTile(int x, int y, int z)
 	{
@@ -755,6 +797,7 @@ struct TilemapPrivate
 		if (prio == -1)
 			return;
 
+#ifndef MKXPZ_RETRO
 		SVVector *targetArray;
 
 		/* Prio 0 tiles are all part of the same ground layer */
@@ -790,14 +833,17 @@ struct TilemapPrivate
 
 		for (size_t i = 0; i < 4; ++i)
 			targetArray->push_back(v[i]);
+#endif // MKXPZ_RETRO
 	}
 
 	void clearQuadArrays()
 	{
+#ifndef MKXPZ_RETRO
 		groundVert.clear();
 
 		for (size_t i = 0; i < zlayersMax; ++i)
 			zlayerVert[i].clear();
+#endif // MKXPZ_RETRO
 	}
 
 	void buildQuadArray()
@@ -834,7 +880,11 @@ struct TilemapPrivate
 
 	static size_t quadDataSize(size_t quadCount)
 	{
+#ifdef MKXPZ_RETRO
+		return 0; // TODO
+#else
 		return quadCount * sizeof(SVertex) * 4;
+#endif
 	}
 
 	size_t zlayerSize(size_t index)
@@ -844,6 +894,7 @@ struct TilemapPrivate
 
 	void uploadBuffers()
 	{
+#ifndef MKXPZ_RETRO
 		/* Calculate total quad count */
 		size_t groundQuadCount = groundVert.size() / 4;
 		size_t quadCount = groundQuadCount;
@@ -874,10 +925,12 @@ struct TilemapPrivate
 
 		/* Ensure global IBO size */
 		shState->ensureQuadIBO(quadCount);
+#endif // MKXPZ_RETRO
 	}
 
 	void bindShader(ShaderBase *&shaderVar)
 	{
+#ifndef MKXPZ_RETRO
 		if (tiles.animated || color->hasEffect() || tone->hasEffect() || opacity != 255)
 		{
 			TilemapShader &tilemapShader = shState->shaders().tilemap;
@@ -897,12 +950,15 @@ struct TilemapPrivate
 		}
 
 		shaderVar->applyViewportProj();
+#endif // MKXPZ_RETRO
 	}
 
 	void bindAtlas(ShaderBase &shader)
 	{
+#ifndef MKXPZ_RETRO
 		TEX::bind(atlas.gl.tex);
 		shader.setTexSize(atlas.size);
+#endif // MKXPZ_RETRO
 	}
 
 	void updateActiveElements(std::vector<int> &zlayerInd)
@@ -930,9 +986,11 @@ struct TilemapPrivate
 		/* Only allocate elements for non-emtpy zlayers */
 		std::vector<int> zlayerInd;
 
+#ifndef MKXPZ_RETRO
 		for (size_t i = 0; i < zlayersMax; ++i)
 			if (zlayerVert[i].size() > 0)
 				zlayerInd.push_back(i);
+#endif // MKXPZ_RETRO
 
 		updateActiveElements(zlayerInd);
 		elem.activeLayers = zlayerInd.size();
@@ -984,6 +1042,7 @@ struct TilemapPrivate
 			ZLayer *batchHead = zlayers[i];
 			batchHead->batchedFlag = false;
 
+#ifndef MKXPZ_RETRO
 			GLsizei vboBatchCount = batchHead->vboCount;
 			IntruListLink<SceneElement> *iter = &batchHead->link;
 
@@ -1003,6 +1062,7 @@ struct TilemapPrivate
 			}
 
 			batchHead->vboBatchCount = vboBatchCount;
+#endif // MKXPZ_RETRO
 			--i;
 		}
 	}
@@ -1075,7 +1135,9 @@ struct TilemapPrivate
 
 GroundLayer::GroundLayer(TilemapPrivate *p, Viewport *viewport)
     : ViewportElement(viewport, 0),
+#ifndef MKXPZ_RETRO
       vboCount(0),
+#endif // MKXPZ_RETRO
       p(p)
 {
 	onGeometryChange(scene->getGeometry());
@@ -1083,11 +1145,14 @@ GroundLayer::GroundLayer(TilemapPrivate *p, Viewport *viewport)
 
 void GroundLayer::updateVboCount()
 {
+#ifndef MKXPZ_RETRO
 	vboCount = p->zlayerBases[0] * 6;
+#endif // MKXPZ_RETRO
 }
 
 void GroundLayer::draw()
 {
+#ifndef MKXPZ_RETRO
 	if (p->groundVert.size() == 0)
 		return;
 
@@ -1111,11 +1176,14 @@ void GroundLayer::draw()
 	p->flashMap.draw(flashAlpha[p->flashAlphaIdx] / 255.f, p->dispPos);
 
 	glState.blendMode.pop();
+#endif // MKXPZ_RETRO
 }
 
 void GroundLayer::drawInt()
 {
+#ifndef MKXPZ_RETRO
 	gl.DrawElements(GL_TRIANGLES, vboCount, _GL_INDEX_TYPE, (GLvoid*) 0);
+#endif // MKXPZ_RETRO
 }
 
 void GroundLayer::onGeometryChange(const Scene::Geometry &geo)
@@ -1125,11 +1193,15 @@ void GroundLayer::onGeometryChange(const Scene::Geometry &geo)
 
 ZLayer::ZLayer(TilemapPrivate *p, Viewport *viewport)
     : ViewportElement(viewport, 0),
+#ifdef MKXPZ_RETRO
+      index(0)
+#else
       index(0),
       vboOffset(0),
       vboCount(0),
       p(p),
       vboBatchCount(0)
+#endif // MKXPZ_RETRO
 {}
 
 void ZLayer::setIndex(int value)
@@ -1139,8 +1211,10 @@ void ZLayer::setIndex(int value)
 	z = calculateZ(p, index);
 	scene->reinsert(*this);
 
+#ifndef MKXPZ_RETRO
 	vboOffset = p->zlayerBases[index] * sizeof(index_t) * 6;
 	vboCount = p->zlayerSize(index) * 6;
+#endif // MKXPZ_RETRO
 }
 
 void ZLayer::draw()
@@ -1153,6 +1227,7 @@ void ZLayer::draw()
 	p->bindShader(shader);
 	p->bindAtlas(*shader);
 
+#ifndef MKXPZ_RETRO
 	glState.blendMode.pushSet(p->blendType);
 
 	GLMeta::vaoBind(p->tiles.vao);
@@ -1163,11 +1238,14 @@ void ZLayer::draw()
 	GLMeta::vaoUnbind(p->tiles.vao);
 
 	glState.blendMode.pop();
+#endif // MKXPZ_RETRO
 }
 
 void ZLayer::drawInt()
 {
+#ifndef MKXPZ_RETRO
 	gl.DrawElements(GL_TRIANGLES, vboBatchCount, _GL_INDEX_TYPE, (GLvoid*) vboOffset);
+#endif // MKXPZ_RETRO
 }
 
 int ZLayer::calculateZ(TilemapPrivate *p, int index)
