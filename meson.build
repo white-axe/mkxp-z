@@ -85,6 +85,7 @@ if get_option('retro') == true
         'ALSOFT_EXAMPLES': false,
         'ALSOFT_UPDATE_BUILD_VERSION': false,
         'ALSOFT_EMBED_HRTF_DATA': false,
+        'ALSOFT_RTKIT': false,
         'ALSOFT_BACKEND_PIPEWIRE': false,
         'ALSOFT_BACKEND_PULSEAUDIO': false,
         'ALSOFT_BACKEND_ALSA': false,
@@ -174,6 +175,12 @@ if get_option('retro') == true
         retro_link_args += '-static-libstdc++'
     endif
 
+    # When targeting Emscripten, we need to build a relocatable object
+    if host_system == 'emscripten'
+        compilers['cpp'].has_link_argument('-r', required: true)
+        retro_link_args += '-r'
+    endif
+
     # If possible, stop the linker from reexporting the symbols from the static libraries we use (e.g. zlib)
     if host_system != 'emscripten' and compilers['cpp'].has_link_argument('-Wl,--version-script,' + join_paths(meson.current_source_dir(), 'retro/link.T')) # Only works with GNU linker and LLVM linker
         retro_link_args += '-Wl,--version-script,' + join_paths(meson.current_source_dir(), 'retro/link.T')
@@ -206,8 +213,11 @@ if get_option('retro') == true
         retro_deps += compilers['cpp'].find_library('iconv')
     endif
 
-    library(
-        'retro-' + meson.project_name(),
+    build_target(
+        meson.project_name() + '_libretro',
+        name_prefix: '',
+        name_suffix: host_system == 'emscripten' ? 'bc' : [],
+        target_type: host_system == 'emscripten' ? 'executable' : 'library',
         dependencies: retro_deps,
         c_args: [
             '-fno-optimize-sibling-calls',
@@ -223,7 +233,6 @@ if get_option('retro') == true
         cpp_args: ['-Wno-unused-command-line-argument'] + retro_cppflags + retro_defines,
         link_args: retro_link_args,
         gnu_symbol_visibility: 'hidden',
-        install: true, # Prevents Meson from creating thin archives when building with `--default-library static`; see https://github.com/mesonbuild/meson/issues/9479
         include_directories: [
             include_directories('.'),
             include_directories('src'),
@@ -248,7 +257,7 @@ if get_option('retro') == true
             include_directories(join_paths(retro_phase1, 'sdl/include')),
         ],
         sources: [
-            vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h', replace_string: '@MKXPZ_GIT_HASH@'),
+            vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h'),
             'src/core.cpp',
             'src/sharedstate.cpp',
             'src/audio/alstream.cpp',
@@ -294,7 +303,7 @@ if get_option('retro') == true
     )
 else
 
-global_sources += vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h', replace_string: '@MKXPZ_GIT_HASH@')
+global_sources += vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h')
 if host_endian == 'big'
     global_args += '-DMKXPZ_BIG_ENDIAN'
     global_args += '-DWABT_BIG_ENDIAN=1'

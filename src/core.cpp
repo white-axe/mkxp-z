@@ -317,6 +317,7 @@ extern "C" RETRO_API void retro_init() {
 }
 
 extern "C" RETRO_API void retro_deinit() {
+    std::free(sound_buf);
     std::free(frame_buf);
 }
 
@@ -359,27 +360,27 @@ extern "C" RETRO_API void retro_reset() {
 extern "C" RETRO_API void retro_run() {
     input_poll();
 
-    if (!mkxp_retro::sandbox.has_value()) {
-        return;
-    }
-
-    try {
-        if (sb().run<struct main>()) {
-            log_printf(RETRO_LOG_INFO, "[Sandbox] Ruby terminated normally\n");
+    if (mkxp_retro::sandbox.has_value()) {
+        try {
+            if (sb().run<struct main>()) {
+                log_printf(RETRO_LOG_INFO, "[Sandbox] Ruby terminated normally\n");
+                deinit_sandbox();
+                return;
+            }
+        } catch (SandboxException) {
+            log_printf(RETRO_LOG_ERROR, "[Sandbox] Ruby threw an exception\n");
             deinit_sandbox();
             return;
         }
-    } catch (SandboxException) {
-        log_printf(RETRO_LOG_ERROR, "[Sandbox] Ruby threw an exception\n");
-        deinit_sandbox();
-        return;
     }
 
     video_refresh(frame_buf, 640, 480, 640 * 4);
 
-    audio->render();
-    alcRenderSamplesSOFT(al_device, sound_buf, 735);
-    audio_sample_batch(sound_buf, 735);
+    if (mkxp_retro::sandbox.has_value()) {
+        audio->render();
+        alcRenderSamplesSOFT(al_device, sound_buf, 735);
+        audio_sample_batch(sound_buf, 735);
+    }
 }
 
 extern "C" RETRO_API size_t retro_serialize_size() {

@@ -384,13 +384,13 @@ jobs:
           mkdir "$runner_temp"/retro-phase2
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          strip libretro-mkxp-z.dll
-          mv libretro-mkxp-z.dll "$runner_temp"/retro-phase2/mkxp-z_libretro.dll
+          strip mkxp-z_libretro.dll
+          mv mkxp-z_libretro.dll "$runner_temp"/retro-phase2
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: libretro-mkxp-z.windows.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          name: mkxp-z_libretro.windows.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/retro-phase2
 
   build-retro-linux-gnu:
@@ -481,16 +481,16 @@ jobs:
           CLICOLOR_FORCE=1 ninja -v
           if [ '${{ matrix.arch_mkxpz }}' != 'x86_64' ]
           then
-            ${{ matrix.arch_gcc }}-strip libretro-mkxp-z.so
+            ${{ matrix.arch_gcc }}-strip mkxp-z_libretro.so
           else
-            strip libretro-mkxp-z.so
+            strip mkxp-z_libretro.so
           fi
-          mv libretro-mkxp-z.so ${{ runner.temp }}/retro-phase2/mkxp-z_libretro.so
+          mv mkxp-z_libretro.so ${{ runner.temp }}/retro-phase2
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: libretro-mkxp-z.linux-gnu.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          name: mkxp-z_libretro.linux-gnu.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/retro-phase2
 
   build-retro-linux-musl:
@@ -619,13 +619,13 @@ jobs:
           mkdir ${{ runner.temp }}/retro-phase2
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          llvm-strip libretro-mkxp-z.so
-          mv libretro-mkxp-z.so ${{ runner.temp }}/retro-phase2/mkxp-z_libretro.so
+          llvm-strip mkxp-z_libretro.so
+          mv mkxp-z_libretro.so ${{ runner.temp }}/retro-phase2
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: libretro-mkxp-z.linux-musl.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          name: mkxp-z_libretro.linux-musl.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/retro-phase2
 
   build-retro-android:
@@ -710,13 +710,13 @@ jobs:
           mkdir ${{ runner.temp }}/retro-phase2
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          llvm-strip libretro-mkxp-z.so
-          mv libretro-mkxp-z.so ${{ runner.temp }}/retro-phase2/mkxp-z_libretro.so
+          llvm-strip mkxp-z_libretro.so
+          mv mkxp-z_libretro.so ${{ runner.temp }}/retro-phase2
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: libretro-mkxp-z.android.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          name: mkxp-z_libretro.android.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/retro-phase2
 
   build-retro-darwin:
@@ -777,13 +777,13 @@ jobs:
           mkdir ${{ runner.temp }}/retro-phase2
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          strip -x libretro-mkxp-z.dylib
-          mv libretro-mkxp-z.dylib ${{ runner.temp }}/retro-phase2/mkxp-z_libretro.dylib
+          strip -x mkxp-z_libretro.dylib
+          mv mkxp-z_libretro.dylib ${{ runner.temp }}/retro-phase2
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: libretro-mkxp-z.darwin.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          name: mkxp-z_libretro.darwin.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/retro-phase2
 
   build-retro-emscripten:
@@ -836,36 +836,22 @@ jobs:
           mkdir ${{ runner.temp }}/retro-phase2
           cd build
           CLICOLOR_FORCE=1 ninja -v
-
-      - name: Link core
-        run: |
-          cd build
-          mkdir mkxp-link
-          cd mkxp-link
-          set -o xtrace
-          find ../ -type f -name '*.a' -print0 | while IFS= read -r -d '' path; do
-            filename="$(basename "$path")"
-            mkdir "$filename.p"
-            cd "$filename.p"
-            emar x "../$path"
-            cd ..
-          done
-          find ./ -type f -name '*.o' -print0 | xargs -0 emcc -r -o ${{ runner.temp }}/libretro-mkxp-z.bc
+          mv mkxp-z_libretro.bc ${{ runner.temp }}
 
       - name: Build RetroArch
         run: |
           cd ${{ runner.temp }}
           git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest | jq -r '.tag_name')
-          mv libretro-mkxp-z.bc retroarch/libretro_emscripten.bc
+          mv mkxp-z_libretro.bc retroarch/libretro_emscripten.bc
           cd retroarch
-          emmake make -f Makefile.emscripten LIBRETRO=mkxp-z
+          CLICOLOR_FORCE=1 emmake make -f Makefile.emscripten LIBRETRO=mkxp-z
           mv mkxp-z_libretro.wasm ${{ runner.temp }}/retro-phase2
           mv mkxp-z_libretro.js ${{ runner.temp }}/retro-phase2
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: libretro-mkxp-z.emscripten.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          name: mkxp-z_libretro.emscripten.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/retro-phase2
 
   build-retro-vita:
@@ -914,12 +900,12 @@ jobs:
           mkdir ~/retro-phase2
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          mv libretro-mkxp-z.a ~/retro-phase2/mkxp-z_libretro.a
+          mv mkxp-z_libretro.a ~/retro-phase2
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: libretro-mkxp-z.vita.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          name: mkxp-z_libretro.vita.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ~/retro-phase2
 
   build-retro-wiiu:
@@ -970,12 +956,12 @@ jobs:
           mkdir ~/retro-phase2
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          mv libretro-mkxp-z.a ~/retro-phase2/mkxp-z_libretro.a
+          mv mkxp-z_libretro.a ~/retro-phase2
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: libretro-mkxp-z.wiiu.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          name: mkxp-z_libretro.wiiu.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ~/retro-phase2
 
   build-retro-switch:
@@ -1027,10 +1013,10 @@ jobs:
           mkdir ~/retro-phase2
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          mv libretro-mkxp-z.a ~/retro-phase2/mkxp-z_libretro.a
+          mv mkxp-z_libretro.a ~/retro-phase2
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: libretro-mkxp-z.switch.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          name: mkxp-z_libretro.switch.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ~/retro-phase2
