@@ -1,0 +1,16 @@
+# Disables checking for endianness when targeting Emscripten because it causes configuration errors, and because we already know Emscripten targets are always little-endian.
+
+--- a/ports/cmake/src/CMakeLists.txt
++++ b/ports/cmake/src/CMakeLists.txt
+@@ -93,7 +93,10 @@ endif()
+ search_libs(gethostbyname GETHOSTBYNAME_LIB nsl socket network)
+ search_libs(socket SOCKET_LIB socket)
+ 
+-test_big_endian(WORDS_BIGENDIAN)
++string(TOLOWER ${CMAKE_SYSTEM_NAME} SYSTEM_LOWER)
++if(NOT SYSTEM_LOWER STREQUAL "emscripten")
++	test_big_endian(WORDS_BIGENDIAN)
++endif()
+ 
+ check_c_source_compiles(
+     "int main() { __asm__(\".balign 4\"); return 0; }"

@@ -829,7 +829,7 @@ jobs:
           echo "cpu = 'wasm32'" | tee -a ${{ runner.temp }}/cross.ini
           echo "endian = 'little'" | tee -a ${{ runner.temp }}/cross.ini
           echo '--------------------------------------------------------------------------------'
-          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --default-library static --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         run: |

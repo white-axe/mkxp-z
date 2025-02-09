@@ -1,5 +1,5 @@
 [wrap-git]
 url = https://github.com/libsndfile/libsndfile
-revision = v1.0.30
+revision = 1.2.2
 depth = 1
-diff_files = libsndfile-emscripten-endian.patch, libsndfile-offset.patch
+diff_files = libsndfile-deps.patch, libsndfile-emscripten-endian.patch

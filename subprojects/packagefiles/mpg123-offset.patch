@@ -1,0 +1,13 @@
+# Fixes a problem where the size of off_t is miscalculated on certain platforms.
+
+--- a/ports/cmake/src/CMakeLists.txt
++++ b/ports/cmake/src/CMakeLists.txt
+@@ -71,7 +71,7 @@ check_function_exists(fork HAVE_FORK)
+ check_function_exists(execvp HAVE_EXECVP)
+ check_function_exists(ctermid HAVE_CTERMID)
+ check_function_exists(clock_gettime HAVE_CLOCK_GETTIME)
+-
++set(CMAKE_REQUIRED_DEFINITIONS ${CMAKE_REQUIRED_DEFINITIONS} /D_FILE_OFFSET_BITS=64)
+ check_type_size(off_t SIZEOF_OFF_T)
+ 
+ if(SIZEOF_OFF_T LESS 8)

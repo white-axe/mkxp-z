@@ -2,7 +2,7 @@
 
 --- a/cmake/SndFileChecks.cmake
 +++ b/cmake/SndFileChecks.cmake
-@@ -179,7 +179,10 @@ endif ()
+@@ -168,7 +168,10 @@ endif ()
  
  check_symbol_exists (S_IRGRP sys/stat.h HAVE_DECL_S_IRGRP)
  

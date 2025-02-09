@@ -198,6 +198,9 @@ void SoundEmitter::stop()
 
 struct SoundOpenHandler : FileSystem::OpenHandler
 {
+#ifdef MKXPZ_RETRO
+	int errnum;
+#endif // MKXPZ_RETRO
 	SoundBuffer *buffer;
 
 	SoundOpenHandler()
@@ -220,7 +223,7 @@ struct SoundOpenHandler : FileSystem::OpenHandler
 #endif // MKXPZ_RETRO
 
 #ifdef MKXPZ_RETRO
-		if (handle.error())
+		if ((errnum = handle.error()))
 #else
 		if (!sample)
 #endif // MKXPZ_RETRO
@@ -302,13 +305,17 @@ SoundBuffer *SoundEmitter::allocateBuffer(const std::string &filename)
 		if (!buffer)
 		{
 			char buf[512];
+			snprintf(
+				buf,
+				sizeof(buf),
+				"Unable to decode sound: %s: %s",
+				filename.c_str(),
 #ifdef MKXPZ_RETRO
-			snprintf(buf, sizeof(buf), "Unable to decode sound: %s",
-			         filename.c_str());
+				sf_error_number(handler.errnum)
 #else
-			snprintf(buf, sizeof(buf), "Unable to decode sound: %s: %s",
-			         filename.c_str(), Sound_GetError());
+			        Sound_GetError()
 #endif // MKXPZ_RETRO
+			);
 			Debug() << buf;
 
 			return 0;

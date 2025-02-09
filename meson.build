@@ -129,6 +129,45 @@ if get_option('retro') == true
         'BUILD_FRAMEWORK': false,
     })
 
+    flac_options = cmake.subproject_options()
+    flac_options.add_cmake_defines({
+        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'BUILD_SHARED_LIBS': false,
+        'BUILD_CXXLIBS': false,
+        'BUILD_PROGRAMS': false,
+        'BUILD_EXAMPLES': false,
+        'BUILD_TESTING': false,
+        'BUILD_DOCS': false,
+        'BUILD_UTILS': false,
+        'ENABLE_MULTITHREADING': false,
+        'INSTALL_MANPAGES': false,
+        'WITH_OGG': false,
+    })
+
+    opus_options = cmake.subproject_options()
+    opus_options.add_cmake_defines({
+        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'BUILD_SHARED_LIBS': false,
+        'OPUS_BUILD_SHARED_LIBRARY': false,
+        'OPUS_BUILD_TESTING': false,
+        'OPUS_CUSTOM_MODES': false,
+        'OPUS_BUILD_PROGRAMS': false,
+        'OPUS_DISABLE_INTRINSICS': true,
+        'OPUS_FLOAT_APPROX': false,
+        'OPUS_BUILD_FRAMEWORK': false,
+        'OPUS_STATIC_RUNTIME': false,
+    })
+
+    mpg123_options = cmake.subproject_options()
+    mpg123_options.add_cmake_defines({
+        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'BUILD_SHARED_LIBS': false,
+        'BUILD_PROGRAMS': false,
+        'BUILD_LIBOUT123': false,
+        'CHECK_MODULES': false,
+        'FIFO': false,
+    })
+
     libsndfile_options = cmake.subproject_options()
     libsndfile_options.add_cmake_defines({
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
@@ -140,8 +179,8 @@ if get_option('retro') == true
         'ENABLE_CPACK': false,
         'ENABLE_PACKAGE_CONFIG': false,
         'INSTALL_PKGCONFIG_MODULE': false,
-        'ENABLE_EXTERNAL_LIBS': false,
-        'ENABLE_MPEG': false,
+        'ENABLE_EXTERNAL_LIBS': true,
+        'ENABLE_MPEG': true,
         'ENABLE_EXPERIMENTAL': false,
     })
 
@@ -207,6 +246,9 @@ if get_option('retro') == true
         cmake.subproject('ogg', options: ogg_options).dependency('ogg'),
         cmake.subproject('vorbis', options: vorbis_options).dependency('vorbis'),
         cmake.subproject('vorbis', options: vorbis_options).dependency('vorbisfile'),
+        cmake.subproject('flac', options: flac_options).dependency('FLAC'),
+        cmake.subproject('opus', options: opus_options).dependency('opus'),
+        cmake.subproject('mpg123', options: mpg123_options).dependency('libmpg123'),
         cmake.subproject('libsndfile', options: libsndfile_options).dependency('sndfile'),
     ]
     if host_system == 'darwin'
