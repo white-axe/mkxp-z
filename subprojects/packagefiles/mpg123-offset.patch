@@ -11,3 +11,111 @@
  check_type_size(off_t SIZEOF_OFF_T)
  
  if(SIZEOF_OFF_T LESS 8)
+--- a/src/libmpg123/lfs_wrap.c
++++ b/src/libmpg123/lfs_wrap.c
+@@ -48,18 +48,22 @@
+ #ifndef OFF_MAX
+ #undef OFF_MIN
+ #if SIZEOF_OFF_T == 4
++#define REAL_SIZEOF_OFF_T 4
+ #define OFF_MAX INT32_MAX
+ #define OFF_MIN INT32_MIN
+-#elif SIZEOF_OFF_T == 8
++#elif SIZEOF_OFF_T == 8 || (defined(__EMSCRIPTEN__) && SIZEOF_OFF_T == 0)
++#define REAL_SIZEOF_OFF_T 8
+ #define OFF_MAX INT64_MAX
+ #define OFF_MIN INT64_MIN
+ #else
+ #error "Unexpected width of off_t."
+ #endif
++#else
++#define REAL_SIZEOF_OFF_T SIZEOF_OFF_T
+ #endif
+ 
+ // A paranoid check that someone did not define a wrong SIZEOF_OFF_T at configure time.
+-typedef unsigned char MPG123_STATIC_ASSERT[(SIZEOF_OFF_T == sizeof(off_t)) ? 1 : -1];
++typedef unsigned char MPG123_STATIC_ASSERT[(REAL_SIZEOF_OFF_T == sizeof(off_t)) ? 1 : -1];
+ 
+ #include "../common/debug.h"
+ 
+@@ -87,7 +91,7 @@ int attribute_align_arg mpg123_position64( mpg123_handle *fr, int64_t no, int64_
+ struct wrap_data
+ {
+ 	/* Storage for small offset index table. */
+-#if SIZEOF_OFF_T == 4
++#if REAL_SIZEOF_OFF_T == 4
+ 	off_t *indextable;
+ 	// And ironically, another big offset table for mpg123_set_index_32.
+ 	// I wand to avoid having to change a line of code in the internals.
+@@ -153,7 +157,7 @@ void INT123_wrap_destroy(void *handle)
+ 	if(!wh)
+ 		return;
+ 	wrap_io_cleanup(handle);
+-#if SIZEOF_OFF_T == 4
++#if REAL_SIZEOF_OFF_T == 4
+ 	if(wh->indextable != NULL)
+ 		free(wh->indextable);
+ 	if(wh->set_indextable != NULL)
+@@ -184,7 +188,7 @@ static struct wrap_data* wrap_get(mpg123_handle *mh, int force_alloc)
+ 			return NULL;
+ 		}
+ 		whd = *whd_;
+-#if SIZEOF_OFF_T == 4
++#if REAL_SIZEOF_OFF_T == 4
+ 		whd->indextable = NULL;
+ 		whd->set_indextable = NULL;
+ #endif
+@@ -313,7 +317,7 @@ off_t attribute_align_arg mpg123_length(mpg123_handle *mh)
+ // If the former, we create a copy of the index table.
+ int attribute_align_arg mpg123_index(mpg123_handle *mh, off_t **offsets, off_t *step, size_t *fill)
+ {
+-#if SIZEOF_OFF_T == 8
++#if REAL_SIZEOF_OFF_T == 8
+ 	return mpg123_index64(mh, (int64_t**)offsets, (int64_t*)step, fill);
+ #else
+ 	int err;
+@@ -354,7 +358,7 @@ int attribute_align_arg mpg123_index(mpg123_handle *mh, off_t **offsets, off_t *
+ 
+ int attribute_align_arg mpg123_set_index(mpg123_handle *mh, off_t *offsets, off_t step, size_t fill)
+ {
+-#if SIZEOF_OFF_T == 8
++#if REAL_SIZEOF_OFF_T == 8
+ 	return mpg123_set_index64(mh, (int64_t*)offsets, (int64_t)step, fill);
+ #else
+ 	int err;
+@@ -410,7 +414,7 @@ int attribute_align_arg mpg123_position( mpg123_handle *mh, off_t INT123_frame_o
+ 
+ // _32 aliases only for native 32 bit off_t
+ // Will compilers be smart enough to optimize away the extra function call?
+-#if SIZEOF_OFF_T == 4
++#if REAL_SIZEOF_OFF_T == 4
+ 
+ // The open routines are trivial now. I only have differeing symbols suffixes
+ // to keep legacy ABI.
+@@ -524,7 +528,7 @@ int attribute_align_arg mpg123_position_32( mpg123_handle *mh, off_t INT123_fram
+ // _64 aliases if we either got some off64_t to work with or
+ // if there is no explicit 64 bit API but off_t is just always
+ // 64 bits.
+-#if defined(LFS_LARGEFILE_64) || (SIZEOF_OFF_T == 8)
++#if defined(LFS_LARGEFILE_64) || (REAL_SIZEOF_OFF_T == 8)
+ 
+ #ifdef LFS_LARGEFILE_64
+ #define OFF64 off64_t
+@@ -954,7 +958,7 @@ int attribute_align_arg mpg123_replace_reader_handle(mpg123_handle *mh, mpg123_s
+ 	return MPG123_OK;
+ }
+ 
+-#if SIZEOF_OFF_T == 4
++#if REAL_SIZEOF_OFF_T == 4
+ int attribute_align_arg mpg123_replace_reader_32(mpg123_handle *mh, mpg123_ssize_t (*r_read) (int, void *, size_t), off_t (*r_lseek)(int, off_t, int) )
+ {
+ 	return mpg123_replace_reader(mh, r_read, r_lseek);
+@@ -1019,7 +1023,7 @@ int attribute_align_arg mpg123_replace_reader_handle_64(mpg123_handle *mh, mpg12
+ 	return MPG123_OK;
+ }
+ 
+-#elif SIZEOF_OFF_T == 8
++#elif REAL_SIZEOF_OFF_T == 8
+ 
+ // If 64 bit off_t is enforced, libmpg123.c already defines the _64 functions.
+ #ifndef FORCED_OFF_64
