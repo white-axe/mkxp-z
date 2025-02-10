@@ -142,6 +142,8 @@ if get_option('retro') == true
         'ENABLE_MULTITHREADING': false,
         'INSTALL_MANPAGES': false,
         'WITH_OGG': false,
+        'WITH_FORTIFY_SOURCE': false,
+        'WITH_STACK_PROTECTOR': false,
     })
 
     opus_options = cmake.subproject_options()
@@ -156,6 +158,8 @@ if get_option('retro') == true
         'OPUS_FLOAT_APPROX': false,
         'OPUS_BUILD_FRAMEWORK': false,
         'OPUS_STATIC_RUNTIME': false,
+        'OPUS_FORTIFY_SOURCE': false,
+        'OPUS_STACK_PROTECTOR': false,
     })
 
     mpg123_options = cmake.subproject_options()
