@@ -33,7 +33,7 @@ namespace mkxp_sandbox {
 
     SANDBOX_COROUTINE(etc_binding_init,
         SANDBOX_COROUTINE(color_binding_init,
-            SANDBOX_DEF_ALLOC(color_type)
+            SANDBOX_DEF_ALLOC_WITH_INIT(color_type, new Color)
             SANDBOX_DEF_DFREE(Color)
             SANDBOX_DEF_LOAD(Color)
 
@@ -209,7 +209,7 @@ namespace mkxp_sandbox {
         )
 
         SANDBOX_COROUTINE(tone_binding_init,
-            SANDBOX_DEF_ALLOC(tone_type)
+            SANDBOX_DEF_ALLOC_WITH_INIT(tone_type, new Tone)
             SANDBOX_DEF_DFREE(Tone)
             SANDBOX_DEF_LOAD(Tone)
 
@@ -385,7 +385,7 @@ namespace mkxp_sandbox {
         )
 
         SANDBOX_COROUTINE(rect_binding_init,
-            SANDBOX_DEF_ALLOC(rect_type)
+            SANDBOX_DEF_ALLOC_WITH_INIT(rect_type, new Rect)
             SANDBOX_DEF_DFREE(Rect)
             SANDBOX_DEF_LOAD(Rect)
 
