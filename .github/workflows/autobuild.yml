@@ -854,6 +854,62 @@ jobs:
           name: mkxp-z_libretro.emscripten.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/retro-phase2
 
+  build-retro-3ds:
+    needs: build-retro-phase1
+    name: LR Nintendo 3DS
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitarm:latest
+    steps:
+      - name: Install dependencies
+        run: |
+          apt update
+          apt install -y git build-essential pip ninja-build
+          apt remove -y meson cmake
+          pip install meson cmake
+
+      - id: short-sha
+        name: Get Git commit hash
+        uses: benjlevesque/short-sha@v2.2
+        with:
+          length: 7
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download phase 1
+        uses: actions/download-artifact@v4
+        with:
+          name: retro-phase1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          path: retro/build/retro-phase1
+
+      - name: Configure core
+        run: |
+          echo "[binaries]" | tee -a ~/cross.ini
+          echo "c = '/opt/devkitpro/devkitARM/bin/arm-none-eabi-gcc'" | tee -a ~/cross.ini
+          echo "cpp = '/opt/devkitpro/devkitARM/bin/arm-none-eabi-g++'" | tee -a ~/cross.ini
+          echo "ar = '/opt/devkitpro/devkitARM/bin/arm-none-eabi-ar'" | tee -a ~/cross.ini
+          echo "[host_machine]" | tee -a ~/cross.ini
+          echo "system = 'bare'" | tee -a ~/cross.ini
+          echo "cpu_family = 'arm'" | tee -a ~/cross.ini
+          echo "cpu = 'arm11mpcore'" | tee -a ~/cross.ini
+          echo "endian = 'little'" | tee -a ~/cross.ini
+          echo '--------------------------------------------------------------------------------'
+          git config --global --add safe.directory "$(pwd)"
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --default-library static --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+
+      - name: Build core
+        run: |
+          mkdir ~/retro-phase2
+          cd build
+          CLICOLOR_FORCE=1 ninja -v
+          mv mkxp-z_libretro.a ~/retro-phase2
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mkxp-z_libretro.3ds.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          path: ~/retro-phase2
+
   build-retro-vita:
     needs: build-retro-phase1
     name: LR PlayStation Vita
@@ -1005,8 +1061,7 @@ jobs:
           echo "endian = 'little'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          # Enabling LTO with devkitA64 causes "plugin needed to handle lto object" linker error
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --default-library static --buildtype release -Db_lto=false -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --default-library static --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         run: |
