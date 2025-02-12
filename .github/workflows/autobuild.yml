@@ -920,6 +920,71 @@ jobs:
           name: mkxp-z_libretro.3ds.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ~/retro-phase2
 
+  build-retro-ps3:
+    needs: build-retro-phase1
+    name: LR PlayStation 3
+    runs-on: ubuntu-latest
+    container: scummvm/dockerized-toolchains:ps3
+    steps:
+      - name: Install dependencies
+        run: |
+          apt update
+          apt install -y git build-essential pip ninja-build jq
+          apt remove -y meson cmake
+          pip install --break-system-packages meson cmake
+
+      - id: short-sha
+        name: Get Git commit hash
+        uses: benjlevesque/short-sha@v2.2
+        with:
+          length: 7
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download phase 1
+        uses: actions/download-artifact@v4
+        with:
+          name: retro-phase1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          path: retro/build/retro-phase1
+
+      - name: Configure core
+        run: |
+          echo "[binaries]" | tee -a ~/cross.ini
+          echo "c = 'powerpc64-ps3-elf-gcc'" | tee -a ~/cross.ini
+          echo "cpp = 'powerpc64-ps3-elf-g++'" | tee -a ~/cross.ini
+          echo "ar = 'powerpc64-ps3-elf-ar'" | tee -a ~/cross.ini
+          echo "[host_machine]" | tee -a ~/cross.ini
+          echo "system = 'bare'" | tee -a ~/cross.ini
+          echo "cpu_family = 'ppc64'" | tee -a ~/cross.ini
+          echo "cpu = 'ppc-cell-be'" | tee -a ~/cross.ini
+          echo "endian = 'big'" | tee -a ~/cross.ini
+          echo '--------------------------------------------------------------------------------'
+          git config --global --add safe.directory "$(pwd)"
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+
+      - name: Build core
+        run: |
+          mkdir ~/retro-phase2
+          cd build
+          CLICOLOR_FORCE=1 ninja -v
+          mv mkxp-z_libretro.a ~
+
+      - name: Build RetroArch
+        run: |
+          cd ~
+          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest | jq -r '.tag_name')
+          mv mkxp-z_libretro.a retroarch/libretro_psl1ght.a
+          cd retroarch
+          CLICOLOR_FORCE=1 make -f Makefile.psl1ght LIBRETRO=mkxp-z
+          mv retroarch_psl1ght.self ~/retro-phase2/mkxp-z_libretro.self
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mkxp-z_libretro.ps3.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          path: ~/retro-phase2
+
   build-retro-vita:
     needs: build-retro-phase1
     name: LR PlayStation Vita
@@ -959,7 +1024,7 @@ jobs:
           echo "endian = 'little'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini -Db_staticpic=false --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         run: |
@@ -1046,6 +1111,69 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mkxp-z_libretro.wiiu.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          path: ~/retro-phase2
+
+  build-retro-ps4:
+    needs: build-retro-phase1
+    name: LR PlayStation 4
+    runs-on: ubuntu-latest
+    container: orbisdev/orbisdev:latest
+    steps:
+      - name: Install dependencies
+        run: |
+          apk update
+          apk add git build-base meson cmake jq
+
+      - id: short-sha
+        name: Get Git commit hash
+        uses: benjlevesque/short-sha@v2.2
+        with:
+          length: 7
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download phase 1
+        uses: actions/download-artifact@v4
+        with:
+          name: retro-phase1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          path: retro/build/retro-phase1
+
+      - name: Configure core
+        run: |
+          echo "[binaries]" | tee -a ~/cross.ini
+          echo "c = 'clang'" | tee -a ~/cross.ini
+          echo "cpp = 'clang++'" | tee -a ~/cross.ini
+          echo "ar = 'orbis-ar'" | tee -a ~/cross.ini
+          echo "[host_machine]" | tee -a ~/cross.ini
+          echo "system = 'bare'" | tee -a ~/cross.ini
+          echo "cpu_family = 'x86_64'" | tee -a ~/cross.ini
+          echo "cpu = 'x86_64'" | tee -a ~/cross.ini
+          echo "endian = 'little'" | tee -a ~/cross.ini
+          echo '--------------------------------------------------------------------------------'
+          git config --global --add safe.directory "$(pwd)"
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+
+      - name: Build core
+        run: |
+          mkdir ~/retro-phase2
+          cd build
+          CLICOLOR_FORCE=1 ninja -v
+          mv mkxp-z_libretro.a ~
+
+      - name: Build RetroArch
+        run: |
+          cd ~
+          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest | jq -r '.tag_name')
+          mv mkxp-z_libretro.a retroarch/libretro_orbis.a
+          cd retroarch
+          CLICOLOR_FORCE=1 make -f Makefile.orbis LIBRETRO=mkxp-z
+          mv retroarch_orbis.self ~/retro-phase2/mkxp-z_libretro.self
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mkxp-z_libretro.ps4.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ~/retro-phase2
 
   build-retro-switch:
