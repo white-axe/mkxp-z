@@ -2,61 +2,70 @@
 
 --- a/common/althreads.h
 +++ b/common/althreads.h
+@@ -13,7 +13,7 @@
+ 
+ #include <pthread.h>
+ 
+-#else
++#elif (!defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)) && !defined(__DEVKITPPC__) && !defined(__vita__)
+ 
+ #include <threads.h>
+ #endif
 @@ -107,29 +107,57 @@ public:
  
  #else
  
-+#if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
++#if (defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)) || defined(__DEVKITPPC__) || defined(__vita__)
 +    void **mTss;
 +#else
      tss_t mTss{};
-+#endif /* defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__) */
++#endif /* (defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)) || defined(__DEVKITPPC__) || defined(__vita__) */
  
  public:
      tss()
      {
-+#if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
++#if (defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)) || defined(__DEVKITPPC__) || defined(__vita__)
 +        if ((mTss = (void **)std::malloc(sizeof *mTss)) == NULL)
 +            throw std::runtime_error{"al::tss::tss()"};
 +        *mTss = nullptr;
 +#else
          if(int res{tss_create(&mTss, nullptr)}; res != thrd_success)
              throw std::runtime_error{"al::tss::tss()"};
-+#endif /* defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__) */
++#endif /* (defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)) || defined(__DEVKITPPC__) || defined(__vita__) */
      }
      explicit tss(const T &init) : tss{}
      {
-+#if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
++#if (defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)) || defined(__DEVKITPPC__) || defined(__vita__)
 +        if ((mTss = (void **)std::malloc(sizeof *mTss)) == NULL)
 +            throw std::runtime_error{"al::tss::tss()"};
 +        *mTss = to_ptr(init);
 +#else
          if(int res{tss_set(mTss, to_ptr(init))}; res != thrd_success)
              throw std::runtime_error{"al::tss::tss(T)"};
-+#endif /* defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__) */
++#endif /* (defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)) || defined(__DEVKITPPC__) || defined(__vita__) */
      }
-+#if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
++#if (defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)) || defined(__DEVKITPPC__) || defined(__vita__)
 +    ~tss() { std::free(mTss); }
 +#else
      ~tss() { tss_delete(mTss); }
-+#endif /* defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__) */
++#endif /* (defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)) || defined(__DEVKITPPC__) || defined(__vita__) */
  
      void set(const T &value) const
      {
-+#if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
++#if (defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)) || defined(__DEVKITPPC__) || defined(__vita__)
 +        *mTss = to_ptr(value);
 +#else
          if(int res{tss_set(mTss, to_ptr(value))}; res != thrd_success)
              throw std::runtime_error{"al::tss::set(T)"};
-+#endif /* defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__) */
++#endif /* (defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)) || defined(__DEVKITPPC__) || defined(__vita__) */
      }
  
      [[nodiscard]]
-+#if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
++#if (defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)) || defined(__DEVKITPPC__) || defined(__vita__)
 +    auto get() const noexcept -> T { return from_ptr(*mTss); }
 +#else
      auto get() const noexcept -> T { return from_ptr(tss_get(mTss)); }
-+#endif /* defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__) */
++#endif /* (defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)) || defined(__DEVKITPPC__) || defined(__vita__) */
  #endif /* _WIN32 */
  
      tss(const tss&) = delete;
