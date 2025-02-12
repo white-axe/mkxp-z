@@ -794,7 +794,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y git build-essential meson cmake
+          sudo apt install -y git build-essential meson cmake jq
 
       - name: Set up Emscripten SDK
         uses: mymindstorm/setup-emsdk@v14
@@ -863,7 +863,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt update
-          apt install -y git build-essential pip ninja-build
+          apt install -y git build-essential pip ninja-build jq
           apt remove -y meson cmake
           pip install meson cmake
 
@@ -895,7 +895,7 @@ jobs:
           echo "endian = 'little'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --default-library static --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         run: |
@@ -929,7 +929,7 @@ jobs:
       - name: Install dependencies
         run: |
           apk update
-          apk add git build-base meson cmake
+          apk add git build-base meson cmake jq
 
       - id: short-sha
         name: Get Git commit hash
@@ -959,7 +959,7 @@ jobs:
           echo "endian = 'little'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --default-library static -Db_staticpic=false --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini -Db_staticpic=false --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         run: |
@@ -992,7 +992,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt update
-          apt install -y git build-essential pip ninja-build
+          apt install -y git build-essential pip ninja-build jq
           apt remove -y meson cmake
           pip install meson cmake
 
@@ -1024,7 +1024,7 @@ jobs:
           echo "endian = 'big'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --default-library static --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         run: |
@@ -1057,7 +1057,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt update
-          apt install -y git build-essential pip ninja-build
+          apt install -y git build-essential pip ninja-build jq
           apt remove -y meson cmake
           pip install meson cmake
 
@@ -1089,7 +1089,7 @@ jobs:
           echo "endian = 'little'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --default-library static --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         run: |

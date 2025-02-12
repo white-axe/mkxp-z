@@ -3,6 +3,9 @@ project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=1.3.0', defaul
 host_system = host_machine.system()
 host_endian = host_machine.endian()
 
+is_emscripten = host_system == 'emscripten'
+core_is_static = host_system == 'bare' or host_system == 'none'
+
 if get_option('retro') == false and host_system == 'darwin'
     error('\nThis Meson project no longer supports macOS. Please use the Xcode project instead.')
 endif
@@ -196,7 +199,7 @@ if get_option('retro') == true
     if host_endian == 'big'
         retro_defines += '-DMKXPZ_BIG_ENDIAN'
     endif
-    if host_system == 'emscripten' or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'check if C++ exceptions are enabled')
+    if is_emscripten or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'check if C++ exceptions are enabled')
         retro_defines += '-DMKXPZ_NO_EXCEPTIONS'
         retro_defines += '-DBOOST_NO_EXCEPTIONS'
     endif
@@ -216,7 +219,7 @@ if get_option('retro') == true
     endif
 
     # When targeting Emscripten, we need to build a relocatable object
-    if host_system == 'emscripten'
+    if is_emscripten
         compilers['cpp'].has_link_argument('-r', required: true)
         retro_link_args += '-r'
     endif
@@ -256,12 +259,29 @@ if get_option('retro') == true
         retro_deps += compilers['cpp'].find_library('iconv')
     endif
 
+    if core_is_static
+        retro_deps_processed = []
+        foreach dep : retro_deps
+            retro_deps_processed += dep.as_link_whole()
+        endforeach
+    else
+        retro_deps_processed = retro_deps
+    endif
+
+    if is_emscripten
+        retro_target_type = 'executable' # Actually a relocatable object; we just pass 'executable' as the target type to get Meson to use the correct commands
+    elif core_is_static
+        retro_target_type = 'static_library'
+    else
+        retro_target_type = 'shared_library'
+    endif
+
     build_target(
         meson.project_name() + '_libretro',
         name_prefix: '',
-        name_suffix: host_system == 'emscripten' ? 'bc' : [],
-        target_type: host_system == 'emscripten' ? 'executable' : 'library',
-        dependencies: retro_deps,
+        name_suffix: is_emscripten ? 'bc' : [],
+        target_type: retro_target_type,
+        dependencies: retro_deps_processed,
         c_args: [
             '-fno-optimize-sibling-calls',
             '-frounding-math',
@@ -276,7 +296,7 @@ if get_option('retro') == true
         cpp_args: ['-Wno-unused-command-line-argument'] + retro_cppflags + retro_defines,
         link_args: retro_link_args,
         gnu_symbol_visibility: 'hidden',
-        install: true, # Prevents Meson from creating thin archives when building with `--default-library static`; see https://github.com/mesonbuild/meson/issues/9479
+        install: true, # Prevents Meson from creating thin archives; see https://github.com/mesonbuild/meson/issues/9479
         include_directories: [
             include_directories('.'),
             include_directories('binding-sandbox'),
@@ -350,7 +370,7 @@ global_sources += vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fall
 if host_endian == 'big'
     global_args += '-DMKXPZ_BIG_ENDIAN'
 endif
-if host_system == 'emscripten' or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'check if C++ exceptions are enabled')
+if is_emscripten or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'check if C++ exceptions are enabled')
     retro_defines += '-DMKXPZ_NO_EXCEPTIONS'
     retro_defines += '-DBOOST_NO_EXCEPTIONS'
 endif
