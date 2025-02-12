@@ -22,7 +22,7 @@
 #ifndef MKXPZ_SANDBOX_BINDING_UTIL_H
 #define MKXPZ_SANDBOX_BINDING_UTIL_H
 
-#include "binding-sandbox/core.h"
+#include "core.h"
 #include "sandbox.h"
 
 #define GFX_GUARD_EXC(exp) exp // TODO: implement

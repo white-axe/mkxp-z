@@ -304,75 +304,56 @@ HEREDOC
 POSTSCRIPT = <<~HEREDOC
 
   struct bindings::rb_data_type bindings::rb_data_type(const char *wrap_struct_name, void (*dmark)(wasm_ptr_t), void (*dfree)(wasm_ptr_t), wasm_size_t (*dsize)(wasm_ptr_t), void (*dcompact)(wasm_ptr_t), wasm_ptr_t parent, wasm_ptr_t data, wasm_size_t flags) {
-      wasm_ptr_t ptrs[6] = {0};
-      bool oom = false;
+      wasm_ptr_t buf;
+      wasm_ptr_t str;
 
-      ptrs[0] = sandbox_malloc(9 * sizeof(wasm_ptr_t));
-      ptrs[1] = sandbox_malloc(std::strlen(wrap_struct_name) + 1);
-      for (size_t i = 0; i < 2; ++i) {
-          if (ptrs[i] == 0) oom = true;
+      buf = sandbox_malloc(9 * sizeof(wasm_ptr_t));
+      if (buf == 0) {
+          throw SandboxOutOfMemoryException();
       }
-
-      for (size_t i = 2; i < 6; ++i) {
-          if ((i == 2 && dmark == NULL) || (i == 3 && dfree == NULL) || (i == 4 && dsize == NULL) || (i == 5 && dcompact == NULL)) continue;
-          ptrs[i] = sandbox_create_func_ptr();
-          if (ptrs[i] == (wasm_ptr_t)-1) oom = true;
-      }
-
-      if (oom) {
-          for (size_t i = 0; i < 2; ++i) {
-              if (ptrs[i] != 0) sandbox_free(ptrs[i]);
-          }
+      str = sandbox_malloc(std::strlen(wrap_struct_name) + 1);
+      if (str == 0) {
+          sandbox_free(buf);
           throw SandboxOutOfMemoryException();
       }
 
-      std::strcpy((char *)(**this + ptrs[1]), wrap_struct_name);
+      std::strcpy((char *)(**this + str), wrap_struct_name);
+      ((wasm_ptr_t *)(**this + buf))[0] = SERIALIZE_VALUE(str);
 
-      if (dmark != NULL) {
-          instance().w2c_T0.data[ptrs[2]] = wasm_rt_funcref_t {
-              .func_type = wasm2c_#{MODULE_NAME}_get_func_type(1, 0, #{FUNC_TYPE_TABLE[:ptr]}),
-              .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:void, [:value]])},
-              .func_tailcallee = {.fn = NULL},
-              .module_instance = (void *)dmark,
-          };
-      }
+      ((wasm_ptr_t *)(**this + buf))[1] = dmark == NULL ? 0 : SERIALIZE_VALUE(wasm_rt_push_funcref(&instance().w2c_T0, wasm_rt_funcref_t {
+          .func_type = wasm2c_#{MODULE_NAME}_get_func_type(1, 0, #{FUNC_TYPE_TABLE[:ptr]}),
+          .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:void, [:value]])},
+          .func_tailcallee = {.fn = NULL},
+          .module_instance = (void *)dmark,
+      }));
 
-      if (dfree != NULL) {
-          instance().w2c_T0.data[ptrs[3]] = wasm_rt_funcref_t {
-              .func_type = wasm2c_#{MODULE_NAME}_get_func_type(1, 0, #{FUNC_TYPE_TABLE[:ptr]}),
-              .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:void, [:value]])},
-              .func_tailcallee = {.fn = NULL},
-              .module_instance = (void *)dfree,
-          };
-      }
+      ((wasm_ptr_t *)(**this + buf))[2] = dfree == NULL ? 0 : SERIALIZE_VALUE(wasm_rt_push_funcref(&instance().w2c_T0, wasm_rt_funcref_t {
+          .func_type = wasm2c_#{MODULE_NAME}_get_func_type(1, 0, #{FUNC_TYPE_TABLE[:ptr]}),
+          .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:void, [:value]])},
+          .func_tailcallee = {.fn = NULL},
+          .module_instance = (void *)dfree,
+      }));
 
-      if (dsize != NULL) {
-          instance().w2c_T0.data[ptrs[4]] = wasm_rt_funcref_t {
-              .func_type = wasm2c_#{MODULE_NAME}_get_func_type(1, 1, #{FUNC_TYPE_TABLE[:ptr]}, #{FUNC_TYPE_TABLE[:size]}),
-              .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:size, [:value]])},
-              .func_tailcallee = {.fn = NULL},
-              .module_instance = (void *)dsize,
-          };
-      }
+      ((wasm_ptr_t *)(**this + buf))[3] = dsize == NULL ? 0 : SERIALIZE_VALUE(wasm_rt_push_funcref(&instance().w2c_T0, wasm_rt_funcref_t {
+          .func_type = wasm2c_#{MODULE_NAME}_get_func_type(1, 0, #{FUNC_TYPE_TABLE[:ptr]}, #{FUNC_TYPE_TABLE[:size]}),
+          .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:size, [:value]])},
+          .func_tailcallee = {.fn = NULL},
+          .module_instance = (void *)dsize,
+      }));
 
-      if (dcompact != NULL) {
-          instance().w2c_T0.data[ptrs[5]] = wasm_rt_funcref_t {
-              .func_type = wasm2c_#{MODULE_NAME}_get_func_type(1, 0, #{FUNC_TYPE_TABLE[:ptr]}),
-              .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:void, [:value]])},
-              .func_tailcallee = {.fn = NULL},
-              .module_instance = (void *)dcompact,
-          };
-      }
+      ((wasm_ptr_t *)(**this + buf))[4] = dcompact == NULL ? 0 : SERIALIZE_VALUE(wasm_rt_push_funcref(&instance().w2c_T0, wasm_rt_funcref_t {
+          .func_type = wasm2c_#{MODULE_NAME}_get_func_type(1, 0, #{FUNC_TYPE_TABLE[:ptr]}),
+          .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:void, [:value]])},
+          .func_tailcallee = {.fn = NULL},
+          .module_instance = (void *)dcompact,
+      }));
 
-      for (size_t i = 1; i < 6; ++i) {
-          ((wasm_ptr_t *)(**this + ptrs[0]))[i - 1] = SERIALIZE_VALUE(ptrs[i]);
-      }
-      ((wasm_ptr_t *)(**this + ptrs[0]))[5] = 0;
-      ((wasm_ptr_t *)(**this + ptrs[0]))[6] = SERIALIZE_VALUE(parent);
-      ((wasm_ptr_t *)(**this + ptrs[0]))[7] = SERIALIZE_VALUE(data);
-      ((wasm_ptr_t *)(**this + ptrs[0]))[8] = SERIALIZE_VALUE(flags);
+      ((wasm_ptr_t *)(**this + buf))[5] = 0;
+      ((wasm_ptr_t *)(**this + buf))[6] = SERIALIZE_VALUE(parent);
+      ((wasm_ptr_t *)(**this + buf))[7] = SERIALIZE_VALUE(data);
+      ((wasm_ptr_t *)(**this + buf))[8] = SERIALIZE_VALUE(flags);
 
-      return ptrs[0];
+      return buf;
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -461,39 +442,35 @@ File.readlines('tags', chomp: true).each do |line|
 
     # Generate bindings for converting the arguments
     if !handler[:func_ptr_args].nil? || handler[:anyargs]
-      coroutine_initializer += <<~HEREDOC
-        f#{i} = bind.sandbox_create_func_ptr();
-        if (f#{i} == (wasm_ptr_t)-1) throw SandboxOutOfMemoryException();
-      HEREDOC
       if handler[:anyargs]
         coroutine_initializer += <<~HEREDOC
           switch (a#{args.length - 1}) {
               case -1:
-                  bind.instance().w2c_T0.data[f#{i}] = wasm_rt_funcref_t {
+                  f#{i} = wasm_rt_push_funcref(&bind.instance().w2c_T0, wasm_rt_funcref_t {
                       .func_type = wasm2c_#{MODULE_NAME}_get_func_type(3, 1, #{FUNC_TYPE_TABLE[:s32]}, #{FUNC_TYPE_TABLE[:ptr]}, #{FUNC_TYPE_TABLE[:value]}, #{FUNC_TYPE_TABLE[:value]}),
                       .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:value, [:s32, :ptr, :value]])},
                       .func_tailcallee = {.fn = NULL},
                       .module_instance = (void *)a#{i},
-                  };
+                  });
                   break;
               case -2:
-                  bind.instance().w2c_T0.data[f#{i}] = wasm_rt_funcref_t {
+                  f#{i} = wasm_rt_push_funcref(&bind.instance().w2c_T0, wasm_rt_funcref_t {
                       .func_type = wasm2c_#{MODULE_NAME}_get_func_type(2, 1, #{FUNC_TYPE_TABLE[:value]}, #{FUNC_TYPE_TABLE[:value]}, #{FUNC_TYPE_TABLE[:value]}),
                       .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:value, [:value, :value]])},
                       .func_tailcallee = {.fn = NULL},
                       .module_instance = (void *)a#{i},
-                  };
+                  });
                   break;
         HEREDOC
         for j in 0..16
           case_str = <<~HEREDOC
             case #{j}:
-                bind.instance().w2c_T0.data[f#{i}] = wasm_rt_funcref_t {
+                f#{i} = wasm_rt_push_funcref(&bind.instance().w2c_T0, wasm_rt_funcref_t {
                     .func_type = wasm2c_#{MODULE_NAME}_get_func_type(#{j + 1}, 1, #{([FUNC_TYPE_TABLE[:value]] * (j + 2)).join(', ')}),
                     .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:value, [:value] * (j + 1)])},
                     .func_tailcallee = {.fn = NULL},
                     .module_instance = (void *)a#{i},
-                };
+                });
                 break;
           HEREDOC
           coroutine_initializer += case_str.split("\n").map { |line| "    #{line}".rstrip }.join("\n") + "\n"
@@ -505,12 +482,12 @@ File.readlines('tags', chomp: true).each do |line|
         HEREDOC
       else
         coroutine_initializer += <<~HEREDOC
-          bind.instance().w2c_T0.data[f#{i}] = wasm_rt_funcref_t {
+          f#{i} = wasm_rt_push_funcref(&bind.instance().w2c_T0, wasm_rt_funcref_t {
               .func_type = wasm2c_#{MODULE_NAME}_get_func_type(#{handler[:func_ptr_args].length}, #{handler[:func_ptr_rets].length}#{handler[:func_ptr_args].empty? && handler[:func_ptr_rets].empty? ? '' : ', ' + (handler[:func_ptr_args] + handler[:func_ptr_rets]).map { |type| FUNC_TYPE_TABLE[type] }.join(', ')}),
               .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([handler[:func_ptr_rets].empty? ? :void : handler[:func_ptr_rets][0], handler[:func_ptr_args]])},
               .func_tailcallee = {.fn = NULL},
               .module_instance = (void *)a#{i},
-          };
+          });
         HEREDOC
       end
       coroutine_initializer += "\n"

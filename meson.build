@@ -190,14 +190,11 @@ if get_option('retro') == true
 
     retro_defines = [
         '-DMKXPZ_VERSION="@0@"'.format(meson.project_version()),
-        '-DWASM_RT_SKIP_SIGNAL_RECOVERY',
-        '-DWASM_RT_TRAP_HANDLER=mkxp_sandbox_trap_handler',
         '-DMKXPZ_RETRO',
         '-DSHARED_FLUID',
     ]
     if host_endian == 'big'
         retro_defines += '-DMKXPZ_BIG_ENDIAN'
-        retro_defines += '-DWABT_BIG_ENDIAN=1'
     endif
     if host_system == 'emscripten' or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'check if C++ exceptions are enabled')
         retro_defines += '-DMKXPZ_NO_EXCEPTIONS'
@@ -279,8 +276,10 @@ if get_option('retro') == true
         cpp_args: ['-Wno-unused-command-line-argument'] + retro_cppflags + retro_defines,
         link_args: retro_link_args,
         gnu_symbol_visibility: 'hidden',
+        install: true, # Prevents Meson from creating thin archives when building with `--default-library static`; see https://github.com/mesonbuild/meson/issues/9479
         include_directories: [
             include_directories('.'),
+            include_directories('binding-sandbox'),
             include_directories('src'),
             include_directories('src/audio'),
             include_directories('src/crypto'),
@@ -298,7 +297,6 @@ if get_option('retro') == true
             include_directories('src/util/sigslot'),
             include_directories('src/util/sigslot/adapter'),
             include_directories(retro_phase1),
-            include_directories(join_paths(retro_phase1, 'wasm2c')),
             include_directories(join_paths(retro_phase1, 'mkxp-retro-ruby')),
             include_directories(join_paths(retro_phase1, 'sdl/include')),
         ],
@@ -331,12 +329,11 @@ if get_option('retro') == true
             'binding-sandbox/binding-util.cpp',
             'binding-sandbox/sandbox.cpp',
             'binding-sandbox/wasi.cpp',
+            'binding-sandbox/wasm-rt.cpp',
             'binding/module_rpg.cpp',
-            join_paths(retro_phase1, 'GMGSx.sf2.c'),
-            join_paths(retro_phase1, 'wasm2c/wasm-rt-impl.c'),
-            join_paths(retro_phase1, 'wasm2c/wasm-rt-mem-impl.c'),
+            join_paths(retro_phase1, 'GMGSx.sf2.cpp'),
             join_paths(retro_phase1, 'mkxp-sandbox-bindgen.cpp'),
-            join_paths(retro_phase1, 'mkxp-retro-dist.zip.c'),
+            join_paths(retro_phase1, 'mkxp-retro-dist.zip.cpp'),
             join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_0.c'),
             join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_1.c'),
             join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_2.c'),
@@ -352,7 +349,6 @@ else
 global_sources += vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h')
 if host_endian == 'big'
     global_args += '-DMKXPZ_BIG_ENDIAN'
-    global_args += '-DWABT_BIG_ENDIAN=1'
 endif
 if host_system == 'emscripten' or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'check if C++ exceptions are enabled')
     retro_defines += '-DMKXPZ_NO_EXCEPTIONS'

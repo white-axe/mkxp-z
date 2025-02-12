@@ -21,7 +21,7 @@
 
 #include "binding-base.h"
 
-#if WABT_BIG_ENDIAN
+#if MKXPZ_BIG_ENDIAN
 #  define SERIALIZE_32(value) __builtin_bswap32(value)
 #  define SERIALIZE_64(value) __builtin_bswap64(value)
 #else
@@ -81,39 +81,6 @@ wasm_ptr_t binding_base::sandbox_malloc(wasm_size_t size) {
 
 void binding_base::sandbox_free(wasm_ptr_t ptr) {
     w2c_ruby_mkxp_sandbox_free(&instance(), ptr);
-}
-
-wasm_ptr_t binding_base::sandbox_create_func_ptr() {
-    if (next_func_ptr == (wasm_ptr_t)-1) {
-        next_func_ptr = instance().w2c_T0.size;
-    }
-
-    if (next_func_ptr < instance().w2c_T0.max_size) {
-        return next_func_ptr++;
-    }
-
-    // Make sure that an integer overflow won't occur if we double the max size of the funcref table
-    wasm_size_t new_max_size;
-    if (__builtin_add_overflow(instance().w2c_T0.max_size, instance().w2c_T0.max_size, &new_max_size)) {
-        return -1;
-    }
-
-    // Double the max size of the funcref table
-    wasm_size_t old_max_size = instance().w2c_T0.max_size;
-    instance().w2c_T0.max_size = new_max_size;
-
-    // Double the size of the funcref table buffer
-    if (wasm_rt_grow_funcref_table(&instance().w2c_T0, old_max_size, wasm_rt_funcref_t {
-        .func_type = wasm2c_ruby_get_func_type(0, 0),
-        .func = NULL,
-        .func_tailcallee = {.fn = NULL},
-        .module_instance = &instance(),
-    }) != old_max_size) {
-        instance().w2c_T0.max_size = old_max_size;
-        return -1;
-    }
-
-    return next_func_ptr++;
 }
 
 wasm_ptr_t binding_base::rtypeddata_data(VALUE obj) const noexcept {
