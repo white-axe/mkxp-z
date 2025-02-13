@@ -48,18 +48,18 @@ WASI_TOOLCHAIN := CC=$(WASI_CC) CXX=$(WASI_CXX) LD=$(WASI_LD) AR=$(WASI_AR) RANL
 
 all default: deps ruby-dist ruby-bindings
 
-ruby-dist: $(OUTDIR)/mkxp-retro-dist.zip.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_0.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_1.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_2.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_3.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_4.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_5.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_6.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_7.c
+ruby-dist: $(OUTDIR)/mkxp-retro-dist.zip.cpp $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_0.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_1.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_2.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_3.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_4.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_5.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_6.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_7.c
 
 ruby-bindings: $(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h
 
-deps: $(OUTDIR)/GMGSx.sf2.c $(OUTDIR)/libretro.h $(OUTDIR)/wasm2c/wasm-rt.h $(OUTDIR)/wasm2c/wasm-rt-impl.c $(OUTDIR)/wasm2c/wasm-rt-mem-impl.c $(OUTDIR)/sdl/include/SDL.h
+deps: $(OUTDIR)/GMGSx.sf2.cpp $(OUTDIR)/libretro.h $(OUTDIR)/wasm2c/wasm-rt.h $(OUTDIR)/wasm2c/wasm-rt-impl.c $(OUTDIR)/wasm2c/wasm-rt-mem-impl.c $(OUTDIR)/sdl/include/SDL.h
 
 clean: clean-ruby-dist clean-ruby-bindings clean-deps
 	rm -rf $(LIBDIR)/*
 	rm -rf $(DOWNLOADS)/*
 
 clean-ruby-dist:
-	rm -f $(OUTDIR)/mkxp-retro-dist.zip.c
+	rm -f $(OUTDIR)/mkxp-retro-dist.zip.cpp
 	rm -rf $(LIBDIR)/mkxp-retro-ruby
 
 clean-ruby-bindings:
@@ -69,15 +69,15 @@ clean-ruby-bindings:
 	rm -f $(LIBDIR)/tags
 
 clean-deps:
-	rm -f $(OUTDIR)/GMGSx.sf2.c
+	rm -f $(OUTDIR)/GMGSx.sf2.cpp
 	rm -f $(OUTDIR)/libretro.h
 	rm -rf $(OUTDIR)/wasm2c
 	rm -rf $(OUTDIR)/sdl
 	rm -rf $(DOWNLOADS)/wabt
 
-$(OUTDIR)/GMGSx.sf2.c: GMGSx.sf2
+$(OUTDIR)/GMGSx.sf2.cpp: GMGSx.sf2
 	mkdir -p $(OUTDIR)
-	$(XXD) -i GMGSx.sf2 $(OUTDIR)/GMGSx.sf2.c
+	$(XXD) -i GMGSx.sf2 $(OUTDIR)/GMGSx.sf2.cpp
 
 $(OUTDIR)/libretro.h:
 	mkdir -p $(OUTDIR)
@@ -106,9 +106,9 @@ $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro
 	# The code will still compile, but like it says, the compiler will sprinkle trap instructions everywhere, so when you run the code it'll crash. Scary! Let's make sure that doesn't happen.
 	if ! for i in $$(seq 0 7); do $(SED) -i 's/va_arg(\([a-z_][A-Za-z0-9_]*\), *wasm_rt_type_t)/va_arg(\1, int)/g' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_$$i.c; done; then rm -rf $(OUTDIR)/mkxp-retro-ruby; exit 1; fi
 
-$(OUTDIR)/mkxp-retro-dist.zip.c: $(LIBDIR)/mkxp-retro-dist.zip
+$(OUTDIR)/mkxp-retro-dist.zip.cpp: $(LIBDIR)/mkxp-retro-dist.zip
 	mkdir -p $(OUTDIR)
-	cd $(LIBDIR) && $(XXD) -i mkxp-retro-dist.zip $(OUTDIR)/mkxp-retro-dist.zip.c
+	cd $(LIBDIR) && $(XXD) -i mkxp-retro-dist.zip $(OUTDIR)/mkxp-retro-dist.zip.cpp
 
 $(LIBDIR)/mkxp-retro-dist.zip: $(LIBDIR)/mkxp-retro-dist/bin/ruby
 	rm -rf $(LIBDIR)/_mkxp-retro-dist
