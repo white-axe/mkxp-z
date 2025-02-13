@@ -375,7 +375,7 @@ jobs:
       - name: Configure core
         shell: msys2 {0}
         run: |
-          CLICOLOR_FORCE=1 meson setup build --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CLICOLOR_FORCE=1 meson setup build --buildtype release -Db_lto=true -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         shell: msys2 {0}
@@ -472,7 +472,7 @@ jobs:
           else
             cross_arg=
           fi
-          CLICOLOR_FORCE=1 meson setup build $cross_arg --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CLICOLOR_FORCE=1 meson setup build $cross_arg --buildtype release -Db_lto=true -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         run: |
@@ -612,7 +612,7 @@ jobs:
           echo "CMAKE_SHARED_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ${{ runner.temp }}/cross.ini
           echo "CMAKE_STATIC_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ${{ runner.temp }}/cross.ini
           echo '--------------------------------------------------------------------------------'
-          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         run: |
@@ -703,7 +703,7 @@ jobs:
           echo "[cmake]" | tee -a ${{ runner.temp }}/cross.ini
           echo "CMAKE_SYSTEM_PROCESSOR = '${{ matrix.arch_cmake }}'" | tee -a ${{ runner.temp }}/cross.ini
           echo '--------------------------------------------------------------------------------'
-          ANDROID_NDK=${{ steps.ndk.outputs.ndk-path }} CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          ANDROID_NDK=${{ steps.ndk.outputs.ndk-path }} CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         run: |
@@ -770,7 +770,7 @@ jobs:
           echo "cpu = '${{ matrix.cpu }}'" | tee -a ${{ runner.temp }}/cross.ini
           echo "endian = '${{ matrix.endian }}'" | tee -a ${{ runner.temp }}/cross.ini
           echo '--------------------------------------------------------------------------------'
-          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         run: |
@@ -829,7 +829,7 @@ jobs:
           echo "cpu = 'wasm32'" | tee -a ${{ runner.temp }}/cross.ini
           echo "endian = 'little'" | tee -a ${{ runner.temp }}/cross.ini
           echo '--------------------------------------------------------------------------------'
-          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         run: |
@@ -895,7 +895,7 @@ jobs:
           echo "endian = 'little'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=false -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         run: |
@@ -961,7 +961,7 @@ jobs:
           echo "endian = 'big'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=false -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         run: |
@@ -1024,7 +1024,7 @@ jobs:
           echo "endian = 'little'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=false -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         run: |
@@ -1089,7 +1089,7 @@ jobs:
           echo "endian = 'big'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=false -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         run: |
@@ -1152,7 +1152,7 @@ jobs:
           echo "endian = 'little'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=false -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         run: |
@@ -1217,7 +1217,7 @@ jobs:
           echo "endian = 'little'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dretro=true -Dretro_phase1_path=retro/build/retro-phase1
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=false -Dretro_phase1_path=retro/build/retro-phase1
 
       - name: Build core
         run: |

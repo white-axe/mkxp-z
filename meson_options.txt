@@ -22,5 +22,4 @@ option('steamshim_debug', type: 'boolean', value: false, description: 'Whether t
 
 option('gfx_backend', type: 'combo', value: 'gl', choices: ['gl', 'gles'], description: 'Graphics rendering API to use.')
 
-option('retro', type: 'boolean', value: false, description: 'Build a libretro core instead of an executable')
 option('retro_phase1_path', type: 'string', value: '', description: 'Path to retro-phase1 for libretro builds')

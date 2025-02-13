@@ -29,3 +29,16 @@
          userDir = NULL;
      } /* if */
  
+--- a/src/physfs_platform_posix.c
++++ b/src/physfs_platform_posix.c
+@@ -109,8 +109,8 @@ char *__PHYSFS_platformCalcUserDir(void)
+         } /* if */
+     } /* if */
+ 
+-    if (retval == NULL)
+-        retval = getUserDirByUID();
++
++
+ 
+     return retval;
+ } /* __PHYSFS_platformCalcUserDir */

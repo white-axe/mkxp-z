@@ -3,10 +3,11 @@ project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=1.3.0', defaul
 host_system = host_machine.system()
 host_endian = host_machine.endian()
 
+is_retro = get_option('retro_phase1_path') != ''
 is_emscripten = host_system == 'emscripten'
 core_is_static = host_system == 'bare' or host_system == 'none'
 
-if get_option('retro') == false and host_system == 'darwin'
+if not is_retro and host_system == 'darwin'
     error('\nThis Meson project no longer supports macOS. Please use the Xcode project instead.')
 endif
 
@@ -30,7 +31,7 @@ global_args += '-DHAVE_NANOSLEEP'
 # Ext libs
 # ====================
 
-if get_option('retro') == true
+if is_retro
     retro_phase1 = get_option('retro_phase1_path')
 
     cmake = import('cmake')
@@ -225,7 +226,7 @@ if get_option('retro') == true
     endif
 
     # If possible, stop the linker from reexporting the symbols from the static libraries we use (e.g. zlib)
-    if host_system != 'emscripten' and compilers['cpp'].has_link_argument('-Wl,--version-script,' + join_paths(meson.current_source_dir(), 'retro/link.T')) # Only works with GNU linker and LLVM linker
+    if not is_emscripten and compilers['cpp'].has_link_argument('-Wl,--version-script,' + join_paths(meson.current_source_dir(), 'retro/link.T')) # Only works with GNU linker and LLVM linker
         retro_link_args += '-Wl,--version-script,' + join_paths(meson.current_source_dir(), 'retro/link.T')
     endif
 
