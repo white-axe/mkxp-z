@@ -24,9 +24,9 @@
 #include "core.h"
 #include "wasm-rt.h"
 
-#define PAGE_SIZE 65536U
+#define WASM_PAGE_SIZE 65536U
 
-#define MIN_PAGES 1024U // tentative
+#define WASM_MIN_PAGES 1024U // tentative
 
 extern "C" bool wasm_rt_is_initialized(void) {
     return true;
@@ -38,12 +38,12 @@ extern "C" void wasm_rt_trap(wasm_rt_trap_t error) {
 }
 
 extern "C" void wasm_rt_allocate_memory(wasm_rt_memory_t *memory, uint32_t initial_pages, uint32_t max_pages, bool is64) {
-    memory->data = (uint8_t *)std::malloc(std::max(initial_pages, MIN_PAGES) * PAGE_SIZE);
+    memory->data = (uint8_t *)std::malloc(std::max(initial_pages, WASM_MIN_PAGES) * WASM_PAGE_SIZE);
     if (memory->data == NULL) {
         throw std::bad_alloc();
     }
     memory->pages = initial_pages;
-    memory->size = initial_pages * PAGE_SIZE;
+    memory->size = initial_pages * WASM_PAGE_SIZE;
 }
 
 extern "C" uint32_t wasm_rt_grow_memory(wasm_rt_memory_t *memory, uint32_t pages) {
@@ -51,16 +51,16 @@ extern "C" uint32_t wasm_rt_grow_memory(wasm_rt_memory_t *memory, uint32_t pages
     if (__builtin_add_overflow(memory->pages, pages, &new_pages)) {
         return -1;
     }
-    uint8_t *new_data = new_pages <= MIN_PAGES ? memory->data : (uint8_t *)std::realloc(memory->data, new_pages * PAGE_SIZE);
+    uint8_t *new_data = new_pages <= WASM_MIN_PAGES ? memory->data : (uint8_t *)std::realloc(memory->data, new_pages * WASM_PAGE_SIZE);
     if (new_data == NULL) {
         return -1;
     }
 #ifdef MKXPZ_BIG_ENDIAN
-    std::memmove(new_data + pages * PAGE_SIZE, new_data, memory->size);
+    std::memmove(new_data + pages * WASM_PAGE_SIZE, new_data, memory->size);
 #endif // MKXPZ_BIG_ENDIAN
     uint32_t old_pages = memory->pages;
     memory->pages = new_pages;
-    memory->size = new_pages * PAGE_SIZE;
+    memory->size = new_pages * WASM_PAGE_SIZE;
     memory->data = new_data;
     return old_pages;
 }
