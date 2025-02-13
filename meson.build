@@ -333,6 +333,7 @@ if get_option('retro') == true
             'binding-sandbox/binding-util.cpp',
             'binding-sandbox/sandbox.cpp',
             'binding-sandbox/wasi.cpp',
+            'binding-sandbox/_wasm-rt.cpp',
             'binding/module_rpg.cpp',
             join_paths(retro_phase1, 'GMGSx.sf2.cpp'),
             join_paths(retro_phase1, 'wasm2c/wasm-rt-impl.c'),
