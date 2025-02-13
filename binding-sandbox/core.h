@@ -23,7 +23,7 @@
 #define MKXPZ_CORE_H
 
 #include <libretro.h>
-#include "../binding-sandbox/sandbox.h"
+#include "sandbox.h"
 #include "audio.h"
 #include "filesystem.h"
 #include "input.h"

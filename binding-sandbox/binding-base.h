@@ -32,9 +32,9 @@
 #include <boost/type_index.hpp>
 #include <boost/asio/coroutine.hpp>
 #include <mkxp-retro-ruby.h>
-#include "binding-sandbox/types.h"
+#include "types.h"
 
-#if WABT_BIG_ENDIAN
+#ifdef MKXPZ_BIG_ENDIAN
 #  define SERIALIZE_32(value) __builtin_bswap32(value)
 #  define SERIALIZE_64(value) __builtin_bswap64(value)
 #else

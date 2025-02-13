@@ -120,18 +120,10 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
         AWAIT(enc = w2c_ruby_rb_enc_from_encoding(RB, encoding));
         AWAIT(w2c_ruby_rb_enc_set_default_internal(RB, enc));
         AWAIT(w2c_ruby_rb_enc_set_default_external(RB, enc));
-    } catch (SandboxNodeException e) {
+    } catch (SandboxException &) {
         wasm2c_ruby_free(RB);
         wasm_rt_free();
-        throw e;
-    } catch (SandboxOutOfMemoryException e) {
-        wasm2c_ruby_free(RB);
-        wasm_rt_free();
-        throw e;
-    } catch (SandboxTrapException e) {
-        wasm2c_ruby_free(RB);
-        wasm_rt_free();
-        throw e;
+        throw;
     }
 }
 

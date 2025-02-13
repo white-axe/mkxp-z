@@ -21,7 +21,7 @@
 
 #include "binding-base.h"
 
-#if WABT_BIG_ENDIAN
+#ifdef MKXPZ_BIG_ENDIAN
 #  define SERIALIZE_32(value) __builtin_bswap32(value)
 #  define SERIALIZE_64(value) __builtin_bswap64(value)
 #else

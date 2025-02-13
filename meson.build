@@ -279,8 +279,10 @@ if get_option('retro') == true
         cpp_args: ['-Wno-unused-command-line-argument'] + retro_cppflags + retro_defines,
         link_args: retro_link_args,
         gnu_symbol_visibility: 'hidden',
+        install: true, # Prevents Meson from creating thin archives when building with `--default-library static`; see https://github.com/mesonbuild/meson/issues/9479
         include_directories: [
             include_directories('.'),
+            include_directories('binding-sandbox'),
             include_directories('src'),
             include_directories('src/audio'),
             include_directories('src/crypto'),

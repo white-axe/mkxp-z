@@ -32,7 +32,7 @@
 // Internal utility macros
 #define _WASM_CAT(x, y) x##y
 #define WASM_CAT(x, y) _WASM_CAT(x, y)
-#if WABT_BIG_ENDIAN
+#ifdef MKXPZ_BIG_ENDIAN
     #define WASM_ORDER_u8(value) (value)
     #define WASM_ORDER_s8(value) (value)
     #define WASM_ORDER_u16(value) __builtin_bswap16(value)
@@ -54,7 +54,7 @@
     #define WASM_ORDER_s64(value) (value)
     #define WASM_ORDER_f32(value) (value)
     #define WASM_ORDER_f64(value) (value)
-#endif // WABT_BIG_ENDIAN
+#endif // MKXPZ_BIG_ENDIAN
 #define WASM_ORDER_usize(value) WASM_CAT(WASM_ORDER_, usize)(value)
 
 // Memory manipulation macros

@@ -20,7 +20,7 @@
  */
 
 #include "input.h"
-#include "binding-sandbox/core.h"
+#include "core.h"
 
 #define JOYPAD_BUTTON_MAX 16
 #define REPEAT_NONE 255

@@ -902,7 +902,17 @@ jobs:
           mkdir ~/retro-phase2
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          mv mkxp-z_libretro.a ~/retro-phase2
+          mv mkxp-z_libretro.a ~
+
+      - name: Build RetroArch
+        run: |
+          cd ~
+          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest | jq -r '.tag_name')
+          mv mkxp-z_libretro.a retroarch/libretro_ctr.a
+          cd retroarch
+          CLICOLOR_FORCE=1 make -f Makefile.ctr LIBRETRO=mkxp-z USE_CTRULIB_2=1
+          mv retroarch_3ds.cia ~/retro-phase2/mkxp-z_libretro.cia
+          mv retroarch_3ds.3dsx ~/retro-phase2/mkxp-z_libretro.3dsx
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -956,7 +966,16 @@ jobs:
           mkdir ~/retro-phase2
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          mv mkxp-z_libretro.a ~/retro-phase2
+          mv mkxp-z_libretro.a ~
+
+      - name: Build RetroArch
+        run: |
+          cd ~
+          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest | jq -r '.tag_name')
+          mv mkxp-z_libretro.a retroarch/libretro_vita.a
+          cd retroarch
+          CLICOLOR_FORCE=1 make -f Makefile.vita LIBRETRO=mkxp-z
+          mv retroarch_vita.self ~/retro-phase2/mkxp-z_libretro.self
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -1012,7 +1031,16 @@ jobs:
           mkdir ~/retro-phase2
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          mv mkxp-z_libretro.a ~/retro-phase2
+          mv mkxp-z_libretro.a ~
+
+      - name: Build RetroArch
+        run: |
+          cd ~
+          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest | jq -r '.tag_name')
+          mv mkxp-z_libretro.a retroarch/libretro_wiiu.a
+          cd retroarch
+          CLICOLOR_FORCE=1 make -f Makefile.wiiu LIBRETRO=mkxp-z
+          mv retroarch_wiiu.rpx ~/retro-phase2/mkxp-z_libretro.rpx
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -1068,7 +1096,17 @@ jobs:
           mkdir ~/retro-phase2
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          mv mkxp-z_libretro.a ~/retro-phase2
+          mv mkxp-z_libretro.a ~
+
+      - name: Build RetroArch
+        run: |
+          cd ~
+          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest | jq -r '.tag_name')
+          mv mkxp-z_libretro.a retroarch/libretro_libnx.a
+          cd retroarch
+          CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z
+          mv retroarch_switch.nro ~/retro-phase2/mkxp-z_libretro.nro
+          mv retroarch_switch.elf ~/retro-phase2/mkxp-z_libretro.elf
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
