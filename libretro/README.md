@@ -1,8 +1,8 @@
-The build process for the libretro core is divided into two phases.
+The build process for the libretro core is divided into two stages.
 
-# Phase 1
+# Stage 1
 
-All the files produced by this phase are platform-agnostic, so you can run this build phase on any computer, regardless of which operating system or CPU architecture the libretro core is for.
+All the files produced by this stage are platform-agnostic, so you can run this build stage on any computer, regardless of which operating system or CPU architecture the libretro core is for.
 
 Required software:
 * C and C++ compilers
@@ -23,11 +23,11 @@ Go to the directory that this README.md is in and run this command, filling in t
 make WASI_SDK=/path/to/wasi-sdk WASM_OPT=/path/to/binaryen/bin/wasm-opt WASM2C=/path/to/wabt/bin/wasm2c CTAGS=/path/to/ctags
 ```
 
-This will produce the directory "retro/build/retro-phase1".
+This will produce the directory "libretro/build/libretro-stage1".
 
-# Phase 2
+# Stage 2
 
-This phase produces the actual core file.
+This stage produces the actual core file.
 
 Required software:
 * C and C++ compilers
@@ -41,7 +41,7 @@ No software libraries are required other than the system libraries.
 Go to the root directory of this repository and run:
 
 ```
-meson setup build -Dretro_phase1_path=path/to/retro-phase1
+meson setup build -Dlibretro=true
 cd build
 ninja
 ```

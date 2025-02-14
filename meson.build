@@ -3,11 +3,11 @@ project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=1.3.0', defaul
 host_system = host_machine.system()
 host_endian = host_machine.endian()
 
-is_retro = get_option('retro_phase1_path') != ''
+is_libretro = get_option('libretro')
 is_emscripten = host_system == 'emscripten'
 core_is_static = is_emscripten or host_system == 'bare' or host_system == 'none'
 
-if not is_retro and host_system == 'darwin'
+if not is_libretro and host_system == 'darwin'
     error('\nThis Meson project no longer supports macOS. Please use the Xcode project instead.')
 endif
 
@@ -31,69 +31,69 @@ global_args += '-DHAVE_NANOSLEEP'
 # Ext libs
 # ====================
 
-if is_retro
-    retro_phase1 = get_option('retro_phase1_path')
+if is_libretro
+    libretro_stage1_path = get_option('libretro_stage1_path')
 
-    retro_defines = [
+    libretro_defines = [
         '-DMKXPZ_VERSION="@0@"'.format(meson.project_version()),
         '-DMKXPZ_RETRO',
         '-DSHARED_FLUID',
     ]
     if host_endian == 'big'
-        retro_defines += '-DMKXPZ_BIG_ENDIAN'
+        libretro_defines += '-DMKXPZ_BIG_ENDIAN'
     endif
     if is_emscripten or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'check if C++ exceptions are enabled')
-        retro_defines += '-DMKXPZ_NO_EXCEPTIONS'
-        retro_defines += '-DBOOST_NO_EXCEPTIONS'
+        libretro_defines += '-DMKXPZ_NO_EXCEPTIONS'
+        libretro_defines += '-DBOOST_NO_EXCEPTIONS'
     endif
 
-    retro_link_args = []
-    retro_cflags = []
-    retro_cppflags = []
+    libretro_link_args = []
+    libretro_cflags = []
+    libretro_cppflags = []
 
     if core_is_static and not is_emscripten and get_option('b_lto')
         compilers['c'].has_argument('-ffat-lto-objects', required: true)
         compilers['cpp'].has_argument('-ffat-lto-objects', required: true)
-        retro_cflags += '-ffat-lto-objects'
-        retro_cppflags += '-ffat-lto-objects'
+        libretro_cflags += '-ffat-lto-objects'
+        libretro_cppflags += '-ffat-lto-objects'
     endif
 
     # When targeting Emscripten, we need to build a relocatable object
     if is_emscripten
         compilers['cpp'].has_link_argument('-r', required: true)
-        retro_link_args += '-r'
+        libretro_link_args += '-r'
     endif
 
     # We need to statically link the C++ standard library (libstdc++/libc++), the compiler runtime library (libgcc/compiler-rt) and libpthread in MSYS2 builds for Windows because those are not part of the operating system
     if (host_system == 'windows' or host_system == 'cygwin') and compilers['cpp'].has_link_argument('-static')
-        retro_link_args += '-static'
+        libretro_link_args += '-static'
     endif
 
     # Android doesn't have a built-in C++ standard library, so we need to statically link against the C++ standard library
     if host_system == 'android'
         compilers['cpp'].has_link_argument('-static-libstdc++', required: true)
-        retro_link_args += '-static-libstdc++'
+        libretro_link_args += '-static-libstdc++'
     endif
 
     # If possible, stop the linker from reexporting the symbols from the static libraries we use (e.g. zlib)
-    if not is_emscripten and compilers['cpp'].has_link_argument('-Wl,--version-script,' + join_paths(meson.current_source_dir(), 'retro/link.T')) # Only works with GNU linker and LLVM linker
-        retro_link_args += '-Wl,--version-script,' + join_paths(meson.current_source_dir(), 'retro/link.T')
+    if not is_emscripten and compilers['cpp'].has_link_argument('-Wl,--version-script,' + meson.current_source_dir() / 'libretro/link.T') # Only works with GNU linker and LLVM linker
+        libretro_link_args += '-Wl,--version-script,' + meson.current_source_dir() / 'libretro/link.T'
     endif
 
     cmake = import('cmake')
 
     boost_options = cmake.subproject_options()
     boost_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_TESTING': false,
     })
 
     zlib_options = cmake.subproject_options()
     zlib_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'ZLIB_BUILD_EXAMPLES': false,
@@ -101,8 +101,8 @@ if is_retro
 
     libzip_options = cmake.subproject_options()
     libzip_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'LIBZIP_DO_INSTALL': false,
@@ -124,8 +124,8 @@ if is_retro
 
     physfs_options = cmake.subproject_options()
     physfs_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'PHYSFS_BUILD_STATIC': true,
         'PHYSFS_BUILD_SHARED': false,
@@ -135,8 +135,8 @@ if is_retro
 
     openal_options = cmake.subproject_options()
     openal_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'LIBTYPE': 'STATIC',
         'ALSOFT_DLOPEN': false,
@@ -168,8 +168,8 @@ if is_retro
 
     fluidlite_options = cmake.subproject_options()
     fluidlite_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'FLUIDLITE_BUILD_STATIC': true,
         'FLUIDLITE_BUILD_SHARED': false,
@@ -177,8 +177,8 @@ if is_retro
 
     ogg_options = cmake.subproject_options()
     ogg_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'BUILD_TESTING': false,
@@ -187,8 +187,8 @@ if is_retro
 
     vorbis_options = cmake.subproject_options()
     vorbis_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'BUILD_TESTING': false,
@@ -197,8 +197,8 @@ if is_retro
 
     flac_options = cmake.subproject_options()
     flac_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'BUILD_CXXLIBS': false,
@@ -216,8 +216,8 @@ if is_retro
 
     opus_options = cmake.subproject_options()
     opus_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'OPUS_BUILD_SHARED_LIBRARY': false,
@@ -234,8 +234,8 @@ if is_retro
 
     mpg123_options = cmake.subproject_options()
     mpg123_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'BUILD_PROGRAMS': false,
@@ -246,8 +246,8 @@ if is_retro
 
     libsndfile_options = cmake.subproject_options()
     libsndfile_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'BUILD_PROGRAMS': false,
@@ -262,7 +262,7 @@ if is_retro
         'ENABLE_EXPERIMENTAL': false,
     })
 
-    retro_deps = [
+    libretro_deps = [
         cmake.subproject('boost_asio', options: boost_options).dependency('boost_asio'),
         cmake.subproject('boost_mp11', options: boost_options).dependency('boost_mp11'),
         cmake.subproject('boost_describe', options: boost_options).dependency('boost_describe'),
@@ -289,32 +289,32 @@ if is_retro
         cmake.subproject('libsndfile', options: libsndfile_options).dependency('sndfile'),
     ]
     if host_system == 'darwin'
-        retro_deps += compilers['cpp'].find_library('iconv')
+        libretro_deps += compilers['cpp'].find_library('iconv')
     endif
 
     if core_is_static
-        retro_deps_processed = []
-        foreach dep : retro_deps
-            retro_deps_processed += dep.as_link_whole()
+        libretro_deps_processed = []
+        foreach dep : libretro_deps
+            libretro_deps_processed += dep.as_link_whole()
         endforeach
     else
-        retro_deps_processed = retro_deps
+        libretro_deps_processed = libretro_deps
     endif
 
     if is_emscripten
-        retro_target_type = 'executable' # Actually a relocatable object; we just pass 'executable' as the target type to get Meson to use the correct commands
+        libretro_target_type = 'executable' # Actually a relocatable object; we just pass 'executable' as the target type to get Meson to use the correct commands
     elif core_is_static
-        retro_target_type = 'static_library'
+        libretro_target_type = 'static_library'
     else
-        retro_target_type = 'shared_library'
+        libretro_target_type = 'shared_library'
     endif
 
     build_target(
         meson.project_name() + '_libretro',
         name_prefix: '',
         name_suffix: is_emscripten ? 'bc' : [],
-        target_type: retro_target_type,
-        dependencies: retro_deps_processed,
+        target_type: libretro_target_type,
+        dependencies: libretro_deps_processed,
         c_args: [
             '-fno-optimize-sibling-calls',
             '-frounding-math',
@@ -325,9 +325,9 @@ if is_retro
             '-Wno-unused-but-set-variable',
             '-Wno-ignored-optimization-argument',
             '-Wno-unused-command-line-argument',
-        ] + retro_cflags + retro_defines,
-        cpp_args: ['-Wno-unused-command-line-argument'] + retro_cppflags + retro_defines,
-        link_args: retro_link_args,
+        ] + libretro_cflags + libretro_defines,
+        cpp_args: ['-Wno-unused-command-line-argument'] + libretro_cppflags + libretro_defines,
+        link_args: libretro_link_args,
         gnu_symbol_visibility: 'hidden',
         install: true, # Prevents Meson from creating thin archives; see https://github.com/mesonbuild/meson/issues/9479
         include_directories: [
@@ -349,9 +349,9 @@ if is_retro
             include_directories('src/util'),
             include_directories('src/util/sigslot'),
             include_directories('src/util/sigslot/adapter'),
-            include_directories(retro_phase1),
-            include_directories(join_paths(retro_phase1, 'mkxp-retro-ruby')),
-            include_directories(join_paths(retro_phase1, 'sdl/include')),
+            include_directories(libretro_stage1_path),
+            include_directories(libretro_stage1_path / 'mkxp-retro-ruby'),
+            include_directories(libretro_stage1_path / 'sdl/include'),
         ],
         sources: [
             vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h'),
@@ -384,17 +384,17 @@ if is_retro
             'binding-sandbox/wasi.cpp',
             'binding-sandbox/wasm-rt.cpp',
             'binding/module_rpg.cpp',
-            join_paths(retro_phase1, 'GMGSx.sf2.cpp'),
-            join_paths(retro_phase1, 'mkxp-sandbox-bindgen.cpp'),
-            join_paths(retro_phase1, 'mkxp-retro-dist.zip.cpp'),
-            join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_0.c'),
-            join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_1.c'),
-            join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_2.c'),
-            join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_3.c'),
-            join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_4.c'),
-            join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_5.c'),
-            join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_6.c'),
-            join_paths(retro_phase1, 'mkxp-retro-ruby/mkxp-retro-ruby_7.c'),
+            libretro_stage1_path / 'GMGSx.sf2.cpp',
+            libretro_stage1_path / 'mkxp-sandbox-bindgen.cpp',
+            libretro_stage1_path / 'mkxp-retro-dist.zip.cpp',
+            libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_0.c',
+            libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_1.c',
+            libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_2.c',
+            libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_3.c',
+            libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_4.c',
+            libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_5.c',
+            libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_6.c',
+            libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_7.c',
         ],
     )
 else
@@ -404,8 +404,8 @@ if host_endian == 'big'
     global_args += '-DMKXPZ_BIG_ENDIAN'
 endif
 if is_emscripten or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'check if C++ exceptions are enabled')
-    retro_defines += '-DMKXPZ_NO_EXCEPTIONS'
-    retro_defines += '-DBOOST_NO_EXCEPTIONS'
+    libretro_defines += '-DMKXPZ_NO_EXCEPTIONS'
+    libretro_defines += '-DBOOST_NO_EXCEPTIONS'
 endif
 
 xxd = find_program('xxd', native: true)

@@ -32,7 +32,7 @@ WASI_LDFLAGS ?=
 WASM_OPT_FLAGS ?= -Oz
 
 BUILD_PREFIX := ${PWD}/build
-OUTDIR := $(BUILD_PREFIX)/retro-phase1
+OUTDIR := $(BUILD_PREFIX)/libretro-stage1
 LIBDIR := $(BUILD_PREFIX)/lib
 DOWNLOADS := $(BUILD_PREFIX)/downloads
 RUBY := $(LIBDIR)/bin/ruby
