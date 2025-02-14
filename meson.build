@@ -58,8 +58,8 @@ if is_retro
         retro_cppflags += '-ffat-lto-objects'
     endif
 
-    # On platforms that require the core to be a static library, we need to build a relocatable object
-    if core_is_static
+    # When targeting Emscripten, we need to build a relocatable object
+    if is_emscripten
         compilers['cpp'].has_link_argument('-r', required: true)
         retro_link_args += '-r'
     endif
@@ -292,20 +292,29 @@ if is_retro
         retro_deps += compilers['cpp'].find_library('iconv')
     endif
 
-    if is_emscripten
-        retro_name_suffix = 'bc'
-    elif core_is_static
-        retro_name_suffix = 'o'
+    if core_is_static
+        retro_deps_processed = []
+        foreach dep : retro_deps
+            retro_deps_processed += dep.as_link_whole()
+        endforeach
     else
-        retro_name_suffix = []
+        retro_deps_processed = retro_deps
+    endif
+
+    if is_emscripten
+        retro_target_type = 'executable' # Actually a relocatable object; we just pass 'executable' as the target type to get Meson to use the correct commands
+    elif core_is_static
+        retro_target_type = 'static_library'
+    else
+        retro_target_type = 'shared_library'
     endif
 
     build_target(
         meson.project_name() + '_libretro',
         name_prefix: '',
-        name_suffix: retro_name_suffix,
-        target_type: core_is_static ? 'executable' : 'shared_library',
-        dependencies: retro_deps,
+        name_suffix: is_emscripten ? 'bc' : [],
+        target_type: retro_target_type,
+        dependencies: retro_deps_processed,
         c_args: [
             '-fno-optimize-sibling-calls',
             '-frounding-math',
@@ -320,7 +329,7 @@ if is_retro
         cpp_args: ['-Wno-unused-command-line-argument'] + retro_cppflags + retro_defines,
         link_args: retro_link_args,
         gnu_symbol_visibility: 'hidden',
-        install: false,
+        install: true, # Prevents Meson from creating thin archives; see https://github.com/mesonbuild/meson/issues/9479
         include_directories: [
             include_directories('.'),
             include_directories('binding-sandbox'),

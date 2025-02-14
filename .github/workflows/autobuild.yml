@@ -902,7 +902,7 @@ jobs:
           mkdir ~/retro-phase2
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          /opt/devkitpro/devkitARM/bin/arm-none-eabi-ar csrD ~/mkxp-z_libretro.a mkxp-z_libretro.o
+          mv mkxp-z_libretro.a ~
 
       - name: Build RetroArch
         run: |
@@ -968,7 +968,7 @@ jobs:
           mkdir ~/retro-phase2
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          powerpc64-ps3-elf-ar csrD ~/mkxp-z_libretro.a mkxp-z_libretro.o
+          mv mkxp-z_libretro.a ~
 
       - name: Build RetroArch
         run: |
@@ -1031,7 +1031,7 @@ jobs:
           mkdir ~/retro-phase2
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          arm-vita-eabi-ar csrD ~/mkxp-z_libretro.a mkxp-z_libretro.o
+          mv mkxp-z_libretro.a ~
 
       - name: Build RetroArch
         run: |
@@ -1096,7 +1096,7 @@ jobs:
           mkdir ~/retro-phase2
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          /opt/devkitpro/devkitPPC/bin/powerpc-eabi-ar csrD ~/mkxp-z_libretro.a mkxp-z_libretro.o
+          mv mkxp-z_libretro.a ~
 
       - name: Build RetroArch
         run: |
@@ -1159,7 +1159,7 @@ jobs:
           mkdir ~/retro-phase2
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          orbis-ar csrD ~/mkxp-z_libretro.a mkxp-z_libretro.o
+          mv mkxp-z_libretro.a ~
 
       - name: Build RetroArch
         run: |
@@ -1224,7 +1224,7 @@ jobs:
           mkdir ~/retro-phase2
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          /opt/devkitpro/devkitA64/bin/aarch64-none-elf-ar csrD ~/mkxp-z_libretro.a mkxp-z_libretro.o
+          mv mkxp-z_libretro.a ~
 
       - name: Build RetroArch
         run: |
