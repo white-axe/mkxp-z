@@ -40,7 +40,8 @@ extern "C" void wasm_rt_trap(wasm_rt_trap_t error) {
 extern "C" void wasm_rt_allocate_memory(wasm_rt_memory_t *memory, uint32_t initial_pages, uint32_t max_pages, bool is64) {
     memory->data = (uint8_t *)std::malloc(std::max(initial_pages, WASM_MIN_PAGES) * WASM_PAGE_SIZE);
     if (memory->data == NULL) {
-        throw std::bad_alloc();
+        mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox out of memory\n");
+        std::abort();
     }
     memory->pages = initial_pages;
     memory->size = initial_pages * WASM_PAGE_SIZE;
@@ -81,7 +82,8 @@ extern "C" void wasm_rt_free_funcref_table(wasm_rt_funcref_table_t *table) {
 
 extern "C" uint32_t wasm_rt_push_funcref(wasm_rt_funcref_table_t *table, wasm_rt_funcref_t funcref) {
     if (table->size == (uint32_t)-1) {
-        throw std::bad_alloc();
+        mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox out of memory\n");
+        std::abort();
     }
     ((std::vector<wasm_rt_funcref_t> *)table->private_data)->push_back(funcref);
     table->data = ((std::vector<wasm_rt_funcref_t> *)table->private_data)->data();
