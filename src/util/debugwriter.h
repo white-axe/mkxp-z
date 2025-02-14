@@ -27,7 +27,7 @@
 #include <vector>
 
 #ifdef MKXPZ_RETRO
-#  include "binding-sandbox/core.h"
+#  include "core.h"
 #elif defined(__ANDROID__)
 #  include <android/log.h>
 #endif

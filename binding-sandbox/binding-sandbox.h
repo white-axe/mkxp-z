@@ -23,7 +23,7 @@
 #define MKXPZ_BINDING_SANDBOX_H
 
 #include <zlib.h>
-#include "binding-sandbox/core.h"
+#include "core.h"
 #include "sandbox.h"
 #include "binding-util.h"
 #include "audio-binding.h"

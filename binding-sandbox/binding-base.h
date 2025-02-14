@@ -32,9 +32,9 @@
 #include <boost/type_index.hpp>
 #include <boost/asio/coroutine.hpp>
 #include <mkxp-retro-ruby.h>
-#include "binding-sandbox/types.h"
+#include "types.h"
 
-#if WABT_BIG_ENDIAN
+#ifdef MKXPZ_BIG_ENDIAN
 #  define SERIALIZE_32(value) __builtin_bswap32(value)
 #  define SERIALIZE_64(value) __builtin_bswap64(value)
 #else
@@ -82,7 +82,6 @@ namespace mkxp_sandbox {
         uint8_t *operator*() const noexcept;
         wasm_ptr_t sandbox_malloc(wasm_size_t);
         void sandbox_free(wasm_ptr_t ptr);
-        wasm_ptr_t sandbox_create_func_ptr();
         wasm_ptr_t rtypeddata_data(VALUE obj) const noexcept;
         void rtypeddata_dmark(wasm_ptr_t data, wasm_ptr_t ptr);
         void rtypeddata_dfree(wasm_ptr_t data, wasm_ptr_t ptr);

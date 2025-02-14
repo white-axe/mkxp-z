@@ -22,7 +22,7 @@
 #ifndef MKXPZ_SANDBOX_AUDIO_BINDING_H
 #define MKXPZ_SANDBOX_AUDIO_BINDING_H
 
-#include "binding-sandbox/core.h"
+#include "core.h"
 #include "sandbox.h"
 
 namespace mkxp_sandbox {

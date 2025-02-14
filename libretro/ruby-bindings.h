@@ -48,12 +48,6 @@ MKXP_SANDBOX_API void mkxp_sandbox_init(void) {
     async_buf_init(&mkxp_sandbox_async_buf);
 }
 
-/* This function should be called immediately before deinitializing the sandbox. */
-MKXP_SANDBOX_API void mkxp_sandbox_deinit(void) {
-    void __wasm_call_dtors(void); /* Defined by wasi-libc from the WASI SDK */
-    __wasm_call_dtors();
-}
-
 /* Exposes the `malloc()` function. */
 MKXP_SANDBOX_API void *mkxp_sandbox_malloc(size_t size) {
     return malloc(size);

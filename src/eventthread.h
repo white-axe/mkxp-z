@@ -38,7 +38,7 @@
 #include "keybindings.h"
 
 #ifdef MKXPZ_RETRO
-#  include <AL/alc.h>
+#  include <alc.h>
 #else
 typedef struct MKXPZ_ALCDEVICE ALCdevice;
 #endif // MKXPZ_RETRO

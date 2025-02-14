@@ -1,0 +1,17 @@
+# devkitPro platforms don't have usable flockfile and funlockfile functions.
+# This patch disables the use of those functions when using devkitPro.
+
+--- a/fmt-11.1.1/include/fmt/format-inl.h
++++ b/fmt-11.1.1/include/fmt/format-inl.h
+@@ -1479,7 +1479,11 @@ struct has_flockfile : std::false_type {};
+ 
+ template <typename F>
+ struct has_flockfile<F, void_t<decltype(flockfile(&std::declval<F&>()))>>
++#if defined(__DEVKITPRO__)
++    : std::false_type {};
++#else
+     : std::true_type {};
++#endif
+ 
+ // A FILE wrapper. F is FILE defined as a template parameter to make system API
+ // detection work.

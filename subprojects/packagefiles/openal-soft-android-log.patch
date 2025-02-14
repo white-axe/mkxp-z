@@ -1,4 +1,4 @@
-# Removes the call to `__android_log_printf()` when targeting Android because we get missing symbol errors on Android otherwise.
+# Removes the call to `__android_log_print()` when targeting Android because we get missing symbol errors on Android otherwise.
 
 --- a/core/logging.cpp
 +++ b/core/logging.cpp

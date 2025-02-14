@@ -23,18 +23,8 @@
 #define SERIALUTIL_H
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
-
-#ifdef MKXPZ_RETRO
-#  if WABT_BIG_ENDIAN
-#    error "Non little endian systems not supported"
-#  endif
-#else
-#  include <SDL_endian.h>
-#  if SDL_BYTEORDER != SDL_LIL_ENDIAN
-#    error "Non little endian systems not supported"
-#  endif
-#endif // MKXPZ_RETRO
 
 static inline int32_t
 readInt32(const char **dataP)
@@ -44,23 +34,56 @@ readInt32(const char **dataP)
 	memcpy(&result, *dataP, 4);
 	*dataP += 4;
 
+#ifdef MKXPZ_BIG_ENDIAN
+#  ifdef _MSC_VER
+	static_assert(sizeof(unsigned long) == sizeof(int32_t), "unsigned long should be 32 bits");
+	result = (int32_t)_byteswap_ulong((unsigned long)result);
+#  else
+	result = (int32_t)__builtin_bswap32((uint32_t)result);
+#  endif
+#endif
+
 	return result;
 }
 
 static inline double
 readDouble(const char **dataP)
 {
+#ifdef MKXPZ_BIG_ENDIAN
+	uint64_t result;
+
+	memcpy(&result, *dataP, 8);
+	*dataP += 8;
+
+#  ifdef _MSC_VER
+	result = (uint64_t)_byteswap_uint64((unsigned __int64)result);
+#  else
+	result = __builtin_bswap64(result);
+#  endif
+
+	return *(double *)&result;
+#else
 	double result;
 
 	memcpy(&result, *dataP, 8);
 	*dataP += 8;
 
 	return result;
+#endif
 }
 
 static inline void
 writeInt32(char **dataP, int32_t value)
 {
+#ifdef MKXPZ_BIG_ENDIAN
+#  ifdef _MSC_VER
+	static_assert(sizeof(unsigned long) == sizeof(int32_t), "unsigned long should be 32 bits");
+	value = (int32_t)_byteswap_ulong((unsigned long)value);
+#  else
+	value = (int32_t)__builtin_bswap32((uint32_t)value);
+#  endif
+#endif
+
 	memcpy(*dataP, &value, 4);
 	*dataP += 4;
 }
@@ -68,7 +91,19 @@ writeInt32(char **dataP, int32_t value)
 static inline void
 writeDouble(char **dataP, double value)
 {
+#ifdef MKXPZ_BIG_ENDIAN
+	uint64_t valueUint = *(uint64_t *)&value;
+
+#  ifdef _MSC_VER
+	valueUint = (uint64_t)_byteswap_uint64((unsigned __int64)valueUint);
+#  else
+	valueUint = __builtin_bswap64(valueUint);
+#  endif
+
+	memcpy(*dataP, &valueUint, 8);
+#else
 	memcpy(*dataP, &value, 8);
+#endif
 	*dataP += 8;
 }
 

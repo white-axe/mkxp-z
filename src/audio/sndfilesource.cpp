@@ -135,7 +135,7 @@ struct SndfileSource : ALDataSource
 #ifndef MKXPZ_RETRO
 			SDL_RWclose(&src);
 #endif // MKXPZ_RETRO
-			throw Exception(Exception::MKXPError, "sndfile: Cannot read file");
+			throw Exception(Exception::MKXPError, sf_error_number(handle.error()));
 		}
 
 		/* Extract bitstream info */

@@ -31,9 +31,11 @@
 #include "sdl-util.h"
 #include "debugwriter.h"
 
-#include <SDL_mutex.h>
-#include <SDL_thread.h>
-#include <SDL_timer.h>
+#ifndef MKXPZ_RETRO
+#  include <SDL_mutex.h>
+#  include <SDL_thread.h>
+#  include <SDL_timer.h>
+#endif // MKXPZ_RETRO
 
 ALStream::ALStream(LoopMode loopMode,
 		           const std::string &threadId)
@@ -41,7 +43,10 @@ ALStream::ALStream(LoopMode loopMode,
 	  state(Closed),
 	  source(0),
 #ifdef MKXPZ_RETRO
+	  streamInited(false),
 	  sourceExhausted(false),
+	  threadTermReq(false),
+	  needsRewind(false),
 #else
 	  thread(0),
 #endif // MKXPZ_RETRO
@@ -308,7 +313,9 @@ void ALStream::openSource(const std::string &filename)
 
 void ALStream::stopStream()
 {
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+	threadTermReq = true;
+#else
 	threadTermReq.set();
 
 	if (thread)
@@ -331,8 +338,12 @@ void ALStream::startStream(double offset)
 {
 	AL::Source::clearQueue(alSrc);
 
-#ifndef MKXPZ_RETRO
 	preemptPause = false;
+#ifdef MKXPZ_RETRO
+	streamInited = false;
+	sourceExhausted = false;
+	threadTermReq = false;
+#else
 	streamInited.clear();
 	sourceExhausted.clear();
 	threadTermReq.clear();
@@ -389,13 +400,11 @@ void ALStream::checkStopped()
 	if (state != Playing)
 		return;
 
-#ifndef MKXPZ_RETRO
 	/* If streaming thread hasn't queued up
 	 * buffers yet there's not point in querying
 	 * the AL source */
 	if (!streamInited)
 		return;
-#endif // MKXPZ_RETRO
 
 	/* If alSrc isn't playing, but we haven't
 	 * exhausted the data source yet, we're just
@@ -414,15 +423,13 @@ void ALStream::renderInit() {
 	bool firstBuffer = true;
 	ALDataSource::Status status;
 
-	//if (needsRewind)
+	if (needsRewind)
 		source->seekToOffset(startOffset);
 
 	for (int i = 0; i < STREAM_BUFS; ++i)
 	{
-#ifndef MKXPZ_RETRO
 		if (threadTermReq)
 			return;
-#endif
 
 		AL::Buffer::ID buf = alBuf[i];
 
@@ -438,15 +445,15 @@ void ALStream::renderInit() {
 			resumeStream();
 
 			firstBuffer = false;
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+			streamInited = true;
+#else
 			streamInited.set();
-#endif
+#endif // MKXPZ_RETRO
 		}
 
-#ifndef MKXPZ_RETRO
 		if (threadTermReq)
 			return;
-#endif
 
 		if (status == ALDataSource::EndOfStream)
 		{
@@ -454,7 +461,7 @@ void ALStream::renderInit() {
 			sourceExhausted = true;
 #else
 			sourceExhausted.set();
-#endif
+#endif // MKXPZ_RETRO
 			break;
 		}
 	}
@@ -465,16 +472,24 @@ void ALStream::render() {
 
 	while (procBufs--)
 	{
-#ifndef MKXPZ_RETRO
 		if (threadTermReq)
 			break;
-#endif
 
 		AL::Buffer::ID buf = AL::Source::unqueueBuffer(alSrc);
 
+#ifndef MKXPZ_NO_EXCEPTIONS // `unqueueBuffer` will abort on error if C++ exceptions are disabled so we only need to check if `buf == AL::Buffer::ID(0)` if C++ exceptions are enabled
+#  ifdef MKXPZ_RETRO
+		if (buf == AL::Buffer::ID(0))
+		{
+			mkxp_retro::log_printf(RETRO_LOG_ERROR, "Error unqueueing OpenAL buffer\n");
+			std::abort();
+		}
+#  else
 		/* If something went wrong, try again later */
 		if (buf == AL::Buffer::ID(0))
 			break;
+#  endif // MKXPZ_RETRO
+#endif // MKXPZ_NO_EXCEPTIONS
 
 		if (buf == lastBuf)
 		{
@@ -506,7 +521,7 @@ void ALStream::render() {
 			sourceExhausted = true;
 #else
 			sourceExhausted.set();
-#endif
+#endif // MKXPZ_RETRO
 			return;
 		}
 
@@ -529,7 +544,7 @@ void ALStream::render() {
 			sourceExhausted = true;
 #else
 			sourceExhausted.set();
-#endif
+#endif // MKXPZ_RETRO
 	}
 }
 

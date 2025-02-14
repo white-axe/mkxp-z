@@ -1,0 +1,16 @@
+# Disables checking for endianness when targeting Emscripten because it causes configuration errors, and because we already know Emscripten targets are always little-endian.
+
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -137,7 +137,10 @@ check_c_source_compiles("
+     }"
+     HAVE_LANGINFO_CODESET)
+ 
+-test_big_endian(CPU_IS_BIG_ENDIAN)
++string(TOLOWER ${CMAKE_SYSTEM_NAME} SYSTEM_LOWER)
++if(NOT SYSTEM_LOWER STREQUAL "emscripten")
++    test_big_endian(CPU_IS_BIG_ENDIAN)
++endif()
+ 
+ check_c_compiler_flag(-Werror HAVE_WERROR_FLAG)
+ check_c_compiler_flag(-Wdeclaration-after-statement HAVE_DECL_AFTER_STMT_FLAG)

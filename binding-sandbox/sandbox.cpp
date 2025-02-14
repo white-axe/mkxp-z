@@ -40,11 +40,6 @@
 
 using namespace mkxp_sandbox;
 
-// This function is imported by wasm-rt-impl.c from wasm2c
-extern "C" void mkxp_sandbox_trap_handler(wasm_rt_trap_t code) {
-    throw SandboxTrapException();
-}
-
 usize sandbox::sandbox_malloc(usize size) {
     usize buf = w2c_ruby_mkxp_sandbox_malloc(RB, size);
 
@@ -64,7 +59,6 @@ void sandbox::sandbox_free(usize ptr) {
 sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings(ruby), yielding(false) {
     try {
         // Initialize the sandbox
-        wasm_rt_init();
         wasm2c_ruby_instantiate(RB, wasi.get());
         w2c_ruby_mkxp_sandbox_init(RB);
 
@@ -120,18 +114,9 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
         AWAIT(enc = w2c_ruby_rb_enc_from_encoding(RB, encoding));
         AWAIT(w2c_ruby_rb_enc_set_default_internal(RB, enc));
         AWAIT(w2c_ruby_rb_enc_set_default_external(RB, enc));
-    } catch (SandboxNodeException e) {
+    } catch (SandboxException &) {
         wasm2c_ruby_free(RB);
-        wasm_rt_free();
-        throw e;
-    } catch (SandboxOutOfMemoryException e) {
-        wasm2c_ruby_free(RB);
-        wasm_rt_free();
-        throw e;
-    } catch (SandboxTrapException e) {
-        wasm2c_ruby_free(RB);
-        wasm_rt_free();
-        throw e;
+        throw;
     }
 }
 
@@ -141,5 +126,4 @@ sandbox::~sandbox() {
     }
     bindings.reset(); // Destroy the bindings before destroying the runtime since the bindings destructor requires the runtime to be alive
     wasm2c_ruby_free(RB);
-    wasm_rt_free();
 }
