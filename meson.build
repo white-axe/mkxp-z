@@ -5,16 +5,7 @@ host_endian = host_machine.endian()
 
 is_retro = get_option('retro_phase1_path') != ''
 is_emscripten = host_system == 'emscripten'
-core_is_static = host_system == 'bare' or host_system == 'none'
-
-# Meson for some reason does not support prelinking when using non-Apple Clang even though it's supported by Clang. Remove the Darwin and Clang check once Meson gets Clang prelinking support.
-compiler_id = meson.get_compiler('cpp').get_id()
-is_clang = compiler_id == 'clang' or compiler_id == 'armclang' or compiler_id == 'clang-cl'
-core_is_prelinked = core_is_static and (host_system == 'darwin' or not is_clang)
-
-if is_retro and core_is_static and not core_is_prelinked and get_option('b_lto') == true
-    error('\nCannot use LTO on this platform.')
-endif
+core_is_static = is_emscripten or host_system == 'bare' or host_system == 'none'
 
 if not is_retro and host_system == 'darwin'
     error('\nThis Meson project no longer supports macOS. Please use the Xcode project instead.')
@@ -217,6 +208,12 @@ if is_retro
     retro_link_args = []
     retro_cppflags = []
 
+    # On platforms that require the core to be a static library, we need to build a relocatable object
+    if core_is_static
+        compilers['cpp'].has_link_argument('-r', required: true)
+        retro_link_args += '-r'
+    endif
+
     # We need to statically link the C++ standard library (libstdc++/libc++), the compiler runtime library (libgcc/compiler-rt) and libpthread in MSYS2 builds for Windows because those are not part of the operating system
     if (host_system == 'windows' or host_system == 'cygwin') and compilers['cpp'].has_link_argument('-static')
         retro_link_args += '-static'
@@ -226,12 +223,6 @@ if is_retro
     if host_system == 'android'
         compilers['cpp'].has_link_argument('-static-libstdc++', required: true)
         retro_link_args += '-static-libstdc++'
-    endif
-
-    # When targeting Emscripten, we need to build a relocatable object
-    if is_emscripten
-        compilers['cpp'].has_link_argument('-r', required: true)
-        retro_link_args += '-r'
     endif
 
     # If possible, stop the linker from reexporting the symbols from the static libraries we use (e.g. zlib)
@@ -269,29 +260,20 @@ if is_retro
         retro_deps += compilers['cpp'].find_library('iconv')
     endif
 
-    if core_is_static
-        retro_deps_processed = []
-        foreach dep : retro_deps
-            retro_deps_processed += dep.as_link_whole()
-        endforeach
-    else
-        retro_deps_processed = retro_deps
-    endif
-
     if is_emscripten
-        retro_target_type = 'executable' # Actually a relocatable object; we just pass 'executable' as the target type to get Meson to use the correct commands
+        retro_name_suffix = 'bc'
     elif core_is_static
-        retro_target_type = 'static_library'
+        retro_name_suffix = 'o'
     else
-        retro_target_type = 'shared_library'
+        retro_name_suffix = []
     endif
 
     build_target(
         meson.project_name() + '_libretro',
         name_prefix: '',
-        name_suffix: is_emscripten ? 'bc' : [],
-        target_type: retro_target_type,
-        dependencies: retro_deps_processed,
+        name_suffix: retro_name_suffix,
+        target_type: core_is_static ? 'executable' : 'shared_library',
+        dependencies: retro_deps,
         c_args: [
             '-fno-optimize-sibling-calls',
             '-frounding-math',
@@ -306,8 +288,7 @@ if is_retro
         cpp_args: ['-Wno-unused-command-line-argument'] + retro_cppflags + retro_defines,
         link_args: retro_link_args,
         gnu_symbol_visibility: 'hidden',
-        prelink: core_is_prelinked,
-        install: true, # Prevents Meson from creating thin archives; see https://github.com/mesonbuild/meson/issues/9479
+        install: false,
         include_directories: [
             include_directories('.'),
             include_directories('binding-sandbox'),

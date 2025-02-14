@@ -1,4 +1,4 @@
-# Removes the duplicate inclusion of compat_str.c because it results in duplicate symbol errors when building a static libretro core.
+# Removes the duplicate inclusion of compat_str.c.
 
 --- a/ports/cmake/src/compat/CMakeLists.txt
 +++ b/ports/cmake/src/compat/CMakeLists.txt
