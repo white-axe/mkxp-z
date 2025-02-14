@@ -41,7 +41,7 @@ No software libraries are required other than the system libraries.
 Go to the root directory of this repository and run:
 
 ```
-meson setup build -Dretro=true -Dretro_phase1_path=path/to/retro-phase1
+meson setup build -Dretro_phase1_path=path/to/retro-phase1
 cd build
 ninja
 ```

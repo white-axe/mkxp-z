@@ -7,6 +7,15 @@ is_retro = get_option('retro_phase1_path') != ''
 is_emscripten = host_system == 'emscripten'
 core_is_static = host_system == 'bare' or host_system == 'none'
 
+# Meson for some reason does not support prelinking when using non-Apple Clang even though it's supported by Clang. Remove the Darwin and Clang check once Meson gets Clang prelinking support.
+compiler_id = meson.get_compiler('cpp').get_id()
+is_clang = compiler_id == 'clang' or compiler_id == 'armclang' or compiler_id == 'clang-cl'
+core_is_prelinked = core_is_static and (host_system == 'darwin' or not is_clang)
+
+if is_retro and core_is_static and not core_is_prelinked and get_option('b_lto') == true
+    error('\nCannot use LTO on this platform.')
+endif
+
 if not is_retro and host_system == 'darwin'
     error('\nThis Meson project no longer supports macOS. Please use the Xcode project instead.')
 endif
@@ -297,6 +306,7 @@ if is_retro
         cpp_args: ['-Wno-unused-command-line-argument'] + retro_cppflags + retro_defines,
         link_args: retro_link_args,
         gnu_symbol_visibility: 'hidden',
+        prelink: core_is_prelinked,
         install: true, # Prevents Meson from creating thin archives; see https://github.com/mesonbuild/meson/issues/9479
         include_directories: [
             include_directories('.'),
