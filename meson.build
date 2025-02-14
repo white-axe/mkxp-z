@@ -11,7 +11,7 @@ if not is_retro and host_system == 'darwin'
     error('\nThis Meson project no longer supports macOS. Please use the Xcode project instead.')
 endif
 
-compilers = {'cpp': meson.get_compiler('cpp')}
+compilers = {'c': meson.get_compiler('c'), 'cpp': meson.get_compiler('cpp')}
 
 global_sources = []
 global_dependencies = []
@@ -34,16 +34,66 @@ global_args += '-DHAVE_NANOSLEEP'
 if is_retro
     retro_phase1 = get_option('retro_phase1_path')
 
+    retro_defines = [
+        '-DMKXPZ_VERSION="@0@"'.format(meson.project_version()),
+        '-DMKXPZ_RETRO',
+        '-DSHARED_FLUID',
+    ]
+    if host_endian == 'big'
+        retro_defines += '-DMKXPZ_BIG_ENDIAN'
+    endif
+    if is_emscripten or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'check if C++ exceptions are enabled')
+        retro_defines += '-DMKXPZ_NO_EXCEPTIONS'
+        retro_defines += '-DBOOST_NO_EXCEPTIONS'
+    endif
+
+    retro_link_args = []
+    retro_cflags = []
+    retro_cppflags = []
+
+    if core_is_static and not is_emscripten and get_option('b_lto')
+        compilers['c'].has_argument('-ffat-lto-objects', required: true)
+        compilers['cpp'].has_argument('-ffat-lto-objects', required: true)
+        retro_cflags += '-ffat-lto-objects'
+        retro_cppflags += '-ffat-lto-objects'
+    endif
+
+    # On platforms that require the core to be a static library, we need to build a relocatable object
+    if core_is_static
+        compilers['cpp'].has_link_argument('-r', required: true)
+        retro_link_args += '-r'
+    endif
+
+    # We need to statically link the C++ standard library (libstdc++/libc++), the compiler runtime library (libgcc/compiler-rt) and libpthread in MSYS2 builds for Windows because those are not part of the operating system
+    if (host_system == 'windows' or host_system == 'cygwin') and compilers['cpp'].has_link_argument('-static')
+        retro_link_args += '-static'
+    endif
+
+    # Android doesn't have a built-in C++ standard library, so we need to statically link against the C++ standard library
+    if host_system == 'android'
+        compilers['cpp'].has_link_argument('-static-libstdc++', required: true)
+        retro_link_args += '-static-libstdc++'
+    endif
+
+    # If possible, stop the linker from reexporting the symbols from the static libraries we use (e.g. zlib)
+    if not is_emscripten and compilers['cpp'].has_link_argument('-Wl,--version-script,' + join_paths(meson.current_source_dir(), 'retro/link.T')) # Only works with GNU linker and LLVM linker
+        retro_link_args += '-Wl,--version-script,' + join_paths(meson.current_source_dir(), 'retro/link.T')
+    endif
+
     cmake = import('cmake')
 
     boost_options = cmake.subproject_options()
     boost_options.add_cmake_defines({
+        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_TESTING': false,
     })
 
     zlib_options = cmake.subproject_options()
     zlib_options.add_cmake_defines({
+        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'ZLIB_BUILD_EXAMPLES': false,
@@ -51,6 +101,8 @@ if is_retro
 
     libzip_options = cmake.subproject_options()
     libzip_options.add_cmake_defines({
+        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'LIBZIP_DO_INSTALL': false,
@@ -72,6 +124,8 @@ if is_retro
 
     physfs_options = cmake.subproject_options()
     physfs_options.add_cmake_defines({
+        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'PHYSFS_BUILD_STATIC': true,
         'PHYSFS_BUILD_SHARED': false,
@@ -81,6 +135,8 @@ if is_retro
 
     openal_options = cmake.subproject_options()
     openal_options.add_cmake_defines({
+        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'LIBTYPE': 'STATIC',
         'ALSOFT_DLOPEN': false,
@@ -112,6 +168,8 @@ if is_retro
 
     fluidlite_options = cmake.subproject_options()
     fluidlite_options.add_cmake_defines({
+        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'FLUIDLITE_BUILD_STATIC': true,
         'FLUIDLITE_BUILD_SHARED': false,
@@ -119,6 +177,8 @@ if is_retro
 
     ogg_options = cmake.subproject_options()
     ogg_options.add_cmake_defines({
+        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'BUILD_TESTING': false,
@@ -127,6 +187,8 @@ if is_retro
 
     vorbis_options = cmake.subproject_options()
     vorbis_options.add_cmake_defines({
+        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'BUILD_TESTING': false,
@@ -135,6 +197,8 @@ if is_retro
 
     flac_options = cmake.subproject_options()
     flac_options.add_cmake_defines({
+        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'BUILD_CXXLIBS': false,
@@ -152,6 +216,8 @@ if is_retro
 
     opus_options = cmake.subproject_options()
     opus_options.add_cmake_defines({
+        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'OPUS_BUILD_SHARED_LIBRARY': false,
@@ -168,6 +234,8 @@ if is_retro
 
     mpg123_options = cmake.subproject_options()
     mpg123_options.add_cmake_defines({
+        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'BUILD_PROGRAMS': false,
@@ -178,6 +246,8 @@ if is_retro
 
     libsndfile_options = cmake.subproject_options()
     libsndfile_options.add_cmake_defines({
+        'CMAKE_C_FLAGS': ' '.join(retro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(retro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'BUILD_PROGRAMS': false,
@@ -191,44 +261,6 @@ if is_retro
         'ENABLE_MPEG': true,
         'ENABLE_EXPERIMENTAL': false,
     })
-
-    retro_defines = [
-        '-DMKXPZ_VERSION="@0@"'.format(meson.project_version()),
-        '-DMKXPZ_RETRO',
-        '-DSHARED_FLUID',
-    ]
-    if host_endian == 'big'
-        retro_defines += '-DMKXPZ_BIG_ENDIAN'
-    endif
-    if is_emscripten or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'check if C++ exceptions are enabled')
-        retro_defines += '-DMKXPZ_NO_EXCEPTIONS'
-        retro_defines += '-DBOOST_NO_EXCEPTIONS'
-    endif
-
-    retro_link_args = []
-    retro_cppflags = []
-
-    # On platforms that require the core to be a static library, we need to build a relocatable object
-    if core_is_static
-        compilers['cpp'].has_link_argument('-r', required: true)
-        retro_link_args += '-r'
-    endif
-
-    # We need to statically link the C++ standard library (libstdc++/libc++), the compiler runtime library (libgcc/compiler-rt) and libpthread in MSYS2 builds for Windows because those are not part of the operating system
-    if (host_system == 'windows' or host_system == 'cygwin') and compilers['cpp'].has_link_argument('-static')
-        retro_link_args += '-static'
-    endif
-
-    # Android doesn't have a built-in C++ standard library, so we need to statically link against the C++ standard library
-    if host_system == 'android'
-        compilers['cpp'].has_link_argument('-static-libstdc++', required: true)
-        retro_link_args += '-static-libstdc++'
-    endif
-
-    # If possible, stop the linker from reexporting the symbols from the static libraries we use (e.g. zlib)
-    if not is_emscripten and compilers['cpp'].has_link_argument('-Wl,--version-script,' + join_paths(meson.current_source_dir(), 'retro/link.T')) # Only works with GNU linker and LLVM linker
-        retro_link_args += '-Wl,--version-script,' + join_paths(meson.current_source_dir(), 'retro/link.T')
-    endif
 
     retro_deps = [
         cmake.subproject('boost_asio', options: boost_options).dependency('boost_asio'),
@@ -284,7 +316,7 @@ if is_retro
             '-Wno-unused-but-set-variable',
             '-Wno-ignored-optimization-argument',
             '-Wno-unused-command-line-argument',
-        ] + retro_defines,
+        ] + retro_cflags + retro_defines,
         cpp_args: ['-Wno-unused-command-line-argument'] + retro_cppflags + retro_defines,
         link_args: retro_link_args,
         gnu_symbol_visibility: 'hidden',
