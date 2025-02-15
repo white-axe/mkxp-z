@@ -25,6 +25,7 @@
 #include <wasm-rt.h>
 #include "wasi.h"
 #include <mkxp-retro-ruby.h>
+#include "core.h"
 #include "sandbox.h"
 
 #define MJIT_ENABLED 0
@@ -59,10 +60,13 @@ void sandbox::sandbox_free(usize ptr) {
 sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings(ruby), yielding(false) {
     try {
         // Initialize the sandbox
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initializing sandbox\n");
         wasm2c_ruby_instantiate(RB, wasi.get());
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Calling sandbox constructors\n");
         w2c_ruby_mkxp_sandbox_init(RB);
 
         // Determine Ruby command-line arguments
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Calling sandbox constructors\n");
         std::vector<std::string> args{"mkxp-z"};
         args.push_back("/mkxp-retro-dist/bin/mkxp-z");
         if (MJIT_ENABLED) {
@@ -81,40 +85,52 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
         }
 
         // Copy all the command-line arguments into the sandbox (sandboxed code can't access memory that's outside the sandbox!)
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Allocating argv\n");
         usize argv_buf = sandbox_malloc(args.size() * sizeof(usize));
         for (usize i = 0; i < args.size(); ++i) {
+            mkxp_retro::log_printf(RETRO_LOG_INFO, "Allocating argv[%u]\n", i);
             usize arg_buf = sandbox_malloc(args[i].length() + 1);
             std::strcpy((char *)WASM_MEM(arg_buf), args[i].c_str());
             WASM_SET(usize, argv_buf + i * sizeof(usize), arg_buf);
         }
 
         // Pass the command-line arguments to Ruby
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Calling ruby_init_stack\n");
         AWAIT(w2c_ruby_ruby_init_stack(RB, w2c_ruby_rb_wasm_get_stack_pointer(RB)));
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Calling ruby_init\n");
         AWAIT(w2c_ruby_ruby_init(RB));
         usize node;
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Calling ruby_options\n");
         AWAIT(node = w2c_ruby_ruby_options(RB, args.size(), argv_buf));
 
         // Start up Ruby executable node
         bool valid;
         u32 state;
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Allocating state buffer\n");
         usize state_buf = sandbox_malloc(sizeof(usize));
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Calling ruby_executable_node\n");
         AWAIT(valid = w2c_ruby_ruby_executable_node(RB, node, state_buf));
         if (valid) {
+            mkxp_retro::log_printf(RETRO_LOG_INFO, "Calling ruby_exec_node\n");
             AWAIT(state = w2c_ruby_ruby_exec_node(RB, node));
         }
         if (!valid || state) {
             throw SandboxNodeException();
         }
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Freeing state buffer\n");
         sandbox_free(state_buf);
 
         // Set the default encoding to UTF-8
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Setting encoding\n");
         usize encoding;
         AWAIT(encoding = w2c_ruby_rb_utf8_encoding(RB));
         usize enc;
         AWAIT(enc = w2c_ruby_rb_enc_from_encoding(RB, encoding));
         AWAIT(w2c_ruby_rb_enc_set_default_internal(RB, enc));
         AWAIT(w2c_ruby_rb_enc_set_default_external(RB, enc));
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Done\n");
     } catch (SandboxException &) {
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Caught exception\n");
         wasm2c_ruby_free(RB);
         throw;
     }
