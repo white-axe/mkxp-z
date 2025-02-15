@@ -42,7 +42,7 @@ if is_libretro
     if host_endian == 'big'
         libretro_defines += '-DMKXPZ_BIG_ENDIAN'
     endif
-    if is_emscripten or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'check if C++ exceptions are enabled')
+    if is_emscripten or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'check if C++ exceptions are supported')
         libretro_defines += '-DMKXPZ_NO_EXCEPTIONS'
         libretro_defines += '-DBOOST_NO_EXCEPTIONS'
     endif

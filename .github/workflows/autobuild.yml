@@ -1152,7 +1152,7 @@ jobs:
           echo "endian = 'little'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=false -Dlibretro=true
 
       - name: Build core
         run: |
