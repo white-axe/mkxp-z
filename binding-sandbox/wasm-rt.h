@@ -58,6 +58,14 @@ extern "C" {
 #  define wasm_rt_memcpy memcpy
 #endif
 
+#ifdef _MSC_VER
+#  define WASM_RT_NO_INLINE __declspec(noinline)
+#  define WASM_RT_NO_RETURN __declspec(noreturn)
+#else
+#  define WASM_RT_NO_INLINE __attribute__((noinline))
+#  define WASM_RT_NO_RETURN __attribute__((noreturn))
+#endif
+
 /* Don't define this as an enum. It causes builds using devkitARM or Vita SDK to successfully compile but crash on startup. */
 typedef int wasm_rt_type_t;
 #define WASM_RT_I32 0
@@ -118,7 +126,7 @@ typedef struct {
 
 bool wasm_rt_is_initialized(void);
 
-void wasm_rt_trap(wasm_rt_trap_t error);
+WASM_RT_NO_INLINE WASM_RT_NO_RETURN void wasm_rt_trap(wasm_rt_trap_t error);
 
 void wasm_rt_allocate_memory(wasm_rt_memory_t *memory, uint32_t initial_pages, uint32_t max_pages, bool is64);
 
