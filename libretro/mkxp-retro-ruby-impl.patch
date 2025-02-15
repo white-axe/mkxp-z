@@ -23,7 +23,7 @@
  #define RANGE_CHECK(mem, offset, len)               \
    if (UNLIKELY(offset + (uint64_t)len > mem->size)) \
 -    TRAP(OOB);
-+    { fputs("oob trap 3", stderr); TRAP(OOB); }
++    { fputs("oob trap 3", stderr); fprintf(stderr, "(%p %llu %llu %llu)\n", mem, offset, len, mem->size); TRAP(OOB); }
  #endif
  
  #if WASM_RT_MEMCHECK_GUARD_PAGES
