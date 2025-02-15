@@ -1,0 +1,101 @@
+--- a/mkxp-retro-ruby-impl.h
++++ b/mkxp-retro-ruby-impl.h
+@@ -15,7 +15,7 @@
+ #else
+ #include <alloca.h>
+ #endif
+-
++#include <stdio.h>
+ #include "mkxp-retro-ruby.h"
+ 
+ #define TRAP(x) (wasm_rt_trap(WASM_RT_TRAP_##x), 0)
+@@ -55,14 +55,14 @@ static inline bool func_types_eq(const wasm_rt_func_type_t a,
+   do {                                             \
+     uint64_t res;                                  \
+     if (__builtin_add_overflow(offset, len, &res)) \
+-      TRAP(OOB);                                   \
++      { puts("oob trap 1"); TRAP(OOB); }           \
+     if (UNLIKELY(res > mem->size))                 \
+-      TRAP(OOB);                                   \
++      { puts("oob trap 2"); TRAP(OOB); }           \
+   } while (0);
+ #else
+ #define RANGE_CHECK(mem, offset, len)               \
+   if (UNLIKELY(offset + (uint64_t)len > mem->size)) \
+-    TRAP(OOB);
++    { puts("oob trap 3"); TRAP(OOB); }
+ #endif
+ 
+ #if WASM_RT_MEMCHECK_GUARD_PAGES
+@@ -519,7 +519,7 @@ static inline void memory_init(wasm_rt_memory_t* dest,
+                                u32 src_addr,
+                                u32 n) {
+   if (UNLIKELY(src_addr + (uint64_t)n > src_size))
+-    TRAP(OOB);
++    { puts("oob trap 4"); TRAP(OOB); }
+   LOAD_DATA((*dest), dest_addr, src + src_addr, n);
+ }
+ 
+@@ -539,9 +539,9 @@ static inline void funcref_table_init(wasm_rt_funcref_table_t* dest,
+                                       u32 n,
+                                       void* module_instance) {
+   if (UNLIKELY(src_addr + (uint64_t)n > src_size))
+-    TRAP(OOB);
++    { puts("oob trap 5"); TRAP(OOB); }
+   if (UNLIKELY(dest_addr + (uint64_t)n > dest->size))
+-    TRAP(OOB);
++    { puts("oob trap 6"); TRAP(OOB); }
+   for (u32 i = 0; i < n; i++) {
+     const wasm_elem_segment_expr_t* const src_expr = &src[src_addr + i];
+     wasm_rt_funcref_t* const dest_val = &(dest->data[dest_addr + i]);
+@@ -569,9 +569,9 @@ static inline void externref_table_init(wasm_rt_externref_table_t* dest,
+                                         u32 src_addr,
+                                         u32 n) {
+   if (UNLIKELY(src_addr + (uint64_t)n > src_size))
+-    TRAP(OOB);
++    { puts("oob trap 7"); TRAP(OOB); }
+   if (UNLIKELY(dest_addr + (uint64_t)n > dest->size))
+-    TRAP(OOB);
++    { puts("oob trap 8"); TRAP(OOB); }
+   for (u32 i = 0; i < n; i++) {
+     dest->data[dest_addr + i] = wasm_rt_externref_null_value;
+   }
+@@ -582,9 +582,9 @@ static inline void externref_table_init(wasm_rt_externref_table_t* dest,
+                                        const wasm_rt_##type##_table_t* src,  \
+                                        u32 dest_addr, u32 src_addr, u32 n) { \
+     if (UNLIKELY(dest_addr + (uint64_t)n > dest->size))                      \
+-      TRAP(OOB);                                                             \
++      { puts("oob trap 9"); TRAP(OOB); }                                     \
+     if (UNLIKELY(src_addr + (uint64_t)n > src->size))                        \
+-      TRAP(OOB);                                                             \
++      { puts("oob trap 10"); TRAP(OOB); }                                    \
+                                                                              \
+     memmove(dest->data + dest_addr, src->data + src_addr,                    \
+             n * sizeof(wasm_rt_##type##_t));                                 \
+@@ -597,7 +597,7 @@ DEFINE_TABLE_COPY(externref)
+   static inline wasm_rt_##type##_t type##_table_get(  \
+       const wasm_rt_##type##_table_t* table, u32 i) { \
+     if (UNLIKELY(i >= table->size))                   \
+-      TRAP(OOB);                                      \
++      { puts("oob trap 11"); TRAP(OOB); }             \
+     return table->data[i];                            \
+   }
+ 
+@@ -608,7 +608,7 @@ DEFINE_TABLE_GET(externref)
+   static inline void type##_table_set(const wasm_rt_##type##_table_t* table, \
+                                       u32 i, const wasm_rt_##type##_t val) { \
+     if (UNLIKELY(i >= table->size))                                          \
+-      TRAP(OOB);                                                             \
++      { puts("oob trap 12"); TRAP(OOB); }                                    \
+     table->data[i] = val;                                                    \
+   }
+ 
+@@ -620,7 +620,7 @@ DEFINE_TABLE_SET(externref)
+                                        u32 d, const wasm_rt_##type##_t val,   \
+                                        u32 n) {                               \
+     if (UNLIKELY((uint64_t)d + n > table->size))                              \
+-      TRAP(OOB);                                                              \
++      { puts("oob trap 13"); TRAP(OOB); }                                     \
+     for (uint32_t i = d; i < d + n; i++) {                                    \
+       table->data[i] = val;                                                   \
+     }                                                                         \
