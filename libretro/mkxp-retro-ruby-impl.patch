@@ -14,16 +14,16 @@
      uint64_t res;                                  \
      if (__builtin_add_overflow(offset, len, &res)) \
 -      TRAP(OOB);                                   \
-+      { puts("oob trap 1"); TRAP(OOB); }           \
++      { fputs("oob trap 1", stderr); TRAP(OOB); }  \
      if (UNLIKELY(res > mem->size))                 \
 -      TRAP(OOB);                                   \
-+      { puts("oob trap 2"); TRAP(OOB); }           \
++      { fputs("oob trap 2", stderr); TRAP(OOB); }  \
    } while (0);
  #else
  #define RANGE_CHECK(mem, offset, len)               \
    if (UNLIKELY(offset + (uint64_t)len > mem->size)) \
 -    TRAP(OOB);
-+    { puts("oob trap 3"); TRAP(OOB); }
++    { fputs("oob trap 3", stderr); TRAP(OOB); }
  #endif
  
  #if WASM_RT_MEMCHECK_GUARD_PAGES
@@ -32,7 +32,7 @@
                                 u32 n) {
    if (UNLIKELY(src_addr + (uint64_t)n > src_size))
 -    TRAP(OOB);
-+    { puts("oob trap 4"); TRAP(OOB); }
++    { fputs("oob trap 4", stderr); TRAP(OOB); }
    LOAD_DATA((*dest), dest_addr, src + src_addr, n);
  }
  
@@ -41,10 +41,10 @@
                                        void* module_instance) {
    if (UNLIKELY(src_addr + (uint64_t)n > src_size))
 -    TRAP(OOB);
-+    { puts("oob trap 5"); TRAP(OOB); }
++    { fputs("oob trap 5", stderr); TRAP(OOB); }
    if (UNLIKELY(dest_addr + (uint64_t)n > dest->size))
 -    TRAP(OOB);
-+    { puts("oob trap 6"); TRAP(OOB); }
++    { fputs("oob trap 6", stderr); TRAP(OOB); }
    for (u32 i = 0; i < n; i++) {
      const wasm_elem_segment_expr_t* const src_expr = &src[src_addr + i];
      wasm_rt_funcref_t* const dest_val = &(dest->data[dest_addr + i]);
@@ -53,10 +53,10 @@
                                          u32 n) {
    if (UNLIKELY(src_addr + (uint64_t)n > src_size))
 -    TRAP(OOB);
-+    { puts("oob trap 7"); TRAP(OOB); }
++    { fputs("oob trap 7", stderr); TRAP(OOB); }
    if (UNLIKELY(dest_addr + (uint64_t)n > dest->size))
 -    TRAP(OOB);
-+    { puts("oob trap 8"); TRAP(OOB); }
++    { fputs("oob trap 8", stderr); TRAP(OOB); }
    for (u32 i = 0; i < n; i++) {
      dest->data[dest_addr + i] = wasm_rt_externref_null_value;
    }
@@ -65,10 +65,10 @@
                                         u32 dest_addr, u32 src_addr, u32 n) { \
      if (UNLIKELY(dest_addr + (uint64_t)n > dest->size))                      \
 -      TRAP(OOB);                                                             \
-+      { puts("oob trap 9"); TRAP(OOB); }                                     \
++      { fputs("oob trap 9", stderr); TRAP(OOB); }                            \
      if (UNLIKELY(src_addr + (uint64_t)n > src->size))                        \
 -      TRAP(OOB);                                                             \
-+      { puts("oob trap 10"); TRAP(OOB); }                                    \
++      { fputs("oob trap 10", stderr); TRAP(OOB); }                           \
                                                                               \
      memmove(dest->data + dest_addr, src->data + src_addr,                    \
              n * sizeof(wasm_rt_##type##_t));                                 \
@@ -77,7 +77,7 @@
        const wasm_rt_##type##_table_t* table, u32 i) { \
      if (UNLIKELY(i >= table->size))                   \
 -      TRAP(OOB);                                      \
-+      { puts("oob trap 11"); TRAP(OOB); }             \
++      { fputs("oob trap 11", stderr); TRAP(OOB); }    \
      return table->data[i];                            \
    }
  
@@ -86,7 +86,7 @@
                                        u32 i, const wasm_rt_##type##_t val) { \
      if (UNLIKELY(i >= table->size))                                          \
 -      TRAP(OOB);                                                             \
-+      { puts("oob trap 12"); TRAP(OOB); }                                    \
++      { fputs("oob trap 12", stderr); TRAP(OOB); }                           \
      table->data[i] = val;                                                    \
    }
  
@@ -95,7 +95,7 @@
                                         u32 n) {                               \
      if (UNLIKELY((uint64_t)d + n > table->size))                              \
 -      TRAP(OOB);                                                              \
-+      { puts("oob trap 13"); TRAP(OOB); }                                     \
++      { fputs("oob trap 13", stderr); TRAP(OOB); }                            \
      for (uint32_t i = d; i < d + n; i++) {                                    \
        table->data[i] = val;                                                   \
      }                                                                         \
