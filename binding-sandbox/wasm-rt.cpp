@@ -28,11 +28,17 @@
 
 #define WASM_MIN_PAGES 1024U // tentative
 
+#ifdef _MSC_VER
+#  define WASM_NOINLINE __declspec(noinline)
+#else
+#  define WASM_NOINLINE __attribute__((noinline))
+#endif
+
 extern "C" bool wasm_rt_is_initialized(void) {
     return true;
 }
 
-extern "C" void wasm_rt_trap(wasm_rt_trap_t error) {
+extern "C" WASM_NOINLINE void wasm_rt_trap(wasm_rt_trap_t error) {
     mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error %d\n", error);
     std::abort();
 }
