@@ -66,7 +66,7 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
         w2c_ruby_mkxp_sandbox_init(RB);
 
         // Determine Ruby command-line arguments
-        mkxp_retro::log_printf(RETRO_LOG_INFO, "Calling sandbox constructors\n");
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Computing args\n");
         std::vector<std::string> args{"mkxp-z"};
         args.push_back("/mkxp-retro-dist/bin/mkxp-z");
         if (MJIT_ENABLED) {

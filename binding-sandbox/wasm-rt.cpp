@@ -38,8 +38,10 @@ extern "C" void wasm_rt_trap(wasm_rt_trap_t error) {
 }
 
 extern "C" void wasm_rt_allocate_memory(wasm_rt_memory_t *memory, uint32_t initial_pages, uint32_t max_pages, bool is64) {
+    mkxp_retro::log_printf(RETRO_LOG_INFO, "Allocating %u pages for %p\n", initial_pages, memory);
     memory->data = (uint8_t *)std::malloc(std::max(initial_pages, WASM_MIN_PAGES) * WASM_PAGE_SIZE);
     if (memory->data == NULL) {
+        mkxp_retro::log_printf(RETRO_LOG_ERROR, "Allocation failure\n");
         throw std::bad_alloc();
     }
     memory->pages = initial_pages;
@@ -49,10 +51,13 @@ extern "C" void wasm_rt_allocate_memory(wasm_rt_memory_t *memory, uint32_t initi
 extern "C" uint32_t wasm_rt_grow_memory(wasm_rt_memory_t *memory, uint32_t pages) {
     uint32_t new_pages;
     if (__builtin_add_overflow(memory->pages, pages, &new_pages)) {
+        mkxp_retro::log_printf(RETRO_LOG_ERROR, "Overflow\n");
         return -1;
     }
+    mkxp_retro::log_printf(RETRO_LOG_INFO, "Allocating %u more pages for %p (total %u)\n", pages, memory, new_pages);
     uint8_t *new_data = new_pages <= WASM_MIN_PAGES ? memory->data : (uint8_t *)std::realloc(memory->data, new_pages * WASM_PAGE_SIZE);
     if (new_data == NULL) {
+        mkxp_retro::log_printf(RETRO_LOG_ERROR, "Allocation failure\n");
         return -1;
     }
 #ifdef MKXPZ_BIG_ENDIAN
@@ -66,6 +71,7 @@ extern "C" uint32_t wasm_rt_grow_memory(wasm_rt_memory_t *memory, uint32_t pages
 }
 
 extern "C" void wasm_rt_free_memory(wasm_rt_memory_t *memory) {
+    mkxp_retro::log_printf(RETRO_LOG_INFO, "Freeing memory %p\n", memory);
     std::free(memory->data);
 }
 
