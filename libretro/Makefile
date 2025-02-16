@@ -143,7 +143,7 @@ $(DOWNLOADS)/crossruby/Makefile $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ru
 		XCFLAGS='-DWASM_SETJMP_STACK_BUFFER_SIZE=24576 -DWASM_FIBER_STACK_BUFFER_SIZE=24576 -DWASM_SCAN_STACK_BUFFER_SIZE=24576' \
 		cppflags='$(WASI_CXXFLAGS)' \
 		optflags='$(WASI_CFLAGS) -fno-fast-math' \
-		wasmoptflags='$(WASM_OPT_FLAGS) --pass-arg=asyncify-ignore-imports' \
+		wasmoptflags='$(WASM_OPT_FLAGS) -g --pass-arg=asyncify-ignore-imports' \
 		$(shell $(RUBY) -e 'puts "ac_cv_func_dlopen=no" if RUBY_VERSION.split(".")[..1].join(".").to_f < 3.3') \
 		--disable-install-doc
 
