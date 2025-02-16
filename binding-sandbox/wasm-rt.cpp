@@ -41,7 +41,7 @@ extern "C" void wasm_rt_allocate_memory(wasm_rt_memory_t *memory, uint32_t initi
     if ((memory->size = (uint64_t)initial_pages * WASM_PAGE_SIZE) > SIZE_MAX) {
         throw std::bad_alloc();
     }
-    memory->data = (uint8_t *)std::malloc(std::max((size_t)memory->size, (size_t)WASM_MIN_PAGES));
+    memory->data = (uint8_t *)std::malloc(std::max((size_t)memory->size, (size_t)WASM_MIN_PAGES * (size_t)WASM_PAGE_SIZE));
     if (memory->data == NULL) {
         throw std::bad_alloc();
     }
