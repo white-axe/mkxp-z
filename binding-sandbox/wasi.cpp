@@ -109,9 +109,8 @@ wasi_zip_container::wasi_zip_container(const void *buffer, zip_uint64_t length, 
 wasi_zip_container::~wasi_zip_container() {
     if (zip != NULL) {
         zip_close(zip);
-        if (source != NULL) {
-            zip_source_close(source);
-        }
+    } else if (source != NULL) {
+        zip_source_close(source);
     }
 }
 
