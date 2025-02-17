@@ -41,21 +41,6 @@
         return mkxp_sandbox::sb()->bind<struct alloc>()()(_klass); \
     }
 
-#define SANDBOX_DEF_ALLOC_WITH_INIT(rbtype, initializer) \
-    static VALUE alloc(VALUE _klass) { \
-        SANDBOX_COROUTINE(alloc, \
-            VALUE _obj; \
-            VALUE operator()(VALUE _klass) { \
-                BOOST_ASIO_CORO_REENTER (this) { \
-                    SANDBOX_AWAIT_AND_SET(_obj, mkxp_sandbox::rb_data_typed_object_wrap, _klass, 0, rbtype); \
-                    mkxp_sandbox::set_private_data(_obj, initializer); /* TODO: free when sandbox is deallocated */ \
-                } \
-                return _obj; \
-            } \
-        ) \
-        return mkxp_sandbox::sb()->bind<struct alloc>()()(_klass); \
-    }
-
 #define SANDBOX_DEF_DFREE(T) \
     static void dfree(wasm_ptr_t _buf) { \
         delete *(T **)(**mkxp_sandbox::sb() + _buf); \
@@ -63,27 +48,45 @@
 
 #define SANDBOX_DEF_LOAD(T) \
     static VALUE load(VALUE _self, VALUE _serialized) { \
-        SANDBOX_COROUTINE(load, \
-            struct mkxp_sandbox::_load::load_struct _data; \
-            VALUE operator()(VALUE _self, VALUE _serialized) { \
-                BOOST_ASIO_CORO_REENTER (this) { \
-                    SANDBOX_AWAIT_AND_SET(_data, mkxp_sandbox::_load::load_inner, _self, _serialized); \
-                    set_private_data(_data.obj, T::deserialize((const char *)(**mkxp_sandbox::sb() + _data.ptr), _data.len)); /* TODO: free when sandbox is deallocated */ \
-                } \
-                return _data.obj; \
-            } \
-        ) \
-        return mkxp_sandbox::sb()->bind<struct load>()()(_self, _serialized); \
+        return mkxp_sandbox::sb()->bind<struct _load_inner<T>>()()(_self, _serialized); \
     }
 
 namespace mkxp_sandbox {
-    // Given Ruby typed data `obj`, stores `ptr` into the private data field of `obj`.
-    void set_private_data(VALUE obj, void *ptr);
-
     // Given Ruby typed data `obj`, retrieves the private data field of `obj`.
     template <typename T> inline T *get_private_data(VALUE obj) {
         return *(T **)(**sb() + *(wasm_ptr_t *)(**sb() + sb()->rtypeddata_data(obj)));
     }
+
+    // Given Ruby typed data `obj`, stores `ptr` into the private data field of `obj`.
+    SANDBOX_COROUTINE(set_private_data,
+        wasm_ptr_t data;
+        wasm_ptr_t buf;
+
+        void operator()(VALUE obj, void *ptr) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                /* RGSS's behavior is to just leak memory if a disposable is reinitialized,
+                 * with the original disposable being left permanently instantiated,
+                 * but that's (1) bad, and (2) would currently cause memory access issues
+                 * when things like a sprite's src_rect inevitably get GC'd, so we're not
+                 * copying that. */
+
+                data = sb()->rtypeddata_data(obj);
+
+                // Free the old value if it already exists (initialize called twice?)
+                if (*(wasm_ptr_t *)(**sb() + data) != 0 && *(void **)(**sb() + *(wasm_ptr_t *)(**sb() + data)) != ptr) {
+                    sb()->rtypeddata_dfree(obj, *(wasm_ptr_t *)(**sb() + data));
+                    sb()->sandbox_free(*(wasm_ptr_t *)(**sb() + data));
+                    *(wasm_ptr_t *)(**sb() + data) = 0;
+                }
+
+                if (*(wasm_ptr_t *)(**sb() + data) == 0) {
+                    SANDBOX_AWAIT_AND_SET(buf, sandbox_malloc, sizeof(void *));
+                    *(void **)(**sb() + buf) = ptr;
+                    *(wasm_ptr_t *)(**sb() + data) = buf;
+                }
+            }
+        }
+    )
 
     // Gets the length of a Ruby object.
     SANDBOX_COROUTINE(get_length,
@@ -102,28 +105,23 @@ namespace mkxp_sandbox {
         }
     )
 
-    namespace _load {
-        struct load_struct {
-            VALUE obj;
-            wasm_ptr_t ptr;
-            wasm_size_t len;
-        };
+    // Internal-use utility coroutine for the `SANDBOX_DEF_LOAD` macro.
+    template <typename T> SANDBOX_COROUTINE(_load_inner,
+        VALUE obj;
+        wasm_ptr_t ptr;
+        wasm_size_t len;
 
-        // Internal-use utility coroutine for the `SANDBOX_DEF_LOAD` macro.
-        SANDBOX_COROUTINE(load_inner,
-            struct load_struct data;
-
-            struct load_struct operator()(VALUE self, VALUE serialized) {
-                BOOST_ASIO_CORO_REENTER (this) {
-                    SANDBOX_AWAIT_AND_SET(data.obj, rb_obj_alloc, self);
-                    SANDBOX_AWAIT_AND_SET(data.ptr, rb_string_value_ptr, &serialized);
-                    SANDBOX_AWAIT_AND_SET(data.len, get_length, serialized);
-                }
-
-                return data;
+        VALUE operator()(VALUE self, VALUE serialized) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, self);
+                SANDBOX_AWAIT_AND_SET(ptr, rb_string_value_ptr, &serialized);
+                SANDBOX_AWAIT_AND_SET(len, get_length, serialized);
+                SANDBOX_AWAIT(set_private_data, obj, T::deserialize((const char *)(**sb() + ptr), len)); // TODO: free when sandbox is deallocated
             }
-        )
-    }
+
+            return obj;
+        }
+    )
 
     // Prints the backtrace of a Ruby exception to the log.
     SANDBOX_COROUTINE(log_backtrace,

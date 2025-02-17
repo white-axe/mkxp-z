@@ -41,8 +41,9 @@ namespace mkxp_sandbox {
                         SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
                         SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
                         SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, new Color());
+                        SANDBOX_AWAIT(set_private_data, obj, new Color);
                         SANDBOX_AWAIT(rb_iv_set, self, "color", obj);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_iv_get, self, "color");
                     }
 
                     return SANDBOX_NIL;

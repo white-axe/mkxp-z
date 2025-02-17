@@ -67,7 +67,7 @@ uint8_t *binding_base::operator*() const noexcept {
     return get();
 }
 
-wasm_ptr_t binding_base::sandbox_malloc(wasm_size_t size) {
+wasm_ptr_t binding_base::_sandbox_malloc(wasm_size_t size) {
     wasm_ptr_t buf = w2c_ruby_mkxp_sandbox_malloc(&instance(), size);
 
     // Verify that the entire allocated buffer is in valid memory

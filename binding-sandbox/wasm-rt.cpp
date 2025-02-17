@@ -19,6 +19,7 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <cassert>
 #include <cstdlib>
 #include <vector>
 #include "core.h"
@@ -33,7 +34,35 @@ extern "C" bool wasm_rt_is_initialized(void) {
 }
 
 extern "C" WASM_RT_NO_RETURN void wasm_rt_trap(wasm_rt_trap_t error) {
-    mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error %d\n", error);
+    switch (error) {
+        case WASM_RT_TRAP_OOB:
+            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error 1: OOB (out-of-bounds memory access)\n");
+            break;
+        case WASM_RT_TRAP_INT_OVERFLOW:
+            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error 2: INT_OVERFLOW (arithmetic overflow)\n");
+            break;
+        case WASM_RT_TRAP_DIV_BY_ZERO:
+            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error 3: DIV_BY_ZERO (division by zero)\n");
+            break;
+        case WASM_RT_TRAP_INVALID_CONVERSION:
+            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error 4: INVALID_CONVERSION (invalid integer cast)\n");
+            break;
+        case WASM_RT_TRAP_UNREACHABLE:
+            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error 5: UNREACHABLE (hit an `unreachable' instruction in WebAssembly)\n");
+            break;
+        case WASM_RT_TRAP_CALL_INDIRECT:
+            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error 6: CALL_INDIRECT (attempted to call a function pointer with the wrong call signature)\n");
+            break;
+        case WASM_RT_TRAP_UNCAUGHT_EXCEPTION:
+            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error 7: UNCAUGHT_EXCEPTION (uncaught WebAssembly exception)\n");
+            break;
+        case WASM_RT_TRAP_EXHAUSTION:
+            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error 8: EXHAUSTION (out of stack space)\n");
+            break;
+        default:
+            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error %d (unknown error)\n", error);
+            break;
+    }
     std::abort();
 }
 
@@ -41,10 +70,15 @@ extern "C" void wasm_rt_allocate_memory(wasm_rt_memory_t *memory, uint32_t initi
     if ((memory->size = (uint64_t)initial_pages * WASM_PAGE_SIZE) > SIZE_MAX) {
         throw std::bad_alloc();
     }
-    memory->data = (uint8_t *)std::malloc(std::max((size_t)memory->size, (size_t)WASM_MIN_PAGES * (size_t)WASM_PAGE_SIZE));
-    if (memory->data == NULL) {
+    memory->private_data = (uint8_t *)std::malloc(std::max((size_t)memory->size, (size_t)WASM_MIN_PAGES * (size_t)WASM_PAGE_SIZE));
+    if (memory->private_data == NULL) {
         throw std::bad_alloc();
     }
+#ifdef MKXPZ_BIG_ENDIAN
+    memory->data = memory->private_data + std::max((size_t)memory->size, (size_t)WASM_MIN_PAGES * (size_t)WASM_PAGE_SIZE) - (size_t)memory->size;
+#else
+    memory->data = memory->private_data;
+#endif
     memory->pages = initial_pages;
 }
 
@@ -53,26 +87,37 @@ extern "C" uint32_t wasm_rt_grow_memory(wasm_rt_memory_t *memory, uint32_t pages
     if (new_pages < memory->pages) { // Unsigned integer overflow
         return -1;
     }
+
     uint64_t new_size = (uint64_t)new_pages * WASM_PAGE_SIZE;
     if (new_size > SIZE_MAX) {
         return -1;
     }
-    uint8_t *new_data = new_pages <= WASM_MIN_PAGES ? memory->data : (uint8_t *)std::realloc(memory->data, (size_t)new_size);
-    if (new_data == NULL) {
-        return -1;
+
+    if (!mkxp_retro::sandbox.has_value()) {
+        assert(new_pages <= WASM_MIN_PAGES);
+    } else if (mkxp_retro::sandbox->_rewinding()) {
+        if (!mkxp_retro::sandbox->_end_realloc()) {
+            return -1;
+        }
+    } else if (new_pages > WASM_MIN_PAGES) {
+        mkxp_retro::sandbox->_begin_realloc((size_t)new_size);
+        return -1; // Arbitrary value that never gets read
     }
+
 #ifdef MKXPZ_BIG_ENDIAN
-    std::memmove(new_data + (size_t)pages * WASM_PAGE_SIZE, new_data, (size_t)memory->size);
+    memory->data = memory->private_data + std::max((size_t)new_size, (size_t)WASM_MIN_PAGES * (size_t)WASM_PAGE_SIZE) - (size_t)new_size;
+#else
+    memory->data = memory->private_data;
 #endif // MKXPZ_BIG_ENDIAN
+
     uint32_t old_pages = memory->pages;
     memory->pages = new_pages;
     memory->size = new_size;
-    memory->data = new_data;
     return old_pages;
 }
 
 extern "C" void wasm_rt_free_memory(wasm_rt_memory_t *memory) {
-    std::free(memory->data);
+    std::free(memory->private_data);
 }
 
 extern "C" void wasm_rt_allocate_funcref_table(wasm_rt_funcref_table_t *table, uint32_t elements, uint32_t max_elements) {

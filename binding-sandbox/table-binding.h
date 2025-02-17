@@ -31,9 +31,26 @@ namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type table_type;
 
     SANDBOX_COROUTINE(table_binding_init,
-        SANDBOX_DEF_ALLOC_WITH_INIT(table_type, new Table(0, 0, 0))
         SANDBOX_DEF_DFREE(Table)
         SANDBOX_DEF_LOAD(Table)
+
+        static VALUE alloc(VALUE klass) {
+            SANDBOX_COROUTINE(coro,
+                VALUE obj;
+
+                VALUE operator()(VALUE klass) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT_AND_SET(obj, mkxp_sandbox::rb_data_typed_object_wrap, klass, 0, table_type);
+                        SANDBOX_AWAIT(set_private_data, obj, new Table(0, 0, 0));
+                    }
+
+                    return obj;
+                }
+            )
+
+            return mkxp_sandbox::sb()->bind<struct coro>()()(klass);
+        }
+
 
         static VALUE get(int32_t argc, wasm_ptr_t argv, VALUE self) {
             SANDBOX_COROUTINE(coro,
@@ -111,7 +128,7 @@ namespace mkxp_sandbox {
 
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
-                table_type = sb()->rb_data_type("Table", NULL, dfree, NULL, NULL, 0, 0, 0);
+                SANDBOX_AWAIT_AND_SET(table_type, new_rb_data_type, "Table", NULL, dfree, NULL, NULL, 0, 0, 0);
                 SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Table", sb()->rb_cObject());
                 SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
                 SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(ANYARGS))load, 1);

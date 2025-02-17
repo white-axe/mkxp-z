@@ -57,12 +57,12 @@ namespace mkxp_sandbox {
                         window = new Window(viewport);
                         SANDBOX_AWAIT(rb_iv_set, self, "viewport", viewport_obj);
 
-                        set_private_data(self, window);
+                        SANDBOX_AWAIT(set_private_data, self, window);
                         window->initDynAttribs();
                         SANDBOX_AWAIT_AND_SET(id, rb_intern, "Rect");
                         SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
                         SANDBOX_AWAIT_AND_SET(cursor_obj, rb_obj_alloc, klass);
-                        set_private_data(cursor_obj, &window->getCursorRect());
+                        SANDBOX_AWAIT(set_private_data, cursor_obj, &window->getCursorRect());
                         SANDBOX_AWAIT(rb_iv_set, self, "cursor_rect", cursor_obj);
                         GFX_UNLOCK
                     }
@@ -383,7 +383,7 @@ namespace mkxp_sandbox {
 
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
-                window_type = sb()->rb_data_type("Window", NULL, dfree, NULL, NULL, 0, 0, 0);
+                SANDBOX_AWAIT_AND_SET(window_type, new_rb_data_type, "Window", NULL, dfree, NULL, NULL, 0, 0, 0);
                 SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Window", sb()->rb_cObject());
                 SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
                 SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);

@@ -90,7 +90,7 @@ namespace mkxp_sandbox {
 
             void operator()() {
                 BOOST_ASIO_CORO_REENTER (this) {
-                    tilemap_autotiles_type = sb()->rb_data_type("TilemapAutotiles", NULL, dfree, NULL, NULL, 0, 0, 0);
+                    SANDBOX_AWAIT_AND_SET(tilemap_autotiles_type, new_rb_data_type, "TilemapAutotiles", NULL, dfree, NULL, NULL, 0, 0, 0);
                     SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "TilemapAutotiles", sb()->rb_cObject());
                     SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
                     SANDBOX_AWAIT(rb_define_method, klass, "[]", (VALUE (*)(ANYARGS))get, 1);
@@ -131,7 +131,7 @@ namespace mkxp_sandbox {
                         GFX_LOCK
                         tilemap = new Tilemap(viewport);
 
-                        set_private_data(self, tilemap);
+                        SANDBOX_AWAIT(set_private_data, self, tilemap);
 
                         tilemap->initDynAttribs();
 
@@ -139,25 +139,25 @@ namespace mkxp_sandbox {
                          * See the comment in setPrivateData for more info. */
                         SANDBOX_AWAIT_AND_SET(obj, rb_iv_get, self, "autotiles");
                         if (obj != SANDBOX_NIL) {
-                            set_private_data(obj, NULL);
+                            SANDBOX_AWAIT(set_private_data, obj, NULL);
                         }
 
                         SANDBOX_AWAIT_AND_SET(id, rb_intern, "TilemapAutotiles");
                         SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
                         SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &tilemap->getAutotiles());
+                        SANDBOX_AWAIT(set_private_data, obj, &tilemap->getAutotiles());
                         SANDBOX_AWAIT(rb_iv_set, self, "autotiles", obj);
 
                         SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
                         SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
                         SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &tilemap->getColor());
+                        SANDBOX_AWAIT(set_private_data, obj, &tilemap->getColor());
                         SANDBOX_AWAIT(rb_iv_set, self, "color", obj);
 
                         SANDBOX_AWAIT_AND_SET(id, rb_intern, "Tone");
                         SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
                         SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &tilemap->getTone());
+                        SANDBOX_AWAIT(set_private_data, obj, &tilemap->getTone());
                         SANDBOX_AWAIT(rb_iv_set, self, "tone", obj);
 
                         SANDBOX_AWAIT_AND_SET(obj, rb_iv_get, self, "autotiles");
@@ -418,7 +418,7 @@ namespace mkxp_sandbox {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT(tilemap_autotiles_binding_init);
 
-                tilemap_type = sb()->rb_data_type("Tilemap", NULL, dfree, NULL, NULL, 0, 0, 0);
+                SANDBOX_AWAIT_AND_SET(tilemap_type, new_rb_data_type, "Tilemap", NULL, dfree, NULL, NULL, 0, 0, 0);
                 SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Tilemap", sb()->rb_cObject());
                 SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
                 SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);

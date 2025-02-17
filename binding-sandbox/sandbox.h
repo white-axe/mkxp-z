@@ -22,6 +22,7 @@
 #ifndef MKXPZ_SANDBOX_H
 #define MKXPZ_SANDBOX_H
 
+#include <cstring>
 #include <memory>
 #include <boost/optional.hpp>
 #include <mkxp-sandbox-bindgen.h>
@@ -74,6 +75,8 @@ namespace mkxp_sandbox {
         std::unique_ptr<struct w2c_wasi__snapshot__preview1> wasi;
         boost::optional<struct mkxp_sandbox::bindings> bindings;
         bool yielding;
+        size_t realloc_size;
+        bool realloc_succeeded;
         usize sandbox_malloc(usize size);
         void sandbox_free(usize ptr);
 
@@ -94,6 +97,20 @@ namespace mkxp_sandbox {
             w2c_ruby_asyncify_stop_rewind(ruby.get());
         }
 
+        inline void _begin_realloc(size_t size) {
+            realloc_size = size;
+            w2c_ruby_asyncify_start_unwind(ruby.get(), ruby->w2c_mkxp_sandbox_async_buf);
+        }
+
+        inline bool _end_realloc() {
+            w2c_ruby_asyncify_stop_rewind(ruby.get());
+            return realloc_succeeded;
+        }
+
+        inline bool _rewinding() {
+            return w2c_ruby_asyncify_get_state(ruby.get()) == 2;
+        }
+
         // Executes the given coroutine as the top-level coroutine. Don't call this from inside of another coroutine; use `sb()->bind<T>()` instead.
         // Returns whether or not the coroutine completed execution.
         template <typename T> inline bool run() {
@@ -107,7 +124,16 @@ namespace mkxp_sandbox {
                     frame()();
                     if (yielding || frame().is_complete()) break;
                 }
-                w2c_ruby_mkxp_sandbox_yield(ruby.get());
+                if (realloc_size != 0) {
+                    w2c_ruby_asyncify_start_rewind(ruby.get(), ruby->w2c_mkxp_sandbox_async_buf);
+                    uint8_t *new_data = (uint8_t *)std::realloc(ruby->w2c_memory.data, realloc_size);
+                    if ((realloc_succeeded = new_data != NULL)) {
+                        ruby->w2c_memory.private_data = new_data;
+                    }
+                    realloc_size = 0;
+                } else {
+                    w2c_ruby_mkxp_sandbox_yield(ruby.get());
+                }
             }
             return !yielding;
         }

@@ -379,7 +379,6 @@ if is_libretro
             'src/filesystem/filesystem.cpp',
             'src/input/input-retro.cpp',
             'binding-sandbox/binding-base.cpp',
-            'binding-sandbox/binding-util.cpp',
             'binding-sandbox/sandbox.cpp',
             'binding-sandbox/wasi.cpp',
             'binding-sandbox/wasm-rt.cpp',

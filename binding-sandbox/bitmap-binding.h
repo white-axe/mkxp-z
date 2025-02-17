@@ -66,7 +66,7 @@ namespace mkxp_sandbox {
                             GFX_GUARD_EXC(bitmap = new Bitmap(width, height);)
                         }
 
-                        set_private_data(self, bitmap);
+                        SANDBOX_AWAIT(set_private_data, self, bitmap);
                         SANDBOX_AWAIT(init_props, bitmap, self);
                     }
 
@@ -194,7 +194,7 @@ namespace mkxp_sandbox {
                         SANDBOX_AWAIT_AND_SET(id, rb_intern, "Rect");
                         SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
                         SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, new Rect(get_private_data<Bitmap>(self)->rect()));
+                        SANDBOX_AWAIT(set_private_data, obj, new Rect(get_private_data<Bitmap>(self)->rect()));
                     }
 
                     return obj;
@@ -217,7 +217,7 @@ namespace mkxp_sandbox {
                         SANDBOX_AWAIT_AND_SET(id, rb_intern, "Rect");
                         SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
                         SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, new Rect(get_private_data<Bitmap>(self)->textSize((const char *)(**sb() + str))));
+                        SANDBOX_AWAIT(set_private_data, obj, new Rect(get_private_data<Bitmap>(self)->textSize((const char *)(**sb() + str))));
                     }
 
                     return obj;
@@ -231,7 +231,7 @@ namespace mkxp_sandbox {
 
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
-                bitmap_type = sb()->rb_data_type("Bitmap", NULL, dfree, NULL, NULL, 0, 0, 0);
+                SANDBOX_AWAIT_AND_SET(bitmap_type, new_rb_data_type, "Bitmap", NULL, dfree, NULL, NULL, 0, 0, 0);
                 SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Bitmap", sb()->rb_cObject());
                 SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
                 SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);

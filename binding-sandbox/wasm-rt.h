@@ -102,6 +102,7 @@ typedef struct {
 #define wasm_rt_funcref_null_value (wasm_rt_funcref_t){NULL, NULL, {NULL}, NULL};
 
 typedef struct {
+    uint8_t *private_data;
     uint8_t *data;
     uint64_t pages;
     uint64_t size;
