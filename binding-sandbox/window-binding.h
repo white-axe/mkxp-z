@@ -61,7 +61,7 @@ namespace mkxp_sandbox {
                         window->initDynAttribs();
                         SANDBOX_AWAIT_AND_SET(id, rb_intern, "Rect");
                         SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(cursor_obj, rb_class_new_instance, 0, NULL, klass);
+                        SANDBOX_AWAIT_AND_SET(cursor_obj, rb_obj_alloc, klass);
                         set_private_data(cursor_obj, &window->getCursorRect());
                         SANDBOX_AWAIT(rb_iv_set, self, "cursor_rect", cursor_obj);
                         GFX_UNLOCK

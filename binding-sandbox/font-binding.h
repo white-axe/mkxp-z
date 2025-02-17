@@ -40,7 +40,7 @@ namespace mkxp_sandbox {
                     BOOST_ASIO_CORO_REENTER (this) {
                         SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
                         SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_class_new_instance, 0, NULL, klass);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
                         set_private_data(obj, new Color());
                         SANDBOX_AWAIT(rb_iv_set, self, "color", obj);
                     }
