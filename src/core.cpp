@@ -34,6 +34,7 @@
 #include "binding-sandbox.h"
 #include "core.h"
 #include "filesystem.h"
+#include "gl-fun.h"
 
 using namespace mkxp_retro;
 using namespace mkxp_sandbox;
@@ -372,6 +373,10 @@ extern "C" RETRO_API void retro_reset() {
 extern "C" RETRO_API void retro_run() {
     input_poll();
 
+    if (hw_render.context_type != RETRO_HW_CONTEXT_NONE) {
+        gl.BindFramebuffer(GL_DRAW_FRAMEBUFFER, hw_render.get_current_framebuffer());
+    }
+
     if (mkxp_retro::sandbox.has_value()) {
         try {
             if (sb().run<struct main>()) {
@@ -443,16 +448,17 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
     }
 
     std::memset(&hw_render, 0, sizeof hw_render);
+    hw_render.context_reset = initGLFunctions;
+    hw_render.context_destroy = NULL;
     hw_render.bottom_left_origin = true;
     if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 3, hw_render.version_minor = 0, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
         log_printf(RETRO_LOG_INFO, "Using OpenGL 3.0 graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGLES3, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
         log_printf(RETRO_LOG_INFO, "Using OpenGL ES 3.0 graphics driver\n");
-    // TODO: Support OpenGL 2.0
-    //} else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
-    //    log_printf(RETRO_LOG_INFO, "Using OpenGL 2.0 graphics driver\n");
-    //} else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGLES2, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
-    //    log_printf(RETRO_LOG_INFO, "Using OpenGL ES 2.0 graphics driver\n");
+    } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
+        log_printf(RETRO_LOG_INFO, "Using OpenGL 2.0 graphics driver\n");
+    } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGLES2, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
+        log_printf(RETRO_LOG_INFO, "Using OpenGL ES 2.0 graphics driver\n");
     } else {
         // TODO: Support software rendering again
         //log_printf(RETRO_LOG_WARN, "Hardware-accelerated graphics not supported; falling back to software rendering\n");

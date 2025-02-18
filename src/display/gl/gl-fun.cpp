@@ -216,4 +216,8 @@ void initGLFunctions()
     
     if (!gles || glMajor >= 3 || HAVE_EXT(OES_texture_npot))
         gl.npot_repeat = true;
+
+#ifdef MKXPZ_RETRO // TODO: implement fallback for `glBlitFramebuffer`
+    assert(gl.BlitFramebuffer != NULL);
+#endif // MKXPZ_RETRO
 }
