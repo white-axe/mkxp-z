@@ -49,6 +49,17 @@ static inline void *malloc_align(size_t alignment, size_t size) {
 #endif
 }
 
+namespace mkxp_retro {
+    retro_log_printf_t log_printf;
+    retro_video_refresh_t video_refresh;
+    retro_audio_sample_batch_t audio_sample_batch;
+    retro_environment_t environment;
+    retro_input_poll_t input_poll;
+    retro_input_state_t input_state;
+    struct retro_perf_callback perf;
+    retro_hw_render_callback hw_render;
+}
+
 extern unsigned char GMGSx_sf2[];
 extern unsigned int GMGSx_sf2_len;
 
@@ -57,6 +68,7 @@ static ALCcontext *al_context = NULL;
 static LPALCRENDERSAMPLESSOFT alcRenderSamplesSOFT = NULL;
 static LPALCLOOPBACKOPENDEVICESOFT alcLoopbackOpenDeviceSOFT = NULL;
 static int16_t *sound_buf;
+static bool retro_framebuffer_supported;
 
 static void fallback_log(enum retro_log_level level, const char *fmt, ...) {
     std::va_list va;
@@ -374,7 +386,21 @@ extern "C" RETRO_API void retro_run() {
         }
     }
 
-    video_refresh(frame_buf, 640, 480, 640 * 4);
+    void *fb;
+    if (hw_render.context_type != RETRO_HW_CONTEXT_NONE) {
+        fb = RETRO_HW_FRAME_BUFFER_VALID;
+    } else if (!retro_framebuffer_supported) {
+        fb = frame_buf;
+    } else {
+        struct retro_framebuffer retro_framebuffer;
+        if (environment(RETRO_ENVIRONMENT_GET_CURRENT_SOFTWARE_FRAMEBUFFER, &retro_framebuffer) && retro_framebuffer.format == RETRO_PIXEL_FORMAT_XRGB8888) {
+            fb = retro_framebuffer.data;
+        } else {
+            retro_framebuffer_supported = false;
+            fb = frame_buf;
+        }
+    }
+    video_refresh(fb, 640, 480, 640 * 4);
 
     if (mkxp_retro::sandbox.has_value()) {
         audio->render();
@@ -415,6 +441,27 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
         log_printf(RETRO_LOG_ERROR, "XRGB8888 is not supported\n");
         return false;
     }
+
+    std::memset(&hw_render, 0, sizeof hw_render);
+    hw_render.bottom_left_origin = true;
+    if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 3, hw_render.version_minor = 0, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
+        log_printf(RETRO_LOG_INFO, "Using OpenGL 3.0 graphics driver\n");
+    } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGLES3, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
+        log_printf(RETRO_LOG_INFO, "Using OpenGL ES 3.0 graphics driver\n");
+    // TODO: Support OpenGL 2.0
+    //} else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
+    //    log_printf(RETRO_LOG_INFO, "Using OpenGL 2.0 graphics driver\n");
+    //} else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGLES2, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
+    //    log_printf(RETRO_LOG_INFO, "Using OpenGL ES 2.0 graphics driver\n");
+    } else {
+        // TODO: Support software rendering again
+        //log_printf(RETRO_LOG_WARN, "Hardware-accelerated graphics not supported; falling back to software rendering\n");
+        //hw_render.context_type = RETRO_HW_CONTEXT_NONE;
+        log_printf(RETRO_LOG_WARN, "Hardware-accelerated graphics not supported\n");
+        return false;
+    }
+
+    retro_framebuffer_supported = true;
 
     return init_sandbox();
 }

@@ -39,6 +39,7 @@ void subRectImageUpload(GLint srcW, GLint srcX, GLint srcY,
                         GLint dstX, GLint dstY, GLsizei dstW, GLsizei dstH,
                         SDL_Surface *src, GLenum format)
 {
+#ifndef MKXPZ_RETRO // TODO
 	if (gl.unpack_subimage)
 	{
 		gl.PixelStorei(GL_UNPACK_ROW_LENGTH, srcW);
@@ -60,6 +61,7 @@ void subRectImageUpload(GLint srcW, GLint srcX, GLint srcY,
 
 		SDL_FreeSurface(tmp);
 	}
+#endif // MKXPZ_RETRO
 }
 
 void subRectImageEnd()
@@ -138,7 +140,11 @@ void vaoUnbind(VAO &vao)
 	}
 }
 
-#define HAVE_NATIVE_BLIT (gl.BlitFramebuffer && shState->config().smoothScaling <= Bilinear && shState->config().smoothScalingDown <= Bilinear)
+#ifdef MKXPZ_RETRO
+#  define HAVE_NATIVE_BLIT gl.BlitFramebuffer // TODO: get from config
+#else
+#  define HAVE_NATIVE_BLIT (gl.BlitFramebuffer && shState->config().smoothScaling <= Bilinear && shState->config().smoothScalingDown <= Bilinear)
+#endif // MKXPZ_RETRO
 
 int blitScaleIsSpecial(TEXFBO &target, bool targetPreferHires, const IntRect &targetRect, TEXFBO &source, const IntRect &sourceRect)
 {
@@ -186,18 +192,29 @@ int smoothScalingMethod(int scaleIsSpecial)
 	case SameScale:
 		return NearestNeighbor;
 	case DownScale:
+#ifdef MKXPZ_RETRO
+		return 0; // TODO: get from config
+#else
 		return shState->config().smoothScalingDown;
+#endif // MKXPZ_RETRO
 	}
 
+#ifdef MKXPZ_RETRO
+	return 0; // TODO: get from config
+#else
 	return shState->config().smoothScaling;
+#endif // MKXPZ_RETRO
 }
 
 static void _blitBegin(FBO::ID fbo, const Vec2i &size, int scaleIsSpecial)
 {
+#ifndef MKXPZ_RETRO
 	if (HAVE_NATIVE_BLIT)
 	{
+#endif // MKXPZ_RETRO
 		FBO::boundFramebufferID = fbo;
 		gl.BindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo.gl);
+#ifndef MKXPZ_RETRO
 	}
 	else
 	{
@@ -250,6 +267,7 @@ static void _blitBegin(FBO::ID fbo, const Vec2i &size, int scaleIsSpecial)
 		}
 		}
 	}
+#endif // MKXPZ_RETRO
 }
 
 int blitDstWidthLores = 1;
@@ -302,9 +320,12 @@ void blitSource(TEXFBO &source, int scaleIsSpecial)
 		blitSrcHeightHires = blitSrcHeightLores;
 	}
 
+#ifndef MKXPZ_RETRO
 	if (HAVE_NATIVE_BLIT)
 	{
+#endif // MKXPZ_RETRO
 		gl.BindFramebuffer(GL_READ_FRAMEBUFFER, source.fbo.gl);
+#ifndef MKXPZ_RETRO
 	}
 	else
 	{
@@ -350,6 +371,7 @@ void blitSource(TEXFBO &source, int scaleIsSpecial)
 			TEX::bind(source.tex);
 		}
 	}
+#endif // MKXPZ_RETRO
 }
 
 void blitRectangle(const IntRect &src, const Vec2i &dstPos)
@@ -373,11 +395,14 @@ void blitRectangle(const IntRect &src, const IntRect &dst, bool smooth)
 	int scaledSrcHeight = src.h * blitSrcHeightHires / blitSrcHeightLores;
 	IntRect srcScaled(scaledSrcX, scaledSrcY, scaledSrcWidth, scaledSrcHeight);
 
+#ifndef MKXPZ_RETRO
 	if (HAVE_NATIVE_BLIT)
 	{
+#endif // MKXPZ_RETRO
 		gl.BlitFramebuffer(srcScaled.x, srcScaled.y, srcScaled.x+srcScaled.w, srcScaled.y+srcScaled.h,
 		                   dstScaled.x, dstScaled.y, dstScaled.x+dstScaled.w, dstScaled.y+dstScaled.h,
 		                   GL_COLOR_BUFFER_BIT, smooth ? GL_LINEAR : GL_NEAREST);
+#ifndef MKXPZ_RETRO
 	}
 	else
 	{
@@ -400,6 +425,7 @@ void blitRectangle(const IntRect &src, const IntRect &dst, bool smooth)
 		if (smooth)
 			TEX::setSmooth(false);
 	}
+#endif // MKXPZ_RETRO
 }
 
 void blitEnd()
@@ -414,9 +440,11 @@ void blitEnd()
 	blitSrcHeightLores = 1;
 	blitSrcHeightHires = 1;
 
+#ifndef MKXPZ_RETRO
 	if (!HAVE_NATIVE_BLIT) {
 		glState.viewport.pop();
 	}
+#endif // MKXPZ_RETRO
 }
 
 }

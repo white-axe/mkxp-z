@@ -24,7 +24,12 @@
 #include "boost-hash.h"
 #include "exception.h"
 
-#include <SDL_video.h>
+#ifdef MKXPZ_RETRO
+#  include "core.h"
+#else
+#  include <SDL_video.h>
+#endif // MKXPZ_RETRO
+#include <cstring>
 #include <string>
 
 GLFunctions gl;
@@ -34,7 +39,11 @@ typedef const GLubyte* (APIENTRYP _PFNGLGETSTRINGIPROC) (GLenum, GLuint);
 static void parseExtensionsCore(_PFNGLGETINTEGERVPROC GetIntegerv, BoostSet<std::string> &out)
 {
     _PFNGLGETSTRINGIPROC GetStringi =
+#ifdef MKXPZ_RETRO
+    (_PFNGLGETSTRINGIPROC) mkxp_retro::hw_render.get_proc_address("glGetStringi");
+#else
     (_PFNGLGETSTRINGIPROC) SDL_GL_GetProcAddress("glGetStringi");
+#endif // MKXPZ_RETRO
     
     GLint extCount = 0;
     GetIntegerv(GL_NUM_EXTENSIONS, &extCount);
@@ -68,8 +77,11 @@ static void parseExtensionsCompat(_PFNGLGETSTRINGPROC GetString, BoostSet<std::s
     }
 }
 
-#define GL_FUN(name, type) \
-gl.name = (type) SDL_GL_GetProcAddress("gl" #name EXT_SUFFIX);
+#ifdef MKXPZ_RETRO
+#  define GL_FUN(name, type) gl.name = (type) mkxp_retro::hw_render.get_proc_address("gl" #name EXT_SUFFIX);
+#else
+#  define GL_FUN(name, type) gl.name = (type) SDL_GL_GetProcAddress("gl" #name EXT_SUFFIX);
+#endif // MKXPZ_RETRO
 
 #define EXC(msg) \
 Exception(Exception::MKXPError, "%s", msg)

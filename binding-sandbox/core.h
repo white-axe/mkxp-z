@@ -41,6 +41,7 @@ namespace mkxp_retro {
     extern retro_input_poll_t input_poll;
     extern retro_input_state_t input_state;
     extern struct retro_perf_callback perf;
+    extern struct retro_hw_render_callback hw_render;
 }
 
 #endif // MKXPZ_CORE_H
