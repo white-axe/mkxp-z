@@ -11,6 +11,9 @@ if not is_libretro and host_system == 'darwin'
     error('\nThis Meson project no longer supports macOS. Please use the Xcode project instead.')
 endif
 
+xxd = find_program('xxd', native: true)
+xxd_supports_n = run_command(xxd, '-n', 'meson', '-i', meson.current_source_dir() / 'meson.build', check: false).returncode() == 0
+
 compilers = {'c': meson.get_compiler('c'), 'cpp': meson.get_compiler('cpp')}
 
 global_sources = []
