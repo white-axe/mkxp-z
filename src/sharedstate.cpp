@@ -82,8 +82,8 @@ struct SharedStatePrivate
 #endif // MKXPZ_RETRO
 	SharedMidiState midiState;
 
-#ifndef MKXPZ_RETRO
 	Graphics graphics;
+#ifndef MKXPZ_RETRO
 	Input input;
 	Audio audio;
 #endif // MKXPZ_RETRO
@@ -127,8 +127,8 @@ struct SharedStatePrivate
 #else
 	      midiState(threadData->config),
 #endif // MKXPZ_RETRO
-#ifndef MKXPZ_RETRO
 	      graphics(threadData),
+#ifndef MKXPZ_RETRO
 	      input(*threadData),
 	      audio(*threadData),
 #endif // MKXPZ_RETRO
@@ -276,7 +276,9 @@ GSATT(FileSystem&, fileSystem)
 GSATT(EventThread&, eThread)
 GSATT(RGSSThreadData&, rtData)
 GSATT(Config&, config)
+#endif // MKXPZ_RETRO
 GSATT(Graphics&, graphics)
+#ifndef MKXPZ_RETRO
 GSATT(Input&, input)
 GSATT(Audio&, audio)
 #endif // MKXPZ_RETRO
@@ -435,11 +437,7 @@ SharedState::SharedState(RGSSThreadData *threadData)
 	try
 	{
 		p->init(threadData);
-#ifdef MKXPZ_RETRO
-		p->screen = new Scene(); // TODO: implement
-#else
 		p->screen = p->graphics.getScreen();
-#endif // MKXPZ_RETRO
 	}
 	catch (const Exception &exc)
 	{

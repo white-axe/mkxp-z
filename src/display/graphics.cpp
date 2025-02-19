@@ -41,17 +41,21 @@
 #include "shader.h"
 #include "sharedstate.h"
 #include "texpool.h"
-#include "theoraplay/theoraplay.h"
+#ifndef MKXPZ_RETRO
+#  include "theoraplay/theoraplay.h"
+#endif // MKXPZ_RETRO
 #include "util.h"
 #include "input.h"
 #include "sprite.h"
 
-#include <SDL.h>
-#include <SDL_image.h>
-#include <SDL_timer.h>
-#include <SDL_video.h>
-#include <SDL_mutex.h>
-#include <SDL_thread.h>
+#ifndef MKXPZ_RETRO
+#  include <SDL.h>
+#  include <SDL_image.h>
+#  include <SDL_timer.h>
+#  include <SDL_video.h>
+#  include <SDL_mutex.h>
+#  include <SDL_thread.h>
+#endif // MKXPZ_RETRO
 
 #ifdef MKXPZ_STEAM
 #include "steamshim_child.h"
@@ -76,6 +80,7 @@
 #define MOVIE_AUDIO_BUFFER_SIZE 2048
 #define AUDIO_BUFFER_LEN_MS 2000
 
+#ifndef MKXPZ_RETRO
 typedef struct AudioQueue
 {
     const THEORAPLAY_AudioPacket *audio;
@@ -437,6 +442,7 @@ struct MovieOpenHandler : FileSystem::OpenHandler
         return true;
     }
 };
+#endif // MKXPZ_RETRO
 
 struct PingPong {
     TEXFBO rt[2];
@@ -508,7 +514,9 @@ public:
         const int w = geometry.rect.w;
         const int h = geometry.rect.h;
         
+#ifndef MKXPZ_RETRO
         shState->prepareDraw();
+#endif // MKXPZ_RETRO
         
         pp.startRender();
         
@@ -665,6 +673,7 @@ private:
 /* Nanoseconds per second */
 #define NS_PER_S 1000000000
 
+#ifndef MKXPZ_RETRO
 struct FPSLimiter {
     uint64_t lastTickCount;
     
@@ -774,6 +783,7 @@ private:
 #endif
     }
 };
+#endif // MKXPZ_RETRO
 
 struct GraphicsPrivate {
     /* Screen resolution, ie. the resolution at which
@@ -800,7 +810,9 @@ struct GraphicsPrivate {
     
     ScreenScene screen;
     RGSSThreadData *threadData;
+#ifndef MKXPZ_RETRO
     SDL_GLContext glCtx;
+#endif // MKXPZ_RETRO
     
     int frameRate;
     int frameCount;
@@ -809,7 +821,9 @@ struct GraphicsPrivate {
     double last_update;
     
     
+#ifndef MKXPZ_RETRO
     FPSLimiter fpsLimiter;
+#endif // MKXPZ_RETRO
     
     // Can be set from Ruby. Takes priority over config setting.
     bool useFrameSkip;
@@ -827,9 +841,11 @@ struct GraphicsPrivate {
     
     std::vector<double> avgFPSData;
     double last_avg_update;
+#ifndef MKXPZ_RETRO
     SDL_mutex *avgFPSLock;
     
     SDL_mutex *glResourceLock;
+#endif // MKXPZ_RETRO
     bool multithreadedMode;
     
     /* Global list of all live Disposables
@@ -838,27 +854,58 @@ struct GraphicsPrivate {
     
     GraphicsPrivate(RGSSThreadData *rtData)
     : scResLores(DEF_SCREEN_W, DEF_SCREEN_H),
+#ifdef MKXPZ_RETRO
+    scRes(DEF_SCREEN_W, DEF_SCREEN_H), // TODO: get from config
+#else
     scRes(rtData->config.enableHires ? (int)lround(rtData->config.framebufferScalingFactor * DEF_SCREEN_W) : DEF_SCREEN_W,
         rtData->config.enableHires ? (int)lround(rtData->config.framebufferScalingFactor * DEF_SCREEN_H) : DEF_SCREEN_H),
+#endif // MKXPZ_RETRO
     scSize(scRes),
+#ifdef MKXPZ_RETRO
+    winSize(640, 480), // TODO: use actual screen size
+#else
     winSize(rtData->config.defScreenW, rtData->config.defScreenH),
+#endif // MKXPZ_RETRO
     screen(scRes.x, scRes.y), threadData(rtData),
-    glCtx(SDL_GL_GetCurrentContext()), multithreadedMode(true),
+#ifndef MKXPZ_RETRO
+    glCtx(SDL_GL_GetCurrentContext()),
+#endif // MKXPZ_RETRO
+    multithreadedMode(true),
     frameRate(DEF_FRAMERATE), frameCount(0), brightness(255),
-    fpsLimiter(frameRate), useFrameSkip(rtData->config.frameSkip), frozen(false),
+#ifndef MKXPZ_RETRO
+    fpsLimiter(frameRate),
+#endif // MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+    useFrameSkip(false), // TODO: get from config
+#else
+    useFrameSkip(rtData->config.frameSkip),
+#endif // MKXPZ_RETRO
+    frozen(false),
     last_update(0), last_avg_update(0), backingScaleFactor(1), integerScaleFactor(0, 0),
+#ifdef MKXPZ_RETRO
+    integerScaleActive(false),
+    integerLastMileScaling(false)
+#else
     integerScaleActive(rtData->config.integerScaling.active),
-    integerLastMileScaling(rtData->config.integerScaling.lastMileScaling) {
+    integerLastMileScaling(rtData->config.integerScaling.lastMileScaling)
+#endif // MKXPZ_RETRO
+{
         avgFPSData = std::vector<double>();
+#ifndef MKXPZ_RETRO
         avgFPSLock = SDL_CreateMutex();
         glResourceLock = SDL_CreateMutex();
+#endif // MKXPZ_RETRO
         
         if (integerScaleActive) {
             integerScaleFactor = Vec2i(0, 0);
             rebuildIntegerScaleBuffer();
         }
         
+#ifdef MKXPZ_RETRO
+        recalculateScreenSize(true); // TODO: get from config
+#else
         recalculateScreenSize(rtData->config.fixedAspectRatio);
+#endif // MKXPZ_RETRO
         updateScreenResoRatio(rtData);
         
         TEXFBO::init(frozenScene);
@@ -868,22 +915,28 @@ struct GraphicsPrivate {
         FloatRect screenRect(0, 0, scRes.x, scRes.y);
         screenQuad.setTexPosRect(screenRect, screenRect);
         
+#ifndef MKXPZ_RETRO
         fpsLimiter.resetFrameAdjust();
+#endif // MKXPZ_RETRO
     }
     
     ~GraphicsPrivate() {
         TEXFBO::fini(frozenScene);
         TEXFBO::fini(integerScaleBuffer);
+#ifndef MKXPZ_RETRO
         SDL_DestroyMutex(avgFPSLock);
         SDL_DestroyMutex(glResourceLock);
+#endif // MKXPZ_RETRO
     }
     
     void updateScreenResoRatio(RGSSThreadData *rtData) {
+#ifndef MKXPZ_RETRO
         Vec2 &ratio = rtData->sizeResoRatio;
         ratio.x = (float)scRes.x / scSize.x * backingScaleFactor;
         ratio.y = (float)scRes.y / scSize.y * backingScaleFactor;
         
         rtData->screenOffset = scOffset / backingScaleFactor;
+#endif // MKXPZ_RETRO
     }
     
     /* Enforces fixed aspect ratio, if desired */
@@ -966,6 +1019,7 @@ struct GraphicsPrivate {
     }
     
     void checkResize(bool skipIntScaleBuffer = false) {
+#ifndef MKXPZ_RETRO
         if (threadData->windowSizeMsg.poll(winSize)) {
             /* Query the actual size in pixels, not units */
             Vec2i drawableSize(winSize);
@@ -987,6 +1041,7 @@ struct GraphicsPrivate {
             SDL_Rect screen = {scOffset.x, scOffset.y, scSize.x, scSize.y};
             threadData->ethread->notifyGameScreenChange(screen);
         }
+#endif // MKXPZ_RETRO
     }
     
     void checkShutDownReset() {
@@ -1002,12 +1057,16 @@ struct GraphicsPrivate {
     }
     
     void swapGLBuffer() {
+#ifndef MKXPZ_RETRO
         fpsLimiter.delay();
         SDL_GL_SwapWindow(threadData->window);
+#endif // MKXPZ_RETRO
         
         ++frameCount;
         
+#ifndef MKXPZ_RETRO
         threadData->ethread->notifyFrame();
+#endif // MKXPZ_RETRO
     }
     
     void compositeToBuffer(TEXFBO &buffer) {
@@ -1113,6 +1172,7 @@ struct GraphicsPrivate {
     }
     
     void checkSyncLock() {
+#ifndef MKXPZ_RETRO
         if (!threadData->syncPoint.mainSyncLocked())
             return;
         
@@ -1124,46 +1184,60 @@ struct GraphicsPrivate {
         SDL_GL_MakeCurrent(threadData->window, glCtx);
         
         fpsLimiter.resetFrameAdjust();
+#endif // MKXPZ_RETRO
     }
     
     double averageFPS() {
         double ret = 0;
+#ifndef MKXPZ_RETRO
         SDL_LockMutex(avgFPSLock);
+#endif // MKXPZ_RETRO
         for (double times : avgFPSData)
             ret += times;
         
         ret = 1 / (ret / avgFPSData.size());
+#ifndef MKXPZ_RETRO
         SDL_UnlockMutex(avgFPSLock);
+#endif // MKXPZ_RETRO
         return ret;
     }
     
     void setLock(bool force = false) {
         if (!(force || multithreadedMode)) return;
         
+#ifndef MKXPZ_RETRO
         SDL_LockMutex(glResourceLock);
         SDL_GL_MakeCurrent(threadData->window, threadData->glContext);
+#endif // MKXPZ_RETRO
     }
     
     void releaseLock(bool force = false) {
         if (!(force || multithreadedMode)) return;
         
+#ifndef MKXPZ_RETRO
         SDL_UnlockMutex(glResourceLock);
+#endif // MKXPZ_RETRO
     }
 
     void updateAvgFPS() {
+#ifndef MKXPZ_RETRO
         SDL_LockMutex(avgFPSLock);
+#endif // MKXPZ_RETRO
         if (avgFPSData.size() > 40)
             avgFPSData.erase(avgFPSData.begin());
         
         double time = shState->runTime();
         avgFPSData.push_back(time - last_avg_update);
         last_avg_update = time;
+#ifndef MKXPZ_RETRO
         SDL_UnlockMutex(avgFPSLock);
+#endif // MKXPZ_RETRO
     }
 };
 
 Graphics::Graphics(RGSSThreadData *data) {
     p = new GraphicsPrivate(data);
+#ifndef MKXPZ_RETRO
     if (data->config.syncToRefreshrate) {
         p->frameRate = data->refreshRate;
         p->fpsLimiter.disabled = true;
@@ -1172,6 +1246,7 @@ Graphics::Graphics(RGSSThreadData *data) {
     } else if (data->config.fixedFramerate < 0) {
         p->fpsLimiter.disabled = true;
     }
+#endif // MKXPZ_RETRO
 }
 
 Graphics::~Graphics() { delete p; }
@@ -1185,6 +1260,7 @@ double Graphics::lastUpdate() {
 }
 
 void Graphics::update(bool checkForShutdown) {
+#ifndef MKXPZ_RETRO
     p->threadData->rqWindowAdjust.wait();
     p->last_update = shState->runTime();
     
@@ -1226,6 +1302,7 @@ void Graphics::update(bool checkForShutdown) {
     }
     
     p->checkResize();
+#endif // MKXPZ_RETRO
     p->redrawScreen();
 }
 
@@ -1292,6 +1369,7 @@ void Graphics::transition(int duration, const char *filename, int vague) {
     glState.blend.pushSet(false);
     
     for (int i = 0; i < duration; ++i) {
+#ifndef MKXPZ_RETRO
         /* We need to clean up transMap properly before
          * a possible longjmp, so we manually test for
          * shutdown/reset here */
@@ -1308,6 +1386,7 @@ void Graphics::transition(int duration, const char *filename, int vague) {
             scriptBinding->reset();
             return;
         }
+#endif // MKXPZ_RETRO
         
         p->checkSyncLock();
         
@@ -1352,7 +1431,11 @@ void Graphics::transition(int duration, const char *filename, int vague) {
     p->frozen = false;
 }
 
-void Graphics::frameReset() {p->fpsLimiter.resetFrameAdjust();}
+void Graphics::frameReset() {
+#ifndef MKXPZ_RETRO
+    p->fpsLimiter.resetFrameAdjust();
+#endif // MKXPZ_RETRO
+}
 
 static void guardDisposed() {}
 
@@ -1369,7 +1452,9 @@ void Graphics::setFrameRate(int value) {
     if (p->threadData->config.fixedFramerate > 0)
         return;
     
+#ifndef MKXPZ_RETRO
     p->fpsLimiter.setDesiredFPS(p->frameRate);
+#endif // MKXPZ_RETRO
     //shState->input().recalcRepeat((unsigned int)p->frameRate);
 }
 
@@ -1441,6 +1526,7 @@ void Graphics::fadein(int duration) {
 Bitmap *Graphics::snapToBitmap() {
     p->screen.composite();
 
+#ifndef MKXPZ_RETRO
     if (shState->config().enableHires) {
         // TODO: Maybe don't reconstruct this struct every time?
         TEXFBO tf;
@@ -1450,6 +1536,7 @@ Bitmap *Graphics::snapToBitmap() {
 
         return new Bitmap(tf);
     }
+#endif // MKXPZ_RETRO
 
     return new Bitmap(p->screen.getPP().frontBuffer());
 }
@@ -1475,28 +1562,40 @@ int Graphics::displayContentHeight() const {
 }
 
 int Graphics::displayWidth() const {
+#ifdef MKXPZ_RETRO
+    return 640; // TODO: use actual width
+#else
     SDL_DisplayMode dm{};
     SDL_GetCurrentDisplayMode(SDL_GetWindowDisplayIndex(shState->sdlWindow()), &dm);
     return dm.w / p->backingScaleFactor;
+#endif // MKXPZ_RETRO
 }
 
 int Graphics::displayHeight() const {
+#ifdef MKXPZ_RETRO
+    return 480; // TODO: use actual height
+#else
     SDL_DisplayMode dm{};
     SDL_GetCurrentDisplayMode(SDL_GetWindowDisplayIndex(shState->sdlWindow()), &dm);
     return dm.h / p->backingScaleFactor;
+#endif // MKXPZ_RETRO
 }
 
 void Graphics::resizeScreen(int width, int height) {
+#ifndef MKXPZ_RETRO
     p->threadData->rqWindowAdjust.wait();
+#endif // MKXPZ_RETRO
     p->checkResize(true);
     
     Vec2i sizeLores(width, height);
 
+#ifndef MKXPZ_RETRO
     if (shState->config().enableHires) {
         double framebufferScalingFactor = shState->config().framebufferScalingFactor;
         width = (int)lround(framebufferScalingFactor * width);
         height = (int)lround(framebufferScalingFactor * height);
     }
+#endif // MKXPZ_RETRO
 
     Vec2i size(width, height);
     
@@ -1518,28 +1617,39 @@ void Graphics::resizeScreen(int width, int height) {
     
     glState.scissorBox.set(IntRect(0, 0, p->scRes.x, p->scRes.y));
     
+#ifndef MKXPZ_RETRO
     shState->eThread().requestWindowResize(width, height);
+#endif // MKXPZ_RETRO
 }
 
 void Graphics::resizeWindow(int width, int height, bool center) {
+#ifndef MKXPZ_RETRO
     p->threadData->rqWindowAdjust.wait();
+#endif // MKXPZ_RETRO
     p->checkResize();
     
     if (width == p->winSize.x / p->backingScaleFactor &&
         height == p->winSize.y / p->backingScaleFactor)
             return;
 
+#ifndef MKXPZ_RETRO
     shState->eThread().requestWindowResize(width, height);
+#endif // MKXPZ_RETRO
     
     if (center)
         this->center();
 }
 
 bool Graphics::updateMovieInput(Movie *movie) {
+#ifdef MKXPZ_RETRO
+    return false; // TODO
+#else
     return  p->threadData->rqTerm || p->threadData->rqReset;
+#endif // MKXPZ_RETRO
 }
 
 void Graphics::playMovie(const char *filename, int volume_, bool skippable) {
+#ifndef MKXPZ_RETRO
     if (shState->config().enableHires) {
         Debug() << "BUG: High-res Graphics playMovie not implemented";
     }
@@ -1572,10 +1682,13 @@ void Graphics::playMovie(const char *filename, int volume_, bool skippable) {
     }
     
     delete movie;
+#endif // MKXPZ_RETRO
 }
 
 void Graphics::screenshot(const char *filename) {
+#ifndef MKXPZ_RETRO
     p->threadData->rqWindowAdjust.wait();
+#endif // MKXPZ_RETRO
     Bitmap *ss = snapToBitmap();
     ss->saveToFile(filename);
     ss->dispose();
@@ -1606,55 +1719,81 @@ void Graphics::reset() {
     p->dispList.clear();
     
     /* Reset attributes (frame count not included) */
+#ifndef MKXPZ_RETRO
     p->fpsLimiter.resetFrameAdjust();
+#endif // MKXPZ_RETRO
     p->frozen = false;
     p->screen.getPP().clearBuffers();
     
     setFrameRate(DEF_FRAMERATE);
     setBrightness(255);
     
+#ifndef MKXPZ_RETRO
     // Always update at least once to clear the screen
     if (p->threadData->rqResetFinish)
+#endif // MKXPZ_RETRO
         update();
+#ifndef MKXPZ_RETRO
     else
         repaintWait(p->threadData->rqResetFinish, false);
     p->threadData->rqReset.clear();
+#endif // MKXPZ_RETRO
 }
 
 void Graphics::center() {
+#ifndef MKXPZ_RETRO
     p->threadData->rqWindowAdjust.wait();
     if (getFullscreen())
         return;
     
     p->threadData->ethread->requestWindowCenter();
+#endif // MKXPZ_RETRO
 }
 
 bool Graphics::getFullscreen() const {
+#ifdef MKXPZ_RETRO
+    return false; // TODO
+#else
     return p->threadData->ethread->getFullscreen();
+#endif // MKXPZ_RETRO
 }
 
 void Graphics::setFullscreen(bool value) {
+#ifndef MKXPZ_RETRO
     p->threadData->ethread->requestFullscreenMode(value);
+#endif // MKXPZ_RETRO
 }
 
 bool Graphics::getShowCursor() const {
+#ifdef MKXPZ_RETRO
+    return true; // TODO
+#else
     return p->threadData->ethread->getShowCursor();
+#endif // MKXPZ_RETRO
 }
 
 void Graphics::setShowCursor(bool value) {
+#ifndef MKXPZ_RETRO
     p->threadData->ethread->requestShowCursor(value);
+#endif // MKXPZ_RETRO
 }
 
 bool Graphics::getFixedAspectRatio() const
 {
     // It's a bit hacky to expose config values as a Graphics
     // attribute, but there's really no point in state duplication
+#ifdef MKXPZ_RETRO
+    return true; // TODO: get from config
+#else
     return shState->config().fixedAspectRatio;
+#endif // MKXPZ_RETRO
 }
 
 void Graphics::setFixedAspectRatio(bool value)
 {
+#ifndef MKXPZ_RETRO
     shState->config().fixedAspectRatio = value;
+#endif // MKXPZ_RETRO
     p->recalculateScreenSize(p->threadData->config.fixedAspectRatio);
     p->findHighestIntegerScale();
     p->recalculateScreenSize(p->threadData->config.fixedAspectRatio);
@@ -1664,12 +1803,18 @@ void Graphics::setFixedAspectRatio(bool value)
 int Graphics::getSmoothScaling() const
 {
     // Same deal as with fixed aspect ratio
+#ifdef MKXPZ_RETRO
+    return 0; // TODO: get from config
+#else
     return shState->config().smoothScaling;
+#endif // MKXPZ_RETRO
 }
 
 void Graphics::setSmoothScaling(int value)
 {
+#ifndef MKXPZ_RETRO
     shState->config().smoothScaling = value;
+#endif // MKXPZ_RETRO
 }
 
 bool Graphics::getIntegerScaling() const
@@ -1716,7 +1861,9 @@ double Graphics::getScale() const {
 }
 
 void Graphics::setScale(double factor) {
+#ifndef MKXPZ_RETRO
     p->threadData->rqWindowAdjust.wait();
+#endif // MKXPZ_RETRO
     factor = clamp(factor, 0.5, 4.0);
     
     if (factor == getScale())
@@ -1725,7 +1872,9 @@ void Graphics::setScale(double factor) {
     int widthpx = p->scRes.x * factor;
     int heightpx = p->scRes.y * factor;
     
+#ifndef MKXPZ_RETRO
     shState->eThread().requestWindowResize(widthpx, heightpx);
+#endif // MKXPZ_RETRO
 }
 
 bool Graphics::getFrameskip() const { return p->useFrameSkip; }
@@ -1754,10 +1903,12 @@ void Graphics::repaintWait(const AtomicFlag &exitCond, bool checkReset) {
         
         FBO::clear();
         p->metaBlitBufferFlippedScaled(scaleIsSpecial);
+#ifndef MKXPZ_RETRO
         SDL_GL_SwapWindow(p->threadData->window);
         p->fpsLimiter.delay();
         
         p->threadData->ethread->notifyFrame();
+#endif // MKXPZ_RETRO
     }
     
     GLMeta::blitEnd();

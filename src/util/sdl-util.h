@@ -9,6 +9,37 @@
 #include <iostream>
 #include <unistd.h>
 
+#ifdef MKXPZ_RETRO
+struct AtomicFlag
+{
+	AtomicFlag() : atom(false) {}
+
+	void set()
+	{
+		atom = true;
+	}
+
+	void clear()
+	{
+		atom = false;
+	}
+
+	void wait() {}
+
+	void reset()
+	{
+		set();
+	}
+
+	operator bool() const
+	{
+		return atom;
+	}
+
+private:
+	mutable bool atom;
+};
+#else
 struct AtomicFlag
 {
 	AtomicFlag()
@@ -45,6 +76,7 @@ struct AtomicFlag
 private:
 	mutable SDL_atomic_t atom;
 };
+#endif // MKXPZ_RETRO
 
 template<class C, void (C::*func)()>
 int __sdlThreadFun(void *obj)

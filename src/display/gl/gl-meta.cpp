@@ -211,14 +211,10 @@ int smoothScalingMethod(int scaleIsSpecial)
 
 static void _blitBegin(FBO::ID fbo, const Vec2i &size, int scaleIsSpecial)
 {
-	if (HAVE_NATIVE_BLIT)
+	FBO::bind(fbo);
+
+	if (!HAVE_NATIVE_BLIT)
 	{
-		FBO::boundFramebufferID = fbo;
-		gl.BindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo.gl);
-	}
-	else
-	{
-		FBO::bind(fbo);
 		glState.viewport.pushSet(IntRect(0, 0, size.x, size.y));
 
 		switch (smoothScalingMethod(scaleIsSpecial))
@@ -303,15 +299,7 @@ void blitBeginScreen(const Vec2i &size, int scaleIsSpecial)
 	blitDstHeightLores = 1;
 	blitDstHeightHires = 1;
 
-	_blitBegin(
-#ifdef MKXPZ_RETRO
-		FBO::ID(mkxp_retro::hw_render.get_current_framebuffer()),
-#else
-		FBO::ID(0),
-#endif // MKXPZ_RETRO
-		size,
-		scaleIsSpecial
-	);
+	_blitBegin(FBO::ID(0), size, scaleIsSpecial);
 }
 
 void blitSource(TEXFBO &source, int scaleIsSpecial)
@@ -329,7 +317,14 @@ void blitSource(TEXFBO &source, int scaleIsSpecial)
 
 	if (HAVE_NATIVE_BLIT)
 	{
-		gl.BindFramebuffer(GL_READ_FRAMEBUFFER, source.fbo.gl);
+		gl.BindFramebuffer(
+			GL_READ_FRAMEBUFFER,
+#ifdef MKXPZ_RETRO
+			source.fbo.gl || mkxp_retro::hw_render.get_current_framebuffer()
+#else
+			source.fbo.gl
+#endif // MKXPZ_RETRO
+		);
 	}
 	else
 	{

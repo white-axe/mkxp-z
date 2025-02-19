@@ -26,6 +26,9 @@
 #include "etc-internal.h"
 #include "sharedstate.h"
 #include "config.h"
+#ifdef MKXPZ_RETRO
+#  include "core.h"
+#endif // MKXPZ_RETRO
 
 /* Struct wrapping GLuint for some light type safety */
 #define DEF_GL_ID \
@@ -139,7 +142,14 @@ namespace FBO
 	static inline void bind(ID id)
 	{
 		boundFramebufferID = id;
-		gl.BindFramebuffer(GL_FRAMEBUFFER, id.gl);
+		gl.BindFramebuffer(
+			GL_FRAMEBUFFER,
+#ifdef MKXPZ_RETRO
+			id.gl || mkxp_retro::hw_render.get_current_framebuffer()
+#else
+			id.gl
+#endif // MKXPZ_RETRO
+		);
 	}
 
 	static inline void unbind()

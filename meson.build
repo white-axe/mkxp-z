@@ -387,6 +387,7 @@ if is_libretro
             'src/display/gl/texpool.cpp',
             'src/display/gl/tileatlas.cpp',
             'src/display/gl/vertex.cpp',
+            'src/display/graphics.cpp',
             'src/etc/etc.cpp',
             'src/etc/table.cpp',
             'src/filesystem/filesystem.cpp',
