@@ -41,7 +41,9 @@ foreach file : embedded_shaders_f
     global_sources += custom_target(embedded_shaders[count],
         input: file,
         output: '@0@.xxd'.format(embedded_shaders[count]),
-        command: [
+        command: xxd_supports_n ? [
+            xxd, '-n', '___shader_@0@'.format(embedded_shaders[count].replace('.', '_')), '-i', '@INPUT@'
+        ] : [
             xxd, '-i', '@INPUT@'
         ],
         capture: true,

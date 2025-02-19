@@ -7,6 +7,7 @@ if host_system == 'darwin'
 endif
 
 xxd = find_program('xxd', native: true)
+xxd_supports_n = run_command(xxd, '-n', 'meson', '-i', meson.current_source_dir() / 'meson.build', check: false).returncode() == 0
 
 git_hash = run_command('git', 'rev-parse', '--short', 'HEAD').stdout().strip()
 
