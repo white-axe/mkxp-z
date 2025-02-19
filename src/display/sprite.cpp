@@ -29,14 +29,12 @@
 #include "etc-internal.h"
 #include "util.h"
 
-#ifndef MKXPZ_RETRO
 #include "gl-util.h"
 #include "quad.h"
 #include "transform.h"
 #include "shader.h"
 #include "glstate.h"
 #include "quadarray.h"
-#endif // MKXPZ_RETRO
 
 #include <math.h>
 #ifndef M_PI
@@ -53,18 +51,8 @@ struct SpritePrivate
     
     sigslot::connection bitmapDispCon;
     
-#ifdef MKXPZ_RETRO
-    // TODO: use the corresponding properties from `trans` instead of adding them here separately
-    int x;
-    int y;
-    int ox;
-    int oy;
-    float zoom_x;
-    float zoom_y;
-#else
     Quad quad;
     Transform trans;
-#endif // MKXPZ_RETRO
     
     Rect *srcRect;
     sigslot::connection srcRectCon;
@@ -106,25 +94,17 @@ struct SpritePrivate
         bool active;
         /* qArray needs updating */
         bool dirty;
-#ifndef MKXPZ_RETRO
         SimpleQuadArray qArray;
-#endif // MKXPZ_RETRO
     } wave;
     
     EtcTemps tmp;
     
+#ifndef MKXPZ_RETRO
     sigslot::connection prepareCon;
+#endif // MKXPZ_RETRO
     
     SpritePrivate()
     : bitmap(0),
-#ifdef MKXPZ_RETRO
-    x(0),
-    y(0),
-    ox(0),
-    oy(0),
-    zoom_x(1.0f),
-    zoom_y(1.0f),
-#endif // MKXPZ_RETRO
     srcRect(&tmp.rect),
     mirrored(false),
     bushDepth(0),
@@ -145,7 +125,9 @@ struct SpritePrivate
         
         updateSrcRectCon();
         
+#ifndef MKXPZ_RETRO
         prepareCon = shState->prepareDraw.connect
+#endif // MKXPZ_RETRO
         (&SpritePrivate::prepare, this);
         
         patternScroll = Vec2(0,0);
@@ -161,7 +143,9 @@ struct SpritePrivate
     ~SpritePrivate()
     {
         srcRectCon.disconnect();
+#ifndef MKXPZ_RETRO
         prepareCon.disconnect();
+#endif // MKXPZ_RETRO
         
         bitmapDisposal();
     }
@@ -178,11 +162,7 @@ struct SpritePrivate
             return;
         
         /* Calculate effective (normalized) bush depth */
-#ifdef MKXPZ_RETRO
-        float texBushDepth = bushDepth - // TODO
-#else
         float texBushDepth = (bushDepth / trans.getScale().y) -
-#endif // MKXPZ_RETRO
         (srcRect->y + srcRect->height) +
         bitmap->height();
         
@@ -209,7 +189,6 @@ struct SpritePrivate
         rect.w = clamp<int>(rect.w, 0, bmSize.x-rect.x);
         rect.h = clamp<int>(rect.h, 0, bmSize.y-rect.y);
         
-#ifndef MKXPZ_RETRO
         if (bmSizeHires.x && bmSizeHires.y && bmSize.x && bmSize.y)
         {
             FloatRect rectHires(rect.x * bmSizeHires.x / bmSize.x,
@@ -224,7 +203,6 @@ struct SpritePrivate
         }
         
         quad.setPosRect(FloatRect(0, 0, rect.w, rect.h));
-#endif // MKXPZ_RETRO
         recomputeBushDepth();
         
         wave.dirty = true;
@@ -261,28 +239,25 @@ struct SpritePrivate
         
         /* If sprite is zoomed/rotated, just opt out for now
          * for simplicity's sake */
-#ifndef MKXPZ_RETRO
         const Vec2 &scale = trans.getScale();
         if (scale.x != 1 || scale.y != 1 || trans.getRotation() != 0)
         {
             isVisible = true;
             return;
         }
-#endif // MKXPZ_RETRO
         
         IntRect self;
-#ifndef MKXPZ_RETRO
         self.setPos(trans.getPositionI() - (trans.getOriginI() + sceneOrig));
-#endif // MKXPZ_RETRO
         self.w = bitmap->width();
         self.h = bitmap->height();
         
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO // TODO
+        isVisible = true;
+#else
         isVisible = SDL_HasIntersection(&self, &sceneRect);
 #endif // MKXPZ_RETRO
     }
     
-#ifndef MKXPZ_RETRO
     void emitWaveChunk(SVertex *&vert, float phase, int width,
                        float zoomY, int chunkY, int chunkLength)
     {
@@ -366,15 +341,12 @@ struct SpritePrivate
         
         wave.qArray.commit();
     }
-#endif // MKXPZ_RETRO
     
     void prepare()
     {
         if (wave.dirty)
         {
-#ifndef MKXPZ_RETRO
             updateWave();
-#endif // MKXPZ_RETRO
             wave.dirty = false;
         }
         
@@ -395,14 +367,6 @@ Sprite::~Sprite()
 }
 
 DEF_ATTR_RD_SIMPLE(Sprite, Bitmap,     Bitmap*, p->bitmap)
-#ifdef MKXPZ_RETRO
-DEF_ATTR_RD_SIMPLE(Sprite, X,          int,     p->x)
-DEF_ATTR_RD_SIMPLE(Sprite, Y,          int,     p->y)
-DEF_ATTR_RD_SIMPLE(Sprite, OX,         int,     p->ox)
-DEF_ATTR_RD_SIMPLE(Sprite, OY,         int,     p->oy)
-DEF_ATTR_RD_SIMPLE(Sprite, ZoomX,      float,   p->zoom_x)
-DEF_ATTR_RD_SIMPLE(Sprite, ZoomY,      float,   p->zoom_y)
-#else
 DEF_ATTR_RD_SIMPLE(Sprite, X,          int,     p->trans.getPosition().x)
 DEF_ATTR_RD_SIMPLE(Sprite, Y,          int,     p->trans.getPosition().y)
 DEF_ATTR_RD_SIMPLE(Sprite, OX,         int,     p->trans.getOrigin().x)
@@ -410,7 +374,6 @@ DEF_ATTR_RD_SIMPLE(Sprite, OY,         int,     p->trans.getOrigin().y)
 DEF_ATTR_RD_SIMPLE(Sprite, ZoomX,      float,   p->trans.getScale().x)
 DEF_ATTR_RD_SIMPLE(Sprite, ZoomY,      float,   p->trans.getScale().y)
 DEF_ATTR_RD_SIMPLE(Sprite, Angle,      float,   p->trans.getRotation())
-#endif // MKXPZ_RETRO
 DEF_ATTR_RD_SIMPLE(Sprite, Mirror,     bool,    p->mirrored)
 DEF_ATTR_RD_SIMPLE(Sprite, BushDepth,  int,     p->bushDepth)
 DEF_ATTR_RD_SIMPLE(Sprite, BlendType,  int,     p->blendType)
@@ -459,9 +422,7 @@ void Sprite::setBitmap(Bitmap *bitmap)
     
     *p->srcRect = bitmap->rect();
     p->onSrcRectChange();
-#ifndef MKXPZ_RETRO
     p->quad.setPosRect(p->srcRect->toFloatRect());
-#endif // MKXPZ_RETRO
     
     p->wave.dirty = true;
 }
@@ -470,24 +431,20 @@ void Sprite::setX(int value)
 {
     guardDisposed();
     
-#ifndef MKXPZ_RETRO
     if (p->trans.getPosition().x == value)
         return;
     
     p->trans.setPosition(Vec2(value, getY()));
-#endif // MKXPZ_RETRO
 }
 
 void Sprite::setY(int value)
 {
     guardDisposed();
     
-#ifndef MKXPZ_RETRO
     if (p->trans.getPosition().y == value)
         return;
     
     p->trans.setPosition(Vec2(getX(), value));
-#endif // MKXPZ_RETRO
     
     if (rgssVer >= 2)
     {
@@ -500,48 +457,40 @@ void Sprite::setOX(int value)
 {
     guardDisposed();
     
-#ifndef MKXPZ_RETRO
     if (p->trans.getOrigin().x == value)
         return;
     
     p->trans.setOrigin(Vec2(value, getOY()));
-#endif // MKXPZ_RETRO
 }
 
 void Sprite::setOY(int value)
 {
     guardDisposed();
     
-#ifndef MKXPZ_RETRO
     if (p->trans.getOrigin().y == value)
         return;
     
     p->trans.setOrigin(Vec2(getOX(), value));
-#endif // MKXPZ_RETRO
 }
 
 void Sprite::setZoomX(float value)
 {
     guardDisposed();
     
-#ifndef MKXPZ_RETRO
     if (p->trans.getScale().x == value)
         return;
     
     p->trans.setScale(Vec2(value, getZoomY()));
-#endif // MKXPZ_RETRO
 }
 
 void Sprite::setZoomY(float value)
 {
     guardDisposed();
     
-#ifndef MKXPZ_RETRO
     if (p->trans.getScale().y == value)
         return;
     
     p->trans.setScale(Vec2(getZoomX(), value));
-#endif // MKXPZ_RETRO
     p->recomputeBushDepth();
     
     if (rgssVer >= 2)
@@ -552,12 +501,10 @@ void Sprite::setAngle(float value)
 {
     guardDisposed();
     
-#ifndef MKXPZ_RETRO
     if (p->trans.getRotation() == value)
         return;
     
     p->trans.setRotation(value);
-#endif // MKXPZ_RETRO
 }
 
 void Sprite::setMirror(bool mirrored)
@@ -679,7 +626,6 @@ void Sprite::draw()
     if (emptyFlashFlag)
         return;
     
-#ifndef MKXPZ_RETRO
     ShaderBase *base;
     
     bool renderEffect = p->color->hasEffect() ||
@@ -694,7 +640,11 @@ void Sprite::draw()
     int sourceWidthHires = p->bitmap->hasHires() ? p->bitmap->getHires()->width() : p->bitmap->width();
     int sourceHeightHires = p->bitmap->hasHires() ? p->bitmap->getHires()->height() : p->bitmap->height();
 
+#ifdef MKXPZ_RETRO
+    double framebufferScalingFactor = 1.0; // TODO: get from config
+#else
     double framebufferScalingFactor = shState->config().enableHires ? shState->config().framebufferScalingFactor : 1.0;
+#endif // MKXPZ_RETRO
 
     int targetWidthHires = (int)lround(framebufferScalingFactor * p->bitmap->width() * p->trans.getScale().x);
     int targetHeightHires = (int)lround(framebufferScalingFactor * p->bitmap->height() * p->trans.getScale().y);
@@ -711,10 +661,13 @@ void Sprite::draw()
         scaleIsSpecial = DownScale;
     }
 
+#ifndef MKXPZ_RETRO // TODO
     switch (scaleIsSpecial)
     {
     case SameScale:
+#endif // MKXPZ_RETRO
         scalingMethod = NearestNeighbor;
+#ifndef MKXPZ_RETRO
         break;
     case DownScale:
         scalingMethod = shState->config().bitmapSmoothScalingDown;
@@ -727,6 +680,7 @@ void Sprite::draw()
     {
         scalingMethod = shState->config().bitmapSmoothScaling;
     }
+#endif // MKXPZ_RETRO
 
     if (renderEffect)
     {
@@ -801,7 +755,11 @@ void Sprite::draw()
             shader.bind();
 
             shader.setTexSize(Vec2i(sourceWidthHires, sourceHeightHires));
+#ifdef MKXPZ_RETRO
+            shader.setSharpness(100); // TODO: get from config
+#else
             shader.setSharpness(shState->config().bicubicSharpness);
+#endif // MKXPZ_RETRO
             shader.setSpriteMat(p->trans.getMatrix());
             shader.applyViewportProj();
             base = &shader;
@@ -825,7 +783,11 @@ void Sprite::draw()
             shader.bind();
 
             shader.setTexSize(Vec2i(sourceWidthHires, sourceHeightHires));
+#ifdef MKXPZ_RETRO
+            shader.setTargetScale(Vec2(1.0f, 1.0f)); // TODO: get from config
+#else
             shader.setTargetScale(Vec2((float)(shState->config().xbrzScalingFactor), (float)(shState->config().xbrzScalingFactor)));
+#endif // MKXPZ_RETRO
             shader.setSpriteMat(p->trans.getMatrix());
             shader.applyViewportProj();
             base = &shader;
@@ -852,7 +814,11 @@ void Sprite::draw()
     if (scalingMethod == xBRZ)
     {
         XbrzShader &shader = shState->shaders().xbrz;
+#ifdef MKXPZ_RETRO
+        shader.setTargetScale(Vec2(1.0f, 1.0f));
+#else
         shader.setTargetScale(Vec2((float)(shState->config().xbrzScalingFactor), (float)(shState->config().xbrzScalingFactor)));
+#endif // MKXPZ_RETRO
     }
 #endif
     
@@ -866,16 +832,13 @@ void Sprite::draw()
     TEX::setSmooth(false);
 
     glState.blendMode.pop();
-#endif // MKXPZ_RETRO
 }
 
 void Sprite::onGeometryChange(const Scene::Geometry &geo)
 {
     /* Offset at which the sprite will be drawn
      * relative to screen origin */
-#ifndef MKXPZ_RETRO
     p->trans.setGlobalOffset(geo.offset());
-#endif // MKXPZ_RETRO
     
     p->sceneRect.setSize(geo.rect.size());
     p->sceneOrig = geo.orig;

@@ -70,6 +70,7 @@ static LPALCRENDERSAMPLESSOFT alcRenderSamplesSOFT = NULL;
 static LPALCLOOPBACKOPENDEVICESOFT alcLoopbackOpenDeviceSOFT = NULL;
 static int16_t *sound_buf;
 static bool retro_framebuffer_supported;
+static bool shared_state_initialized;
 
 static void fallback_log(enum retro_log_level level, const char *fmt, ...) {
     std::va_list va;
@@ -265,8 +266,6 @@ static bool init_sandbox() {
 
     audio.emplace();
 
-    SharedState::initInstance(NULL);
-
     try {
         mkxp_retro::sandbox.emplace();
     } catch (SandboxException) {
@@ -274,6 +273,8 @@ static bool init_sandbox() {
         deinit_sandbox();
         return false;
     }
+
+    shared_state_initialized = false;
 
     return true;
 }
@@ -372,6 +373,12 @@ extern "C" RETRO_API void retro_reset() {
 
 extern "C" RETRO_API void retro_run() {
     input_poll();
+
+    // We deferred initializing the shared state since the OpenGL symbols aren't available until the first call to `retro_run()`
+    if (!shared_state_initialized) {
+        SharedState::initInstance(NULL);
+        shared_state_initialized = true;
+    }
 
     if (hw_render.context_type != RETRO_HW_CONTEXT_NONE) {
         gl.BindFramebuffer(GL_DRAW_FRAMEBUFFER, hw_render.get_current_framebuffer());

@@ -38,6 +38,7 @@ void GLClearColor::apply(const Vec4 &value) {
 }
 
 void GLScissorBox::apply(const IntRect &value) {
+#ifndef MKXPZ_RETRO
   // High-res: scale the scissorbox if we're rendering to the PingPong framebuffer.
   if (shState) {
     const double framebufferScalingFactor = shState->config().framebufferScalingFactor;
@@ -45,23 +46,31 @@ void GLScissorBox::apply(const IntRect &value) {
       gl.Scissor((int)lround(framebufferScalingFactor * value.x), (int)lround(framebufferScalingFactor * value.y), (int)lround(framebufferScalingFactor * value.w), (int)lround(framebufferScalingFactor * value.h));
     }
     else {
+#endif // MKXPZ_RETRO
       gl.Scissor(value.x, value.y, value.w, value.h);
+#ifndef MKXPZ_RETRO
     }
   }
   else {
     gl.Scissor(value.x, value.y, value.w, value.h);
   }
+#endif // MKXPZ_RETRO
 }
 
 void GLScissorBox::setIntersect(const IntRect &value) {
   const IntRect &current = get();
 
-  SDL_Rect r1 = {current.x, current.y, current.w, current.h};
-  SDL_Rect r2 = {value.x, value.y, value.w, value.h};
-
   SDL_Rect result;
-  if (!SDL_IntersectRect(&r1, &r2, &result))
+
+  // TODO: check if this is actually correct
+  if (current.w <= 0 || current.h <= 0 || value.w <= 0 || value.h <= 0 || current.x < value.x + value.w || value.x < current.x + current.w || current.y < value.y + value.h || value.y < current.y + current.h) {
     result.w = result.h = 0;
+  } else {
+    result.x = std::min(current.x, value.x);
+    result.y = std::min(current.y, value.y);
+    result.w = std::max(current.x + current.w, value.x + value.w) - result.x;
+    result.h = std::max(current.y + current.h, value.y + value.h) - result.y;
+  }
 
   set(IntRect(result.x, result.y, result.w, result.h));
 }
@@ -112,9 +121,15 @@ GLState::GLState(const Config &conf) {
   blendMode.init(BlendNormal);
   blend.init(true);
   scissorTest.init(false);
+#ifdef MKXPZ_RETRO
+  scissorBox.init(IntRect(0, 0, 640, 480)); // TODO: get from config
+#else
   scissorBox.init(IntRect(0, 0, conf.defScreenW, conf.defScreenH));
+#endif // MKXPZ_RETRO
   program.init(0);
 
+#ifndef MKXPZ_RETRO // TODO
   if (conf.maxTextureSize > 0)
     caps.maxTexSize = conf.maxTextureSize;
+#endif // MKXPZ_RETRO
 }

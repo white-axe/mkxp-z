@@ -34,6 +34,8 @@ global_args += '-DHAVE_NANOSLEEP'
 # Ext libs
 # ====================
 
+global_sources += vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h')
+
 if is_libretro
     libretro_stage1_path = get_option('libretro_stage1_path')
 
@@ -82,6 +84,8 @@ if is_libretro
     if not is_emscripten and compilers['cpp'].has_link_argument('-Wl,--version-script,' + meson.current_source_dir() / 'libretro/link.T') # Only works with GNU linker and LLVM linker
         libretro_link_args += '-Wl,--version-script,' + meson.current_source_dir() / 'libretro/link.T'
     endif
+
+    subdir('shader')
 
     cmake = import('cmake')
 
@@ -356,8 +360,7 @@ if is_libretro
             include_directories(libretro_stage1_path / 'mkxp-retro-ruby'),
             include_directories(libretro_stage1_path / 'sdl/include'),
         ],
-        sources: [
-            vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h'),
+        sources: global_sources + [
             'src/core.cpp',
             'src/sharedstate.cpp',
             'src/audio/alstream.cpp',
@@ -378,8 +381,12 @@ if is_libretro
             'src/display/gl/gl-debug.cpp',
             'src/display/gl/gl-fun.cpp',
             'src/display/gl/gl-meta.cpp',
+            'src/display/gl/glstate.cpp',
             'src/display/gl/scene.cpp',
+            'src/display/gl/shader.cpp',
+            'src/display/gl/texpool.cpp',
             'src/display/gl/tileatlas.cpp',
+            'src/display/gl/vertex.cpp',
             'src/etc/etc.cpp',
             'src/etc/table.cpp',
             'src/filesystem/filesystem.cpp',
@@ -404,7 +411,6 @@ if is_libretro
     )
 else
 
-global_sources += vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h')
 if host_endian == 'big'
     global_args += '-DMKXPZ_BIG_ENDIAN'
 endif
@@ -412,8 +418,6 @@ if is_emscripten or not compilers['cpp'].compiles('struct E {}; int main() { thr
     libretro_defines += '-DMKXPZ_NO_EXCEPTIONS'
     libretro_defines += '-DBOOST_NO_EXCEPTIONS'
 endif
-
-xxd = find_program('xxd', native: true)
 
 # STEAMWORKS
 

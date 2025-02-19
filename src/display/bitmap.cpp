@@ -29,21 +29,21 @@
 #include <SDL_surface.h>
 
 #include <pixman.h>
+#endif // MKXPZ_RETRO
 
 #include "gl-util.h"
 #include "gl-meta.h"
 #include "quad.h"
 #include "quadarray.h"
-#endif // MKXPZ_RETRO
 #include "transform.h"
 #include "exception.h"
 
 #include "sharedstate.h"
 #include "glstate.h"
-#ifndef MKXPZ_RETRO
 #include "texpool.h"
 #include "shader.h"
 #include "filesystem.h"
+#ifndef MKXPZ_RETRO
 #endif // MKXPZ_RETRO
 #include "font.h"
 #ifndef MKXPZ_RETRO
@@ -232,9 +232,7 @@ struct BitmapPrivate
     
     sigslot::connection prepareCon;
     
-#ifndef MKXPZ_RETRO
     TEXFBO gl;
-#endif // MKXPZ_RETRO
     
     Font *font;
     
@@ -304,11 +302,13 @@ struct BitmapPrivate
 #endif // MKXPZ_RETRO
     }
     
-#ifndef MKXPZ_RETRO
     TEXFBO &getGLTypes() {
+#ifdef MKXPZ_RETRO
+        return gl; // TODO
+#else
         return (animation.enabled) ? animation.currentFrame() : gl;
-    }
 #endif // MKXPZ_RETRO
+    }
     
     void prepare()
     {
@@ -1886,8 +1886,10 @@ bool Bitmap::getRaw(void *output, int output_size)
         memcpy(output, src, output_size);
     }
     else {
+#endif // MKXPZ_RETRO
         FBO::bind(getGLTypes().fbo);
         gl.ReadPixels(0,0,width(),height(),GL_RGBA,GL_UNSIGNED_BYTE,output);
+#ifndef MKXPZ_RETRO
     }
 #endif // MKXPZ_RETRO
     return true;
@@ -1910,10 +1912,8 @@ void Bitmap::replaceRaw(void *pixel_data, int size)
     if (size != w*h*4)
         throw Exception(Exception::MKXPError, "Replacement bitmap data is not large enough (given %i bytes, need %i)", size, requiredsize);
     
-#ifndef MKXPZ_RETRO
     TEX::bind(getGLTypes().tex);
     TEX::uploadImage(w, h, pixel_data, GL_RGBA);
-#endif // MKXPZ_RETRO
     
     taintArea(IntRect(0,0,w,h));
     p->onModified();
@@ -2380,12 +2380,10 @@ void Bitmap::setInitFont(Font *value)
     p->font = value;
 }
 
-#ifndef MKXPZ_RETRO
 TEXFBO &Bitmap::getGLTypes() const
 {
     return p->getGLTypes();
 }
-#endif // MKXPZ_RETRO
 
 SDL_Surface *Bitmap::surface() const
 {

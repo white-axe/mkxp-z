@@ -32,6 +32,7 @@ This stage produces the actual core file.
 Required software:
 * C and C++ compilers
 * [Git](https://git-scm.com)
+* [xxd](https://github.com/vim/vim/blob/master/runtime/doc/xxd.man)
 * [Meson](https://mesonbuild.com)
 * [Ninja](https://ninja-build.org)
 * [CMake](https://cmake.org)

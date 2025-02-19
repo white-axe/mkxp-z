@@ -32,17 +32,13 @@
 #include "audio.h"
 #endif // MKXPZ_RETRO
 #include "glstate.h"
-#ifndef MKXPZ_RETRO
 #include "shader.h"
 #include "texpool.h"
-#endif // MKXPZ_RETRO
 #include "font.h"
-#ifndef MKXPZ_RETRO
 #include "eventthread.h"
 #include "gl-util.h"
 #include "global-ibo.h"
 #include "quad.h"
-#endif // MKXPZ_RETRO
 #include "binding.h"
 #include "exception.h"
 #include "sharedmidistate.h"
@@ -90,6 +86,7 @@ struct SharedStatePrivate
 	Graphics graphics;
 	Input input;
 	Audio audio;
+#endif // MKXPZ_RETRO
 
 	GLState _glState;
 
@@ -97,21 +94,20 @@ struct SharedStatePrivate
 
 	TexPool texPool;
 
+#ifndef MKXPZ_RETRO
 	SharedFontState fontState;
 	Font *defaultFont;
+#endif // MKXPZ_RETRO
 
 	TEX::ID globalTex;
-#endif // MKXPZ_RETRO
 	int globalTexW, globalTexH;
 	bool globalTexDirty;
 
-#ifndef MKXPZ_RETRO
 	TEXFBO gpTexFBO;
 
 	TEXFBO atlasTex;
 
 	Quad gpQuad;
-#endif // MKXPZ_RETRO
 
 	unsigned int stampCounter;
     
@@ -135,7 +131,9 @@ struct SharedStatePrivate
 	      graphics(threadData),
 	      input(*threadData),
 	      audio(*threadData),
+#endif // MKXPZ_RETRO
 	      _glState(threadData->config),
+#ifndef MKXPZ_RETRO
 	      fontState(threadData->config),
 #endif // MKXPZ_RETRO
 	      stampCounter(0)
@@ -146,11 +144,11 @@ struct SharedStatePrivate
         
         startupTime = std::chrono::steady_clock::now();
         
-#ifndef MKXPZ_RETRO
 		/* Shaders have been compiled in ShaderSet's constructor */
 		if (gl.ReleaseShaderCompiler)
 			gl.ReleaseShaderCompiler();
 
+#ifndef MKXPZ_RETRO
 		std::string archPath = config.execName + gameArchExt();
 
 		for (size_t i = 0; i < config.patches.size(); ++i)
@@ -173,6 +171,7 @@ struct SharedStatePrivate
 			fileSystem.createPathCache();
 
 		fileSystem.initFontSets(fontState);
+#endif // MKXPZ_RETRO
 
 		globalTexW = 128;
 		globalTexH = 64;
@@ -189,6 +188,7 @@ struct SharedStatePrivate
 		TEXFBO::allocEmpty(gpTexFBO, globalTexW, globalTexH);
 		TEXFBO::linkFBO(gpTexFBO);
 
+#ifndef MKXPZ_RETRO
 		/* RGSS3 games will call setup_midi, so there's
 		 * no need to do it on startup */
 		if (rgssVer <= 2)
@@ -198,11 +198,9 @@ struct SharedStatePrivate
 
 	~SharedStatePrivate()
 	{
-#ifndef MKXPZ_RETRO
 		TEX::del(globalTex);
 		TEXFBO::fini(gpTexFBO);
 		TEXFBO::fini(atlasTex);
-#endif // MKXPZ_RETRO
 	}
 };
 
@@ -214,13 +212,13 @@ void SharedState::initInstance(RGSSThreadData *threadData)
 
 #ifndef MKXPZ_RETRO
 	rgssVersion = threadData->config.rgssVersion;
+#endif // MKXPZ_RETRO
     
 	_globalIBO = new GlobalIBO();
 	_globalIBO->ensureSize(1);
 
 	SharedState::instance = 0;
 	Font *defaultFont = 0;
-#endif // MKXPZ_RETRO
 
 	try
 	{
@@ -232,9 +230,7 @@ void SharedState::initInstance(RGSSThreadData *threadData)
 	}
 	catch (const Exception &exc)
 	{
-#ifndef MKXPZ_RETRO
 		delete _globalIBO;
-#endif // MKXPZ_RETRO
 		delete SharedState::instance;
 #ifndef MKXPZ_RETRO
 		delete defaultFont;
@@ -256,9 +252,7 @@ void SharedState::finiInstance()
 
 	delete SharedState::instance;
 
-#ifndef MKXPZ_RETRO
 	delete _globalIBO;
-#endif // MKXPZ_RETRO
 }
 
 void SharedState::setScreen(Scene &screen)
@@ -285,10 +279,12 @@ GSATT(Config&, config)
 GSATT(Graphics&, graphics)
 GSATT(Input&, input)
 GSATT(Audio&, audio)
+#endif // MKXPZ_RETRO
 GSATT(GLState&, _glState)
 GSATT(ShaderSet&, shaders)
 GSATT(TexPool&, texPool)
 GSATT(Quad&, gpQuad)
+#ifndef MKXPZ_RETRO
 GSATT(SharedFontState&, fontState)
 #endif // MKXPZ_RETRO
 GSATT(SharedMidiState&, midiState)
@@ -300,9 +296,7 @@ void SharedState::setBindingData(void *data)
 
 void SharedState::ensureQuadIBO(size_t minSize)
 {
-#ifndef MKXPZ_RETRO
 	_globalIBO->ensureSize(minSize);
-#endif // MKXPZ_RETRO
 }
 
 GlobalIBO &SharedState::globalIBO()
@@ -312,7 +306,6 @@ GlobalIBO &SharedState::globalIBO()
 
 void SharedState::bindTex()
 {
-#ifndef MKXPZ_RETRO
 	TEX::bind(p->globalTex);
 
 	if (p->globalTexDirty)
@@ -320,7 +313,6 @@ void SharedState::bindTex()
 		TEX::allocEmpty(p->globalTexW, p->globalTexH);
 		p->globalTexDirty = false;
 	}
-#endif // MKXPZ_RETRO
 }
 
 void SharedState::ensureTexSize(int minW, int minH, Vec2i &currentSizeOut)
@@ -340,7 +332,6 @@ void SharedState::ensureTexSize(int minW, int minH, Vec2i &currentSizeOut)
 	currentSizeOut = Vec2i(p->globalTexW, p->globalTexH);
 }
 
-#ifndef MKXPZ_RETRO
 TEXFBO &SharedState::gpTexFBO(int minW, int minH)
 {
 	bool needResize = false;
@@ -395,7 +386,6 @@ void SharedState::releaseAtlasTex(TEXFBO &tex)
 
 	p->atlasTex = tex;
 }
-#endif // MKXPZ_RETRO
 
 void SharedState::checkShutdown()
 {
