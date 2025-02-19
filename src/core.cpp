@@ -35,6 +35,7 @@
 #include "core.h"
 #include "filesystem.h"
 #include "gl-fun.h"
+#include "gl-meta.h"
 
 using namespace mkxp_retro;
 using namespace mkxp_sandbox;
@@ -381,7 +382,7 @@ extern "C" RETRO_API void retro_run() {
     }
 
     if (hw_render.context_type != RETRO_HW_CONTEXT_NONE) {
-        gl.BindFramebuffer(GL_DRAW_FRAMEBUFFER, hw_render.get_current_framebuffer());
+        GLMeta::blitBeginScreen({640, 480});
     }
 
     if (mkxp_retro::sandbox.has_value()) {
@@ -413,6 +414,10 @@ extern "C" RETRO_API void retro_run() {
         }
     }
     video_refresh(fb, 640, 480, 640 * 4);
+
+    if (hw_render.context_type != RETRO_HW_CONTEXT_NONE) {
+        GLMeta::blitEnd();
+    }
 
     if (mkxp_retro::sandbox.has_value()) {
         audio->render();

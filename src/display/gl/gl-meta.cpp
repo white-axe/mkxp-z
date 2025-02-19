@@ -26,6 +26,9 @@
 #include "quad.h"
 #include "config.h"
 #include "etc.h"
+#ifdef MKXPZ_RETRO
+#  include "core.h"
+#endif // MKXPZ_RETRO
 
 namespace FBO
 {
@@ -208,13 +211,10 @@ int smoothScalingMethod(int scaleIsSpecial)
 
 static void _blitBegin(FBO::ID fbo, const Vec2i &size, int scaleIsSpecial)
 {
-#ifndef MKXPZ_RETRO
 	if (HAVE_NATIVE_BLIT)
 	{
-#endif // MKXPZ_RETRO
 		FBO::boundFramebufferID = fbo;
 		gl.BindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo.gl);
-#ifndef MKXPZ_RETRO
 	}
 	else
 	{
@@ -267,7 +267,6 @@ static void _blitBegin(FBO::ID fbo, const Vec2i &size, int scaleIsSpecial)
 		}
 		}
 	}
-#endif // MKXPZ_RETRO
 }
 
 int blitDstWidthLores = 1;
@@ -304,7 +303,15 @@ void blitBeginScreen(const Vec2i &size, int scaleIsSpecial)
 	blitDstHeightLores = 1;
 	blitDstHeightHires = 1;
 
-	_blitBegin(FBO::ID(0), size, scaleIsSpecial);
+	_blitBegin(
+#ifdef MKXPZ_RETRO
+		FBO::ID(mkxp_retro::hw_render.get_current_framebuffer()),
+#else
+		FBO::ID(0),
+#endif // MKXPZ_RETRO
+		size,
+		scaleIsSpecial
+	);
 }
 
 void blitSource(TEXFBO &source, int scaleIsSpecial)
@@ -320,12 +327,9 @@ void blitSource(TEXFBO &source, int scaleIsSpecial)
 		blitSrcHeightHires = blitSrcHeightLores;
 	}
 
-#ifndef MKXPZ_RETRO
 	if (HAVE_NATIVE_BLIT)
 	{
-#endif // MKXPZ_RETRO
 		gl.BindFramebuffer(GL_READ_FRAMEBUFFER, source.fbo.gl);
-#ifndef MKXPZ_RETRO
 	}
 	else
 	{
@@ -371,7 +375,6 @@ void blitSource(TEXFBO &source, int scaleIsSpecial)
 			TEX::bind(source.tex);
 		}
 	}
-#endif // MKXPZ_RETRO
 }
 
 void blitRectangle(const IntRect &src, const Vec2i &dstPos)
@@ -395,17 +398,15 @@ void blitRectangle(const IntRect &src, const IntRect &dst, bool smooth)
 	int scaledSrcHeight = src.h * blitSrcHeightHires / blitSrcHeightLores;
 	IntRect srcScaled(scaledSrcX, scaledSrcY, scaledSrcWidth, scaledSrcHeight);
 
-#ifndef MKXPZ_RETRO
 	if (HAVE_NATIVE_BLIT)
 	{
-#endif // MKXPZ_RETRO
 		gl.BlitFramebuffer(srcScaled.x, srcScaled.y, srcScaled.x+srcScaled.w, srcScaled.y+srcScaled.h,
 		                   dstScaled.x, dstScaled.y, dstScaled.x+dstScaled.w, dstScaled.y+dstScaled.h,
 		                   GL_COLOR_BUFFER_BIT, smooth ? GL_LINEAR : GL_NEAREST);
-#ifndef MKXPZ_RETRO
 	}
 	else
 	{
+#ifndef MKXPZ_RETRO
 #ifdef MKXPZ_SSL
 		if (shState->config().smoothScaling == xBRZ)
 		{
@@ -413,6 +414,7 @@ void blitRectangle(const IntRect &src, const IntRect &dst, bool smooth)
 			shader.setTargetScale(Vec2((float)(shState->config().xbrzScalingFactor), (float)(shState->config().xbrzScalingFactor)));
 		}
 #endif
+#endif // MKXPZ_RETRO
 		if (smooth)
 			TEX::setSmooth(true);
 
@@ -425,7 +427,6 @@ void blitRectangle(const IntRect &src, const IntRect &dst, bool smooth)
 		if (smooth)
 			TEX::setSmooth(false);
 	}
-#endif // MKXPZ_RETRO
 }
 
 void blitEnd()
@@ -440,11 +441,9 @@ void blitEnd()
 	blitSrcHeightLores = 1;
 	blitSrcHeightHires = 1;
 
-#ifndef MKXPZ_RETRO
 	if (!HAVE_NATIVE_BLIT) {
 		glState.viewport.pop();
 	}
-#endif // MKXPZ_RETRO
 }
 
 }
