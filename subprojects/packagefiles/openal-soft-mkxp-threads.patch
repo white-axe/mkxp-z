@@ -1,0 +1,208 @@
+# This patch makes OpenAL Soft use mkxp-threads.cpp instead of POSIX threads for portability reasons.
+
+--- a/common/alsem.cpp
++++ b/common/alsem.cpp
+@@ -55,8 +55,6 @@ void semaphore::post()
+ void semaphore::wait() noexcept
+ { WaitForSingleObject(static_cast<HANDLE>(mSem), INFINITE); }
+ 
+-bool semaphore::try_wait() noexcept
+-{ return WaitForSingleObject(static_cast<HANDLE>(mSem), 0) == WAIT_OBJECT_0; }
+ 
+ } // namespace al
+ 
+@@ -83,8 +81,6 @@ void semaphore::post()
+ void semaphore::wait() noexcept
+ { dispatch_semaphore_wait(mSem, DISPATCH_TIME_FOREVER); }
+ 
+-bool semaphore::try_wait() noexcept
+-{ return dispatch_semaphore_wait(mSem, DISPATCH_TIME_NOW) == 0; }
+ 
+ } // namespace al
+ 
+@@ -96,27 +92,25 @@ namespace al {
+ 
+ semaphore::semaphore(unsigned int initial)
+ {
+-    if(sem_init(&mSem, 0, initial) != 0)
++    if(mkxp_sem_init(&mSem, initial) != 0)
+         throw std::system_error(std::make_error_code(std::errc::resource_unavailable_try_again));
+ }
+ 
+ semaphore::~semaphore()
+-{ sem_destroy(&mSem); }
++{ mkxp_sem_destroy(&mSem); }
+ 
+ void semaphore::post()
+ {
+-    if(sem_post(&mSem) != 0)
++    if(mkxp_sem_post(&mSem) != 0)
+         throw std::system_error(std::make_error_code(std::errc::value_too_large));
+ }
+ 
+ void semaphore::wait() noexcept
+ {
+-    while(sem_wait(&mSem) == -1 && errno == EINTR) {
++    while(mkxp_sem_wait(&mSem) == -1 && errno == EINTR) {
+     }
+ }
+ 
+-bool semaphore::try_wait() noexcept
+-{ return sem_trywait(&mSem) == 0; }
+ 
+ } // namespace al
+ 
+--- a/common/alsem.h
++++ b/common/alsem.h
+@@ -11,7 +11,7 @@
+ #include <semaphore.h> /* Fallback option for Apple without a working libdispatch */
+ #endif
+ #elif !defined(_WIN32)
+-#include <semaphore.h>
++#include "../../src/mkxp-threads.h"
+ #endif
+ 
+ namespace al {
+@@ -22,7 +22,7 @@ class semaphore {
+ #elif defined(AL_APPLE_HAVE_DISPATCH)
+     using native_type = dispatch_semaphore_t;
+ #else
+-    using native_type = sem_t;
++    using native_type = mkxp_sem_t;
+ #endif
+     native_type mSem{};
+ 
+@@ -35,7 +35,6 @@ public:
+ 
+     void post();
+     void wait() noexcept;
+-    bool try_wait() noexcept;
+ };
+ 
+ } // namespace al
+--- a/common/althrd_setname.cpp
++++ b/common/althrd_setname.cpp
+@@ -39,39 +39,39 @@ void althrd_setname(const char *name [[maybe_unused]])
+ 
+ #else
+ 
+-#include <pthread.h>
+-#ifdef HAVE_PTHREAD_NP_H
+-#include <pthread_np.h>
+-#endif
++#include "../../src/mkxp-threads.h"
++
++
++
++
+ 
+ namespace {
+ 
+ using setname_t1 = int(*)(const char*);
+-using setname_t2 = int(*)(pthread_t, const char*);
+-using setname_t3 = void(*)(pthread_t, const char*);
+-using setname_t4 = int(*)(pthread_t, const char*, void*);
++using setname_t2 = int(*)(mkxp_thread_t, const char*);
++using setname_t3 = void(*)(mkxp_thread_t, const char*);
++using setname_t4 = int(*)(mkxp_thread_t, const char*, void*);
+ 
+ [[maybe_unused]] void setname_caller(setname_t1 func, const char *name)
+ { func(name); }
+ 
+ [[maybe_unused]] void setname_caller(setname_t2 func, const char *name)
+-{ func(pthread_self(), name); }
++{ func(mkxp_thread_self(), name); }
+ 
+ [[maybe_unused]] void setname_caller(setname_t3 func, const char *name)
+-{ func(pthread_self(), name); }
++{ func(mkxp_thread_self(), name); }
+ 
+ [[maybe_unused]] void setname_caller(setname_t4 func, const char *name)
+-{ func(pthread_self(), "%s", const_cast<char*>(name)); /* NOLINT(*-const-cast) */ }
++{ func(mkxp_thread_self(), "%s", const_cast<char*>(name)); /* NOLINT(*-const-cast) */ }
+ 
+ } // namespace
+ 
+ void althrd_setname(const char *name [[maybe_unused]])
+ {
+-#if defined(HAVE_PTHREAD_SET_NAME_NP)
+-    setname_caller(pthread_set_name_np, name);
+-#elif defined(HAVE_PTHREAD_SETNAME_NP)
+-    setname_caller(pthread_setname_np, name);
+-#endif
+-}
+ 
++
++
++
++
++}
+ #endif
+--- a/common/althreads.h
++++ b/common/althreads.h
+@@ -5,7 +5,7 @@
+ #include <stdexcept>
+ #include <type_traits>
+ 
+-#ifdef _WIN32
++#if false
+ #define WIN32_LEAN_AND_MEAN
+ #include <windows.h>
+ 
+@@ -13,7 +13,7 @@
+ 
+ #include <pthread.h>
+ 
+-#else
++#elif false
+ 
+ #include <threads.h>
+ #endif
+@@ -54,7 +54,7 @@ class tss {
+             return static_cast<T>(al::bit_cast<std::uintptr_t>(ptr));
+     }
+ 
+-#ifdef _WIN32
++#if false
+     DWORD mTss{TLS_OUT_OF_INDEXES};
+ 
+ public:
+@@ -107,29 +107,30 @@ public:
+ 
+ #else
+ 
+-    tss_t mTss{};
++    void **mTss;
+ 
+ public:
+     tss()
+     {
+-        if(int res{tss_create(&mTss, nullptr)}; res != thrd_success)
++        if ((mTss = (void **)std::malloc(sizeof *mTss)) == NULL)
+             throw std::runtime_error{"al::tss::tss()"};
++        *mTss = nullptr;
+     }
+     explicit tss(const T &init) : tss{}
+     {
+-        if(int res{tss_set(mTss, to_ptr(init))}; res != thrd_success)
+-            throw std::runtime_error{"al::tss::tss(T)"};
++        if ((mTss = (void **)std::malloc(sizeof *mTss)) == NULL)
++            throw std::runtime_error{"al::tss::tss()"};
++        *mTss = to_ptr(init);
+     }
+-    ~tss() { tss_delete(mTss); }
++    ~tss() { std::free(mTss); }
+ 
+     void set(const T &value) const
+     {
+-        if(int res{tss_set(mTss, to_ptr(value))}; res != thrd_success)
+-            throw std::runtime_error{"al::tss::set(T)"};
++        *mTss = to_ptr(value);
+     }
+ 
+     [[nodiscard]]
+-    auto get() const noexcept -> T { return from_ptr(tss_get(mTss)); }
++    auto get() const noexcept -> T { return from_ptr(*mTss); }
+ #endif /* _WIN32 */
+ 
+     tss(const tss&) = delete;

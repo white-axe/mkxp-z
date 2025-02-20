@@ -34,19 +34,6 @@ global_args += '-DHAVE_NANOSLEEP'
 if is_libretro
     libretro_stage1_path = get_option('libretro_stage1_path')
 
-    libretro_defines = [
-        '-DMKXPZ_VERSION="@0@"'.format(meson.project_version()),
-        '-DMKXPZ_RETRO',
-        '-DSHARED_FLUID',
-    ]
-    if host_endian == 'big'
-        libretro_defines += '-DMKXPZ_BIG_ENDIAN'
-    endif
-    if is_emscripten or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'check if C++ exceptions are supported')
-        libretro_defines += '-DMKXPZ_NO_EXCEPTIONS'
-        libretro_defines += '-DBOOST_NO_EXCEPTIONS'
-    endif
-
     libretro_link_args = []
     libretro_cflags = []
     libretro_cppflags = []
@@ -80,20 +67,67 @@ if is_libretro
         libretro_link_args += '-Wl,--version-script,' + meson.current_source_dir() / 'libretro/link.T'
     endif
 
+    libretro_defines = [
+        '-DMKXPZ_VERSION="@0@"'.format(meson.project_version()),
+        '-DMKXPZ_RETRO',
+        '-DSHARED_FLUID',
+    ]
+
+    if host_endian == 'big'
+        libretro_defines += '-DMKXPZ_BIG_ENDIAN'
+    endif
+
+    if is_emscripten or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'C++ exceptions support check')
+        libretro_defines += '-DMKXPZ_NO_EXCEPTIONS'
+        libretro_defines += '-DBOOST_NO_EXCEPTIONS'
+    endif
+
+    if compilers['cpp'].has_header('pthread.h') and compilers['cpp'].compiles('''
+        #include <pthread.h>
+        int main() {
+            pthread_mutex_t mutex;
+            pthread_cond_t cond;
+            pthread_mutex_init(&mutex, NULL);
+            pthread_cond_init(&cond, NULL);
+            pthread_cond_signal(&cond);
+            pthread_mutex_lock(&mutex);
+            pthread_cond_wait(&cond, &mutex);
+            int result = pthread_self() != pthread_self();
+            pthread_mutex_unlock(&mutex);
+            return result;
+        }
+    ''', name: 'pthread.h sanity check')
+        libretro_defines += '-DMKXPZ_HAVE_PTHREAD_H'
+
+        if compilers['cpp'].has_header('semaphore.h') and compilers['cpp'].compiles('''
+            #include <semaphore.h>
+            int main() {
+                sem_t sem;
+                sem_init(&sem, 0, 0);
+                sem_post(&sem);
+                sem_wait(&sem);
+                sem_destroy(&sem);
+                return 0;
+            }
+        ''', name: 'semaphore.h sanity check')
+            libretro_defines += '-DMKXPZ_HAVE_SEMAPHORE_H'
+        endif
+    endif
+
     cmake = import('cmake')
 
     boost_options = cmake.subproject_options()
     boost_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_TESTING': false,
     })
 
     zlib_options = cmake.subproject_options()
     zlib_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'ZLIB_BUILD_EXAMPLES': false,
@@ -101,8 +135,8 @@ if is_libretro
 
     libzip_options = cmake.subproject_options()
     libzip_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'LIBZIP_DO_INSTALL': false,
@@ -124,8 +158,8 @@ if is_libretro
 
     physfs_options = cmake.subproject_options()
     physfs_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'PHYSFS_BUILD_STATIC': true,
         'PHYSFS_BUILD_SHARED': false,
@@ -135,8 +169,8 @@ if is_libretro
 
     openal_options = cmake.subproject_options()
     openal_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'LIBTYPE': 'STATIC',
         'ALSOFT_DLOPEN': false,
@@ -168,8 +202,8 @@ if is_libretro
 
     fluidlite_options = cmake.subproject_options()
     fluidlite_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'FLUIDLITE_BUILD_STATIC': true,
         'FLUIDLITE_BUILD_SHARED': false,
@@ -177,8 +211,8 @@ if is_libretro
 
     ogg_options = cmake.subproject_options()
     ogg_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'BUILD_TESTING': false,
@@ -187,8 +221,8 @@ if is_libretro
 
     vorbis_options = cmake.subproject_options()
     vorbis_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'BUILD_TESTING': false,
@@ -197,8 +231,8 @@ if is_libretro
 
     flac_options = cmake.subproject_options()
     flac_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'BUILD_CXXLIBS': false,
@@ -216,8 +250,8 @@ if is_libretro
 
     opus_options = cmake.subproject_options()
     opus_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'OPUS_BUILD_SHARED_LIBRARY': false,
@@ -234,8 +268,8 @@ if is_libretro
 
     mpg123_options = cmake.subproject_options()
     mpg123_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'BUILD_PROGRAMS': false,
@@ -246,8 +280,8 @@ if is_libretro
 
     libsndfile_options = cmake.subproject_options()
     libsndfile_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
         'BUILD_SHARED_LIBS': false,
         'BUILD_PROGRAMS': false,
@@ -356,6 +390,7 @@ if is_libretro
         sources: [
             vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h'),
             'src/core.cpp',
+            'src/mkxp-threads.cpp',
             'src/sharedstate.cpp',
             'src/audio/alstream.cpp',
             'src/audio/audio.cpp',
