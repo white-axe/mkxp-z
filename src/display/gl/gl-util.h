@@ -145,7 +145,7 @@ namespace FBO
 		gl.BindFramebuffer(
 			GL_FRAMEBUFFER,
 #ifdef MKXPZ_RETRO
-			id.gl || mkxp_retro::hw_render.get_current_framebuffer()
+			id.gl != 0 ? id.gl : mkxp_retro::hw_render.get_current_framebuffer()
 #else
 			id.gl
 #endif // MKXPZ_RETRO

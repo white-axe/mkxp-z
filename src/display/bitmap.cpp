@@ -423,6 +423,7 @@ struct BitmapPrivate
         FBO::clear();
         
         glState.clearColor.pop();
+
         glState.scissorBox.pop();
         glState.scissorTest.pop();
     }
@@ -443,7 +444,9 @@ struct BitmapPrivate
     {
         if (surface && freeSurface)
         {
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+            delete surface;
+#else
             SDL_FreeSurface(surface);
 #endif // MKXPZ_RETRO
             surface = 0;
@@ -570,9 +573,7 @@ Bitmap::Bitmap(const char *filename)
                                 handler.gif->width, handler.gif->height, glState.caps.maxTexSize, glState.caps.maxTexSize);
         }
         
-#endif // MKXPZ_RETRO
         p = new BitmapPrivate(this);
-#ifndef MKXPZ_RETRO
         
         p->selfHires = hiresBitmap;
         
@@ -667,9 +668,15 @@ Bitmap::Bitmap(const char *filename)
     }
 
     SDL_Surface *imgSurf = handler.surface;
-
-    initFromSurface(imgSurf, hiresBitmap, false);
 #endif // MKXPZ_RETRO
+
+#ifdef MKXPZ_RETRO
+    SDL_Surface *imgSurf = new SDL_Surface;
+    // TODO: use actual image dimensions
+    imgSurf->w = 64;
+    imgSurf->h = 64;
+#endif // MKXPZ_RETRO
+    initFromSurface(imgSurf, hiresBitmap, false);
 }
 
 Bitmap::Bitmap(int width, int height, bool isHires)
@@ -732,24 +739,30 @@ Bitmap::Bitmap(void *pixeldata, int width, int height)
     }
     else
     {
+#endif // MKXPZ_RETRO
         TEXFBO tex;
         
         try
         {
+#ifdef MKXPZ_RETRO
+            tex = shState->texPool().request(64, 64); // TODO: use actual image dimensions
+#else
             tex = shState->texPool().request(surface->w, surface->h);
+#endif // MKXPZ_RETRO
         }
         catch (const Exception &e)
         {
+#ifndef MKXPZ_RETRO
             SDL_FreeSurface(surface);
+#endif // MKXPZ_RETRO
             throw e;
         }
         
-#endif // MKXPZ_RETRO
         p = new BitmapPrivate(this);
-#ifndef MKXPZ_RETRO
         p->gl = tex;
         
         TEX::bind(p->gl.tex);
+#ifndef MKXPZ_RETRO
         TEX::uploadImage(p->gl.width, p->gl.height, surface->pixels, GL_RGBA);
         
         SDL_FreeSurface(surface);
@@ -909,7 +922,9 @@ void Bitmap::initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool for
         {
             if (hiresBitmap)
                 delete hiresBitmap;
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+            delete imgSurf;
+#else
             SDL_FreeSurface(imgSurf);
 #endif // MKXPZ_RETRO
             throw e;
@@ -923,9 +938,13 @@ void Bitmap::initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool for
         }
         
         TEX::bind(p->gl.tex);
-        TEX::uploadImage(p->gl.width, p->gl.height, imgSurf->pixels, GL_RGBA);
-        
 #ifndef MKXPZ_RETRO
+        TEX::uploadImage(p->gl.width, p->gl.height, imgSurf->pixels, GL_RGBA);
+#endif // MKXPZ_RETRO
+        
+#ifdef MKXPZ_RETRO
+        delete imgSurf;
+#else
         SDL_FreeSurface(imgSurf);
 #endif // MKXPZ_RETRO
     }
@@ -2504,8 +2523,10 @@ int Bitmap::addFrame(Bitmap &source, int position)
         
         p->animation.frames.push_back(p->gl);
         
-#ifndef MKXPZ_RETRO
         if (p->surface)
+#ifdef MKXPZ_RETRO
+            delete p->surface;
+#else
             SDL_FreeSurface(p->surface);
 #endif // MKXPZ_RETRO
         p->gl = TEXFBO();
@@ -2514,7 +2535,9 @@ int Bitmap::addFrame(Bitmap &source, int position)
     if (source.surface()) {
         TEX::bind(newframe.tex);
         TEX::uploadImage(source.width(), source.height(), source.surface()->pixels, GL_RGBA);
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+        delete p->surface;
+#else
         SDL_FreeSurface(p->surface);
 #endif // MKXPZ_RETRO
         p->surface = 0;
@@ -2714,12 +2737,13 @@ void Bitmap::releaseResources()
         delete p->selfHires;
     }
 
-#ifndef MKXPZ_RETRO
     if (p->megaSurface)
+#ifdef MKXPZ_RETRO
+        delete p->megaSurface;
+#else
         SDL_FreeSurface(p->megaSurface);
-    else
 #endif // MKXPZ_RETRO
-    if (p->animation.enabled) {
+    else if (p->animation.enabled) {
         p->animation.enabled = false;
         p->animation.playing = false;
         for (TEXFBO &tex : p->animation.frames)
