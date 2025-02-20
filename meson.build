@@ -68,6 +68,8 @@ if is_libretro
     endif
 
     libretro_defines = [
+        '-D_FILE_OFFSET_BITS=64',
+        '-DMPG123_NO_LARGENAME',
         '-DMKXPZ_VERSION="@0@"'.format(meson.project_version()),
         '-DMKXPZ_RETRO',
         '-DSHARED_FLUID',
@@ -94,6 +96,8 @@ if is_libretro
             pthread_cond_wait(&cond, &mutex);
             int result = pthread_self() != pthread_self();
             pthread_mutex_unlock(&mutex);
+            pthread_cond_destroy(&cond);
+            pthread_mutex_destroy(&mutex);
             return result;
         }
     ''', name: 'pthread.h sanity check')
