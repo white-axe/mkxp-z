@@ -1068,6 +1068,22 @@ jobs:
           apt remove -y meson cmake
           pip install meson cmake
 
+      - name: Build and install wiiurpxtool
+        run: |
+          if command -v wiiurpxtool
+          then
+            echo 'wiiurpxtool already installed'
+          else
+            cd ~
+            git clone https://github.com/yawut/wiiurpxtool-ng
+            cd wiiurpxtool-ng
+            git checkout 682cc9f587dee507b400a307f5a0787efc5dcb72
+            git submodule update --init --recursive
+            cmake -G Ninja .
+            ninja -v
+            mv wiiurpxtool-ng /usr/local/bin/wiiurpxtool
+          fi
+
       - id: short-sha
         name: Get Git commit hash
         uses: benjlevesque/short-sha@v2.2
@@ -1249,7 +1265,6 @@ jobs:
           cd retroarch
           CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z
           mv retroarch_switch.nro ~/dist/mkxp-z_libretro.nro
-          mv retroarch_switch.elf ~/dist/mkxp-z_libretro.elf
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
