@@ -35,7 +35,7 @@
      PthreadMutex *m = (PthreadMutex *) allocator.Malloc(sizeof (PthreadMutex));
      BAIL_IF(!m, PHYSFS_ERR_OUT_OF_MEMORY, NULL);
 -    rc = pthread_mutex_init(&m->mutex, NULL);
-+    rc = mkxp_mutex_init(&m->mutex);
++    rc = mkxp_mutex_init(&m->mutex, false);
      if (rc != 0)
      {
          allocator.Free(m);

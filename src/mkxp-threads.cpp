@@ -22,7 +22,7 @@
 #include "mkxp-threads.h"
 #include <cassert>
 
-#if !defined(MKXPZ_HAVE_SEMAPHORE_H) && defined(MKXPZ_HAVE_PTHREAD_H)
+#if defined(MKXPZ_NO_SEMAPHORE_H) && !defined(MKXPZ_NO_PTHREAD_H)
 struct mkxp_sem_private {
     unsigned int value;
     pthread_mutex_t mutex;
@@ -31,24 +31,35 @@ struct mkxp_sem_private {
 #endif
 
 extern "C" mkxp_thread_t mkxp_thread_self() {
-#ifdef MKXPZ_HAVE_PTHREAD_H
+#ifndef MKXPZ_NO_PTHREAD_H
     return pthread_self();
 #else
     return 42;
 #endif
 }
 
-extern "C" int mkxp_mutex_init(mkxp_mutex_t *mutex) {
-#ifdef MKXPZ_HAVE_PTHREAD_H
-    return pthread_mutex_init(mutex, NULL);
+extern "C" int mkxp_mutex_init(mkxp_mutex_t *mutex, bool recursive) {
+#ifndef MKXPZ_NO_PTHREAD_H
+    if (recursive) {
+        pthread_mutexattr_t attr;
+        if (pthread_mutexattr_init(&attr)) {
+            return -1;
+        }
+        if (pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE)) {
+            return -1;
+        }
+        return pthread_mutex_init(mutex, &attr);
+    } else {
+        return pthread_mutex_init(mutex, NULL);
+    }
 #else
-    *mutex = false;
+    *mutex = 0;
     return 0;
 #endif
 }
 
 extern "C" int mkxp_mutex_destroy(mkxp_mutex_t *mutex) {
-#ifdef MKXPZ_HAVE_PTHREAD_H
+#ifndef MKXPZ_NO_PTHREAD_H
     return pthread_mutex_destroy(mutex);
 #else
     assert(!*mutex);
@@ -57,29 +68,28 @@ extern "C" int mkxp_mutex_destroy(mkxp_mutex_t *mutex) {
 }
 
 extern "C" int mkxp_mutex_lock(mkxp_mutex_t *mutex) {
-#ifdef MKXPZ_HAVE_PTHREAD_H
+#ifndef MKXPZ_NO_PTHREAD_H
     return pthread_mutex_lock(mutex);
 #else
-    assert(!*mutex);
-    *mutex = true;
+    ++*mutex;
     return 0;
 #endif
 }
 
 extern "C" int mkxp_mutex_unlock(mkxp_mutex_t *mutex) {
-#ifdef MKXPZ_HAVE_PTHREAD_H
+#ifndef MKXPZ_NO_PTHREAD_H
     return pthread_mutex_unlock(mutex);
 #else
     assert(*mutex);
-    *mutex = false;
+    --*mutex;
     return 0;
 #endif
 }
 
 extern "C" int mkxp_sem_init(mkxp_sem_t *sem, unsigned int value) {
-#ifdef MKXPZ_HAVE_SEMAPHORE_H
+#ifndef MKXPZ_NO_SEMAPHORE_H
     return sem_init(sem, 0, value);
-#elif defined(MKXPZ_HAVE_PTHREAD_H)
+#elif !defined(MKXPZ_NO_PTHREAD_H)
     *sem = (void *)new mkxp_sem_private;
     int mutex_init_result = pthread_mutex_init(&((struct mkxp_sem_private *)*sem)->mutex, NULL);
     if (mutex_init_result) {
@@ -99,9 +109,9 @@ extern "C" int mkxp_sem_init(mkxp_sem_t *sem, unsigned int value) {
 }
 
 extern "C" int mkxp_sem_destroy(mkxp_sem_t *sem) {
-#ifdef MKXPZ_HAVE_SEMAPHORE_H
+#ifndef MKXPZ_NO_SEMAPHORE_H
     return sem_destroy(sem);
-#elif defined(MKXPZ_HAVE_PTHREAD_H)
+#elif !defined(MKXPZ_NO_PTHREAD_H)
     pthread_cond_destroy(&((struct mkxp_sem_private *)*sem)->cond);
     pthread_mutex_destroy(&((struct mkxp_sem_private *)*sem)->mutex);
     delete (struct mkxp_sem_private *)*sem;
@@ -112,9 +122,9 @@ extern "C" int mkxp_sem_destroy(mkxp_sem_t *sem) {
 }
 
 extern "C" int mkxp_sem_post(mkxp_sem_t *sem) {
-#ifdef MKXPZ_HAVE_SEMAPHORE_H
+#ifndef MKXPZ_NO_SEMAPHORE_H
     return sem_post(sem);
-#elif defined(MKXPZ_HAVE_PTHREAD_H)
+#elif !defined(MKXPZ_NO_PTHREAD_H)
     while (pthread_mutex_lock(&((struct mkxp_sem_private *)*sem)->mutex)) {}
     ++((struct mkxp_sem_private *)*sem)->value;
     pthread_cond_signal(&((struct mkxp_sem_private *)*sem)->cond);
@@ -127,9 +137,9 @@ extern "C" int mkxp_sem_post(mkxp_sem_t *sem) {
 }
 
 extern "C" int mkxp_sem_wait(mkxp_sem_t *sem) {
-#ifdef MKXPZ_HAVE_SEMAPHORE_H
+#ifndef MKXPZ_NO_SEMAPHORE_H
     return sem_wait(sem);
-#elif defined(MKXPZ_HAVE_PTHREAD_H)
+#elif !defined(MKXPZ_NO_PTHREAD_H)
     while (pthread_mutex_lock(&((struct mkxp_sem_private *)*sem)->mutex)) {}
     for (;;) {
         if (((struct mkxp_sem_private *)*sem)->value) {

@@ -1,5 +1,243 @@
-# This patch makes OpenAL Soft use mkxp-threads.cpp instead of POSIX threads for portability reasons.
+# This patch makes OpenAL Soft use mkxp-threads.cpp instead of POSIX threads and `std::mutex` for portability reasons.
 
+--- a/al/auxeffectslot.cpp
++++ b/al/auxeffectslot.cpp
+@@ -28,7 +28,7 @@
+ #include <functional>
+ #include <iterator>
+ #include <memory>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <numeric>
+ #include <stdexcept>
+ #include <tuple>
+--- a/al/buffer.cpp
++++ b/al/buffer.cpp
+@@ -32,7 +32,7 @@
+ #include <iterator>
+ #include <limits>
+ #include <memory>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <numeric>
+ #include <optional>
+ #include <stdexcept>
+--- a/al/debug.cpp
++++ b/al/debug.cpp
+@@ -7,7 +7,7 @@
+ #include <atomic>
+ #include <cstring>
+ #include <deque>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <optional>
+ #include <stdexcept>
+ #include <string>
+--- a/al/effect.cpp
++++ b/al/effect.cpp
+@@ -27,7 +27,7 @@
+ #include <cstring>
+ #include <iterator>
+ #include <memory>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <numeric>
+ #include <string>
+ #include <type_traits>
+--- a/al/event.cpp
++++ b/al/event.cpp
+@@ -7,7 +7,7 @@
+ #include <bitset>
+ #include <exception>
+ #include <memory>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <new>
+ #include <optional>
+ #include <string>
+--- a/al/filter.cpp
++++ b/al/filter.cpp
+@@ -28,7 +28,7 @@
+ #include <cstdio>
+ #include <iterator>
+ #include <memory>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <numeric>
+ #include <unordered_map>
+ #include <vector>
+--- a/al/listener.cpp
++++ b/al/listener.cpp
+@@ -24,7 +24,7 @@
+ 
+ #include <algorithm>
+ #include <cmath>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ 
+ #include "AL/al.h"
+ #include "AL/alc.h"
+--- a/al/source.cpp
++++ b/al/source.cpp
+@@ -34,7 +34,7 @@
+ #include <iterator>
+ #include <limits>
+ #include <memory>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <numeric>
+ #include <optional>
+ #include <stdexcept>
+--- a/al/state.cpp
++++ b/al/state.cpp
+@@ -26,7 +26,7 @@
+ #include <atomic>
+ #include <cmath>
+ #include <deque>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <optional>
+ #include <stdexcept>
+ #include <string>
+--- a/alc/alc.cpp
++++ b/alc/alc.cpp
+@@ -48,7 +48,7 @@
+ #include <iterator>
+ #include <limits>
+ #include <memory>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <new>
+ #include <optional>
+ #include <stdexcept>
+@@ -314,7 +314,7 @@ std::atomic<ALCenum> LastNullDeviceError{ALC_NO_ERROR};
+ bool TrapALCError{false};
+ 
+ /* One-time configuration init control */
+-std::once_flag alc_config_once{};
++
+ 
+ /* Flag to specify if alcSuspendContext/alcProcessContext should defer/process
+  * updates.
+@@ -743,7 +743,7 @@ void alc_initconfig()
+ #endif // ALSOFT_EAX
+ }
+ inline void InitConfig()
+-{ std::call_once(alc_config_once, [](){alc_initconfig();}); }
++{ alc_initconfig(); }
+ 
+ 
+ /************************************************
+--- a/alc/backends/alsa.cpp
++++ b/alc/backends/alsa.cpp
+@@ -30,7 +30,7 @@
+ #include <cstring>
+ #include <exception>
+ #include <memory>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <string>
+ #include <string_view>
+ #include <thread>
+--- a/alc/backends/jack.cpp
++++ b/alc/backends/jack.cpp
+@@ -27,7 +27,7 @@
+ #include <cstdio>
+ #include <cstring>
+ #include <memory.h>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <thread>
+ #include <vector>
+ 
+--- a/alc/backends/opensl.cpp
++++ b/alc/backends/opensl.cpp
+@@ -28,7 +28,7 @@
+ #include <array>
+ #include <cstdlib>
+ #include <cstring>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <new>
+ #include <thread>
+ #include <functional>
+--- a/alc/backends/otherio.cpp
++++ b/alc/backends/otherio.cpp
+@@ -49,7 +49,7 @@
+ #include <cstring>
+ #include <deque>
+ #include <future>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <string>
+ #include <string_view>
+ #include <thread>
+--- a/alc/backends/pipewire.cpp
++++ b/alc/backends/pipewire.cpp
+@@ -37,7 +37,7 @@
+ #include <ctime>
+ #include <iterator>
+ #include <memory>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <optional>
+ #include <string_view>
+ #include <thread>
+--- a/alc/backends/pulseaudio.cpp
++++ b/alc/backends/pulseaudio.cpp
+@@ -33,7 +33,7 @@
+ #include <cstdint>
+ #include <cstring>
+ #include <limits>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <optional>
+ #include <string>
+ #include <string_view>
+--- a/alc/backends/wasapi.cpp
++++ b/alc/backends/wasapi.cpp
+@@ -52,7 +52,7 @@
+ #include <condition_variable>
+ #include <cstring>
+ #include <future>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <string>
+ #include <string_view>
+ #include <thread>
+--- a/alc/context.h
++++ b/alc/context.h
+@@ -8,7 +8,7 @@
+ #include <cstdint>
+ #include <deque>
+ #include <memory>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <string>
+ #include <string_view>
+ #include <unordered_map>
+--- a/alc/device.h
++++ b/alc/device.h
+@@ -5,7 +5,7 @@
+ 
+ #include <atomic>
+ #include <memory>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <optional>
+ #include <string>
+ #include <unordered_map>
+--- a/alc/events.h
++++ b/alc/events.h
+@@ -5,7 +5,7 @@
+ #include "opthelpers.h"
+ 
+ #include <bitset>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <optional>
+ #include <string_view>
+ 
 --- a/common/alsem.cpp
 +++ b/common/alsem.cpp
 @@ -55,8 +55,6 @@ void semaphore::post()
@@ -25,8 +263,9 @@
  semaphore::semaphore(unsigned int initial)
  {
 -    if(sem_init(&mSem, 0, initial) != 0)
+-        throw std::system_error(std::make_error_code(std::errc::resource_unavailable_try_again));
 +    if(mkxp_sem_init(&mSem, initial) != 0)
-         throw std::system_error(std::make_error_code(std::errc::resource_unavailable_try_again));
++        abort();
  }
  
  semaphore::~semaphore()
@@ -36,8 +275,9 @@
  void semaphore::post()
  {
 -    if(sem_post(&mSem) != 0)
+-        throw std::system_error(std::make_error_code(std::errc::value_too_large));
 +    if(mkxp_sem_post(&mSem) != 0)
-         throw std::system_error(std::make_error_code(std::errc::value_too_large));
++        abort();
  }
  
  void semaphore::wait() noexcept
@@ -206,3 +446,102 @@
  #endif /* _WIN32 */
  
      tss(const tss&) = delete;
+--- a/core/context.h
++++ b/core/context.h
+@@ -140,7 +140,7 @@ struct ContextBase {
+      */
+     al::atomic_unique_ptr<EffectSlotArray> mActiveAuxSlots;
+ 
+-    std::thread mEventThread;
++
+     al::semaphore mEventSem;
+     std::unique_ptr<RingBuffer> mAsyncEvents;
+     using AsyncEventBitset = std::bitset<al::to_underlying(AsyncEnableBits::Count)>;
+--- a/core/dbus_wrap.cpp
++++ b/core/dbus_wrap.cpp
+@@ -5,7 +5,7 @@
+ 
+ #if HAVE_DYNLOAD
+ 
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <type_traits>
+ 
+ #include "logging.h"
+--- a/core/dbus_wrap.h
++++ b/core/dbus_wrap.h
+@@ -9,7 +9,7 @@
+ 
+ #if HAVE_DYNLOAD
+ 
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ 
+ #define DBUS_FUNCTIONS(MAGIC) \
+ MAGIC(dbus_error_init) \
+--- a/core/helpers.cpp
++++ b/core/helpers.cpp
+@@ -12,7 +12,7 @@
+ #include <cstdlib>
+ #include <cstring>
+ #include <limits>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <optional>
+ #include <string>
+ #include <string_view>
+--- a/core/hrtf.cpp
++++ b/core/hrtf.cpp
+@@ -15,7 +15,7 @@
+ #include <fstream>
+ #include <iterator>
+ #include <memory>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <numeric>
+ #include <optional>
+ #include <tuple>
+--- a/core/logging.cpp
++++ b/core/logging.cpp
+@@ -7,7 +7,7 @@
+ #include <cstdarg>
+ #include <cstdio>
+ #include <cstring>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <optional>
+ #include <string>
+ #include <string_view>
+--- a/examples/alffplay.cpp
++++ b/examples/alffplay.cpp
+@@ -20,7 +20,7 @@
+ #include <functional>
+ #include <future>
+ #include <memory>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <ratio>
+ #include <string>
+ #include <string_view>
+--- a/router/alc.cpp
++++ b/router/alc.cpp
+@@ -7,7 +7,7 @@
+ #include <cstdlib>
+ #include <cstring>
+ #include <cstdio>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <optional>
+ #include <string_view>
+ #include <tuple>
+--- a/router/router.h
++++ b/router/router.h
+@@ -8,7 +8,7 @@
+ #include <atomic>
+ #include <cstdio>
+ #include <memory>
+-#include <mutex>
++#include "../../src/mkxp-threads.h"
+ #include <string>
+ #include <utility>
+ #include <vector>

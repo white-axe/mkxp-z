@@ -84,7 +84,19 @@ if is_libretro
         libretro_defines += '-DBOOST_NO_EXCEPTIONS'
     endif
 
-    if compilers['cpp'].has_header('pthread.h') and compilers['cpp'].compiles('''
+    if not compilers['cpp'].has_header_symbol('mutex', 'std::mutex')
+        libretro_defines += '-DMKXPZ_NO_STD_MUTEX'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('mutex', 'std::recursive_mutex')
+        libretro_defines += '-DMKXPZ_NO_STD_RECURSIVE_MUTEX'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('thread', 'std::this_thread::yield')
+        libretro_defines += '-DMKXPZ_NO_STD_THIS_THREAD_YIELD'
+    endif
+
+    if not compilers['cpp'].has_header('pthread.h') or not compilers['cpp'].compiles('''
         #include <pthread.h>
         int main() {
             pthread_mutex_t mutex;
@@ -101,21 +113,20 @@ if is_libretro
             return result;
         }
     ''', name: 'pthread.h sanity check')
-        libretro_defines += '-DMKXPZ_HAVE_PTHREAD_H'
-
-        if compilers['cpp'].has_header('semaphore.h') and compilers['cpp'].compiles('''
-            #include <semaphore.h>
-            int main() {
-                sem_t sem;
-                sem_init(&sem, 0, 0);
-                sem_post(&sem);
-                sem_wait(&sem);
-                sem_destroy(&sem);
-                return 0;
-            }
-        ''', name: 'semaphore.h sanity check')
-            libretro_defines += '-DMKXPZ_HAVE_SEMAPHORE_H'
-        endif
+        libretro_defines += '-DMKXPZ_NO_PTHREAD_H'
+        libretro_defines += '-DMKXPZ_NO_SEMAPHORE_H'
+    elif not compilers['cpp'].has_header('semaphore.h') or not compilers['cpp'].compiles('''
+        #include <semaphore.h>
+        int main() {
+            sem_t sem;
+            sem_init(&sem, 0, 0);
+            sem_post(&sem);
+            sem_wait(&sem);
+            sem_destroy(&sem);
+            return 0;
+        }
+    ''', name: 'semaphore.h sanity check')
+        libretro_defines += '-DMKXPZ_NO_SEMAPHORE_H'
     endif
 
     # Enable integer-only mode in FLAC when building with Vita SDK. Otherwise, we get an internal compiler error in FLAC__window_triangle:

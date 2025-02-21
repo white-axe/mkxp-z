@@ -25,29 +25,31 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#ifdef MKXPZ_HAVE_PTHREAD_H
+#ifndef MKXPZ_NO_PTHREAD_H
 #  include <pthread.h>
 #endif
 
-#ifdef MKXPZ_HAVE_SEMAPHORE_H
+#ifndef MKXPZ_NO_SEMAPHORE_H
 #  include <semaphore.h>
 #endif
 
 #ifdef __cplusplus
+#include <mutex>
+
 extern "C" {
 #endif
 
-#ifdef MKXPZ_HAVE_PTHREAD_H
+#ifndef MKXPZ_NO_PTHREAD_H
 typedef pthread_t mkxp_thread_t;
 typedef pthread_mutex_t mkxp_mutex_t;
 #else
 typedef size_t mkxp_thread_t;
-typedef bool mkxp_mutex_t;
+typedef unsigned int mkxp_mutex_t;
 #endif
 
-#ifdef MKXPZ_HAVE_SEMAPHORE_H
+#ifndef MKXPZ_NO_SEMAPHORE_H
 typedef sem_t mkxp_sem_t;
-#elif defined(MKXPZ_HAVE_PTHREAD_H)
+#elif !defined(MKXPZ_NO_PTHREAD_H)
 typedef void *mkxp_sem_t;
 #else
 typedef unsigned int mkxp_sem_t;
@@ -55,7 +57,7 @@ typedef unsigned int mkxp_sem_t;
 
 mkxp_thread_t mkxp_thread_self(void);
 
-int mkxp_mutex_init(mkxp_mutex_t *mutex);
+int mkxp_mutex_init(mkxp_mutex_t *mutex, bool recursive);
 
 int mkxp_mutex_destroy(mkxp_mutex_t *mutex);
 
@@ -73,6 +75,80 @@ int mkxp_sem_wait(mkxp_sem_t *sem);
 
 #ifdef __cplusplus
 }
+
+#  ifdef MKXPZ_NO_STD_MUTEX
+namespace std {
+    class mutex {
+    public:
+        typedef mkxp_mutex_t *native_handle_type;
+
+        mkxp_mutex_t inner;
+
+        inline mutex() noexcept {
+            if (mkxp_mutex_init(&inner, false)) {
+                abort();
+            }
+        }
+
+        inline ~mutex() noexcept {
+            mkxp_mutex_destroy(&inner);
+        }
+
+        inline void lock() noexcept {
+            if (mkxp_mutex_lock(&inner)) {
+                abort();
+            }
+        }
+
+        inline void unlock() noexcept {
+            if (mkxp_mutex_unlock(&inner)) {
+                abort();
+            }
+        }
+
+        inline native_handle_type native_handle() noexcept {
+            return &inner;
+        }
+    };
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_RECURSIVE_MUTEX
+namespace std {
+    class recursive_mutex {
+    public:
+        typedef mkxp_mutex_t *native_handle_type;
+
+        mkxp_mutex_t inner;
+
+        inline recursive_mutex() noexcept {
+            if (mkxp_mutex_init(&inner, true)) {
+                abort();
+            }
+        }
+
+        inline ~recursive_mutex() noexcept {
+            mkxp_mutex_destroy(&inner);
+        }
+
+        inline void lock() noexcept {
+            if (mkxp_mutex_lock(&inner)) {
+                abort();
+            }
+        }
+
+        inline void unlock() noexcept {
+            if (mkxp_mutex_unlock(&inner)) {
+                abort();
+            }
+        }
+
+        inline native_handle_type native_handle() noexcept {
+            return &inner;
+        }
+    };
+}
+#  endif
 #endif
 
 #endif // MKXPZ_THREADS_H
