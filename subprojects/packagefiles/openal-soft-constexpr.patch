@@ -1,0 +1,143 @@
+# Removes all exception throwing and logging inside of functions marked `constexpr` since old versions of GCC don't support it.
+# When building for PlayStation 3, we use an old enough version of GCC for this to be a problem.
+
+--- a/al/auxeffectslot.cpp
++++ b/al/auxeffectslot.cpp
+@@ -243,7 +243,7 @@ constexpr auto EffectSlotTypeFromEnum(ALenum type) noexcept -> EffectSlotType
+     case AL_EFFECT_DEDICATED_DIALOGUE: return EffectSlotType::Dedicated;
+     case AL_EFFECT_CONVOLUTION_SOFT: return EffectSlotType::Convolution;
+     }
+-    ERR("Unhandled effect enum: {:#04x}", as_unsigned(type));
++
+     return EffectSlotType::None;
+ }
+ 
+--- a/al/buffer.cpp
++++ b/al/buffer.cpp
+@@ -88,8 +88,8 @@ constexpr auto EnumFromAmbiLayout(AmbiLayout layout) -> ALenum
+     case AmbiLayout::FuMa: return AL_FUMA_SOFT;
+     case AmbiLayout::ACN: return AL_ACN_SOFT;
+     }
+-    throw std::runtime_error{fmt::format("Invalid AmbiLayout: {}",
+-        int{al::to_underlying(layout)})};
++
++    abort();
+ }
+ 
+ constexpr auto AmbiScalingFromEnum(ALenum scale) noexcept -> std::optional<AmbiScaling>
+@@ -111,8 +111,8 @@ constexpr auto EnumFromAmbiScaling(AmbiScaling scale) -> ALenum
+     case AmbiScaling::N3D: return AL_N3D_SOFT;
+     case AmbiScaling::UHJ: break;
+     }
+-    throw std::runtime_error{fmt::format("Invalid AmbiScaling: {}",
+-        int{al::to_underlying(scale)})};
++
++    abort();
+ }
+ 
+ #if ALSOFT_EAX
+--- a/al/debug.cpp
++++ b/al/debug.cpp
+@@ -110,8 +110,8 @@ constexpr auto GetDebugSourceEnum(DebugSource source) -> ALenum
+     case DebugSource::Application: return AL_DEBUG_SOURCE_APPLICATION_EXT;
+     case DebugSource::Other: return AL_DEBUG_SOURCE_OTHER_EXT;
+     }
+-    throw std::runtime_error{fmt::format("Unexpected debug source value: {}",
+-        int{al::to_underlying(source)})};
++
++    abort();
+ }
+ 
+ constexpr auto GetDebugTypeEnum(DebugType type) -> ALenum
+@@ -128,8 +128,8 @@ constexpr auto GetDebugTypeEnum(DebugType type) -> ALenum
+     case DebugType::PopGroup: return AL_DEBUG_TYPE_POP_GROUP_EXT;
+     case DebugType::Other: return AL_DEBUG_TYPE_OTHER_EXT;
+     }
+-    throw std::runtime_error{fmt::format("Unexpected debug type value: {}",
+-        int{al::to_underlying(type)})};
++
++    abort();
+ }
+ 
+ constexpr auto GetDebugSeverityEnum(DebugSeverity severity) -> ALenum
+@@ -141,8 +141,8 @@ constexpr auto GetDebugSeverityEnum(DebugSeverity severity) -> ALenum
+     case DebugSeverity::Low: return AL_DEBUG_SEVERITY_LOW_EXT;
+     case DebugSeverity::Notification: return AL_DEBUG_SEVERITY_NOTIFICATION_EXT;
+     }
+-    throw std::runtime_error{fmt::format("Unexpected debug severity value: {}",
+-        int{al::to_underlying(severity)})};
++
++    abort();
+ }
+ 
+ 
+--- a/al/effects/chorus.cpp
++++ b/al/effects/chorus.cpp
+@@ -43,8 +43,8 @@ constexpr ALenum EnumFromWaveform(ChorusWaveform type)
+     case ChorusWaveform::Sinusoid: return AL_CHORUS_WAVEFORM_SINUSOID;
+     case ChorusWaveform::Triangle: return AL_CHORUS_WAVEFORM_TRIANGLE;
+     }
+-    throw std::runtime_error{fmt::format("Invalid chorus waveform: {}",
+-        int{al::to_underlying(type)})};
++
++    abort();
+ }
+ 
+ constexpr EffectProps genDefaultChorusProps() noexcept
+--- a/al/effects/fshifter.cpp
++++ b/al/effects/fshifter.cpp
+@@ -40,7 +40,7 @@ constexpr ALenum EnumFromDirection(FShifterDirection dir)
+     case FShifterDirection::Up: return AL_FREQUENCY_SHIFTER_DIRECTION_UP;
+     case FShifterDirection::Off: return AL_FREQUENCY_SHIFTER_DIRECTION_OFF;
+     }
+-    throw std::runtime_error{fmt::format("Invalid direction: {}", int{al::to_underlying(dir)})};
++    abort();
+ }
+ 
+ constexpr EffectProps genDefaultProps() noexcept
+--- a/al/effects/modulator.cpp
++++ b/al/effects/modulator.cpp
+@@ -40,8 +40,8 @@ constexpr ALenum EnumFromWaveform(ModulatorWaveform type)
+     case ModulatorWaveform::Sawtooth: return AL_RING_MODULATOR_SAWTOOTH;
+     case ModulatorWaveform::Square: return AL_RING_MODULATOR_SQUARE;
+     }
+-    throw std::runtime_error{fmt::format("Invalid modulator waveform: {}",
+-        int{al::to_underlying(type)})};
++
++    abort();
+ }
+ 
+ constexpr EffectProps genDefaultProps() noexcept
+--- a/al/effects/vmorpher.cpp
++++ b/al/effects/vmorpher.cpp
+@@ -97,7 +97,7 @@ constexpr ALenum EnumFromPhenome(VMorpherPhenome phenome)
+     HANDLE_PHENOME(V);
+     HANDLE_PHENOME(Z);
+     }
+-    throw std::runtime_error{fmt::format("Invalid phenome: {}", int{al::to_underlying(phenome)})};
++    abort();
+ #undef HANDLE_PHENOME
+ }
+ 
+@@ -119,8 +119,8 @@ constexpr ALenum EnumFromWaveform(VMorpherWaveform type)
+     case VMorpherWaveform::Triangle: return AL_VOCAL_MORPHER_WAVEFORM_TRIANGLE;
+     case VMorpherWaveform::Sawtooth: return AL_VOCAL_MORPHER_WAVEFORM_SAWTOOTH;
+     }
+-    throw std::runtime_error{fmt::format("Invalid vocal morpher waveform: {}",
+-        int{al::to_underlying(type)})};
++
++    abort();
+ }
+ 
+ constexpr EffectProps genDefaultProps() noexcept
+--- a/al/state.cpp
++++ b/al/state.cpp
+@@ -141,7 +141,7 @@ constexpr auto ALenumFromDistanceModel(DistanceModel model) -> ALenum
+     case DistanceModel::Exponent: return AL_EXPONENT_DISTANCE;
+     case DistanceModel::ExponentClamped: return AL_EXPONENT_DISTANCE_CLAMPED;
+     }
+-    throw std::runtime_error{"Unexpected distance model "+std::to_string(static_cast<int>(model))};
++    abort();
+ }
+ 
+ enum PropertyValue : ALenum {

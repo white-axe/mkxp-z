@@ -227,6 +227,7 @@ static bool init_sandbox() {
     fluid_set_log_function(FLUID_DBG, fluid_log, NULL);
 
     static fluid_fileapi_t fluid_fileapi = {
+        .data = NULL,
         .free = [](fluid_fileapi_t *f) {
             return 0;
         },

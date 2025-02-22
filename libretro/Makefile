@@ -18,6 +18,7 @@ GIT ?= git
 ZIP ?= zip
 XXD ?= xxd
 SED ?= sed
+GREP ?= grep
 CC ?= cc
 CXX ?= c++
 LD ?= ld
@@ -91,6 +92,14 @@ $(OUTDIR)/sdl/include/SDL.h:
 $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_0.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_1.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_2.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_3.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_4.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_5.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_6.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_7.c &: $(LIBDIR)/mkxp-retro-dist/bin/ruby
 	mkdir -p $(OUTDIR)/mkxp-retro-ruby
 	$(WASM2C) $(LIBDIR)/mkxp-retro-dist/bin/ruby -n ruby --num-outputs=8 -o $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.c
+	# Find all the function types declared using `FUNC_TYPE_DECL_EXTERN_T` and redeclare them as macros to fix the "initializer element is not constant" compilation error that occurs when using GCC versions earlier than 8.1.0
+	rm -f $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-func-types.h
+	for func_type in $$($(GREP) -r 'FUNC_TYPE_DECL_EXTERN_T *([^()]*)' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h | $(GREP) -v '# *define' | $(SED) -e 's/FUNC_TYPE_DECL_EXTERN_T *( *\(.*\) *).*/\1/'); do \
+		echo "#define $$func_type \"$$($(XXD) -c 0 -l 32 -p /dev/urandom | $(SED) -e 's/.\{2\}/\\x&/g')\"" >> $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-func-types.h; \
+	done
+	$(SED) -i 's/ *# *define * FUNC_TYPE_DECL_EXTERN_T *([^()]).*/#define FUNC_TYPE_DECL_EXTERN_T(x)/g' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h
+	$(SED) -i 's/ *# *define * FUNC_TYPE_EXTERN_T *([^()]).*/#define FUNC_TYPE_EXTERN_T(x) const char _mkxp_unused_##x[]/g' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h
+	$(SED) -i 's/ *# *define * FUNC_TYPE_T *([^()]).*/#define FUNC_TYPE_T(x) static const char _mkxp_unused_##x[]/g' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h
 
 $(OUTDIR)/mkxp-retro-dist.zip.cpp: $(LIBDIR)/mkxp-retro-dist.zip
 	mkdir -p $(OUTDIR)

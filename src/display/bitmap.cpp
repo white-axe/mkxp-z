@@ -423,7 +423,6 @@ struct BitmapPrivate
         FBO::clear();
         
         glState.clearColor.pop();
-
         glState.scissorBox.pop();
         glState.scissorTest.pop();
     }

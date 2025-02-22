@@ -612,7 +612,14 @@ jobs:
           echo "CMAKE_SHARED_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ${{ runner.temp }}/cross.ini
           echo "CMAKE_STATIC_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ${{ runner.temp }}/cross.ini
           echo '--------------------------------------------------------------------------------'
-          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dlibretro=true
+          # If architecture is s390x and Clang version is older than 19.1.0, disable LTO due to https://github.com/llvm/llvm-project/issues/61101
+          if [ '${{ matrix.arch_mkxpz }}' = 's390x' ] && (echo "$(clang --version | head -n 1 | sed -e 's/.*clang version * \([0-9.]*\).*/\1/')\n19.1.0" | sort -CV)
+          then
+            lto=false
+          else
+            lto=true
+          fi
+          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=$lto -Dlibretro=true
 
       - name: Build core
         run: |
@@ -1061,6 +1068,22 @@ jobs:
           apt remove -y meson cmake
           pip install meson cmake
 
+      - name: Build and install wiiurpxtool
+        run: |
+          if command -v wiiurpxtool
+          then
+            echo 'wiiurpxtool already installed'
+          else
+            cd ~
+            git clone https://github.com/yawut/wiiurpxtool-ng
+            cd wiiurpxtool-ng
+            git checkout 682cc9f587dee507b400a307f5a0787efc5dcb72
+            git submodule update --init --recursive
+            cmake -G Ninja .
+            ninja -v
+            mv wiiurpxtool-ng /usr/local/bin/wiiurpxtool
+          fi
+
       - id: short-sha
         name: Get Git commit hash
         uses: benjlevesque/short-sha@v2.2
@@ -1242,7 +1265,6 @@ jobs:
           cd retroarch
           CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z
           mv retroarch_switch.nro ~/dist/mkxp-z_libretro.nro
-          mv retroarch_switch.elf ~/dist/mkxp-z_libretro.elf
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

@@ -1,4 +1,4 @@
-project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=1.3.0', default_options: ['cpp_std=c++14', 'buildtype=release'])
+project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=1.3.0', default_options: ['cpp_std=c++14', 'buildtype=release', 'b_staticpic=false'])
 
 host_system = host_machine.system()
 host_endian = host_machine.endian()
@@ -8,7 +8,7 @@ is_emscripten = host_system == 'emscripten'
 core_is_static = is_emscripten or host_system == 'bare' or host_system == 'none'
 
 if not is_libretro and host_system == 'darwin'
-    error('\nThis Meson project no longer supports macOS. Please use the Xcode project instead.')
+    error('This Meson project no longer supports macOS. Please use the Xcode project instead.')
 endif
 
 xxd = find_program('xxd', native: true)
@@ -38,19 +38,6 @@ global_sources += vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fall
 
 if is_libretro
     libretro_stage1_path = get_option('libretro_stage1_path')
-
-    libretro_defines = [
-        '-DMKXPZ_VERSION="@0@"'.format(meson.project_version()),
-        '-DMKXPZ_RETRO',
-        '-DSHARED_FLUID',
-    ]
-    if host_endian == 'big'
-        libretro_defines += '-DMKXPZ_BIG_ENDIAN'
-    endif
-    if is_emscripten or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'check if C++ exceptions are supported')
-        libretro_defines += '-DMKXPZ_NO_EXCEPTIONS'
-        libretro_defines += '-DBOOST_NO_EXCEPTIONS'
-    endif
 
     libretro_link_args = []
     libretro_cflags = []
@@ -85,32 +72,119 @@ if is_libretro
         libretro_link_args += '-Wl,--version-script,' + meson.current_source_dir() / 'libretro/link.T'
     endif
 
+    libretro_defines = [
+        '-DMKXPZ_VERSION="@0@"'.format(meson.project_version()),
+        '-DMKXPZ_RETRO',
+        '-DSHARED_FLUID',
+        '-D_FILE_OFFSET_BITS=64',
+        '-DMPG123_NO_LARGENAME',
+    ]
+
+    if host_endian == 'big'
+        libretro_defines += '-DMKXPZ_BIG_ENDIAN'
+    endif
+
+    if is_emscripten or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'C++ exceptions support check')
+        libretro_defines += '-DMKXPZ_NO_EXCEPTIONS'
+        libretro_defines += '-DBOOST_NO_EXCEPTIONS'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('mutex', 'std::mutex')
+        libretro_defines += '-DMKXPZ_NO_STD_MUTEX'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('mutex', 'std::recursive_mutex')
+        libretro_defines += '-DMKXPZ_NO_STD_RECURSIVE_MUTEX'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('thread', 'std::this_thread::yield')
+        libretro_defines += '-DMKXPZ_NO_STD_THIS_THREAD_YIELD'
+    endif
+
+    if not compilers['cpp'].has_header('pthread.h') or not compilers['cpp'].compiles('''
+        #include <pthread.h>
+        int main() {
+            pthread_mutex_t mutex;
+            pthread_cond_t cond;
+            pthread_mutex_init(&mutex, NULL);
+            pthread_cond_init(&cond, NULL);
+            pthread_cond_signal(&cond);
+            pthread_mutex_lock(&mutex);
+            pthread_cond_wait(&cond, &mutex);
+            int result = pthread_self() != pthread_self();
+            pthread_mutex_unlock(&mutex);
+            pthread_cond_destroy(&cond);
+            pthread_mutex_destroy(&mutex);
+            return result;
+        }
+    ''', name: 'pthread.h sanity check')
+        libretro_defines += '-DMKXPZ_NO_PTHREAD_H'
+        libretro_defines += '-DMKXPZ_NO_SEMAPHORE_H'
+    elif not compilers['cpp'].has_header('semaphore.h') or not compilers['cpp'].compiles('''
+        #include <semaphore.h>
+        int main() {
+            sem_t sem;
+            sem_init(&sem, 0, 0);
+            sem_post(&sem);
+            sem_wait(&sem);
+            sem_destroy(&sem);
+            return 0;
+        }
+    ''', name: 'semaphore.h sanity check')
+        libretro_defines += '-DMKXPZ_NO_SEMAPHORE_H'
+    endif
+
+    # Enable integer-only mode in FLAC when building with Vita SDK. Otherwise, we get an internal compiler error in FLAC__window_triangle:
+    #
+    # ../subprojects/flac/src/libFLAC/window.c: In function 'FLAC__window_triangle':
+    # ../subprojects/flac/src/libFLAC/window.c:197:1: error: unrecognizable insn:
+    #   197 | }
+    #       | ^
+    # (insn 191 190 192 21 (set (reg:V4SF 443)
+    #         (mult:V4SF (reg:V4SF 443)
+    #             (reg:V4SF 444))) "../subprojects/flac/src/libFLAC/window.c":189:43 -1
+    #      (nil))
+    # during RTL pass: vregs
+    # ../subprojects/flac/src/libFLAC/window.c:197:1: internal compiler error: in extract_insn, at recog.c:2294
+    # Please submit a full bug report,
+    # with preprocessed source if appropriate.
+    # See <https://gcc.gnu.org/bugs/> for instructions.
+    if compilers['c'].has_header_symbol('sys/config.h', '__vita__')
+        libretro_defines += '-DFLAC__INTEGER_ONLY_LIBRARY'
+    endif
+
+    # Position-independent code is not supported on some platforms where we need to build a static library, e.g. https://github.com/vitasdk/vita-toolchain/issues/264
+    use_pic = is_emscripten or not core_is_static
+    if not use_pic and get_option('b_staticpic')
+        error('The `b_staticpic` option needs to be disabled when building for this platform.')
+    endif
+
     subdir('shader')
 
     cmake = import('cmake')
 
     boost_options = cmake.subproject_options()
     boost_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
-        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
+        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'BUILD_TESTING': false,
     })
 
     zlib_options = cmake.subproject_options()
     zlib_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
-        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
+        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'BUILD_SHARED_LIBS': false,
         'ZLIB_BUILD_EXAMPLES': false,
     })
 
     libzip_options = cmake.subproject_options()
     libzip_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
-        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
+        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'BUILD_SHARED_LIBS': false,
         'LIBZIP_DO_INSTALL': false,
         'BUILD_TOOLS': false,
@@ -131,9 +205,9 @@ if is_libretro
 
     physfs_options = cmake.subproject_options()
     physfs_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
-        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
+        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'PHYSFS_BUILD_STATIC': true,
         'PHYSFS_BUILD_SHARED': false,
         'PHYSFS_BUILD_TEST': false,
@@ -142,9 +216,9 @@ if is_libretro
 
     openal_options = cmake.subproject_options()
     openal_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
-        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
+        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'LIBTYPE': 'STATIC',
         'ALSOFT_DLOPEN': false,
         'ALSOFT_UTILS': false,
@@ -175,18 +249,18 @@ if is_libretro
 
     fluidlite_options = cmake.subproject_options()
     fluidlite_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
-        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
+        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'FLUIDLITE_BUILD_STATIC': true,
         'FLUIDLITE_BUILD_SHARED': false,
     })
 
     ogg_options = cmake.subproject_options()
     ogg_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
-        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
+        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'BUILD_SHARED_LIBS': false,
         'BUILD_TESTING': false,
         'BUILD_FRAMEWORK': false,
@@ -194,9 +268,9 @@ if is_libretro
 
     vorbis_options = cmake.subproject_options()
     vorbis_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
-        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
+        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'BUILD_SHARED_LIBS': false,
         'BUILD_TESTING': false,
         'BUILD_FRAMEWORK': false,
@@ -204,9 +278,9 @@ if is_libretro
 
     flac_options = cmake.subproject_options()
     flac_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
-        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
+        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'BUILD_SHARED_LIBS': false,
         'BUILD_CXXLIBS': false,
         'BUILD_PROGRAMS': false,
@@ -223,9 +297,9 @@ if is_libretro
 
     opus_options = cmake.subproject_options()
     opus_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
-        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
+        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'BUILD_SHARED_LIBS': false,
         'OPUS_BUILD_SHARED_LIBRARY': false,
         'OPUS_BUILD_TESTING': false,
@@ -241,9 +315,9 @@ if is_libretro
 
     mpg123_options = cmake.subproject_options()
     mpg123_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
-        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
+        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'BUILD_SHARED_LIBS': false,
         'BUILD_PROGRAMS': false,
         'BUILD_LIBOUT123': false,
@@ -253,9 +327,9 @@ if is_libretro
 
     libsndfile_options = cmake.subproject_options()
     libsndfile_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_cppflags),
-        'CMAKE_POSITION_INDEPENDENT_CODE': get_option('b_staticpic'),
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
+        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'BUILD_SHARED_LIBS': false,
         'BUILD_PROGRAMS': false,
         'BUILD_EXAMPLES': false,
@@ -362,6 +436,7 @@ if is_libretro
         ],
         sources: global_sources + [
             'src/core.cpp',
+            'src/mkxp-threads.cpp',
             'src/sharedstate.cpp',
             'src/audio/alstream.cpp',
             'src/audio/audio.cpp',
