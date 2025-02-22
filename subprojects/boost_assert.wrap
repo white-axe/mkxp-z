@@ -2,3 +2,4 @@
 url = https://github.com/boostorg/assert
 revision = boost-1.87.0
 depth = 1
+diff_files = boost_assert-snprintf.patch

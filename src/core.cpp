@@ -24,6 +24,9 @@
 #include <cstdlib>
 #include <cstdarg>
 #include <cstring>
+#ifdef MKXPZ_HAVE_ALIGNED_MALLOC
+#  include <malloc.h>
+#endif
 #include <boost/optional.hpp>
 #include <alc.h>
 #include <alext.h>
@@ -39,13 +42,15 @@ using namespace mkxp_retro;
 using namespace mkxp_sandbox;
 
 static inline void *malloc_align(size_t alignment, size_t size) {
-#if defined(__unix__) || defined(__APPLE__)
+#if defined(MKXPZ_HAVE_POSIX_MEMALIGN) || defined(MKXPZ_BUILD_XCODE)
     void *mem;
     return posix_memalign(&mem, alignment, size) ? NULL : mem;
-#elif defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)
+#elif defined(MKXPZ_HAVE_ALIGNED_MALLOC)
     return _aligned_malloc(size, alignment);
-#else
+#elif defined(MKXPZ_HAVE_ALIGNED_ALLOC)
     return aligned_alloc(alignment, size);
+#else
+    return malloc(size);
 #endif
 }
 

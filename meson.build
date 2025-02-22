@@ -84,6 +84,70 @@ if is_libretro
         libretro_defines += '-DBOOST_NO_EXCEPTIONS'
     endif
 
+    if not compilers['cpp'].has_header_symbol('stdio.h', 'snprintf')
+        libretro_defines += '-DMKXPZ_NO_SNPRINTF'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('stdio.h', 'vsnprintf')
+        libretro_defines += '-DMKXPZ_NO_VSNPRINTF'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('cmath', 'std::round')
+        libretro_defines += '-DMKXPZ_NO_STD_ROUND'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('cmath', 'std::lround')
+        libretro_defines += '-DMKXPZ_NO_STD_LROUND'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('cmath', 'std::copysign')
+        libretro_defines += '-DMKXPZ_NO_STD_COPYSIGN'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('cmath', 'std::cbrt')
+        libretro_defines += '-DMKXPZ_NO_STD_CBRT'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('cmath', 'std::log2')
+        libretro_defines += '-DMKXPZ_NO_STD_LOG2'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('string', 'std::to_string')
+        libretro_defines += '-DMKXPZ_NO_STD_TO_STRING'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('string', 'std::stoi')
+        libretro_defines += '-DMKXPZ_NO_STD_STOI'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('string', 'std::stol')
+        libretro_defines += '-DMKXPZ_NO_STD_STOL'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('string', 'std::stoll')
+        libretro_defines += '-DMKXPZ_NO_STD_STOLL'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('string', 'std::stoul')
+        libretro_defines += '-DMKXPZ_NO_STD_STOUL'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('string', 'std::stoull')
+        libretro_defines += '-DMKXPZ_NO_STD_STOULL'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('string', 'std::stof')
+        libretro_defines += '-DMKXPZ_NO_STD_STOF'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('string', 'std::stod')
+        libretro_defines += '-DMKXPZ_NO_STD_STOD'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('string', 'std::stold')
+        libretro_defines += '-DMKXPZ_NO_STD_STOLD'
+    endif
+
     if not compilers['cpp'].has_header_symbol('mutex', 'std::mutex')
         libretro_defines += '-DMKXPZ_NO_STD_MUTEX'
     endif
@@ -127,6 +191,14 @@ if is_libretro
         }
     ''', name: 'semaphore.h sanity check')
         libretro_defines += '-DMKXPZ_NO_SEMAPHORE_H'
+    endif
+
+    if (not core_is_static or is_emscripten) and compilers['cpp'].has_header_symbol('stdlib.h', 'posix_memalign')
+        libretro_defines += '-DMKXPZ_HAVE_POSIX_MEMALIGN'
+    elif (not core_is_static or is_emscripten) and compilers['cpp'].has_header_symbol('malloc.h', '_aligned_malloc')
+        libretro_defines += '-DMKXPZ_HAVE_ALIGNED_MALLOC'
+    elif compilers['cpp'].has_header_symbol('stdlib.h', 'aligned_alloc')
+        libretro_defines += '-DMKXPZ_HAVE_ALIGNED_ALLOC'
     endif
 
     # Enable integer-only mode in FLAC when building with Vita SDK. Otherwise, we get an internal compiler error in FLAC__window_triangle:
