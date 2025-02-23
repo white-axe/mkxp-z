@@ -22,3 +22,14 @@
          / float{EARLY_LINE_LENGTHS.size()} * density_mult;
      Coeff = CalcDecayCoeff(length, decayTime);
  
+--- a/common/albit.h
++++ b/common/albit.h
+@@ -30,7 +30,7 @@ template<typename T>
+ std::enable_if_t<std::is_integral_v<T>,
+ T> byteswap(T value) noexcept
+ {
+-    static_assert(std::has_unique_object_representations_v<T>);
++    static_assert(std::has_unique_object_representations<T>::value);
+     auto bytes = al::bit_cast<std::array<std::byte,sizeof(T)>>(value);
+     std::reverse(bytes.begin(), bytes.end());
+     return al::bit_cast<T>(bytes);

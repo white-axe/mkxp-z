@@ -1,0 +1,13 @@
+# Makes Boost use `sprintf` instead of `snprintf` on platforms with no `snprintf` support.
+
+--- a/include/boost/assert/source_location.hpp
++++ b/include/boost/assert/source_location.hpp
+@@ -73,7 +73,7 @@ public:
+ # pragma warning( disable: 4996 )
+ #endif
+ 
+-#if ( defined(_MSC_VER) && _MSC_VER < 1900 ) || ( defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR) )
++#if ( defined(_MSC_VER) && _MSC_VER < 1900 ) || ( defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR) ) || defined(MKXPZ_NO_SNPRINTF)
+ # define BOOST_ASSERT_SNPRINTF(buffer, format, arg) std::sprintf(buffer, format, arg)
+ #else
+ # define BOOST_ASSERT_SNPRINTF(buffer, format, arg) std::snprintf(buffer, sizeof(buffer)/sizeof(buffer[0]), format, arg)

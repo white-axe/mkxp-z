@@ -420,10 +420,13 @@ static PHYSFS_EnumerateCallbackResult cacheEnumCB(void *d, const char *origdir,
   CacheEnumData &data = *static_cast<CacheEnumData *>(d);
   char fullPath[512];
 
-  if (!*origdir)
-    snprintf(fullPath, sizeof(fullPath), "%s", fname);
-  else
-    snprintf(fullPath, sizeof(fullPath), "%s/%s", origdir, fname);
+  if (!*origdir) {
+    std::strncpy(fullPath, fname, sizeof(fullPath));
+  } else {
+    std::strncpy(fullPath, origdir, sizeof(fullPath) - 1);
+    std::strncat(fullPath, "/", sizeof(fullPath) - 1 - std::strlen(fullPath));
+    std::strncat(fullPath, fname, sizeof(fullPath) - 1 - std::strlen(fullPath));
+  }
 
   /* Deal with OSX' weird UTF-8 standards */
   data.toNFC(fullPath);
@@ -505,7 +508,9 @@ static PHYSFS_EnumerateCallbackResult fontSetEnumCB(void *data, const char *dir,
     return PHYSFS_ENUM_OK;
 
   char filename[512];
-  snprintf(filename, sizeof(filename), "%s/%s", dir, fname);
+  std::strncpy(filename, dir, sizeof(filename) - 1);
+  std::strncat(filename, "/", sizeof(filename) - 1 - std::strlen(filename));
+  std::strncat(filename, fname, sizeof(filename) - 1 - std::strlen(filename));
 
   PHYSFS_File *handle = PHYSFS_openRead(filename);
 
@@ -598,7 +603,9 @@ openReadEnumCB(void *d, const char *dirpath, const char *filename) {
   if (!*dirpath) {
     fullPath = filename;
   } else {
-    snprintf(buffer, sizeof(buffer), "%s/%s", dirpath, filename);
+    std::strncpy(buffer, dirpath, sizeof(buffer) - 1);
+    std::strncat(buffer, "/", sizeof(buffer) - 1 - std::strlen(buffer));
+    std::strncat(buffer, filename, sizeof(buffer) - 1 - std::strlen(buffer));
     fullPath = buffer;
   }
 

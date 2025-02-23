@@ -22,6 +22,7 @@
 #include "aldatasource.h"
 #include "exception.h"
 
+#include <cmath>
 #include <cstdio>
 #include <vector>
 #include <sndfile.hh>
@@ -170,7 +171,7 @@ struct SndfileSource : ALDataSource
 
 	void seekToOffset(double seconds)
 	{
-		currentFrame = std::lround(seconds * (double)info.rate);
+		currentFrame = lround(seconds * (double)info.rate);
 
 		if (currentFrame < 0 || currentFrame >= (uint64_t)handle.frames())
 		{

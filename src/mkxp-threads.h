@@ -22,6 +22,8 @@
 #ifndef MKXPZ_THREADS_H
 #define MKXPZ_THREADS_H
 
+#include <math.h>
+#include <tgmath.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -34,7 +36,14 @@
 #endif
 
 #ifdef __cplusplus
+#include <array>
+#include <cstdio>
+#include <cstdlib>
 #include <mutex>
+#include <string>
+
+extern "C" long long strtoll(const char *str, char **str_end, int base);
+extern "C" unsigned long long strtoull(const char *str, char **str_end, int base);
 
 extern "C" {
 #endif
@@ -147,6 +156,238 @@ namespace std {
             return &inner;
         }
     };
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_ROUND
+namespace std {
+    inline constexpr float round(float x) {
+        return roundf(x);
+    }
+
+    inline constexpr double round(double x) {
+        return round(x);
+    }
+
+    inline constexpr long double round(long double x) {
+        return roundl(x);
+    }
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_LROUND
+namespace std {
+    inline constexpr long lround(float x) {
+        return lroundf(x);
+    }
+
+    inline constexpr long lround(double x) {
+        return lround(x);
+    }
+
+    inline constexpr long lround(long double x) {
+        return lroundl(x);
+    }
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_COPYSIGN
+namespace std {
+    inline constexpr float copysign(float x, float y) {
+        return copysignf(x, y);
+    }
+
+    inline constexpr double copysign(double x, double y) {
+        return copysign(x, y);
+    }
+
+    inline constexpr long double copysign(long double x, long double y) {
+        return copysignl(x, y);
+    }
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_CBRT
+namespace std {
+    inline constexpr float cbrt(float x) {
+        return cbrtf(x);
+    }
+
+    inline constexpr double cbrt(double x) {
+        return cbrt(x);
+    }
+
+    inline constexpr long double cbrt(long double x) {
+        return cbrtl(x);
+    }
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_LOG2
+namespace std {
+    inline constexpr float log2(float x) {
+        return log2f(x);
+    }
+
+    inline constexpr double log2(double x) {
+        return log2(x);
+    }
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_TO_STRING
+namespace std {
+    inline std::string to_string(int x) {
+        std::array<char, 22> array;
+        std::sprintf(array.data(), "%d", x);
+        return array.data();
+    }
+
+    inline std::string to_string(long x) {
+        std::array<char, 22> array;
+        std::sprintf(array.data(), "%ld", x);
+        return array.data();
+    }
+
+    inline std::string to_string(long long x) {
+        std::array<char, 22> array;
+        std::sprintf(array.data(), "%lld", x);
+        return array.data();
+    }
+
+    inline std::string to_string(unsigned int x) {
+        std::array<char, 22> array;
+        std::sprintf(array.data(), "%u", x);
+        return array.data();
+    }
+
+    inline std::string to_string(unsigned long x) {
+        std::array<char, 22> array;
+        std::sprintf(array.data(), "%lu", x);
+        return array.data();
+    }
+
+    inline std::string to_string(unsigned long long x) {
+        std::array<char, 22> array;
+        std::sprintf(array.data(), "%llu", x);
+        return array.data();
+    }
+
+    inline std::string to_string(float x) {
+        std::array<char, 256> array;
+        std::sprintf(array.data(), "%f", x);
+        return array.data();
+    }
+
+    inline std::string to_string(double x) {
+        std::array<char, 256> array;
+        std::sprintf(array.data(), "%f", x);
+        return array.data();
+    }
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_STOI
+namespace std {
+    inline int stoi(const std::string &str, size_t *pos = nullptr, int base = 10) {
+        char *ptr;
+        int result = (int)strtol(str.c_str(), &ptr, base);
+        if (pos != nullptr) {
+            *pos = ptr - str.c_str();
+        }
+        return result;
+    }
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_STOL
+namespace std {
+    inline long stol(const std::string &str, size_t *pos = nullptr, int base = 10) {
+        char *ptr;
+        long result = strtol(str.c_str(), &ptr, base);
+        if (pos != nullptr) {
+            *pos = ptr - str.c_str();
+        }
+        return result;
+    }
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_STOLL
+namespace std {
+    inline long long stoll(const std::string &str, size_t *pos = nullptr, int base = 10) {
+        char *ptr;
+        long long result = strtoll(str.c_str(), &ptr, base);
+        if (pos != nullptr) {
+            *pos = ptr - str.c_str();
+        }
+        return result;
+    }
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_STOUL
+namespace std {
+    inline unsigned long stoul(const std::string &str, size_t *pos = nullptr, int base = 10) {
+        char *ptr;
+        unsigned long result = strtoul(str.c_str(), &ptr, base);
+        if (pos != nullptr) {
+            *pos = ptr - str.c_str();
+        }
+        return result;
+    }
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_STOULL
+namespace std {
+    inline unsigned long long stoull(const std::string &str, size_t *pos = nullptr, int base = 10) {
+        char *ptr;
+        unsigned long long result = strtoull(str.c_str(), &ptr, base);
+        if (pos != nullptr) {
+            *pos = ptr - str.c_str();
+        }
+        return result;
+    }
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_STOF
+namespace std {
+    inline float stof(const std::string &str, size_t *pos = nullptr) {
+        char *ptr;
+        float result = strtof(str.c_str(), &ptr);
+        if (pos != nullptr) {
+            *pos = ptr - str.c_str();
+        }
+        return result;
+    }
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_STOD
+namespace std {
+    inline double stod(const std::string &str, size_t *pos = nullptr) {
+        char *ptr;
+        double result = strtod(str.c_str(), &ptr);
+        if (pos != nullptr) {
+            *pos = ptr - str.c_str();
+        }
+        return result;
+    }
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_STOLD
+namespace std {
+    inline long double stold(const std::string &str, size_t *pos = nullptr) {
+        char *ptr;
+        long double result = strtold(str.c_str(), &ptr);
+        if (pos != nullptr) {
+            *pos = ptr - str.c_str();
+        }
+        return result;
+    }
 }
 #  endif
 #endif

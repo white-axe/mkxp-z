@@ -865,14 +865,16 @@ jobs:
     needs: build-libretro-stage1
     name: LR PlayStation 3
     runs-on: ubuntu-latest
-    container: scummvm/dockerized-toolchains:ps3
+    container:
+      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-psl1ght:latest
+      options: -u root
     steps:
       - name: Install dependencies
         run: |
           apt update
           apt install -y git xxd build-essential pip ninja-build jq
           apt remove -y meson cmake
-          pip install --break-system-packages meson cmake
+          pip install meson cmake
 
       - id: short-sha
         name: Get Git commit hash
@@ -892,9 +894,9 @@ jobs:
       - name: Configure core
         run: |
           echo "[binaries]" | tee -a ~/cross.ini
-          echo "c = 'powerpc64-ps3-elf-gcc'" | tee -a ~/cross.ini
-          echo "cpp = 'powerpc64-ps3-elf-g++'" | tee -a ~/cross.ini
-          echo "ar = 'powerpc64-ps3-elf-ar'" | tee -a ~/cross.ini
+          echo "c = 'ppu-gcc'" | tee -a ~/cross.ini
+          echo "cpp = 'ppu-g++'" | tee -a ~/cross.ini
+          echo "ar = 'ppu-ar'" | tee -a ~/cross.ini
           echo "[host_machine]" | tee -a ~/cross.ini
           echo "system = 'bare'" | tee -a ~/cross.ini
           echo "cpu_family = 'ppc64'" | tee -a ~/cross.ini

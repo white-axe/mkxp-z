@@ -304,19 +304,13 @@ SoundBuffer *SoundEmitter::allocateBuffer(const std::string &filename)
 
 		if (!buffer)
 		{
-			char buf[512];
-			snprintf(
-				buf,
-				sizeof(buf),
-				"Unable to decode sound: %s: %s",
-				filename.c_str(),
 #ifdef MKXPZ_RETRO
-				sf_error_number(handler.errnum)
+			mkxp_retro::log_printf(RETRO_LOG_WARN, "Unable to decode sound: %s: %s\n", filename.c_str(), sf_error_number(handler.errnum));
 #else
-			        Sound_GetError()
-#endif // MKXPZ_RETRO
-			);
+			char buf[512];
+			snprintf(buf, sizeof(buf), "Unable to decode sound: %s: %s", filename.c_str(), Sound_GetError());
 			Debug() << buf;
+#endif // MKXPZ_RETRO
 
 			return 0;
 		}
