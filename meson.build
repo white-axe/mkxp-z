@@ -2,6 +2,7 @@ project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=1.3.0', defaul
 
 host_system = host_machine.system()
 host_endian = host_machine.endian()
+host_cpu_family = host_machine.cpu_family()
 
 is_libretro = get_option('libretro')
 is_emscripten = host_system == 'emscripten'
@@ -43,6 +44,20 @@ if is_libretro
         compilers['cpp'].has_argument('-ffat-lto-objects', required: true)
         libretro_cflags += '-ffat-lto-objects'
         libretro_cppflags += '-ffat-lto-objects'
+    endif
+
+    if (host_cpu_family == 'ppc' or host_cpu_family == 'ppc64') and not get_option('b_lto')
+        # We get a bunch of "relocation truncated to fit" when linking if LTO isn't enabled.
+        error('LTO is required when building for PowerPC architectures.')
+    endif
+
+    if host_cpu_family == 'ppc64'
+        if compilers['c'].has_argument('-m64')
+            libretro_cflags += '-m64'
+        endif
+        if compilers['cpp'].has_argument('-m64')
+            libretro_cppflags += '-m64'
+        endif
     endif
 
     # When targeting Emscripten, we need to build a relocatable object
