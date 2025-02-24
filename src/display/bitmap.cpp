@@ -21,14 +21,15 @@
 
 #include "bitmap.h"
 
-#ifndef MKXPZ_RETRO
-#include <SDL.h>
-#include <SDL_image.h>
-#include <SDL_ttf.h>
-#include <SDL_rect.h>
-#include <SDL_surface.h>
-
-#include <pixman.h>
+#ifdef MKXPZ_RETRO
+#  include <pixman-region/pixman-region.h>
+#else
+#  include <SDL.h>
+#  include <SDL_image.h>
+#  include <SDL_ttf.h>
+#  include <SDL_rect.h>
+#  include <SDL_surface.h>
+#  include <pixman.h>
 #endif // MKXPZ_RETRO
 
 #include "gl-util.h"
@@ -238,6 +239,7 @@ struct BitmapPrivate
     SDL_Surface *surface;
 #ifndef MKXPZ_RETRO
     SDL_PixelFormat *format;
+#endif // MKXPZ_RETRO
     
     /* The 'tainted' area describes which parts of the
      * bitmap are not cleared, ie. don't have 0 opacity.
@@ -246,7 +248,6 @@ struct BitmapPrivate
      * in the texture and blit to it directly, saving
      * ourselves the expensive blending calculation */
     pixman_region16_t tainted;
-#endif // MKXPZ_RETRO
 
     // For high-resolution texture replacement.
     Bitmap *selfHires;
@@ -279,8 +280,8 @@ struct BitmapPrivate
         
 #ifndef MKXPZ_RETRO
         font = &shState->defaultFont();
-        pixman_region_init(&tainted);
 #endif // MKXPZ_RETRO
+        pixman_region_init(&tainted);
     }
     
     ~BitmapPrivate()
@@ -288,8 +289,8 @@ struct BitmapPrivate
         prepareCon.disconnect();
 #ifndef MKXPZ_RETRO
         SDL_FreeFormat(format);
-        pixman_region_fini(&tainted);
 #endif // MKXPZ_RETRO
+        pixman_region_fini(&tainted);
     }
     
     TEXFBO &getGLTypes() {
@@ -314,19 +315,15 @@ struct BitmapPrivate
     
     void clearTaintedArea()
     {
-#ifndef MKXPZ_RETRO
         pixman_region_fini(&tainted);
         pixman_region_init(&tainted);
-#endif // MKXPZ_RETRO
     }
     
     void addTaintedArea(const IntRect &rect)
     {
-#ifndef MKXPZ_RETRO
         IntRect norm = normalizedRect(rect);
         pixman_region_union_rect
         (&tainted, &tainted, norm.x, norm.y, norm.w, norm.h);
-#endif // MKXPZ_RETRO
     }
     
     void substractTaintedArea(const IntRect &rect)
@@ -334,21 +331,16 @@ struct BitmapPrivate
         if (!touchesTaintedArea(rect))
             return;
         
-#ifndef MKXPZ_RETRO
         pixman_region16_t m_reg;
         pixman_region_init_rect(&m_reg, rect.x, rect.y, rect.w, rect.h);
         
         pixman_region_subtract(&tainted, &m_reg, &tainted);
         
         pixman_region_fini(&m_reg);
-#endif // MKXPZ_RETRO
     }
     
     bool touchesTaintedArea(const IntRect &rect)
     {
-#ifdef MKXPZ_RETRO
-        return false; // TODO: implement
-#else
         pixman_box16_t box;
         box.x1 = rect.x;
         box.y1 = rect.y;
@@ -359,7 +351,6 @@ struct BitmapPrivate
         pixman_region_contains_rectangle(&tainted, &box);
         
         return result != PIXMAN_REGION_OUT;
-#endif // MKXPZ_RETRO
     }
     
     void bindTexture(ShaderBase &shader, bool substituteLoresSize = true)

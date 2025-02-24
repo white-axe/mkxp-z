@@ -427,6 +427,14 @@ if is_libretro
         'ENABLE_EXPERIMENTAL': false,
     })
 
+    pixman_region_options = cmake.subproject_options()
+    pixman_region_options.add_cmake_defines({
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
+        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
+        'CMAKE_BUILD_TYPE': 'None',
+    })
+
     libpng_options = cmake.subproject_options()
     libpng_options.add_cmake_defines({
         'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
@@ -438,17 +446,6 @@ if is_libretro
         'PNG_TESTS': false,
         'PNG_TOOLS': false,
     })
-
-    pixman_dep = subproject('pixman', default_options: [
-        'cflags=@0@'.format(','.join(libretro_defines + libretro_cflags)),
-        'cppflags=@0@'.format(','.join(libretro_defines + libretro_cppflags)),
-        'default_library=static',
-        'b_staticpic=@0@'.format(use_pic),
-        'gtk=disabled',
-        'libpng=disabled',
-        'tests=disabled',
-        'demos=disabled',
-    ]).get_variable('idep_pixman')
 
     libretro_deps = [
         cmake.subproject('boost_asio', options: boost_options).dependency('boost_asio'),
@@ -475,8 +472,8 @@ if is_libretro
         cmake.subproject('opus', options: opus_options).dependency('opus'),
         cmake.subproject('mpg123', options: mpg123_options).dependency('libmpg123'),
         cmake.subproject('libsndfile', options: libsndfile_options).dependency('sndfile'),
+        cmake.subproject('pixman-region', options: pixman_region_options).dependency('pixman-region'),
         cmake.subproject('libpng', options: libpng_options).dependency('png_static'),
-        pixman_dep,
     ]
     if host_system == 'darwin'
         libretro_deps += compilers['cpp'].find_library('iconv')

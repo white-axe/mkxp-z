@@ -1,5 +1,0 @@
-[wrap-git]
-url = https://gitlab.freedesktop.org/pixman/pixman
-revision = pixman-0.44.2
-depth = 1
-diff_files = pixman-cflags.patch, pixman-pthread.patch
