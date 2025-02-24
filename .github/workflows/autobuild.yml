@@ -1253,15 +1253,13 @@ jobs:
 
       - name: Build frontend
         run: |
-          cp libretro/retroarch-1.20.0-libnx.patch ~
           cd ~
           tag_name=$(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest | jq -r '.tag_name')
           git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $tag_name
           if [ $tag_name = 'v1.20.0' ]
           then
-            cd retroarch
-            git apply ~/retroarch-1.20.0-libnx.patch
-            cd ..
+            curl -Lo retroarch.patch https://github.com/libretro/RetroArch/pull/17620.patch
+            patch -i retroarch.patch ~/retroarch/menu/menu_driver.c
           fi
           mv mkxp-z_libretro.a retroarch/libretro_libnx.a
           cd retroarch
