@@ -1,0 +1,5 @@
+[wrap-git]
+url = https://github.com/pnggroup/libpng
+revision = v1.6.47
+depth = 1
+diff_files = libpng-awk.patch, libpng-deps.patch

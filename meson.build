@@ -1,4 +1,4 @@
-project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=1.3.0', default_options: ['cpp_std=c++14', 'buildtype=release', 'b_staticpic=false'])
+project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=1.3.0', default_options: ['cpp_std=c++14', 'buildtype=release'])
 
 host_system = host_machine.system()
 host_endian = host_machine.endian()
@@ -241,10 +241,7 @@ if is_libretro
     endif
 
     # Position-independent code is not supported on some platforms where we need to build a static library, e.g. https://github.com/vitasdk/vita-toolchain/issues/264
-    use_pic = is_emscripten or not core_is_static
-    if not use_pic and get_option('b_staticpic')
-        error('The `b_staticpic` option needs to be disabled when building for this platform.')
-    endif
+    use_pic = not core_is_static
 
     subdir('shader')
 
@@ -430,6 +427,29 @@ if is_libretro
         'ENABLE_EXPERIMENTAL': false,
     })
 
+    libpng_options = cmake.subproject_options()
+    libpng_options.add_cmake_defines({
+        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
+        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
+        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
+        'PNG_STATIC': true,
+        'PNG_SHARED': false,
+        'PNG_FRAMEWORK': false,
+        'PNG_TESTS': false,
+        'PNG_TOOLS': false,
+    })
+
+    pixman_dep = subproject('pixman', default_options: [
+        'c_args=@0@'.format(','.join(libretro_defines + libretro_cflags)),
+        'cpp_args=@0@'.format(','.join(libretro_defines + libretro_cppflags)),
+        'default_library=static',
+        'b_staticpic=@0@'.format(use_pic),
+        'gtk=disabled',
+        'libpng=disabled',
+        'tests=disabled',
+        'demos=disabled',
+    ]).get_variable('idep_pixman')
+
     libretro_deps = [
         cmake.subproject('boost_asio', options: boost_options).dependency('boost_asio'),
         cmake.subproject('boost_mp11', options: boost_options).dependency('boost_mp11'),
@@ -455,6 +475,8 @@ if is_libretro
         cmake.subproject('opus', options: opus_options).dependency('opus'),
         cmake.subproject('mpg123', options: mpg123_options).dependency('libmpg123'),
         cmake.subproject('libsndfile', options: libsndfile_options).dependency('sndfile'),
+        cmake.subproject('libpng', options: libpng_options).dependency('png_static'),
+        pixman_dep,
     ]
     if host_system == 'darwin'
         libretro_deps += compilers['cpp'].find_library('iconv')
@@ -477,7 +499,7 @@ if is_libretro
         libretro_target_type = 'shared_library'
     endif
 
-    build_target(
+    libretro = build_target(
         meson.project_name() + '_libretro',
         name_prefix: '',
         name_suffix: is_emscripten ? 'bc' : [],
@@ -496,6 +518,7 @@ if is_libretro
         ] + libretro_cflags + libretro_defines,
         cpp_args: ['-Wno-unused-command-line-argument'] + libretro_cppflags + libretro_defines,
         link_args: libretro_link_args,
+        pic: use_pic,
         gnu_symbol_visibility: 'hidden',
         install: true, # Prevents Meson from creating thin archives; see https://github.com/mesonbuild/meson/issues/9479
         include_directories: [
