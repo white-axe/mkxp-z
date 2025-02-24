@@ -440,8 +440,8 @@ if is_libretro
     })
 
     pixman_dep = subproject('pixman', default_options: [
-        'c_args=@0@'.format(','.join(libretro_defines + libretro_cflags)),
-        'cpp_args=@0@'.format(','.join(libretro_defines + libretro_cppflags)),
+        'cflags=@0@'.format(','.join(libretro_defines + libretro_cflags)),
+        'cppflags=@0@'.format(','.join(libretro_defines + libretro_cppflags)),
         'default_library=static',
         'b_staticpic=@0@'.format(use_pic),
         'gtk=disabled',

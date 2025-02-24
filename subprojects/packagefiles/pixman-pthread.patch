@@ -1,0 +1,13 @@
+# Prevents pixman's build system from trying to look for pthreads because it breaks some of the builds.
+
+--- a/meson.build
++++ b/meson.build
+@@ -456,7 +456,7 @@ dep_threads = dependency('threads')
+ # to it explicitly, currently pthreads-win32 is supported
+ pthreads_found = false
+ 
+-if dep_threads.found() and cc.has_header('pthread.h')
++if false
+   if cc.get_argument_syntax() == 'msvc'
+     pthread_lib = null_dep
+     foreach pthread_type : ['VC3', 'VSE3', 'VCE3', 'VC2', 'VSE2', 'VCE2']
