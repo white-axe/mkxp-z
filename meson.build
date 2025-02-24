@@ -42,8 +42,10 @@ if is_libretro
     if core_is_static and not is_emscripten and get_option('b_lto')
         compilers['c'].has_argument('-ffat-lto-objects', required: true)
         compilers['cpp'].has_argument('-ffat-lto-objects', required: true)
+        compilers['cpp'].has_link_argument('-ffat-lto-objects', required: true)
         libretro_cflags += '-ffat-lto-objects'
         libretro_cppflags += '-ffat-lto-objects'
+        libretro_link_args += '-ffat-lto-objects'
     endif
 
     if (host_cpu_family == 'ppc' or host_cpu_family == 'ppc64') and not get_option('b_lto')
@@ -60,10 +62,11 @@ if is_libretro
         endif
     endif
 
-    # When targeting Emscripten, we need to build a relocatable object
-    if is_emscripten
+    # On platforms that require the core to be a static library, we need to build a relocatable object
+    if core_is_static
         compilers['cpp'].has_link_argument('-r', required: true)
         libretro_link_args += '-r'
+        libretro_link_args += '-nostdlib'
     endif
 
     # We need to statically link the C++ standard library (libstdc++/libc++), the compiler runtime library (libgcc/compiler-rt) and libpthread in MSYS2 builds for Windows because those are not part of the operating system
@@ -453,29 +456,20 @@ if is_libretro
         libretro_deps += compilers['cpp'].find_library('iconv')
     endif
 
-    if core_is_static
-        libretro_deps_processed = []
-        foreach dep : libretro_deps
-            libretro_deps_processed += dep.as_link_whole()
-        endforeach
-    else
-        libretro_deps_processed = libretro_deps
-    endif
-
     if is_emscripten
-        libretro_target_type = 'executable' # Actually a relocatable object; we just pass 'executable' as the target type to get Meson to use the correct commands
+        retro_name_suffix = 'bc'
     elif core_is_static
-        libretro_target_type = 'static_library'
+        retro_name_suffix = 'o'
     else
-        libretro_target_type = 'shared_library'
+        retro_name_suffix = []
     endif
 
     build_target(
         meson.project_name() + '_libretro',
         name_prefix: '',
-        name_suffix: is_emscripten ? 'bc' : [],
-        target_type: libretro_target_type,
-        dependencies: libretro_deps_processed,
+        name_suffix: retro_name_suffix,
+        target_type: core_is_static ? 'executable' : 'shared_library',
+        dependencies: libretro_deps,
         c_args: [
             '-fno-optimize-sibling-calls',
             '-frounding-math',
@@ -490,7 +484,7 @@ if is_libretro
         cpp_args: ['-Wno-unused-command-line-argument'] + libretro_cppflags + libretro_defines,
         link_args: libretro_link_args,
         gnu_symbol_visibility: 'hidden',
-        install: true, # Prevents Meson from creating thin archives; see https://github.com/mesonbuild/meson/issues/9479
+        install: false,
         include_directories: [
             include_directories('.'),
             include_directories('binding-sandbox'),

@@ -911,7 +911,7 @@ jobs:
           mkdir ~/dist
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          mv mkxp-z_libretro.a ~
+          ppu-ar csrD ~/mkxp-z_libretro.a mkxp-z_libretro.o
 
       - name: Build frontend
         run: |
@@ -976,7 +976,7 @@ jobs:
           mkdir ~/dist
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          mv mkxp-z_libretro.a ~
+          /opt/devkitpro/devkitARM/bin/arm-none-eabi-ar csrD ~/mkxp-z_libretro.a mkxp-z_libretro.o
 
       - name: Build frontend
         run: |
@@ -1040,7 +1040,7 @@ jobs:
           mkdir ~/dist
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          mv mkxp-z_libretro.a ~
+          arm-vita-eabi-ar csrD ~/mkxp-z_libretro.a mkxp-z_libretro.o
 
       - name: Build frontend
         run: |
@@ -1121,7 +1121,7 @@ jobs:
           mkdir ~/dist
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          mv mkxp-z_libretro.a ~
+          /opt/devkitpro/devkitPPC/bin/powerpc-eabi-ar csrD ~/mkxp-z_libretro.a mkxp-z_libretro.o
 
       - name: Build frontend
         run: |
@@ -1184,7 +1184,7 @@ jobs:
           mkdir ~/dist
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          mv mkxp-z_libretro.a ~
+          orbis-ar csrD ~/mkxp-z_libretro.a mkxp-z_libretro.o
 
       - name: Build frontend
         run: |
@@ -1249,7 +1249,7 @@ jobs:
           mkdir ~/dist
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          mv mkxp-z_libretro.a ~
+          /opt/devkitpro/devkitA64/bin/aarch64-none-elf-ar csrD ~/mkxp-z_libretro.a mkxp-z_libretro.o
 
       - name: Build frontend
         run: |
