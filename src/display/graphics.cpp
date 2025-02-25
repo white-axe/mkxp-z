@@ -514,9 +514,7 @@ public:
         const int w = geometry.rect.w;
         const int h = geometry.rect.h;
         
-#ifndef MKXPZ_RETRO
         shState->prepareDraw();
-#endif // MKXPZ_RETRO
         
         pp.startRender();
         

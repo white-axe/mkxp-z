@@ -99,9 +99,7 @@ struct SpritePrivate
     
     EtcTemps tmp;
     
-#ifndef MKXPZ_RETRO
     sigslot::connection prepareCon;
-#endif // MKXPZ_RETRO
     
     SpritePrivate()
     : bitmap(0),
@@ -125,9 +123,7 @@ struct SpritePrivate
         
         updateSrcRectCon();
         
-#ifndef MKXPZ_RETRO
         prepareCon = shState->prepareDraw.connect
-#endif // MKXPZ_RETRO
         (&SpritePrivate::prepare, this);
         
         patternScroll = Vec2(0,0);
@@ -143,9 +139,7 @@ struct SpritePrivate
     ~SpritePrivate()
     {
         srcRectCon.disconnect();
-#ifndef MKXPZ_RETRO
         prepareCon.disconnect();
-#endif // MKXPZ_RETRO
         
         bitmapDisposal();
     }

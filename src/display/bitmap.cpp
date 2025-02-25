@@ -22,6 +22,8 @@
 #include "bitmap.h"
 
 #ifdef MKXPZ_RETRO
+#  include "stb_image_malloc.h"
+#  include <stb_image.h>
 #  include <pixman-region/pixman-region.h>
 #else
 #  include <SDL.h>
@@ -435,6 +437,7 @@ struct BitmapPrivate
         if (surface && freeSurface)
         {
 #ifdef MKXPZ_RETRO
+            stbi_image_free(surface->pixels);
             delete surface;
 #else
             SDL_FreeSurface(surface);
@@ -446,9 +449,52 @@ struct BitmapPrivate
     }
 };
 
-#ifndef MKXPZ_RETRO
 struct BitmapOpenHandler : FileSystem::OpenHandler
 {
+#ifdef MKXPZ_RETRO
+    // Non-GIF
+    stbi_uc *image;
+    int width;
+    int height;
+
+    BitmapOpenHandler()
+    : image(NULL)
+    {}
+
+    bool tryRead(std::shared_ptr<struct FileSystem::File> ops, const char *ext)
+    {
+        struct file {
+            struct FileSystem::File *handle;
+            uint64_t offset;
+        };
+
+        const static stbi_io_callbacks callbacks = {
+            .read = [](void *handle, char *buf, int size) {
+                assert(size >= 0);
+                int n = PHYSFS_readBytes(((struct file *)handle)->handle->get(), buf, size);
+                assert(((struct file *)handle)->offset + (uint64_t)n >= ((struct file *)handle)->offset);
+                ((struct file *)handle)->offset += n;
+                return n;
+            },
+            .skip = [](void *handle, int size) {
+                assert(size >= 0);
+                assert(((struct file *)handle)->offset + (uint64_t)size >= ((struct file *)handle)->offset);
+                PHYSFS_seek(((struct file *)handle)->handle->get(), (((struct file *)handle)->offset += (uint64_t)size));
+            },
+            .eof = [](void *handle) {
+                return PHYSFS_eof(((struct file *)handle)->handle->get());
+            },
+        };
+
+        struct file file {
+            .handle = ops.get(),
+            .offset = 0,
+        };
+        image = stbi_load_from_callbacks(&callbacks, &file, &width, &height, NULL, STBI_rgb_alpha);
+        return image != NULL;
+    }
+
+#else
     // Non-GIF
     SDL_Surface *surface;
     
@@ -512,8 +558,8 @@ struct BitmapOpenHandler : FileSystem::OpenHandler
         }
         return (surface || gif);
     }
-};
 #endif // MKXPZ_RETRO
+};
 
 Bitmap::Bitmap(const char *filename)
 {
@@ -535,11 +581,23 @@ Bitmap::Bitmap(const char *filename)
             hiresBitmap = nullptr;
         }
     }
+#endif // MKXPZ_RETRO
 
     BitmapOpenHandler handler;
     try {
+#ifdef MKXPZ_RETRO
+        std::string path("/mkxp-retro-game/");
+        path.append(filename);
+        mkxp_retro::fs->openRead(handler, path.c_str()); // TODO: move into shState
+#else
         shState->fileSystem().openRead(handler, filename);
+#endif // MKXPZ_RETRO
         
+#ifdef MKXPZ_RETRO
+        if (handler.image == NULL) {
+            throw Exception(Exception::SDLError, "Error loading image '%s': %s", filename, stbi_failure_reason());
+        }
+#else
         if (!handler.error.empty()) {
             // Not loaded with SDL, but I want it to be caught with the same exception type
             throw Exception(Exception::SDLError, "Error loading image '%s': %s", filename, handler.error.c_str());
@@ -548,12 +606,14 @@ Bitmap::Bitmap(const char *filename)
             throw Exception(Exception::SDLError, "Error loading image '%s': %s",
                             filename, SDL_GetError());
         }
+#endif // MKXPZ_RETRO
     } catch (const Exception &e) {
         if (hiresBitmap)
             delete hiresBitmap;
         throw e;
     }
     
+#ifndef MKXPZ_RETRO
     if (handler.gif) {
         if (handler.gif->width >= (uint32_t)glState.caps.maxTexSize || handler.gif->height > (uint32_t)glState.caps.maxTexSize)
         {
@@ -662,9 +722,9 @@ Bitmap::Bitmap(const char *filename)
 
 #ifdef MKXPZ_RETRO
     SDL_Surface *imgSurf = new SDL_Surface;
-    // TODO: use actual image dimensions
-    imgSurf->w = 64;
-    imgSurf->h = 64;
+    imgSurf->pixels = handler.image;
+    imgSurf->w = handler.width;
+    imgSurf->h = handler.height;
 #endif // MKXPZ_RETRO
     initFromSurface(imgSurf, hiresBitmap, false);
 }
@@ -708,7 +768,17 @@ Bitmap::Bitmap(int width, int height, bool isHires)
 
 Bitmap::Bitmap(void *pixeldata, int width, int height)
 {
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+    SDL_Surface *surface = new SDL_Surface;
+
+    stbi_uc *image = (stbi_uc *)STBI_MALLOC((size_t)4 * (size_t)width * (size_t)height * sizeof(stbi_uc));
+    if (image == NULL)
+        throw std::bad_alloc();
+
+    surface->pixels = image;
+    surface->w = width;
+    surface->h = height;
+#else
     SDL_Surface *surface = SDL_CreateRGBSurface(0, width, height, p->format->BitsPerPixel,
                                                 p->format->Rmask,
                                                 p->format->Gmask,
@@ -720,29 +790,30 @@ Bitmap::Bitmap(void *pixeldata, int width, int height)
                         SDL_GetError());
     
     memcpy(surface->pixels, pixeldata, width*height*(p->format->BitsPerPixel/8));
+#endif // MKXPZ_RERTRO
     
     if (surface->w > glState.caps.maxTexSize || surface->h > glState.caps.maxTexSize)
     {
         p = new BitmapPrivate(this);
         p->megaSurface = surface;
+#ifndef MKXPZ_RETRO
         SDL_SetSurfaceBlendMode(p->megaSurface, SDL_BLENDMODE_NONE);
+#endif // MKXPZ_RETRO
     }
     else
     {
-#endif // MKXPZ_RETRO
         TEXFBO tex;
         
         try
         {
-#ifdef MKXPZ_RETRO
-            tex = shState->texPool().request(64, 64); // TODO: use actual image dimensions
-#else
             tex = shState->texPool().request(surface->w, surface->h);
-#endif // MKXPZ_RETRO
         }
         catch (const Exception &e)
         {
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+            stbi_image_free(surface->pixels);
+            delete surface;
+#else
             SDL_FreeSurface(surface);
 #endif // MKXPZ_RETRO
             throw e;
@@ -752,12 +823,15 @@ Bitmap::Bitmap(void *pixeldata, int width, int height)
         p->gl = tex;
         
         TEX::bind(p->gl.tex);
-#ifndef MKXPZ_RETRO
         TEX::uploadImage(p->gl.width, p->gl.height, surface->pixels, GL_RGBA);
         
+#ifdef MKXPZ_RETRO
+        stbi_image_free(surface->pixels);
+        delete surface;
+#else
         SDL_FreeSurface(surface);
-    }
 #endif // MKXPZ_RETRO
+    }
     
     p->addTaintedArea(rect());
 }
@@ -913,6 +987,7 @@ void Bitmap::initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool for
             if (hiresBitmap)
                 delete hiresBitmap;
 #ifdef MKXPZ_RETRO
+            stbi_image_free(imgSurf->pixels);
             delete imgSurf;
 #else
             SDL_FreeSurface(imgSurf);
@@ -928,11 +1003,10 @@ void Bitmap::initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool for
         }
         
         TEX::bind(p->gl.tex);
-#ifndef MKXPZ_RETRO
         TEX::uploadImage(p->gl.width, p->gl.height, imgSurf->pixels, GL_RGBA);
-#endif // MKXPZ_RETRO
         
 #ifdef MKXPZ_RETRO
+        stbi_image_free(imgSurf->pixels);
         delete imgSurf;
 #else
         SDL_FreeSurface(imgSurf);
@@ -2515,7 +2589,10 @@ int Bitmap::addFrame(Bitmap &source, int position)
         
         if (p->surface)
 #ifdef MKXPZ_RETRO
+        {
+            stbi_image_free(p->surface->pixels);
             delete p->surface;
+        }
 #else
             SDL_FreeSurface(p->surface);
 #endif // MKXPZ_RETRO
@@ -2526,6 +2603,7 @@ int Bitmap::addFrame(Bitmap &source, int position)
         TEX::bind(newframe.tex);
         TEX::uploadImage(source.width(), source.height(), source.surface()->pixels, GL_RGBA);
 #ifdef MKXPZ_RETRO
+        stbi_image_free(p->surface->pixels);
         delete p->surface;
 #else
         SDL_FreeSurface(p->surface);
@@ -2729,7 +2807,10 @@ void Bitmap::releaseResources()
 
     if (p->megaSurface)
 #ifdef MKXPZ_RETRO
+    {
+        stbi_image_free(p->megaSurface->pixels);
         delete p->megaSurface;
+    }
 #else
         SDL_FreeSurface(p->megaSurface);
 #endif // MKXPZ_RETRO

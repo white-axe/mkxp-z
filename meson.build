@@ -435,18 +435,6 @@ if is_libretro
         'CMAKE_BUILD_TYPE': 'None',
     })
 
-    libpng_options = cmake.subproject_options()
-    libpng_options.add_cmake_defines({
-        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
-        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
-        'PNG_STATIC': true,
-        'PNG_SHARED': false,
-        'PNG_FRAMEWORK': false,
-        'PNG_TESTS': false,
-        'PNG_TOOLS': false,
-    })
-
     libretro_deps = [
         cmake.subproject('boost_asio', options: boost_options).dependency('boost_asio'),
         cmake.subproject('boost_mp11', options: boost_options).dependency('boost_mp11'),
@@ -473,7 +461,6 @@ if is_libretro
         cmake.subproject('mpg123', options: mpg123_options).dependency('libmpg123'),
         cmake.subproject('libsndfile', options: libsndfile_options).dependency('sndfile'),
         cmake.subproject('pixman-region', options: pixman_region_options).dependency('pixman-region'),
-        cmake.subproject('libpng', options: libpng_options).dependency('png_static'),
         subproject('stb').get_variable('stb'),
         subproject('portablegl').get_variable('portablegl'),
     ]
