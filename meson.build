@@ -474,6 +474,8 @@ if is_libretro
         cmake.subproject('libsndfile', options: libsndfile_options).dependency('sndfile'),
         cmake.subproject('pixman-region', options: pixman_region_options).dependency('pixman-region'),
         cmake.subproject('libpng', options: libpng_options).dependency('png_static'),
+        subproject('stb').get_variable('stb'),
+        subproject('portablegl').get_variable('portablegl'),
     ]
     if host_system == 'darwin'
         libretro_deps += compilers['cpp'].find_library('iconv')
@@ -544,7 +546,9 @@ if is_libretro
         sources: global_sources + [
             'src/core.cpp',
             'src/mkxp-threads.cpp',
+            'src/portablegl.cpp',
             'src/sharedstate.cpp',
+            'src/stb_image.cpp',
             'src/audio/alstream.cpp',
             'src/audio/audio.cpp',
             'src/audio/audiostream.cpp',
