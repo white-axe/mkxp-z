@@ -518,7 +518,12 @@ public:
         
         pp.startRender();
         
+#ifdef MKXPZ_RETRO
+        // The libretro API requires the viewport to be set every frame
+        glState.viewport.init(IntRect(0, 0, w, h));
+#else
         glState.viewport.set(IntRect(0, 0, w, h));
+#endif // MKXPZ_RETRO
         
         FBO::clear();
         
