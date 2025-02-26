@@ -142,14 +142,7 @@ namespace FBO
 	static inline void bind(ID id)
 	{
 		boundFramebufferID = id;
-		gl.BindFramebuffer(
-			GL_FRAMEBUFFER,
-#ifdef MKXPZ_RETRO
-			id.gl != 0 ? id.gl : mkxp_retro::hw_render.get_current_framebuffer()
-#else
-			id.gl
-#endif // MKXPZ_RETRO
-		);
+		gl.BindFramebuffer(GL_FRAMEBUFFER, id.gl);
 	}
 
 	static inline void unbind()
