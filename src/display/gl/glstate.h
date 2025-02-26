@@ -115,6 +115,9 @@ class GLProgram : public GLProperty<unsigned int> /* GLuint */
 
 class GLState
 {
+private:
+	const Config &conf;
+
 public:
 	GLClearColor clearColor;
 	GLScissorBox scissorBox;
@@ -133,6 +136,7 @@ public:
 	} caps;
 
 	GLState(const Config &conf);
+	void reset();
 };
 
 #endif // GLSTATE_H

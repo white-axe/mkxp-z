@@ -38,6 +38,7 @@
 #include "core.h"
 #include "filesystem.h"
 #include "gl-fun.h"
+#include "glstate.h"
 
 using namespace mkxp_retro;
 using namespace mkxp_sandbox;
@@ -384,6 +385,8 @@ extern "C" RETRO_API void retro_run() {
     if (!shared_state_initialized) {
         SharedState::initInstance(NULL);
         shared_state_initialized = true;
+    } else if (hw_render.context_type != RETRO_HW_CONTEXT_NONE) {
+        glState.reset();
     }
 
     if (mkxp_retro::sandbox.has_value()) {
@@ -476,7 +479,8 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
         // TODO: Support software rendering again
         //log_printf(RETRO_LOG_WARN, "Hardware-accelerated graphics not supported; falling back to software rendering\n");
         //hw_render.context_type = RETRO_HW_CONTEXT_NONE;
-        log_printf(RETRO_LOG_WARN, "Hardware-accelerated graphics not supported\n");
+        //environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render);
+        log_printf(RETRO_LOG_ERROR, "Error: Hardware-accelerated graphics not supported\n");
         return false;
     }
 

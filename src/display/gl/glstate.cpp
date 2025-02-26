@@ -114,7 +114,11 @@ void GLProgram::apply(const unsigned int &value) { gl.UseProgram(value); }
 
 GLState::Caps::Caps() { gl.GetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTexSize); }
 
-GLState::GLState(const Config &conf) {
+GLState::GLState(const Config &conf) : conf(conf) {
+  reset();
+}
+
+void GLState::reset() {
   gl.Disable(GL_DEPTH_TEST);
 
   clearColor.init(Vec4(0, 0, 0, 1));
