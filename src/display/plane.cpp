@@ -28,17 +28,13 @@
 #include "etc.h"
 #include "util.h"
 
-#ifndef MKXPZ_RETRO
 #include "gl-util.h"
 #include "quad.h"
 #include "quadarray.h"
 #include "transform.h"
-#endif // MKXPZ_RETRO
 #include "etc-internal.h"
-#ifndef MKXPZ_RETRO
 #include "shader.h"
 #include "glstate.h"
-#endif // MKXPZ_RETRO
 
 #include "sigslot/signal.hpp"
 
@@ -66,9 +62,7 @@ struct PlanePrivate
 
 	bool quadSourceDirty;
 
-#ifndef MKXPZ_RETRO
 	SimpleQuadArray qArray;
-#endif // MKXPZ_RETRO
 
 	EtcTemps tmp;
 
@@ -87,9 +81,7 @@ struct PlanePrivate
 		prepareCon = shState->prepareDraw.connect
 		        (&PlanePrivate::prepare, this);
 
-#ifndef MKXPZ_RETRO
 		qArray.resize(1);
-#endif // MKXPZ_RETRO
 	}
 
 	~PlanePrivate()
@@ -107,7 +99,6 @@ struct PlanePrivate
 
 	void updateQuadSource()
 	{
-#ifndef MKXPZ_RETRO
 		if (gl.npot_repeat)
 		{
 			FloatRect srcRect;
@@ -121,7 +112,6 @@ struct PlanePrivate
 
 			return;
 		}
-#endif // MKXPZ_RETRO
 
 		if (nullOrDisposed(bitmap))
 			return;
@@ -144,7 +134,6 @@ struct PlanePrivate
 
 		FloatRect tex = bitmap->rect();
 
-#ifndef MKXPZ_RETRO
 		qArray.resize(tilesX * tilesY);
 
 		for (size_t y = 0; y < tilesY; ++y)
@@ -157,7 +146,6 @@ struct PlanePrivate
 			}
 
 		qArray.commit();
-#endif // MKXPZ_RETRO
 	}
 
 	void prepare()
@@ -293,7 +281,6 @@ void Plane::draw()
 	if (!p->opacity)
 		return;
 
-#ifndef MKXPZ_RETRO
 	ShaderBase *base;
 
 	if (p->color->hasEffect() || p->tone->hasEffect() || p->opacity != 255)
@@ -333,15 +320,12 @@ void Plane::draw()
 		TEX::setRepeat(false);
 
 	glState.blendMode.pop();
-#endif // MKXPZ_RETRO
 }
 
 void Plane::onGeometryChange(const Scene::Geometry &geo)
 {
-#ifndef MKXPZ_RETRO
 	if (gl.npot_repeat)
 		Quad::setPosRect(&p->qArray.vertices[0], FloatRect(geo.rect));
-#endif // MKXPZ_RETRO
 
 	p->sceneGeo = geo;
 	p->quadSourceDirty = true;
