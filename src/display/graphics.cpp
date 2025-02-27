@@ -70,10 +70,17 @@
 #include <climits>
 
 
-#define DEF_SCREEN_W (rgssVer == 1 ? 640 : 544)
-#define DEF_SCREEN_H (rgssVer == 1 ? 480 : 416)
+#ifdef MKXPZ_RETRO
+#  define DEF_SCREEN_W 640
+#  define DEF_SCREEN_H 480
 
-#define DEF_FRAMERATE (rgssVer == 1 ? 40 : 60)
+#  define DEF_FRAMERATE 60
+#else
+#  define DEF_SCREEN_W (rgssVer == 1 ? 640 : 544)
+#  define DEF_SCREEN_H (rgssVer == 1 ? 480 : 416)
+
+#  define DEF_FRAMERATE (rgssVer == 1 ? 40 : 60)
+#endif // MKXPZ_RETRO
 
 #define DEF_MAX_VIDEO_FRAMES 30
 #define VIDEO_DELAY 10
