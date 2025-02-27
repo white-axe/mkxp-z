@@ -127,8 +127,10 @@ void GLState::reset() {
   scissorTest.init(false);
 #ifdef MKXPZ_RETRO
   scissorBox.init(IntRect(0, 0, 640, 480)); // TODO: get from config
+  viewport.init(IntRect(0, 0, 640, 480));
 #else
   scissorBox.init(IntRect(0, 0, conf.defScreenW, conf.defScreenH));
+  viewport.init(IntRect(0, 0, conf.defScreenW, conf.defScreenH));
 #endif // MKXPZ_RETRO
   program.init(0);
 
