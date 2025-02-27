@@ -451,9 +451,7 @@ struct WindowPrivate
 		FBO::clear();
 
 		/* Repaint base */
-#ifndef MKXPZ_RETRO // TODO
 		windowskin->bindTex(shader);
-#endif // MKXPZ_RETRO
 		TEX::setSmooth(true);
 
 		/* We need to blit the background without blending,

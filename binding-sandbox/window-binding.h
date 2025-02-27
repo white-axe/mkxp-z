@@ -39,7 +39,7 @@ namespace mkxp_sandbox {
                 VALUE viewport_obj;
                 Viewport *viewport;
                 VALUE klass;
-                VALUE cursor_obj;
+                VALUE obj;
                 ID id;
 
                 VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
@@ -59,11 +59,25 @@ namespace mkxp_sandbox {
 
                         SANDBOX_AWAIT(set_private_data, self, window);
                         window->initDynAttribs();
+
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Bitmap");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                        SANDBOX_AWAIT(set_private_data, obj, window->getWindowskin());
+                        SANDBOX_AWAIT(rb_iv_set, self, "windowskin", obj);
+
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Bitmap");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                        SANDBOX_AWAIT(set_private_data, obj, window->getContents());
+                        SANDBOX_AWAIT(rb_iv_set, self, "contents", obj);
+
                         SANDBOX_AWAIT_AND_SET(id, rb_intern, "Rect");
                         SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(cursor_obj, rb_obj_alloc, klass);
-                        SANDBOX_AWAIT(set_private_data, cursor_obj, &window->getCursorRect());
-                        SANDBOX_AWAIT(rb_iv_set, self, "cursor_rect", cursor_obj);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                        SANDBOX_AWAIT(set_private_data, obj, &window->getCursorRect());
+                        SANDBOX_AWAIT(rb_iv_set, self, "cursor_rect", obj);
+
                         GFX_UNLOCK
                     }
 
@@ -84,12 +98,31 @@ namespace mkxp_sandbox {
 
         static VALUE disposed(VALUE self) {
             Window *window = get_private_data<Window>(self);
-            return window == NULL || window->isDisposed() ? SANDBOX_TRUE : SANDBOX_FALSE;
+            return SANDBOX_BOOL_TO_VALUE(window == NULL || window->isDisposed());
         }
 
         static VALUE update(VALUE self) {
             GFX_GUARD_EXC(get_private_data<Window>(self)->update();)
             return SANDBOX_NIL;
+        }
+
+        static VALUE get_windowskin(VALUE self) {
+            return sb()->bind<struct rb_iv_get>()()(self, "windowskin");
+        }
+
+        static VALUE set_windowskin(VALUE self, VALUE value) {
+            SANDBOX_COROUTINE(coro,
+                VALUE operator()(VALUE self, VALUE value) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        GFX_GUARD_EXC(get_private_data<Window>(self)->setWindowskin(value == SANDBOX_NIL ? NULL : get_private_data<Bitmap>(value)));
+                        SANDBOX_AWAIT(rb_iv_set, self, "windowskin", value);
+                    }
+
+                    return value;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, value);
         }
 
         static VALUE get_contents(VALUE self) {
@@ -111,15 +144,6 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self, value);
         }
 
-        static VALUE get_stretch(VALUE self) {
-            return get_private_data<Window>(self)->getStretch() ? SANDBOX_TRUE : SANDBOX_FALSE;
-        }
-
-        static VALUE set_stretch(VALUE self, VALUE value) {
-            GFX_GUARD_EXC(get_private_data<Window>(self)->setStretch(value != SANDBOX_FALSE && value != SANDBOX_NIL);)
-            return value;
-        }
-
         static VALUE get_cursor_rect(VALUE self) {
             return sb()->bind<struct rb_iv_get>()()(self, "cursor_rect");
         }
@@ -138,30 +162,39 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self, value);
         }
 
+        static VALUE get_stretch(VALUE self) {
+            return SANDBOX_BOOL_TO_VALUE(get_private_data<Window>(self)->getStretch());
+        }
+
+        static VALUE set_stretch(VALUE self, VALUE value) {
+            GFX_GUARD_EXC(get_private_data<Window>(self)->setStretch(SANDBOX_VALUE_TO_BOOL(value));)
+            return value;
+        }
+
         static VALUE get_active(VALUE self) {
-            return get_private_data<Window>(self)->getActive() ? SANDBOX_TRUE : SANDBOX_FALSE;
+            return SANDBOX_BOOL_TO_VALUE(get_private_data<Window>(self)->getActive());
         }
 
         static VALUE set_active(VALUE self, VALUE value) {
-            GFX_GUARD_EXC(get_private_data<Window>(self)->setActive(value != SANDBOX_FALSE && value != SANDBOX_NIL);)
+            GFX_GUARD_EXC(get_private_data<Window>(self)->setActive(SANDBOX_VALUE_TO_BOOL(value));)
             return value;
         }
 
         static VALUE get_visible(VALUE self) {
-            return get_private_data<Window>(self)->getVisible() ? SANDBOX_TRUE : SANDBOX_FALSE;
+            return SANDBOX_BOOL_TO_VALUE(get_private_data<Window>(self)->getVisible());
         }
 
         static VALUE set_visible(VALUE self, VALUE value) {
-            GFX_GUARD_EXC(get_private_data<Window>(self)->setVisible(value != SANDBOX_FALSE && value != SANDBOX_NIL));
+            GFX_GUARD_EXC(get_private_data<Window>(self)->setVisible(SANDBOX_VALUE_TO_BOOL(value)));
             return value;
         }
 
         static VALUE get_pause(VALUE self) {
-            return get_private_data<Window>(self)->getPause() ? SANDBOX_TRUE : SANDBOX_FALSE;
+            return SANDBOX_BOOL_TO_VALUE(get_private_data<Window>(self)->getPause());
         }
 
         static VALUE set_pause(VALUE self, VALUE value) {
-            GFX_GUARD_EXC(get_private_data<Window>(self)->setPause(value != SANDBOX_FALSE && value != SANDBOX_NIL));
+            GFX_GUARD_EXC(get_private_data<Window>(self)->setPause(SANDBOX_VALUE_TO_BOOL(value)));
             return value;
         }
 
@@ -390,13 +423,14 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, klass, "update", (VALUE (*)(ANYARGS))update, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "windowskin=", (VALUE (*)(ANYARGS))todo, -1);
+                SANDBOX_AWAIT(rb_define_method, klass, "windowskin", (VALUE (*)(ANYARGS))get_windowskin, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "windowskin=", (VALUE (*)(ANYARGS))set_windowskin, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "contents", (VALUE (*)(ANYARGS))get_contents, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "contents=", (VALUE (*)(ANYARGS))set_contents, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "stretch", (VALUE (*)(ANYARGS))get_stretch, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "stretch=", (VALUE (*)(ANYARGS))set_stretch, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "cursor_rect", (VALUE (*)(ANYARGS))get_cursor_rect, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "cursor_rect=", (VALUE (*)(ANYARGS))set_cursor_rect, 1);
+                SANDBOX_AWAIT(rb_define_method, klass, "stretch", (VALUE (*)(ANYARGS))get_stretch, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "stretch=", (VALUE (*)(ANYARGS))set_stretch, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "active", (VALUE (*)(ANYARGS))get_active, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "active=", (VALUE (*)(ANYARGS))set_active, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "visible", (VALUE (*)(ANYARGS))get_visible, 0);
