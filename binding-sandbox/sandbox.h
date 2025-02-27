@@ -60,6 +60,10 @@
         sb()._end_yield(); \
     } while (0)
 
+#define SANDBOX_VALUE_TO_BOOL(value) ((value) != SANDBOX_FALSE && (value) != SANDBOX_NIL)
+
+#define SANDBOX_BOOL_TO_VALUE(boolean) ((boolean) ? SANDBOX_TRUE : SANDBOX_FALSE)
+
 namespace mkxp_sandbox {
     struct sandbox;
 }
