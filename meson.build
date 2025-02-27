@@ -77,8 +77,25 @@ if is_libretro
         libretro_link_args += '-static-libstdc++'
     endif
 
+    # If possible, put all functions and data objects in their own sections to allow the linker to remove dead code
+    if compilers['c'].has_argument('-ffunction-sections')
+        libretro_cflags += '-ffunction-sections'
+    endif
+    if compilers['cpp'].has_argument('-ffunction-sections')
+        libretro_cppflags += '-ffunction-sections'
+    endif
+    if compilers['c'].has_argument('-fdata-sections')
+        libretro_cflags += '-fdata-sections'
+    endif
+    if compilers['cpp'].has_argument('-fdata-sections')
+        libretro_cppflags += '-fdata-sections'
+    endif
+    if compilers['cpp'].has_link_argument('-Wl,--gc-sections')
+        libretro_link_args += '-Wl,--gc-sections'
+    endif
+
     # If possible, stop the linker from reexporting the symbols from the static libraries we use (e.g. zlib)
-    if not is_emscripten and compilers['cpp'].has_link_argument('-Wl,--version-script,' + meson.current_source_dir() / 'libretro/link.T') # Only works with GNU linker and LLVM linker
+    if compilers['cpp'].has_link_argument('-Wl,--version-script,' + meson.current_source_dir() / 'libretro/link.T') # Only works with GNU linker and LLVM linker
         libretro_link_args += '-Wl,--version-script,' + meson.current_source_dir() / 'libretro/link.T'
     endif
 
