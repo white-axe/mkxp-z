@@ -409,6 +409,14 @@ extern "C" RETRO_API void retro_run() {
 
     void *fb;
     if (hw_render.context_type != RETRO_HW_CONTEXT_NONE) {
+        gl.UseProgram(0);
+        gl.BindTexture(GL_TEXTURE_2D, 0);
+        gl.BindVertexArray(0);
+        if (gl.BindFramebuffer != NULL) {
+            gl.BindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+        gl.BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        gl.BindBuffer(GL_ARRAY_BUFFER, 0);
         fb = RETRO_HW_FRAME_BUFFER_VALID;
     } else if (!retro_framebuffer_supported) {
         fb = frame_buf;
