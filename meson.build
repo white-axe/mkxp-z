@@ -6,9 +6,6 @@ if host_system == 'darwin'
     error('\nThis Meson project no longer supports macOS. Please use the Xcode project instead.')
 endif
 
-xxd = find_program('xxd', native: true)
-xxd_supports_n = run_command(xxd, '-n', 'meson', '-i', meson.current_source_dir() / 'meson.build', check: false).returncode() == 0
-
 git_hash = run_command('git', 'rev-parse', '--short', 'HEAD').stdout().strip()
 
 compilers = {'cpp': meson.get_compiler('cpp')}
@@ -117,6 +114,9 @@ endif
 global_args += '-DMKXPZ_INIT_GL_LATER'
 
 subdir('src')
+
+embedtool = executable('embedtool', sources: 'embedtool.cpp', native: true, override_options: [])
+
 subdir('binding')
 subdir('shader')
 subdir('assets')

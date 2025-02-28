@@ -17,10 +17,11 @@ foreach file : embedded_assets_f
     input: file,
     output: '@0@.xxd'.format(embedded_assets[count]),
     command: [
-        xxd, '-i', '@INPUT@'
+        embedtool,
+        '@INPUT@',
+        '@OUTPUT@',
+        'mkxp_assets_@0@'.format(embedded_assets[count].replace('.', '_')),
     ],
-    capture: true,
-    depend_files: embedded_assets_f[count]
     )
     count += 1
 endforeach
