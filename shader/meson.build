@@ -42,10 +42,11 @@ foreach file : embedded_shaders_f
         input: file,
         output: '@0@.xxd'.format(embedded_shaders[count]),
         command: [
-            xxd, '-i', '@INPUT@'
+            embedtool,
+            '@INPUT@',
+            '@OUTPUT@',
+            'mkxp_shader_@0@'.format(embedded_shaders[count].replace('.', '_')),
         ],
-        capture: true,
-        depend_files: embedded_shaders_f[count]
         )
     count += 1
 endforeach

@@ -12,6 +12,8 @@ if not is_libretro and host_system == 'darwin'
     error('This Meson project no longer supports macOS. Please use the Xcode project instead.')
 endif
 
+git_hash = run_command('git', 'rev-parse', '--short', 'HEAD').stdout().strip()
+
 compilers = {'c': meson.get_compiler('c'), 'cpp': meson.get_compiler('cpp')}
 
 global_sources = []
@@ -33,6 +35,8 @@ global_args += '-DHAVE_NANOSLEEP'
 # ====================
 
 if is_libretro
+    embedtool = executable('embedtool', sources: 'embedtool.cpp', native: true, override_options: [])
+
     libretro_stage1_path = get_option('libretro_stage1_path')
 
     libretro_link_args = []
@@ -587,8 +591,6 @@ if is_emscripten or not compilers['cpp'].compiles('struct E {}; int main() { thr
     libretro_defines += '-DBOOST_NO_EXCEPTIONS'
 endif
 
-xxd = find_program('xxd', native: true)
-
 # STEAMWORKS
 
 steamworks = false
@@ -674,6 +676,9 @@ endif
 global_args += '-DMKXPZ_INIT_GL_LATER'
 
 subdir('src')
+
+embedtool = executable('embedtool', sources: 'embedtool.cpp', native: true, override_options: [])
+
 subdir('binding')
 subdir('shader')
 subdir('assets')
