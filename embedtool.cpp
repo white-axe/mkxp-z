@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
         return 3;
     }
 
-    outputf << "#include <stddef.h>\n#include <stdint.h>\nconst uint8_t " << arrayname << "[] = {";
+    outputf << "#include <stddef.h>\n#include <stdint.h>\nextern const uint8_t " << arrayname << "[] = {";
 
     uint64_t len = 0;
     for (;;) {
@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
         ++len;
     }
 
-    outputf << "};\nconst size_t " << arrayname << "_len = " << len << "ULL;";
+    outputf << "};\nextern const size_t " << arrayname << "_len = " << len << "ULL;";
 
     return 0;
 }
