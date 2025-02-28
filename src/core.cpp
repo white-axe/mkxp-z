@@ -67,8 +67,8 @@ namespace mkxp_retro {
     retro_hw_render_callback hw_render;
 }
 
-extern unsigned char GMGSx_sf2[];
-extern unsigned int GMGSx_sf2_len;
+extern const uint8_t mkxp_gmgsx_sf2[];
+extern const size_t mkxp_gmgsx_sf2_len;
 
 static ALCdevice *al_device = NULL;
 static ALCcontext *al_context = NULL;
@@ -242,8 +242,8 @@ static bool init_sandbox() {
             return std::calloc(1, sizeof(long));
         },
         .fread = [](void *buf, int count, void *handle) {
-            assert(*(long *)handle + count < GMGSx_sf2_len);
-            std::memcpy(buf, GMGSx_sf2 + *(long *)handle, count);
+            assert(*(long *)handle + count < mkxp_gmgsx_sf2_len);
+            std::memcpy(buf, mkxp_gmgsx_sf2 + *(long *)handle, count);
             *(long *)handle += count;
             return (int)FLUID_OK;
         },
@@ -253,7 +253,7 @@ static bool init_sandbox() {
                     *(long *)handle += offset;
                     break;
                 case SEEK_END:
-                    *(long *)handle = GMGSx_sf2_len + offset;
+                    *(long *)handle = mkxp_gmgsx_sf2_len + offset;
                     break;
                 default:
                     *(long *)handle = offset;

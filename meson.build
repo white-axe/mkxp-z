@@ -12,9 +12,6 @@ if not is_libretro and host_system == 'darwin'
     error('This Meson project no longer supports macOS. Please use the Xcode project instead.')
 endif
 
-xxd = find_program('xxd', native: true)
-xxd_supports_n = run_command(xxd, '-n', 'meson', '-i', meson.current_source_dir() / 'meson.build', check: false).returncode() == 0
-
 compilers = {'c': meson.get_compiler('c'), 'cpp': meson.get_compiler('cpp')}
 
 global_sources = []
@@ -38,6 +35,8 @@ global_args += '-DHAVE_NANOSLEEP'
 global_sources += vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h')
 
 if is_libretro
+    embedtool = executable('embedtool', sources: 'embedtool.cpp', native: true, override_options: [])
+
     libretro_stage1_path = get_option('libretro_stage1_path')
 
     libretro_link_args = []
@@ -82,8 +81,25 @@ if is_libretro
         libretro_link_args += '-static-libstdc++'
     endif
 
+    # If possible, put all functions and data objects in their own sections to allow the linker to remove dead code
+    if compilers['c'].has_argument('-ffunction-sections')
+        libretro_cflags += '-ffunction-sections'
+    endif
+    if compilers['cpp'].has_argument('-ffunction-sections')
+        libretro_cppflags += '-ffunction-sections'
+    endif
+    if compilers['c'].has_argument('-fdata-sections')
+        libretro_cflags += '-fdata-sections'
+    endif
+    if compilers['cpp'].has_argument('-fdata-sections')
+        libretro_cppflags += '-fdata-sections'
+    endif
+    if compilers['cpp'].has_link_argument('-Wl,--gc-sections')
+        libretro_link_args += '-Wl,--gc-sections'
+    endif
+
     # If possible, stop the linker from reexporting the symbols from the static libraries we use (e.g. zlib)
-    if not is_emscripten and compilers['cpp'].has_link_argument('-Wl,--version-script,' + meson.current_source_dir() / 'libretro/link.T') # Only works with GNU linker and LLVM linker
+    if compilers['cpp'].has_link_argument('-Wl,--version-script,' + meson.current_source_dir() / 'libretro/link.T') # Only works with GNU linker and LLVM linker
         libretro_link_args += '-Wl,--version-script,' + meson.current_source_dir() / 'libretro/link.T'
     endif
 
@@ -436,6 +452,8 @@ if is_libretro
     })
 
     libretro_deps = [
+        subproject('libretro-common').get_variable('libretro_common'),
+        subproject('sdl2-headers').get_variable('sdl2_headers'),
         cmake.subproject('boost_asio', options: boost_options).dependency('boost_asio'),
         cmake.subproject('boost_mp11', options: boost_options).dependency('boost_mp11'),
         cmake.subproject('boost_describe', options: boost_options).dependency('boost_describe'),
@@ -528,7 +546,6 @@ if is_libretro
             include_directories('src/util/sigslot/adapter'),
             include_directories(libretro_stage1_path),
             include_directories(libretro_stage1_path / 'mkxp-retro-ruby'),
-            include_directories(libretro_stage1_path / 'sdl/include'),
         ],
         sources: global_sources + [
             'src/core.cpp',
@@ -572,9 +589,29 @@ if is_libretro
             'binding-sandbox/wasi.cpp',
             'binding-sandbox/wasm-rt.cpp',
             'binding/module_rpg.cpp',
-            libretro_stage1_path / 'GMGSx.sf2.cpp',
             libretro_stage1_path / 'mkxp-sandbox-bindgen.cpp',
-            libretro_stage1_path / 'mkxp-retro-dist.zip.cpp',
+            custom_target(
+                'GMGSx',
+                input: 'assets/GMGSx.sf2',
+                output: 'GMGSx.sf2.cpp',
+                command: [
+                    embedtool,
+                    '@INPUT@',
+                    '@OUTPUT@',
+                    'mkxp_gmgsx_sf2',
+                ],
+            ),
+            custom_target(
+                'mkxp-retro-dist',
+                input: libretro_stage1_path / 'mkxp-retro-dist.zip',
+                output: 'mkxp-retro-dist.zip.cpp',
+                command: [
+                    embedtool,
+                    '@INPUT@',
+                    '@OUTPUT@',
+                    'mkxp_retro_dist_zip',
+                ],
+            ),
             libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_0.c',
             libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_1.c',
             libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_2.c',
@@ -680,6 +717,9 @@ endif
 global_args += '-DMKXPZ_INIT_GL_LATER'
 
 subdir('src')
+
+embedtool = executable('embedtool', sources: 'embedtool.cpp', native: true, override_options: [])
+
 subdir('binding')
 subdir('shader')
 subdir('assets')

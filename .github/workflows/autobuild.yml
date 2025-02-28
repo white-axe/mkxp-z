@@ -29,7 +29,6 @@ jobs:
             base-devel
             git
             ruby
-            vim
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-meson
             mingw-w64-x86_64-autotools
@@ -105,7 +104,7 @@ jobs:
       - name: Install apt dependencies
         run: |
           sudo apt update
-          sudo apt install git xxd build-essential cmake ninja-build python3-pip autoconf automake libtool pkg-config ruby bison zlib1g-dev libbz2-dev xorg-dev libgl1-mesa-dev libasound2-dev libpulse-dev -y
+          sudo apt install git build-essential cmake ninja-build python3-pip autoconf automake libtool pkg-config ruby bison zlib1g-dev libbz2-dev xorg-dev libgl1-mesa-dev libasound2-dev libpulse-dev -y
           pip3 install meson
 
       - name: Build everything else
@@ -209,7 +208,7 @@ jobs:
           echo "deb [arch=${{matrix.arch_debian}}] http://ports.ubuntu.com/ jammy-updates multiverse" | sudo tee -a /etc/apt/sources.list
           echo "deb [arch=${{matrix.arch_debian}}] http://ports.ubuntu.com/ jammy-backports main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
           sudo apt update
-          sudo apt install git xxd build-essential cmake ninja-build python3-pip autoconf automake libtool pkg-config ruby bison -y
+          sudo apt install git build-essential cmake ninja-build python3-pip autoconf automake libtool pkg-config ruby bison -y
           pip3 install meson
           sudo apt install libdmx-dev:${{matrix.arch_debian}} libfontenc-dev:${{matrix.arch_debian}} libfs-dev:${{matrix.arch_debian}} libice-dev:${{matrix.arch_debian}} libsm-dev:${{matrix.arch_debian}} libx11-dev:${{matrix.arch_debian}} libxau-dev:${{matrix.arch_debian}} libxaw7-dev:${{matrix.arch_debian}} libxcomposite-dev:${{matrix.arch_debian}} libxcursor-dev:${{matrix.arch_debian}} libxdamage-dev:${{matrix.arch_debian}} libxdmcp-dev:${{matrix.arch_debian}} libxext-dev:${{matrix.arch_debian}} libxfixes-dev:${{matrix.arch_debian}} libxfont-dev:${{matrix.arch_debian}} libxft-dev:${{matrix.arch_debian}} libxi-dev:${{matrix.arch_debian}} libxinerama-dev:${{matrix.arch_debian}} libxkbfile-dev:${{matrix.arch_debian}} libxmu-dev:${{matrix.arch_debian}} libxmuu-dev:${{matrix.arch_debian}} libxpm-dev:${{matrix.arch_debian}} libxrandr-dev:${{matrix.arch_debian}} libxrender-dev:${{matrix.arch_debian}} libxres-dev:${{matrix.arch_debian}} libxss-dev:${{matrix.arch_debian}} libxt-dev:${{matrix.arch_debian}} libxtst-dev:${{matrix.arch_debian}} libxv-dev:${{matrix.arch_debian}} libxvmc-dev:${{matrix.arch_debian}} libxxf86dga-dev:${{matrix.arch_debian}} libxxf86vm-dev:${{matrix.arch_debian}} x11proto-dev:${{matrix.arch_debian}} xserver-xorg-dev:${{matrix.arch_debian}} xtrans-dev:${{matrix.arch_debian}} -y
           sudo apt install gcc-${{matrix.arch_gcc}} g++-${{matrix.arch_gcc}} zlib1g-dev:${{matrix.arch_debian}} libbz2-dev:${{matrix.arch_debian}} libgl1-mesa-dev:${{matrix.arch_debian}} libasound2-dev:${{matrix.arch_debian}} libpulse-dev:${{matrix.arch_debian}} -y
@@ -324,7 +323,7 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           sudo apt update
-          sudo apt install -y git xxd curl build-essential automake libtool binaryen wabt zip universal-ctags
+          sudo apt install -y git curl build-essential automake libtool binaryen wabt zip universal-ctags
 
       - name: Set up WASI SDK
         if: steps.cache.outputs.cache-hit != 'true'
@@ -355,7 +354,7 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           msystem: mingw64
-          install: base-devel git vim mingw-w64-x86_64-gcc mingw-w64-x86_64-meson mingw-w64-x86_64-cmake
+          install: base-devel git mingw-w64-x86_64-gcc mingw-w64-x86_64-meson mingw-w64-x86_64-cmake
 
       - id: short-sha
         name: Get Git commit hash
@@ -443,7 +442,7 @@ jobs:
             echo 'Components: main universe' | sudo tee -a /etc/apt/sources.list.d/ubuntu.sources
           fi
           sudo apt update
-          sudo apt install -y git xxd build-essential meson cmake
+          sudo apt install -y git build-essential meson cmake
           if [ '${{ matrix.arch_mkxpz }}' != 'x86_64' ]
           then
             sudo apt install -y gcc-${{ matrix.arch_gcc }} g++-${{ matrix.arch_gcc }}
@@ -565,7 +564,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y git xxd build-essential clang llvm meson cmake
+          sudo apt install -y git build-essential clang llvm meson cmake
 
       - name: Set up sysroot
         id: sysroot
@@ -671,7 +670,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y git xxd build-essential llvm meson cmake
+          sudo apt install -y git build-essential llvm meson cmake
 
       - id: ndk
         name: Set up Android NDK
@@ -747,7 +746,7 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          brew install -q git vim meson cmake
+          brew install -q git meson cmake
 
       - id: short-sha
         name: Get Git commit hash
@@ -801,7 +800,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y git xxd build-essential meson cmake jq
+          sudo apt install -y git build-essential meson cmake jq
 
       - name: Set up Emscripten SDK
         uses: mymindstorm/setup-emsdk@v14
@@ -872,7 +871,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt update
-          apt install -y git xxd build-essential pip ninja-build jq
+          apt install -y git build-essential pip ninja-build jq
           apt remove -y meson cmake
           pip install meson cmake
 
@@ -937,7 +936,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt update
-          apt install -y git xxd build-essential pip ninja-build jq
+          apt install -y git build-essential pip ninja-build jq
           apt remove -y meson cmake
           pip install meson cmake
 
@@ -1003,7 +1002,7 @@ jobs:
       - name: Install dependencies
         run: |
           apk update
-          apk add git xxd build-base meson cmake jq
+          apk add git build-base meson cmake jq
 
       - id: short-sha
         name: Get Git commit hash
@@ -1066,7 +1065,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt update
-          apt install -y git xxd build-essential pip ninja-build jq
+          apt install -y git build-essential pip ninja-build jq
           apt remove -y meson cmake
           pip install meson cmake
 
@@ -1147,7 +1146,7 @@ jobs:
       - name: Install dependencies
         run: |
           apk update
-          apk add git xxd build-base meson cmake jq
+          apk add git build-base meson cmake jq
 
       - id: short-sha
         name: Get Git commit hash
@@ -1210,7 +1209,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt update
-          apt install -y git xxd build-essential pip ninja-build jq
+          apt install -y git build-essential pip ninja-build jq
           apt remove -y meson cmake
           pip install meson cmake
 

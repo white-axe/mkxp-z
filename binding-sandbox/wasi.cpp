@@ -29,8 +29,8 @@
 #include "core.h"
 #include "wasi.h"
 
-extern unsigned char mkxp_retro_dist_zip[];
-extern unsigned int mkxp_retro_dist_zip_len;
+extern const uint8_t mkxp_retro_dist_zip[];
+extern const size_t mkxp_retro_dist_zip_len;
 
 //#define WASI_DEBUG(...) mkxp_retro::log_printf(RETRO_LOG_INFO, __VA_ARGS__)
 #define WASI_DEBUG(...)
