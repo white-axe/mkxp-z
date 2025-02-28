@@ -12,8 +12,6 @@ if not is_libretro and host_system == 'darwin'
     error('This Meson project no longer supports macOS. Please use the Xcode project instead.')
 endif
 
-git_hash = run_command('git', 'rev-parse', '--short', 'HEAD').stdout().strip()
-
 compilers = {'c': meson.get_compiler('c'), 'cpp': meson.get_compiler('cpp')}
 
 global_sources = []
@@ -567,9 +565,29 @@ if is_libretro
             'binding-sandbox/wasi.cpp',
             'binding-sandbox/wasm-rt.cpp',
             'binding/module_rpg.cpp',
-            libretro_stage1_path / 'GMGSx.sf2.cpp',
             libretro_stage1_path / 'mkxp-sandbox-bindgen.cpp',
-            libretro_stage1_path / 'mkxp-retro-dist.zip.cpp',
+            custom_target(
+                'GMGSx',
+                input: 'assets/GMGSx.sf2',
+                output: 'GMGSx.sf2.cpp',
+                command: [
+                    embedtool,
+                    '@INPUT@',
+                    '@OUTPUT@',
+                    'mkxp_gmgsx_sf2',
+                ],
+            ),
+            custom_target(
+                'mkxp-retro-dist',
+                input: libretro_stage1_path / 'mkxp-retro-dist.zip',
+                output: 'mkxp-retro-dist.zip.cpp',
+                command: [
+                    embedtool,
+                    '@INPUT@',
+                    '@OUTPUT@',
+                    'mkxp_retro_dist_zip',
+                ],
+            ),
             libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_0.c',
             libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_1.c',
             libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_2.c',

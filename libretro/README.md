@@ -6,12 +6,12 @@ All the files produced by this stage are platform-agnostic, so you can run this 
 
 Required software:
 * C and C++ compilers
-* Make
+* GNU Make
 * GNU Autotools
+* GNU Bison
 * [Git](https://git-scm.com)
-* [xxd](https://github.com/vim/vim/blob/master/runtime/doc/xxd.man)
 * [curl](https://curl.se)
-* [Info-ZIP Zip](https://infozip.sourceforge.net/Zip.html) (the `zip` package found in many package managers)
+* [Info-ZIP's Zip](https://infozip.sourceforge.net/Zip.html) (the `zip` package found in many package managers)
 * [WASI SDK](https://github.com/WebAssembly/wasi-sdk) (currently you need WASI SDK version 21; later versions don't work yet)
 * [Binaryen](https://github.com/WebAssembly/binaryen)
 * [WABT](https://github.com/WebAssembly/wabt)
