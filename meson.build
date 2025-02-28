@@ -14,7 +14,7 @@ endif
 
 compilers = {'c': meson.get_compiler('c'), 'cpp': meson.get_compiler('cpp')}
 
-global_sources = []
+global_sources = [vcs_tag(command: ['git', 'rev-parse', '--short=7', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h')]
 global_dependencies = []
 global_include_dirs = []
 global_args = []
@@ -534,8 +534,7 @@ if is_libretro
             include_directories(libretro_stage1_path),
             include_directories(libretro_stage1_path / 'mkxp-retro-ruby'),
         ],
-        sources: [
-            vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h'),
+        sources: global_sources + [
             'src/core.cpp',
             'src/mkxp-threads.cpp',
             'src/sharedstate.cpp',
@@ -600,7 +599,6 @@ if is_libretro
     )
 else
 
-global_sources += vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h')
 if host_endian == 'big'
     global_args += '-DMKXPZ_BIG_ENDIAN'
 endif
