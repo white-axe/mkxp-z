@@ -441,6 +441,8 @@ if is_libretro
     })
 
     libretro_deps = [
+        subproject('libretro-common').get_variable('libretro_common'),
+        subproject('sdl2-headers').get_variable('sdl2_headers'),
         cmake.subproject('boost_asio', options: boost_options).dependency('boost_asio'),
         cmake.subproject('boost_mp11', options: boost_options).dependency('boost_mp11'),
         cmake.subproject('boost_describe', options: boost_options).dependency('boost_describe'),
@@ -529,7 +531,6 @@ if is_libretro
             include_directories('src/util/sigslot/adapter'),
             include_directories(libretro_stage1_path),
             include_directories(libretro_stage1_path / 'mkxp-retro-ruby'),
-            include_directories(libretro_stage1_path / 'sdl/include'),
         ],
         sources: [
             vcs_tag(command: ['git', 'rev-parse', '--short', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h'),

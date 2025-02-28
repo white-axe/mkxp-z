@@ -1,12 +1,9 @@
 # Configure flags are based on the ones from https://github.com/ruby/ruby.wasm
 
 RUBY_VERSION ?= 3.3
-LIBRETRO_REF ?= 7e74808db6706b89723811421ed43d8e8fdc6143
 LIBYAML_VERSION ?= 0.2.5
 ZLIB_VERSION ?= 1.3.1
 OPENSSL_VERSION ?= 3.2.0
-WASM_RT_VERSION ?= 1.0.36
-SDL_VERSION ?= 2.30.11
 TARGET ?= wasm32-wasip1
 WASI_SDK ?= /opt/wasi-sdk
 WASM_OPT ?= wasm-opt
@@ -53,7 +50,7 @@ ruby-dist: $(OUTDIR)/mkxp-retro-dist.zip.cpp $(OUTDIR)/mkxp-retro-ruby/mkxp-retr
 
 ruby-bindings: $(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h
 
-deps: $(OUTDIR)/GMGSx.sf2.cpp $(OUTDIR)/libretro.h $(OUTDIR)/sdl/include/SDL.h
+deps: $(OUTDIR)/GMGSx.sf2.cpp
 
 clean: clean-ruby-dist clean-ruby-bindings clean-deps
 	rm -rf $(LIBDIR)/*
@@ -71,21 +68,10 @@ clean-ruby-bindings:
 
 clean-deps:
 	rm -f $(OUTDIR)/GMGSx.sf2.cpp
-	rm -f $(OUTDIR)/libretro.h
-	rm -rf $(OUTDIR)/sdl
-	rm -rf $(DOWNLOADS)/wabt
 
 $(OUTDIR)/GMGSx.sf2.cpp: GMGSx.sf2
 	mkdir -p $(OUTDIR)
 	$(XXD) -i GMGSx.sf2 $(OUTDIR)/GMGSx.sf2.cpp
-
-$(OUTDIR)/libretro.h:
-	mkdir -p $(OUTDIR)
-	$(CURL) -s -L -o $(OUTDIR)/libretro.h https://raw.githubusercontent.com/libretro/libretro-common/$(LIBRETRO_REF)/include/libretro.h
-
-$(OUTDIR)/sdl/include/SDL.h:
-	mkdir -p $(OUTDIR)
-	$(CLONE) $(GITHUB)/libsdl-org/SDL $(OUTDIR)/sdl -b release-$(SDL_VERSION)
 
 # Cross Ruby (targets WASI)
 
