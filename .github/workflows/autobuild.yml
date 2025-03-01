@@ -835,7 +835,7 @@ jobs:
           echo "cpu = 'wasm32'" | tee -a ${{ runner.temp }}/cross.ini
           echo "endian = 'little'" | tee -a ${{ runner.temp }}/cross.ini
           echo '--------------------------------------------------------------------------------'
-          CFLAGS='-fexceptions -gsource-map' CXXFLAGS='-fexceptions -gsource-map' LDFLAGS='-fexceptions -gsource-map -sASSERTIONS=1 -sALLOW_MEMORY_GROWTH=1' CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype debugoptimized -Db_sanitize=address -Db_lto=true -Dlibretro=true
+          CFLAGS='-fexceptions -gsource-map' CXXFLAGS='-fexceptions -gsource-map' LDFLAGS='-fexceptions -gsource-map -sASSERTIONS=1 -sALLOW_MEMORY_GROWTH=1' CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype debugoptimized -Db_sanitize=address -Db_lto=false -Dlibretro=true
 
       - name: Build core
         run: |
