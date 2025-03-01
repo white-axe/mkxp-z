@@ -62,14 +62,16 @@ void GLScissorBox::setIntersect(const IntRect &value) {
 
   SDL_Rect result;
 
-  // TODO: check if this is actually correct
-  if (current.w <= 0 || current.h <= 0 || value.w <= 0 || value.h <= 0 || current.x < value.x + value.w || value.x < current.x + current.w || current.y < value.y + value.h || value.y < current.y + current.h) {
-    result.w = result.h = 0;
+  if (current.w <= 0 || current.h <= 0 || value.w <= 0 || value.h <= 0) {
+    result.x = result.y = result.w = result.h = 0;
   } else {
-    result.x = std::min(current.x, value.x);
-    result.y = std::min(current.y, value.y);
-    result.w = std::max(current.x + current.w, value.x + value.w) - result.x;
-    result.h = std::max(current.y + current.h, value.y + value.h) - result.y;
+    result.x = std::max(current.x, value.x);
+    result.y = std::max(current.y, value.y);
+    result.w = std::min(current.x + current.w, value.x + value.w) - result.x;
+    result.h = std::min(current.y + current.h, value.y + value.h) - result.y;
+    if (result.w <= 0 || result.h <= 0) {
+      result.x = result.y = result.w = result.h = 0;
+    }
   }
 
   set(IntRect(result.x, result.y, result.w, result.h));
