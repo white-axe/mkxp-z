@@ -181,7 +181,13 @@ static bool init_sandbox() {
                 && !(parsed_game_path.length() >= 6 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 6), ".mkxpz") == 0)
                 && !(parsed_game_path.length() >= 6 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 6), ".MKXPZ") == 0)
         ) {
-            size_t last_slash_index = parsed_game_path.find_last_of('/');
+            size_t last_slash_index = parsed_game_path.find_last_of(
+#ifdef _WIN32
+                '\\'
+#else
+                '/'
+#endif // _WIN32
+            );
             if (last_slash_index == std::string::npos) {
                 last_slash_index = 0;
             }
@@ -394,12 +400,10 @@ extern "C" RETRO_API void retro_run() {
             if (sb().run<struct main>()) {
                 log_printf(RETRO_LOG_INFO, "[Sandbox] Ruby terminated normally\n");
                 deinit_sandbox();
-                return;
             }
         } catch (SandboxException) {
             log_printf(RETRO_LOG_ERROR, "[Sandbox] Ruby threw an exception\n");
             deinit_sandbox();
-            return;
         }
     }
 
