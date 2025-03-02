@@ -371,12 +371,10 @@ extern "C" RETRO_API void retro_run() {
             if (sb().run<struct main>()) {
                 log_printf(RETRO_LOG_INFO, "[Sandbox] Ruby terminated normally\n");
                 deinit_sandbox();
-                return;
             }
         } catch (SandboxException) {
             log_printf(RETRO_LOG_ERROR, "[Sandbox] Ruby threw an exception\n");
             deinit_sandbox();
-            return;
         }
     }
 
