@@ -80,6 +80,7 @@ extern "C" void wasm_rt_allocate_memory(wasm_rt_memory_t *memory, uint32_t initi
     memory->data = memory->private_data;
 #endif
     memory->pages = initial_pages;
+    std::memset(memory->data, 0, memory->size);
 }
 
 extern "C" uint32_t wasm_rt_grow_memory(wasm_rt_memory_t *memory, uint32_t pages) {
@@ -106,8 +107,10 @@ extern "C" uint32_t wasm_rt_grow_memory(wasm_rt_memory_t *memory, uint32_t pages
 
 #ifdef MKXPZ_BIG_ENDIAN
     memory->data = memory->private_data + std::max((size_t)new_size, (size_t)WASM_MIN_PAGES * (size_t)WASM_PAGE_SIZE) - (size_t)new_size;
+    std::memset(memory->data, 0, new_size - memory->size);
 #else
     memory->data = memory->private_data;
+    std::memset(memory->data + memory->size, 0, new_size - memory->size);
 #endif // MKXPZ_BIG_ENDIAN
 
     uint32_t old_pages = memory->pages;
