@@ -835,7 +835,7 @@ jobs:
           echo "cpu = 'wasm32'" | tee -a ${{ runner.temp }}/cross.ini
           echo "endian = 'little'" | tee -a ${{ runner.temp }}/cross.ini
           echo '--------------------------------------------------------------------------------'
-          CFLAGS='-fexceptions -gsource-map' CXXFLAGS='-fexceptions -g -gsource-map' LDFLAGS='-fexceptions -g -gsource-map -sASSERTIONS=1 -sALLOW_MEMORY_GROWTH=1 -sSAFE_HEAP=1 -sSTACK_OVERFLOW_CHECK=2' CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype debugoptimized -Db_lto=true -Dlibretro=true
+          CFLAGS='-fexceptions -gsource-map' CXXFLAGS='-fexceptions -g -gsource-map' LDFLAGS='-fexceptions -g -gsource-map -sASSERTIONS=1 -sALLOW_MEMORY_GROWTH=1 -sSAFE_HEAP=2 -sSTACK_OVERFLOW_CHECK=2' CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype debugoptimized -Db_lto=true -Dlibretro=true
 
       - name: Build core
         run: |
@@ -851,7 +851,7 @@ jobs:
           mv mkxp-z_libretro.bc retroarch/libretro_emscripten.bc
           cd retroarch
           sed -i 's|-Ideps/stb|-Ideps/stb -fexceptions -g -gsource-map|' Makefile.emscripten
-          sed -i 's|-s FULL_ES2=1|-s FULL_ES2=1 -fexceptions -g -gsource-map -sASSERTIONS=1 -sALLOW_MEMORY_GROWTH=1 -sSAFE_HEAP=1 -sSTACK_OVERFLOW_CHECK=2|' Makefile.emscripten
+          sed -i 's|-s FULL_ES2=1|-s FULL_ES2=1 -fexceptions -g -gsource-map -sASSERTIONS=1 -sALLOW_MEMORY_GROWTH=1 -sSAFE_HEAP=2 -sSTACK_OVERFLOW_CHECK=2|' Makefile.emscripten
           sed -i 's|-O3|-O2|g' Makefile.emscripten
           CLICOLOR_FORCE=1 emmake make -f Makefile.emscripten LIBRETRO=mkxp-z
           mv mkxp-z_libretro.wasm.map ${{ runner.temp }}/dist
