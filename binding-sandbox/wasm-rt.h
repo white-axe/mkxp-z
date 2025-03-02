@@ -125,20 +125,28 @@ typedef struct {
     uint32_t size;
 } wasm_rt_externref_table_t;
 
+#define wasm_rt_is_initialized mkxp_wasm_rt_is_initialized
 bool wasm_rt_is_initialized(void);
 
+#define wasm_rt_trap mkxp_wasm_rt_trap
 WASM_RT_NO_RETURN void wasm_rt_trap(wasm_rt_trap_t error);
 
+#define wasm_rt_allocate_memory mkxp_wasm_rt_allocate_memory
 void wasm_rt_allocate_memory(wasm_rt_memory_t *memory, uint32_t initial_pages, uint32_t max_pages, bool is64);
 
+#define wasm_rt_grow_memory mkxp_wasm_rt_grow_memory
 uint32_t wasm_rt_grow_memory(wasm_rt_memory_t *memory, uint32_t pages);
 
+#define wasm_rt_free_memory mkxp_wasm_rt_free_memory
 void wasm_rt_free_memory(wasm_rt_memory_t *memory);
 
+#define wasm_rt_allocate_funcref_table mkxp_wasm_rt_allocate_funcref_table
 void wasm_rt_allocate_funcref_table(wasm_rt_funcref_table_t *table, uint32_t elements, uint32_t max_elements);
 
+#define wasm_rt_free_funcref_table mkxp_wasm_rt_free_funcref_table
 void wasm_rt_free_funcref_table(wasm_rt_funcref_table_t *table);
 
+#define wasm_rt_push_funcref mkxp_wasm_rt_push_funcref
 uint32_t wasm_rt_push_funcref(wasm_rt_funcref_table_t *table, wasm_rt_funcref_t funcref);
 
 #ifdef __cplusplus
