@@ -474,6 +474,7 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
     std::memset(&hw_render, 0, sizeof hw_render);
     hw_render.context_reset = initGLFunctions;
     hw_render.context_destroy = NULL;
+    hw_render.cache_context = true;
     hw_render.bottom_left_origin = true;
     if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 3, hw_render.version_minor = 0, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
         log_printf(RETRO_LOG_INFO, "Using OpenGL 3.0 graphics driver\n");
