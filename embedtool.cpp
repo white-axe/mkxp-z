@@ -31,12 +31,12 @@ int main(int argc, char **argv) {
     const char *output = argv[2];
     const char *arrayname = argv[3];
 
-    std::ifstream inputf(input);
+    std::ifstream inputf(input, std::ios::binary);
     if (!inputf.is_open()) {
         return 2;
     }
 
-    std::ofstream outputf(output);
+    std::ofstream outputf(output, std::ios::binary);
     if (!outputf.is_open()) {
         return 3;
     }
