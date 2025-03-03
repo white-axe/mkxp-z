@@ -55,7 +55,7 @@ clean: clean-ruby-dist clean-ruby-bindings
 
 clean-ruby-dist:
 	rm -f $(OUTDIR)/mkxp-retro-dist.zip
-	rm -rf $(LIBDIR)/mkxp-retro-ruby
+	rm -rf $(OUTDIR)/mkxp-retro-ruby
 
 clean-ruby-bindings:
 	rm -f $(OUTDIR)/mkxp-sandbox-bindgen.cpp
