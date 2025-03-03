@@ -33,7 +33,7 @@ global_args += '-DHAVE_NANOSLEEP'
 # ====================
 
 if is_libretro
-    embedtool = executable('embedtool', sources: 'embedtool.cpp', native: true, override_options: [])
+    embedtool = executable('embedtool', sources: 'embedtool.cpp', native: true, override_options: ['buildtype=release', 'b_coverage=false', 'b_lto=false', 'b_ndebug=false', 'b_pgo=off', 'b_sanitize=none'])
 
     libretro_stage1_path = get_option('libretro_stage1_path')
 
@@ -716,7 +716,7 @@ global_args += '-DMKXPZ_INIT_GL_LATER'
 
 subdir('src')
 
-embedtool = executable('embedtool', sources: 'embedtool.cpp', native: true, override_options: [])
+embedtool = executable('embedtool', sources: 'embedtool.cpp', native: true, override_options: ['buildtype=release', 'b_coverage=false', 'b_lto=false', 'b_ndebug=false', 'b_pgo=off', 'b_sanitize=none'])
 
 subdir('binding')
 subdir('shader')

@@ -139,7 +139,7 @@ static struct wasi_zip_stat wasi_zip_stat(zip_t *zip, const char *path, u32 path
     struct wasi_zip_stat info;
     zip_stat_t stat;
 
-    info.normalized_path = mkxp_retro::fs->normalize(path, true, false);
+    info.normalized_path = mkxp_retro::fs->normalize(path, false, false);
 
     if (info.normalized_path.length() == 0) {
         info.exists = true;
@@ -1020,7 +1020,7 @@ extern "C" u32 w2c_wasi__snapshot__preview1_path_filestat_get(wasi_t *wasi, u32 
                 std::string new_path(*wasi->fdtable[fd].dir_handle());
                 new_path.push_back('/');
                 new_path.append((const char *)WASM_MEM(path), strlen_safe((const char *)WASM_MEM(path), path_len));
-                new_path = mkxp_retro::fs->normalize(new_path.c_str(), true, true);
+                new_path = mkxp_retro::fs->normalize(new_path.c_str(), false, true);
                 if (std::strncmp(new_path.c_str(), wasi->fdtable[fd].dir_handle()->c_str(), wasi->fdtable[fd].dir_handle()->length()) != 0) {
                     return WASI_EPERM;
                 }
@@ -1118,7 +1118,7 @@ extern "C" u32 w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, u32 fd, u32 
                 std::string new_path(*wasi->fdtable[fd].dir_handle());
                 new_path.push_back('/');
                 new_path.append((const char *)WASM_MEM(path), strlen_safe((const char *)WASM_MEM(path), path_len));
-                new_path = mkxp_retro::fs->normalize(new_path.c_str(), true, true);
+                new_path = mkxp_retro::fs->normalize(new_path.c_str(), false, true);
                 if (std::strncmp(new_path.c_str(), wasi->fdtable[fd].dir_handle()->c_str(), wasi->fdtable[fd].dir_handle()->length()) != 0) {
                     return WASI_EPERM;
                 }

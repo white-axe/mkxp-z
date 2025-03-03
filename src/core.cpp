@@ -52,7 +52,15 @@ static inline void *malloc_align(size_t alignment, size_t size) {
 #elif defined(MKXPZ_HAVE_ALIGNED_ALLOC)
     return aligned_alloc(alignment, size);
 #else
-    return malloc(size);
+    return std::malloc(size);
+#endif
+}
+
+static inline void free_align(void *ptr) {
+#if defined(MKXPZ_HAVE_ALIGNED_MALLOC)
+    _aligned_free(ptr);
+#else
+    std::free(ptr);
 #endif
 }
 
@@ -344,7 +352,7 @@ extern "C" RETRO_API void retro_init() {
 }
 
 extern "C" RETRO_API void retro_deinit() {
-    std::free(sound_buf);
+    free_align(sound_buf);
     std::free(frame_buf);
 }
 
