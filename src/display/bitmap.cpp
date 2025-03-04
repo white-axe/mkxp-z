@@ -46,8 +46,6 @@
 #include "texpool.h"
 #include "shader.h"
 #include "filesystem.h"
-#ifndef MKXPZ_RETRO
-#endif // MKXPZ_RETRO
 #include "font.h"
 #ifndef MKXPZ_RETRO
 #include "eventthread.h"
@@ -280,9 +278,7 @@ struct BitmapPrivate
         
         prepareCon = shState->prepareDraw.connect(&BitmapPrivate::prepare, this);
         
-#ifndef MKXPZ_RETRO
         font = &shState->defaultFont();
-#endif // MKXPZ_RETRO
         pixman_region_init(&tainted);
     }
     

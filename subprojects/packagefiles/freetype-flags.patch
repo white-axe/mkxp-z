@@ -2,6 +2,42 @@
 
 --- a/meson.build
 +++ b/meson.build
+@@ -326,7 +326,7 @@ if not bzip2_dep.found()
+     required: get_option('bzip2'))
+ endif
+ 
+-if bzip2_dep.found()
++if bzip2_dep.found() and not get_option('bzip2').disabled()
+   ftoption_command += ['--enable=FT_CONFIG_OPTION_USE_BZIP2']
+   ft2_sources += files(['src/bzip2/ftbzip2.c',])
+   ft2_deps += [bzip2_dep]
+@@ -337,7 +337,7 @@ libpng_dep = dependency('libpng',
+   required: get_option('png'),
+   fallback: 'libpng')
+ 
+-if libpng_dep.found()
++if libpng_dep.found() and not get_option('png').disabled()
+   ftoption_command += ['--enable=FT_CONFIG_OPTION_USE_PNG']
+   ft2_deps += [libpng_dep]
+ endif
+@@ -348,7 +348,7 @@ harfbuzz_dep = dependency('harfbuzz',
+   required: get_option('harfbuzz'),
+   default_options: ['freetype=disabled'])
+ 
+-if harfbuzz_dep.found()
++if harfbuzz_dep.found() and not get_option('harfbuzz').disabled()
+   ftoption_command += ['--enable=FT_CONFIG_OPTION_USE_HARFBUZZ']
+   ft2_deps += [harfbuzz_dep]
+ endif
+@@ -357,7 +357,7 @@ endif
+ brotli_dep = dependency('libbrotlidec',
+   required: get_option('brotli'))
+ 
+-if brotli_dep.found()
++if brotli_dep.found() and not get_option('brotli').disabled()
+   ftoption_command += ['--enable=FT_CONFIG_OPTION_USE_BROTLI']
+   ft2_deps += [brotli_dep]
+ endif
 @@ -405,11 +405,11 @@ endif
  
  ft2_lib = library('freetype',

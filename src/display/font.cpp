@@ -39,7 +39,9 @@
 #include "filesystem/filesystem.h"
 #endif
 
-#include <SDL_ttf.h>
+#ifndef MKXPZ_RETRO
+#  include <SDL_ttf.h>
+#endif // MKXPZ_RETRO
 
 #ifndef MKXPZ_BUILD_XCODE
 #ifndef MKXPZ_CJK_FONT
@@ -64,6 +66,7 @@
 
 #endif
 
+#ifndef MKXPZ_RETRO
 static SDL_RWops *openBundledFont()
 {
 #ifndef MKXPZ_BUILD_XCODE
@@ -72,6 +75,7 @@ static SDL_RWops *openBundledFont()
     return SDL_RWFromFile(mkxp_fs::getPathForAsset("Fonts/liberation", "ttf").c_str(), "rb");
 #endif
 }
+#endif // MKXPZ_RETRO
 
 
 
@@ -88,6 +92,10 @@ struct FontSet
 
 struct SharedFontStatePrivate
 {
+#ifdef MKXPZ_RETRO
+	FT_Library library;
+#endif // MKXPZ_RETRO
+
 	/* Maps: font family name, To: substituted family name,
 	 * as specified via configuration file / arguments */
 	BoostHash<std::string, std::string> subs;
@@ -98,17 +106,68 @@ struct SharedFontStatePrivate
 
 	/* Pool of already opened fonts; once opened, they are reused
 	 * and never closed until the termination of the program */
+#ifdef MKXPZ_RETRO
+	BoostHash<FontKey, FT_Face> pool;
+#else
 	BoostHash<FontKey, TTF_Font*> pool;
+#endif // MKXPZ_RETRO
     
     /* Internal default font family that is used anytime an
      * empty/invalid family is requested */
     std::string defaultFamily;
+
+#ifdef MKXPZ_RETRO
+	FT_Error ftOpenFile(std::shared_ptr<struct FileSystem::File> ops, FT_Face &font)
+	{
+		FT_StreamRec ft_stream = {
+			.base = NULL,
+			.size = (unsigned long)-1,
+			.pos = 0,
+			.descriptor = {.pointer = new std::shared_ptr<struct FileSystem::File>(ops)},
+			.pathname = {.pointer = NULL},
+			.read = [](FT_Stream stream, unsigned long offset, unsigned char *buffer, unsigned long count) {
+				if (!PHYSFS_seek(((std::shared_ptr<struct FileSystem::File> *)stream->descriptor.pointer)->get()->get(), offset))
+					return (unsigned long)(count == 0);
+				if (count == 0)
+					return 0UL;
+				PHYSFS_uint64 n = PHYSFS_readBytes(((std::shared_ptr<struct FileSystem::File> *)stream->descriptor.pointer)->get()->get(), buffer, count);
+				return n < 0 ? 0UL : (unsigned long)n;
+			},
+			.close = [](FT_Stream stream) {
+				delete (std::shared_ptr<struct FileSystem::File> *)stream->descriptor.pointer;
+			},
+		};
+	
+		const FT_Open_Args ft_open_args = {
+			.flags = FT_OPEN_STREAM,
+			.memory_base = NULL,
+			.memory_size = 0,
+			.pathname = NULL,
+			.stream = &ft_stream,
+			.driver = NULL,
+			.num_params = 0,
+			.params = NULL,
+		};
+	
+		return FT_Open_Face(library, &ft_open_args, 0, &font);
+	}
+#endif // MKXPZ_RETRO
 };
 
 SharedFontState::SharedFontState(const Config &conf)
 {
 	p = new SharedFontStatePrivate;
 
+#ifdef MKXPZ_RETRO
+	FT_Error ft_error = FT_Init_FreeType(&p->library);
+	if (ft_error)
+	{
+		mkxp_retro::log_printf(RETRO_LOG_ERROR, "FreeType error %d\n", ft_error);
+		std::abort();
+	}
+#endif // MKXPZ_RETRO
+
+#ifndef MKXPZ_RETRO // TODO
 	/* Parse font substitutions */
 	for (size_t i = 0; i < conf.fontSubs.size(); ++i)
 	{
@@ -123,20 +182,46 @@ SharedFontState::SharedFontState(const Config &conf)
 
 		p->subs.insert(from, to);
 	}
+#endif // MKXPZ_RETRO
 }
 
 SharedFontState::~SharedFontState()
 {
+#ifdef MKXPZ_RETRO
+	BoostHash<FontKey, FT_Face>::const_iterator iter;
+#else
 	BoostHash<FontKey, TTF_Font*>::const_iterator iter;
+#endif // MKXPZ_RETRO
 	for (iter = p->pool.cbegin(); iter != p->pool.cend(); ++iter)
+#ifdef MKXPZ_RETRO
+		FT_Done_Face(iter->second);
+#else
 		TTF_CloseFont(iter->second);
+#endif // MKXPZ_RETRO
+
+#ifdef MKXPZ_RETRO
+	FT_Done_FreeType(p->library);
+#endif // MKXPZ_RETRO
 
 	delete p;
 }
 
-void SharedFontState::initFontSetCB(SDL_RWops &ops,
+void SharedFontState::initFontSetCB(
+#ifdef MKXPZ_RETRO
+                                    std::shared_ptr<struct FileSystem::File> ops,
+#else
+                                    SDL_RWops &ops,
+#endif // MKXPZ_RETRO
                                     const std::string &filename)
 {
+#ifdef MKXPZ_RETRO
+	FT_Face font;
+	if (p->ftOpenFile(ops, font))
+		return;
+
+	std::string family(font->family_name);
+	std::string style(font->style_name);
+#else
 	TTF_Font *font = TTF_OpenFontRW(&ops, 0, 0);
 
 	if (!font)
@@ -144,11 +229,16 @@ void SharedFontState::initFontSetCB(SDL_RWops &ops,
 
 	std::string family = TTF_FontFaceFamilyName(font);
 	std::string style = TTF_FontFaceStyleName(font);
+#endif // MKXPZ_RETRO
 
 	std::transform(family.begin(), family.end(), family.begin(),
 		[](unsigned char c){ return std::tolower(c); });
 
+#ifdef MKXPZ_RETRO
+	FT_Done_Face(font);
+#else
 	TTF_CloseFont(font);
+#endif // MKXPZ_RETRO
 
 	FontSet &set = p->sets[family];
 
@@ -158,7 +248,12 @@ void SharedFontState::initFontSetCB(SDL_RWops &ops,
 		set.other = filename;
 }
 
-_TTF_Font *SharedFontState::getFont(std::string family,
+#ifdef MKXPZ_RETRO
+FT_Face
+#else
+_TTF_Font *
+#endif // MKXPZ_RETRO
+SharedFontState::getFont(std::string family,
                                     int size)
 {
 	std::transform(family.begin(), family.end(), family.begin(),
@@ -182,12 +277,33 @@ _TTF_Font *SharedFontState::getFont(std::string family,
 
 	FontKey key(family, size);
 
+#ifdef MKXPZ_RETRO
+	FT_Face font = p->pool.value(key);
+#else
 	TTF_Font *font = p->pool.value(key);
+#endif // MKXPZ_RETRO
 
 	if (font)
 		return font;
 
 	/* Not in pool; open new handle */
+#ifdef MKXPZ_RETRO
+	if (family.empty())
+	{
+		if (FT_New_Memory_Face(p->library, BNDL_F_D(BUNDLED_FONT), BNDL_F_L(BUNDLED_FONT), 0, &font))
+			throw Exception(Exception::SDLError, "failed to load font");
+	}
+	else
+	{
+		/* Use 'other' path as alternative in case
+		 * we have no 'regular' styled font asset */
+		const char *path = !req.regular.empty()
+		                 ? req.regular.c_str() : req.other.c_str();
+
+		if (p->ftOpenFile(std::shared_ptr<struct FileSystem::File>(new struct FileSystem::File(*mkxp_retro::fs, path, FileSystem::OpenMode::Read)), font))
+			throw Exception(Exception::SDLError, "failed to load font");
+	}
+#else
 	SDL_RWops *ops;
 
 	if (family.empty())
@@ -213,6 +329,7 @@ _TTF_Font *SharedFontState::getFont(std::string family,
 
 	if (!font)
 		throw Exception(Exception::SDLError, "%s", SDL_GetError());
+#endif // MKXPZ_RETRO
 
 	p->pool.insert(key, font);
 
@@ -233,12 +350,14 @@ bool SharedFontState::fontPresent(std::string family) const
 	return !(set.regular.empty() && set.other.empty());
 }
 
+#ifndef MKXPZ_RETRO
 _TTF_Font *SharedFontState::openBundled(int size)
 {
 	SDL_RWops *ops = openBundledFont();
 
 	return TTF_OpenFontRW(ops, 1, size);
 }
+#endif // MKXPZ_RETRO
 
 void SharedFontState::setDefaultFontFamily(const std::string &family) {
     p->defaultFamily = family;
@@ -307,7 +426,11 @@ struct FontPrivate
 	/* The actual font is opened as late as possible
 	 * (when it is queried by a Bitmap), prior it is
 	 * set to null */
+#ifdef MKXPZ_RETRO
+	FT_Face sdlFont;
+#else
 	TTF_Font *sdlFont;
+#endif // MKXPZ_RETRO
     
     bool isSolid;
 
@@ -413,7 +536,11 @@ const Font &Font::operator=(const Font &o)
 void Font::setName(const std::vector<std::string> &names)
 {
 	pickExistingFontName(names, p->name, shState->fontState());
-    p->isSolid = strcmp(p->name.c_str(), "") && shState->config().fontIsSolid(p->name.c_str());
+#ifdef MKXPZ_RETRO // TODO
+	p->isSolid = false;
+#else
+	p->isSolid = strcmp(p->name.c_str(), "") && shState->config().fontIsSolid(p->name.c_str());
+#endif // MKXPZ_RETRO
 	p->sdlFont = 0;
 }
 
@@ -483,7 +610,11 @@ void Font::initDefaults(const SharedFontState &sfs)
 {
 	std::vector<std::string> &names = FontPrivate::initialDefaultNames;
 
+#ifdef MKXPZ_RETRO // TODO: get from config
+	switch (1)
+#else
 	switch (rgssVer)
+#endif // MKXPZ_RETRO
 	{
 	case 1 :
 		// FIXME: Japanese version has "MS PGothic" instead
@@ -503,16 +634,27 @@ void Font::initDefaults(const SharedFontState &sfs)
 
 	setDefaultName(names, sfs);
 
+#ifdef MKXPZ_RETRO // TODO: get from config
+	FontPrivate::defaultOutline = false;
+	FontPrivate::defaultShadow  = false;
+#else
 	FontPrivate::defaultOutline = (rgssVer >= 3 ? true : false);
 	FontPrivate::defaultShadow  = (rgssVer == 2 ? true : false);
+#endif // MKXPZ_RETRO
 }
 
-_TTF_Font *Font::getSdlFont()
+#ifdef MKXPZ_RETRO
+FT_Face
+#else
+_TTF_Font *
+#endif // MKXPZ_RETRO
+Font::getSdlFont()
 {
 	if (!p->sdlFont)
 		p->sdlFont = shState->fontState().getFont(p->name.c_str(),
 		                                          p->size);
 
+#ifndef MKXPZ_RETRO // TODO
 	int style = TTF_STYLE_NORMAL;
 
 	if (p->bold)
@@ -522,6 +664,7 @@ _TTF_Font *Font::getSdlFont()
 		style |= TTF_STYLE_ITALIC;
 
 	TTF_SetFontStyle(p->sdlFont, style);
+#endif // MKXPZ_RETRO
 
 	return p->sdlFont;
 }

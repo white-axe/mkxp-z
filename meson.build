@@ -258,6 +258,7 @@ if is_libretro
     use_pic = not core_is_static
 
     subdir('shader')
+    subdir('assets')
 
     cmake = import('cmake')
 
@@ -602,6 +603,7 @@ if is_libretro
             'src/crypto/rgssad.cpp',
             'src/display/autotiles.cpp',
             'src/display/bitmap.cpp',
+            'src/display/font.cpp',
             'src/display/plane.cpp',
             'src/display/sprite.cpp',
             'src/display/tilemap.cpp',

@@ -94,10 +94,8 @@ struct SharedStatePrivate
 
 	TexPool texPool;
 
-#ifndef MKXPZ_RETRO
 	SharedFontState fontState;
 	Font *defaultFont;
-#endif // MKXPZ_RETRO
 
 	TEX::ID globalTex;
 	int globalTexW, globalTexH;
@@ -133,9 +131,7 @@ struct SharedStatePrivate
 	      audio(*threadData),
 #endif // MKXPZ_RETRO
 	      _glState(threadData->config),
-#ifndef MKXPZ_RETRO
 	      fontState(threadData->config),
-#endif // MKXPZ_RETRO
 	      stampCounter(0)
 	{}
 	
@@ -223,32 +219,24 @@ void SharedState::initInstance(RGSSThreadData *threadData)
 	try
 	{
 		SharedState::instance = new SharedState(threadData);
-#ifndef MKXPZ_RETRO
 		Font::initDefaults(instance->p->fontState);
 		defaultFont = new Font();
-#endif // MKXPZ_RETRO
 	}
 	catch (const Exception &exc)
 	{
 		delete _globalIBO;
 		delete SharedState::instance;
-#ifndef MKXPZ_RETRO
 		delete defaultFont;
-#endif // MKXPZ_RETRO
 
 		throw exc;
 	}
 
-#ifndef MKXPZ_RETRO
 	SharedState::instance->p->defaultFont = defaultFont;
-#endif // MKXPZ_RETRO
 }
 
 void SharedState::finiInstance()
 {
-#ifndef MKXPZ_RETRO
 	delete SharedState::instance->p->defaultFont;
-#endif // MKXPZ_RETRO
 
 	delete SharedState::instance;
 
@@ -286,9 +274,7 @@ GSATT(GLState&, _glState)
 GSATT(ShaderSet&, shaders)
 GSATT(TexPool&, texPool)
 GSATT(Quad&, gpQuad)
-#ifndef MKXPZ_RETRO
 GSATT(SharedFontState&, fontState)
-#endif // MKXPZ_RETRO
 GSATT(SharedMidiState&, midiState)
 
 void SharedState::setBindingData(void *data)
@@ -412,12 +398,10 @@ void SharedState::checkReset()
 #endif // MKXPZ_RETRO
 }
 
-#ifndef MKXPZ_RETRO
 Font &SharedState::defaultFont() const
 {
 	return *p->defaultFont;
 }
-#endif // MKXPZ_RETRO
 
 double SharedState::runTime() {
     if (!p) return 0;

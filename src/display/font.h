@@ -24,6 +24,12 @@
 
 #include "etc.h"
 #include "util.h"
+#include "filesystem.h"
+
+#ifdef MKXPZ_RETRO
+#  include <ft2build.h>
+#  include FT_FREETYPE_H
+#endif // MKXPZ_RETRO
 
 #include <vector>
 #include <string>
@@ -44,15 +50,28 @@ public:
 	 * (when "Fonts/" is scanned for available assets).
 	 * 'ops' is an opened handle to a possible font file,
 	 * 'filename' is the corresponding path */
-	void initFontSetCB(SDL_RWops &ops,
+	void initFontSetCB(
+#ifdef MKXPZ_RETRO
+	                   std::shared_ptr<struct FileSystem::File> ops,
+#else
+	                   SDL_RWops &ops,
+#endif // MKXPZ_RETRO
 	                   const std::string &filename);
 
-	_TTF_Font *getFont(std::string family,
+#ifdef MKXPZ_RETRO
+	FT_Face
+#else
+	_TTF_Font *
+#endif // MKXPZ_RETRO
+	getFont(
+	                   std::string family,
 	                   int size);
 
 	bool fontPresent(std::string family) const;
 
+#ifndef MKXPZ_RETRO
 	static _TTF_Font *openBundled(int size);
+#endif // MKXPZ_RETRO
     void setDefaultFontFamily(const std::string &family);
 
 private:
@@ -116,7 +135,12 @@ public:
 	static void initDefaults(const SharedFontState &sfs);
 
 	/* internal */
-	_TTF_Font *getSdlFont();
+#ifdef MKXPZ_RETRO
+	FT_Face
+#else
+	_TTF_Font *
+#endif // MKXPZ_RETRO
+	getSdlFont();
 
 private:
 	FontPrivate *p;
