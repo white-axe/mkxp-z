@@ -38,8 +38,8 @@ if is_libretro
     libretro_stage1_path = get_option('libretro_stage1_path')
 
     libretro_link_args = []
-    libretro_cflags = []
-    libretro_cppflags = []
+    libretro_cflags = ['-Wno-unused-command-line-argument']
+    libretro_cppflags = ['-Wno-unused-command-line-argument']
 
     if core_is_static and not is_emscripten and get_option('b_lto')
         compilers['c'].has_argument('-ffat-lto-objects', required: true)
@@ -494,6 +494,43 @@ if is_libretro
         subproject('stb').get_variable('stb'),
         subproject('portablegl').get_variable('portablegl'),
         subproject('freetype', default_options: freetype_options).get_variable('freetype_dep'),
+        declare_dependency(
+            link_with: static_library(
+                'ruby',
+                c_args: libretro_cflags + libretro_defines + [
+                    '-fno-optimize-sibling-calls',
+                    '-frounding-math',
+                    '-fsignaling-nans',
+                    '-Wno-unused-function',
+                    '-Wno-unused-value',
+                    '-Wno-unused-variable',
+                    '-Wno-unused-but-set-variable',
+                    '-Wno-ignored-optimization-argument',
+                ],
+                include_directories: [
+                    include_directories('binding-sandbox'),
+                    include_directories(libretro_stage1_path),
+                    include_directories(libretro_stage1_path / 'mkxp-retro-ruby'),
+                ],
+                sources: [
+                    libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_0.c',
+                    libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_1.c',
+                    libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_2.c',
+                    libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_3.c',
+                    libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_4.c',
+                    libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_5.c',
+                    libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_6.c',
+                    libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_7.c',
+                ],
+                gnu_symbol_visibility: 'hidden',
+                install: false,
+                pic: use_pic,
+            ),
+            include_directories: [
+                include_directories(libretro_stage1_path),
+                include_directories(libretro_stage1_path / 'mkxp-retro-ruby'),
+            ],
+        ),
     ]
     if host_system == 'darwin'
         libretro_deps += compilers['cpp'].find_library('iconv')
@@ -522,18 +559,8 @@ if is_libretro
         name_suffix: is_emscripten ? 'bc' : [],
         target_type: libretro_target_type,
         dependencies: libretro_deps_processed,
-        c_args: [
-            '-fno-optimize-sibling-calls',
-            '-frounding-math',
-            '-fsignaling-nans',
-            '-Wno-unused-function',
-            '-Wno-unused-value',
-            '-Wno-unused-variable',
-            '-Wno-unused-but-set-variable',
-            '-Wno-ignored-optimization-argument',
-            '-Wno-unused-command-line-argument',
-        ] + libretro_cflags + libretro_defines,
-        cpp_args: ['-Wno-unused-command-line-argument'] + libretro_cppflags + libretro_defines,
+        c_args: libretro_cflags + libretro_defines,
+        cpp_args: libretro_cppflags + libretro_defines,
         link_args: libretro_link_args,
         pic: use_pic,
         gnu_symbol_visibility: 'hidden',
@@ -557,8 +584,6 @@ if is_libretro
             include_directories('src/util'),
             include_directories('src/util/sigslot'),
             include_directories('src/util/sigslot/adapter'),
-            include_directories(libretro_stage1_path),
-            include_directories(libretro_stage1_path / 'mkxp-retro-ruby'),
         ],
         sources: global_sources + [
             'src/core.cpp',
@@ -625,14 +650,6 @@ if is_libretro
                     'mkxp_retro_dist_zip',
                 ],
             ),
-            libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_0.c',
-            libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_1.c',
-            libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_2.c',
-            libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_3.c',
-            libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_4.c',
-            libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_5.c',
-            libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_6.c',
-            libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_7.c',
         ],
     )
 else
