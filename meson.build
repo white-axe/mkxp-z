@@ -449,6 +449,20 @@ if is_libretro
         'CMAKE_BUILD_TYPE': 'None',
     })
 
+    freetype_options = [
+        'cflags=@0@'.format(','.join(libretro_defines + libretro_cflags)),
+        'cppflags=@0@'.format(','.join(libretro_defines + libretro_cppflags)),
+        'default_library=static',
+        'b_staticpic=@0@'.format(use_pic),
+        'brotli=disabled',
+        'bzip2=disabled',
+        'harfbuzz=disabled',
+        'mmap=disabled',
+        'png=disabled',
+        'tests=disabled',
+        'zlib=disabled',
+    ]
+
     libretro_deps = [
         subproject('libretro-common').get_variable('libretro_common'),
         subproject('sdl2-headers').get_variable('sdl2_headers'),
@@ -479,6 +493,7 @@ if is_libretro
         cmake.subproject('pixman-region', options: pixman_region_options).dependency('pixman-region'),
         subproject('stb').get_variable('stb'),
         subproject('portablegl').get_variable('portablegl'),
+        subproject('freetype', default_options: freetype_options).get_variable('freetype_dep'),
     ]
     if host_system == 'darwin'
         libretro_deps += compilers['cpp'].find_library('iconv')
