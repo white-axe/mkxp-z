@@ -1216,7 +1216,6 @@ void Bitmap::stretchBlt(IntRect destRect,
     SDL_Surface *srcSurf = source.megaSurface();
     SDL_Surface *blitTemp = 0;
     bool touchesTaintedArea = p->touchesTaintedArea(destRect);
-#ifndef MKXPZ_RETRO
     bool unpack_subimage = srcSurf && gl.unpack_subimage;
 
     const bool scaleIsOne = sourceRect.w == destRect.w && sourceRect.h == destRect.h;
@@ -1238,7 +1237,11 @@ void Bitmap::stretchBlt(IntRect destRect,
         if (srcSurf)
         {
             SDL_Rect srcRect = sourceRect;
+#ifdef MKXPZ_RETRO
+            bool subImageFix = false; // TODO: get from config
+#else
             bool subImageFix = shState->config().subImageFix;
+#endif // MKXPZ_RETRO
             bool srcRectTooBig = srcRect.w > glState.caps.maxTexSize ||
                                  srcRect.h > glState.caps.maxTexSize;
             bool srcSurfTooBig = !unpack_subimage && (
@@ -1248,6 +1251,10 @@ void Bitmap::stretchBlt(IntRect destRect,
             
             if (srcRectTooBig || srcSurfTooBig)
             {
+#ifdef MKXPZ_RETRO // TODO
+                mkxp_retro::log_printf(RETRO_LOG_ERROR, "not implemented: stretchBlt for sources larger than the max texture size\n");
+                std::abort();
+#else
                 int error;
                 if (srcRectTooBig)
                 {
@@ -1299,6 +1306,7 @@ void Bitmap::stretchBlt(IntRect destRect,
                 sourceRect.h = srcSurf->h;
                 sourceRect.x = 0;
                 sourceRect.y = 0;
+#endif // MKXPZ_RETRO
             }
             
             if (opacity == 255 && !touchesTaintedArea)
@@ -1449,7 +1457,6 @@ void Bitmap::stretchBlt(IntRect destRect,
     
     if (blitTemp)
         SDL_FreeSurface(blitTemp);
-#endif // MKXPZ_RETRO
     
     p->addTaintedArea(destRect);
     p->onModified();
@@ -2157,6 +2164,42 @@ static void applyShadow(SDL_Surface *&in, const SDL_PixelFormat &fm, const SDL_C
     in = out;
 }
 
+#ifdef MKXPZ_RETRO
+IntRect Bitmap::textRect(const char *str)
+{
+    FT_Face font = p->font->getSdlFont();
+
+    // TODO: handle kerning
+    int bitmap_left = 0;
+    int bitmap_right = 0;
+    int bitmap_top = 0;
+    int bitmap_bottom = 0;
+    int glyph_x = 0;
+    int glyph_y = 0;
+
+    for (const char *ptr = str; *ptr != 0; ++ptr)
+    {
+        if (FT_Load_Char(font, *ptr, FT_LOAD_RENDER))
+            continue;
+
+        int glyph_left = glyph_x + font->glyph->bitmap_left;
+        int glyph_right = glyph_left + font->glyph->bitmap.width;
+        int glyph_top = glyph_y - font->glyph->bitmap_top;
+        int glyph_bottom = glyph_top + font->glyph->bitmap.rows;
+
+        bitmap_left = std::min(bitmap_left, glyph_left);
+        bitmap_right = std::max(bitmap_right, glyph_right);
+        bitmap_top = std::min(bitmap_top, glyph_top);
+        bitmap_bottom = std::max(bitmap_bottom, glyph_bottom);
+
+        glyph_x += font->glyph->advance.x / 64;
+        glyph_y += font->glyph->advance.y / 64;
+    }
+
+    return IntRect(bitmap_left, bitmap_top, bitmap_right - bitmap_left, bitmap_bottom - bitmap_top);
+}
+#endif // MKXPZ_RETRO
+
 void Bitmap::drawText(const IntRect &rect, const char *str, int align)
 {
     guardDisposed();
@@ -2164,7 +2207,6 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
     GUARD_MEGA;
     GUARD_ANIMATED;
     
-#ifndef MKXPZ_RETRO
     if (hasHires()) {
         Font &loresFont = getFont();
         Font &hiresFont = p->selfHires->getFont();
@@ -2196,7 +2238,11 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
     if (str[0] == ' ' && str[1] == '\0')
         return;
     
+#ifdef MKXPZ_RETRO
+    FT_Face font = p->font->getSdlFont();
+#else
     TTF_Font *font = p->font->getSdlFont();
+#endif // MKXPZ_RETRO
     const Color &fontColor = p->font->getColor();
     const Color &outColor = p->font->getOutColor();
     
@@ -2205,15 +2251,59 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
     
     SDL_Surface *txtSurf;
     
+#ifdef MKXPZ_RETRO
+    // TODO: handle kerning
+    IntRect bitmapRect = textRect(str);
+
+    txtSurf = new SDL_Surface;
+    if ((txtSurf->pixels = std::calloc(bitmapRect.w * bitmapRect.h, 4)) == NULL)
+        throw std::bad_alloc();
+    txtSurf->w = bitmapRect.w;
+    txtSurf->h = bitmapRect.h;
+
+    int glyph_x = -bitmapRect.x;
+    int glyph_y = -bitmapRect.y;
+
+    for (const char *ptr = str; *ptr != 0; ++ptr)
+    {
+        if (FT_Load_Char(font, *ptr, FT_LOAD_RENDER))
+            continue;
+
+        int glyph_left = glyph_x + font->glyph->bitmap_left;
+        int glyph_top = glyph_y - font->glyph->bitmap_top;
+        unsigned int glyph_width = font->glyph->bitmap.width;
+        unsigned int glyph_height = font->glyph->bitmap.rows;
+
+        for (unsigned int y = 0; y < glyph_height; ++y)
+        {
+            for (unsigned int x = 0; x < glyph_width; ++x)
+            {
+                uint8_t alpha = ((uint8_t *)font->glyph->bitmap.buffer)[glyph_width * y + x];
+                if (alpha > 0)
+                {
+                    ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x)] = c.r;
+                    ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 1] = c.g;
+                    ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 2] = c.b;
+                    ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 3] = alpha;
+                }
+            }
+        }
+
+        glyph_x += font->glyph->advance.x / 64;
+        glyph_y += font->glyph->advance.y / 64;
+    }
+#else
     if (p->font->isSolid())
         txtSurf = TTF_RenderUTF8_Solid(font, str, c);
     else
         txtSurf = TTF_RenderUTF8_Blended(font, str, c);
     
     p->ensureFormat(txtSurf, SDL_PIXELFORMAT_ABGR8888);
+#endif // MKXPZ_RETRO
     
     int rawTxtSurfH = txtSurf->h;
     
+#ifndef MKXPZ_RETRO // TODO
     if (p->font->getShadow())
         applyShadow(txtSurf, *p->format, c);
     
@@ -2246,6 +2336,7 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
         /* reset outline to 0 */
         TTF_SetFontOutline(font, 0);
     }
+#endif // MKXPZ_RETRO
     
     int alignX = rect.x;
     
@@ -2288,7 +2379,6 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
     Bitmap txtBitmap(txtSurf, nullptr, true);
     bool smooth = squeeze != 1.0f;
     stretchBlt(destRect, txtBitmap, sourceRect, fontColor.alpha, smooth);
-#endif // MKXPZ_RETRO
 }
 
 /* http://www.lemoda.net/c/utf8-to-ucs2/index.html */
@@ -2346,7 +2436,8 @@ IntRect Bitmap::textSize(const char *str)
     // Need to double-check this.
 
 #ifdef MKXPZ_RETRO
-    return IntRect(); // TODO: implement
+    IntRect rect = textRect(str);
+    return IntRect(0, 0, rect.w, rect.h);
 #else
     TTF_Font *font = p->font->getSdlFont();
     

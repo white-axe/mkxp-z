@@ -177,6 +177,10 @@ private:
 	BitmapPrivate *p;
 
 	void loresDisposal();
+
+#ifdef MKXPZ_RETRO
+	IntRect textRect(const char *str);
+#endif // MKXPZ_RETRO
 };
 
 #endif // BITMAP_H

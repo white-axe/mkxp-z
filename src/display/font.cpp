@@ -303,6 +303,9 @@ SharedFontState::getFont(std::string family,
 		if (p->ftOpenFile(std::shared_ptr<struct FileSystem::File>(new struct FileSystem::File(*mkxp_retro::fs, path, FileSystem::OpenMode::Read)), font))
 			throw Exception(Exception::SDLError, "failed to load font");
 	}
+
+	// FIXME 0.9 is guesswork at this point
+	FT_Set_Char_Size(font, 0, (int)(size * 0.90f) * 64, 0, 0);
 #else
 	SDL_RWops *ops;
 
