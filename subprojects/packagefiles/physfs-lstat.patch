@@ -1,0 +1,16 @@
+# Prevents PhysFS from using lstat if the lstat sanity check in our meson.build failed.
+
+--- a/src/physfs_platform_posix.c
++++ b/src/physfs_platform_posix.c
+@@ -331,7 +331,11 @@ int __PHYSFS_platformDelete(const char *path)
+ int __PHYSFS_platformStat(const char *fname, PHYSFS_Stat *st, const int follow)
+ {
+     struct stat statbuf;
++#ifdef MKXPZ_NO_LSTAT
++    const int rc = stat(fname, &statbuf);
++#else
+     const int rc = follow ? stat(fname, &statbuf) : lstat(fname, &statbuf);
++#endif
+     BAIL_IF(rc == -1, errcodeFromErrno(), 0);
+ 
+     if (S_ISREG(statbuf.st_mode))

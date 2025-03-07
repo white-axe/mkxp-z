@@ -243,6 +243,17 @@ if is_libretro
         libretro_defines += '-DMKXPZ_HAVE_ALIGNED_ALLOC'
     endif
 
+    if compilers['cpp'].has_header('sys/stat.h') and (not compilers['cpp'].has_header_symbol('sys/stat.h', 'lstat') or not compilers['cpp'].links('''
+        #include <sys/stat.h>
+        int main() {
+            struct stat stat;
+            lstat("/", &stat);
+            return 0;
+        }
+    ''', name: 'lstat sanity check'))
+        libretro_defines += '-DMKXPZ_NO_LSTAT'
+    endif
+
     # Enable integer-only mode in FLAC when building with Vita SDK. Otherwise, we get an internal compiler error in FLAC__window_triangle:
     #
     # ../subprojects/flac/src/libFLAC/window.c: In function 'FLAC__window_triangle':
