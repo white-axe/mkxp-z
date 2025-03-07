@@ -40,6 +40,7 @@ if is_libretro
     libretro_link_args = []
     libretro_cflags = ['-Wno-unused-command-line-argument']
     libretro_cppflags = ['-Wno-unused-command-line-argument']
+    libretro_ruby_cflags = []
 
     if core_is_static and not is_emscripten and get_option('b_lto')
         compilers['c'].has_argument('-ffat-lto-objects', required: true)
@@ -48,9 +49,16 @@ if is_libretro
         libretro_cppflags += '-ffat-lto-objects'
     endif
 
-    if (host_cpu_family == 'ppc' or host_cpu_family == 'ppc64') and not get_option('b_lto')
+    if get_option('ruby_lto') and not get_option('b_lto')
+        compilers['c'].has_argument('-flto', required: true)
+        compilers['c'].has_argument('-ffat-lto-objects', required: true)
+        libretro_ruby_cflags += '-flto'
+        libretro_ruby_cflags += '-ffat-lto-objects'
+    endif
+
+    if (host_cpu_family == 'ppc' or host_cpu_family == 'ppc64') and not get_option('b_lto') and not get_option('ruby_lto')
         # We get a bunch of "relocation truncated to fit" when linking if LTO isn't enabled.
-        error('LTO is required when building for PowerPC architectures.')
+        error('LTO is required when building for PowerPC architectures. Please pass either `-Db_lto=true` or `-Druby_lto=true` to Meson.')
     endif
 
     if host_cpu_family == 'ppc64'
@@ -474,7 +482,7 @@ if is_libretro
         declare_dependency(
             link_with: static_library(
                 'ruby',
-                c_args: libretro_cflags + libretro_defines + [
+                c_args: libretro_cflags + libretro_ruby_cflags + libretro_defines + [
                     '-fno-optimize-sibling-calls',
                     '-frounding-math',
                     '-fsignaling-nans',
