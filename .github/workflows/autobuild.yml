@@ -864,16 +864,14 @@ jobs:
     needs: build-libretro-stage1
     name: LR PlayStation 3
     runs-on: ubuntu-latest
-    container:
-      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-psl1ght:latest
-      options: -u root
+    container: scummvm/dockerized-toolchains:ps3
     steps:
       - name: Install dependencies
         run: |
           apt update
           apt install -y git build-essential pip ninja-build jq
           apt remove -y meson cmake
-          pip install meson cmake
+          pip install --break-system-packages meson cmake
 
       - id: short-sha
         name: Get Git commit hash
