@@ -461,6 +461,7 @@ if is_libretro
         cmake.subproject('libzip', options: libzip_options).dependency('zip'),
         cmake.subproject('physfs', options: physfs_options).dependency('physfs-static'),
         cmake.subproject('openal-soft', options: openal_options).dependency('OpenAL'),
+        cmake.subproject('openal-soft', options: openal_options).dependency('alsoft.fmt'),
         cmake.subproject('fluidlite', options: fluidlite_options).dependency('fluidlite-static'),
         cmake.subproject('ogg', options: ogg_options).dependency('ogg'),
         cmake.subproject('vorbis', options: vorbis_options).dependency('vorbis'),
@@ -468,6 +469,7 @@ if is_libretro
         cmake.subproject('flac', options: flac_options).dependency('FLAC'),
         cmake.subproject('opus', options: opus_options).dependency('opus'),
         cmake.subproject('mpg123', options: mpg123_options).dependency('libmpg123'),
+        cmake.subproject('mpg123', options: mpg123_options).dependency('compat'),
         cmake.subproject('libsndfile', options: libsndfile_options).dependency('sndfile'),
         declare_dependency(
             link_with: static_library(
