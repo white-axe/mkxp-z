@@ -40,6 +40,7 @@ if is_libretro
     libretro_link_args = []
     libretro_cflags = ['-Wno-unused-command-line-argument']
     libretro_cppflags = ['-Wno-unused-command-line-argument']
+    libretro_ruby_cflags = []
 
     if core_is_static and not is_emscripten and get_option('b_lto')
         compilers['c'].has_argument('-ffat-lto-objects', required: true)
@@ -48,9 +49,16 @@ if is_libretro
         libretro_cppflags += '-ffat-lto-objects'
     endif
 
-    if (host_cpu_family == 'ppc' or host_cpu_family == 'ppc64') and not get_option('b_lto')
+    if get_option('ruby_lto') and not get_option('b_lto')
+        compilers['c'].has_argument('-flto', required: true)
+        compilers['c'].has_argument('-ffat-lto-objects', required: true)
+        libretro_ruby_cflags += '-flto'
+        libretro_ruby_cflags += '-ffat-lto-objects'
+    endif
+
+    if (host_cpu_family == 'ppc' or host_cpu_family == 'ppc64') and not get_option('b_lto') and not get_option('ruby_lto')
         # We get a bunch of "relocation truncated to fit" when linking if LTO isn't enabled.
-        error('LTO is required when building for PowerPC architectures.')
+        error('LTO is required when building for PowerPC architectures. Please pass either `-Db_lto=true` or `-Druby_lto=true` to Meson.')
     endif
 
     if host_cpu_family == 'ppc64'
@@ -233,6 +241,17 @@ if is_libretro
         libretro_defines += '-DMKXPZ_HAVE_ALIGNED_MALLOC'
     elif compilers['cpp'].has_header_symbol('stdlib.h', 'aligned_alloc')
         libretro_defines += '-DMKXPZ_HAVE_ALIGNED_ALLOC'
+    endif
+
+    if compilers['cpp'].has_header('sys/stat.h') and (not compilers['cpp'].has_header_symbol('sys/stat.h', 'lstat') or not compilers['cpp'].links('''
+        #include <sys/stat.h>
+        int main() {
+            struct stat stat;
+            lstat("/", &stat);
+            return 0;
+        }
+    ''', name: 'lstat sanity check'))
+        libretro_defines += '-DMKXPZ_NO_LSTAT'
     endif
 
     # Enable integer-only mode in FLAC when building with Vita SDK. Otherwise, we get an internal compiler error in FLAC__window_triangle:
@@ -483,6 +502,7 @@ if is_libretro
         cmake.subproject('libzip', options: libzip_options).dependency('zip'),
         cmake.subproject('physfs', options: physfs_options).dependency('physfs-static'),
         cmake.subproject('openal-soft', options: openal_options).dependency('OpenAL'),
+        cmake.subproject('openal-soft', options: openal_options).dependency('alsoft.fmt'),
         cmake.subproject('fluidlite', options: fluidlite_options).dependency('fluidlite-static'),
         cmake.subproject('ogg', options: ogg_options).dependency('ogg'),
         cmake.subproject('vorbis', options: vorbis_options).dependency('vorbis'),
@@ -490,6 +510,7 @@ if is_libretro
         cmake.subproject('flac', options: flac_options).dependency('FLAC'),
         cmake.subproject('opus', options: opus_options).dependency('opus'),
         cmake.subproject('mpg123', options: mpg123_options).dependency('libmpg123'),
+        cmake.subproject('mpg123', options: mpg123_options).dependency('compat'),
         cmake.subproject('libsndfile', options: libsndfile_options).dependency('sndfile'),
         cmake.subproject('pixman-region', options: pixman_region_options).dependency('pixman-region'),
         subproject('stb').get_variable('stb'),
@@ -498,7 +519,7 @@ if is_libretro
         declare_dependency(
             link_with: static_library(
                 'ruby',
-                c_args: libretro_cflags + libretro_defines + [
+                c_args: libretro_cflags + libretro_ruby_cflags + libretro_defines + [
                     '-fno-optimize-sibling-calls',
                     '-frounding-math',
                     '-fsignaling-nans',

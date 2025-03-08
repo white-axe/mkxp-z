@@ -727,21 +727,43 @@ jobs:
 
   build-libretro-darwin:
     needs: build-libretro-stage1
-    name: LR Darwin ${{ matrix.arch_mkxpz }}
+    name: LR ${{ matrix.system_name }} ${{ matrix.arch_mkxpz }}
     runs-on: macos-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - arch_mkxpz: arm64
-            arch_llvm: aarch64-apple-darwin
+          - system_name: macOS
+            system_mkxpz: macos
+            sdk: macosx
+            arch_mkxpz: arm64
+            arch_llvm: arm64
             cpu_family: aarch64
             cpu: generic-armv8-a
             endian: little
-          - arch_mkxpz: x86_64
-            arch_llvm: x86_64-apple-darwin
+          - system_name: macOS
+            system_mkxpz: macos
+            sdk: macosx
+            arch_mkxpz: x86_64
+            arch_llvm: x86_64
             cpu_family: x86_64
             cpu: x86_64
+            endian: little
+          - system_name: iOS
+            system_mkxpz: ios
+            sdk: iphoneos
+            arch_mkxpz: arm64
+            arch_llvm: arm64
+            cpu_family: aarch64
+            cpu: generic-armv8-a
+            endian: little
+          - system_name: tvOS
+            system_mkxpz: tvos
+            sdk: appletvos
+            arch_mkxpz: arm64
+            arch_llvm: arm64
+            cpu_family: aarch64
+            cpu: generic-armv8-a
             endian: little
     steps:
       - name: Install dependencies
@@ -766,8 +788,8 @@ jobs:
       - name: Configure core
         run: |
           echo "[binaries]" | tee -a ${{ runner.temp }}/cross.ini
-          echo "c = ['clang', '--target=${{ matrix.arch_llvm }}']" | tee -a ${{ runner.temp }}/cross.ini
-          echo "cpp = ['clang++', '--target=${{ matrix.arch_llvm }}']" | tee -a ${{ runner.temp }}/cross.ini
+          echo "c = ['xcrun', '--sdk', '${{ matrix.sdk }}', 'clang', '-arch', '${{ matrix.arch_llvm }}']" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpp = ['xcrun', '--sdk', '${{ matrix.sdk }}', 'clang++', '-arch', '${{ matrix.arch_llvm }}']" | tee -a ${{ runner.temp }}/cross.ini
           echo "ar = 'ar'" | tee -a ${{ runner.temp }}/cross.ini
           echo "strip = 'strip'" | tee -a ${{ runner.temp }}/cross.ini
           echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
@@ -775,6 +797,8 @@ jobs:
           echo "cpu_family = '${{ matrix.cpu_family }}'" | tee -a ${{ runner.temp }}/cross.ini
           echo "cpu = '${{ matrix.cpu }}'" | tee -a ${{ runner.temp }}/cross.ini
           echo "endian = '${{ matrix.endian }}'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "[cmake]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "CMAKE_OSX_SYSROOT = '/nonexistent'" | tee -a ${{ runner.temp }}/cross.ini
           echo '--------------------------------------------------------------------------------'
           CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dlibretro=true
 
@@ -789,7 +813,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mkxp-z_libretro.darwin.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          name: mkxp-z_libretro.${{ matrix.system_mkxpz }}.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/dist
 
   build-libretro-emscripten:
@@ -903,7 +927,7 @@ jobs:
           echo "endian = 'big'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=false -Druby_lto=true -Dlibretro=true
 
       - name: Build core
         run: |
