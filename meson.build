@@ -38,8 +38,8 @@ if is_libretro
     libretro_stage1_path = get_option('libretro_stage1_path')
 
     libretro_link_args = []
-    libretro_cflags = ['-Wno-unused-command-line-argument']
-    libretro_cppflags = ['-Wno-unused-command-line-argument']
+    libretro_cflags = []
+    libretro_cppflags = []
     libretro_ruby_cflags = []
 
     if core_is_static and not is_emscripten and get_option('b_lto')
@@ -494,14 +494,12 @@ if is_libretro
             link_with: static_library(
                 'ruby',
                 c_args: libretro_cflags + libretro_ruby_cflags + libretro_defines + [
-                    '-fno-optimize-sibling-calls',
                     '-frounding-math',
                     '-fsignaling-nans',
                     '-Wno-unused-function',
                     '-Wno-unused-value',
                     '-Wno-unused-variable',
                     '-Wno-unused-but-set-variable',
-                    '-Wno-ignored-optimization-argument',
                 ],
                 include_directories: [
                     include_directories('binding-sandbox'),
