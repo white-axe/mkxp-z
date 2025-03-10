@@ -1,0 +1,5 @@
+[wrap-git]
+url = https://github.com/KhronosGroup/EGL-Registry
+revision = 29c4314e0ef04c730992d295f91b76635019fbba
+depth = 1
+patch_directory = egl-registry

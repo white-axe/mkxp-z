@@ -115,6 +115,8 @@ if is_libretro
         '-DSHARED_FLUID',
         '-D_FILE_OFFSET_BITS=64',
         '-DMPG123_NO_LARGENAME',
+        '-DPGL_PREFIX_TYPES',
+        '-DPGL_PREFIX_GLSL',
     ]
 
     if host_endian == 'big'
@@ -514,6 +516,7 @@ if is_libretro
         cmake.subproject('libsndfile', options: libsndfile_options).dependency('sndfile'),
         cmake.subproject('pixman-region', options: pixman_region_options).dependency('pixman-region'),
         subproject('stb').get_variable('stb'),
+        subproject('opengl-registry').get_variable('opengl_registry'),
         subproject('portablegl').get_variable('portablegl'),
         subproject('freetype', default_options: freetype_options).get_variable('freetype_dep'),
         declare_dependency(

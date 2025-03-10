@@ -1,0 +1,5 @@
+[wrap-git]
+url = https://github.com/KhronosGroup/OpenGL-Registry
+revision = b53ca669bea4715b6d5fa53c459f47a1fecd7944
+depth = 1
+patch_directory = opengl-registry
