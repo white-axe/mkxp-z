@@ -117,6 +117,7 @@ if is_libretro
         '-DMPG123_NO_LARGENAME',
         '-DPGL_PREFIX_TYPES',
         '-DPGL_PREFIX_GLSL',
+        '-DGL_GLES_PROTOTYPES=0',
     ]
 
     if host_endian == 'big'
@@ -635,6 +636,8 @@ if is_libretro
             'src/display/gl/gl-fun.cpp',
             'src/display/gl/gl-meta.cpp',
             'src/display/gl/glstate.cpp',
+            'src/display/gl/pgl-enum.cpp',
+            'src/display/gl/pgl-fun.cpp',
             'src/display/gl/scene.cpp',
             'src/display/gl/shader.cpp',
             'src/display/gl/texpool.cpp',
