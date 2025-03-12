@@ -44,7 +44,7 @@ using namespace mkxp_retro;
 using namespace mkxp_sandbox;
 
 namespace mkxp_retro {
-    retro_log_printf_t log_printf = NULL;
+    retro_log_printf_t log_printf;
     retro_video_refresh_t video_refresh;
     retro_audio_sample_batch_t audio_sample_batch;
     retro_environment_t environment;
@@ -78,6 +78,7 @@ static inline void free_align(void *ptr) {
 extern const uint8_t mkxp_gmgsx_sf2[];
 extern const size_t mkxp_gmgsx_sf2_len;
 
+static bool initialized = false;
 static ALCdevice *al_device = NULL;
 static ALCcontext *al_context = NULL;
 static LPALCRENDERSAMPLESSOFT alcRenderSamplesSOFT = NULL;
@@ -303,14 +304,17 @@ static bool init_sandbox() {
 extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
     environment = cb;
 
-    struct retro_log_callback log;
-    if (cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log)) {
-        log_printf = log.log;
-    }
     // Bug in RetroArch:
     // retro_set_environment is called multiple times and only the first time
     // callbacks will work and return true.
-    else if (log_printf == NULL) {
+    if (initialized) {
+        return;
+    }
+
+    struct retro_log_callback log;
+    if (cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log)) {
+        log_printf = log.log;
+    } else {
         log_printf = fallback_log;
     }
 
@@ -347,6 +351,7 @@ extern "C" RETRO_API void retro_set_input_state(retro_input_state_t cb) {
 }
 
 extern "C" RETRO_API void retro_init() {
+    initialized = true;
     frame_buf = (uint32_t *)std::calloc(640 * 480, sizeof *frame_buf);
     sound_buf = (int16_t *)malloc_align(16, 735 * 2 * sizeof *sound_buf);
 }
@@ -354,6 +359,7 @@ extern "C" RETRO_API void retro_init() {
 extern "C" RETRO_API void retro_deinit() {
     free_align(sound_buf);
     std::free(frame_buf);
+    initialized = false;
 }
 
 extern "C" RETRO_API unsigned int retro_api_version() {
@@ -516,7 +522,6 @@ extern "C" RETRO_API bool retro_load_game_special(unsigned int type, const struc
 
 extern "C" RETRO_API void retro_unload_game() {
     deinit_sandbox();
-    log_printf = NULL;
 }
 
 extern "C" RETRO_API unsigned int retro_get_region() {
