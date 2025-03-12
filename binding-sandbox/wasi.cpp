@@ -32,16 +32,6 @@
 extern const uint8_t mkxp_retro_dist_zip[];
 extern const size_t mkxp_retro_dist_zip_len;
 
-namespace mkxp_retro {
-    retro_log_printf_t log_printf;
-    retro_video_refresh_t video_refresh;
-    retro_audio_sample_batch_t audio_sample_batch;
-    retro_environment_t environment;
-    retro_input_poll_t input_poll;
-    retro_input_state_t input_state;
-    struct retro_perf_callback perf;
-}
-
 //#define WASI_DEBUG(...) mkxp_retro::log_printf(RETRO_LOG_INFO, __VA_ARGS__)
 #define WASI_DEBUG(...)
 

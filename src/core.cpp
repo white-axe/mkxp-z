@@ -41,6 +41,16 @@
 using namespace mkxp_retro;
 using namespace mkxp_sandbox;
 
+namespace mkxp_retro {
+    retro_log_printf_t log_printf = NULL;
+    retro_video_refresh_t video_refresh;
+    retro_audio_sample_batch_t audio_sample_batch;
+    retro_environment_t environment;
+    retro_input_poll_t input_poll;
+    retro_input_state_t input_state;
+    struct retro_perf_callback perf;
+}
+
 static inline void *malloc_align(size_t alignment, size_t size) {
 #if defined(MKXPZ_HAVE_POSIX_MEMALIGN) || defined(MKXPZ_BUILD_XCODE)
     void *mem;
@@ -289,15 +299,15 @@ extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
     environment = cb;
 
     struct retro_log_callback log;
-#ifndef __EMSCRIPTEN__
     if (cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log)) {
         log_printf = log.log;
-    } else {
-#endif // __EMSCRIPTEN__
-        log_printf = fallback_log;
-#ifndef __EMSCRIPTEN__
     }
-#endif // __EMSCRIPTEN__
+    // Bug in RetroArch:
+    // retro_set_environment is called multiple times and only the first time
+    // callbacks will work and return true.
+    else if (log_printf == NULL) {
+        log_printf = fallback_log;
+    }
 
     perf = {
         .get_time_usec = nullptr,
@@ -443,6 +453,7 @@ extern "C" RETRO_API bool retro_load_game_special(unsigned int type, const struc
 
 extern "C" RETRO_API void retro_unload_game() {
     deinit_sandbox();
+    log_printf = NULL;
 }
 
 extern "C" RETRO_API unsigned int retro_get_region() {
