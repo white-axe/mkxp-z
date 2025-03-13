@@ -1,0 +1,132 @@
+# Renames all the shader texture functions to reduce probability of symbol conflicts with the libretro frontend.
+
+--- a/portablegl.h
++++ b/portablegl.h
+@@ -2988,9 +2988,9 @@ typedef struct glContext
+ 	cvector_glVertex glverts;
+ } glContext;
+ 
+-
+-
+-
++#ifdef __cplusplus
++extern "C" {
++#endif
+ /*************************************
+  *  GLSL(ish) functions
+  *************************************/
+@@ -3004,15 +3004,15 @@ typedef struct glContext
+ //int clampi(int i, int min, int max);
+ 
+ //shader texture functions
+-vec4 texture1D(GLuint tex, float x);
+-vec4 texture2D(GLuint tex, float x, float y);
+-vec4 texture3D(GLuint tex, float x, float y, float z);
+-vec4 texture2DArray(GLuint tex, float x, float y, int z);
+-vec4 texture_rect(GLuint tex, float x, float y);
+-vec4 texture_cubemap(GLuint texture, float x, float y, float z);
+-
+-
+-
++vec4 mkxp_pgl_texture1D(GLuint tex, float x);
++vec4 mkxp_pgl_texture2D(GLuint tex, float x, float y);
++vec4 mkxp_pgl_texture3D(GLuint tex, float x, float y, float z);
++vec4 mkxp_pgl_texture2DArray(GLuint tex, float x, float y, int z);
++vec4 mkxp_pgl_texture_rect(GLuint tex, float x, float y);
++vec4 mkxp_pgl_texture_cubemap(GLuint texture, float x, float y, float z);
++#ifdef __cplusplus
++}
++#endif
+ 
+ 
+ typedef struct pgl_uniforms
+@@ -10230,7 +10230,7 @@ static int wrap(int i, int size, GLenum mode)
+ // used in the following 4 texture access functions
+ // Not sure if it's actually necessary since wrap() clamps
+ #define EPSILON 0.000001
+-vec4 texture1D(GLuint tex, float x)
++vec4 mkxp_pgl_texture1D(GLuint tex, float x)
+ {
+ 	int i0, i1;
+ 
+@@ -10276,7 +10276,7 @@ vec4 texture1D(GLuint tex, float x)
+ 	}
+ }
+ 
+-vec4 texture2D(GLuint tex, float x, float y)
++vec4 mkxp_pgl_texture2D(GLuint tex, float x, float y)
+ {
+ 	int i0, j0, i1, j1;
+ 
+@@ -10341,7 +10341,7 @@ vec4 texture2D(GLuint tex, float x, float y)
+ 	}
+ }
+ 
+-vec4 texture3D(GLuint tex, float x, float y, float z)
++vec4 mkxp_pgl_texture3D(GLuint tex, float x, float y, float z)
+ {
+ 	int i0, j0, i1, j1, k0, k1;
+ 
+@@ -10427,7 +10427,7 @@ vec4 texture3D(GLuint tex, float x, float y, float z)
+ }
+ 
+ // for now this should work
+-vec4 texture2DArray(GLuint tex, float x, float y, int z)
++vec4 mkxp_pgl_texture2DArray(GLuint tex, float x, float y, int z)
+ {
+ 	int i0, j0, i1, j1;
+ 
+@@ -10490,7 +10490,7 @@ vec4 texture2DArray(GLuint tex, float x, float y, int z)
+ 	}
+ }
+ 
+-vec4 texture_rect(GLuint tex, float x, float y)
++vec4 mkxp_pgl_texture_rect(GLuint tex, float x, float y)
+ {
+ 	int i0, j0, i1, j1;
+ 
+@@ -10552,7 +10552,7 @@ vec4 texture_rect(GLuint tex, float x, float y)
+ 	}
+ }
+ 
+-vec4 texture_cubemap(GLuint texture, float x, float y, float z)
++vec4 mkxp_pgl_texture_cubemap(GLuint texture, float x, float y, float z)
+ {
+ 	glTexture* tex = &c->textures.a[texture];
+ 	Color* texdata = (Color*)tex->data;
+@@ -11592,7 +11592,7 @@ static void pgl_tex_rplc_fs(float* fs_input, Shader_Builtins* builtins, void* un
+ 	vec2 tex_coords = ((vec2*)fs_input)[0];
+ 	GLuint tex = ((pgl_uniforms*)uniforms)->tex0;
+ 
+-	builtins->gl_FragColor = texture2D(tex, tex_coords.x, tex_coords.y);
++	builtins->gl_FragColor = mkxp_pgl_texture2D(tex, tex_coords.x, tex_coords.y);
+ }
+ 
+ 
+@@ -11613,7 +11613,7 @@ static void pgl_tex_rect_rplc_fs(float* fs_input, Shader_Builtins* builtins, voi
+ 	vec2 tex_coords = ((vec2*)fs_input)[0];
+ 	GLuint tex = ((pgl_uniforms*)uniforms)->tex0;
+ 
+-	builtins->gl_FragColor = texture_rect(tex, tex_coords.x, tex_coords.y);
++	builtins->gl_FragColor = mkxp_pgl_texture_rect(tex, tex_coords.x, tex_coords.y);
+ }
+ 
+ 
+@@ -11637,7 +11637,7 @@ static void pgl_tex_modulate_fs(float* fs_input, Shader_Builtins* builtins, void
+ 
+ 	GLuint tex = u->tex0;
+ 
+-	builtins->gl_FragColor = mult_vec4s(u->color, texture2D(tex, tex_coords.x, tex_coords.y));
++	builtins->gl_FragColor = mult_vec4s(u->color, mkxp_pgl_texture2D(tex, tex_coords.x, tex_coords.y));
+ }
+ 
+ 
+@@ -11686,7 +11686,7 @@ static void pgl_tex_pnt_light_diff_fs(float* fs_input, Shader_Builtins* builtins
+ 
+ 	GLuint tex = u->tex0;
+ 
+-	builtins->gl_FragColor = mult_vec4s(((vec4*)fs_input)[0], texture2D(tex, tex_coords.x, tex_coords.y));
++	builtins->gl_FragColor = mult_vec4s(((vec4*)fs_input)[0], mkxp_pgl_texture2D(tex, tex_coords.x, tex_coords.y));
+ }
+ 
+ 
