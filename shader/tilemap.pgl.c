@@ -1,13 +1,13 @@
 #include "tilemap.pgl.h"
 
-static const float tileW = 32.0;
-static const float tileH = 32.0;
-static const float autotileW = 3.0*tileW;
-static const float autotileH = 4.0*tileW;
-static const float atAreaW = autotileW;
-static const float atAreaH = autotileH*nAutotiles;
-static const float atAniOffsetX = 3.0*tileW;
-static const float atAniOffsetY = tileH;
+#define tileW 32.0
+#define tileH 32.0
+#define autotileW (3.0*tileW)
+#define autotileH (4.0*tileW)
+#define atAreaW (autotileW)
+#define atAreaH (autotileH*nAutotiles)
+#define atAniOffsetX (3.0*tileW)
+#define atAniOffsetY (tileH)
 
 void mkxpTilemapVS(float *_output, pgl_vec4 *_attribs, Shader_Builtins *builtins, void *_uniforms)
 {
