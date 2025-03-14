@@ -1,4 +1,5 @@
 #include <portablegl.h>
+#define MKXPZ_NO_GL_TYPES
 
 #ifdef __cplusplus
 extern "C" {
