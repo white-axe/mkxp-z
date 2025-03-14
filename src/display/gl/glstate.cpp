@@ -121,6 +121,8 @@ GLState::GLState(const Config &conf) : conf(conf) {
 }
 
 void GLState::reset() {
+  gl.PixelStorei(GL_PACK_ALIGNMENT, 4);
+  gl.PixelStorei(GL_UNPACK_ALIGNMENT, 4);
   gl.Disable(GL_DEPTH_TEST);
 
   clearColor.init(Vec4(0, 0, 0, 1));
