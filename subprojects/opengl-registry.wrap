@@ -3,4 +3,4 @@ url = https://github.com/KhronosGroup/OpenGL-Registry
 revision = b53ca669bea4715b6d5fa53c459f47a1fecd7944
 depth = 1
 patch_directory = opengl-registry
-diff_files = opengl-registry-types.patch
+diff_files = opengl-registry-portablegl.patch

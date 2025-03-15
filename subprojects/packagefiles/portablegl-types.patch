@@ -1,0 +1,18 @@
+# Changes some of PortableGL's types to more accurately match those of the real OpenGL API.
+
+--- a/portablegl.h
++++ b/portablegl.h
+@@ -2054,11 +2054,11 @@ typedef uint64_t  GLuint64;
+ // the pgl macro wrapper)
+ typedef int32_t   GLsizei;
+ 
+-typedef int32_t   GLenum;
++typedef uint32_t  GLenum;
+ typedef int32_t   GLbitfield;
+ 
+ typedef intptr_t  GLintptr;
+-typedef uintptr_t GLsizeiptr;
++typedef ssize_t   GLsizeiptr;
+ typedef void      GLvoid;
+ 
+ typedef float     GLfloat;

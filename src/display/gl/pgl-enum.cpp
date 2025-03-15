@@ -20,7 +20,6 @@
  */
 
 #include <portablegl.h>
-#define MKXPZ_NO_GL_TYPES
 #include <GLES3/gl3.h>
 #include <unordered_map>
 

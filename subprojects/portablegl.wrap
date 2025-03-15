@@ -3,4 +3,4 @@ url = https://github.com/rswinkle/PortableGL
 revision = 0.98.0
 depth = 1
 patch_directory = portablegl
-diff_files = portablegl-emscripten-symbol-conflict.patch, portablegl-texture.patch
+diff_files = portablegl-defines.patch, portablegl-emscripten-symbol-conflict.patch, portablegl-texture.patch, portablegl-types.patch
