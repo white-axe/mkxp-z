@@ -90,7 +90,7 @@ namespace mkxp_sandbox {
 
             void operator()() {
                 BOOST_ASIO_CORO_REENTER (this) {
-                    SANDBOX_AWAIT_AND_SET(tilemap_autotiles_type, new_rb_data_type, "TilemapAutotiles", NULL, dfree, NULL, NULL, 0, 0, 0);
+                    SANDBOX_AWAIT_AND_SET(tilemap_autotiles_type, new_rb_data_type, "TilemapAutotiles", NULL, NULL, NULL, NULL, 0, 0, 0);
                     SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "TilemapAutotiles", sb()->rb_cObject());
                     SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
                     SANDBOX_AWAIT(rb_define_method, klass, "[]", (VALUE (*)(ANYARGS))get, 1);
