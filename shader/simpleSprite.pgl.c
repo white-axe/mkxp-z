@@ -1,5 +1,7 @@
 #include "simpleSprite.pgl.h"
 
+GLuint mkxp_pgl_get_texture2D(GLuint unit);
+
 void mkxpSimpleSpriteVS(float *_output, pgl_vec4 *_attribs, Shader_Builtins *builtins, void *_uniforms)
 {
 	struct SimpleSpriteVarying *output = (struct SimpleSpriteVarying *)_output;
@@ -24,5 +26,5 @@ void mkxpSimpleSpriteFS(float *_input, Shader_Builtins *builtins, void *_uniform
 	struct SimpleSpriteVarying *input = (struct SimpleSpriteVarying *)_input;
 	struct SimpleSpriteUniforms *uniforms = (struct SimpleSpriteUniforms *)_uniforms;
 
-	builtins->gl_FragColor = mkxp_pgl_texture2D(uniforms->texture, input->v_texCoord.x, input->v_texCoord.y);
+	builtins->gl_FragColor = mkxp_pgl_texture2D(mkxp_pgl_get_texture2D(uniforms->texture), input->v_texCoord.x, input->v_texCoord.y);
 }

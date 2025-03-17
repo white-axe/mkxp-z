@@ -21,14 +21,25 @@
 
 #include <portablegl.h>
 #include <KHR/khrplatform.h>
+#include <cstring>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 extern std::unordered_map<GLenum, GLenum> mkxp_pgl_enum_map;
 static inline GLenum enumconv(GLenum x) {
     const auto it = mkxp_pgl_enum_map.find(x);
     return it == mkxp_pgl_enum_map.end() ? -1 : it->second;
 }
+
+#define NUM_TEXTURE_UNITS 16
+
+uint32_t *mkxp_pgl_backbuf = NULL;
+static glContext c;
+static std::vector<glFramebuffer> framebuffers;
+static GLuint current_framebuffer;
+static GLuint texture_units[NUM_TEXTURE_UNITS][sizeof c.bound_textures / sizeof *c.bound_textures];
+static GLuint active_texture;
 
 static KHRONOS_APIENTRY void _glViewport(int x, int y, GLsizei width, GLsizei height) {
     glViewport(x, y, width, height);
@@ -266,6 +277,10 @@ static KHRONOS_APIENTRY void* _glMapBuffer(GLenum target, GLenum access) {
     return glMapBuffer(enumconv(target), enumconv(access));
 }
 
+static KHRONOS_APIENTRY void _glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid* pointer) {
+    glVertexAttribPointer(index, size, enumconv(type), normalized, stride, pointer);
+}
+
 static KHRONOS_APIENTRY void _glVertexAttribDivisor(GLuint index, GLuint divisor) {
     glVertexAttribDivisor(index, divisor);
 }
@@ -334,87 +349,165 @@ static KHRONOS_APIENTRY void _glUseProgram(GLuint program) {
     glUseProgram(program);
 }
 
+static KHRONOS_APIENTRY void _glGenFramebuffers(GLsizei n, GLuint *ids) {
+    for (GLsizei i = 0; i < n; ++i) {
+        ids[i] = (GLuint)framebuffers.size();
+        framebuffers.emplace_back();
+        glFramebuffer &fb = framebuffers.back();
+        fb.buf = NULL;
+        fb.lastrow = NULL;
+        fb.w = 0;
+        fb.h = 0;
+    }
+}
+
+static KHRONOS_APIENTRY void _glDeleteFramebuffers(GLsizei n, GLuint *buffers) {
+
+}
+
+static KHRONOS_APIENTRY void _glBindFramebuffer(GLenum target, GLuint framebuffer) {
+    c.back_buffer = framebuffers[current_framebuffer = framebuffer];
+    c.lx = 0;
+    c.ly = 0;
+    c.ux = c.back_buffer.w;
+    c.uy = c.back_buffer.h;
+    if (c.scissor_test) {
+        c.lx = std::max(c.lx, c.scissor_lx);
+        c.ly = std::max(c.ly, c.scissor_ly);
+        c.ux = std::min(c.ux, c.scissor_lx + c.scissor_w);
+        c.uy = std::min(c.uy, c.scissor_ly + c.scissor_h);
+    }
+}
+
+static KHRONOS_APIENTRY void _glFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level) {
+    glFramebuffer &fb = framebuffers[current_framebuffer];
+    glTexture &tex = c.textures.a[texture];
+    c.back_buffer.buf = fb.buf = tex.data;
+    c.back_buffer.w = fb.w = tex.w;
+    c.back_buffer.h = fb.h = tex.h;
+    c.back_buffer.lastrow = fb.lastrow = c.back_buffer.buf + 4 * c.back_buffer.w * (c.back_buffer.h - 1);
+}
+
+static KHRONOS_APIENTRY void _glActiveTexture(GLenum texture) {
+    if (texture < 0x84c0) {
+        return;
+    }
+    texture -= 0x84c0;
+    if (active_texture == (GLuint)texture || texture >= NUM_TEXTURE_UNITS) {
+        return;
+    }
+    std::memcpy(texture_units[active_texture], c.bound_textures, sizeof *texture_units);
+    active_texture = (GLuint)texture;
+    std::memcpy(c.bound_textures, texture_units[active_texture], sizeof *texture_units);
+}
+
+extern "C" GLuint mkxp_pgl_get_texture2D(GLuint unit) {
+    if (unit >= NUM_TEXTURE_UNITS) {
+        return 0;
+    } else if (unit == active_texture) {
+        return c.bound_textures[GL_TEXTURE_2D - GL_TEXTURE_UNBOUND - 1];
+    } else {
+        return texture_units[unit][GL_TEXTURE_2D - GL_TEXTURE_UNBOUND - 1];
+    }
+}
+
 #define BIND_PROC(x) {"gl" #x, (void *)_gl##x}
 
 void *mkxp_pgl_get_proc_address(const char *proc_name) {
     static std::unordered_map<std::string, void *> proc_map = {
-	BIND_PROC(Viewport),
-	BIND_PROC(GetString),
-	BIND_PROC(GetBooleanv),
-	BIND_PROC(GetFloatv),
-	BIND_PROC(GetIntegerv),
-	BIND_PROC(IsEnabled),
-	BIND_PROC(IsProgram),
-	BIND_PROC(ClearColor),
-	BIND_PROC(ClearDepth),
-	BIND_PROC(DepthFunc),
-	BIND_PROC(DepthRange),
-	BIND_PROC(DepthMask),
-	BIND_PROC(BlendFunc),
-	BIND_PROC(BlendEquation),
-	BIND_PROC(BlendFuncSeparate),
-	BIND_PROC(BlendEquationSeparate),
-	BIND_PROC(BlendColor),
-	BIND_PROC(Clear),
-	BIND_PROC(ProvokingVertex),
-	BIND_PROC(Enable),
-	BIND_PROC(Disable),
-	BIND_PROC(CullFace),
-	BIND_PROC(FrontFace),
-	BIND_PROC(PolygonMode),
-	BIND_PROC(PointSize),
-	BIND_PROC(PointParameteri),
-	BIND_PROC(LineWidth),
-	BIND_PROC(LogicOp),
-	BIND_PROC(PolygonOffset),
-	BIND_PROC(Scissor),
-	BIND_PROC(StencilFunc),
-	BIND_PROC(StencilFuncSeparate),
-	BIND_PROC(StencilOp),
-	BIND_PROC(StencilOpSeparate),
-	BIND_PROC(ClearStencil),
-	BIND_PROC(StencilMask),
-	BIND_PROC(StencilMaskSeparate),
-	BIND_PROC(GenTextures),
-	BIND_PROC(DeleteTextures),
-	BIND_PROC(BindTexture),
-	BIND_PROC(TexParameteri),
-	BIND_PROC(TexParameterfv),
-	BIND_PROC(TextureParameteri),
-	BIND_PROC(PixelStorei),
-	BIND_PROC(TexImage1D),
-	BIND_PROC(TexImage2D),
-	BIND_PROC(TexImage3D),
-	BIND_PROC(TexSubImage1D),
-	BIND_PROC(TexSubImage2D),
-	BIND_PROC(TexSubImage3D),
-	BIND_PROC(GenVertexArrays),
-	BIND_PROC(DeleteVertexArrays),
-	BIND_PROC(BindVertexArray),
-	BIND_PROC(GenBuffers),
-	BIND_PROC(DeleteBuffers),
-	BIND_PROC(BindBuffer),
-	BIND_PROC(BufferData),
-	BIND_PROC(BufferSubData),
-	BIND_PROC(MapBuffer),
-	BIND_PROC(VertexAttribDivisor),
-	BIND_PROC(EnableVertexAttribArray),
-	BIND_PROC(DisableVertexAttribArray),
-	BIND_PROC(DrawArrays),
-	BIND_PROC(MultiDrawArrays),
-	BIND_PROC(DrawElements),
-	BIND_PROC(MultiDrawElements),
-	BIND_PROC(DrawArraysInstanced),
-	BIND_PROC(DrawArraysInstancedBaseInstance),
-	BIND_PROC(DrawElementsInstanced),
-	BIND_PROC(DrawElementsInstancedBaseInstance),
-	BIND_PROC(NamedBufferData),
-	BIND_PROC(NamedBufferSubData),
-	BIND_PROC(MapNamedBuffer),
-	BIND_PROC(CreateTextures),
-	BIND_PROC(DeleteProgram),
-	BIND_PROC(UseProgram),
+        BIND_PROC(Viewport),
+        BIND_PROC(GetString),
+        BIND_PROC(GetBooleanv),
+        BIND_PROC(GetFloatv),
+        BIND_PROC(GetIntegerv),
+        BIND_PROC(IsEnabled),
+        BIND_PROC(IsProgram),
+        BIND_PROC(ClearColor),
+        BIND_PROC(ClearDepth),
+        BIND_PROC(DepthFunc),
+        BIND_PROC(DepthRange),
+        BIND_PROC(DepthMask),
+        BIND_PROC(BlendFunc),
+        BIND_PROC(BlendEquation),
+        BIND_PROC(BlendFuncSeparate),
+        BIND_PROC(BlendEquationSeparate),
+        BIND_PROC(BlendColor),
+        BIND_PROC(Clear),
+        BIND_PROC(ProvokingVertex),
+        BIND_PROC(Enable),
+        BIND_PROC(Disable),
+        BIND_PROC(CullFace),
+        BIND_PROC(FrontFace),
+        BIND_PROC(PolygonMode),
+        BIND_PROC(PointSize),
+        BIND_PROC(PointParameteri),
+        BIND_PROC(LineWidth),
+        BIND_PROC(LogicOp),
+        BIND_PROC(PolygonOffset),
+        BIND_PROC(Scissor),
+        BIND_PROC(StencilFunc),
+        BIND_PROC(StencilFuncSeparate),
+        BIND_PROC(StencilOp),
+        BIND_PROC(StencilOpSeparate),
+        BIND_PROC(ClearStencil),
+        BIND_PROC(StencilMask),
+        BIND_PROC(StencilMaskSeparate),
+        BIND_PROC(GenTextures),
+        BIND_PROC(DeleteTextures),
+        BIND_PROC(BindTexture),
+        BIND_PROC(TexParameteri),
+        BIND_PROC(TexParameterfv),
+        BIND_PROC(TextureParameteri),
+        BIND_PROC(PixelStorei),
+        BIND_PROC(TexImage1D),
+        BIND_PROC(TexImage2D),
+        BIND_PROC(TexImage3D),
+        BIND_PROC(TexSubImage1D),
+        BIND_PROC(TexSubImage2D),
+        BIND_PROC(TexSubImage3D),
+        BIND_PROC(GenVertexArrays),
+        BIND_PROC(DeleteVertexArrays),
+        BIND_PROC(BindVertexArray),
+        BIND_PROC(GenBuffers),
+        BIND_PROC(DeleteBuffers),
+        BIND_PROC(BindBuffer),
+        BIND_PROC(BufferData),
+        BIND_PROC(BufferSubData),
+        BIND_PROC(MapBuffer),
+        BIND_PROC(VertexAttribPointer),
+        BIND_PROC(VertexAttribDivisor),
+        BIND_PROC(EnableVertexAttribArray),
+        BIND_PROC(DisableVertexAttribArray),
+        BIND_PROC(DrawArrays),
+        BIND_PROC(MultiDrawArrays),
+        BIND_PROC(DrawElements),
+        BIND_PROC(MultiDrawElements),
+        BIND_PROC(DrawArraysInstanced),
+        BIND_PROC(DrawArraysInstancedBaseInstance),
+        BIND_PROC(DrawElementsInstanced),
+        BIND_PROC(DrawElementsInstancedBaseInstance),
+        BIND_PROC(NamedBufferData),
+        BIND_PROC(NamedBufferSubData),
+        BIND_PROC(MapNamedBuffer),
+        BIND_PROC(CreateTextures),
+        BIND_PROC(DeleteProgram),
+        BIND_PROC(UseProgram),
+        BIND_PROC(GenFramebuffers),
+        BIND_PROC(DeleteFramebuffers),
+        BIND_PROC(BindFramebuffer),
+        BIND_PROC(FramebufferTexture2D),
+        BIND_PROC(ActiveTexture),
     };
     const auto it = proc_map.find(proc_name);
     return it == proc_map.end() ? NULL : it->second;
+}
+
+void mkxp_pgl_init(int w, int h) {
+    framebuffers.clear();
+    init_glContext(&c, &mkxp_pgl_backbuf, w, h, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+    framebuffers.push_back(c.back_buffer);
+    current_framebuffer = 0;
+    std::memset(texture_units, 0, sizeof texture_units);
+    std::memcpy(texture_units[0], c.bound_textures, sizeof *texture_units);
+    active_texture = 0;
 }

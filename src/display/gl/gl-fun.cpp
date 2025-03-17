@@ -32,6 +32,10 @@
 #include <cstring>
 #include <string>
 
+#ifdef MKXPZ_RETRO
+void *mkxp_pgl_get_proc_address(const char *proc_name);
+#endif // MKXPZ_RETRO
+
 GLFunctions gl;
 
 typedef const GLubyte* (APIENTRYP _PFNGLGETSTRINGIPROC) (GLenum, GLuint);
@@ -78,7 +82,11 @@ static void parseExtensionsCompat(_PFNGLGETSTRINGPROC GetString, BoostSet<std::s
 }
 
 #ifdef MKXPZ_RETRO
-#  define GL_FUN(name, type) gl.name = (type) mkxp_retro::hw_render.get_proc_address("gl" #name EXT_SUFFIX);
+#  ifdef MKXPZ_PGL
+#    define GL_FUN(name, type) gl.name = (type) mkxp_pgl_get_proc_address("gl" #name EXT_SUFFIX);
+#  else
+#    define GL_FUN(name, type) gl.name = (type) mkxp_retro::hw_render.get_proc_address("gl" #name EXT_SUFFIX);
+#  endif
 #else
 #  define GL_FUN(name, type) gl.name = (type) SDL_GL_GetProcAddress("gl" #name EXT_SUFFIX);
 #endif // MKXPZ_RETRO
@@ -88,9 +96,18 @@ Exception(Exception::MKXPError, "%s", msg)
 
 void initGLFunctions()
 {
+#ifdef MKXPZ_PGL
+    void mkxp_pgl_init(int w, int h);
+    mkxp_pgl_init(640, 480);
+#endif
+
 #define EXT_SUFFIX ""
     GL_20_FUN;
-    
+ 
+#ifdef MKXPZ_PGL
+    bool gles = true;
+    int glMajor = 3;
+#else
     /* Determine GL version */
     const char *ver = (const char*) gl.GetString(GL_VERSION);
     
@@ -109,6 +126,7 @@ void initGLFunctions()
     
     /* Assume single digit */
     int glMajor = *ver - '0';
+#endif
     
     if (glMajor < 2)
 #ifndef GLES2_HEADER
@@ -134,10 +152,12 @@ void initGLFunctions()
     
     BoostSet<std::string> ext;
     
+#ifndef MKXPZ_PGL
     if (glMajor >= 3)
         parseExtensionsCore(gl.GetIntegerv, ext);
     else
         parseExtensionsCompat(gl.GetString, ext);
+#endif // MKXPZ_PGL
     
 #define HAVE_EXT(_ext) ext.contains("GL_" #_ext)
     
@@ -211,9 +231,11 @@ void initGLFunctions()
     }
     
     /* Misc caps */
+#ifndef MKXPZ_PGL
     if (!gles || glMajor >= 3 || HAVE_EXT(EXT_unpack_subimage))
         gl.unpack_subimage = true;
     
+#endif // MKXPZ_PGL
     if (!gles || glMajor >= 3 || HAVE_EXT(OES_texture_npot))
         gl.npot_repeat = true;
 }

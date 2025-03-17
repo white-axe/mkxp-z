@@ -1,5 +1,7 @@
 #include "tilemapvx.pgl.h"
 
+GLuint mkxp_pgl_get_texture2D(GLuint unit);
+
 static const pgl_vec2 atAreaA = {9.0*32.0, 12.0*32.0};
 static const float atAreaCX = 12.0*32.0;
 static const float atAreaCW = 4.0*32.0;
@@ -25,5 +27,5 @@ void mkxpTilemapVXFS(float *_input, Shader_Builtins *builtins, void *_uniforms)
 	struct TilemapVXVarying *input = (struct TilemapVXVarying *)_input;
 	struct TilemapVXUniforms *uniforms = (struct TilemapVXUniforms *)_uniforms;
 
-	builtins->gl_FragColor = mkxp_pgl_texture2D(uniforms->texture, input->v_texCoord.x, input->v_texCoord.y);
+	builtins->gl_FragColor = mkxp_pgl_texture2D(mkxp_pgl_get_texture2D(uniforms->texture), input->v_texCoord.x, input->v_texCoord.y);
 }

@@ -223,6 +223,7 @@ static void _blitBegin(FBO::ID fbo, const Vec2i &size, int scaleIsSpecial)
 
 		switch (smoothScalingMethod(scaleIsSpecial))
 		{
+#ifndef MKXPZ_PGL
 		case Bicubic:
 		{
 			BicubicShader &shader = shState->shaders().bicubic;
@@ -257,6 +258,7 @@ static void _blitBegin(FBO::ID fbo, const Vec2i &size, int scaleIsSpecial)
 
 			break;
 #endif
+#endif // MKXPZ_PGL
 		default:
 		{
 			SimpleShader &shader = shState->shaders().simple;
@@ -303,7 +305,7 @@ void blitBeginScreen(const Vec2i &size, int scaleIsSpecial)
 	blitDstHeightLores = 1;
 	blitDstHeightHires = 1;
 
-#ifdef MKXPZ_RETRO
+#if defined(MKXPZ_RETRO) && !defined(MKXPZ_PGL)
 	FBO::ID id = FBO::ID(mkxp_retro::hw_render.get_current_framebuffer());
 #else
 	FBO::ID id = FBO::ID(0);
@@ -333,6 +335,7 @@ void blitSource(TEXFBO &source, int scaleIsSpecial)
 	{
 		switch (smoothScalingMethod(scaleIsSpecial))
 		{
+#ifndef MKXPZ_PGL
 		case Bicubic:
 		{
 			BicubicShader &shader = shState->shaders().bicubic;
@@ -359,6 +362,7 @@ void blitSource(TEXFBO &source, int scaleIsSpecial)
 
 			break;
 #endif
+#endif // MKXPZ_PGL
 		default:
 		{
 			SimpleShader &shader = shState->shaders().simple;

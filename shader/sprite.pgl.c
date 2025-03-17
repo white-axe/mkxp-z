@@ -1,5 +1,7 @@
 #include "sprite.pgl.h"
 
+GLuint mkxp_pgl_get_texture2D(GLuint unit);
+
 void mkxpSpriteVS(float *_output, pgl_vec4 *_attribs, Shader_Builtins *builtins, void *_uniforms)
 {
 	struct SpriteVarying *output = (struct SpriteVarying *)_output;
@@ -51,10 +53,10 @@ void mkxpSpriteFS(float *_input, Shader_Builtins *builtins, void *_uniforms)
 	struct SpriteVarying *input = (struct SpriteVarying *)_input;
 	struct SpriteUniforms *uniforms = (struct SpriteUniforms *)_uniforms;
 
-	pgl_vec4 frag = mkxp_pgl_texture2D(uniforms->texture, input->v_texCoord.x, input->v_texCoord.y);
+	pgl_vec4 frag = mkxp_pgl_texture2D(mkxp_pgl_get_texture2D(uniforms->texture), input->v_texCoord.x, input->v_texCoord.y);
 	if (uniforms->renderPattern) {
 		pgl_vec2 patCoordRepeat = modulusf_vec2(input->v_patCoord, repeat);
-		pgl_vec4 pattfrag = mkxp_pgl_texture2D(uniforms->pattern, patCoordRepeat.x, patCoordRepeat.y);
+		pgl_vec4 pattfrag = mkxp_pgl_texture2D(mkxp_pgl_get_texture2D(uniforms->pattern), patCoordRepeat.x, patCoordRepeat.y);
 		if (uniforms->patternBlendType == 1) {
 			pgl_vec3 blended = blendAddOpacity((pgl_vec3){frag.x, frag.y, frag.z}, (pgl_vec3){pattfrag.x, pattfrag.y, pattfrag.z}, pattfrag.w * uniforms->patternOpacity);
 			frag.x = blended.x;

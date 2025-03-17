@@ -27,6 +27,7 @@
 #include "shader.h"
 #include "sharedstate.h"
 
+#include <climits>
 #include <SDL_rect.h>
 
 static void applyBool(GLenum state, bool mode) {
@@ -114,7 +115,13 @@ void GLViewport::apply(const IntRect &value) {
 
 void GLProgram::apply(const unsigned int &value) { gl.UseProgram(value); }
 
-GLState::Caps::Caps() { gl.GetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTexSize); }
+GLState::Caps::Caps() : maxTexSize(0) {
+#ifdef MKXPZ_PGL
+  maxTexSize = INT_MAX;
+#else
+  gl.GetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTexSize);
+#endif
+}
 
 GLState::GLState(const Config &conf) : conf(conf) {
   reset();

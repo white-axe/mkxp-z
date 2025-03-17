@@ -109,6 +109,7 @@ static void printProgramLog(GLuint program)
 
 Shader::Shader()
 {
+#ifndef MKXPZ_PGL
 #ifdef MKXPZ_BUILD_XCODE
     if (Shader::shaderCommon.empty())
         Shader::shaderCommon = mkxp_fs::contentsOfAssetAsString("Shaders/common", "h");
@@ -117,13 +118,16 @@ Shader::Shader()
 	fragShader = gl.CreateShader(GL_FRAGMENT_SHADER);
 
 	program = gl.CreateProgram();
+#endif
 }
 
 Shader::~Shader()
 {
 	gl.DeleteProgram(program);
+#ifndef MKXPZ_PGL
 	gl.DeleteShader(vertShader);
 	gl.DeleteShader(fragShader);
+#endif
 }
 
 void Shader::bind()
@@ -267,7 +271,9 @@ void Shader::setTexUniform(GLint location, unsigned unitIndex, TEX::ID texture)
 
 	gl.ActiveTexture(texUnit);
 	gl.BindTexture(GL_TEXTURE_2D, texture.gl);
+#ifndef MKXPZ_PGL
 	gl.Uniform1i(location, unitIndex);
+#endif
 	gl.ActiveTexture(GL_TEXTURE0);
 }
 
@@ -286,7 +292,13 @@ void ShaderBase::GLProjMat::apply(const Vec2i &value)
 		-1, -1, -1,  1
 	};
 
+#ifdef MKXPZ_PGL
+	if (pgl_mat != NULL) {
+		std::memcpy(pgl_mat, mat, sizeof *pgl_mat);
+	}
+#else
 	gl.UniformMatrix4fv(u_mat, 1, GL_FALSE, mat);
+#endif
 }
 
 void ShaderBase::init()
@@ -307,6 +319,9 @@ void ShaderBase::applyViewportProj()
 	}
 	else {
 #endif // MKXPZ_RETRO
+#ifdef MKXPZ_PGL
+		projMat.pgl_mat = pglProjMat();
+#endif
 		projMat.set(Vec2i(vp.w, vp.h));
 #ifndef MKXPZ_RETRO
 	}
@@ -320,73 +335,152 @@ bool ShaderBase::framebufferScalingAllowed()
 
 void ShaderBase::setTexSize(const Vec2i &value)
 {
+#ifdef MKXPZ_PGL
+	pgl_vec2 *pgl_vec = pglTexSizeInv();
+	if (pgl_vec != NULL) {
+		pgl_vec->x = 1.f / value.x;
+		pgl_vec->y = 1.f / value.y;
+	}
+#else
 	gl.Uniform2f(u_texSizeInv, 1.f / value.x, 1.f / value.y);
+#endif
 }
 
 void ShaderBase::setTranslation(const Vec2i &value)
 {
+#ifdef MKXPZ_PGL
+	pgl_vec2 *pgl_vec = pglTranslation();
+	if (pgl_vec != NULL) {
+		pgl_vec->x = value.x;
+		pgl_vec->y = value.y;
+	}
+#else
 	gl.Uniform2f(u_translation, value.x, value.y);
+#endif
+}
+
+pgl_mat4 *ShaderBase::pglProjMat()
+{
+	return NULL;
+}
+
+pgl_vec2 *ShaderBase::pglTexSizeInv()
+{
+	return NULL;
+}
+
+pgl_vec2 *ShaderBase::pglTranslation()
+{
+	return NULL;
 }
 
 
 FlatColorShader::FlatColorShader()
 {
+#ifdef MKXPZ_PGL
+	program = pglCreateProgram(mkxpFlatColorVS, mkxpFlatColorFS, 4, (GLenum[]){PGL_SMOOTH4}, GL_FALSE);
+	gl.UseProgram(program);
+	pglSetUniform(&uniforms);
+#else
 	INIT_SHADER(minimal, flatColor, FlatColorShader);
 
 	ShaderBase::init();
 
 	GET_U(color);
+#endif
 }
 
 void FlatColorShader::setColor(const Vec4 &value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.color.x = value.x;
+	uniforms.color.y = value.y;
+	uniforms.color.z = value.z;
+	uniforms.color.w = value.w;
+#else
 	setVec4Uniform(u_color, value);
+#endif
 }
 
 
 SimpleShader::SimpleShader()
 {
+#ifdef MKXPZ_PGL
+	program = pglCreateProgram(mkxpSimpleVS, mkxpSimpleFS, 4, (GLenum[]){PGL_SMOOTH4}, GL_FALSE);
+	gl.UseProgram(program);
+	pglSetUniform(&uniforms);
+	uniforms.texture = 0;
+#else
 	INIT_SHADER(simple, simple, SimpleShader);
 
 	ShaderBase::init();
 
 	GET_U(texOffsetX);
+#endif
 }
 
 void SimpleShader::setTexOffsetX(int value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.translation.x = value;
+#else
 	gl.Uniform1f(u_texOffsetX, value);
+#endif
 }
 
 
 SimpleColorShader::SimpleColorShader()
 {
+#ifdef MKXPZ_PGL
+	program = pglCreateProgram(mkxpSimpleColorVS, mkxpSimpleColorFS, 4, (GLenum[]){PGL_SMOOTH4}, GL_FALSE);
+	gl.UseProgram(program);
+	pglSetUniform(&uniforms);
+#else
 	INIT_SHADER(simpleColor, simpleColor, SimpleColorShader);
 
 	ShaderBase::init();
+#endif
 }
 
 
 SimpleAlphaShader::SimpleAlphaShader()
 {
+#ifdef MKXPZ_PGL
+	program = pglCreateProgram(mkxpSimpleAlphaVS, mkxpSimpleAlphaFS, 4, (GLenum[]){PGL_SMOOTH4}, GL_FALSE);
+	gl.UseProgram(program);
+	pglSetUniform(&uniforms);
+	uniforms.texture = 0;
+#else
 	INIT_SHADER(simpleColor, simpleAlpha, SimpleAlphaShader);
 
 	ShaderBase::init();
+#endif
 }
 
 
 SimpleSpriteShader::SimpleSpriteShader()
 {
+#ifdef MKXPZ_PGL
+	program = pglCreateProgram(mkxpSimpleColorVS, mkxpSimpleColorFS, 4, (GLenum[]){PGL_SMOOTH4}, GL_FALSE);
+	gl.UseProgram(program);
+	pglSetUniform(&uniforms);
+	uniforms.texture = 0;
+#else
 	INIT_SHADER(sprite, simple, SimpleSpriteShader);
 
 	ShaderBase::init();
 
 	GET_U(spriteMat);
+#endif
 }
 
 void SimpleSpriteShader::setSpriteMat(const float value[16])
 {
+#ifdef MKXPZ_PGL
+	std::memcpy(&uniforms.spriteMat, value, sizeof uniforms.spriteMat);
+#else
 	gl.UniformMatrix4fv(u_spriteMat, 1, GL_FALSE, value);
+#endif
 }
 
 BicubicSpriteShader::BicubicSpriteShader()
@@ -441,27 +535,50 @@ void XbrzSpriteShader::setTargetScale(const Vec2 &value)
 
 AlphaSpriteShader::AlphaSpriteShader()
 {
+#ifdef MKXPZ_PGL
+	program = pglCreateProgram(mkxpAlphaSpriteVS, mkxpAlphaSpriteFS, 4, (GLenum[]){PGL_SMOOTH4}, GL_FALSE);
+	gl.UseProgram(program);
+	pglSetUniform(&uniforms);
+	uniforms.texture = 0;
+#else
 	INIT_SHADER(sprite, simpleAlphaUni, AlphaSpriteShader);
 
 	ShaderBase::init();
 
 	GET_U(spriteMat);
 	GET_U(alpha);
+#endif
 }
 
 void AlphaSpriteShader::setSpriteMat(const float value[16])
 {
+#ifdef MKXPZ_PGL
+	std::memcpy(&uniforms.spriteMat, value, sizeof uniforms.spriteMat);
+#else
 	gl.UniformMatrix4fv(u_spriteMat, 1, GL_FALSE, value);
+#endif
 }
 
 void AlphaSpriteShader::setAlpha(float value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.alpha = value;
+#else
 	gl.Uniform1f(u_alpha, value);
+#endif
 }
 
 
 TransShader::TransShader()
 {
+#ifdef MKXPZ_PGL
+	program = pglCreateProgram(mkxpTransVS, mkxpTransFS, 4, (GLenum[]){PGL_SMOOTH4}, GL_FALSE);
+	gl.UseProgram(program);
+	pglSetUniform(&uniforms);
+	uniforms.currentScene = 1;
+	uniforms.frozenScene = 2;
+	uniforms.transMap = 3;
+#else
 	INIT_SHADER(simple, trans, TransShader);
 
 	ShaderBase::init();
@@ -471,6 +588,7 @@ TransShader::TransShader()
 	GET_U(transMap);
 	GET_U(prog);
 	GET_U(vague);
+#endif
 }
 
 void TransShader::setCurrentScene(TEX::ID tex)
@@ -490,17 +608,32 @@ void TransShader::setTransMap(TEX::ID tex)
 
 void TransShader::setProg(float value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.prog = value;
+#else
 	gl.Uniform1f(u_prog, value);
+#endif
 }
 
 void TransShader::setVague(float value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.vague = value;
+#else
 	gl.Uniform1f(u_vague, value);
+#endif
 }
 
 
 SimpleTransShader::SimpleTransShader()
 {
+#ifdef MKXPZ_PGL
+	program = pglCreateProgram(mkxpTransSimpleVS, mkxpTransSimpleFS, 4, (GLenum[]){PGL_SMOOTH4}, GL_FALSE);
+	gl.UseProgram(program);
+	pglSetUniform(&uniforms);
+	uniforms.currentScene = 1;
+	uniforms.frozenScene = 2;
+#else
 	INIT_SHADER(simple, transSimple, SimpleTransShader);
 
 	ShaderBase::init();
@@ -508,6 +641,7 @@ SimpleTransShader::SimpleTransShader()
 	GET_U(currentScene);
 	GET_U(frozenScene);
 	GET_U(prog);
+#endif
 }
 
 void SimpleTransShader::setCurrentScene(TEX::ID tex)
@@ -522,12 +656,23 @@ void SimpleTransShader::setFrozenScene(TEX::ID tex)
 
 void SimpleTransShader::setProg(float value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.prog = value;
+#else
 	gl.Uniform1f(u_prog, value);
+#endif
 }
 
 
 SpriteShader::SpriteShader()
 {
+#ifdef MKXPZ_PGL
+	program = pglCreateProgram(mkxpSpriteVS, mkxpSpriteFS, 4, (GLenum[]){PGL_SMOOTH4}, GL_FALSE);
+	gl.UseProgram(program);
+	pglSetUniform(&uniforms);
+	uniforms.texture = 0;
+	uniforms.pattern = 1;
+#else
 	INIT_SHADER(sprite, sprite, SpriteShader);
 
 	ShaderBase::init();
@@ -547,82 +692,154 @@ SpriteShader::SpriteShader()
     GET_U(patternScroll);
     GET_U(patternZoom);
     GET_U(invert);
+#endif
 }
 
 void SpriteShader::setSpriteMat(const float value[16])
 {
+#ifdef MKXPZ_PGL
+	std::memcpy(&uniforms.spriteMat, value, sizeof uniforms.spriteMat);
+#else
 	gl.UniformMatrix4fv(u_spriteMat, 1, GL_FALSE, value);
+#endif
 }
 
 void SpriteShader::setTone(const Vec4 &tone)
 {
+#ifdef MKXPZ_PGL
+	uniforms.tone.x = tone.x;
+	uniforms.tone.y = tone.y;
+	uniforms.tone.z = tone.z;
+	uniforms.tone.w = tone.w;
+#else
 	setVec4Uniform(u_tone, tone);
+#endif
 }
 
 void SpriteShader::setColor(const Vec4 &color)
 {
+#ifdef MKXPZ_PGL
+	uniforms.color.x = color.x;
+	uniforms.color.y = color.y;
+	uniforms.color.z = color.z;
+	uniforms.color.w = color.w;
+#else
 	setVec4Uniform(u_color, color);
+#endif
 }
 
 void SpriteShader::setOpacity(float value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.opacity = value;
+#else
 	gl.Uniform1f(u_opacity, value);
+#endif
 }
 
 void SpriteShader::setBushDepth(float value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.bushDepth = value;
+#else
 	gl.Uniform1f(u_bushDepth, value);
+#endif
 }
 
 void SpriteShader::setBushOpacity(float value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.bushOpacity = value;
+#else
 	gl.Uniform1f(u_bushOpacity, value);
+#endif
 }
 
 void SpriteShader::setPattern(const TEX::ID pattern, const Vec2 &dimensions)
 {
     setTexUniform(u_pattern, 1, pattern);
+#ifdef MKXPZ_PGL
+	uniforms.patternSizeInv.x = 1.f / dimensions.x;
+	uniforms.patternSizeInv.y = 1.f / dimensions.y;
+#else
     gl.Uniform2f(u_patternSizeInv, 1.f / dimensions.x, 1.f / dimensions.y);
+#endif
 }
 
 void SpriteShader::setPatternBlendType(int blendType)
 {
+#ifdef MKXPZ_PGL
+	uniforms.patternBlendType = blendType;
+#else
     gl.Uniform1i(u_patternBlendType, blendType);
+#endif
 }
 
 void SpriteShader::setPatternTile(bool value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.patternTile = value;
+#else
     gl.Uniform1i(u_patternTile, value);
+#endif
 }
 
 void SpriteShader::setShouldRenderPattern(bool value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.renderPattern = value;
+#else
     gl.Uniform1i(u_renderPattern, value);
+#endif
 }
 
 void SpriteShader::setPatternOpacity(float value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.patternOpacity = value;
+#else
     gl.Uniform1f(u_patternOpacity, value);
+#endif
 }
 
 void SpriteShader::setPatternScroll(const Vec2 &scroll)
 {
+#ifdef MKXPZ_PGL
+	uniforms.patternScroll.x = scroll.x;
+	uniforms.patternScroll.y = scroll.y;
+#else
     setVec2Uniform(u_patternScroll, scroll);
+#endif
 }
 
 void SpriteShader::setPatternZoom(const Vec2 &zoom)
 {
+#ifdef MKXPZ_PGL
+	uniforms.patternZoom.x = zoom.x;
+	uniforms.patternZoom.y = zoom.y;
+#else
     setVec2Uniform(u_patternZoom, zoom);
+#endif
 }
 
 void SpriteShader::setInvert(bool value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.invert = value;
+#else
     gl.Uniform1i(u_invert, value);
+#endif
 }
 
 
 PlaneShader::PlaneShader()
 {
+#ifdef MKXPZ_PGL
+	program = pglCreateProgram(mkxpPlaneVS, mkxpPlaneFS, 4, (GLenum[]){PGL_SMOOTH4}, GL_FALSE);
+	gl.UseProgram(program);
+	pglSetUniform(&uniforms);
+	uniforms.texture = 0;
+#else
 	INIT_SHADER(simple, plane, PlaneShader);
 
 	ShaderBase::init();
@@ -631,36 +848,69 @@ PlaneShader::PlaneShader()
 	GET_U(color);
 	GET_U(flash);
 	GET_U(opacity);
+#endif
 }
 
 void PlaneShader::setTone(const Vec4 &tone)
 {
+#ifdef MKXPZ_PGL
+	uniforms.tone.x = tone.x;
+	uniforms.tone.y = tone.y;
+	uniforms.tone.z = tone.z;
+	uniforms.tone.w = tone.w;
+#else
 	setVec4Uniform(u_tone, tone);
+#endif
 }
 
 void PlaneShader::setColor(const Vec4 &color)
 {
+#ifdef MKXPZ_PGL
+	uniforms.color.x = color.x;
+	uniforms.color.y = color.y;
+	uniforms.color.z = color.z;
+	uniforms.color.w = color.w;
+#else
 	setVec4Uniform(u_color, color);
+#endif
 }
 
 void PlaneShader::setFlash(const Vec4 &flash)
 {
+#ifdef MKXPZ_PGL
+	uniforms.flash.x = flash.x;
+	uniforms.flash.y = flash.y;
+	uniforms.flash.z = flash.z;
+	uniforms.flash.w = flash.w;
+#else
 	setVec4Uniform(u_flash, flash);
+#endif
 }
 
 void PlaneShader::setOpacity(float value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.opacity = value;
+#else
 	gl.Uniform1f(u_opacity, value);
+#endif
 }
 
 
 GrayShader::GrayShader()
 {
+#ifdef MKXPZ_PGL
+	program = pglCreateProgram(mkxpGrayVS, mkxpGrayFS, 4, (GLenum[]){PGL_SMOOTH4}, GL_FALSE);
+	gl.UseProgram(program);
+	pglSetUniform(&uniforms);
+	uniforms.texture = 0;
+#else
 	INIT_SHADER(simple, gray, GrayShader);
 
 	ShaderBase::init();
 
 	GET_U(gray);
+#endif
 }
 
 bool GrayShader::framebufferScalingAllowed()
@@ -672,12 +922,22 @@ bool GrayShader::framebufferScalingAllowed()
 
 void GrayShader::setGray(float value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.gray = value;
+#else
 	gl.Uniform1f(u_gray, value);
+#endif
 }
 
 
 TilemapShader::TilemapShader()
 {
+#ifdef MKXPZ_PGL
+	program = pglCreateProgram(mkxpTilemapVS, mkxpTilemapFS, 4, (GLenum[]){PGL_SMOOTH4}, GL_FALSE);
+	gl.UseProgram(program);
+	pglSetUniform(&uniforms);
+	uniforms.texture = 0;
+#else
 	INIT_SHADER(tilemap, tilemap, TilemapShader);
 
 	ShaderBase::init();
@@ -688,112 +948,204 @@ TilemapShader::TilemapShader()
 
 	GET_U(aniIndex);
 	GET_U(atFrames);
+#endif
 }
 
 void TilemapShader::setTone(const Vec4 &tone)
 {
+#ifdef MKXPZ_PGL
+	uniforms.tone.x = tone.x;
+	uniforms.tone.y = tone.y;
+	uniforms.tone.z = tone.z;
+	uniforms.tone.w = tone.w;
+#else
 	setVec4Uniform(u_tone, tone);
+#endif
 }
 
 void TilemapShader::setColor(const Vec4 &color)
 {
+#ifdef MKXPZ_PGL
+	uniforms.color.x = color.x;
+	uniforms.color.y = color.y;
+	uniforms.color.z = color.z;
+	uniforms.color.w = color.w;
+#else
 	setVec4Uniform(u_color, color);
+#endif
 }
 
 void TilemapShader::setOpacity(float value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.opacity = value;
+#else
 	gl.Uniform1f(u_opacity, value);
+#endif
 }
 
 void TilemapShader::setAniIndex(int value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.aniIndex = value;
+#else
 	gl.Uniform1i(u_aniIndex, value);
+#endif
 }
 
 void TilemapShader::setATFrames(int values[7])
 {
+#ifdef MKXPZ_PGL
+	std::memcpy(&uniforms.atFrames, values, sizeof uniforms.atFrames);
+#else
 	gl.Uniform1iv(u_atFrames, 7, values);
+#endif
 }
 
 
 
 FlashMapShader::FlashMapShader()
 {
+#ifdef MKXPZ_PGL
+	program = pglCreateProgram(mkxpFlashMapVS, mkxpFlashMapFS, 4, (GLenum[]){PGL_SMOOTH4}, GL_FALSE);
+	gl.UseProgram(program);
+	pglSetUniform(&uniforms);
+#else
 	INIT_SHADER(simpleColor, flashMap, FlashMapShader);
 
 	ShaderBase::init();
 
 	GET_U(alpha);
+#endif
 }
 
 void FlashMapShader::setAlpha(float value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.alpha = value;
+#else
 	gl.Uniform1f(u_alpha, value);
+#endif
 }
 
 
 HueShader::HueShader()
 {
+#ifdef MKXPZ_PGL
+	program = pglCreateProgram(mkxpHueVS, mkxpHueFS, 4, (GLenum[]){PGL_SMOOTH4}, GL_FALSE);
+	gl.UseProgram(program);
+	pglSetUniform(&uniforms);
+	uniforms.texture = 0;
+#else
 	INIT_SHADER(simple, hue, HueShader);
 
 	ShaderBase::init();
 
 	GET_U(hueAdjust);
+#endif
 }
 
 void HueShader::setHueAdjust(float value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.hueAdjust = value;
+#else
 	gl.Uniform1f(u_hueAdjust, value);
+#endif
 }
 
 
 SimpleMatrixShader::SimpleMatrixShader()
 {
+#ifdef MKXPZ_PGL
+	program = pglCreateProgram(mkxpSimpleMatrixVS, mkxpSimpleMatrixFS, 4, (GLenum[]){PGL_SMOOTH4}, GL_FALSE);
+	gl.UseProgram(program);
+	pglSetUniform(&uniforms);
+	uniforms.texture = 0;
+#else
 	INIT_SHADER(simpleMatrix, simpleAlpha, SimpleMatrixShader);
 
 	ShaderBase::init();
 
 	GET_U(matrix);
+#endif
 }
 
 void SimpleMatrixShader::setMatrix(const float value[16])
 {
+#ifdef MKXPZ_PGL
+	std::memcpy(&uniforms.matrix, value, sizeof uniforms.matrix);
+#else
 	gl.UniformMatrix4fv(u_matrix, 1, GL_FALSE, value);
+#endif
 }
 
 
 BlurShader::HPass::HPass()
 {
+#ifdef MKXPZ_PGL
+	program = pglCreateProgram(mkxpBlurHVS, mkxpBlurHFS, 4, (GLenum[]){PGL_SMOOTH4}, GL_FALSE);
+	gl.UseProgram(program);
+	pglSetUniform(&uniforms);
+	uniforms.texture = 0;
+#else
 	INIT_SHADER(blurH, blur, BlurShader::HPass);
 
 	ShaderBase::init();
+#endif
 }
 
 BlurShader::VPass::VPass()
 {
+#ifdef MKXPZ_PGL
+	program = pglCreateProgram(mkxpBlurVVS, mkxpBlurVFS, 4, (GLenum[]){PGL_SMOOTH4}, GL_FALSE);
+	gl.UseProgram(program);
+	pglSetUniform(&uniforms);
+	uniforms.texture = 0;
+#else
 	INIT_SHADER(blurV, blur, BlurShader::VPass);
 
 	ShaderBase::init();
+#endif
 }
 
 
 TilemapVXShader::TilemapVXShader()
 {
+#ifdef MKXPZ_PGL
+	program = pglCreateProgram(mkxpTilemapVXVS, mkxpTilemapVXFS, 4, (GLenum[]){PGL_SMOOTH4}, GL_FALSE);
+	gl.UseProgram(program);
+	pglSetUniform(&uniforms);
+	uniforms.texture = 0;
+#else
 	INIT_SHADER(tilemapvx, simple, TilemapVXShader);
 
 	ShaderBase::init();
 
 	GET_U(aniOffset);
+#endif
 }
 
 void TilemapVXShader::setAniOffset(const Vec2 &value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.aniOffset.x = value.x;
+	uniforms.aniOffset.y = value.y;
+#else
 	gl.Uniform2f(u_aniOffset, value.x, value.y);
+#endif
 }
 
 
 BltShader::BltShader()
 {
+#ifdef MKXPZ_PGL
+	program = pglCreateProgram(mkxpBitmapBlitVS, mkxpBitmapBlitFS, 4, (GLenum[]){PGL_SMOOTH4}, GL_FALSE);
+	gl.UseProgram(program);
+	pglSetUniform(&uniforms);
+	uniforms.source = 0;
+	uniforms.destination = 1;
+#else
 	INIT_SHADER(simple, bitmapBlit, BltShader);
 
 	ShaderBase::init();
@@ -802,11 +1154,16 @@ BltShader::BltShader()
 	GET_U(destination);
 	GET_U(subRect);
 	GET_U(opacity);
+#endif
 }
 
 void BltShader::setSource()
 {
+#ifdef MKXPZ_PGL
+	uniforms.source = 0;
+#else
 	gl.Uniform1i(u_source, 0);
+#endif
 }
 
 void BltShader::setDestination(const TEX::ID value)
@@ -816,12 +1173,23 @@ void BltShader::setDestination(const TEX::ID value)
 
 void BltShader::setSubRect(const FloatRect &value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.subRect.x = value.x;
+	uniforms.subRect.y = value.y;
+	uniforms.subRect.z = value.w;
+	uniforms.subRect.w = value.h;
+#else
 	gl.Uniform4f(u_subRect, value.x, value.y, value.w, value.h);
+#endif
 }
 
 void BltShader::setOpacity(float value)
 {
+#ifdef MKXPZ_PGL
+	uniforms.opacity = value;
+#else
 	gl.Uniform1f(u_opacity, value);
+#endif
 }
 
 BicubicShader::BicubicShader()

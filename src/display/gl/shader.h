@@ -26,6 +26,28 @@
 #include "gl-util.h"
 #include "glstate.h"
 
+#ifdef MKXPZ_RETRO
+#  include "shader/sprite.pgl.h"
+#  include "shader/alphaSprite.pgl.h"
+#  include "shader/hue.pgl.h"
+#  include "shader/trans.pgl.h"
+#  include "shader/transSimple.pgl.h"
+#  include "shader/bitmapBlit.pgl.h"
+#  include "shader/plane.pgl.h"
+#  include "shader/gray.pgl.h"
+#  include "shader/flatColor.pgl.h"
+#  include "shader/simple.pgl.h"
+#  include "shader/simpleColor.pgl.h"
+#  include "shader/simpleAlpha.pgl.h"
+#  include "shader/tilemap.pgl.h"
+#  include "shader/flashMap.pgl.h"
+#  include "shader/blurH.pgl.h"
+#  include "shader/blurV.pgl.h"
+#  include "shader/simpleMatrix.pgl.h"
+#  include "shader/simpleSprite.pgl.h"
+#  include "shader/tilemapvx.pgl.h"
+#endif // MKXPZ_RETRO
+
 class Shader
 {
 public:
@@ -74,6 +96,7 @@ public:
 	private:
 		void apply(const Vec2i &value);
 		GLint u_mat;
+		pgl_mat4 *pgl_mat;
 
 		friend class ShaderBase;
 	};
@@ -93,10 +116,33 @@ protected:
 	void init();
 	virtual bool framebufferScalingAllowed();
 
+	virtual pgl_mat4 *pglProjMat();
+	virtual pgl_vec2 *pglTexSizeInv();
+	virtual pgl_vec2 *pglTranslation();
+
 	GLint u_texSizeInv, u_translation;
 };
 
-class FlatColorShader : public ShaderBase
+template <typename U> class ShaderBaseImpl1 : public ShaderBase
+{
+protected:
+	U uniforms;
+	pgl_mat4 *pglProjMat() override { return &this->uniforms.projMat; }
+};
+
+template <typename U> class ShaderBaseImpl2 : public ShaderBaseImpl1<U>
+{
+protected:
+	pgl_vec2 *pglTexSizeInv() override { return &this->uniforms.texSizeInv; }
+};
+
+template <typename U> class ShaderBaseImpl3 : public ShaderBaseImpl2<U>
+{
+protected:
+	pgl_vec2 *pglTranslation() override { return &this->uniforms.texSizeInv; }
+};
+
+class FlatColorShader : public ShaderBaseImpl1<FlatColorUniforms>
 {
 public:
 	FlatColorShader();
@@ -107,7 +153,7 @@ private:
 	GLint u_color;
 };
 
-class SimpleShader : public ShaderBase
+class SimpleShader : public ShaderBaseImpl3<SimpleUniforms>
 {
 public:
 	SimpleShader();
@@ -118,19 +164,19 @@ protected:
 	GLint u_texOffsetX;
 };
 
-class SimpleColorShader : public ShaderBase
+class SimpleColorShader : public ShaderBaseImpl3<SimpleColorUniforms>
 {
 public:
 	SimpleColorShader();
 };
 
-class SimpleAlphaShader : public ShaderBase
+class SimpleAlphaShader : public ShaderBaseImpl3<SimpleAlphaUniforms>
 {
 public:
 	SimpleAlphaShader();
 };
 
-class SimpleSpriteShader : public ShaderBase
+class SimpleSpriteShader : public ShaderBaseImpl2<SimpleSpriteUniforms>
 {
 public:
 	SimpleSpriteShader();
@@ -141,7 +187,7 @@ protected:
 	GLint u_spriteMat;
 };
 
-class AlphaSpriteShader : public ShaderBase
+class AlphaSpriteShader : public ShaderBaseImpl2<AlphaSpriteUniforms>
 {
 public:
 	AlphaSpriteShader();
@@ -153,7 +199,7 @@ private:
 	GLint u_spriteMat, u_alpha;
 };
 
-class TransShader : public ShaderBase
+class TransShader : public ShaderBaseImpl3<TransUniforms>
 {
 public:
 	TransShader();
@@ -168,7 +214,7 @@ private:
 	GLint u_currentScene, u_frozenScene, u_transMap, u_prog, u_vague;
 };
 
-class SimpleTransShader : public ShaderBase
+class SimpleTransShader : public ShaderBaseImpl3<TransSimpleUniforms>
 {
 public:
 	SimpleTransShader();
@@ -181,7 +227,7 @@ private:
 	GLint u_currentScene, u_frozenScene, u_prog;
 };
 
-class SpriteShader : public ShaderBase
+class SpriteShader : public ShaderBaseImpl2<SpriteUniforms>
 {
 public:
 	SpriteShader();
@@ -206,7 +252,7 @@ private:
     u_patternBlendType, u_patternSizeInv, u_patternTile, u_patternOpacity, u_patternScroll, u_patternZoom, u_invert;
 };
 
-class PlaneShader : public ShaderBase
+class PlaneShader : public ShaderBaseImpl3<PlaneUniforms>
 {
 public:
 	PlaneShader();
@@ -220,7 +266,7 @@ private:
 	GLint u_tone, u_color, u_flash, u_opacity;
 };
 
-class GrayShader : public ShaderBase
+class GrayShader : public ShaderBaseImpl3<GrayUniforms>
 {
 public:
 	GrayShader();
@@ -234,7 +280,7 @@ private:
 	GLint u_gray;
 };
 
-class TilemapShader : public ShaderBase
+class TilemapShader : public ShaderBaseImpl3<TilemapUniforms>
 {
 public:
 	TilemapShader();
@@ -251,7 +297,7 @@ private:
 	GLint u_aniIndex, u_tone, u_color, u_opacity, u_atFrames;
 };
 
-class FlashMapShader : public ShaderBase
+class FlashMapShader : public ShaderBaseImpl3<FlashMapUniforms>
 {
 public:
 	FlashMapShader();
@@ -262,7 +308,7 @@ private:
 	GLint u_alpha;
 };
 
-class HueShader : public ShaderBase
+class HueShader : public ShaderBaseImpl3<HueUniforms>
 {
 public:
 	HueShader();
@@ -273,7 +319,7 @@ private:
 	GLint u_hueAdjust;
 };
 
-class SimpleMatrixShader : public ShaderBase
+class SimpleMatrixShader : public ShaderBaseImpl2<SimpleMatrixUniforms>
 {
 public:
 	SimpleMatrixShader();
@@ -287,13 +333,13 @@ private:
 /* Gaussian blur */
 struct BlurShader
 {
-	class HPass : public ShaderBase
+	class HPass : public ShaderBaseImpl2<BlurHUniforms>
 	{
 	public:
 		HPass();
 	};
 
-	class VPass : public ShaderBase
+	class VPass : public ShaderBaseImpl2<BlurVUniforms>
 	{
 	public:
 		VPass();
@@ -303,7 +349,7 @@ struct BlurShader
 	VPass pass2;
 };
 
-class TilemapVXShader : public ShaderBase
+class TilemapVXShader : public ShaderBaseImpl3<TilemapVXUniforms>
 {
 public:
 	TilemapVXShader();
@@ -315,7 +361,7 @@ private:
 };
 
 /* Bitmap blit */
-class BltShader : public ShaderBase
+class BltShader : public ShaderBaseImpl3<BitmapBlitUniforms>
 {
 public:
 	BltShader();
@@ -419,6 +465,7 @@ struct ShaderSet
 	SimpleMatrixShader simpleMatrix;
 	BlurShader blur;
 	TilemapVXShader tilemapVX;
+#ifndef MKXPZ_PGL
 	BicubicShader bicubic;
 	Lanczos3Shader lanczos3;
 #ifdef MKXPZ_SSL
@@ -429,6 +476,7 @@ struct ShaderSet
 #ifdef MKXPZ_SSL
 	XbrzSpriteShader xbrzSprite;
 #endif
+#endif // MKXPZ_PGL
 };
 
 #endif // SHADER_H

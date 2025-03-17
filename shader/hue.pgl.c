@@ -1,5 +1,7 @@
 #include "hue.pgl.h"
 
+GLuint mkxp_pgl_get_texture2D(GLuint unit);
+
 void mkxpHueVS(float *_output, pgl_vec4 *_attribs, Shader_Builtins *builtins, void *_uniforms)
 {
 	struct HueVarying *output = (struct HueVarying *)_output;
@@ -33,7 +35,7 @@ void mkxpHueFS(float *_input, Shader_Builtins *builtins, void *_uniforms)
 	struct HueVarying *input = (struct HueVarying *)_input;
 	struct HueUniforms *uniforms = (struct HueUniforms *)_uniforms;
 
-	pgl_vec4 color = mkxp_pgl_texture2D(uniforms->texture, input->v_texCoord.x, input->v_texCoord.y);
+	pgl_vec4 color = mkxp_pgl_texture2D(mkxp_pgl_get_texture2D(uniforms->texture), input->v_texCoord.x, input->v_texCoord.y);
 	pgl_vec3 hsv = rgb2hsv((pgl_vec3){color.x, color.y, color.z});
 	hsv.x += uniforms->hueAdjust;
 	pgl_vec3 rgb = hsv2rgb(hsv);

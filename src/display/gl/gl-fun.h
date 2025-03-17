@@ -22,6 +22,8 @@
 #ifndef GLFUN_H
 #define GLFUN_H
 
+#define MKXPZ_PGL
+
 #ifdef MKXPZ_RETRO
 #  include <GLES3/gl3.h>
 #  define APIENTRY GL_APIENTRY

@@ -743,6 +743,7 @@ void Sprite::draw()
     {
         switch (scalingMethod)
         {
+#ifndef MKXPZ_PGL
         case Bicubic:
         {
             BicubicSpriteShader &shader = shState->shaders().bicubicSprite;
@@ -788,6 +789,7 @@ void Sprite::draw()
         }
             break;
 #endif
+#endif // MKXPZ_PGL
         default:
         {
             SimpleSpriteShader &shader = shState->shaders().simpleSprite;

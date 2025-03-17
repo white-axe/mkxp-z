@@ -1,5 +1,7 @@
 #include "bitmapBlit.pgl.h"
 
+GLuint mkxp_pgl_get_texture2D(GLuint unit);
+
 void mkxpBitmapBlitVS(float *_output, pgl_vec4 *_attribs, Shader_Builtins *builtins, void *_uniforms)
 {
 	struct BitmapBlitVarying *output = (struct BitmapBlitVarying *)_output;
@@ -18,8 +20,8 @@ void mkxpBitmapBlitFS(float *_input, Shader_Builtins *builtins, void *_uniforms)
 
 	pgl_vec2 coor = input->v_texCoord;
 	pgl_vec2 dstCoor = mult_vec2s(sub_vec2s(coor, (pgl_vec2){uniforms->subRect.x, uniforms->subRect.y}), (pgl_vec2){uniforms->subRect.z, uniforms->subRect.w});
-	pgl_vec4 srcFrag = mkxp_pgl_texture2D(uniforms->source, coor.x, coor.y);
-	pgl_vec4 dstFrag = mkxp_pgl_texture2D(uniforms->destination, dstCoor.x, dstCoor.y);
+	pgl_vec4 srcFrag = mkxp_pgl_texture2D(mkxp_pgl_get_texture2D(uniforms->source), coor.x, coor.y);
+	pgl_vec4 dstFrag = mkxp_pgl_texture2D(mkxp_pgl_get_texture2D(uniforms->destination), dstCoor.x, dstCoor.y);
 	pgl_vec4 resFrag;
 	float co1 = srcFrag.w * uniforms->opacity;
 	float co2 = dstFrag.w * (1.0 - co1);

@@ -150,9 +150,9 @@ namespace FBO
 		bind(ID(0));
 	}
 
-	static inline void setTarget(TEX::ID target, unsigned colorAttach = 0)
+	static inline void setTarget(TEX::ID target)
 	{
-		gl.FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + colorAttach, GL_TEXTURE_2D, target.gl, 0);
+		gl.FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, target.gl, 0);
 	}
 
 	static inline void clear()

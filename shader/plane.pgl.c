@@ -1,5 +1,7 @@
 #include "plane.pgl.h"
 
+GLuint mkxp_pgl_get_texture2D(GLuint unit);
+
 void mkxpPlaneVS(float *_output, pgl_vec4 *_attribs, Shader_Builtins *builtins, void *_uniforms)
 {
 	struct PlaneVarying *output = (struct PlaneVarying *)_output;
@@ -18,7 +20,7 @@ void mkxpPlaneFS(float *_input, Shader_Builtins *builtins, void *_uniforms)
 	struct PlaneVarying *input = (struct PlaneVarying *)_input;
 	struct PlaneUniforms *uniforms = (struct PlaneUniforms *)_uniforms;
 
-	pgl_vec4 frag = mkxp_pgl_texture2D(uniforms->texture, input->v_texCoord.x, input->v_texCoord.y);
+	pgl_vec4 frag = mkxp_pgl_texture2D(mkxp_pgl_get_texture2D(uniforms->texture), input->v_texCoord.x, input->v_texCoord.y);
 	float luma = dot_vec3s((pgl_vec3){frag.x, frag.y, frag.z}, lumaF);
 	pgl_vec3 gray = pgl_mix_vec3((pgl_vec3){frag.x, frag.y, frag.z}, (pgl_vec3){luma, luma, luma}, uniforms->tone.w);
 	frag.x = gray.x;
