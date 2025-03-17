@@ -276,16 +276,16 @@ namespace mkxp_sandbox {
         }
 
         static VALUE get_zoom_x(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getZoomX());
+            return sb()->bind<struct rb_float_new>()()(get_private_data<Sprite>(self)->getZoomX());
         }
 
         static VALUE set_zoom_x(VALUE self, VALUE value) {
             SANDBOX_COROUTINE(coro,
                 VALUE operator()(VALUE self, VALUE value) {
-                    int32_t zoom_x;
+                    float zoom_x;
 
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(zoom_x, rb_num2int, value);
+                        SANDBOX_AWAIT_AND_SET(zoom_x, rb_num2dbl, value);
                         GFX_GUARD_EXC(get_private_data<Sprite>(self)->setZoomX(zoom_x));
                     }
 
@@ -297,16 +297,16 @@ namespace mkxp_sandbox {
         }
 
         static VALUE get_zoom_y(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getZoomY());
+            return sb()->bind<struct rb_float_new>()()(get_private_data<Sprite>(self)->getZoomY());
         }
 
         static VALUE set_zoom_y(VALUE self, VALUE value) {
             SANDBOX_COROUTINE(coro,
                 VALUE operator()(VALUE self, VALUE value) {
-                    int32_t zoom_y;
+                    float zoom_y;
 
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(zoom_y, rb_num2int, value);
+                        SANDBOX_AWAIT_AND_SET(zoom_y, rb_num2dbl, value);
                         GFX_GUARD_EXC(get_private_data<Sprite>(self)->setZoomY(zoom_y));
                     }
 
@@ -336,6 +336,36 @@ namespace mkxp_sandbox {
             )
 
             return sb()->bind<struct coro>()()(self, value);
+        }
+
+        static VALUE get_angle(VALUE self) {
+            return sb()->bind<struct rb_float_new>()()(get_private_data<Sprite>(self)->getAngle());
+        }
+
+        static VALUE set_angle(VALUE self, VALUE value) {
+            SANDBOX_COROUTINE(coro,
+                VALUE operator()(VALUE self, VALUE value) {
+                    float angle;
+
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT_AND_SET(angle, rb_num2dbl, value);
+                        GFX_GUARD_EXC(get_private_data<Sprite>(self)->setAngle(angle));
+                    }
+
+                    return value;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, value);
+        }
+
+        static VALUE get_mirror(VALUE self) {
+            return SANDBOX_BOOL_TO_VALUE(get_private_data<Sprite>(self)->getMirror());
+        }
+
+        static VALUE set_mirror(VALUE self, VALUE value) {
+            get_private_data<Sprite>(self)->setMirror(SANDBOX_VALUE_TO_BOOL(value));
+            return value;
         }
 
         static VALUE get_bush_depth(VALUE self) {
@@ -461,6 +491,10 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, klass, "zoom_y=", (VALUE (*)(ANYARGS))set_zoom_y, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "z", (VALUE (*)(ANYARGS))get_z, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "z=", (VALUE (*)(ANYARGS))set_z, 1);
+                SANDBOX_AWAIT(rb_define_method, klass, "angle", (VALUE (*)(ANYARGS))get_angle, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "angle=", (VALUE (*)(ANYARGS))set_angle, 1);
+                SANDBOX_AWAIT(rb_define_method, klass, "mirror", (VALUE (*)(ANYARGS))get_mirror, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "mirror=", (VALUE (*)(ANYARGS))set_mirror, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "bush_depth", (VALUE (*)(ANYARGS))get_bush_depth, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "bush_depth=", (VALUE (*)(ANYARGS))set_bush_depth, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "bush_opacity", (VALUE (*)(ANYARGS))get_bush_opacity, 0);
