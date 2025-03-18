@@ -35,6 +35,106 @@ namespace mkxp_sandbox {
         SANDBOX_DEF_DFREE(Table)
         SANDBOX_DEF_LOAD(Table)
 
+        static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                int32_t x;
+                int32_t y;
+                int32_t z;
+
+                VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        y = z = 1;
+
+                        // TODO: throw error if too many or too few arguments
+                        SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                        x = std::max(x, 0);
+                        if (argc >= 2) {
+                            SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                            y = std::max(y, 0);
+                            if (argc >= 3) {
+                                SANDBOX_AWAIT_AND_SET(z, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                                z = std::max(z, 0);
+                            }
+                        }
+
+                        Table *table = get_private_data<Table>(self);
+                        if (table != NULL) {
+                            table->resize(x, y, z);
+                        } else {
+                            table = new Table(x, y, z);
+                        }
+                        set_private_data(self, table);
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(argc, argv, self);
+        }
+
+        static VALUE initialize_copy(VALUE self, VALUE obj) {
+            SANDBOX_COROUTINE(coro,
+                VALUE operator()(VALUE self, VALUE obj) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        if (self != obj) {
+                            SANDBOX_AWAIT(rb_obj_init_copy, self, obj);
+                            set_private_data(self, new Table(*get_private_data<Table>(obj)));
+                        }
+                    }
+
+                    return self;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, obj);
+        }
+
+        static VALUE resize(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                Table *table;
+                int32_t x;
+                int32_t y;
+                int32_t z;
+
+                VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        y = z = 1;
+
+                        // TODO: throw error if too many or too few arguments
+                        SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                        x = std::max(x, 0);
+                        if (argc >= 2) {
+                            SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                            y = std::max(y, 0);
+                            if (argc >= 3) {
+                                SANDBOX_AWAIT_AND_SET(z, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                                z = std::max(z, 0);
+                            }
+                        }
+
+                        get_private_data<Table>(self)->resize(x, y, z);
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(argc, argv, self);
+        }
+
+        static VALUE xsize(VALUE self) {
+            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Table>(self)->xSize());
+        }
+
+        static VALUE ysize(VALUE self) {
+            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Table>(self)->ySize());
+        }
+
+        static VALUE zsize(VALUE self) {
+            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Table>(self)->zSize());
+        }
+
         static VALUE get(int32_t argc, wasm_ptr_t argv, VALUE self) {
             SANDBOX_COROUTINE(coro,
                 Table *table;
@@ -115,6 +215,12 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Table", sb()->rb_cObject());
                 SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
                 SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(ANYARGS))load, 1);
+                SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+                SANDBOX_AWAIT(rb_define_method, klass, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
+                SANDBOX_AWAIT(rb_define_method, klass, "resize", (VALUE (*)(ANYARGS))resize, -1);
+                SANDBOX_AWAIT(rb_define_method, klass, "xsize", (VALUE (*)(ANYARGS))xsize, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "ysize", (VALUE (*)(ANYARGS))ysize, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "zsize", (VALUE (*)(ANYARGS))zsize, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "[]", (VALUE (*)(ANYARGS))get, -1);
                 SANDBOX_AWAIT(rb_define_method, klass, "[]=", (VALUE (*)(ANYARGS))set, -1);
             }
