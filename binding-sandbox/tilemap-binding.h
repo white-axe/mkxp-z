@@ -253,7 +253,7 @@ namespace mkxp_sandbox {
             SANDBOX_COROUTINE(coro,
                 VALUE operator()(VALUE self, VALUE value) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Tilemap>(self)->setMapData(get_private_data<Table>(value)));
+                        GFX_GUARD_EXC(get_private_data<Tilemap>(self)->setFlashData(get_private_data<Table>(value)));
                         SANDBOX_AWAIT(rb_iv_set, self, "flash_data", value);
                     }
 
@@ -272,7 +272,7 @@ namespace mkxp_sandbox {
             SANDBOX_COROUTINE(coro,
                 VALUE operator()(VALUE self, VALUE value) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Tilemap>(self)->setMapData(get_private_data<Table>(value)));
+                        GFX_GUARD_EXC(get_private_data<Tilemap>(self)->setPriorities(get_private_data<Table>(value)));
                         SANDBOX_AWAIT(rb_iv_set, self, "priorities", value);
                     }
 

@@ -24,10 +24,8 @@
 #include "sharedstate.h"
 #include "etc.h"
 #include "util.h"
-#ifndef MKXPZ_RETRO
 #include "quad.h"
 #include "glstate.h"
-#endif // MKXPZ_RETRO
 #include "graphics.h"
 
 #include "sigslot/signal.hpp"
@@ -193,11 +191,9 @@ void Viewport::composite()
 	if (elements.getSize() == 0 && !renderEffect)
 		return;
 
-#ifndef MKXPZ_RETRO
 	/* Setup scissor */
 	glState.scissorTest.pushSet(true);
 	glState.scissorBox.pushSet(p->rect->toIntRect());
-#endif // MKXPZ_RETRO
 
 	Scene::composite();
 
@@ -207,10 +203,8 @@ void Viewport::composite()
 		scene->requestViewportRender
 		        (p->color->norm, flashColor, p->tone->norm);
 
-#ifndef MKXPZ_RETRO
 	glState.scissorBox.pop();
 	glState.scissorTest.pop();
-#endif // MKXPZ_RETRO
 }
 
 /* SceneElement */
