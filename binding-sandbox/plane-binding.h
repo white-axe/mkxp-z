@@ -62,20 +62,20 @@ namespace mkxp_sandbox {
                         GFX_LOCK
                         plane = new Plane(viewport);
 
-                        SANDBOX_AWAIT(set_private_data, self, plane);
+                        set_private_data(self, plane);
 
                         plane->initDynAttribs();
 
                         SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
                         SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
                         SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        SANDBOX_AWAIT(set_private_data, obj, &plane->getColor());
+                        set_private_data(obj, &plane->getColor());
                         SANDBOX_AWAIT(rb_iv_set, self, "color", obj);
 
                         SANDBOX_AWAIT_AND_SET(id, rb_intern, "Tone");
                         SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
                         SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        SANDBOX_AWAIT(set_private_data, obj, &plane->getTone());
+                        set_private_data(obj, &plane->getTone());
                         SANDBOX_AWAIT(rb_iv_set, self, "tone", obj);
 
                         GFX_UNLOCK
@@ -316,7 +316,7 @@ namespace mkxp_sandbox {
 
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(plane_type, new_rb_data_type, "Plane", NULL, dfree, NULL, NULL, 0, 0, 0);
+                plane_type = sb()->rb_data_type("Plane", NULL, dfree, NULL, NULL, 0, 0, 0);
                 SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Plane", sb()->rb_cObject());
                 SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
                 SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);

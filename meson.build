@@ -115,8 +115,6 @@ if is_libretro
         '-DSHARED_FLUID',
         '-D_FILE_OFFSET_BITS=64',
         '-DMPG123_NO_LARGENAME',
-        '-DPGL_PREFIX_TYPES',
-        '-DPGL_PREFIX_GLSL',
         '-DGL_GLES_PROTOTYPES=0',
     ]
 
@@ -646,6 +644,7 @@ if is_libretro
             'src/filesystem/filesystem.cpp',
             'src/input/input-retro.cpp',
             'binding-sandbox/binding-base.cpp',
+            'binding-sandbox/binding-util.cpp',
             'binding-sandbox/sandbox.cpp',
             'binding-sandbox/wasi.cpp',
             'binding-sandbox/wasm-rt.cpp',

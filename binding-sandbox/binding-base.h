@@ -80,7 +80,7 @@ namespace mkxp_sandbox {
         struct w2c_ruby &instance() const noexcept;
         uint8_t *get() const noexcept;
         uint8_t *operator*() const noexcept;
-        wasm_ptr_t _sandbox_malloc(wasm_size_t);
+        wasm_ptr_t sandbox_malloc(wasm_size_t);
         void sandbox_free(wasm_ptr_t ptr);
         wasm_ptr_t rtypeddata_data(VALUE obj) const noexcept;
         void rtypeddata_dmark(wasm_ptr_t data, wasm_ptr_t ptr);

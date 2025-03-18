@@ -257,7 +257,7 @@ static bool init_sandbox() {
             return std::calloc(1, sizeof(long));
         },
         .fread = [](void *buf, int count, void *handle) {
-            assert(*(long *)handle + count < mkxp_gmgsx_sf2_len);
+            assert((size_t)(*(long *)handle + count) < mkxp_gmgsx_sf2_len);
             std::memcpy(buf, mkxp_gmgsx_sf2 + *(long *)handle, count);
             *(long *)handle += count;
             return (int)FLUID_OK;

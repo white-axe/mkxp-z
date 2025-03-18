@@ -59,26 +59,26 @@ namespace mkxp_sandbox {
                             viewport = new Viewport(x, y, w, h);
                         }
 
-                        SANDBOX_AWAIT(set_private_data, self, viewport);
+                        set_private_data(self, viewport);
 
                         viewport->initDynAttribs();
 
                         SANDBOX_AWAIT_AND_SET(id, rb_intern, "Rect");
                         SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
                         SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        SANDBOX_AWAIT(set_private_data, obj, &viewport->getRect());
+                        set_private_data(obj, &viewport->getRect());
                         SANDBOX_AWAIT(rb_iv_set, self, "rect", obj);
 
                         SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
                         SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
                         SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        SANDBOX_AWAIT(set_private_data, obj, &viewport->getColor());
+                        set_private_data(obj, &viewport->getColor());
                         SANDBOX_AWAIT(rb_iv_set, self, "color", obj);
 
                         SANDBOX_AWAIT_AND_SET(id, rb_intern, "Tone");
                         SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
                         SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        SANDBOX_AWAIT(set_private_data, obj, &viewport->getTone());
+                        set_private_data(obj, &viewport->getTone());
                         SANDBOX_AWAIT(rb_iv_set, self, "tone", obj);
 
                         GFX_UNLOCK
@@ -232,7 +232,7 @@ namespace mkxp_sandbox {
 
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(viewport_type, new_rb_data_type, "Viewport", NULL, dfree, NULL, NULL, 0, 0, 0);
+                viewport_type = sb()->rb_data_type("Viewport", NULL, dfree, NULL, NULL, 0, 0, 0);
                 SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Viewport", sb()->rb_cObject());
                 SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
                 SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);

@@ -27,7 +27,7 @@
 
 #define WASM_PAGE_SIZE ((uint64_t)65536U)
 
-#define WASM_MIN_PAGES ((uint32_t)1024U) // tentative
+#define WASM_MIN_PAGES ((uint32_t)1536U)
 
 extern "C" bool wasm_rt_is_initialized(void) {
     return true;
@@ -94,15 +94,8 @@ extern "C" uint32_t wasm_rt_grow_memory(wasm_rt_memory_t *memory, uint32_t pages
         return -1;
     }
 
-    if (!mkxp_retro::sandbox.has_value()) {
-        assert(new_pages <= WASM_MIN_PAGES);
-    } else if (mkxp_retro::sandbox->_rewinding()) {
-        if (!mkxp_retro::sandbox->_end_realloc()) {
-            return -1;
-        }
-    } else if (new_pages > WASM_MIN_PAGES) {
-        mkxp_retro::sandbox->_begin_realloc((size_t)new_size);
-        return -1; // Arbitrary value that never gets read
+    if (new_pages > WASM_MIN_PAGES) {
+        mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox memory growth is not implemented yet");
     }
 
 #ifdef MKXPZ_BIG_ENDIAN

@@ -43,7 +43,6 @@ using namespace mkxp_sandbox;
 
 usize sandbox::sandbox_malloc(usize size) {
     usize buf = w2c_ruby_mkxp_sandbox_malloc(RB, size);
-    assert(w2c_ruby_asyncify_get_state(RB) == 0);
 
     // Verify that the returned pointer is non-null and the entire allocated buffer is in valid memory
     usize buf_end;
@@ -58,7 +57,7 @@ void sandbox::sandbox_free(usize ptr) {
     w2c_ruby_mkxp_sandbox_free(RB, ptr);
 }
 
-sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings(ruby), yielding(false), realloc_size(0) {
+sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings(ruby), yielding(false) {
     try {
         // Initialize the sandbox
         wasm2c_ruby_instantiate(RB, wasi.get());
@@ -82,8 +81,6 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
             args.push_back("--yjit");
         }
 
-        usize state_buf = sandbox_malloc(sizeof(usize));
-
         // Copy all the command-line arguments into the sandbox (sandboxed code can't access memory that's outside the sandbox!)
         usize argv_buf = sandbox_malloc(args.size() * sizeof(usize));
         for (usize i = 0; i < args.size(); ++i) {
@@ -101,6 +98,7 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
         // Start up Ruby executable node
         bool valid;
         u32 state;
+        usize state_buf = sandbox_malloc(sizeof(usize));
         AWAIT(valid = w2c_ruby_ruby_executable_node(RB, node, state_buf));
         if (valid) {
             AWAIT(state = w2c_ruby_ruby_exec_node(RB, node));
@@ -124,7 +122,7 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
 }
 
 sandbox::~sandbox() {
-    if (yielding || realloc_size != 0) {
+    if (yielding) {
         w2c_ruby_asyncify_stop_unwind(ruby.get());
     }
     bindings.reset(); // Destroy the bindings before destroying the runtime since the bindings destructor requires the runtime to be alive

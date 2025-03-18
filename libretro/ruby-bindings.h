@@ -41,7 +41,7 @@ MKXP_SANDBOX_API void *mkxp_sandbox_fiber_arg1 = NULL;
 
 /* This function should be called immediately after initializing the sandbox to perform initialization, before calling any other functions. */
 MKXP_SANDBOX_API void mkxp_sandbox_init(void) {
-    void __wasm_call_ctors(void); /* Defined by wasi-libc from the WASI SDK */
+    void __wasm_call_ctors(void); /* Defined by the LLVM linker */
     __wasm_call_ctors();
 
     void async_buf_init(struct __rb_wasm_asyncify_jmp_buf *); /* Defined in wasm/setjmp.c in Ruby source code */

@@ -218,13 +218,14 @@ HEADER_START = <<~HEREDOC
 
           struct rb_data_type {
               friend struct bindings;
-              friend struct new_rb_data_type;
               rb_data_type();
               wasm_ptr_t get() const;
               private:
               wasm_ptr_t ptr;
               rb_data_type(wasm_ptr_t ptr);
           };
+
+          struct rb_data_type rb_data_type(const char *wrap_struct_name, void (*dmark)(wasm_ptr_t), void (*dfree)(wasm_ptr_t), wasm_size_t (*dsize)(wasm_ptr_t), void (*dcompact)(wasm_ptr_t), wasm_ptr_t parent, wasm_ptr_t data, wasm_size_t flags);
 
 HEREDOC
 
@@ -302,83 +303,57 @@ HEREDOC
 
 POSTSCRIPT = <<~HEREDOC
 
-  sandbox_malloc::sandbox_malloc(struct binding_base &b) : bind(b) {}
-  wasm_ptr_t sandbox_malloc::operator()(wasm_size_t size) {
-      BOOST_ASIO_CORO_REENTER (this) {
-          for (;;) {
-              {
-                  wasm_ptr_t buf = bind._sandbox_malloc(size);
-                  if (w2c_#{MODULE_NAME}_asyncify_get_state(&bind.instance()) != 1) return buf;
-              }
-              BOOST_ASIO_CORO_YIELD;
-          }
+  struct bindings::rb_data_type bindings::rb_data_type(const char *wrap_struct_name, void (*dmark)(wasm_ptr_t), void (*dfree)(wasm_ptr_t), wasm_size_t (*dsize)(wasm_ptr_t), void (*dcompact)(wasm_ptr_t), wasm_ptr_t parent, wasm_ptr_t data, wasm_size_t flags) {
+      wasm_ptr_t buf;
+      wasm_ptr_t str;
+
+      buf = sandbox_malloc(9 * sizeof(wasm_ptr_t));
+      if (buf == 0) {
+          throw SandboxOutOfMemoryException();
+      }
+      str = sandbox_malloc(std::strlen(wrap_struct_name) + 1);
+      if (str == 0) {
+          sandbox_free(buf);
+          throw SandboxOutOfMemoryException();
       }
 
-      return 0;
-  }
+      std::strcpy((char *)(**this + str), wrap_struct_name);
+      ((wasm_ptr_t *)(**this + buf))[0] = SERIALIZE_VALUE(str);
 
-  new_rb_data_type::new_rb_data_type(struct binding_base &b) : bind(b), buf(0), str(0) {}
-  struct bindings::rb_data_type new_rb_data_type::operator()(const char *wrap_struct_name, void (*dmark)(wasm_ptr_t), void (*dfree)(wasm_ptr_t), wasm_size_t (*dsize)(wasm_ptr_t), void (*dcompact)(wasm_ptr_t), wasm_ptr_t parent, wasm_ptr_t data, wasm_size_t flags) {
-      BOOST_ASIO_CORO_REENTER (this) {
-          for (;;) {
-              buf = bind._sandbox_malloc(9 * sizeof(wasm_ptr_t));
-              if (w2c_#{MODULE_NAME}_asyncify_get_state(&bind.instance()) != 1) break;
-              BOOST_ASIO_CORO_YIELD;
-          }
-          if (buf == 0) {
-              throw SandboxOutOfMemoryException();
-          }
+      ((wasm_ptr_t *)(**this + buf))[1] = dmark == NULL ? 0 : SERIALIZE_VALUE(wasm_rt_push_funcref(&instance().w2c_T0, wasm_rt_funcref_t {
+          .func_type = wasm2c_#{MODULE_NAME}_get_func_type(1, 0, #{FUNC_TYPE_TABLE[:ptr]}),
+          .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:void, [:value]])},
+          .func_tailcallee = {.fn = NULL},
+          .module_instance = (void *)dmark,
+      }));
 
-          for (;;) {
-              str = bind._sandbox_malloc(std::strlen(wrap_struct_name) + 1);
-              if (w2c_#{MODULE_NAME}_asyncify_get_state(&bind.instance()) != 1) break;
-              BOOST_ASIO_CORO_YIELD;
-          }
-          if (str == 0) {
-              throw SandboxOutOfMemoryException();
-          }
+      ((wasm_ptr_t *)(**this + buf))[2] = dfree == NULL ? 0 : SERIALIZE_VALUE(wasm_rt_push_funcref(&instance().w2c_T0, wasm_rt_funcref_t {
+          .func_type = wasm2c_#{MODULE_NAME}_get_func_type(1, 0, #{FUNC_TYPE_TABLE[:ptr]}),
+          .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:void, [:value]])},
+          .func_tailcallee = {.fn = NULL},
+          .module_instance = (void *)dfree,
+      }));
 
-          std::strcpy((char *)(*bind + str), wrap_struct_name);
-          ((wasm_ptr_t *)(*bind + buf))[0] = SERIALIZE_VALUE(str);
+      ((wasm_ptr_t *)(**this + buf))[3] = dsize == NULL ? 0 : SERIALIZE_VALUE(wasm_rt_push_funcref(&instance().w2c_T0, wasm_rt_funcref_t {
+          .func_type = wasm2c_#{MODULE_NAME}_get_func_type(1, 0, #{FUNC_TYPE_TABLE[:ptr]}, #{FUNC_TYPE_TABLE[:size]}),
+          .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:size, [:value]])},
+          .func_tailcallee = {.fn = NULL},
+          .module_instance = (void *)dsize,
+      }));
 
-          ((wasm_ptr_t *)(*bind + buf))[1] = dmark == NULL ? 0 : SERIALIZE_VALUE(wasm_rt_push_funcref(&bind.instance().w2c_T0, wasm_rt_funcref_t {
-              .func_type = wasm2c_#{MODULE_NAME}_get_func_type(1, 0, #{FUNC_TYPE_TABLE[:ptr]}),
-              .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:void, [:value]])},
-              .func_tailcallee = {.fn = NULL},
-              .module_instance = (void *)dmark,
-          }));
+      ((wasm_ptr_t *)(**this + buf))[4] = dcompact == NULL ? 0 : SERIALIZE_VALUE(wasm_rt_push_funcref(&instance().w2c_T0, wasm_rt_funcref_t {
+          .func_type = wasm2c_#{MODULE_NAME}_get_func_type(1, 0, #{FUNC_TYPE_TABLE[:ptr]}),
+          .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:void, [:value]])},
+          .func_tailcallee = {.fn = NULL},
+          .module_instance = (void *)dcompact,
+      }));
 
-          ((wasm_ptr_t *)(*bind + buf))[2] = dfree == NULL ? 0 : SERIALIZE_VALUE(wasm_rt_push_funcref(&bind.instance().w2c_T0, wasm_rt_funcref_t {
-              .func_type = wasm2c_#{MODULE_NAME}_get_func_type(1, 0, #{FUNC_TYPE_TABLE[:ptr]}),
-              .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:void, [:value]])},
-              .func_tailcallee = {.fn = NULL},
-              .module_instance = (void *)dfree,
-          }));
-
-          ((wasm_ptr_t *)(*bind + buf))[3] = dsize == NULL ? 0 : SERIALIZE_VALUE(wasm_rt_push_funcref(&bind.instance().w2c_T0, wasm_rt_funcref_t {
-              .func_type = wasm2c_#{MODULE_NAME}_get_func_type(1, 0, #{FUNC_TYPE_TABLE[:ptr]}, #{FUNC_TYPE_TABLE[:size]}),
-              .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:size, [:value]])},
-              .func_tailcallee = {.fn = NULL},
-              .module_instance = (void *)dsize,
-          }));
-
-          ((wasm_ptr_t *)(*bind + buf))[4] = dcompact == NULL ? 0 : SERIALIZE_VALUE(wasm_rt_push_funcref(&bind.instance().w2c_T0, wasm_rt_funcref_t {
-              .func_type = wasm2c_#{MODULE_NAME}_get_func_type(1, 0, #{FUNC_TYPE_TABLE[:ptr]}),
-              .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:void, [:value]])},
-              .func_tailcallee = {.fn = NULL},
-              .module_instance = (void *)dcompact,
-          }));
-
-          ((wasm_ptr_t *)(*bind + buf))[5] = 0;
-          ((wasm_ptr_t *)(*bind + buf))[6] = SERIALIZE_VALUE(parent);
-          ((wasm_ptr_t *)(*bind + buf))[7] = SERIALIZE_VALUE(data);
-          ((wasm_ptr_t *)(*bind + buf))[8] = SERIALIZE_VALUE(flags);
-      }
+      ((wasm_ptr_t *)(**this + buf))[5] = 0;
+      ((wasm_ptr_t *)(**this + buf))[6] = SERIALIZE_VALUE(parent);
+      ((wasm_ptr_t *)(**this + buf))[7] = SERIALIZE_VALUE(data);
+      ((wasm_ptr_t *)(**this + buf))[8] = SERIALIZE_VALUE(flags);
 
       return buf;
-  }
-  new_rb_data_type::~new_rb_data_type() {
-      if (str == 0 && buf != 0) bind.sandbox_free(buf);
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -519,11 +494,7 @@ File.readlines('tags', chomp: true).each do |line|
       transformed_args.add(i)
     elsif !handler[:buf_size].nil?
       coroutine_initializer += <<~HEREDOC
-        for (;;) {
-            f#{i} = bind._sandbox_malloc(#{handler[:buf_size].gsub('PREV_ARG', "a#{i - 1}").gsub('ARG', "a#{i}")});
-            if (w2c_#{MODULE_NAME}_asyncify_get_state(&bind.instance()) != 1) break;
-            BOOST_ASIO_CORO_YIELD;
-        }
+        f#{i} = bind.sandbox_malloc(#{handler[:buf_size].gsub('PREV_ARG', "a#{i - 1}").gsub('ARG', "a#{i}")});
         if (f#{i} == 0) throw SandboxOutOfMemoryException();
       HEREDOC
       coroutine_initializer += handler[:serialize].gsub('PREV_ARG', "a#{i - 1}").gsub('ARG', "a#{i}").gsub('BUF', "f#{i}")
@@ -542,11 +513,7 @@ File.readlines('tags', chomp: true).each do |line|
     case func_name
     when 'rb_funcall'
       coroutine_initializer += <<~HEREDOC
-        for (;;) {
-            f#{args.length - 1} = bind._sandbox_malloc(a#{args.length - 2} * sizeof(VALUE));
-            if (w2c_#{MODULE_NAME}_asyncify_get_state(&bind.instance()) != 1) break;
-            BOOST_ASIO_CORO_YIELD;
-        }
+        f#{args.length - 1} = bind.sandbox_malloc(a#{args.length - 2} * sizeof(VALUE));
         if (f#{args.length - 1} == 0) throw SandboxOutOfMemoryException();
         std::va_list a;
         va_start(a, a#{args.length - 2});
@@ -566,11 +533,7 @@ File.readlines('tags', chomp: true).each do |line|
         n = 0;
         do ++n; while (va_arg(b, VALUE));
         va_end(b);
-        for (;;) {
-            f#{args.length - 1} = bind._sandbox_malloc(n * sizeof(VALUE));
-            if (w2c_#{MODULE_NAME}_asyncify_get_state(&bind.instance()) != 1) break;
-            BOOST_ASIO_CORO_YIELD;
-        }
+        f#{args.length - 1} = bind.sandbox_malloc(n * sizeof(VALUE));
         if (f#{args.length - 1} == 0) {
             va_end(a);
             throw SandboxOutOfMemoryException();
@@ -654,32 +617,7 @@ File.open('mkxp-sandbox-bindgen.h', 'w') do |file|
   for global_name in globals
     file.write("        inline VALUE #{global_name}() const noexcept { return *(VALUE *)(**this + instance().w2c_#{global_name}); }\n")
   end
-  file.write("    };\n\n")
-  declaration = <<~HEREDOC
-    struct sandbox_malloc : boost::asio::coroutine {
-        friend struct bindings::stack_frame_guard<struct sandbox_malloc>;
-        BOOST_TYPE_INDEX_REGISTER_CLASS
-        wasm_ptr_t operator()(wasm_size_t size);
-        private:
-        struct binding_base &bind;
-        sandbox_malloc(struct binding_base &b);
-    };
-
-    struct new_rb_data_type : boost::asio::coroutine {
-        friend struct bindings::stack_frame_guard<struct new_rb_data_type>;
-        BOOST_TYPE_INDEX_REGISTER_CLASS
-        struct bindings::rb_data_type operator()(const char *wrap_struct_name, void (*dmark)(wasm_ptr_t), void (*dfree)(wasm_ptr_t), wasm_size_t (*dsize)(wasm_ptr_t), void (*dcompact)(wasm_ptr_t), wasm_ptr_t parent, wasm_ptr_t data, wasm_size_t flags);
-        ~new_rb_data_type();
-        private:
-        struct binding_base &bind;
-        new_rb_data_type(struct binding_base &b);
-        wasm_ptr_t buf;
-        wasm_ptr_t str;
-    };
-  HEREDOC
-  for line in declaration.split("\n")
-    file.write("    #{line}".rstrip + "\n")
-  end
+  file.write("    };")
   for declaration in declarations
     file.write("\n\n" + declaration.split("\n").map { |line| "    #{line}" }.join("\n").rstrip)
   end

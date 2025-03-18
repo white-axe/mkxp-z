@@ -33,25 +33,9 @@ namespace mkxp_sandbox {
 
     SANDBOX_COROUTINE(etc_binding_init,
         SANDBOX_COROUTINE(color_binding_init,
+            SANDBOX_DEF_ALLOC_WITH_INIT(color_type, new Color)
             SANDBOX_DEF_DFREE(Color)
             SANDBOX_DEF_LOAD(Color)
-
-            static VALUE alloc(VALUE klass) {
-                SANDBOX_COROUTINE(coro,
-                    VALUE obj;
-
-                    VALUE operator()(VALUE klass) {
-                        BOOST_ASIO_CORO_REENTER (this) {
-                            SANDBOX_AWAIT_AND_SET(obj, mkxp_sandbox::rb_data_typed_object_wrap, klass, 0, color_type);
-                            SANDBOX_AWAIT(set_private_data, obj, new Color);
-                        }
-
-                        return obj;
-                    }
-                )
-
-                return mkxp_sandbox::sb()->bind<struct coro>()()(klass);
-            }
 
             static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 SANDBOX_COROUTINE(coro,
@@ -64,7 +48,7 @@ namespace mkxp_sandbox {
                     VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                         BOOST_ASIO_CORO_REENTER (this) {
                             if (argc == 0) {
-                                color = new Color;
+                                color = new Color();
                             } else {
                                 SANDBOX_AWAIT_AND_SET(red, rb_num2dbl, ((VALUE *)(**sb() + argv))[0]);
                                 SANDBOX_AWAIT_AND_SET(green, rb_num2dbl, ((VALUE *)(**sb() + argv))[1]);
@@ -77,7 +61,7 @@ namespace mkxp_sandbox {
                                 }
                             }
 
-                            SANDBOX_AWAIT(set_private_data, self, color);
+                            set_private_data(self, color);
                         }
 
                         return SANDBOX_NIL;
@@ -206,7 +190,7 @@ namespace mkxp_sandbox {
 
             void operator()() {
                 BOOST_ASIO_CORO_REENTER (this) {
-                    SANDBOX_AWAIT_AND_SET(color_type, new_rb_data_type, "Color", NULL, dfree, NULL, NULL, 0, 0, 0);
+                    color_type = sb()->rb_data_type("Color", NULL, dfree, NULL, NULL, 0, 0, 0);
                     SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Color", sb()->rb_cObject());
                     SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
                     SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(ANYARGS))load, 1);
@@ -225,25 +209,9 @@ namespace mkxp_sandbox {
         )
 
         SANDBOX_COROUTINE(tone_binding_init,
+            SANDBOX_DEF_ALLOC_WITH_INIT(tone_type, new Tone)
             SANDBOX_DEF_DFREE(Tone)
             SANDBOX_DEF_LOAD(Tone)
-
-            static VALUE alloc(VALUE klass) {
-                SANDBOX_COROUTINE(coro,
-                    VALUE obj;
-
-                    VALUE operator()(VALUE klass) {
-                        BOOST_ASIO_CORO_REENTER (this) {
-                            SANDBOX_AWAIT_AND_SET(obj, mkxp_sandbox::rb_data_typed_object_wrap, klass, 0, tone_type);
-                            SANDBOX_AWAIT(set_private_data, obj, new Tone);
-                        }
-
-                        return obj;
-                    }
-                )
-
-                return mkxp_sandbox::sb()->bind<struct coro>()()(klass);
-            }
 
             static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 SANDBOX_COROUTINE(coro,
@@ -256,7 +224,7 @@ namespace mkxp_sandbox {
                     VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                         BOOST_ASIO_CORO_REENTER (this) {
                             if (argc == 0) {
-                                tone = new Tone;
+                                tone = new Tone();
                             } else {
                                 SANDBOX_AWAIT_AND_SET(red, rb_num2dbl, ((VALUE *)(**sb() + argv))[0]);
                                 SANDBOX_AWAIT_AND_SET(green, rb_num2dbl, ((VALUE *)(**sb() + argv))[1]);
@@ -269,7 +237,7 @@ namespace mkxp_sandbox {
                                 }
                             }
 
-                            SANDBOX_AWAIT(set_private_data, self, tone);
+                            set_private_data(self, tone);
                         }
 
                         return SANDBOX_NIL;
@@ -398,7 +366,7 @@ namespace mkxp_sandbox {
 
             void operator()() {
                 BOOST_ASIO_CORO_REENTER (this) {
-                    SANDBOX_AWAIT_AND_SET(tone_type, new_rb_data_type, "Tone", NULL, dfree, NULL, NULL, 0, 0, 0);
+                    tone_type = sb()->rb_data_type("Tone", NULL, dfree, NULL, NULL, 0, 0, 0);
                     SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Tone", sb()->rb_cObject());
                     SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
                     SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(ANYARGS))load, 1);
@@ -417,25 +385,9 @@ namespace mkxp_sandbox {
         )
 
         SANDBOX_COROUTINE(rect_binding_init,
+            SANDBOX_DEF_ALLOC_WITH_INIT(rect_type, new Rect)
             SANDBOX_DEF_DFREE(Rect)
             SANDBOX_DEF_LOAD(Rect)
-
-            static VALUE alloc(VALUE klass) {
-                SANDBOX_COROUTINE(coro,
-                    VALUE obj;
-
-                    VALUE operator()(VALUE klass) {
-                        BOOST_ASIO_CORO_REENTER (this) {
-                            SANDBOX_AWAIT_AND_SET(obj, mkxp_sandbox::rb_data_typed_object_wrap, klass, 0, rect_type);
-                            SANDBOX_AWAIT(set_private_data, obj, new Rect);
-                        }
-
-                        return obj;
-                    }
-                )
-
-                return mkxp_sandbox::sb()->bind<struct coro>()()(klass);
-            }
 
             static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 SANDBOX_COROUTINE(coro,
@@ -448,7 +400,7 @@ namespace mkxp_sandbox {
                     VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                         BOOST_ASIO_CORO_REENTER (this) {
                             if (argc == 0) {
-                                rect = new Rect;
+                                rect = new Rect();
                             } else {
                                 SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
                                 SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
@@ -457,7 +409,7 @@ namespace mkxp_sandbox {
                                 rect = new Rect(x, y, width, height);
                             }
 
-                            SANDBOX_AWAIT(set_private_data, self, rect);
+                            set_private_data(self, rect);
                         }
 
                         return SANDBOX_NIL;
@@ -587,7 +539,7 @@ namespace mkxp_sandbox {
 
             void operator()() {
                 BOOST_ASIO_CORO_REENTER (this) {
-                    SANDBOX_AWAIT_AND_SET(rect_type, new_rb_data_type, "Rect", NULL, dfree, NULL, NULL, 0, 0, 0);
+                    rect_type = sb()->rb_data_type("Rect", NULL, dfree, NULL, NULL, 0, 0, 0);
                     SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Rect", sb()->rb_cObject());
                     SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
                     SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(ANYARGS))load, 1);
