@@ -166,7 +166,7 @@ DEF_TYPE_CUSTOMNAME_AND_FREE(Klass, Name, freeInstance<Klass>)
 BUILTIN_TYPE(obj) == (type)))
 #endif
 
-#define OBJ_INIT_COPY(a, b) rb_obj_init_copy(a, b)
+#define OBJ_INIT_COPY(a, b) (a != b && (rb_obj_init_copy(a, b), 1))
 
 #define DEF_ALLOCFUNC_CUSTOMFREE(type, free)                                   \
 static VALUE type##Allocate(VALUE klass) {                                   \
@@ -505,7 +505,7 @@ RB_METHOD_GUARD(Typ##Load) { return objectLoad<Typ>(argc, argv, self); } RB_METH
 RB_METHOD_GUARD(Klass##InitializeCopy) {                                   \
 VALUE origObj;                                                             \
 rb_get_args(argc, argv, "o", &origObj RB_ARG_END);                         \
-if (!OBJ_INIT_COPY(self, origObj)) /* When would this fail??*/             \
+if (!OBJ_INIT_COPY(self, origObj))                                         \
 return self;                                                             \
 Klass *orig = getPrivateData<Klass>(origObj);                              \
 Klass *k = 0;                                                              \
