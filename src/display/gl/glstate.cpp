@@ -138,6 +138,8 @@ void GLState::reset() {
 #endif // MKXPZ_RETRO
   program.init(0);
 
+  gl.ActiveTexture(GL_TEXTURE0);
+
 #ifndef MKXPZ_RETRO // TODO
   if (conf.maxTextureSize > 0)
     caps.maxTexSize = conf.maxTextureSize;
