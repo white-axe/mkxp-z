@@ -48,7 +48,7 @@ namespace mkxp_sandbox {
                     VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                         BOOST_ASIO_CORO_REENTER (this) {
                             if (argc == 0) {
-                                color = new Color();
+                                color = new Color;
                             } else {
                                 SANDBOX_AWAIT_AND_SET(red, rb_num2dbl, ((VALUE *)(**sb() + argv))[0]);
                                 SANDBOX_AWAIT_AND_SET(green, rb_num2dbl, ((VALUE *)(**sb() + argv))[1]);
@@ -69,6 +69,23 @@ namespace mkxp_sandbox {
                 )
 
                 return sb()->bind<struct coro>()()(argc, argv, self);
+            }
+
+            static VALUE initialize_copy(VALUE self, VALUE obj) {
+                SANDBOX_COROUTINE(coro,
+                    VALUE operator()(VALUE self, VALUE obj) {
+                        BOOST_ASIO_CORO_REENTER (this) {
+                            if (self != obj) {
+                                SANDBOX_AWAIT(rb_obj_init_copy, self, obj);
+                                set_private_data(self, new Color(*get_private_data<Color>(obj)));
+                            }
+                        }
+
+                        return self;
+                    }
+                )
+
+                return sb()->bind<struct coro>()()(self, obj);
             }
 
             static VALUE set(int32_t argc, wasm_ptr_t argv, VALUE self) {
@@ -195,6 +212,7 @@ namespace mkxp_sandbox {
                     SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
                     SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(ANYARGS))load, 1);
                     SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+                    SANDBOX_AWAIT(rb_define_method, klass, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
                     SANDBOX_AWAIT(rb_define_method, klass, "set", (VALUE (*)(ANYARGS))set, -1);
                     SANDBOX_AWAIT(rb_define_method, klass, "red", (VALUE (*)(ANYARGS))get_red, 0);
                     SANDBOX_AWAIT(rb_define_method, klass, "red=", (VALUE (*)(ANYARGS))set_red, 1);
@@ -224,7 +242,7 @@ namespace mkxp_sandbox {
                     VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                         BOOST_ASIO_CORO_REENTER (this) {
                             if (argc == 0) {
-                                tone = new Tone();
+                                tone = new Tone;
                             } else {
                                 SANDBOX_AWAIT_AND_SET(red, rb_num2dbl, ((VALUE *)(**sb() + argv))[0]);
                                 SANDBOX_AWAIT_AND_SET(green, rb_num2dbl, ((VALUE *)(**sb() + argv))[1]);
@@ -245,6 +263,23 @@ namespace mkxp_sandbox {
                 )
 
                 return sb()->bind<struct coro>()()(argc, argv, self);
+            }
+
+            static VALUE initialize_copy(VALUE self, VALUE obj) {
+                SANDBOX_COROUTINE(coro,
+                    VALUE operator()(VALUE self, VALUE obj) {
+                        BOOST_ASIO_CORO_REENTER (this) {
+                            if (self != obj) {
+                                SANDBOX_AWAIT(rb_obj_init_copy, self, obj);
+                                set_private_data(self, new Tone(*get_private_data<Tone>(obj)));
+                            }
+                        }
+
+                        return self;
+                    }
+                )
+
+                return sb()->bind<struct coro>()()(self, obj);
             }
 
             static VALUE set(int32_t argc, wasm_ptr_t argv, VALUE self) {
@@ -371,6 +406,7 @@ namespace mkxp_sandbox {
                     SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
                     SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(ANYARGS))load, 1);
                     SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+                    SANDBOX_AWAIT(rb_define_method, klass, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
                     SANDBOX_AWAIT(rb_define_method, klass, "set", (VALUE (*)(ANYARGS))set, -1);
                     SANDBOX_AWAIT(rb_define_method, klass, "red", (VALUE (*)(ANYARGS))get_red, 0);
                     SANDBOX_AWAIT(rb_define_method, klass, "red=", (VALUE (*)(ANYARGS))set_red, 1);
@@ -400,7 +436,7 @@ namespace mkxp_sandbox {
                     VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                         BOOST_ASIO_CORO_REENTER (this) {
                             if (argc == 0) {
-                                rect = new Rect();
+                                rect = new Rect;
                             } else {
                                 SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
                                 SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
@@ -417,6 +453,23 @@ namespace mkxp_sandbox {
                 )
 
                 return sb()->bind<struct coro>()()(argc, argv, self);
+            }
+
+            static VALUE initialize_copy(VALUE self, VALUE obj) {
+                SANDBOX_COROUTINE(coro,
+                    VALUE operator()(VALUE self, VALUE obj) {
+                        BOOST_ASIO_CORO_REENTER (this) {
+                            if (self != obj) {
+                                SANDBOX_AWAIT(rb_obj_init_copy, self, obj);
+                                set_private_data(self, new Rect(*get_private_data<Rect>(obj)));
+                            }
+                        }
+
+                        return self;
+                    }
+                )
+
+                return sb()->bind<struct coro>()()(self, obj);
             }
 
             static VALUE set(int32_t argc, wasm_ptr_t argv, VALUE self) {
@@ -544,6 +597,7 @@ namespace mkxp_sandbox {
                     SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
                     SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(ANYARGS))load, 1);
                     SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+                    SANDBOX_AWAIT(rb_define_method, klass, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
                     SANDBOX_AWAIT(rb_define_method, klass, "set", (VALUE (*)(ANYARGS))set, -1);
                     SANDBOX_AWAIT(rb_define_method, klass, "empty", (VALUE (*)(ANYARGS))empty, 0);
                     SANDBOX_AWAIT(rb_define_method, klass, "x", (VALUE (*)(ANYARGS))get_x, 0);

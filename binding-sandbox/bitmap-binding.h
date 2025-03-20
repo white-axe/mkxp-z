@@ -79,15 +79,15 @@ namespace mkxp_sandbox {
 
         static VALUE initialize_copy(VALUE self, VALUE obj) {
             SANDBOX_COROUTINE(coro,
-                VALUE value;
                 Bitmap *bitmap;
 
                 VALUE operator()(VALUE self, VALUE obj) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(value, rb_obj_init_copy, self, obj);
-                        if (!SANDBOX_VALUE_TO_BOOL(value)) {
+                        if (self == obj) {
                             return self;
                         }
+
+                        SANDBOX_AWAIT(rb_obj_init_copy, self, obj);
 
                         {
                             Bitmap *orig = get_private_data<Bitmap>(obj);
