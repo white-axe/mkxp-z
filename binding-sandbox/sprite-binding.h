@@ -102,11 +102,47 @@ namespace mkxp_sandbox {
             return sprite == NULL || sprite->isDisposed() ? SANDBOX_TRUE : SANDBOX_FALSE;
         }
 
+        static VALUE flash(VALUE self, VALUE obj, VALUE value) {
+            SANDBOX_COROUTINE(coro,
+                int duration;
+
+                VALUE operator()(VALUE self, VALUE obj, VALUE value) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT_AND_SET(duration, rb_num2int, value);
+                        get_private_data<Sprite>(self)->flash(obj == SANDBOX_NIL ? NULL : &get_private_data<Color>(obj)->norm, duration);
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, obj, value);
+        }
+
         static VALUE update(VALUE self) {
             GFX_LOCK;
             get_private_data<Sprite>(self)->update();
             GFX_UNLOCK;
             return SANDBOX_NIL;
+        }
+
+        static VALUE get_viewport(VALUE self) {
+            return sb()->bind<struct rb_iv_get>()()(self, "viewport");
+        }
+
+        static VALUE set_viewport(VALUE self, VALUE value) {
+            SANDBOX_COROUTINE(coro,
+                VALUE operator()(VALUE self, VALUE value) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        GFX_GUARD_EXC(get_private_data<Sprite>(self)->setViewport(get_private_data<Viewport>(value)));
+                        SANDBOX_AWAIT(rb_iv_set, self, "viewport", value);
+                    }
+
+                    return value;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, value);
         }
 
         static VALUE get_bitmap(VALUE self) {
@@ -462,7 +498,10 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
                 SANDBOX_AWAIT(rb_define_method, klass, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "flash", (VALUE (*)(ANYARGS))update, 2);
                 SANDBOX_AWAIT(rb_define_method, klass, "update", (VALUE (*)(ANYARGS))update, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "viewport", (VALUE (*)(ANYARGS))get_viewport, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "viewport=", (VALUE (*)(ANYARGS))set_viewport, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "bitmap", (VALUE (*)(ANYARGS))get_bitmap, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "bitmap=", (VALUE (*)(ANYARGS))set_bitmap, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "src_rect", (VALUE (*)(ANYARGS))get_src_rect, 0);

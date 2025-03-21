@@ -61,6 +61,7 @@ namespace mkxp_sandbox {
 
                         GFX_LOCK
                         plane = new Plane(viewport);
+                        SANDBOX_AWAIT(rb_iv_set, self, "viewport", viewport_obj);
 
                         set_private_data(self, plane);
 
@@ -99,6 +100,25 @@ namespace mkxp_sandbox {
         static VALUE disposed(VALUE self) {
             Plane *plane = get_private_data<Plane>(self);
             return plane == NULL || plane->isDisposed() ? SANDBOX_TRUE : SANDBOX_FALSE;
+        }
+
+        static VALUE get_viewport(VALUE self) {
+            return sb()->bind<struct rb_iv_get>()()(self, "viewport");
+        }
+
+        static VALUE set_viewport(VALUE self, VALUE value) {
+            SANDBOX_COROUTINE(coro,
+                VALUE operator()(VALUE self, VALUE value) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        GFX_GUARD_EXC(get_private_data<Plane>(self)->setViewport(get_private_data<Viewport>(value)));
+                        SANDBOX_AWAIT(rb_iv_set, self, "viewport", value);
+                    }
+
+                    return value;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, value);
         }
 
         static VALUE get_bitmap(VALUE self) {
@@ -322,6 +342,8 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
                 SANDBOX_AWAIT(rb_define_method, klass, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "viewport", (VALUE (*)(ANYARGS))get_viewport, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "viewport=", (VALUE (*)(ANYARGS))set_viewport, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "bitmap", (VALUE (*)(ANYARGS))get_bitmap, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "bitmap=", (VALUE (*)(ANYARGS))set_bitmap, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "color", (VALUE (*)(ANYARGS))get_color, 0);

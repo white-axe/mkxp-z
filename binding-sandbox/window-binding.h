@@ -106,6 +106,25 @@ namespace mkxp_sandbox {
             return SANDBOX_NIL;
         }
 
+        static VALUE get_viewport(VALUE self) {
+            return sb()->bind<struct rb_iv_get>()()(self, "viewport");
+        }
+
+        static VALUE set_viewport(VALUE self, VALUE value) {
+            SANDBOX_COROUTINE(coro,
+                VALUE operator()(VALUE self, VALUE value) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        GFX_GUARD_EXC(get_private_data<Window>(self)->setViewport(get_private_data<Viewport>(value)));
+                        SANDBOX_AWAIT(rb_iv_set, self, "viewport", value);
+                    }
+
+                    return value;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, value);
+        }
+
         static VALUE get_windowskin(VALUE self) {
             return sb()->bind<struct rb_iv_get>()()(self, "windowskin");
         }
@@ -419,6 +438,8 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, klass, "update", (VALUE (*)(ANYARGS))update, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "viewport", (VALUE (*)(ANYARGS))get_viewport, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "viewport=", (VALUE (*)(ANYARGS))set_viewport, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "windowskin", (VALUE (*)(ANYARGS))get_windowskin, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "windowskin=", (VALUE (*)(ANYARGS))set_windowskin, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "contents", (VALUE (*)(ANYARGS))get_contents, 0);

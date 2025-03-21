@@ -104,6 +104,23 @@ namespace mkxp_sandbox {
             return viewport == NULL || viewport->isDisposed() ? SANDBOX_TRUE : SANDBOX_FALSE;
         }
 
+        static VALUE flash(VALUE self, VALUE obj, VALUE value) {
+            SANDBOX_COROUTINE(coro,
+                int duration;
+
+                VALUE operator()(VALUE self, VALUE obj, VALUE value) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT_AND_SET(duration, rb_num2int, value);
+                        get_private_data<Viewport>(self)->flash(obj == SANDBOX_NIL ? NULL : &get_private_data<Color>(obj)->norm, duration);
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, obj, value);
+        }
+
         static VALUE update(VALUE self) {
             GFX_LOCK;
             get_private_data<Viewport>(self)->update();
@@ -238,6 +255,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
                 SANDBOX_AWAIT(rb_define_method, klass, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "flash", (VALUE (*)(ANYARGS))update, 2);
                 SANDBOX_AWAIT(rb_define_method, klass, "update", (VALUE (*)(ANYARGS))update, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "rect", (VALUE (*)(ANYARGS))get_rect, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "rect=", (VALUE (*)(ANYARGS))set_rect, 1);
