@@ -408,10 +408,6 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self, value);
         }
 
-        static VALUE todo(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            return SANDBOX_NIL;
-        }
-
         VALUE klass;
 
         void operator()() {

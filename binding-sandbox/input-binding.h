@@ -292,10 +292,6 @@ namespace mkxp_sandbox {
             return sb()->bind<struct rb_ll2inum>()()(mkxp_retro::input->dir8Value());
         }
 
-        static VALUE todo(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            return SANDBOX_NIL;
-        }
-
         static VALUE todo_bool(int32_t argc, wasm_ptr_t argv, VALUE self) {
             return SANDBOX_FALSE;
         }

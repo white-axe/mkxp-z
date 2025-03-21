@@ -23,6 +23,8 @@
 #define MKXPZ_SANDBOX_GRAPHICS_BINDING_H
 
 #include "sandbox.h"
+#include "sharedstate.h"
+#include "graphics.h"
 
 namespace mkxp_sandbox {
     SANDBOX_COROUTINE(graphics_binding_init,
@@ -40,16 +42,42 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self);
         }
 
+        static VALUE frame_reset(VALUE self) {
+            GFX_LOCK;
+            shState->graphics().frameReset();
+            GFX_UNLOCK;
+            return SANDBOX_NIL;
+        }
+
+        static VALUE get_frame_count(VALUE self) {
+            return sb()->bind<struct rb_ll2inum>()()(shState->graphics().getFrameCount());
+        }
+
+        static VALUE set_frame_count(VALUE self, VALUE value) {
+            SANDBOX_COROUTINE(coro,
+                int frame_count;
+
+                VALUE operator()(VALUE self, VALUE value) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT_AND_SET(frame_count, rb_num2int, value);
+                        GFX_LOCK;
+                        shState->graphics().setFrameCount(frame_count);
+                        GFX_UNLOCK;
+                    }
+
+                    return value;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, value);
+        }
+
         static VALUE get_frame_rate(VALUE self) {
             return sb()->bind<struct rb_float_new>()()(60.0); // TODO: use actual FPS
         }
 
         static VALUE todo(int32_t argc, wasm_ptr_t argv, VALUE self) {
             return SANDBOX_NIL;
-        }
-
-        static VALUE todo_number(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(0);
         }
 
         VALUE module;
@@ -60,9 +88,9 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_module_function, module, "update", (VALUE (*)(ANYARGS))update, 0);
                 SANDBOX_AWAIT(rb_define_module_function, module, "freeze", (VALUE (*)(ANYARGS))todo, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "transition", (VALUE (*)(ANYARGS))todo, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "frame_reset", (VALUE (*)(ANYARGS))todo, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "frame_count", (VALUE (*)(ANYARGS))todo_number, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "frame_count=", (VALUE (*)(ANYARGS))todo, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "frame_reset", (VALUE (*)(ANYARGS))frame_reset, 0);
+                SANDBOX_AWAIT(rb_define_module_function, module, "frame_count", (VALUE (*)(ANYARGS))get_frame_count, 0);
+                SANDBOX_AWAIT(rb_define_module_function, module, "frame_count=", (VALUE (*)(ANYARGS))set_frame_count, 1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "frame_rate", (VALUE (*)(ANYARGS))get_frame_rate, 0);
             }
         }
