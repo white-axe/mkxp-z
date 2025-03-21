@@ -61,7 +61,23 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
     try {
         // Initialize the sandbox
         wasm2c_ruby_instantiate(RB, wasi.get());
-        w2c_ruby_mkxp_sandbox_init(RB);
+        w2c_ruby_mkxp_sandbox_init(
+            RB,
+            0,              // heap_free_slots
+            1.1,            // growth_factor
+            0,              // growth_max_slots
+            0,              // heap_free_slots_min_ratio
+            0,              // heap_free_slots_goal_ratio
+            0,              // heap_free_slots_max_ratio
+            0,              // uncollectible_wb_unprotected_objects_limit_ratio
+            0,              // oldobject_limit_factor
+            1 * 0x100000,   // malloc_limit_min
+            4 * 0x100000,   // malloc_limit_max
+            1.1,            // malloc_limit_growth_factor
+            4 * 0x100000,   // oldmalloc_limit_min
+            8 * 0x100000,   // oldmalloc_limit_max
+            1.1             // oldmalloc_limit_growth_factor
+        );
 
         // Determine Ruby command-line arguments
         std::vector<std::string> args{"mkxp-z"};

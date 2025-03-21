@@ -136,7 +136,7 @@ $(DOWNLOADS)/crossruby/configure: $(DOWNLOADS)/crossruby/configure.ac $(RUBY)
 $(DOWNLOADS)/crossruby/configure.ac:
 	mkdir -p $(DOWNLOADS)
 	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/crossruby -b ruby_$(shell echo $(RUBY_VERSION) | $(SED) -e 's/\./_/g')
-	echo '#include "${PWD}/ruby-bindings.h"' >> $(DOWNLOADS)/crossruby/main.c
+	echo '#include "${PWD}/ruby-bindings.h"' >> $(DOWNLOADS)/crossruby/gc.c
 
 # Base Ruby (targets the build machine)
 

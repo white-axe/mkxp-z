@@ -94,8 +94,11 @@ extern "C" uint32_t wasm_rt_grow_memory(wasm_rt_memory_t *memory, uint32_t pages
         return -1;
     }
 
+    mkxp_retro::log_printf(RETRO_LOG_INFO, "VM memory grown to %u pages\n", new_pages);
+
     if (new_pages > WASM_MIN_PAGES) {
-        mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox memory growth is not implemented yet");
+        mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox memory growth is not implemented yet\n");
+        std::abort();
     }
 
 #ifdef MKXPZ_BIG_ENDIAN
