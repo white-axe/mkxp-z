@@ -150,41 +150,6 @@ namespace mkxp_sandbox {
 
         static VALUE blt(int32_t argc, wasm_ptr_t argv, VALUE self) {
             SANDBOX_COROUTINE(coro,
-                VALUE destRectObj;
-                VALUE srcObj;
-                VALUE srcRectObj;
-                int opacity;
-
-                VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        destRectObj = ((VALUE *)(**sb() + argv))[0];
-                        srcObj = ((VALUE *)(**sb() + argv))[1];
-                        srcRectObj = ((VALUE *)(**sb() + argv))[2];
-                        if (argc > 3) {
-                            SANDBOX_AWAIT_AND_SET(opacity, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
-                        }
-
-                        Bitmap *src = get_private_data<Bitmap>(srcObj);
-                        if (src != NULL) {
-                            Rect *destRect = get_private_data<Rect>(destRectObj);
-                            Rect *srcRect = get_private_data<Rect>(srcRectObj);
-                            if (argc > 4) {
-                                GFX_GUARD_EXC(get_private_data<Bitmap>(self)->stretchBlt(destRect->toIntRect(), *src, srcRect->toIntRect(), opacity););
-                            } else {
-                                GFX_GUARD_EXC(get_private_data<Bitmap>(self)->stretchBlt(destRect->toIntRect(), *src, srcRect->toIntRect()););
-                            }
-                        }
-                    }
-
-                    return self;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(argc, argv, self);
-        }
-
-        static VALUE stretch_blt(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
                 int x;
                 int y;
                 VALUE srcObj;
@@ -208,6 +173,41 @@ namespace mkxp_sandbox {
                                 GFX_GUARD_EXC(get_private_data<Bitmap>(self)->blt(x, y, *src, srcRect->toIntRect(), opacity););
                             } else {
                                 GFX_GUARD_EXC(get_private_data<Bitmap>(self)->blt(x, y, *src, srcRect->toIntRect()););
+                            }
+                        }
+                    }
+
+                    return self;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(argc, argv, self);
+        }
+
+        static VALUE stretch_blt(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                VALUE destRectObj;
+                VALUE srcObj;
+                VALUE srcRectObj;
+                int opacity;
+
+                VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        destRectObj = ((VALUE *)(**sb() + argv))[0];
+                        srcObj = ((VALUE *)(**sb() + argv))[1];
+                        srcRectObj = ((VALUE *)(**sb() + argv))[2];
+                        if (argc > 3) {
+                            SANDBOX_AWAIT_AND_SET(opacity, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
+                        }
+
+                        Bitmap *src = get_private_data<Bitmap>(srcObj);
+                        if (src != NULL) {
+                            Rect *destRect = get_private_data<Rect>(destRectObj);
+                            Rect *srcRect = get_private_data<Rect>(srcRectObj);
+                            if (argc > 4) {
+                                GFX_GUARD_EXC(get_private_data<Bitmap>(self)->stretchBlt(destRect->toIntRect(), *src, srcRect->toIntRect(), opacity););
+                            } else {
+                                GFX_GUARD_EXC(get_private_data<Bitmap>(self)->stretchBlt(destRect->toIntRect(), *src, srcRect->toIntRect()););
                             }
                         }
                     }
