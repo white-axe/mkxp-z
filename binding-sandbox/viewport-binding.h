@@ -255,7 +255,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
                 SANDBOX_AWAIT(rb_define_method, klass, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "flash", (VALUE (*)(ANYARGS))update, 2);
+                SANDBOX_AWAIT(rb_define_method, klass, "flash", (VALUE (*)(ANYARGS))flash, 2);
                 SANDBOX_AWAIT(rb_define_method, klass, "update", (VALUE (*)(ANYARGS))update, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "rect", (VALUE (*)(ANYARGS))get_rect, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "rect=", (VALUE (*)(ANYARGS))set_rect, 1);
