@@ -48,6 +48,12 @@
 #  define SERIALIZE_VALUE(value) SERIALIZE_32(value)
 #endif
 
+// LLVM uses a stack alignment of 16 on WebAssembly targets
+#define WASMSTACKALIGN 16
+
+// Same as `sizeof(T)`, but rounds the result up to the nearest multiple of the WebAssembly stack alignment
+#define SIZEOF_WASMSTACKALIGN(T) ((sizeof(T) + (size_t)(WASMSTACKALIGN - 1)) & ~(size_t)(WASMSTACKALIGN - 1))
+
 namespace mkxp_sandbox {
     struct binding_base {
         private:
@@ -121,9 +127,10 @@ namespace mkxp_sandbox {
                         bind,
                         stack_frame_destructor,
                         boost::typeindex::type_id<T>(),
-                        (sp -= sizeof(T))
+                        (sp -= SIZEOF_WASMSTACKALIGN(T))
                     );
                     assert(sp % sizeof(VALUE) == 0);
+                    assert(sp % WASMSTACKALIGN == 0);
                     new(*bind + sp) T(bind);
                 } else if (fiber.stack_ptr > fiber.stack.size()) {
                     throw SandboxTrapException();
@@ -141,9 +148,10 @@ namespace mkxp_sandbox {
                         bind,
                         stack_frame_destructor,
                         boost::typeindex::type_id<T>(),
-                        (sp -= sizeof(T))
+                        (sp -= SIZEOF_WASMSTACKALIGN(T))
                     );
                     assert(sp % sizeof(VALUE) == 0);
+                    assert(sp % WASMSTACKALIGN == 0);
                     new(*bind + sp) T(bind);
                     w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), sp);
                     return sp;
@@ -164,7 +172,7 @@ namespace mkxp_sandbox {
                     assert(fiber.stack.size() == fiber.stack_ptr);
                     assert(fiber.stack.back().type == boost::typeindex::type_id<T>());
 
-                    w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), fiber.stack.back().ptr + sizeof(T));
+                    w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), fiber.stack.back().ptr + SIZEOF_WASMSTACKALIGN(T));
                     fiber.stack.pop_back();
                 }
 
