@@ -121,41 +121,38 @@ namespace mkxp_sandbox {
 
             static wasm_ptr_t init_inner(struct binding_base &bind, struct fiber &fiber) {
                 wasm_ptr_t sp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance());
+                uint32_t state = w2c_ruby_asyncify_get_state(&bind.instance());
 
-                if (fiber.stack_ptr == fiber.stack.size()) {
-                    fiber.stack.emplace_back(
-                        bind,
-                        stack_frame_destructor,
-                        boost::typeindex::type_id<T>(),
-                        (sp -= SIZEOF_WASMSTACKALIGN(T))
-                    );
-                    assert(sp % sizeof(VALUE) == 0);
-                    assert(sp % WASMSTACKALIGN == 0);
-                    new(*bind + sp) T(bind);
-                } else if (fiber.stack_ptr > fiber.stack.size()) {
-                    throw SandboxTrapException();
+                if (fiber.stack_ptr > fiber.stack.size()) {
+                    std::abort();
                 }
 
-                if (fiber.stack[fiber.stack_ptr].type == boost::typeindex::type_id<T>()) {
-                    w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), sp);
-                    return fiber.stack[fiber.stack_ptr++].ptr;
-                } else {
-                    while (fiber.stack.size() > fiber.stack_ptr) {
-                        fiber.stack.pop_back();
+                // If Asyncify is rewinding, restore the stack frame from before Asyncify started unwinding
+                if (state == 2) {
+                    if (fiber.stack_ptr == fiber.stack.size()) {
+                        std::abort();
                     }
-                    ++fiber.stack_ptr;
-                    fiber.stack.emplace_back(
-                        bind,
-                        stack_frame_destructor,
-                        boost::typeindex::type_id<T>(),
-                        (sp -= SIZEOF_WASMSTACKALIGN(T))
-                    );
-                    assert(sp % sizeof(VALUE) == 0);
-                    assert(sp % WASMSTACKALIGN == 0);
-                    new(*bind + sp) T(bind);
-                    w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), sp);
-                    return sp;
+                    assert(fiber.stack[fiber.stack_ptr].type == boost::typeindex::type_id<T>());
+                    return fiber.stack[fiber.stack_ptr++].ptr;
                 }
+
+                // Otherwise, create a new stack frame
+                assert(state == 0);
+                while (fiber.stack.size() > fiber.stack_ptr) {
+                    fiber.stack.pop_back();
+                }
+                ++fiber.stack_ptr;
+                fiber.stack.emplace_back(
+                    bind,
+                    stack_frame_destructor,
+                    boost::typeindex::type_id<T>(),
+                    (sp -= SIZEOF_WASMSTACKALIGN(T))
+                );
+                assert(sp % sizeof(VALUE) == 0);
+                assert(sp % WASMSTACKALIGN == 0);
+                new(*bind + sp) T(bind);
+                w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), sp);
+                return sp;
             }
 
             stack_frame_guard(struct binding_base &b) : bind(b), fiber(init_fiber(b)), ptr(init_inner(b, fiber)) {}
