@@ -317,7 +317,7 @@ jobs:
         with:
           path: |
             libretro/build/libretro-stage1
-          key: libretro-stage1-${{ hashFiles('libretro/Makefile', 'libretro/ruby-bindings.h', 'libretro/sandbox-bindgen.rb') }}
+          key: libretro-stage1-${{ hashFiles('libretro/Makefile', 'libretro/ruby-bindings.h', 'libretro/sandbox-bindgen.rb', 'libretro/ruby-setjmp.patch') }}
 
       - name: Install dependencies
         if: steps.cache.outputs.cache-hit != 'true'

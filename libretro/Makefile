@@ -1,6 +1,6 @@
 # Configure flags are based on the ones from https://github.com/ruby/ruby.wasm
 
-RUBY_VERSION ?= 3.3
+RUBY_VERSION ?= v3_3_7
 LIBYAML_VERSION ?= 0.2.5
 ZLIB_VERSION ?= 1.3.1
 OPENSSL_VERSION ?= 3.2.0
@@ -78,14 +78,14 @@ $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro
 	$(SED) -i 's/ *# *define * FUNC_TYPE_T *([^()]).*/#define FUNC_TYPE_T(x) static const char _mkxp_unused_##x[]/g' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h
 	$(SED) -i 's/__has_builtin *([^()]*)/0/g' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h
 
-$(OUTDIR)/mkxp-retro-dist.zip: $(LIBDIR)/mkxp-retro-dist/bin/ruby
+$(OUTDIR)/mkxp-retro-dist.zip: $(LIBDIR)/mkxp-retro-dist/bin/ruby $(RUBY)
 	rm -rf $(LIBDIR)/_mkxp-retro-dist
 	cp -r $(LIBDIR)/mkxp-retro-dist $(LIBDIR)/_mkxp-retro-dist
 	rm $(LIBDIR)/_mkxp-retro-dist/bin/ruby
 	rm $(LIBDIR)/_mkxp-retro-dist/lib/libruby-static.a
 	rm -r $(LIBDIR)/_mkxp-retro-dist/include
 	rm -r $(LIBDIR)/_mkxp-retro-dist/share
-	rm -r $(LIBDIR)/_mkxp-retro-dist/lib/ruby/gems/$(RUBY_VERSION).0/cache/*
+	rm -r $(LIBDIR)/_mkxp-retro-dist/lib/ruby/gems/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/cache/*
 	echo '# This is a Ruby script that does nothing. We make Ruby load this file on startup just because Ruby needs to load a script on startup for some reason.' > $(LIBDIR)/_mkxp-retro-dist/bin/mkxp-z
 	rm -f $(OUTDIR)/mkxp-retro-dist.zip
 	cd $(LIBDIR)/_mkxp-retro-dist && $(ZIP) -r $(OUTDIR)/mkxp-retro-dist.zip *
@@ -135,7 +135,8 @@ $(DOWNLOADS)/crossruby/configure: $(DOWNLOADS)/crossruby/configure.ac $(RUBY)
 
 $(DOWNLOADS)/crossruby/configure.ac:
 	mkdir -p $(DOWNLOADS)
-	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/crossruby -b ruby_$(shell echo $(RUBY_VERSION) | $(SED) -e 's/\./_/g')
+	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/crossruby -b $(RUBY_VERSION)
+	cd $(DOWNLOADS)/crossruby && $(GIT) apply ${PWD}/ruby-setjmp.patch
 	echo '#include "${PWD}/ruby-bindings.h"' >> $(DOWNLOADS)/crossruby/gc.c
 
 # Base Ruby (targets the build machine)
@@ -152,7 +153,7 @@ $(DOWNLOADS)/baseruby/configure: $(DOWNLOADS)/baseruby/configure.ac
 
 $(DOWNLOADS)/baseruby/configure.ac:
 	mkdir -p $(DOWNLOADS)
-	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/baseruby -b ruby_$(shell echo $(RUBY_VERSION) | $(SED) -e 's/\./_/g')
+	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/baseruby -b $(RUBY_VERSION)
 
 # libyaml
 
