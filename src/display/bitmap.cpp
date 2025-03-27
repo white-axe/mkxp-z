@@ -2172,8 +2172,8 @@ IntRect Bitmap::textRect(const char *str)
     // TODO: handle kerning
     int bitmap_left = 0;
     int bitmap_right = 0;
-    int bitmap_top = 0;
-    int bitmap_bottom = 0;
+    int bitmap_top = -font->size->metrics.ascender / 64;
+    int bitmap_bottom = -font->size->metrics.descender / 64;
     int glyph_x = 0;
     int glyph_y = 0;
 
@@ -2187,13 +2187,13 @@ IntRect Bitmap::textRect(const char *str)
         int glyph_top = glyph_y - font->glyph->bitmap_top;
         int glyph_bottom = glyph_top + font->glyph->bitmap.rows;
 
-        bitmap_left = std::min(bitmap_left, glyph_left);
-        bitmap_right = std::max(bitmap_right, glyph_right);
-        bitmap_top = std::min(bitmap_top, glyph_top);
-        bitmap_bottom = std::max(bitmap_bottom, glyph_bottom);
-
         glyph_x += font->glyph->advance.x / 64;
         glyph_y += font->glyph->advance.y / 64;
+
+        bitmap_left = std::min(bitmap_left, std::min(glyph_left, glyph_x));
+        bitmap_right = std::max(bitmap_right, std::max(glyph_right, glyph_x));
+        bitmap_top = std::min(bitmap_top, std::min(glyph_top, glyph_y));
+        bitmap_bottom = std::max(bitmap_bottom, std::max(glyph_bottom, glyph_y));
     }
 
     return IntRect(bitmap_left, bitmap_top, bitmap_right - bitmap_left, bitmap_bottom - bitmap_top);
@@ -2435,14 +2435,14 @@ IntRect Bitmap::textSize(const char *str)
     // TODO: High-res Bitmap textSize not implemented, but I think it's the same as low-res?
     // Need to double-check this.
 
+    std::string fixed = fixupString(str);
+    str = fixed.c_str();
+
 #ifdef MKXPZ_RETRO
     IntRect rect = textRect(str);
     return IntRect(0, 0, rect.w, rect.h);
 #else
     TTF_Font *font = p->font->getSdlFont();
-    
-    std::string fixed = fixupString(str);
-    str = fixed.c_str();
     
     int w, h;
     TTF_SizeUTF8(font, str, &w, &h);
