@@ -1161,69 +1161,6 @@ jobs:
           name: mkxp-z_libretro.wiiu.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ~/dist
 
-  build-libretro-ps4:
-    needs: build-libretro-stage1
-    name: LR PlayStation 4
-    runs-on: ubuntu-latest
-    container: orbisdev/orbisdev:latest
-    steps:
-      - name: Install dependencies
-        run: |
-          apk update
-          apk add git build-base meson cmake jq
-
-      - id: short-sha
-        name: Get Git commit hash
-        uses: benjlevesque/short-sha@v2.2
-        with:
-          length: 7
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download stage 1
-        uses: actions/download-artifact@v4
-        with:
-          name: stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: libretro/build/libretro-stage1
-
-      - name: Configure core
-        run: |
-          echo "[binaries]" | tee -a ~/cross.ini
-          echo "c = 'clang'" | tee -a ~/cross.ini
-          echo "cpp = 'clang++'" | tee -a ~/cross.ini
-          echo "ar = 'orbis-ar'" | tee -a ~/cross.ini
-          echo "[host_machine]" | tee -a ~/cross.ini
-          echo "system = 'bare'" | tee -a ~/cross.ini
-          echo "cpu_family = 'x86_64'" | tee -a ~/cross.ini
-          echo "cpu = 'x86_64'" | tee -a ~/cross.ini
-          echo "endian = 'little'" | tee -a ~/cross.ini
-          echo '--------------------------------------------------------------------------------'
-          git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=false -Dlibretro=true
-
-      - name: Build core
-        run: |
-          mkdir ~/dist
-          cd build
-          CLICOLOR_FORCE=1 ninja -v
-          mv mkxp-z_libretro.a ~
-
-      - name: Build frontend
-        run: |
-          cd ~
-          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest | jq -r '.tag_name')
-          mv mkxp-z_libretro.a retroarch/libretro_orbis.a
-          cd retroarch
-          CLICOLOR_FORCE=1 make -f Makefile.orbis LIBRETRO=mkxp-z
-          mv retroarch_orbis.self ~/dist/mkxp-z_libretro.self
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mkxp-z_libretro.ps4.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: ~/dist
-
   build-libretro-switch:
     needs: build-libretro-stage1
     name: LR Nintendo Switch
