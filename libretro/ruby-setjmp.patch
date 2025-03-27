@@ -2,16 +2,6 @@
 # One of them causes the stack pointer to get corrupted after a longjmp.
 # The other one causes VM jump buffers being leaked after a longjmp.
 
---- a/cont.c
-+++ b/cont.c
-@@ -1360,6 +1360,7 @@ cont_init(rb_context_t *cont, rb_thread_t *th)
-     /* save thread context */
-     cont_save_thread(cont, th);
-     cont->saved_ec.thread_ptr = th;
-+    cont->saved_ec.tag = NULL;
-     cont->saved_ec.local_storage = NULL;
-     cont->saved_ec.local_storage_recursive_hash = Qnil;
-     cont->saved_ec.local_storage_recursive_hash_for_trace = Qnil;
 --- a/eval_intern.h
 +++ b/eval_intern.h
 @@ -110,11 +110,11 @@ extern int select_large_fdset(int, fd_set *, fd_set *, fd_set *, struct timeval
