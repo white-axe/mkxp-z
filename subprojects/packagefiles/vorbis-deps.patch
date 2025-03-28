@@ -22,6 +22,17 @@
  
  typedef struct vorbis_info{
    int version;
+--- a/lib/CMakeLists.txt
++++ b/lib/CMakeLists.txt
+@@ -106,7 +106,7 @@ if (NOT BUILD_FRAMEWORK)
+     )
+ 
+     target_link_libraries(vorbis
+-        PUBLIC Ogg::ogg
++
+         PRIVATE $<$<BOOL:${HAVE_LIBM}>:m>
+     )
+     target_link_libraries(vorbisenc PUBLIC vorbis)
 --- a/lib/analysis.c
 +++ b/lib/analysis.c
 @@ -17,7 +17,7 @@

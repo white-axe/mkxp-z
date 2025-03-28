@@ -284,6 +284,7 @@ if is_libretro
 
     boost_options = cmake.subproject_options()
     boost_options.add_cmake_defines({
+        'CMAKE_POLICY_VERSION_MINIMUM': '3.5',
         'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
         'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
@@ -292,6 +293,7 @@ if is_libretro
 
     zlib_options = cmake.subproject_options()
     zlib_options.add_cmake_defines({
+        'CMAKE_POLICY_VERSION_MINIMUM': '3.5',
         'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
         'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
@@ -301,6 +303,7 @@ if is_libretro
 
     libzip_options = cmake.subproject_options()
     libzip_options.add_cmake_defines({
+        'CMAKE_POLICY_VERSION_MINIMUM': '3.5',
         'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
         'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
@@ -324,6 +327,7 @@ if is_libretro
 
     physfs_options = cmake.subproject_options()
     physfs_options.add_cmake_defines({
+        'CMAKE_POLICY_VERSION_MINIMUM': '3.5',
         'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
         'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
@@ -335,6 +339,7 @@ if is_libretro
 
     openal_options = cmake.subproject_options()
     openal_options.add_cmake_defines({
+        'CMAKE_POLICY_VERSION_MINIMUM': '3.5',
         'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
         'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
@@ -368,6 +373,7 @@ if is_libretro
 
     fluidlite_options = cmake.subproject_options()
     fluidlite_options.add_cmake_defines({
+        'CMAKE_POLICY_VERSION_MINIMUM': '3.5',
         'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
         'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
@@ -377,6 +383,7 @@ if is_libretro
 
     ogg_options = cmake.subproject_options()
     ogg_options.add_cmake_defines({
+        'CMAKE_POLICY_VERSION_MINIMUM': '3.5',
         'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
         'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
@@ -387,6 +394,7 @@ if is_libretro
 
     vorbis_options = cmake.subproject_options()
     vorbis_options.add_cmake_defines({
+        'CMAKE_POLICY_VERSION_MINIMUM': '3.5',
         'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
         'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
@@ -397,6 +405,7 @@ if is_libretro
 
     flac_options = cmake.subproject_options()
     flac_options.add_cmake_defines({
+        'CMAKE_POLICY_VERSION_MINIMUM': '3.5',
         'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
         'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
@@ -416,6 +425,7 @@ if is_libretro
 
     opus_options = cmake.subproject_options()
     opus_options.add_cmake_defines({
+        'CMAKE_POLICY_VERSION_MINIMUM': '3.5',
         'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
         'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
@@ -434,6 +444,7 @@ if is_libretro
 
     mpg123_options = cmake.subproject_options()
     mpg123_options.add_cmake_defines({
+        'CMAKE_POLICY_VERSION_MINIMUM': '3.5',
         'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
         'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
@@ -446,6 +457,7 @@ if is_libretro
 
     libsndfile_options = cmake.subproject_options()
     libsndfile_options.add_cmake_defines({
+        'CMAKE_POLICY_VERSION_MINIMUM': '3.5',
         'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
         'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
@@ -464,6 +476,7 @@ if is_libretro
 
     pixman_region_options = cmake.subproject_options()
     pixman_region_options.add_cmake_defines({
+        'CMAKE_POLICY_VERSION_MINIMUM': '3.5',
         'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
         'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
