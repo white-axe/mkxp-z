@@ -27,7 +27,7 @@
 
 #define WASM_PAGE_SIZE ((uint64_t)65536U)
 
-#define WASM_MIN_PAGES ((uint32_t)1536U)
+#define WASM_MIN_PAGES ((uint32_t)1280U)
 
 extern "C" bool wasm_rt_is_initialized(void) {
     return true;

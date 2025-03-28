@@ -3,7 +3,6 @@
 RUBY_VERSION ?= v3_3_7
 LIBYAML_VERSION ?= 0.2.5
 ZLIB_VERSION ?= 1.3.1
-OPENSSL_VERSION ?= 3.2.0
 TARGET ?= wasm32-wasip1
 WASI_SDK ?= /opt/wasi-sdk
 WASM_OPT ?= wasm-opt
@@ -85,7 +84,10 @@ $(OUTDIR)/mkxp-retro-dist.zip: $(LIBDIR)/mkxp-retro-dist/bin/ruby $(RUBY)
 	rm $(LIBDIR)/_mkxp-retro-dist/lib/libruby-static.a
 	rm -r $(LIBDIR)/_mkxp-retro-dist/include
 	rm -r $(LIBDIR)/_mkxp-retro-dist/share
-	rm -r $(LIBDIR)/_mkxp-retro-dist/lib/ruby/gems/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/cache/*
+	rm -r $(LIBDIR)/_mkxp-retro-dist/lib/ruby/gems
+	rm -r $(LIBDIR)/_mkxp-retro-dist/lib/ruby/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/bundler
+	rm -r $(LIBDIR)/_mkxp-retro-dist/lib/ruby/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/rdoc
+	rm -r $(LIBDIR)/_mkxp-retro-dist/lib/ruby/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/rubygems
 	echo '# This is a Ruby script that does nothing. We make Ruby load this file on startup just because Ruby needs to load a script on startup for some reason.' > $(LIBDIR)/_mkxp-retro-dist/bin/mkxp-z
 	rm -f $(OUTDIR)/mkxp-retro-dist.zip
 	cd $(LIBDIR)/_mkxp-retro-dist && $(ZIP) -r $(OUTDIR)/mkxp-retro-dist.zip *
@@ -107,16 +109,15 @@ $(LIBDIR)/tags.c: $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h
 	mkdir -p $(LIBDIR)
 	echo '#include <ruby.h>' | $(WASI_CC) -E -I$(DOWNLOADS)/crossruby/include -I$(DOWNLOADS)/crossruby/.ext/include/$(TARGET) -o $(LIBDIR)/tags.c -
 
-$(DOWNLOADS)/crossruby/Makefile $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h &: $(DOWNLOADS)/crossruby/configure $(RUBY) $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a $(LIBDIR)/usr/local/lib/libssl.a
+$(DOWNLOADS)/crossruby/Makefile $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h &: $(DOWNLOADS)/crossruby/configure $(RUBY) $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a
 	cd $(DOWNLOADS)/crossruby && ./configure \
 		--prefix=/mkxp-retro-dist \
 		--host $(TARGET) \
 		--build $(shell $(RUBY) -e 'puts(RbConfig::CONFIG["host"])') \
 		--with-static-linked-ext \
-		--with-ext=bigdecimal,cgi/escape,continuation,coverage,date,dbm,digest/bubblebabble,digest,digest/md5,digest/rmd160,digest/sha1,digest/sha2,etc,fcntl,fiber,gdbm,json,json/generator,json/parser,nkf,objspace,pathname,psych,racc/cparse,rbconfig/sizeof,ripper,stringio,strscan,monitor,zlib,openssl \
+		--with-ext=bigdecimal,cgi/escape,continuation,coverage,date,digest/bubblebabble,digest,digest/md5,digest/rmd160,digest/sha1,digest/sha2,etc,fcntl,fiber,json,json/generator,json/parser,nkf,objspace,pathname,psych,racc/cparse,rbconfig/sizeof,ripper,stringio,strscan,monitor,zlib \
 		--with-libyaml-dir=$(LIBDIR)/usr/local \
 		--with-zlib-dir=$(LIBDIR)/usr/local \
-		--with-openssl-dir=$(LIBDIR)/usr/local \
 		--with-baseruby=$(RUBY) \
 		WASMOPT=$(WASM_OPT) \
 		WASI_SDK_PATH=$(WASI_SDK) \
@@ -127,6 +128,7 @@ $(DOWNLOADS)/crossruby/Makefile $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ru
 		optflags='$(WASI_CFLAGS) -fno-fast-math' \
 		wasmoptflags='$(WASM_OPT_FLAGS) --pass-arg=asyncify-ignore-imports' \
 		$(shell $(RUBY) -e 'puts "ac_cv_func_dlopen=no" if RUBY_VERSION.split(".")[..1].join(".").to_f < 3.3') \
+		--disable-rubygems \
 		--disable-install-doc
 
 $(DOWNLOADS)/crossruby/configure: $(DOWNLOADS)/crossruby/configure.ac $(RUBY)
@@ -181,33 +183,3 @@ $(DOWNLOADS)/zlib/Makefile: $(DOWNLOADS)/zlib/configure
 $(DOWNLOADS)/zlib/configure:
 	mkdir -p $(DOWNLOADS)
 	$(CLONE) $(GITHUB)/madler/zlib $(DOWNLOADS)/zlib -b v$(ZLIB_VERSION)
-
-# OpenSSL
-
-$(LIBDIR)/usr/local/lib/libssl.a: $(DOWNLOADS)/openssl/Makefile
-	cd $(DOWNLOADS)/openssl && $(MAKE) install_dev DESTDIR=$(LIBDIR)
-
-$(DOWNLOADS)/openssl/Makefile: $(DOWNLOADS)/openssl/Configure
-	cd $(DOWNLOADS)/openssl && CFLAGS='$(WASI_CFLAGS)' CXXFLAGS='$(WASI_CXXFLAGS)' LDFLAGS='$(WASI_LDFLAGS)' ./Configure \
-		gcc \
-		-static \
-		-no-asm \
-		-no-threads \
-		-no-afalgeng \
-		-no-ui-console \
-		-no-tests \
-		-no-sock \
-		-no-dgram \
-		--libdir=lib \
-		-Wl,--allow-undefined \
-		-D_WASI_EMULATED_SIGNAL \
-		-D_WASI_EMULATED_PROCESS_CLOCKS \
-		-D_WASI_EMULATED_MMAN \
-		-D_WASI_EMULATED_GETPID \
-		-DNO_CHMOD \
-		-DHAVE_FORK=0 \
-		$(WASI_TOOLCHAIN)
-
-$(DOWNLOADS)/openssl/Configure:
-	mkdir -p $(DOWNLOADS)
-	$(CLONE) $(GITHUB)/openssl/openssl $(DOWNLOADS)/openssl -b openssl-$(OPENSSL_VERSION)
