@@ -955,7 +955,9 @@ jobs:
     needs: build-libretro-stage1
     name: LR Nintendo 3DS
     runs-on: ubuntu-latest
-    container: devkitpro/devkitarm:latest
+    container:
+      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-devkitpro:latest
+      options: -u root
     steps:
       - name: Install dependencies
         run: |
@@ -1021,12 +1023,16 @@ jobs:
     needs: build-libretro-stage1
     name: LR PlayStation Vita
     runs-on: ubuntu-latest
-    container: vitasdk/vitasdk:latest
+    container:
+      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-vita:latest
+      options: -u root
     steps:
       - name: Install dependencies
         run: |
-          apk update
-          apk add git build-base meson cmake jq
+          apt update
+          apt install -y git build-essential pip ninja-build jq
+          apt remove -y meson cmake
+          pip install meson cmake
 
       - id: short-sha
         name: Get Git commit hash
@@ -1084,7 +1090,9 @@ jobs:
     needs: build-libretro-stage1
     name: LR Wii U
     runs-on: ubuntu-latest
-    container: devkitpro/devkitppc:latest
+    container:
+      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-wiiu:latest
+      options: -u root
     steps:
       - name: Install dependencies
         run: |
@@ -1165,7 +1173,9 @@ jobs:
     needs: build-libretro-stage1
     name: LR Nintendo Switch
     runs-on: ubuntu-latest
-    container: devkitpro/devkita64:latest
+    container:
+      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-libnx-devkitpro:latest
+      options: -u root
     steps:
       - name: Install dependencies
         run: |
