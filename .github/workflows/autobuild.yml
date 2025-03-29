@@ -891,13 +891,20 @@ jobs:
     container:
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-psl1ght:latest
       options: -u root
+      volumes:
+        - /tmp:/__e/node20
     steps:
       - name: Install dependencies
+        shell: bash
         run: |
-          apt update
-          apt install -y git build-essential pip ninja-build jq
-          apt remove -y meson cmake
-          pip install meson cmake
+          ln -s "$HOME/miniconda3/bin" /__e/node20/bin
+          echo "$HOME/miniconda3/bin" >> "$GITHUB_PATH"
+          mkdir -p ~/miniconda3
+          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
+          bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
+          rm ~/miniconda3/miniconda.sh
+          source ~/miniconda3/bin/activate
+          conda install -y nodejs=20 git jq meson cmake
 
       - id: short-sha
         name: Get Git commit hash
@@ -958,13 +965,20 @@ jobs:
     container:
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-devkitpro:latest
       options: -u root
+      volumes:
+        - /tmp:/__e/node20
     steps:
       - name: Install dependencies
+        shell: bash
         run: |
-          apt update
-          apt install -y git build-essential pip ninja-build jq
-          apt remove -y meson cmake
-          pip install meson cmake
+          ln -s "$HOME/miniconda3/bin" /__e/node20/bin
+          echo "$HOME/miniconda3/bin" >> "$GITHUB_PATH"
+          mkdir -p ~/miniconda3
+          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
+          bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
+          rm ~/miniconda3/miniconda.sh
+          source ~/miniconda3/bin/activate
+          conda install -y nodejs=20 git jq meson cmake
 
       - id: short-sha
         name: Get Git commit hash
@@ -1026,13 +1040,20 @@ jobs:
     container:
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-vita:latest
       options: -u root
+      volumes:
+        - /tmp:/__e/node20
     steps:
       - name: Install dependencies
+        shell: bash
         run: |
-          apt update
-          apt install -y git build-essential pip ninja-build jq
-          apt remove -y meson cmake
-          pip install meson cmake
+          ln -s "$HOME/miniconda3/bin" /__e/node20/bin
+          echo "$HOME/miniconda3/bin" >> "$GITHUB_PATH"
+          mkdir -p ~/miniconda3
+          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
+          bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
+          rm ~/miniconda3/miniconda.sh
+          source ~/miniconda3/bin/activate
+          conda install -y nodejs=20 git jq meson cmake
 
       - id: short-sha
         name: Get Git commit hash
@@ -1093,13 +1114,20 @@ jobs:
     container:
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-wiiu:latest
       options: -u root
+      volumes:
+        - /tmp:/__e/node20
     steps:
       - name: Install dependencies
+        shell: bash
         run: |
-          apt update
-          apt install -y git build-essential pip ninja-build jq
-          apt remove -y meson cmake
-          pip install meson cmake
+          ln -s "$HOME/miniconda3/bin" /__e/node20/bin
+          echo "$HOME/miniconda3/bin" >> "$GITHUB_PATH"
+          mkdir -p ~/miniconda3
+          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
+          bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
+          rm ~/miniconda3/miniconda.sh
+          source ~/miniconda3/bin/activate
+          conda install -y nodejs=20 git jq meson cmake
 
       - name: Build and install wiiurpxtool
         run: |
@@ -1176,13 +1204,20 @@ jobs:
     container:
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-libnx-devkitpro:latest
       options: -u root
+      volumes:
+        - /tmp:/__e/node20
     steps:
       - name: Install dependencies
+        shell: bash
         run: |
-          apt update
-          apt install -y git build-essential pip ninja-build jq
-          apt remove -y meson cmake
-          pip install meson cmake
+          ln -s "$HOME/miniconda3/bin" /__e/node20/bin
+          echo "$HOME/miniconda3/bin" >> "$GITHUB_PATH"
+          mkdir -p ~/miniconda3
+          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
+          bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
+          rm ~/miniconda3/miniconda.sh
+          source ~/miniconda3/bin/activate
+          conda install -y nodejs=20 git jq meson cmake
 
       - id: short-sha
         name: Get Git commit hash
@@ -1224,13 +1259,7 @@ jobs:
       - name: Build frontend
         run: |
           cd ~
-          tag_name=$(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest | jq -r '.tag_name')
-          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $tag_name
-          if [ $tag_name = 'v1.20.0' ]
-          then
-            curl -Lo retroarch.patch https://github.com/libretro/RetroArch/pull/17620.patch
-            patch -i retroarch.patch ~/retroarch/menu/menu_driver.c
-          fi
+          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest | jq -r '.tag_name')
           mv mkxp-z_libretro.a retroarch/libretro_libnx.a
           cd retroarch
           CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z
