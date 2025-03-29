@@ -64,6 +64,18 @@ if is_libretro
         error('LTO is required when building for PowerPC architectures. Please pass either `-Db_lto=true` or `-Druby_lto=true` to Meson.')
     endif
 
+    if is_vita
+        compilers['c'].has_argument('-mword-relocations', required: true)
+        compilers['cpp'].has_argument('-mword-relocations', required: true)
+        libretro_cflags += '-mword-relocations'
+        libretro_cppflags += '-mword-relocations'
+
+        compilers['c'].has_argument('-fno-optimize-sibling-calls', required: true)
+        compilers['cpp'].has_argument('-fno-optimize-sibling-calls', required: true)
+        libretro_cflags += '-fno-optimize-sibling-calls'
+        libretro_cppflags += '-fno-optimize-sibling-calls'
+    endif
+
     if is_devkitarm
         compilers['c'].has_argument('-march=armv6k', required: true)
         compilers['cpp'].has_argument('-march=armv6k', required: true)
