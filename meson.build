@@ -255,22 +255,32 @@ if is_libretro
         libretro_defines += '-DMKXPZ_NO_LSTAT'
     endif
 
-    # Enable integer-only mode in FLAC when building with Vita SDK. Otherwise, we get an internal compiler error in FLAC__window_triangle:
-    #
-    # ../subprojects/flac/src/libFLAC/window.c: In function 'FLAC__window_triangle':
-    # ../subprojects/flac/src/libFLAC/window.c:197:1: error: unrecognizable insn:
-    #   197 | }
-    #       | ^
-    # (insn 191 190 192 21 (set (reg:V4SF 443)
-    #         (mult:V4SF (reg:V4SF 443)
-    #             (reg:V4SF 444))) "../subprojects/flac/src/libFLAC/window.c":189:43 -1
-    #      (nil))
-    # during RTL pass: vregs
-    # ../subprojects/flac/src/libFLAC/window.c:197:1: internal compiler error: in extract_insn, at recog.c:2294
-    # Please submit a full bug report,
-    # with preprocessed source if appropriate.
-    # See <https://gcc.gnu.org/bugs/> for instructions.
     if compilers['c'].has_header_symbol('sys/config.h', '__vita__')
+        compilers['c'].has_argument('-mword-relocations', required: true)
+        compilers['cpp'].has_argument('-mword-relocations', required: true)
+        libretro_cflags += '-mword-relocations'
+        libretro_cppflags += '-mword-relocations'
+
+        compilers['c'].has_argument('-fno-optimize-sibling-calls', required: true)
+        compilers['cpp'].has_argument('-fno-optimize-sibling-calls', required: true)
+        libretro_cflags += '-fno-optimize-sibling-calls'
+        libretro_cppflags += '-fno-optimize-sibling-calls'
+
+        # Enable integer-only mode in FLAC when building with Vita SDK. Otherwise, we get an internal compiler error in FLAC__window_triangle:
+        #
+        # ../subprojects/flac/src/libFLAC/window.c: In function 'FLAC__window_triangle':
+        # ../subprojects/flac/src/libFLAC/window.c:197:1: error: unrecognizable insn:
+        #   197 | }
+        #       | ^
+        # (insn 191 190 192 21 (set (reg:V4SF 443)
+        #         (mult:V4SF (reg:V4SF 443)
+        #             (reg:V4SF 444))) "../subprojects/flac/src/libFLAC/window.c":189:43 -1
+        #      (nil))
+        # during RTL pass: vregs
+        # ../subprojects/flac/src/libFLAC/window.c:197:1: internal compiler error: in extract_insn, at recog.c:2294
+        # Please submit a full bug report,
+        # with preprocessed source if appropriate.
+        # See <https://gcc.gnu.org/bugs/> for instructions.
         libretro_defines += '-DFLAC__INTEGER_ONLY_LIBRARY'
     endif
 
