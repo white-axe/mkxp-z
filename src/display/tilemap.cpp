@@ -47,8 +47,6 @@
 #include <algorithm>
 #include <vector>
 
-#include <SDL_surface.h>
-
 extern const StaticRect autotileRects[];
 
 typedef std::vector<SVertex> SVVector;

@@ -112,7 +112,6 @@ if is_libretro
     libretro_defines = [
         '-DMKXPZ_VERSION="@0@"'.format(meson.project_version()),
         '-DMKXPZ_RETRO',
-        '-DSHARED_FLUID',
         '-D_FILE_OFFSET_BITS=64',
         '-DMPG123_NO_LARGENAME',
         '-DGL_GLES_PROTOTYPES=0',
@@ -499,7 +498,6 @@ if is_libretro
 
     libretro_deps = [
         subproject('libretro-common').get_variable('libretro_common'),
-        subproject('sdl2-headers').get_variable('sdl2_headers'),
         cmake.subproject('boost_asio', options: boost_options).dependency('boost_asio'),
         cmake.subproject('boost_mp11', options: boost_options).dependency('boost_mp11'),
         cmake.subproject('boost_describe', options: boost_options).dependency('boost_describe'),

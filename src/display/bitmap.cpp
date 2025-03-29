@@ -1455,8 +1455,10 @@ void Bitmap::stretchBlt(IntRect destRect,
         }
     }
     
+#ifndef MKXPZ_RETRO // TODO
     if (blitTemp)
         SDL_FreeSurface(blitTemp);
+#endif // MKXPZ_RETRO
     
     p->addTaintedArea(destRect);
     p->onModified();
@@ -1764,6 +1766,7 @@ void Bitmap::clear()
     p->onModified();
 }
 
+#ifndef MKXPZ_RETRO
 static uint32_t &getPixelAt(SDL_Surface *surf, SDL_PixelFormat *form, int x, int y)
 {
     size_t offset = x*form->BytesPerPixel + y*surf->pitch;
@@ -1771,6 +1774,7 @@ static uint32_t &getPixelAt(SDL_Surface *surf, SDL_PixelFormat *form, int x, int
     
     return *((uint32_t*) bytes);
 }
+#endif // MKXPZ_RETRO
 
 Color Bitmap::getPixel(int x, int y) const
 {
@@ -2077,6 +2081,7 @@ static std::string fixupString(const char *str)
     return s;
 }
 
+#ifndef MKXPZ_RETRO
 static void applyShadow(SDL_Surface *&in, const SDL_PixelFormat &fm, const SDL_Color &c)
 {
     SDL_Surface *out = SDL_CreateRGBSurface
@@ -2163,6 +2168,7 @@ static void applyShadow(SDL_Surface *&in, const SDL_PixelFormat &fm, const SDL_C
     SDL_FreeSurface(in);
     in = out;
 }
+#endif // MKXPZ_RETRO
 
 #ifdef MKXPZ_RETRO
 IntRect Bitmap::textRect(const char *str)

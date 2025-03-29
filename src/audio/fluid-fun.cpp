@@ -1,8 +1,10 @@
 #include "fluid-fun.h"
 
 #include <string.h>
-#include <SDL_loadso.h>
-#include <SDL_platform.h>
+#ifndef MKXPZ_RETRO
+#  include <SDL_loadso.h>
+#  include <SDL_platform.h>
+#endif // MKXPZ_RETRO
 
 #include "debugwriter.h"
 
@@ -14,18 +16,18 @@
 #  define FLUID_LIB "libfluidsynth.3.dylib"
 #elif defined(__WIN32__)
 #  define FLUID_LIB "fluidsynth.dll"
-#elif !defined(SHARED_FLUID)
+#elif !defined(MKXPZ_RETRO) && !defined(SHARED_FLUID)
 #  error "platform not recognized"
 #endif
 
 struct FluidFunctions fluid;
-#ifndef SHARED_FLUID
+#if !defined(MKXPZ_RETRO) && !defined(SHARED_FLUID)
 static void *so;
 #endif
 
 void initFluidFunctions()
 {
-#ifdef SHARED_FLUID
+#if defined(MKXPZ_RETRO) || defined(SHARED_FLUID)
 
 #define FLUID_FUN(name, type) \
 	fluid.name = fluid_##name;
@@ -55,7 +57,7 @@ FLUID_FUNCS2
 
 	return;
 
-#ifndef SHARED_FLUID
+#if !defined(MKXPZ_RETRO) && !defined(SHARED_FLUID)
 fail:
 	Debug() << "Failed to load " FLUID_LIB ". Midi playback is disabled.";
 
