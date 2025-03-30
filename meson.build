@@ -33,6 +33,9 @@ global_args += '-DHAVE_NANOSLEEP'
 # ====================
 
 if is_libretro
+    is_vita = core_is_static and host_cpu_family == 'arm' and compilers['c'].has_header_symbol('sys/config.h', '__vita__')
+    is_devkitarm = core_is_static and host_cpu_family == 'arm' and not is_vita
+
     embedtool = executable('embedtool', sources: 'embedtool.cpp', native: true, override_options: ['buildtype=release', 'b_coverage=false', 'b_lto=false', 'b_ndebug=false', 'b_pgo=off', 'b_sanitize=none'])
 
     libretro_stage1_path = get_option('libretro_stage1_path')
@@ -61,6 +64,18 @@ if is_libretro
         error('LTO is required when building for PowerPC architectures. Please pass either `-Db_lto=true` or `-Druby_lto=true` to Meson.')
     endif
 
+    if is_devkitarm
+        compilers['c'].has_argument('-march=armv6k', required: true)
+        compilers['cpp'].has_argument('-march=armv6k', required: true)
+        libretro_cflags += '-march=armv6k'
+        libretro_cppflags += '-march=armv6k'
+
+        compilers['c'].has_argument('-mtune=mpcore', required: true)
+        compilers['cpp'].has_argument('-mtune=mpcore', required: true)
+        libretro_cflags += '-mtune=mpcore'
+        libretro_cppflags += '-mtune=mpcore'
+    endif
+
     if host_cpu_family == 'ppc64'
         if compilers['c'].has_argument('-m64')
             libretro_cflags += '-m64'
@@ -68,6 +83,11 @@ if is_libretro
         if compilers['cpp'].has_argument('-m64')
             libretro_cppflags += '-m64'
         endif
+    endif
+
+    if core_is_static and host_cpu_family == 'arm'
+        libretro_cflags += '-mfloat-abi=hard'
+        libretro_cppflags += '-mfloat-abi=hard'
     endif
 
     # When targeting Emscripten, we need to build a relocatable object
@@ -269,7 +289,7 @@ if is_libretro
     # Please submit a full bug report,
     # with preprocessed source if appropriate.
     # See <https://gcc.gnu.org/bugs/> for instructions.
-    if compilers['c'].has_header_symbol('sys/config.h', '__vita__')
+    if is_vita
         libretro_defines += '-DFLAC__INTEGER_ONLY_LIBRARY'
     endif
 
