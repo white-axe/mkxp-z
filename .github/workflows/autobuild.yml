@@ -1095,7 +1095,12 @@ jobs:
       - name: Build frontend
         run: |
           cd ~
-          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest | jq -r '.tag_name')
+          tag_name=$(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest | jq -r '.tag_name')
+          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $tag_name
+          if [ $tag_name = 'v1.20.0' ]
+          then
+            sed -i 's/-Wl,-q/-Wl,-q,--pic-veneer/g' retroarch/Makefile.vita
+          fi
           mv mkxp-z_libretro.a retroarch/libretro_vita.a
           cd retroarch
           CLICOLOR_FORCE=1 make -f Makefile.vita LIBRETRO=mkxp-z
