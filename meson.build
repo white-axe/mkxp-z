@@ -305,6 +305,11 @@ if is_libretro
         libretro_defines += '-DFLAC__INTEGER_ONLY_LIBRARY'
     endif
 
+    if is_devkitarm
+        libretro_defines += '-D__DEVKITPRO__'
+        libretro_defines += '-D__DEVKITARM__'
+    endif
+
     # Position-independent code is not supported on some platforms where we need to build a static library, e.g. https://github.com/vitasdk/vita-toolchain/issues/264
     use_pic = not core_is_static
 
