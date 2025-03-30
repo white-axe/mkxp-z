@@ -1,9 +1,11 @@
 #ifndef SDLUTIL_H
 #define SDLUTIL_H
 
-#include <SDL_atomic.h>
-#include <SDL_thread.h>
-#include <SDL_rwops.h>
+#ifndef MKXPZ_RETRO
+#  include <SDL_atomic.h>
+#  include <SDL_thread.h>
+#  include <SDL_rwops.h>
+#endif // MKXPZ_RETRO
 
 #include <cstring>
 #include <iostream>
@@ -76,7 +78,6 @@ struct AtomicFlag
 private:
 	mutable SDL_atomic_t atom;
 };
-#endif // MKXPZ_RETRO
 
 template<class C, void (C::*func)()>
 int __sdlThreadFun(void *obj)
@@ -201,5 +202,6 @@ private:
 	SDLRWBuf<> buf;
 	std::istream s;
 };
+#endif // MKXPZ_RETRO
 
 #endif // SDLUTIL_H

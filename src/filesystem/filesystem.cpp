@@ -277,7 +277,9 @@ static void strTolower(std::string &str) {
     str[i] = tolower(str[i]);
 }
 
+#ifndef MKXPZ_RETRO
 const Uint32 SDL_RWOPS_PHYSFS = SDL_RWOPS_UNKNOWN + 10;
+#endif // MKXPZ_RETRO
 
 struct FileSystemPrivate {
   /* Maps: lower case full filepath,
@@ -700,6 +702,7 @@ void FileSystem::openRead(OpenHandler &handler, const char *filename) {
     throw Exception(Exception::NoFileError, "%s", filename);
 }
 
+#ifndef MKXPZ_RETRO
 void FileSystem::openReadRaw(SDL_RWops &ops, const char *filename,
                              bool freeOnClose) {
 
@@ -708,12 +711,11 @@ void FileSystem::openReadRaw(SDL_RWops &ops, const char *filename,
   if (!handle)
     throw Exception(Exception::NoFileError, "%s", filename);
 
-#ifndef MKXPZ_RETRO
   initReadOps(handle, ops, freeOnClose);
-#endif // MKXPZ_RETRO
 
   return;
 }
+#endif // MKXPZ_RETRO
 
 #ifdef MKXPZ_RETRO
 static std::string normalizePath(const char *path, bool preferred, bool absolute) {

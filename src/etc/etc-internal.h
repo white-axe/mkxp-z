@@ -24,7 +24,17 @@
 
 #include "util.h"
 
-#include <SDL_rect.h>
+#ifdef MKXPZ_RETRO
+struct SDL_Rect
+{
+	int x;
+	int y;
+	int w;
+	int h;
+};
+#else
+#  include <SDL_rect.h>
+#endif // MKXPZ_RETRO
 
 struct Vec2
 {

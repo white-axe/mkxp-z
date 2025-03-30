@@ -47,13 +47,13 @@ namespace mkxp_sandbox {
 
                         // TODO: throw error if too many or too few arguments
                         SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
-                        x = std::max(x, 0);
+                        x = std::max(x, (int32_t)0);
                         if (argc >= 2) {
                             SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
-                            y = std::max(y, 0);
+                            y = std::max(y, (int32_t)0);
                             if (argc >= 3) {
                                 SANDBOX_AWAIT_AND_SET(z, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
-                                z = std::max(z, 0);
+                                z = std::max(z, (int32_t)0);
                             }
                         }
 
@@ -103,13 +103,13 @@ namespace mkxp_sandbox {
 
                         // TODO: throw error if too many or too few arguments
                         SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
-                        x = std::max(x, 0);
+                        x = std::max(x, (int32_t)0);
                         if (argc >= 2) {
                             SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
-                            y = std::max(y, 0);
+                            y = std::max(y, (int32_t)0);
                             if (argc >= 3) {
                                 SANDBOX_AWAIT_AND_SET(z, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
-                                z = std::max(z, 0);
+                                z = std::max(z, (int32_t)0);
                             }
                         }
 
@@ -194,10 +194,10 @@ namespace mkxp_sandbox {
                             }
                         }
 
-                        SANDBOX_AWAIT_AND_SET(v, rb_num2int, ((VALUE *)(**sb() + argv))[std::min(argc, 4) - 1]);
+                        SANDBOX_AWAIT_AND_SET(v, rb_num2int, ((VALUE *)(**sb() + argv))[std::min(argc, (int32_t)4) - 1]);
                         table->set(v, x, y, z);
 
-                        return ((VALUE *)(**sb() + argv))[std::min(argc, 4) - 1];
+                        return ((VALUE *)(**sb() + argv))[std::min(argc, (int32_t)4) - 1];
                     }
 
                     return SANDBOX_UNDEF;

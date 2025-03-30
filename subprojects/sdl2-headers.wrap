@@ -1,5 +1,0 @@
-[wrap-git]
-url = https://github.com/libsdl-org/SDL
-revision = release-2.30.11
-depth = 1
-patch_directory = sdl2-headers

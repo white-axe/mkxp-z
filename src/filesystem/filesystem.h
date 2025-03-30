@@ -24,9 +24,10 @@
 
 #ifdef MKXPZ_RETRO
 #  include <memory>
+#else
+#  include <SDL_rwops.h>
 #endif // MKXPZ_RETRO
 #include <physfs.h>
-#include <SDL_rwops.h>
 #include <string>
 
 #ifndef MKXPZ_RETRO
@@ -128,10 +129,12 @@ public:
 	void openRead(OpenHandler &handler,
 	              const char *filename);
 
+#ifndef MKXPZ_RETRO
 	/* Circumvents extension supplementing */
 	void openReadRaw(SDL_RWops &ops,
 	                 const char *filename,
 	                 bool freeOnClose = false);
+#endif // MKXPZ_RETRO
 
 	std::string normalize(const char *pathname, bool preferred, bool absolute);
 
@@ -146,6 +149,8 @@ private:
 	FileSystemPrivate *p;
 };
 
+#ifndef MKXPZ_RETRO
 extern const Uint32 SDL_RWOPS_PHYSFS;
+#endif // MKXPZ_RETRO
 
 #endif // FILESYSTEM_H

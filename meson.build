@@ -33,6 +33,9 @@ global_args += '-DHAVE_NANOSLEEP'
 # ====================
 
 if is_libretro
+    is_vita = core_is_static and host_cpu_family == 'arm' and compilers['c'].has_header_symbol('sys/config.h', '__vita__')
+    is_devkitarm = core_is_static and host_cpu_family == 'arm' and not is_vita
+
     embedtool = executable('embedtool', sources: 'embedtool.cpp', native: true, override_options: ['buildtype=release', 'b_coverage=false', 'b_lto=false', 'b_ndebug=false', 'b_pgo=off', 'b_sanitize=none'])
 
     libretro_stage1_path = get_option('libretro_stage1_path')
@@ -61,6 +64,30 @@ if is_libretro
         error('LTO is required when building for PowerPC architectures. Please pass either `-Db_lto=true` or `-Druby_lto=true` to Meson.')
     endif
 
+    if is_vita
+        compilers['c'].has_argument('-mword-relocations', required: true)
+        compilers['cpp'].has_argument('-mword-relocations', required: true)
+        libretro_cflags += '-mword-relocations'
+        libretro_cppflags += '-mword-relocations'
+
+        compilers['c'].has_argument('-fno-optimize-sibling-calls', required: true)
+        compilers['cpp'].has_argument('-fno-optimize-sibling-calls', required: true)
+        libretro_cflags += '-fno-optimize-sibling-calls'
+        libretro_cppflags += '-fno-optimize-sibling-calls'
+    endif
+
+    if is_devkitarm
+        compilers['c'].has_argument('-march=armv6k', required: true)
+        compilers['cpp'].has_argument('-march=armv6k', required: true)
+        libretro_cflags += '-march=armv6k'
+        libretro_cppflags += '-march=armv6k'
+
+        compilers['c'].has_argument('-mtune=mpcore', required: true)
+        compilers['cpp'].has_argument('-mtune=mpcore', required: true)
+        libretro_cflags += '-mtune=mpcore'
+        libretro_cppflags += '-mtune=mpcore'
+    endif
+
     if host_cpu_family == 'ppc64'
         if compilers['c'].has_argument('-m64')
             libretro_cflags += '-m64'
@@ -68,6 +95,11 @@ if is_libretro
         if compilers['cpp'].has_argument('-m64')
             libretro_cppflags += '-m64'
         endif
+    endif
+
+    if core_is_static and host_cpu_family == 'arm'
+        libretro_cflags += '-mfloat-abi=hard'
+        libretro_cppflags += '-mfloat-abi=hard'
     endif
 
     # When targeting Emscripten, we need to build a relocatable object
@@ -112,7 +144,6 @@ if is_libretro
     libretro_defines = [
         '-DMKXPZ_VERSION="@0@"'.format(meson.project_version()),
         '-DMKXPZ_RETRO',
-        '-DSHARED_FLUID',
         '-D_FILE_OFFSET_BITS=64',
         '-DMPG123_NO_LARGENAME',
         '-DGL_GLES_PROTOTYPES=0',
@@ -255,33 +286,28 @@ if is_libretro
         libretro_defines += '-DMKXPZ_NO_LSTAT'
     endif
 
-    if compilers['c'].has_header_symbol('sys/config.h', '__vita__')
-        compilers['c'].has_argument('-mword-relocations', required: true)
-        compilers['cpp'].has_argument('-mword-relocations', required: true)
-        libretro_cflags += '-mword-relocations'
-        libretro_cppflags += '-mword-relocations'
-
-        compilers['c'].has_argument('-fno-optimize-sibling-calls', required: true)
-        compilers['cpp'].has_argument('-fno-optimize-sibling-calls', required: true)
-        libretro_cflags += '-fno-optimize-sibling-calls'
-        libretro_cppflags += '-fno-optimize-sibling-calls'
-
-        # Enable integer-only mode in FLAC when building with Vita SDK. Otherwise, we get an internal compiler error in FLAC__window_triangle:
-        #
-        # ../subprojects/flac/src/libFLAC/window.c: In function 'FLAC__window_triangle':
-        # ../subprojects/flac/src/libFLAC/window.c:197:1: error: unrecognizable insn:
-        #   197 | }
-        #       | ^
-        # (insn 191 190 192 21 (set (reg:V4SF 443)
-        #         (mult:V4SF (reg:V4SF 443)
-        #             (reg:V4SF 444))) "../subprojects/flac/src/libFLAC/window.c":189:43 -1
-        #      (nil))
-        # during RTL pass: vregs
-        # ../subprojects/flac/src/libFLAC/window.c:197:1: internal compiler error: in extract_insn, at recog.c:2294
-        # Please submit a full bug report,
-        # with preprocessed source if appropriate.
-        # See <https://gcc.gnu.org/bugs/> for instructions.
+    # Enable integer-only mode in FLAC when building with Vita SDK. Otherwise, we get an internal compiler error in FLAC__window_triangle:
+    #
+    # ../subprojects/flac/src/libFLAC/window.c: In function 'FLAC__window_triangle':
+    # ../subprojects/flac/src/libFLAC/window.c:197:1: error: unrecognizable insn:
+    #   197 | }
+    #       | ^
+    # (insn 191 190 192 21 (set (reg:V4SF 443)
+    #         (mult:V4SF (reg:V4SF 443)
+    #             (reg:V4SF 444))) "../subprojects/flac/src/libFLAC/window.c":189:43 -1
+    #      (nil))
+    # during RTL pass: vregs
+    # ../subprojects/flac/src/libFLAC/window.c:197:1: internal compiler error: in extract_insn, at recog.c:2294
+    # Please submit a full bug report,
+    # with preprocessed source if appropriate.
+    # See <https://gcc.gnu.org/bugs/> for instructions.
+    if is_vita
         libretro_defines += '-DFLAC__INTEGER_ONLY_LIBRARY'
+    endif
+
+    if is_devkitarm
+        libretro_defines += '-D__DEVKITPRO__'
+        libretro_defines += '-D__DEVKITARM__'
     endif
 
     # Position-independent code is not supported on some platforms where we need to build a static library, e.g. https://github.com/vitasdk/vita-toolchain/issues/264
@@ -509,7 +535,6 @@ if is_libretro
 
     libretro_deps = [
         subproject('libretro-common').get_variable('libretro_common'),
-        subproject('sdl2-headers').get_variable('sdl2_headers'),
         cmake.subproject('boost_asio', options: boost_options).dependency('boost_asio'),
         cmake.subproject('boost_mp11', options: boost_options).dependency('boost_mp11'),
         cmake.subproject('boost_describe', options: boost_options).dependency('boost_describe'),
