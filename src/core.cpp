@@ -86,6 +86,7 @@ static LPALCLOOPBACKOPENDEVICESOFT alcLoopbackOpenDeviceSOFT = NULL;
 static int16_t *sound_buf;
 static bool retro_framebuffer_supported;
 static bool shared_state_initialized;
+static PHYSFS_File *rgssad = NULL;
 
 static void fallback_log(enum retro_log_level level, const char *fmt, ...) {
     std::va_list va;
@@ -169,6 +170,10 @@ static void deinit_sandbox() {
         alcCloseDevice(al_device);
         al_device = NULL;
     }
+    if (rgssad != NULL) {
+        PHYSFS_close(rgssad);
+        rgssad = NULL;
+    }
     fs.reset();
     input.reset();
 }
@@ -204,6 +209,15 @@ static bool init_sandbox() {
         }
 
         fs->addPath(parsed_game_path.c_str(), "/mkxp-retro-game");
+
+        // TODO: use execName from config instead of hardcoding "Game" as the filename
+        if ((rgssad = PHYSFS_openRead("/mkxp-retro-game/Game.rgssad")) != NULL) {
+            PHYSFS_mountHandle(rgssad, "Game.rgssad", "/mkxp-retro-game", 1);
+        } else if ((rgssad = PHYSFS_openRead("/mkxp-retro-game/Game.rgss2a")) != NULL) {
+            PHYSFS_mountHandle(rgssad, "Game.rgss2a", "/mkxp-retro-game", 1);
+        } else if ((rgssad = PHYSFS_openRead("/mkxp-retro-game/Game.rgss3a")) != NULL) {
+            PHYSFS_mountHandle(rgssad, "Game.rgss3a", "/mkxp-retro-game", 1);
+        }
     }
 
     fs->createPathCache();
