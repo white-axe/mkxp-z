@@ -44,6 +44,8 @@ namespace mkxp_sandbox {
                     SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
                     SANDBOX_AWAIT_AND_SET(font, rb_class_new_instance, 0, NULL, klass);
                     SANDBOX_AWAIT(rb_iv_set, obj, "font", font);
+                    // TODO: handle hires bitmaps
+                    bitmap->setInitFont(get_private_data<Font>(font));
                 }
             }
         )
@@ -80,6 +82,7 @@ namespace mkxp_sandbox {
         static VALUE initialize_copy(VALUE self, VALUE obj) {
             SANDBOX_COROUTINE(coro,
                 Bitmap *bitmap;
+                Bitmap *orig;
 
                 VALUE operator()(VALUE self, VALUE obj) {
                     BOOST_ASIO_CORO_REENTER (this) {
@@ -89,13 +92,11 @@ namespace mkxp_sandbox {
 
                         SANDBOX_AWAIT(rb_obj_init_copy, self, obj);
 
-                        {
-                            Bitmap *orig = get_private_data<Bitmap>(obj);
-                            GFX_GUARD_EXC(bitmap = new Bitmap(*orig););
-                        }
+                        orig = get_private_data<Bitmap>(obj);
+                        GFX_GUARD_EXC(bitmap = new Bitmap(*orig););
 
                         SANDBOX_AWAIT(init_props, bitmap, self);
-                        // TODO: set font
+                        bitmap->setFont(orig->getFont());
                         set_private_data(self, bitmap);
                     }
 
@@ -389,6 +390,38 @@ namespace mkxp_sandbox {
             return sb()->bind<struct rb_iv_get>()()(self, "font");
         }
 
+        static VALUE set_font(VALUE self, VALUE value) {
+            SANDBOX_COROUTINE(coro,
+                VALUE f;
+                VALUE prop;
+
+                VALUE operator()(VALUE self, VALUE value) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        Font *font;
+                        font = get_private_data<Font>(value);
+                        if (font != NULL) {
+                            GFX_GUARD_EXC(get_private_data<Bitmap>(self)->setFont(*font);)
+
+                            SANDBOX_AWAIT_AND_SET(f, rb_iv_get, self, "font");
+                            SANDBOX_AWAIT_AND_SET(prop, rb_iv_get, value, "name");
+                            SANDBOX_AWAIT(rb_iv_set, f, "name", prop);
+                            SANDBOX_AWAIT_AND_SET(prop, rb_iv_get, value, "size");
+                            SANDBOX_AWAIT(rb_iv_set, f, "size", prop);
+                            SANDBOX_AWAIT_AND_SET(prop, rb_iv_get, value, "bold");
+                            SANDBOX_AWAIT(rb_iv_set, f, "bold", prop);
+                            SANDBOX_AWAIT_AND_SET(prop, rb_iv_get, value, "italic");
+                            SANDBOX_AWAIT(rb_iv_set, f, "italic", prop);
+                            // TODO: handle shadow and outline
+                        }
+                    }
+
+                    return value;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, value);
+        }
+
         static VALUE text_size(VALUE self, VALUE text) {
             SANDBOX_COROUTINE(coro,
                 wasm_ptr_t str;
@@ -436,6 +469,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, klass, "hue_change", (VALUE (*)(ANYARGS))hue_change, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "draw_text", (VALUE (*)(ANYARGS))draw_text, -1);
                 SANDBOX_AWAIT(rb_define_method, klass, "font", (VALUE (*)(ANYARGS))get_font, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "font=", (VALUE (*)(ANYARGS))set_font, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "text_size", (VALUE (*)(ANYARGS))text_size, 1);
             }
         }

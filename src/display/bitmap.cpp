@@ -2470,10 +2470,8 @@ DEF_ATTR_RD_SIMPLE(Bitmap, Font, Font&, *p->font)
 
 void Bitmap::setFont(Font &value)
 {
-#ifndef MKXPZ_RETRO
     // High-res support handled in drawText, not here.
     *p->font = value;
-#endif // MKXPZ_RETRO
 }
 
 void Bitmap::setInitFont(Font *value)
