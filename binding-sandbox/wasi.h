@@ -25,7 +25,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <zip.h>
 #include "filesystem.h"
 #include "types.h"
 
@@ -191,55 +190,15 @@
 
 typedef std::pair<u32, std::string> path_cache_entry_t;
 
-struct wasi_zip_container {
-    private:
-    zip_source_t *const source;
-
-    public:
-    zip_t *const zip;
-    std::vector<path_cache_entry_t> path_cache;
-    wasi_zip_container();
-    wasi_zip_container(const char *path, zip_flags_t flags);
-    wasi_zip_container(const void *buffer, zip_uint64_t length, zip_flags_t flags);
-    ~wasi_zip_container();
-};
-
-struct wasi_zip_file_container {
-    zip_file_t *const file;
-    wasi_zip_file_container();
-    wasi_zip_file_container(wasi_zip_container &zip, zip_uint64_t index, zip_flags_t flags);
-    ~wasi_zip_file_container();
-};
-
-struct wasi_zip_handle {
-    std::shared_ptr<struct wasi_zip_container> zip; // Zip handle that can be used with libzip
-    std::string path; // Mount point of this archive relative to the root of the virtual filesystem, normalized to start with one leading slash and no trailing slashes (e.g. "/example/path")
-};
-
-struct wasi_zip_dir_handle {
-    zip_uint64_t index; // Index of this directory within the zip file
-    std::string path; // Path of this directory relative to the root of the zip file, normalized to start with no leading slashes or dots and one trailing slash (e.g. "example/path/")
-    u32 parent_fd; // WASI file descriptor of the zip file that contains this directory
-};
-
-struct wasi_zip_file_handle {
-    zip_uint64_t index; // Index of this file within the zip file
-    struct wasi_zip_file_container zip_file_handle; // Handle to this file that can be used with libzip
-    u32 parent_fd; // WASI file descriptor of the zip file that contains this file
-};
-
 struct undefined {};
 
 enum wasi_fd_type {
     STDIN, // This file descriptor is standard input. The `handle` field is null.
     STDOUT, // This file descriptor is standard output. The `handle` field is null.
     STDERR, // This file descriptor is standard error. The `handle` field is null.
-    FS, // This file descriptor is a preopened directory handled by the mkxp-z filesystem code. The `handle` field is a `std::string *` containing the path of the directory.
-    FSDIR, // This file descriptor is a directory handled by the mkxp-z filesystem code. The `handle` field is a `std::string *` containing the path of the directory.
-    FSFILE, // This file descriptor is a file handled by the mkxp-z filesystem code. The `handle` field is a `struct FileSystem::File *`.
-    ZIP, // This file descriptor is a read-only zip file. The `handle` field is a `struct wasi_zip_handle *`.
-    ZIPDIR, // This file descriptor is a directory inside of a zip file. The `handle` field is a `struct wasi_zip_dir_handle *`.
-    ZIPFILE, // This file descriptor is a file inside of a zip file. The `handle` field is a `struct wasi_zip_file_handle *`.
+    FS, // This file descriptor is a preopened directory handled by PhysFS. The `handle` field is a `std::string *` containing the path of the directory.
+    FSDIR, // This file descriptor is a directory handled by PhysFS. The `handle` field is a `std::string *` containing the path of the directory.
+    FSFILE, // This file descriptor is a file handled by PhysFS. The `handle` field is a `struct FileSystem::File *`.
     VACANT, // Indicates this is a vacant file descriptor that doesn't correspond to a file. The `handle` field is null.
 };
 
@@ -251,24 +210,10 @@ struct wasi_file_entry {
 
     std::string *dir_handle();
     struct FileSystem::File *file_handle();
-    struct wasi_zip_handle *zip_handle();
-    struct wasi_zip_dir_handle *zip_dir_handle();
-    struct wasi_zip_file_handle *zip_file_handle();
-};
-
-struct wasi_zip_stat {
-    bool exists;
-    u8 filetype;
-    u64 inode;
-    u64 size;
-    u64 mtime;
-    std::string normalized_path;
 };
 
 typedef struct w2c_wasi__snapshot__preview1 {
     std::shared_ptr<struct w2c_ruby> ruby;
-
-    std::shared_ptr<struct wasi_zip_container> dist;
 
     // WASI file descriptor table. Maps WASI file descriptors (unsigned 32-bit integers) to file handles.
     std::vector<wasi_file_entry> fdtable;

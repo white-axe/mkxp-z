@@ -337,30 +337,6 @@ if is_libretro
         'ZLIB_BUILD_EXAMPLES': false,
     })
 
-    libzip_options = cmake.subproject_options()
-    libzip_options.add_cmake_defines({
-        'CMAKE_POLICY_VERSION_MINIMUM': '3.5',
-        'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
-        'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
-        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
-        'BUILD_SHARED_LIBS': false,
-        'LIBZIP_DO_INSTALL': false,
-        'BUILD_TOOLS': false,
-        'BUILD_REGRESS': false,
-        'BUILD_OSSFUZZ': false,
-        'BUILD_EXAMPLES': false,
-        'BUILD_DOC': false,
-        'ENABLE_COMMONCRYPTO': false,
-        'ENABLE_GNUTLS': false,
-        'ENABLE_MBEDTLS': false,
-        'ENABLE_OPENSSL': false,
-        'ENABLE_WINDOWS_CRYPTO': false,
-        'ENABLE_FDOPEN': false,
-        'ENABLE_BZIP2': false,
-        'ENABLE_LZMA': false,
-        'ENABLE_ZSTD': false,
-    })
-
     physfs_options = cmake.subproject_options()
     physfs_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.5',
@@ -548,7 +524,6 @@ if is_libretro
         cmake.subproject('boost_type_traits', options: boost_options).dependency('boost_type_traits'),
         cmake.subproject('boost_optional', options: boost_options).dependency('boost_optional'),
         cmake.subproject(host_system == 'darwin' ? 'zlib-darwin' : 'zlib', options: zlib_options).dependency('zlibstatic'),
-        cmake.subproject('libzip', options: libzip_options).dependency('zip'),
         cmake.subproject('physfs', options: physfs_options).dependency('physfs-static'),
         cmake.subproject('openal-soft', options: openal_options).dependency('OpenAL'),
         cmake.subproject('openal-soft', options: openal_options).dependency('alsoft.fmt'),

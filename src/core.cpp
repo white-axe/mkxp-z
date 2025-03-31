@@ -77,6 +77,8 @@ static inline void free_align(void *ptr) {
 
 extern const uint8_t mkxp_gmgsx_sf2[];
 extern const size_t mkxp_gmgsx_sf2_len;
+extern const uint8_t mkxp_retro_dist_zip[];
+extern const size_t mkxp_retro_dist_zip_len;
 
 static bool initialized = false;
 static ALCdevice *al_device = NULL;
@@ -218,6 +220,8 @@ static bool init_sandbox() {
         } else if ((rgssad = PHYSFS_openRead("/mkxp-retro-game/Game.rgss3a")) != NULL) {
             PHYSFS_mountHandle(rgssad, "Game.rgss3a", "/mkxp-retro-game", 1);
         }
+
+        PHYSFS_mountMemory(mkxp_retro_dist_zip, mkxp_retro_dist_zip_len, NULL, "mkxp-retro-dist.zip", "/mkxp-retro-dist", 1);
     }
 
     fs->createPathCache();
