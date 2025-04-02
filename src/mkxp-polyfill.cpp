@@ -1,5 +1,5 @@
 /*
-** mkxp-threads.cpp
+** mkxp-polyfill.cpp
 **
 ** This file is part of mkxp.
 **
@@ -19,7 +19,7 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "mkxp-threads.h"
+#include "mkxp-polyfill.h"
 #include <cassert>
 
 #if defined(MKXPZ_NO_SEMAPHORE_H) && !defined(MKXPZ_NO_PTHREAD_H)

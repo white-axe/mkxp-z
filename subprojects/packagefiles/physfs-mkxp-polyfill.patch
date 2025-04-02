@@ -1,4 +1,4 @@
-# This patch makes PhysFS use mkxp-threads.cpp instead of POSIX threads for portability reasons.
+# This patch makes PhysFS use mkxp-polyfill.cpp instead of POSIX threads for portability reasons.
 
 --- a/src/physfs_platform_posix.c
 +++ b/src/physfs_platform_posix.c
@@ -7,7 +7,7 @@
  #include <errno.h>
  #include <fcntl.h>
 -#include <pthread.h>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  
  #include "physfs_internal.h"
  

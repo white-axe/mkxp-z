@@ -1,7 +1,7 @@
 #pragma once
 #include <atomic>
 #include <memory>
-#include "mkxp-threads.h"
+#include "mkxp-polyfill.h"
 #include <type_traits>
 #include <utility>
 #include <thread>

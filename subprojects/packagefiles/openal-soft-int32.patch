@@ -1,5 +1,5 @@
-# Fixes compilation errors when using the devkitARM toolchain toolchain to compile OpenAL Soft.
-# For some reason, there's no implicit casting between `int` and `int32_t` and between `unsigned int` and `uint32_t` in devkitARM or Vita SDK even though they're the same size, so we have to do this whole song and dance to appease the compiler.
+# Fixes compilation errors when using the devkitARM toolchain to compile OpenAL Soft.
+# For some reason, there's no implicit casting between `int` and `int32_t` and between `unsigned int` and `uint32_t` in devkitARM even though they're the same size, so we have to do this whole song and dance to appease the compiler.
 
 --- a/alc/alu.cpp
 +++ b/alc/alu.cpp

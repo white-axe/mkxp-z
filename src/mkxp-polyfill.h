@@ -1,5 +1,5 @@
 /*
-** mkxp-threads.h
+** mkxp-polyfill.h
 **
 ** This file is part of mkxp.
 **
@@ -19,8 +19,8 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MKXPZ_THREADS_H
-#define MKXPZ_THREADS_H
+#ifndef MKXPZ_POLYFILL_H
+#define MKXPZ_POLYFILL_H
 
 #include <math.h>
 #include <tgmath.h>
@@ -392,4 +392,4 @@ namespace std {
 #  endif
 #endif
 
-#endif // MKXPZ_THREADS_H
+#endif // MKXPZ_POLYFILL_H

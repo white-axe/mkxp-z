@@ -626,7 +626,7 @@ if is_libretro
         ],
         sources: global_sources + [
             'src/core.cpp',
-            'src/mkxp-threads.cpp',
+            'src/mkxp-polyfill.cpp',
             'src/sharedstate.cpp',
             'src/stb_image.cpp',
             'src/audio/alstream.cpp',

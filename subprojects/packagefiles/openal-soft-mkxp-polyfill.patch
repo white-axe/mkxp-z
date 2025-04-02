@@ -1,4 +1,4 @@
-# This patch makes OpenAL Soft use mkxp-threads.cpp instead of POSIX threads and `std::mutex` for portability reasons.
+# This patch makes OpenAL Soft use mkxp-polyfill.cpp instead of POSIX threads and `std::mutex` for portability reasons.
 
 --- a/al/auxeffectslot.cpp
 +++ b/al/auxeffectslot.cpp
@@ -7,7 +7,7 @@
  #include <iterator>
  #include <memory>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <numeric>
  #include <stdexcept>
  #include <tuple>
@@ -18,7 +18,7 @@
  #include <limits>
  #include <memory>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <numeric>
  #include <optional>
  #include <stdexcept>
@@ -29,7 +29,7 @@
  #include <cstring>
  #include <deque>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <optional>
  #include <stdexcept>
  #include <string>
@@ -40,7 +40,7 @@
  #include <iterator>
  #include <memory>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <numeric>
  #include <string>
  #include <type_traits>
@@ -51,7 +51,7 @@
  #include <exception>
  #include <memory>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <new>
  #include <optional>
  #include <string>
@@ -62,7 +62,7 @@
  #include <iterator>
  #include <memory>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <numeric>
  #include <unordered_map>
  #include <vector>
@@ -73,7 +73,7 @@
  #include <algorithm>
  #include <cmath>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  
  #include "AL/al.h"
  #include "AL/alc.h"
@@ -84,7 +84,7 @@
  #include <limits>
  #include <memory>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <numeric>
  #include <optional>
  #include <stdexcept>
@@ -95,7 +95,7 @@
  #include <cmath>
  #include <deque>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <optional>
  #include <stdexcept>
  #include <string>
@@ -106,7 +106,7 @@
  #include <limits>
  #include <memory>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <new>
  #include <optional>
  #include <stdexcept>
@@ -135,7 +135,7 @@
  #include <istream>
  #include <limits>
 -#include <string>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <string_view>
  #include <utility>
  #include <vector>
@@ -146,7 +146,7 @@
  #include <exception>
  #include <memory>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <string>
  #include <string_view>
  #include <thread>
@@ -157,7 +157,7 @@
  #include <cstring>
  #include <memory.h>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <thread>
  #include <vector>
  
@@ -168,7 +168,7 @@
  #include <cstdlib>
  #include <cstring>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <new>
  #include <thread>
  #include <functional>
@@ -179,7 +179,7 @@
  #include <deque>
  #include <future>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <string>
  #include <string_view>
  #include <thread>
@@ -190,7 +190,7 @@
  #include <iterator>
  #include <memory>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <optional>
  #include <string_view>
  #include <thread>
@@ -201,7 +201,7 @@
  #include <cstring>
  #include <limits>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <optional>
  #include <string>
  #include <string_view>
@@ -212,7 +212,7 @@
  #include <cstring>
  #include <future>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <string>
  #include <string_view>
  #include <thread>
@@ -223,7 +223,7 @@
  #include <deque>
  #include <memory>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <string>
  #include <string_view>
  #include <unordered_map>
@@ -234,7 +234,7 @@
  #include <atomic>
  #include <memory>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <optional>
  #include <string>
  #include <unordered_map>
@@ -245,7 +245,7 @@
  
  #include <bitset>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <optional>
  #include <string_view>
  
@@ -256,7 +256,7 @@
  
  #include <stdexcept>
 -#include <string>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  
  namespace {
  
@@ -321,7 +321,7 @@
  #endif
  #elif !defined(_WIN32)
 -#include <semaphore.h>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #endif
  
  namespace al {
@@ -352,7 +352,7 @@
 -#ifdef HAVE_PTHREAD_NP_H
 -#include <pthread_np.h>
 -#endif
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
 +
 +
 +
@@ -491,7 +491,7 @@
  #include <algorithm>
  #include <cassert>
 -#include <cmath>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <cstddef>
  #include <cstdint>
  #include <iterator>
@@ -502,7 +502,7 @@
  #if HAVE_DYNLOAD
  
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <type_traits>
  
  #include "logging.h"
@@ -513,7 +513,7 @@
  #if HAVE_DYNLOAD
  
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  
  #define DBUS_FUNCTIONS(MAGIC) \
  MAGIC(dbus_error_init) \
@@ -524,7 +524,7 @@
  #include <cstring>
  #include <limits>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <optional>
  #include <string>
  #include <string_view>
@@ -535,7 +535,7 @@
  #include <iterator>
  #include <memory>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <numeric>
  #include <optional>
  #include <tuple>
@@ -546,7 +546,7 @@
  #include <cstdio>
  #include <cstring>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <optional>
  #include <string>
  #include <string_view>
@@ -557,7 +557,7 @@
  
  #include <algorithm>
 -#include <cmath>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <cstddef>
  #include <functional>
  #include <iterator>
@@ -568,7 +568,7 @@
  #include <future>
  #include <memory>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <ratio>
  #include <string>
  #include <string_view>
@@ -579,7 +579,7 @@
  #include <cstring>
  #include <cstdio>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <optional>
  #include <string_view>
  #include <tuple>
@@ -590,7 +590,7 @@
  #include <cstdio>
  #include <memory>
 -#include <mutex>
-+#include "../../src/mkxp-threads.h"
++#include "../../src/mkxp-polyfill.h"
  #include <string>
  #include <utility>
  #include <vector>

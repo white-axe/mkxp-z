@@ -25,7 +25,7 @@
 #include <wasm-rt.h>
 #include "wasi.h"
 #include <mkxp-retro-ruby.h>
-#include "mkxp-threads.h"
+#include "mkxp-polyfill.h"
 #include "sandbox.h"
 
 #define MJIT_ENABLED 0
