@@ -187,17 +187,8 @@ namespace mkxp_sandbox {
         }
 
         static VALUE set_color(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Sprite>(self)->setColor(*get_private_data<Color>(value)));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
+            GFX_GUARD_EXC(get_private_data<Sprite>(self)->setColor(*get_private_data<Color>(value)));
+            return value;
         }
 
         static VALUE get_tone(VALUE self) {

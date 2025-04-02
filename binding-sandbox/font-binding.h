@@ -96,17 +96,8 @@ namespace mkxp_sandbox {
         }
 
         static VALUE set_color(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        get_private_data<Font>(self)->setColor(*get_private_data<Color>(value));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
+            get_private_data<Font>(self)->setColor(*get_private_data<Color>(value));
+            return value;
         }
 
         static VALUE todo(int32_t argc, wasm_ptr_t argv, VALUE self) {
