@@ -73,13 +73,13 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
-        static VALUE initialize_copy(VALUE self, VALUE obj) {
+        static VALUE initialize_copy(VALUE self, VALUE value) {
             SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE obj) {
+                VALUE operator()(VALUE self, VALUE value) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        if (self != obj) {
-                            SANDBOX_AWAIT(rb_obj_init_copy, self, obj);
-                            set_private_data(self, new Table(*get_private_data<Table>(obj)));
+                        if (self != value) {
+                            SANDBOX_AWAIT(rb_obj_init_copy, self, value);
+                            set_private_data(self, new Table(*get_private_data<Table>(value)));
                         }
                     }
 
@@ -87,7 +87,7 @@ namespace mkxp_sandbox {
                 }
             )
 
-            return sb()->bind<struct coro>()()(self, obj);
+            return sb()->bind<struct coro>()()(self, value);
         }
 
         static VALUE resize(int32_t argc, wasm_ptr_t argv, VALUE self) {

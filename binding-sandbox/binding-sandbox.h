@@ -130,7 +130,7 @@ namespace mkxp_sandbox {
                     // Skip this script object if it's not an array
                     SANDBOX_AWAIT_AND_SET(script, rb_ary_entry, scripts, i);
                     SANDBOX_AWAIT_AND_SET(value, rb_obj_is_kind_of, script, sb()->rb_cArray());
-                    if (value != SANDBOX_TRUE) {
+                    if (!SANDBOX_VALUE_TO_BOOL(value)) {
                         continue;
                     }
 

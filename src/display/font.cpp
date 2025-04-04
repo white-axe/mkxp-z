@@ -603,8 +603,18 @@ void Font::initDynAttribs()
 
 void Font::initDefaultDynAttribs()
 {
+	if (FontPrivate::defaultColor != &FontPrivate::defaultColorTmp)
+	{
+		delete FontPrivate::defaultColor;
+		FontPrivate::defaultColor = &FontPrivate::defaultColorTmp;
+	}
 	FontPrivate::defaultColor = new Color(FontPrivate::defaultColorTmp);
 
+	if (FontPrivate::defaultOutColor != &FontPrivate::defaultOutColorTmp)
+	{
+		delete FontPrivate::defaultOutColor;
+		FontPrivate::defaultOutColor = &FontPrivate::defaultOutColorTmp;
+	}
 	if (rgssVer >= 3)
 		FontPrivate::defaultOutColor = new Color(FontPrivate::defaultOutColorTmp);
 }
@@ -612,6 +622,7 @@ void Font::initDefaultDynAttribs()
 void Font::initDefaults(const SharedFontState &sfs)
 {
 	std::vector<std::string> &names = FontPrivate::initialDefaultNames;
+	names.clear();
 
 #ifdef MKXPZ_RETRO // TODO: get from config
 	switch (1)

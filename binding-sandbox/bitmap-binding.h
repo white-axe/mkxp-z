@@ -79,20 +79,20 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
-        static VALUE initialize_copy(VALUE self, VALUE obj) {
+        static VALUE initialize_copy(VALUE self, VALUE value) {
             SANDBOX_COROUTINE(coro,
                 Bitmap *bitmap;
                 Bitmap *orig;
 
-                VALUE operator()(VALUE self, VALUE obj) {
+                VALUE operator()(VALUE self, VALUE value) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        if (self == obj) {
+                        if (self == value) {
                             return self;
                         }
 
-                        SANDBOX_AWAIT(rb_obj_init_copy, self, obj);
+                        SANDBOX_AWAIT(rb_obj_init_copy, self, value);
 
-                        orig = get_private_data<Bitmap>(obj);
+                        orig = get_private_data<Bitmap>(value);
                         GFX_GUARD_EXC(bitmap = new Bitmap(*orig););
 
                         SANDBOX_AWAIT(init_props, bitmap, self);
@@ -104,7 +104,7 @@ namespace mkxp_sandbox {
                 }
             )
 
-            return sb()->bind<struct coro>()()(self, obj);
+            return sb()->bind<struct coro>()()(self, value);
         }
 
         static VALUE dispose(VALUE self) {
