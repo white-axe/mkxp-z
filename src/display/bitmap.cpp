@@ -2171,7 +2171,7 @@ static void applyShadow(SDL_Surface *&in, const SDL_PixelFormat &fm, const SDL_C
 #endif // MKXPZ_RETRO
 
 #ifdef MKXPZ_RETRO
-IntRect Bitmap::textRect(const char *str)
+IntRect Bitmap::textRect(const char *str, bool solid)
 {
     FT_Face font = p->font->getSdlFont();
 
@@ -2185,7 +2185,7 @@ IntRect Bitmap::textRect(const char *str)
 
     for (const char *ptr = str; *ptr != 0; ++ptr)
     {
-        if (FT_Load_Char(font, *ptr, FT_LOAD_RENDER))
+        if (FT_Load_Char(font, *ptr, solid ? (FT_LOAD_RENDER | FT_LOAD_TARGET_MONO) : (FT_LOAD_RENDER | FT_LOAD_TARGET_NORMAL)))
             continue;
 
         int glyph_left = glyph_x + font->glyph->bitmap_left;
@@ -2259,7 +2259,8 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
     
 #ifdef MKXPZ_RETRO
     // TODO: handle kerning
-    IntRect bitmapRect = textRect(str);
+    const bool solid = p->font->isSolid();
+    IntRect bitmapRect = textRect(str, solid);
 
     txtSurf = new SDL_Surface;
     if ((txtSurf->pixels = std::calloc(bitmapRect.w * bitmapRect.h, 4)) == NULL)
@@ -2272,7 +2273,7 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
 
     for (const char *ptr = str; *ptr != 0; ++ptr)
     {
-        if (FT_Load_Char(font, *ptr, FT_LOAD_RENDER))
+        if (FT_Load_Char(font, *ptr, solid ? (FT_LOAD_RENDER | FT_LOAD_TARGET_MONO) : (FT_LOAD_RENDER | FT_LOAD_TARGET_NORMAL)))
             continue;
 
         int glyph_left = glyph_x + font->glyph->bitmap_left;
@@ -2280,20 +2281,35 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
         unsigned int glyph_width = font->glyph->bitmap.width;
         unsigned int glyph_height = font->glyph->bitmap.rows;
 
-        for (unsigned int y = 0; y < glyph_height; ++y)
-        {
-            for (unsigned int x = 0; x < glyph_width; ++x)
+        if (solid)
+            for (unsigned int y = 0; y < glyph_height; ++y)
             {
-                uint8_t alpha = ((uint8_t *)font->glyph->bitmap.buffer)[glyph_width * y + x];
-                if (alpha > 0)
+                for (unsigned int x = 0; x < glyph_width; ++x)
                 {
-                    ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x)] = c.r;
-                    ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 1] = c.g;
-                    ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 2] = c.b;
-                    ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 3] = alpha;
+                    if (((uint8_t *)font->glyph->bitmap.buffer)[font->glyph->bitmap.pitch * y + x / 8] & (1 << (7 - (x % 8))))
+                    {
+                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x)] = c.r;
+                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 1] = c.g;
+                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 2] = c.b;
+                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 3] = 255;
+                    }
                 }
             }
-        }
+        else
+            for (unsigned int y = 0; y < glyph_height; ++y)
+            {
+                for (unsigned int x = 0; x < glyph_width; ++x)
+                {
+                    uint8_t alpha = ((uint8_t *)font->glyph->bitmap.buffer)[font->glyph->bitmap.pitch * y + x];
+                    if (alpha > 0)
+                    {
+                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x)] = c.r;
+                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 1] = c.g;
+                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 2] = c.b;
+                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 3] = alpha;
+                    }
+                }
+            }
 
         glyph_x += font->glyph->advance.x / 64;
         glyph_y += font->glyph->advance.y / 64;
@@ -2445,7 +2461,7 @@ IntRect Bitmap::textSize(const char *str)
     str = fixed.c_str();
 
 #ifdef MKXPZ_RETRO
-    IntRect rect = textRect(str);
+    IntRect rect = textRect(str, p->font->isSolid());
     return IntRect(0, 0, rect.w, rect.h);
 #else
     TTF_Font *font = p->font->getSdlFont();

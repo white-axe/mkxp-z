@@ -179,7 +179,7 @@ private:
 	void loresDisposal();
 
 #ifdef MKXPZ_RETRO
-	IntRect textRect(const char *str);
+	IntRect textRect(const char *str, bool solid);
 #endif // MKXPZ_RETRO
 };
 
