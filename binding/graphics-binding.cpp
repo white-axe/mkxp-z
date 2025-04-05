@@ -21,6 +21,7 @@
 
 #include "config.h"
 #include "graphics.h"
+#include "bitmap.h"
 #include "sharedstate.h"
 #include "binding-util.h"
 #include "binding-types.h"
@@ -77,7 +78,7 @@ RB_METHOD_GUARD_END
 
 typedef struct {
     int duration;
-    const char *filename;
+    Bitmap *transMap;
     int vague;
 } TransitionArgs;
 
@@ -91,19 +92,19 @@ RB_METHOD_GUARD(graphicsTransition)
     
     rb_get_args(argc, argv, "|izi", &duration, &filename, &vague RB_ARG_END);
     
-    TransitionArgs args = {duration, filename, vague};
+    TransitionArgs args = {duration, *filename ? new Bitmap(filename) : 0, vague};
     
 #if RAPI_MAJOR >= 2
     drop_gvl_guard([](void *args) -> void* {
         TransitionArgs &a = *((TransitionArgs*)args);
         GFX_GUARD_EXC( shState->graphics().transition(a.duration,
-                                                      a.filename,
+                                                      a.transMap,
                                                       a.vague
                                                      ); );
         return 0;
     }, &args, 0, 0);
 #else
-    GFX_GUARD_EXC( shState->graphics().transition(duration, filename, vague); )
+    GFX_GUARD_EXC( shState->graphics().transition(duration, transMap, vague); )
 #endif
     
     return Qnil;

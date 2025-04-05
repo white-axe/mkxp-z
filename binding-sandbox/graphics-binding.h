@@ -25,6 +25,7 @@
 #include "sandbox.h"
 #include "sharedstate.h"
 #include "graphics.h"
+#include "bitmap.h"
 
 namespace mkxp_sandbox {
     SANDBOX_COROUTINE(graphics_binding_init,
@@ -32,6 +33,7 @@ namespace mkxp_sandbox {
             SANDBOX_COROUTINE(coro,
                 VALUE operator()(VALUE self) {
                     BOOST_ASIO_CORO_REENTER (this) {
+                        shState->graphics().update();
                         SANDBOX_YIELD;
                     }
 
@@ -40,6 +42,123 @@ namespace mkxp_sandbox {
             )
 
             return sb()->bind<struct coro>()()(self);
+        }
+
+        static VALUE freeze(VALUE self) {
+            shState->graphics().freeze();
+            return SANDBOX_NIL;
+        }
+
+        static VALUE transition(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                Bitmap *trans_map;
+                wasm_ptr_t str;
+                int32_t duration;
+                int32_t vague;
+                int32_t i;
+
+                VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        trans_map = NULL;
+                        duration = 8;
+                        vague = 40;
+
+                        if (argc >= 1) {
+                            SANDBOX_AWAIT_AND_SET(duration, rb_num2uint, ((VALUE *)(**sb() + argv))[0]);
+                            if (argc >= 2) {
+                                SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &((VALUE *)(**sb() + argv))[1]);
+                                if (*(const char *)(**sb() + str)) {
+                                    trans_map = new Bitmap((const char *)(**sb() + str));
+                                }
+                                if (argc >= 3) {
+                                    SANDBOX_AWAIT_AND_SET(vague, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                                }
+                            }
+                        }
+
+                        for (i = 0; i < duration; ++i) {
+                            shState->graphics().transition(duration, trans_map, vague, i, i);
+                            SANDBOX_YIELD;
+                        }
+                    }
+
+                    return SANDBOX_NIL;
+                }
+
+                ~coro() {
+                    if (trans_map != NULL) {
+                        delete trans_map;
+                    }
+                }
+            )
+
+            return sb()->bind<struct coro>()()(argc, argv, self);
+        }
+
+        static VALUE wait(VALUE self, VALUE value) {
+            SANDBOX_COROUTINE(coro,
+                int32_t duration;
+                int32_t i;
+
+                VALUE operator()(VALUE self, VALUE value) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT_AND_SET(duration, rb_num2uint, value);
+
+                        for (i = 0; i < duration; ++i) {
+                            shState->graphics().wait(duration, i, i);
+                            SANDBOX_YIELD;
+                        }
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, value);
+        }
+
+        static VALUE fadeout(VALUE self, VALUE value) {
+            SANDBOX_COROUTINE(coro,
+                int32_t duration;
+                int32_t i;
+
+                VALUE operator()(VALUE self, VALUE value) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT_AND_SET(duration, rb_num2uint, value);
+
+                        for (i = 0; i < duration; ++i) {
+                            shState->graphics().fadeout(duration, i, i);
+                            SANDBOX_YIELD;
+                        }
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, value);
+        }
+
+        static VALUE fadein(VALUE self, VALUE value) {
+            SANDBOX_COROUTINE(coro,
+                int32_t duration;
+                int32_t i;
+
+                VALUE operator()(VALUE self, VALUE value) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT_AND_SET(duration, rb_num2uint, value);
+
+                        for (i = 0; i < duration; ++i) {
+                            shState->graphics().fadein(duration, i, i);
+                            SANDBOX_YIELD;
+                        }
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, value);
         }
 
         static VALUE frame_reset(VALUE self) {
@@ -76,18 +195,17 @@ namespace mkxp_sandbox {
             return sb()->bind<struct rb_float_new>()()(60.0); // TODO: use actual FPS
         }
 
-        static VALUE todo(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            return SANDBOX_NIL;
-        }
-
         VALUE module;
 
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_AND_SET(module, rb_define_module, "Graphics");
                 SANDBOX_AWAIT(rb_define_module_function, module, "update", (VALUE (*)(ANYARGS))update, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "freeze", (VALUE (*)(ANYARGS))todo, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "transition", (VALUE (*)(ANYARGS))todo, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "freeze", (VALUE (*)(ANYARGS))freeze, 0);
+                SANDBOX_AWAIT(rb_define_module_function, module, "transition", (VALUE (*)(ANYARGS))transition, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "wait", (VALUE (*)(ANYARGS))wait, 1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "fadeout", (VALUE (*)(ANYARGS))fadeout, 1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "fadein", (VALUE (*)(ANYARGS))fadein, 1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "frame_reset", (VALUE (*)(ANYARGS))frame_reset, 0);
                 SANDBOX_AWAIT(rb_define_module_function, module, "frame_count", (VALUE (*)(ANYARGS))get_frame_count, 0);
                 SANDBOX_AWAIT(rb_define_module_function, module, "frame_count=", (VALUE (*)(ANYARGS))set_frame_count, 1);

@@ -439,10 +439,6 @@ extern "C" RETRO_API void retro_run() {
         }
     }
 
-    if (mkxp_retro::sandbox.has_value()) {
-        shState->graphics().update();
-    }
-
     void *fb;
     if (hw_render.context_type != RETRO_HW_CONTEXT_NONE) {
         gl.UseProgram(0);

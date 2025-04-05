@@ -1321,14 +1321,13 @@ void Graphics::freeze() {
     p->compositeToBuffer(p->frozenScene);
 }
 
-void Graphics::transition(int duration, const char *filename, int vague) {
+void Graphics::transition(int duration, Bitmap *transMap, int vague, int start, int stop) {
     p->checkSyncLock();
     
     if (!p->frozen)
         return;
     
     vague = clamp(vague, 1, 256);
-    Bitmap *transMap = *filename ? new Bitmap(filename) : 0;
     
     setBrightness(255);
     
@@ -1373,7 +1372,7 @@ void Graphics::transition(int duration, const char *filename, int vague) {
     
     glState.blend.pushSet(false);
     
-    for (int i = 0; i < duration; ++i) {
+    for (int i = start; i <= stop && i < duration; ++i) {
 #ifndef MKXPZ_RETRO
         /* We need to clean up transMap properly before
          * a possible longjmp, so we manually test for
@@ -1431,9 +1430,13 @@ void Graphics::transition(int duration, const char *filename, int vague) {
     
     glState.blend.pop();
     
+#ifndef MKXPZ_RETRO
     delete transMap;
+#endif // MKXPZ_RETRO
     
-    p->frozen = false;
+    if (stop == INT_MAX || stop + 1 >= duration) {
+        p->frozen = false;
+    }
 }
 
 void Graphics::frameReset() {
@@ -1467,20 +1470,20 @@ double Graphics::averageFrameRate() {
     return p->averageFPS();
 }
 
-void Graphics::wait(int duration) {
-    for (int i = 0; i < duration; ++i) {
+void Graphics::wait(int duration, int start, int stop) {
+    for (int i = start; i <= stop && i < duration; ++i) {
         p->checkShutDownReset();
         p->redrawScreen();
     }
 }
 
-void Graphics::fadeout(int duration) {
+void Graphics::fadeout(int duration, int start, int stop) {
     FBO::unbind();
     
     float curr = p->brightness;
     float diff = 255.0f - curr;
     
-    for (int i = duration - 1; i > -1; --i) {
+    for (int i = std::min(stop, duration - 1); i >= start; --i) {
         setBrightness(diff + (curr / duration) * i);
         
         if (p->frozen) {
@@ -1501,14 +1504,14 @@ void Graphics::fadeout(int duration) {
     }
 }
 
-void Graphics::fadein(int duration) {
+void Graphics::fadein(int duration, int start, int stop) {
     FBO::unbind();
     
     float curr = p->brightness;
     float diff = 255.0f - curr;
     
-    for (int i = 1; i <= duration; ++i) {
-        setBrightness(curr + (diff / duration) * i);
+    for (int i = start; i <= stop && i < duration;) {
+        setBrightness(curr + (diff / duration) * ++i);
         
         if (p->frozen) {
             int scaleIsSpecial = GLMeta::blitScaleIsSpecial(p->integerScaleBuffer, false, IntRect(0, 0, p->scSize.x, p->scSize.y), p->frozenScene, IntRect(0, 0, p->scRes.x, p->scRes.y));

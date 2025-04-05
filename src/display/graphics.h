@@ -22,6 +22,7 @@
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 
+#include <climits>
 #include "util.h"
 
 class Scene;
@@ -42,17 +43,19 @@ public:
 	void update(bool checkForShutdown = true);
 	void freeze();
 	void transition(int duration = 8,
-	                const char *filename = "",
-	                int vague = 40);
+	                Bitmap *transMap = 0,
+	                int vague = 40,
+			int start = 0,
+			int stop = INT_MAX);
 	void frameReset();
 
 	DECL_ATTR( FrameRate,  int )
 	DECL_ATTR( FrameCount, int )
 	DECL_ATTR( Brightness, int )
 
-	void wait(int duration);
-	void fadeout(int duration);
-	void fadein(int duration);
+	void wait(int duration, int start = 0, int stop = INT_MAX);
+	void fadeout(int duration, int start = 0, int stop = INT_MAX);
+	void fadein(int duration, int start = 0, int stop = INT_MAX);
 
 	Bitmap *snapToBitmap();
 
