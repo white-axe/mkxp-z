@@ -509,12 +509,34 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
     hw_render.context_destroy = NULL;
     hw_render.cache_context = true;
     hw_render.bottom_left_origin = true;
-    if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 3, hw_render.version_minor = 0, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
+    if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 6, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
+        log_printf(RETRO_LOG_INFO, "Using OpenGL 4.6 graphics driver\n");
+    } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 5, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
+        log_printf(RETRO_LOG_INFO, "Using OpenGL 4.5 graphics driver\n");
+    } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 4, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
+        log_printf(RETRO_LOG_INFO, "Using OpenGL 4.4 graphics driver\n");
+    } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 3, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
+        log_printf(RETRO_LOG_INFO, "Using OpenGL 4.3 graphics driver\n");
+    } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 2, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
+        log_printf(RETRO_LOG_INFO, "Using OpenGL 4.2 graphics driver\n");
+    } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 1, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
+        log_printf(RETRO_LOG_INFO, "Using OpenGL 4.1 graphics driver\n");
+    } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 0, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
+        log_printf(RETRO_LOG_INFO, "Using OpenGL 4.0 graphics driver\n");
+    } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 3, hw_render.version_minor = 2, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
+        log_printf(RETRO_LOG_INFO, "Using OpenGL 3.2 graphics driver\n");
+    } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGLES_VERSION, hw_render.version_major = 3, hw_render.version_minor = 2, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
+        log_printf(RETRO_LOG_INFO, "Using OpenGL ES 3.2 graphics driver\n");
+    } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 3, hw_render.version_minor = 1, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
+        log_printf(RETRO_LOG_INFO, "Using OpenGL 3.1 graphics driver\n");
+    } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGLES_VERSION, hw_render.version_major = 3, hw_render.version_minor = 1, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
+        log_printf(RETRO_LOG_INFO, "Using OpenGL ES 3.1 graphics driver\n");
+    } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 3, hw_render.version_minor = 0, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
         log_printf(RETRO_LOG_INFO, "Using OpenGL 3.0 graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGLES3, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
         log_printf(RETRO_LOG_INFO, "Using OpenGL ES 3.0 graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
-        log_printf(RETRO_LOG_INFO, "Using OpenGL 2.0 graphics driver\n");
+        log_printf(RETRO_LOG_INFO, "Using OpenGL 2.x graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGLES2, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
         log_printf(RETRO_LOG_INFO, "Using OpenGL ES 2.0 graphics driver\n");
     } else {
