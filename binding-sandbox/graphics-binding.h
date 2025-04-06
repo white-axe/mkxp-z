@@ -64,7 +64,7 @@ namespace mkxp_sandbox {
                         vague = 40;
 
                         if (argc >= 1) {
-                            SANDBOX_AWAIT_AND_SET(duration, rb_num2uint, ((VALUE *)(**sb() + argv))[0]);
+                            SANDBOX_AWAIT_AND_SET(duration, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
                             if (argc >= 2) {
                                 SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &((VALUE *)(**sb() + argv))[1]);
                                 if (*(const char *)(**sb() + str)) {
@@ -102,7 +102,7 @@ namespace mkxp_sandbox {
 
                 VALUE operator()(VALUE self, VALUE value) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(duration, rb_num2uint, value);
+                        SANDBOX_AWAIT_AND_SET(duration, rb_num2int, value);
 
                         for (i = 0; i < duration; ++i) {
                             shState->graphics().wait(duration, i, i);
@@ -124,7 +124,7 @@ namespace mkxp_sandbox {
 
                 VALUE operator()(VALUE self, VALUE value) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(duration, rb_num2uint, value);
+                        SANDBOX_AWAIT_AND_SET(duration, rb_num2int, value);
 
                         for (i = 0; i < duration; ++i) {
                             shState->graphics().fadeout(duration, i, i);
@@ -146,7 +146,7 @@ namespace mkxp_sandbox {
 
                 VALUE operator()(VALUE self, VALUE value) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(duration, rb_num2uint, value);
+                        SANDBOX_AWAIT_AND_SET(duration, rb_num2int, value);
 
                         for (i = 0; i < duration; ++i) {
                             shState->graphics().fadein(duration, i, i);
