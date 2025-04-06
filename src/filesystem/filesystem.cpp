@@ -718,7 +718,7 @@ void FileSystem::openReadRaw(SDL_RWops &ops, const char *filename,
 #endif // MKXPZ_RETRO
 
 #ifdef MKXPZ_RETRO
-static std::string normalizePath(const char *path, bool preferred, bool absolute) {
+static std::string normalizePath(const char *path, bool absolute) {
     // Replace backslashes with forward slashes
     std::string path_str(path);
     for (size_t i = 0; i < path_str.length(); ++i) {
@@ -766,21 +766,13 @@ static std::string normalizePath(const char *path, bool preferred, bool absolute
     // Convert the normalized path back into a string
     list.reverse();
     std::string normalized_path;
-#ifdef _WIN32
-    if (!preferred && absolute) {
-#else
     if (absolute) {
-#endif // _WIN32
         normalized_path.push_back('/');
     }
     for (auto it = list.begin(); it != list.end();) {
         normalized_path.append(*it);
         if (std::next(it) != list.end()) {
-#ifdef _WIN32
-            normalized_path.push_back(preferred ? '\\' : '/');
-#else
             normalized_path.push_back('/');
-#endif // _WIN32
         }
         list.erase(it++);
     }
@@ -792,7 +784,7 @@ static std::string normalizePath(const char *path, bool preferred, bool absolute
 std::string FileSystem::normalize(const char *pathname, bool preferred,
                             bool absolute) {
 #ifdef MKXPZ_RETRO
-  return normalizePath(pathname, preferred, absolute);
+  return normalizePath(pathname, absolute);
 #else
   return filesystemImpl::normalizePath(pathname, preferred, absolute);
 #endif // MKXPZ_RETRO

@@ -188,7 +188,7 @@ static bool init_sandbox() {
     fs.emplace((const char *)NULL, false);
 
     {
-        std::string parsed_game_path(fs->normalize(game_path.c_str(), true, true));
+        std::string parsed_game_path(game_path);
 
         // If the game path doesn't end with ".mkxp" or ".mkxpz", remove the last component from the path since we want to mount the directory that the file is in, not the file itself.
         if (
@@ -197,13 +197,13 @@ static bool init_sandbox() {
                 && !(parsed_game_path.length() >= 6 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 6), ".mkxpz") == 0)
                 && !(parsed_game_path.length() >= 6 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 6), ".MKXPZ") == 0)
         ) {
-            size_t last_slash_index = parsed_game_path.find_last_of(
+            size_t last_slash_index = parsed_game_path.find_last_of('/');
 #ifdef _WIN32
-                '\\'
-#else
-                '/'
+            size_t last_backslash_index = parsed_game_path.find_last_of('\\');
+            if (last_backslash_index != std::string::npos) {
+                last_slash_index = last_slash_index == std::string::npos ? last_backslash_index : std::max(last_slash_index, last_backslash_index);
+            }
 #endif // _WIN32
-            );
             if (last_slash_index == std::string::npos) {
                 last_slash_index = 0;
             }
