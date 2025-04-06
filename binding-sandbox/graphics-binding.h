@@ -63,6 +63,10 @@ namespace mkxp_sandbox {
                         duration = 8;
                         vague = 40;
 
+                        if (!shState->graphics().frozen()) {
+                            return SANDBOX_NIL;
+                        }
+
                         if (argc >= 1) {
                             SANDBOX_AWAIT_AND_SET(duration, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
                             if (argc >= 2) {

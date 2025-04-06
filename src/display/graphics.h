@@ -42,6 +42,7 @@ public:
     
 	void update(bool checkForShutdown = true);
 	void freeze();
+	bool frozen();
 	void transition(int duration = 8,
 	                Bitmap *transMap = 0,
 	                int vague = 40,

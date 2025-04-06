@@ -1321,6 +1321,10 @@ void Graphics::freeze() {
     p->compositeToBuffer(p->frozenScene);
 }
 
+bool Graphics::frozen() {
+    return p->frozen;
+}
+
 void Graphics::transition(int duration, Bitmap *transMap, int vague, int start, int stop) {
     p->checkSyncLock();
     
