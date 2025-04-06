@@ -361,7 +361,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_iv_set, klass, "default_name", default_names);
 
                 SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
-                SANDBOX_AWAIT(rb_define_method, klass, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, -1);
+                SANDBOX_AWAIT(rb_define_method, klass, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
 
                 SANDBOX_AWAIT(rb_define_method, klass, "name", (VALUE (*)(ANYARGS))get_name, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "name=", (VALUE (*)(ANYARGS))set_name, 1);
