@@ -27,10 +27,6 @@
 
 namespace mkxp_sandbox {
     SANDBOX_COROUTINE(audio_binding_init,
-        static VALUE todo(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            return SANDBOX_NIL;
-        }
-
         static VALUE bgm_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
             SANDBOX_COROUTINE(coro,
                 wasm_ptr_t filename;
@@ -79,6 +75,28 @@ namespace mkxp_sandbox {
         static VALUE bgm_stop(VALUE self) {
             mkxp_retro::audio->bgmStop();
             return SANDBOX_NIL;
+        }
+
+        static VALUE bgm_fade(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                int32_t time;
+                int32_t track;
+
+                VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        track = -127;
+                        SANDBOX_AWAIT_AND_SET(time, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                        if (argc >= 2) {
+                            SANDBOX_AWAIT_AND_SET(track, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                        }
+                        mkxp_retro::audio->bgmFade(time, track);
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
         static VALUE bgm_pos(int32_t argc, wasm_ptr_t argv, VALUE self) {
@@ -188,6 +206,23 @@ namespace mkxp_sandbox {
             return SANDBOX_NIL;
         }
 
+        static VALUE bgs_fade(VALUE self, VALUE value) {
+            SANDBOX_COROUTINE(coro,
+                int32_t time;
+
+                VALUE operator()(VALUE self, VALUE value) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT_AND_SET(time, rb_num2int, value);
+                        mkxp_retro::audio->bgsFade(time);
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, value);
+        }
+
         static VALUE bgs_pos(VALUE self) {
             SANDBOX_COROUTINE(coro,
                 double pos;
@@ -240,6 +275,23 @@ namespace mkxp_sandbox {
             return SANDBOX_NIL;
         }
 
+        static VALUE me_fade(VALUE self, VALUE value) {
+            SANDBOX_COROUTINE(coro,
+                int32_t time;
+
+                VALUE operator()(VALUE self, VALUE value) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT_AND_SET(time, rb_num2int, value);
+                        mkxp_retro::audio->meFade(time);
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, value);
+        }
+
         static VALUE se_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
             SANDBOX_COROUTINE(coro,
                 wasm_ptr_t filename;
@@ -281,17 +333,17 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT_AND_SET(module, rb_define_module, "Audio");
                 SANDBOX_AWAIT(rb_define_module_function, module, "bgm_play", (VALUE (*)(ANYARGS))bgm_play, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "bgm_stop", (VALUE (*)(ANYARGS))bgm_stop, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "bgm_fade", (VALUE (*)(ANYARGS))todo, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "bgm_fade", (VALUE (*)(ANYARGS))bgm_fade, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "bgm_pos", (VALUE (*)(ANYARGS))bgm_pos, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "bgm_volume", (VALUE (*)(ANYARGS))bgm_volume, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "bgm_set_volume", (VALUE (*)(ANYARGS))bgm_set_volume, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "bgs_play", (VALUE (*)(ANYARGS))bgs_play, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "bgs_stop", (VALUE (*)(ANYARGS))bgs_stop, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "bgs_fade", (VALUE (*)(ANYARGS))todo, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "bgs_fade", (VALUE (*)(ANYARGS))bgs_fade, 1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "bgs_pos", (VALUE (*)(ANYARGS))bgs_pos, 0);
                 SANDBOX_AWAIT(rb_define_module_function, module, "me_play", (VALUE (*)(ANYARGS))me_play, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "me_stop", (VALUE (*)(ANYARGS))me_stop, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "me_fade", (VALUE (*)(ANYARGS))todo, -1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "me_fade", (VALUE (*)(ANYARGS))me_fade, 1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "se_play", (VALUE (*)(ANYARGS))se_play, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "se_stop", (VALUE (*)(ANYARGS))se_stop, 0);
             }

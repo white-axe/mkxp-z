@@ -43,6 +43,8 @@
 using namespace mkxp_retro;
 using namespace mkxp_sandbox;
 
+static uint64_t frame_count;
+
 namespace mkxp_retro {
     retro_log_printf_t log_printf;
     retro_video_refresh_t video_refresh;
@@ -52,6 +54,10 @@ namespace mkxp_retro {
     retro_input_state_t input_state;
     struct retro_perf_callback perf;
     retro_hw_render_callback hw_render;
+
+    uint64_t get_ticks() noexcept {
+        return (frame_count * 1000) / 60;
+    }
 }
 
 static inline void *malloc_align(size_t alignment, size_t size) {
@@ -314,6 +320,7 @@ static bool init_sandbox() {
         return false;
     }
 
+    frame_count = 0;
     shared_state_initialized = false;
 
     return true;
@@ -469,6 +476,8 @@ extern "C" RETRO_API void retro_run() {
         alcRenderSamplesSOFT(al_device, sound_buf, 735);
         audio_sample_batch(sound_buf, 735);
     }
+
+    ++frame_count;
 }
 
 extern "C" RETRO_API size_t retro_serialize_size() {

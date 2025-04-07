@@ -84,6 +84,7 @@ struct AudioStream
 
 #ifndef MKXPZ_RETRO
 	SDL_mutex *streamMut;
+#endif // MKXPZ_RETRO
 
 	/* Fade out */
 	struct
@@ -99,8 +100,12 @@ struct AudioStream
 		 * immediately */
 		AtomicFlag reqTerm;
 
+#ifdef MKXPZ_RETRO
+		bool enabled;
+#else
 		SDL_Thread *thread;
 		std::string threadName;
+#endif // MKXPZ_RETRO
 
 		/* Amount of reduced absolute volume
 		 * per ms of fade time */
@@ -116,12 +121,15 @@ struct AudioStream
 		AtomicFlag rqFini;
 		AtomicFlag rqTerm;
 
+#ifdef MKXPZ_RETRO
+		bool enabled;
+#else
 		SDL_Thread *thread;
 		std::string threadName;
+#endif // MKXPZ_RETRO
 
 		uint64_t startTicks;
 	} fadeIn;
-#endif // MKXPZ_RETRO
 
 	AudioStream(ALStream::LoopMode loopMode,
 	            const std::string &threadId);
@@ -146,12 +154,19 @@ struct AudioStream
 
 	double playingOffset();
 
+#ifdef MKXPZ_RETRO
+	void render();
+#endif // MKXPZ_RETRO
+
 private:
 	float volumes[VolumeTypeCount];
 	void updateVolume();
 
 	void finiFadeOutInt();
 	void startFadeIn();
+
+	bool fadeOutProc();
+	bool fadeInProc();
 
 #ifndef MKXPZ_RETRO
 	void fadeOutThread();
