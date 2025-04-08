@@ -267,7 +267,7 @@ struct AudioPrivate
 				{
 					/* ME started playing midway BGM fade in. -> FadeOutBGM */
 					for (auto track : bgmTracks)
-					track->extPaused = true;
+						track->extPaused = true;
 					meWatch.state = BgmFadingOut;
 					me.unlockStream();
 					for (auto track : bgmTracks)
