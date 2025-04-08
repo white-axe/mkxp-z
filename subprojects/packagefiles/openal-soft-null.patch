@@ -2,7 +2,7 @@
 
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -897,7 +897,7 @@ set(ALC_OBJS  ${ALC_OBJS}
+@@ -881,7 +881,7 @@ set(ALC_OBJS  ${ALC_OBJS}
      # Default backends, always available
      alc/backends/loopback.cpp
      alc/backends/loopback.h
@@ -11,23 +11,25 @@
      alc/backends/null.h
  )
  
+diff --git a/alc/alc.cpp b/alc/alc.cpp
+index af8ff55d..0319a486 100644
 --- a/alc/alc.cpp
 +++ b/alc/alc.cpp
-@@ -216,7 +216,7 @@ struct BackendInfo {
-     BackendFactory& (*getFactory)();
- };
- 
--std::array BackendList{
-+std::array<BackendInfo, 0> BackendList{
- #if HAVE_PIPEWIRE
-     BackendInfo{"pipewire", PipeWireBackendFactory::getFactory},
- #endif
-@@ -269,7 +269,7 @@ std::array BackendList{
-     BackendInfo{"otherio", OtherIOBackendFactory::getFactory},
+@@ -251,7 +251,7 @@ BackendInfo BackendList[] = {
+     { "sdl2", SDL2BackendFactory::getFactory },
  #endif
  
--    BackendInfo{"null", NullBackendFactory::getFactory},
-+
- #if HAVE_WAVE
-     BackendInfo{"wave", WaveBackendFactory::getFactory},
+-    { "null", NullBackendFactory::getFactory },
++    { "null", nullptr },
+ #ifdef HAVE_WAVE
+     { "wave", WaveBackendFactory::getFactory },
  #endif
+@@ -1289,7 +1289,7 @@ void alc_initconfig(void)
+     {
+         if(PlaybackFactory && CaptureFactory)
+             return;
+-
++        if (!std::strcmp(backend.name, "null")) return;
+         BackendFactory &factory = backend.getFactory();
+         if(!factory.init())
+         {

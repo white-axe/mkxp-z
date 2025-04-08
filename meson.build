@@ -153,12 +153,36 @@ if is_libretro
         libretro_defines += '-DBOOST_NO_EXCEPTIONS'
     endif
 
+    if not compilers['cpp'].has_header_symbol('stdio.h', 'sprintf')
+        libretro_defines += '-DMKXPZ_NO_SPRINTF'
+    endif
+
     if not compilers['cpp'].has_header_symbol('stdio.h', 'snprintf')
         libretro_defines += '-DMKXPZ_NO_SNPRINTF'
     endif
 
+    if not compilers['cpp'].has_header_symbol('stdio.h', 'vsprintf')
+        libretro_defines += '-DMKXPZ_NO_VSPRINTF'
+    endif
+
     if not compilers['cpp'].has_header_symbol('stdio.h', 'vsnprintf')
         libretro_defines += '-DMKXPZ_NO_VSNPRINTF'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('cstdio', 'std::sprintf')
+        libretro_defines += '-DMKXPZ_NO_STD_SPRINTF'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('cstdio', 'std::snprintf')
+        libretro_defines += '-DMKXPZ_NO_STD_SNPRINTF'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('cstdio', 'std::vsprintf')
+        libretro_defines += '-DMKXPZ_NO_STD_VSPRINTF'
+    endif
+
+    if not compilers['cpp'].has_header_symbol('cstdio', 'std::vsnprintf')
+        libretro_defines += '-DMKXPZ_NO_STD_VSNPRINTF'
     endif
 
     if not compilers['cpp'].has_header_symbol('cmath', 'std::round')
@@ -551,7 +575,6 @@ if is_libretro
         cmake.subproject(host_system == 'darwin' ? 'zlib-darwin' : 'zlib', options: zlib_options).dependency('zlibstatic'),
         cmake.subproject('physfs', options: physfs_options).dependency('physfs-static'),
         cmake.subproject('openal-soft', options: openal_options).dependency('OpenAL'),
-        cmake.subproject('openal-soft', options: openal_options).dependency('alsoft.fmt'),
         cmake.subproject('fluidsynth', options: fluidsynth_options).dependency('libfluidsynth'),
         cmake.subproject('ogg', options: ogg_options).dependency('ogg'),
         cmake.subproject('vorbis', options: vorbis_options).dependency('vorbis'),
@@ -659,6 +682,7 @@ if is_libretro
             'src/mkxp-polyfill.cpp',
             'src/sharedstate.cpp',
             'src/stb_image.cpp',
+            'src/stb_snprintf.cpp',
             'src/audio/alstream.cpp',
             'src/audio/audio.cpp',
             'src/audio/audiostream.cpp',

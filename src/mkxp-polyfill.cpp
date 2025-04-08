@@ -21,6 +21,64 @@
 
 #include "mkxp-polyfill.h"
 #include <cassert>
+#include <stb_sprintf.h>
+
+#ifdef MKXPZ_HAVE_ALIGNED_MALLOC
+#  include <malloc.h>
+#endif
+
+#ifdef MKXPZ_NO_SPRINTF
+extern "C" int sprintf(char *buffer, const char *format, ...) {
+    va_list vlist;
+    va_start(vlist, format);
+    int result = stbsp_vsprintf(buffer, buf_size, format, vlist);
+    va_end(vlist);
+    return result;
+}
+#endif
+
+#ifdef MKXPZ_NO_SNPRINTF
+extern "C" int snprintf(char *buffer, size_t buf_size, const char *format, ...) {
+    va_list vlist;
+    va_start(vlist, format);
+    int result = stbsp_vsnprintf(buffer, buf_size, format, vlist);
+    va_end(vlist);
+    return result;
+}
+#endif
+
+#ifdef MKXPZ_NO_VSPRINTF
+extern "C" int vsprintf(char *buffer, const char *format, va_list vlist) {
+    return stbsp_vsprintf(buffer, buf_size, format, vlist);
+}
+#endif
+
+#ifdef MKXPZ_NO_VSNPRINTF
+extern "C" int vsnprintf(char *buffer, size_t buf_size, const char *format, va_list vlist) {
+    return stbsp_vsnprintf(buffer, buf_size, format, vlist);
+}
+#endif
+
+extern "C" void *mkxp_aligned_malloc(size_t alignment, size_t size) {
+#if defined(MKXPZ_HAVE_POSIX_MEMALIGN) || defined(MKXPZ_BUILD_XCODE)
+    void *mem;
+    return posix_memalign(&mem, alignment, size) ? NULL : mem;
+#elif defined(MKXPZ_HAVE_ALIGNED_MALLOC)
+    return _aligned_malloc(size, alignment);
+#elif defined(MKXPZ_HAVE_ALIGNED_ALLOC)
+    return aligned_alloc(alignment, size);
+#else
+    return std::malloc(size);
+#endif
+}
+
+extern "C" void mkxp_aligned_free(void *ptr) {
+#if defined(MKXPZ_HAVE_ALIGNED_MALLOC)
+    _aligned_free(ptr);
+#else
+    std::free(ptr);
+#endif
+}
 
 #if defined(MKXPZ_NO_SEMAPHORE_H) && !defined(MKXPZ_NO_PTHREAD_H)
 struct mkxp_sem_private {

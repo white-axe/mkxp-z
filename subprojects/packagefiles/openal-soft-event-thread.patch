@@ -2,7 +2,7 @@
 
 --- a/al/event.cpp
 +++ b/al/event.cpp
-@@ -149,34 +149,34 @@ constexpr std::optional<AsyncEnableBits> GetEventType(ALenum etype) noexcept
+@@ -116,34 +116,34 @@ static int EventThread(ALCcontext *context)
  
  void StartEventThrd(ALCcontext *ctx)
  {
@@ -10,10 +10,10 @@
 -        ctx->mEventThread = std::thread{EventThread, ctx};
 -    }
 -    catch(std::exception& e) {
--        ERR("Failed to start event thread: {}", e.what());
+-        ERR("Failed to start event thread: %s\n", e.what());
 -    }
 -    catch(...) {
--        ERR("Failed to start event thread! Expect problems.");
+-        ERR("Failed to start event thread! Expect problems.\n");
 -    }
 +
 +
@@ -29,15 +29,15 @@
  void StopEventThrd(ALCcontext *ctx)
  {
 -    RingBuffer *ring{ctx->mAsyncEvents.get()};
--    auto evt_data = ring->getWriteVector()[0];
+-    auto evt_data = ring->getWriteVector().first;
 -    if(evt_data.len == 0)
 -    {
 -        do {
 -            std::this_thread::yield();
--            evt_data = ring->getWriteVector()[0];
+-            evt_data = ring->getWriteVector().first;
 -        } while(evt_data.len == 0);
 -    }
--    std::ignore = InitAsyncEvent<AsyncKillThread>(evt_data.buf);
+-    al::construct_at(reinterpret_cast<AsyncEvent*>(evt_data.buf), AsyncEvent::KillThread);
 -    ring->writeAdvance(1);
  
 -    ctx->mEventSem.post();
@@ -59,4 +59,15 @@
 +
  }
  
- AL_API DECL_FUNCEXT3(void, alEventControl,SOFT, ALsizei,count, const ALenum*,types, ALboolean,enable)
+ AL_API void AL_APIENTRY alEventControlSOFT(ALsizei count, const ALenum *types, ALboolean enable)
+--- a/core/context.h
++++ b/core/context.h
+@@ -134,7 +134,7 @@ struct ContextBase {
+     using EffectSlotArray = al::FlexArray<EffectSlot*>;
+     std::atomic<EffectSlotArray*> mActiveAuxSlots{nullptr};
+ 
+-    std::thread mEventThread;
++
+     al::semaphore mEventSem;
+     std::unique_ptr<RingBuffer> mAsyncEvents;
+     using AsyncEventBitset = std::bitset<AsyncEvent::UserEventCount>;

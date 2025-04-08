@@ -24,10 +24,8 @@
 #include <cstdlib>
 #include <cstdarg>
 #include <cstring>
-#ifdef MKXPZ_HAVE_ALIGNED_MALLOC
-#  include <malloc.h>
-#endif
 #include <boost/optional.hpp>
+#include "mkxp-polyfill.h"
 #include <alc.h>
 #include <alext.h>
 #include <fluidsynth.h>
@@ -57,27 +55,6 @@ namespace mkxp_retro {
     uint64_t get_ticks() noexcept {
         return (frame_count * 1000) / 60;
     }
-}
-
-static inline void *malloc_align(size_t alignment, size_t size) {
-#if defined(MKXPZ_HAVE_POSIX_MEMALIGN) || defined(MKXPZ_BUILD_XCODE)
-    void *mem;
-    return posix_memalign(&mem, alignment, size) ? NULL : mem;
-#elif defined(MKXPZ_HAVE_ALIGNED_MALLOC)
-    return _aligned_malloc(size, alignment);
-#elif defined(MKXPZ_HAVE_ALIGNED_ALLOC)
-    return aligned_alloc(alignment, size);
-#else
-    return std::malloc(size);
-#endif
-}
-
-static inline void free_align(void *ptr) {
-#if defined(MKXPZ_HAVE_ALIGNED_MALLOC)
-    _aligned_free(ptr);
-#else
-    std::free(ptr);
-#endif
 }
 
 extern const uint8_t mkxp_retro_dist_zip[];
@@ -336,11 +313,11 @@ extern "C" RETRO_API void retro_set_input_state(retro_input_state_t cb) {
 extern "C" RETRO_API void retro_init() {
     initialized = true;
     frame_buf = (uint32_t *)std::calloc(640 * 480, sizeof *frame_buf);
-    sound_buf = (int16_t *)malloc_align(16, 735 * 2 * sizeof *sound_buf);
+    sound_buf = (int16_t *)mkxp_aligned_malloc(16, 735 * 2 * sizeof *sound_buf);
 }
 
 extern "C" RETRO_API void retro_deinit() {
-    free_align(sound_buf);
+    mkxp_aligned_free(sound_buf);
     std::free(frame_buf);
     initialized = false;
 }

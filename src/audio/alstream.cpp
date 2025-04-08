@@ -21,6 +21,8 @@
 
 #include "alstream.h"
 
+#include "mkxp-polyfill.h" // snprintf
+
 #include "sharedstate.h"
 #include "sharedmidistate.h"
 #include "eventthread.h"
@@ -298,15 +300,11 @@ void ALStream::openSource(const std::string &filename)
 
 	if (!handler.source)
 	{
-#ifdef MKXPZ_RETRO
-		mkxp_retro::log_printf(RETRO_LOG_WARN, "Unable to decode audio stream: %s: %s\n", filename.c_str(), handler.errorMsg.c_str());
-#else
 		char buf[512];
 		snprintf(buf, sizeof(buf), "Unable to decode audio stream: %s: %s",
 		         filename.c_str(), handler.errorMsg.c_str());
 
 		Debug() << buf;
-#endif // MKXPZ_RETRO
 	}
 	
 	source = handler.source;

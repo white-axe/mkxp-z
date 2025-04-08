@@ -24,6 +24,7 @@
 
 #include <math.h>
 #include <tgmath.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -66,6 +67,30 @@ typedef void *mkxp_sem_t;
 #else
 typedef unsigned int mkxp_sem_t;
 #endif
+
+#if defined(MKXPZ_HAVE_POSIX_MEMALIGN) || defined(MKXPZ_HAVE_ALIGNED_MALLOC) || defined(MKXPZ_HAVE_ALIGNED_ALLOC) || defined(MKXPZ_BUILD_XCODE)
+#  define MKXPZ_HAVE_ANY_ALIGNED_MALLOC 1
+#endif
+
+#ifdef MKXPZ_NO_SPRINTF
+int sprintf(char *buffer, const char *format, ...);
+#endif
+
+#ifdef MKXPZ_NO_SNPRINTF
+int snprintf(char *buffer, size_t buf_size, const char *format, ...);
+#endif
+
+#ifdef MKXPZ_NO_VSPRINTF
+int vsprintf(char *buffer, const char *format, va_list vlist);
+#endif
+
+#ifdef MKXPZ_NO_VSNPRINTF
+int vsnprintf(char *buffer, size_t buf_size, const char *format, va_list vlist);
+#endif
+
+void *mkxp_aligned_malloc(size_t alignment, size_t size);
+
+void mkxp_aligned_free(void *ptr);
 
 mkxp_thread_t mkxp_thread_self(void);
 
@@ -206,6 +231,46 @@ namespace std {
             }
         }
     };
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_SPRINTF
+namespace std {
+    inline int sprintf(char *buffer, const char *format, ...) {
+        va_list vlist;
+        va_start(vlist, format);
+        int result = vsprintf(buffer, buf_size, format, vlist);
+        va_end(vlist);
+        return result;
+    }
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_SNPRINTF
+namespace std {
+    inline int snprintf(char *buffer, size_t buf_size, const char *format, ...) {
+        va_list vlist;
+        va_start(vlist, format);
+        int result = vsnprintf(buffer, buf_size, format, vlist);
+        va_end(vlist);
+        return result;
+    }
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_VSPRINTF
+namespace std {
+    inline int vsprintf(char *buffer, const char *format, va_list vlist) {
+        return vsprintf(buffer, buf_size, format, vlist);
+    }
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_VSNPRINTF
+namespace std {
+    inline int vsnprintf(char *buffer, size_t buf_size, const char *format, va_list vlist) {
+        return vsnprintf(buffer, buf_size, format, vlist);
+    }
 }
 #  endif
 

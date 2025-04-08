@@ -25,6 +25,7 @@
 #include <string>
 #include <stdio.h>
 #include <stdarg.h>
+#include "mkxp-polyfill.h" // vsnprintf
 
 struct Exception
 {
@@ -53,7 +54,6 @@ struct Exception
 	Exception(Type type, const char *format, ...)
 	    : type(type)
 	{
-#ifndef MKXPZ_NO_VSNPRINTF
 		va_list ap;
 		va_start(ap, format);
 
@@ -61,7 +61,6 @@ struct Exception
 		vsnprintf(&msg[0], msg.size(), format, ap);
 
 		va_end(ap);
-#endif
 	}
 };
 

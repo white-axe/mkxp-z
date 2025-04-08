@@ -2,10 +2,10 @@
 
 --- a/core/logging.cpp
 +++ b/core/logging.cpp
-@@ -103,23 +103,6 @@ void al_print_impl(LogLevel level, const fmt::string_view fmt, fmt::format_args
-      * non-Release builds.
+@@ -70,20 +70,20 @@ void al_print(LogLevel level, FILE *logfile, const char *fmt, ...)
       */
-     OutputDebugStringW(utf8_to_wstr(fmt::format("{}{}\n", prefix, msg)).c_str());
+     std::wstring wstr{utf8_to_wstr(str)};
+     OutputDebugStringW(wstr.c_str());
 -#elif defined(__ANDROID__)
 -    auto android_severity = [](LogLevel l) noexcept
 -    {
@@ -20,9 +20,21 @@
 -        }
 -        return ANDROID_LOG_ERROR;
 -    };
--    /* NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg) */
--    __android_log_print(android_severity(level), "openal", "%.*s%s", al::sizei(prefix),
--        prefix.data(), msg.c_str());
+-    __android_log_print(android_severity(level), "openal", "%s", str);
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
  #endif
- 
-     auto cblock = std::lock_guard{LogCallbackMutex};
+ }

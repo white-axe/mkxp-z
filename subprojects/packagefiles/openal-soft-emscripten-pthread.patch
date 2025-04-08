@@ -2,7 +2,7 @@
 
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -561,7 +561,10 @@ if(NOT WIN32)
+@@ -558,7 +558,10 @@ if(NOT WIN32)
          message(FATAL_ERROR "PThreads is required for non-Windows builds!")
      endif()
  

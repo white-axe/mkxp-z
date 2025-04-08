@@ -21,6 +21,8 @@
 
 #include "soundemitter.h"
 
+#include "mkxp-polyfill.h" // snprintf
+
 #include "sharedstate.h"
 #include "filesystem.h"
 #include "exception.h"
@@ -304,14 +306,19 @@ SoundBuffer *SoundEmitter::allocateBuffer(const std::string &filename)
 
 		if (!buffer)
 		{
-#ifdef MKXPZ_RETRO
-			mkxp_retro::log_printf(RETRO_LOG_WARN, "Unable to decode sound: %s: %s\n", filename.c_str(), sf_error_number(handler.errnum));
-#else
 			char buf[512];
-			snprintf(buf, sizeof(buf), "Unable to decode sound: %s: %s", filename.c_str(), Sound_GetError());
-			Debug() << buf;
+			snprintf(
+				buf,
+				sizeof(buf),
+				"Unable to decode sound: %s: %s",
+				filename.c_str(),
+#ifdef MKXPZ_RETRO
+				sf_error_number(handler.errnum)
+#else
+				Sound_GetError()
 #endif // MKXPZ_RETRO
-
+			);
+			Debug() << buf;
 			return 0;
 		}
 
