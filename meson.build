@@ -290,11 +290,29 @@ if is_libretro
         libretro_defines += '-DMKXPZ_NO_SEMAPHORE_H'
     endif
 
-    if (not core_is_static or is_emscripten) and compilers['cpp'].has_header_symbol('stdlib.h', 'posix_memalign')
+    if compilers['cpp'].has_header_symbol('stdlib.h', 'posix_memalign') and compilers['cpp'].links('''
+        #include <stdlib.h>
+        int main() {
+            void *mem;
+            return posix_memalign(&mem, 16, 4);
+        }
+    ''', name: 'posix_memalign sanity check')
         libretro_defines += '-DMKXPZ_HAVE_POSIX_MEMALIGN'
-    elif (not core_is_static or is_emscripten) and compilers['cpp'].has_header_symbol('malloc.h', '_aligned_malloc')
+    elif compilers['cpp'].has_header_symbol('malloc.h', '_aligned_malloc') and compilers['cpp'].links('''
+        #include <malloc.h>
+        int main() {
+            void *mem = _aligned_malloc(4, 16);
+            _aligned_free(mem);
+            return mem == NULL;
+        }
+    ''', name: '_aligned_malloc sanity check')
         libretro_defines += '-DMKXPZ_HAVE_ALIGNED_MALLOC'
-    elif compilers['cpp'].has_header_symbol('stdlib.h', 'aligned_alloc')
+    elif compilers['cpp'].has_header_symbol('stdlib.h', 'aligned_alloc') and compilers['cpp'].links('''
+        #include <stdlib.h>
+        int main() {
+            return aligned_alloc(16, 4) == NULL;
+        }
+    ''', name: 'aligned_alloc sanity check')
         libretro_defines += '-DMKXPZ_HAVE_ALIGNED_ALLOC'
     endif
 
