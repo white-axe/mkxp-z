@@ -378,14 +378,40 @@ if is_libretro
         'ALSOFT_BACKEND_WAVE': false,
     })
 
-    fluidlite_options = cmake.subproject_options()
-    fluidlite_options.add_cmake_defines({
+    fluidsynth_options = cmake.subproject_options()
+    fluidsynth_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
         'CMAKE_C_FLAGS': ' '.join(libretro_defines + libretro_cflags),
         'CMAKE_CXX_FLAGS': ' '.join(libretro_defines + libretro_cppflags),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
-        'FLUIDLITE_BUILD_STATIC': true,
-        'FLUIDLITE_BUILD_SHARED': false,
+        'BUILD_SHARED_LIBS': false,
+        'enable-aufile': false,
+        'enable-dbus': false,
+        'enable-ipv6 ': false,
+        'enable-jack': false,
+        'enable-ladspa': false,
+        'enable-libinstpatch': false,
+        'enable-libsndfile': false,
+        'enable-midishare': false,
+        'enable-opensles': false,
+        'enable-oboe': false,
+        'enable-network': false,
+        'enable-oss': false,
+        'enable-dsound': false,
+        'enable-waveout': false,
+        'enable-winmidi': false,
+        'enable-sdl2': false,
+        'enable-pkgconfig': false,
+        'enable-pulseaudio': false,
+        'enable-readline': false,
+        'enable-threads': false,
+        'enable-lash': false,
+        'enable-alsa': false,
+        'enable-systemd': false,
+        'enable-coreaudio': false,
+        'enable-coremidi': false,
+        'enable-framework': false,
+        'enable-dart': false,
     })
 
     ogg_options = cmake.subproject_options()
@@ -522,7 +548,7 @@ if is_libretro
         cmake.subproject('physfs', options: physfs_options).dependency('physfs-static'),
         cmake.subproject('openal-soft', options: openal_options).dependency('OpenAL'),
         cmake.subproject('openal-soft', options: openal_options).dependency('alsoft.fmt'),
-        cmake.subproject('fluidlite', options: fluidlite_options).dependency('fluidlite-static'),
+        cmake.subproject('fluidsynth', options: fluidsynth_options).dependency('libfluidsynth'),
         cmake.subproject('ogg', options: ogg_options).dependency('ogg'),
         cmake.subproject('vorbis', options: vorbis_options).dependency('vorbis'),
         cmake.subproject('vorbis', options: vorbis_options).dependency('vorbisfile'),

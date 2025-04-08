@@ -30,8 +30,7 @@
 #include <boost/optional.hpp>
 #include <alc.h>
 #include <alext.h>
-#include <fluidlite.h>
-#include <fluidsynth_priv.h>
+#include <fluidsynth.h>
 #include "git-hash.h"
 #include "sandbox.h"
 #include "binding-sandbox.h"
@@ -81,8 +80,6 @@ static inline void free_align(void *ptr) {
 #endif
 }
 
-extern const uint8_t mkxp_gmgsx_sf2[];
-extern const size_t mkxp_gmgsx_sf2_len;
 extern const uint8_t mkxp_retro_dist_zip[];
 extern const size_t mkxp_retro_dist_zip_len;
 
@@ -103,7 +100,7 @@ static void fallback_log(enum retro_log_level level, const char *fmt, ...) {
     va_end(va);
 }
 
-static void fluid_log(int level, char *message, void *data) {
+static void fluid_log(int level, const char *message, void *data) {
     switch (level) {
         case FLUID_PANIC:
             log_printf(RETRO_LOG_ERROR, "fluidsynth: panic: %s\n", message);
@@ -270,45 +267,6 @@ static bool init_sandbox() {
     fluid_set_log_function(FLUID_WARN, fluid_log, NULL);
     fluid_set_log_function(FLUID_INFO, fluid_log, NULL);
     fluid_set_log_function(FLUID_DBG, fluid_log, NULL);
-
-    static fluid_fileapi_t fluid_fileapi = {
-        .data = NULL,
-        .free = [](fluid_fileapi_t *f) {
-            return 0;
-        },
-        .fopen = [](fluid_fileapi_t *f, const char *filename) {
-            assert(std::strcmp(filename, "/GMGSx.sf2") == 0);
-            return std::calloc(1, sizeof(long));
-        },
-        .fread = [](void *buf, int count, void *handle) {
-            assert((size_t)(*(long *)handle + count) < mkxp_gmgsx_sf2_len);
-            std::memcpy(buf, mkxp_gmgsx_sf2 + *(long *)handle, count);
-            *(long *)handle += count;
-            return (int)FLUID_OK;
-        },
-        .fseek = [](void *handle, long offset, int origin) {
-            switch (origin) {
-                case SEEK_CUR:
-                    *(long *)handle += offset;
-                    break;
-                case SEEK_END:
-                    *(long *)handle = mkxp_gmgsx_sf2_len + offset;
-                    break;
-                default:
-                    *(long *)handle = offset;
-                    break;
-            }
-            return (int)FLUID_OK;
-        },
-        .fclose = [](void *handle) {
-            std::free(handle);
-            return (int)FLUID_OK;
-        },
-        .ftell = [](void *handle) {
-            return *(long *)handle;
-        },
-    };
-    fluid_set_default_fileapi(&fluid_fileapi);
 
     audio.emplace();
 
