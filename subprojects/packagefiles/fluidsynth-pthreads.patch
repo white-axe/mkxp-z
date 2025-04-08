@@ -1,0 +1,81 @@
+# Removes FluidSynth's POSIX threads dependency on non-Windows platforms.
+# FluidSynth requires POSIX threads for exactly one function, fluid_thread_self_set_prio(), that we don't even use, so this won't cause any issues down the line.
+
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -168,7 +168,7 @@ check_include_file ( netinet/in.h HAVE_NETINET_IN_H )
+ check_include_file ( netinet/tcp.h HAVE_NETINET_TCP_H )
+ check_include_file ( arpa/inet.h HAVE_ARPA_INET_H )
+ check_include_file ( limits.h  HAVE_LIMITS_H )
+-check_include_file ( pthread.h HAVE_PTHREAD_H )
++
+ check_include_file ( signal.h HAVE_SIGNAL_H )
+ check_include_file ( getopt.h HAVE_GETOPT_H )
+ check_include_file ( stdint.h HAVE_STDINT_H )
+@@ -205,7 +205,7 @@ if ( CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang" OR CMAKE_C_C
+ 
+   set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -W -Wpointer-arith -Wcast-qual -Wno-unused-parameter" )
+ 
+-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
++
+   set(CMAKE_CXX_STANDARD 11)
+   set(CMAKE_CXX_STANDARD_REQUIRED ON)
+   set(CMAKE_CXX_EXTENSIONS OFF)
+@@ -302,7 +302,7 @@ if ( WIN32 )
+   endif  ( MINGW )
+ else ( WIN32 )
+ # Check PThreads, but not in Windows
+-  find_package ( Threads REQUIRED )
++
+   set ( LIBFLUID_LIBS "m" ${CMAKE_THREAD_LIBS_INIT} )
+ endif ( WIN32 )
+ 
+--- a/src/utils/fluid_sys.c
++++ b/src/utils/fluid_sys.c
+@@ -405,7 +405,7 @@ fluid_thread_self_set_prio(int prio_level)
+ {
+     if(prio_level > 0)
+     {
+-        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
++
+     }
+ }
+ 
+@@ -417,7 +417,7 @@ fluid_thread_self_set_prio(int prio_level)
+ {
+     if(prio_level > 0)
+     {
+-        DosSetPriority(PRTYS_THREAD, PRTYC_REGULAR, PRTYD_MAXIMUM, 0);
++
+     }
+ }
+ 
+@@ -426,15 +426,15 @@ fluid_thread_self_set_prio(int prio_level)
+ void
+ fluid_thread_self_set_prio(int prio_level)
+ {
+-    struct sched_param priority;
++
+ 
+     if(prio_level > 0)
+     {
+ 
+-        memset(&priority, 0, sizeof(priority));
+-        priority.sched_priority = prio_level;
+ 
+-        if(pthread_setschedparam(pthread_self(), SCHED_FIFO, &priority) == 0)
++
++
++        if(1)
+         {
+             return;
+         }
+@@ -442,7 +442,7 @@ fluid_thread_self_set_prio(int prio_level)
+ #ifdef DBUS_SUPPORT
+         /* Try to gain high priority via rtkit */
+ 
+-        if(fluid_rtkit_make_realtime(0, prio_level) == 0)
++        if(1)
+         {
+             return;
+         }

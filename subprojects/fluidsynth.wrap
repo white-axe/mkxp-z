@@ -2,4 +2,4 @@
 url = https://github.com/mkxp-z/fluidsynth-sans-glib
 revision = 5c7716bda52f4f86271f32337c79f806f9402144
 depth = 1
-diff_files = fluidsynth-emscripten-endian.patch, fluidsynth-pic.patch
+diff_files = fluidsynth-cmake-policy.patch, fluidsynth-emscripten-endian.patch, fluidsynth-linker-flags.patch, fluidsynth-pic.patch, fluidsynth-pthreads.patch, fluidsynth-test-doc.patch

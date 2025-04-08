@@ -26,16 +26,17 @@
      ${config_SOURCES}
      ${fluid_alsa_SOURCES}
      ${fluid_aufile_SOURCES}
-@@ -291,7 +291,7 @@ add_library ( libfluidsynth-OBJ OBJECT
+@@ -291,15 +291,15 @@ add_library ( libfluidsynth-OBJ OBJECT
      ${public_main_HEADER}
      ${VersionFilesOutputVariable}
  )
 -
 +add_library ( libfluidsynth-OBJ ALIAS libfluidsynth )
  if ( LIBFLUID_CPPFLAGS )
-   set_target_properties ( libfluidsynth-OBJ
+-  set_target_properties ( libfluidsynth-OBJ
++  set_target_properties ( libfluidsynth
      PROPERTIES COMPILE_FLAGS ${LIBFLUID_CPPFLAGS} )
-@@ -299,7 +299,7 @@ endif ( LIBFLUID_CPPFLAGS )
+ endif ( LIBFLUID_CPPFLAGS )
  
  # note: by default this target creates a shared object (or dll). To build a
  # static library instead, set the option BUILD_SHARED_LIBS to FALSE.
