@@ -218,9 +218,10 @@ void AudioStream::fadeOut(int duration)
 #endif // MKXPZ_RETRO
 	{
 		fade.reqFini.set();
+#ifdef MKXPZ_RETRO
 		fadeOutProc();
 		fade.enabled = false;
-#ifndef MKXPZ_RETRO
+#else
 		SDL_WaitThread(fade.thread, 0);
 		fade.thread = 0;
 #endif // MKXPZ_RETRO
@@ -305,9 +306,10 @@ void AudioStream::finiFadeOutInt()
 #endif // MKXPZ_RETRO
 	{
 		fade.reqFini.set();
+#ifdef MKXPZ_RETRO
 		fadeOutProc();
 		fade.enabled = false;
-#ifndef MKXPZ_RETRO
+#else
 		SDL_WaitThread(fade.thread, 0);
 		fade.thread = 0;
 #endif // MKXPZ_RETRO
@@ -320,9 +322,10 @@ void AudioStream::finiFadeOutInt()
 #endif // MKXPZ_RETRO
 	{
 		fadeIn.rqFini.set();
+#ifdef MKXPZ_RETRO
 		fadeInProc();
 		fadeIn.enabled = false;
-#ifndef MKXPZ_RETRO
+#else
 		SDL_WaitThread(fadeIn.thread, 0);
 		fadeIn.thread = 0;
 #endif // MKXPZ_RETRO
