@@ -219,6 +219,10 @@ if is_libretro
 
     if not compilers['cpp'].has_header_symbol('mutex', 'std::mutex')
         libretro_defines += '-DMKXPZ_NO_STD_MUTEX'
+
+        if not compilers['cpp'].has_header_symbol('condition_variable', 'std::condition_variable_any')
+            libretro_defines += '-DMKXPZ_NO_STD_CONDITION_VARIABLE_ANY'
+        endif
     endif
 
     if not compilers['cpp'].has_header_symbol('mutex', 'std::recursive_mutex')

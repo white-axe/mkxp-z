@@ -86,6 +86,46 @@ extern "C" int mkxp_mutex_unlock(mkxp_mutex_t *mutex) {
 #endif
 }
 
+extern "C" int mkxp_cond_init(mkxp_cond_t *cond) {
+#ifndef MKXPZ_NO_PTHREAD_H
+    return pthread_cond_init(cond, NULL);
+#else
+    return 0;
+#endif
+}
+
+extern "C" int mkxp_cond_destroy(mkxp_cond_t *cond) {
+#ifndef MKXPZ_NO_PTHREAD_H
+    return pthread_cond_destroy(cond);
+#else
+    return 0;
+#endif
+}
+
+extern "C" int mkxp_cond_signal(mkxp_cond_t *cond) {
+#ifndef MKXPZ_NO_PTHREAD_H
+    return pthread_cond_signal(cond);
+#else
+    return 0;
+#endif
+}
+
+extern "C" int mkxp_cond_broadcast(mkxp_cond_t *cond) {
+#ifndef MKXPZ_NO_PTHREAD_H
+    return pthread_cond_broadcast(cond);
+#else
+    return 0;
+#endif
+}
+
+extern "C" int mkxp_cond_wait(mkxp_cond_t *cond, mkxp_mutex_t *mutex) {
+#ifndef MKXPZ_NO_PTHREAD_H
+    return pthread_cond_wait(cond, mutex);
+#else
+    return 0;
+#endif
+}
+
 extern "C" int mkxp_sem_init(mkxp_sem_t *sem, unsigned int value) {
 #ifndef MKXPZ_NO_SEMAPHORE_H
     return sem_init(sem, 0, value);

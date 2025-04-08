@@ -40,6 +40,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <mutex>
+#include <condition_variable>
 #include <string>
 
 extern "C" long long strtoll(const char *str, char **str_end, int base);
@@ -51,9 +52,11 @@ extern "C" {
 #ifndef MKXPZ_NO_PTHREAD_H
 typedef pthread_t mkxp_thread_t;
 typedef pthread_mutex_t mkxp_mutex_t;
+typedef pthread_cond_t mkxp_cond_t;
 #else
 typedef size_t mkxp_thread_t;
 typedef unsigned int mkxp_mutex_t;
+typedef bool mkxp_cond_t;
 #endif
 
 #ifndef MKXPZ_NO_SEMAPHORE_H
@@ -73,6 +76,16 @@ int mkxp_mutex_destroy(mkxp_mutex_t *mutex);
 int mkxp_mutex_lock(mkxp_mutex_t *mutex);
 
 int mkxp_mutex_unlock(mkxp_mutex_t *mutex);
+
+int mkxp_cond_init(mkxp_cond_t *cond);
+
+int mkxp_cond_destroy(mkxp_cond_t *cond);
+
+int mkxp_cond_signal(mkxp_cond_t *cond);
+
+int mkxp_cond_broadcast(mkxp_cond_t *cond);
+
+int mkxp_cond_wait(mkxp_cond_t *cond, mkxp_mutex_t *mutex);
 
 int mkxp_sem_init(mkxp_sem_t *sem, unsigned int value);
 
@@ -154,6 +167,43 @@ namespace std {
 
         inline native_handle_type native_handle() noexcept {
             return &inner;
+        }
+    };
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_CONDITION_VARIABLE_ANY
+namespace std {
+    class condition_variable_any {
+    public:
+        mkxp_cond_t inner;
+
+        inline condition_variable_any() noexcept {
+            if (mkxp_cond_init(&inner)) {
+                abort();
+            }
+        }
+
+        inline ~condition_variable_any() noexcept {
+            mkxp_cond_destroy(&inner);
+        }
+
+        inline void notify_one() noexcept {
+            if (mkxp_cond_signal(&inner)) {
+                abort();
+            }
+        }
+
+        inline void notify_all() noexcept {
+            if (mkxp_cond_broadcast(&inner)) {
+                abort();
+            }
+        }
+
+        inline void wait(std::mutex &mutex) noexcept {
+            if (mkxp_cond_wait(&inner, &mutex.inner)) {
+                abort();
+            }
         }
     };
 }
