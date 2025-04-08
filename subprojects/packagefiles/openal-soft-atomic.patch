@@ -1,0 +1,14 @@
+# Prevents OpenAL Soft from trying to check if atomic types are lock-free since it causes compilation errors when cross building for Alpine Linux. (But why does it cause compilation errors ???)
+# Besides, who cares if the atomic types are lock-free or not? The one platform where something like this could matter, Emscripten, does have all the atomic types that OpenAL Soft uses as lock-free, so it doesn't really matter.
+
+--- a/core/context.cpp
++++ b/core/context.cpp
+@@ -19,7 +19,7 @@ static_assert(std::atomic<ContextBase::AsyncEventBitset>::is_always_lock_free, "
+ #endif
+ 
+ ContextBase::ContextBase(DeviceBase *device) : mDevice{device}
+-{ assert(mEnabledEvts.is_lock_free()); }
++{ }
+ 
+ ContextBase::~ContextBase()
+ {

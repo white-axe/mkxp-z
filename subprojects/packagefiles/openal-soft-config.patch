@@ -1,5 +1,99 @@
-# Prevents OpenAL Soft from loading from its config file.
+# Prevents OpenAL Soft from loading from config files and environment variables.
 
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -669,7 +669,7 @@ set(CORE_OBJS
+     core/fpu_ctrl.cpp
+     core/fpu_ctrl.h
+     core/front_stablizer.h
+-    core/helpers.cpp
++
+     core/helpers.h
+     core/hrtf.cpp
+     core/hrtf.h
+--- a/alc/alc.cpp
++++ b/alc/alc.cpp
+@@ -1016,36 +1016,36 @@ std::recursive_mutex ListLock;
+ 
+ void alc_initconfig(void)
+ {
+-    if(auto loglevel = al::getenv("ALSOFT_LOGLEVEL"))
+-    {
+-        long lvl = strtol(loglevel->c_str(), nullptr, 0);
+-        if(lvl >= static_cast<long>(LogLevel::Trace))
+-            gLogLevel = LogLevel::Trace;
+-        else if(lvl <= static_cast<long>(LogLevel::Disable))
+-            gLogLevel = LogLevel::Disable;
+-        else
+-            gLogLevel = static_cast<LogLevel>(lvl);
+-    }
+ 
+-#ifdef _WIN32
+-    if(const auto logfile = al::getenv(L"ALSOFT_LOGFILE"))
+-    {
+-        FILE *logf{_wfopen(logfile->c_str(), L"wt")};
+-        if(logf) gLogFile = logf;
+-        else
+-        {
+-            auto u8name = wstr_to_utf8(logfile->c_str());
+-            ERR("Failed to open log file '%s'\n", u8name.c_str());
+-        }
+-    }
+-#else
+-    if(const auto logfile = al::getenv("ALSOFT_LOGFILE"))
+-    {
+-        FILE *logf{fopen(logfile->c_str(), "wt")};
+-        if(logf) gLogFile = logf;
+-        else ERR("Failed to open log file '%s'\n", logfile->c_str());
+-    }
+-#endif
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
+ 
+     TRACE("Initializing library v%s-%s %s\n", ALSOFT_VERSION, ALSOFT_GIT_COMMIT_HASH,
+         ALSOFT_GIT_BRANCH);
+@@ -1144,10 +1144,10 @@ void alc_initconfig(void)
+         CPUCapFlags = caps & capfilter;
+     }
+ 
+-    if(auto priopt = ConfigValueInt(nullptr, nullptr, "rt-prio"))
+-        RTPrioLevel = *priopt;
+-    if(auto limopt = ConfigValueBool(nullptr, nullptr, "rt-time-limit"))
+-        AllowRTTimeLimit = *limopt;
++
++
++
++
+ 
+     {
+         CompatFlagBitset compatflags{};
 --- a/alc/alconfig.cpp
 +++ b/alc/alconfig.cpp
 @@ -329,157 +329,157 @@ const char *GetConfigValue(const char *devName, const char *blockName, const cha
@@ -293,3 +387,27 @@
  }
  #endif
  
+--- a/core/hrtf.cpp
++++ b/core/hrtf.cpp
+@@ -1253,8 +1253,8 @@ al::vector<std::string> EnumerateHrtf(al::optional<std::string> pathopt)
+             if(end != pathlist)
+             {
+                 const std::string pname{pathlist, end};
+-                for(const auto &fname : SearchDataFiles(".mhr", pname.c_str()))
+-                    AddFileEntry(fname);
++
++
+             }
+ 
+             pathlist = next;
+@@ -1263,8 +1263,8 @@ al::vector<std::string> EnumerateHrtf(al::optional<std::string> pathopt)
+ 
+     if(usedefaults)
+     {
+-        for(const auto &fname : SearchDataFiles(".mhr", "openal/hrtf"))
+-            AddFileEntry(fname);
++
++
+ 
+         if(!GetResource(IDR_DEFAULT_HRTF_MHR).empty())
+             AddBuiltInEntry("Built-In HRTF", IDR_DEFAULT_HRTF_MHR);
