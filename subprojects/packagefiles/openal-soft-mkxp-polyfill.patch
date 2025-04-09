@@ -2,15 +2,15 @@
 
 --- a/al/auxeffectslot.cpp
 +++ b/al/auxeffectslot.cpp
-@@ -27,7 +27,7 @@
- #include <cstdint>
+@@ -28,7 +28,7 @@
+ #include <functional>
  #include <iterator>
  #include <memory>
 -#include <mutex>
 +#include "../../src/mkxp-polyfill.h"
  #include <numeric>
- #include <thread>
- 
+ #include <stdexcept>
+ #include <tuple>
 --- a/al/buffer.cpp
 +++ b/al/buffer.cpp
 @@ -32,7 +32,7 @@
@@ -19,9 +19,20 @@
  #include <memory>
 -#include <mutex>
 +#include "../../src/mkxp-polyfill.h"
- #include <new>
  #include <numeric>
+ #include <optional>
  #include <stdexcept>
+--- a/al/debug.cpp
++++ b/al/debug.cpp
+@@ -7,7 +7,7 @@
+ #include <atomic>
+ #include <cstring>
+ #include <deque>
+-#include <mutex>
++#include "../../src/mkxp-polyfill.h"
+ #include <optional>
+ #include <stdexcept>
+ #include <string>
 --- a/al/effect.cpp
 +++ b/al/effect.cpp
 @@ -27,7 +27,7 @@
@@ -30,31 +41,20 @@
  #include <memory>
 -#include <mutex>
 +#include "../../src/mkxp-polyfill.h"
- #include <new>
  #include <numeric>
- #include <utility>
---- a/al/error.cpp
-+++ b/al/error.cpp
-@@ -30,7 +30,7 @@
- #include <cstdarg>
- #include <cstdio>
- #include <cstring>
--#include <mutex>
-+#include "../../src/mkxp-polyfill.h"
- 
- #include "AL/al.h"
- #include "AL/alc.h"
+ #include <string>
+ #include <type_traits>
 --- a/al/event.cpp
 +++ b/al/event.cpp
-@@ -8,7 +8,7 @@
- #include <cstring>
+@@ -7,7 +7,7 @@
+ #include <bitset>
  #include <exception>
  #include <memory>
 -#include <mutex>
 +#include "../../src/mkxp-polyfill.h"
  #include <new>
+ #include <optional>
  #include <string>
- #include <thread>
 --- a/al/filter.cpp
 +++ b/al/filter.cpp
 @@ -28,7 +28,7 @@
@@ -63,14 +63,14 @@
  #include <memory>
 -#include <mutex>
 +#include "../../src/mkxp-polyfill.h"
- #include <new>
  #include <numeric>
- 
+ #include <unordered_map>
+ #include <vector>
 --- a/al/listener.cpp
 +++ b/al/listener.cpp
-@@ -23,7 +23,7 @@
- #include "listener.h"
+@@ -24,7 +24,7 @@
  
+ #include <algorithm>
  #include <cmath>
 -#include <mutex>
 +#include "../../src/mkxp-polyfill.h"
@@ -79,38 +79,38 @@
  #include "AL/alc.h"
 --- a/al/source.cpp
 +++ b/al/source.cpp
-@@ -35,7 +35,7 @@
+@@ -34,7 +34,7 @@
  #include <iterator>
  #include <limits>
  #include <memory>
 -#include <mutex>
 +#include "../../src/mkxp-polyfill.h"
- #include <new>
  #include <numeric>
+ #include <optional>
  #include <stdexcept>
 --- a/al/state.cpp
 +++ b/al/state.cpp
-@@ -24,7 +24,7 @@
- 
+@@ -26,7 +26,7 @@
  #include <atomic>
  #include <cmath>
+ #include <deque>
 -#include <mutex>
 +#include "../../src/mkxp-polyfill.h"
+ #include <optional>
  #include <stdexcept>
  #include <string>
- 
 --- a/alc/alc.cpp
 +++ b/alc/alc.cpp
-@@ -46,7 +46,7 @@
+@@ -48,7 +48,7 @@
  #include <iterator>
  #include <limits>
  #include <memory>
 -#include <mutex>
 +#include "../../src/mkxp-polyfill.h"
  #include <new>
- #include <stddef.h>
+ #include <optional>
  #include <stdexcept>
-@@ -956,7 +956,7 @@ std::atomic<ALCenum> LastNullDeviceError{ALC_NO_ERROR};
+@@ -314,7 +314,7 @@ std::atomic<ALCenum> LastNullDeviceError{ALC_NO_ERROR};
  bool TrapALCError{false};
  
  /* One-time configuration init control */
@@ -119,7 +119,7 @@
  
  /* Flag to specify if alcSuspendContext/alcProcessContext should defer/process
   * updates.
-@@ -1370,7 +1370,7 @@ void alc_initconfig(void)
+@@ -743,7 +743,7 @@ void alc_initconfig()
  #endif // ALSOFT_EAX
  }
  inline void InitConfig()
@@ -130,191 +130,157 @@
  /************************************************
 --- a/alc/alconfig.cpp
 +++ b/alc/alconfig.cpp
-@@ -35,7 +35,7 @@
- 
- #include <algorithm>
- #include <cstdio>
+@@ -37,7 +37,7 @@
+ #include <fstream>
+ #include <istream>
+ #include <limits>
 -#include <string>
 +#include "../../src/mkxp-polyfill.h"
+ #include <string_view>
  #include <utility>
+ #include <vector>
+--- a/alc/backends/alsa.cpp
++++ b/alc/backends/alsa.cpp
+@@ -30,7 +30,7 @@
+ #include <cstring>
+ #include <exception>
+ #include <memory>
+-#include <mutex>
++#include "../../src/mkxp-polyfill.h"
+ #include <string>
+ #include <string_view>
+ #include <thread>
+--- a/alc/backends/jack.cpp
++++ b/alc/backends/jack.cpp
+@@ -27,7 +27,7 @@
+ #include <cstdio>
+ #include <cstring>
+ #include <memory.h>
+-#include <mutex>
++#include "../../src/mkxp-polyfill.h"
+ #include <thread>
+ #include <vector>
  
- #include "alfstream.h"
-@@ -493,21 +493,21 @@ al::optional<std::string> ConfigValueStr(const char *devName, const char *blockN
- al::optional<int> ConfigValueInt(const char *devName, const char *blockName, const char *keyName)
- {
-     if(const char *val{GetConfigValue(devName, blockName, keyName)})
--        return static_cast<int>(std::strtol(val, nullptr, 0));
-+        return static_cast<int>(std::stol(val, nullptr, 0));
-     return al::nullopt;
- }
- 
- al::optional<unsigned int> ConfigValueUInt(const char *devName, const char *blockName, const char *keyName)
- {
-     if(const char *val{GetConfigValue(devName, blockName, keyName)})
--        return static_cast<unsigned int>(std::strtoul(val, nullptr, 0));
-+        return static_cast<unsigned int>(std::stoul(val, nullptr, 0));
-     return al::nullopt;
- }
- 
- al::optional<float> ConfigValueFloat(const char *devName, const char *blockName, const char *keyName)
- {
-     if(const char *val{GetConfigValue(devName, blockName, keyName)})
--        return std::strtof(val, nullptr);
-+        return std::stof(val, nullptr);
-     return al::nullopt;
- }
- 
+--- a/alc/backends/opensl.cpp
++++ b/alc/backends/opensl.cpp
+@@ -28,7 +28,7 @@
+ #include <array>
+ #include <cstdlib>
+ #include <cstring>
+-#include <mutex>
++#include "../../src/mkxp-polyfill.h"
+ #include <new>
+ #include <thread>
+ #include <functional>
+--- a/alc/backends/otherio.cpp
++++ b/alc/backends/otherio.cpp
+@@ -49,7 +49,7 @@
+ #include <cstring>
+ #include <deque>
+ #include <future>
+-#include <mutex>
++#include "../../src/mkxp-polyfill.h"
+ #include <string>
+ #include <string_view>
+ #include <thread>
+--- a/alc/backends/pipewire.cpp
++++ b/alc/backends/pipewire.cpp
+@@ -37,7 +37,7 @@
+ #include <ctime>
+ #include <iterator>
+ #include <memory>
+-#include <mutex>
++#include "../../src/mkxp-polyfill.h"
+ #include <optional>
+ #include <string_view>
+ #include <thread>
+--- a/alc/backends/pulseaudio.cpp
++++ b/alc/backends/pulseaudio.cpp
+@@ -33,7 +33,7 @@
+ #include <cstdint>
+ #include <cstring>
+ #include <limits>
+-#include <mutex>
++#include "../../src/mkxp-polyfill.h"
+ #include <optional>
+ #include <string>
+ #include <string_view>
+--- a/alc/backends/wasapi.cpp
++++ b/alc/backends/wasapi.cpp
+@@ -52,7 +52,7 @@
+ #include <condition_variable>
+ #include <cstring>
+ #include <future>
+-#include <mutex>
++#include "../../src/mkxp-polyfill.h"
+ #include <string>
+ #include <string_view>
+ #include <thread>
 --- a/alc/context.h
 +++ b/alc/context.h
-@@ -3,7 +3,7 @@
- 
- #include <atomic>
+@@ -8,7 +8,7 @@
+ #include <cstdint>
+ #include <deque>
  #include <memory>
 -#include <mutex>
 +#include "../../src/mkxp-polyfill.h"
- #include <stdint.h>
- #include <utility>
- 
+ #include <string>
+ #include <string_view>
+ #include <unordered_map>
 --- a/alc/device.h
 +++ b/alc/device.h
-@@ -3,7 +3,7 @@
+@@ -5,7 +5,7 @@
  
  #include <atomic>
  #include <memory>
 -#include <mutex>
 +#include "../../src/mkxp-polyfill.h"
- #include <stdint.h>
+ #include <optional>
  #include <string>
- #include <utility>
---- a/alc/effects/base.h
-+++ b/alc/effects/base.h
+ #include <unordered_map>
+--- a/alc/events.h
++++ b/alc/events.h
+@@ -5,7 +5,7 @@
+ #include "opthelpers.h"
+ 
+ #include <bitset>
+-#include <mutex>
++#include "../../src/mkxp-polyfill.h"
+ #include <optional>
+ #include <string_view>
+ 
+--- a/common/alassert.cpp
++++ b/common/alassert.cpp
 @@ -2,7 +2,7 @@
- #define EFFECTS_BASE_H
+ #include "alassert.h"
  
- #include "core/effects/base.h"
--
-+#include "../../../src/mkxp-polyfill.h"
- 
- EffectStateFactory *NullStateFactory_getFactory(void);
- EffectStateFactory *ReverbStateFactory_getFactory(void);
---- a/common/almalloc.cpp
-+++ b/common/almalloc.cpp
-@@ -11,20 +11,15 @@
- #ifdef HAVE_MALLOC_H
- #include <malloc.h>
- #endif
--
+ #include <stdexcept>
+-#include <string>
 +#include "../../src/mkxp-polyfill.h"
  
- void *al_malloc(size_t alignment, size_t size)
- {
-     assert((alignment & (alignment-1)) == 0);
-     alignment = std::max(alignment, alignof(std::max_align_t));
+ namespace {
  
--#if defined(HAVE_POSIX_MEMALIGN)
--    void *ret{};
--    if(posix_memalign(&ret, alignment, size) == 0)
--        return ret;
--    return nullptr;
--#elif defined(HAVE__ALIGNED_MALLOC)
--    return _aligned_malloc(size, alignment);
-+#ifdef MKXPZ_HAVE_ANY_ALIGNED_MALLOC
-+    return mkxp_aligned_malloc(alignment, size);
- #else
-     size_t total_size{size + alignment-1 + sizeof(void*)};
-     void *base{std::malloc(total_size)};
-@@ -50,10 +45,8 @@ void *al_calloc(size_t alignment, size_t size)
- 
- void al_free(void *ptr) noexcept
- {
--#if defined(HAVE_POSIX_MEMALIGN)
--    std::free(ptr);
--#elif defined(HAVE__ALIGNED_MALLOC)
--    _aligned_free(ptr);
-+#ifdef MKXPZ_HAVE_ANY_ALIGNED_MALLOC
-+    mkxp_aligned_free(ptr);
- #else
-     if(ptr != nullptr)
-         std::free(*(static_cast<void**>(ptr) - 1));
---- a/common/threads.cpp
-+++ b/common/threads.cpp
-@@ -86,47 +86,47 @@ void semaphore::post()
+--- a/common/alsem.cpp
++++ b/common/alsem.cpp
+@@ -55,8 +55,6 @@ void semaphore::post()
  void semaphore::wait() noexcept
  { WaitForSingleObject(static_cast<HANDLE>(mSem), INFINITE); }
  
 -bool semaphore::try_wait() noexcept
 -{ return WaitForSingleObject(static_cast<HANDLE>(mSem), 0) == WAIT_OBJECT_0; }
-+
-+
  
  } // namespace al
  
- #else
- 
--#include <pthread.h>
--#ifdef HAVE_PTHREAD_NP_H
--#include <pthread_np.h>
--#endif
-+#include "../../src/mkxp-polyfill.h"
-+
-+
-+
- #include <tuple>
- 
- namespace {
- 
- using setname_t1 = int(*)(const char*);
--using setname_t2 = int(*)(pthread_t, const char*);
--using setname_t3 = void(*)(pthread_t, const char*);
--using setname_t4 = int(*)(pthread_t, const char*, void*);
-+using setname_t2 = int(*)(mkxp_thread_t, const char*);
-+using setname_t3 = void(*)(mkxp_thread_t, const char*);
-+using setname_t4 = int(*)(mkxp_thread_t, const char*, void*);
- 
- void setname_caller(setname_t1 func, const char *name)
- { func(name); }
- 
- void setname_caller(setname_t2 func, const char *name)
--{ func(pthread_self(), name); }
-+{ func(mkxp_thread_self(), name); }
- 
- void setname_caller(setname_t3 func, const char *name)
--{ func(pthread_self(), name); }
-+{ func(mkxp_thread_self(), name); }
- 
- void setname_caller(setname_t4 func, const char *name)
--{ func(pthread_self(), "%s", static_cast<void*>(const_cast<char*>(name))); }
-+{ func(mkxp_thread_self(), "%s", static_cast<void*>(const_cast<char*>(name))); }
- 
- } // namespace
- 
- void althrd_setname(const char *name)
- {
--#if defined(HAVE_PTHREAD_SET_NAME_NP)
--    setname_caller(pthread_set_name_np, name);
--#elif defined(HAVE_PTHREAD_SETNAME_NP)
--    setname_caller(pthread_setname_np, name);
--#endif
-+
-+
-+
-+
-+
-     /* Avoid unused function/parameter warnings. */
-     std::ignore = name;
-     std::ignore = static_cast<void(*)(setname_t1,const char*)>(&setname_caller);
-@@ -155,8 +155,8 @@ void semaphore::post()
+@@ -83,8 +81,6 @@ void semaphore::post()
  void semaphore::wait() noexcept
  { dispatch_semaphore_wait(mSem, DISPATCH_TIME_FOREVER); }
  
 -bool semaphore::try_wait() noexcept
 -{ return dispatch_semaphore_wait(mSem, DISPATCH_TIME_NOW) == 0; }
-+
-+
  
  } // namespace al
  
-@@ -168,27 +168,27 @@ namespace al {
+@@ -96,27 +92,25 @@ namespace al {
  
  semaphore::semaphore(unsigned int initial)
  {
@@ -345,56 +311,195 @@
  
 -bool semaphore::try_wait() noexcept
 -{ return sem_trywait(&mSem) == 0; }
-+
-+
  
  } // namespace al
  
---- a/common/threads.h
-+++ b/common/threads.h
-@@ -14,7 +14,7 @@
- #if defined(__APPLE__)
- #include <dispatch/dispatch.h>
+--- a/common/alsem.h
++++ b/common/alsem.h
+@@ -11,7 +11,7 @@
+ #include <semaphore.h> /* Fallback option for Apple without a working libdispatch */
+ #endif
  #elif !defined(_WIN32)
 -#include <semaphore.h>
 +#include "../../src/mkxp-polyfill.h"
  #endif
  
- void althrd_setname(const char *name);
-@@ -27,7 +27,7 @@ class semaphore {
- #elif defined(__APPLE__)
+ namespace al {
+@@ -22,7 +22,7 @@ class semaphore {
+ #elif defined(AL_APPLE_HAVE_DISPATCH)
      using native_type = dispatch_semaphore_t;
  #else
 -    using native_type = sem_t;
 +    using native_type = mkxp_sem_t;
  #endif
-     native_type mSem;
+     native_type mSem{};
  
-@@ -40,7 +40,7 @@ public:
+@@ -35,7 +35,6 @@ public:
  
      void post();
      void wait() noexcept;
 -    bool try_wait() noexcept;
-+
  };
  
  } // namespace al
---- a/core/ambdec.cpp
-+++ b/core/ambdec.cpp
-@@ -16,7 +16,7 @@
- #include "alfstream.h"
- #include "alspan.h"
- #include "opthelpers.h"
--
+--- a/common/althrd_setname.cpp
++++ b/common/althrd_setname.cpp
+@@ -39,39 +39,39 @@ void althrd_setname(const char *name [[maybe_unused]])
+ 
+ #else
+ 
+-#include <pthread.h>
+-#ifdef HAVE_PTHREAD_NP_H
+-#include <pthread_np.h>
+-#endif
 +#include "../../src/mkxp-polyfill.h"
++
++
++
++
  
  namespace {
  
+ using setname_t1 = int(*)(const char*);
+-using setname_t2 = int(*)(pthread_t, const char*);
+-using setname_t3 = void(*)(pthread_t, const char*);
+-using setname_t4 = int(*)(pthread_t, const char*, void*);
++using setname_t2 = int(*)(mkxp_thread_t, const char*);
++using setname_t3 = void(*)(mkxp_thread_t, const char*);
++using setname_t4 = int(*)(mkxp_thread_t, const char*, void*);
+ 
+ [[maybe_unused]] void setname_caller(setname_t1 func, const char *name)
+ { func(name); }
+ 
+ [[maybe_unused]] void setname_caller(setname_t2 func, const char *name)
+-{ func(pthread_self(), name); }
++{ func(mkxp_thread_self(), name); }
+ 
+ [[maybe_unused]] void setname_caller(setname_t3 func, const char *name)
+-{ func(pthread_self(), name); }
++{ func(mkxp_thread_self(), name); }
+ 
+ [[maybe_unused]] void setname_caller(setname_t4 func, const char *name)
+-{ func(pthread_self(), "%s", const_cast<char*>(name)); /* NOLINT(*-const-cast) */ }
++{ func(mkxp_thread_self(), "%s", const_cast<char*>(name)); /* NOLINT(*-const-cast) */ }
+ 
+ } // namespace
+ 
+ void althrd_setname(const char *name [[maybe_unused]])
+ {
+-#if defined(HAVE_PTHREAD_SET_NAME_NP)
+-    setname_caller(pthread_set_name_np, name);
+-#elif defined(HAVE_PTHREAD_SETNAME_NP)
+-    setname_caller(pthread_setname_np, name);
+-#endif
+-}
+ 
++
++
++
++
++}
+ #endif
+--- a/common/althreads.h
++++ b/common/althreads.h
+@@ -5,7 +5,7 @@
+ #include <stdexcept>
+ #include <type_traits>
+ 
+-#ifdef _WIN32
++#if false
+ #define WIN32_LEAN_AND_MEAN
+ #include <windows.h>
+ 
+@@ -13,7 +13,7 @@
+ 
+ #include <pthread.h>
+ 
+-#else
++#elif false
+ 
+ #include <threads.h>
+ #endif
+@@ -54,7 +54,7 @@ class tss {
+             return static_cast<T>(al::bit_cast<std::uintptr_t>(ptr));
+     }
+ 
+-#ifdef _WIN32
++/*
+     DWORD mTss{TLS_OUT_OF_INDEXES};
+ 
+ public:
+@@ -105,32 +105,33 @@ public:
+     [[nodiscard]]
+     auto get() const noexcept -> T { return from_ptr(pthread_getspecific(mTss)); }
+ 
+-#else
++*/
+ 
+-    tss_t mTss{};
++    void **mTss;
+ 
+ public:
+     tss()
+     {
+-        if(int res{tss_create(&mTss, nullptr)}; res != thrd_success)
++        if ((mTss = (void **)std::malloc(sizeof *mTss)) == NULL)
+             throw std::runtime_error{"al::tss::tss()"};
++        *mTss = nullptr;
+     }
+     explicit tss(const T &init) : tss{}
+     {
+-        if(int res{tss_set(mTss, to_ptr(init))}; res != thrd_success)
+-            throw std::runtime_error{"al::tss::tss(T)"};
++        if ((mTss = (void **)std::malloc(sizeof *mTss)) == NULL)
++            throw std::runtime_error{"al::tss::tss()"};
++        *mTss = to_ptr(init);
+     }
+-    ~tss() { tss_delete(mTss); }
++    ~tss() { std::free(mTss); }
+ 
+     void set(const T &value) const
+     {
+-        if(int res{tss_set(mTss, to_ptr(value))}; res != thrd_success)
+-            throw std::runtime_error{"al::tss::set(T)"};
++        *mTss = to_ptr(value);
+     }
+ 
+     [[nodiscard]]
+-    auto get() const noexcept -> T { return from_ptr(tss_get(mTss)); }
+-#endif /* _WIN32 */
++    auto get() const noexcept -> T { return from_ptr(*mTss); }
++
+ 
+     tss(const tss&) = delete;
+     tss(tss&&) = delete;
+--- a/core/context.h
++++ b/core/context.h
+@@ -140,7 +140,7 @@ struct ContextBase {
+      */
+     al::atomic_unique_ptr<EffectSlotArray> mActiveAuxSlots;
+ 
+-    std::thread mEventThread;
++
+     al::semaphore mEventSem;
+     std::unique_ptr<RingBuffer> mAsyncEvents;
+     using AsyncEventBitset = std::bitset<al::to_underlying(AsyncEnableBits::Count)>;
+--- a/core/converter.cpp
++++ b/core/converter.cpp
+@@ -5,7 +5,7 @@
+ 
+ #include <algorithm>
+ #include <cassert>
+-#include <cmath>
++#include "../../src/mkxp-polyfill.h"
+ #include <cstddef>
+ #include <cstdint>
+ #include <iterator>
 --- a/core/dbus_wrap.cpp
 +++ b/core/dbus_wrap.cpp
 @@ -5,7 +5,7 @@
  
- #ifdef HAVE_DYNLOAD
+ #if HAVE_DYNLOAD
  
 -#include <mutex>
 +#include "../../src/mkxp-polyfill.h"
@@ -405,76 +510,87 @@
 +++ b/core/dbus_wrap.h
 @@ -9,7 +9,7 @@
  
- #ifdef HAVE_DYNLOAD
+ #if HAVE_DYNLOAD
  
 -#include <mutex>
 +#include "../../src/mkxp-polyfill.h"
  
  #define DBUS_FUNCTIONS(MAGIC) \
  MAGIC(dbus_error_init) \
---- a/core/device.h
-+++ b/core/device.h
-@@ -8,7 +8,7 @@
- #include <bitset>
- #include <chrono>
- #include <memory>
--#include <mutex>
-+#include "../../src/mkxp-polyfill.h"
- #include <string>
- 
- #include "almalloc.h"
---- a/core/except.cpp
-+++ b/core/except.cpp
-@@ -7,7 +7,7 @@
- #include <cstdarg>
- 
- #include "opthelpers.h"
--
-+#include "../../src/mkxp-polyfill.h"
- 
- namespace al {
- 
 --- a/core/helpers.cpp
 +++ b/core/helpers.cpp
-@@ -9,7 +9,7 @@
+@@ -12,7 +12,7 @@
  #include <cstdlib>
- #include <cstdio>
  #include <cstring>
+ #include <limits>
 -#include <mutex>
 +#include "../../src/mkxp-polyfill.h"
- #include <limits>
+ #include <optional>
  #include <string>
- #include <tuple>
+ #include <string_view>
 --- a/core/hrtf.cpp
 +++ b/core/hrtf.cpp
-@@ -14,7 +14,7 @@
+@@ -15,7 +15,7 @@
  #include <fstream>
  #include <iterator>
  #include <memory>
 -#include <mutex>
 +#include "../../src/mkxp-polyfill.h"
  #include <numeric>
- #include <type_traits>
- #include <utility>
+ #include <optional>
+ #include <tuple>
 --- a/core/logging.cpp
 +++ b/core/logging.cpp
-@@ -10,7 +10,7 @@
- #include "alspan.h"
- #include "strutils.h"
- #include "vector.h"
--
+@@ -7,7 +7,7 @@
+ #include <cstdarg>
+ #include <cstdio>
+ #include <cstring>
+-#include <mutex>
 +#include "../../src/mkxp-polyfill.h"
- 
- #if defined(_WIN32)
- #define WIN32_LEAN_AND_MEAN
+ #include <optional>
+ #include <string>
+ #include <string_view>
 --- a/core/mastering.cpp
 +++ b/core/mastering.cpp
-@@ -15,7 +15,7 @@
- #include "alnumeric.h"
- #include "alspan.h"
- #include "opthelpers.h"
--
-+#include "../../src/mkxp-polyfill.h"
+@@ -4,7 +4,7 @@
+ #include "mastering.h"
  
- /* These structures assume BufferLineSize is a power of 2. */
- static_assert((BufferLineSize & (BufferLineSize-1)) == 0, "BufferLineSize is not a power of 2");
+ #include <algorithm>
+-#include <cmath>
++#include "../../src/mkxp-polyfill.h"
+ #include <cstddef>
+ #include <functional>
+ #include <iterator>
+--- a/examples/alffplay.cpp
++++ b/examples/alffplay.cpp
+@@ -20,7 +20,7 @@
+ #include <functional>
+ #include <future>
+ #include <memory>
+-#include <mutex>
++#include "../../src/mkxp-polyfill.h"
+ #include <ratio>
+ #include <string>
+ #include <string_view>
+--- a/router/alc.cpp
++++ b/router/alc.cpp
+@@ -7,7 +7,7 @@
+ #include <cstdlib>
+ #include <cstring>
+ #include <cstdio>
+-#include <mutex>
++#include "../../src/mkxp-polyfill.h"
+ #include <optional>
+ #include <string_view>
+ #include <tuple>
+--- a/router/router.h
++++ b/router/router.h
+@@ -8,7 +8,7 @@
+ #include <atomic>
+ #include <cstdio>
+ #include <memory>
+-#include <mutex>
++#include "../../src/mkxp-polyfill.h"
+ #include <string>
+ #include <utility>
+ #include <vector>

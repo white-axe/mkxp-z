@@ -345,6 +345,34 @@ jobs:
           name: stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: libretro/build/libretro-stage1
 
+  wiiurpxtool:
+    name: wiiurpxtool
+    runs-on: ubuntu-latest
+    container: alpine:latest
+    steps:
+      - name: Install dependencies
+        run: |
+          apk update
+          apk add build-base git zlib-dev zlib-static cmake ninja
+
+      - name: Build wiiurpxtool
+        run: |
+          git clone https://github.com/yawut/wiiurpxtool-ng
+          cd wiiurpxtool-ng
+          git checkout 682cc9f587dee507b400a307f5a0787efc5dcb72
+          git submodule update --init --recursive
+          mv /usr/lib/libz.so /usr/lib/libz.so.backup
+          LDFLAGS='-static' cmake -G Ninja .
+          ninja -v
+          mv /usr/lib/libz.so.backup /usr/lib/libz.so
+          mv wiiurpxtool-ng wiiurpxtool
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wiiurpxtool
+          path: wiiurpxtool-ng/wiiurpxtool
+
   build-libretro-windows:
     needs: build-libretro-stage1
     name: LR Windows
@@ -1108,11 +1136,16 @@ jobs:
           path: ~/dist
 
   build-libretro-wiiu:
-    needs: build-libretro-stage1
+    needs:
+      - build-libretro-stage1
+      - wiiurpxtool
     name: LR Wii U
     runs-on: ubuntu-latest
     container:
-      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-wiiu:latest
+      # We're supposed to use libretro-build-wiiu, but that currently has a really old version of devkitPPC that doesn't support C++17, so it can't compile OpenAL Soft.
+      # Also, pre-C++17 versions of OpenAL Soft give linker errors when we try to build them for Wii U, so we can't just downgrade OpenAL Soft.
+      # The libretro-build-devkitpro image that we're using here instead currently has a newer version of devkitPPC that supports C++17 but lacks wiiurpxtool, which is why we need to separately install wiiurpxtool.
+      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-devkitpro:latest
       options: -u root
       volumes:
         - /tmp:/__e/node20
@@ -1141,6 +1174,24 @@ jobs:
         with:
           name: stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: libretro/build/libretro-stage1
+
+      - name: Download wiiurpxtool
+        uses: actions/download-artifact@v4
+        with:
+          name: wiiurpxtool
+          path: '~'
+
+      - name: Install wiiurpxtool
+        run: |
+          if command -v wiiurpxtool
+          then
+            echo 'wiiurpxtool already installed'
+          else
+            mv ~/wiiurpxtool /usr/local/bin
+            chmod +x /usr/local/bin/wiiurpxtool
+            echo 'wiiurpxtool successfully installed'
+          fi
+          wiiurpxtool
 
       - name: Configure core
         run: |

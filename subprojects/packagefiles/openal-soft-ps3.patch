@@ -1,0 +1,35 @@
+# The PlayStation 3 toolchain appears to be missing some functions from the C++ standard library. This replaces the missing functions with other ones that are available.
+
+--- a/alc/alu.cpp
++++ b/alc/alu.cpp
+@@ -2155,7 +2155,7 @@ void Write(const al::span<const FloatBufferLine> InBuffer, void *OutBuffer, cons
+             out[c] = SampleConv<T>(s);
+             out += ptrdiff_t(FrameStep);
+         };
+-        std::for_each_n(inbuf.cbegin(), SamplesToDo, conv_sample);
++        std::for_each(inbuf.cbegin(), inbuf.cbegin() + SamplesToDo, conv_sample);
+         ++c;
+     }
+     if(const size_t extra{FrameStep - c})
+--- a/alc/effects/reverb.cpp
++++ b/alc/effects/reverb.cpp
+@@ -931,7 +931,7 @@ void EarlyReflections::updateLines(const float density_mult, const float diffusi
+     /* Calculate the gain (coefficient) for the secondary reflections based on
+      * the average delay and decay time.
+      */
+-    const auto length = std::reduce(EARLY_LINE_LENGTHS.begin(), EARLY_LINE_LENGTHS.end(), 0.0f)
++    const auto length = std::accumulate(EARLY_LINE_LENGTHS.begin(), EARLY_LINE_LENGTHS.end(), 0.0f)
+         / float{EARLY_LINE_LENGTHS.size()} * density_mult;
+     Coeff = CalcDecayCoeff(length, decayTime);
+ 
+--- a/common/albit.h
++++ b/common/albit.h
+@@ -30,7 +30,7 @@ template<typename T>
+ std::enable_if_t<std::is_integral_v<T>,
+ T> byteswap(T value) noexcept
+ {
+-    static_assert(std::has_unique_object_representations_v<T>);
++    static_assert(std::has_unique_object_representations<T>::value);
+     auto bytes = al::bit_cast<std::array<std::byte,sizeof(T)>>(value);
+     std::reverse(bytes.begin(), bytes.end());
+     return al::bit_cast<T>(bytes);

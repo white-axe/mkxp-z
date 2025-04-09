@@ -599,6 +599,7 @@ if is_libretro
         cmake.subproject(host_system == 'darwin' ? 'zlib-darwin' : 'zlib', options: zlib_options).dependency('zlibstatic'),
         cmake.subproject('physfs', options: physfs_options).dependency('physfs-static'),
         cmake.subproject('openal-soft', options: openal_options).dependency('OpenAL'),
+        cmake.subproject('openal-soft', options: openal_options).dependency('alsoft.fmt'),
         cmake.subproject('fluidsynth', options: fluidsynth_options).dependency('libfluidsynth'),
         cmake.subproject('ogg', options: ogg_options).dependency('ogg'),
         cmake.subproject('vorbis', options: vorbis_options).dependency('vorbis'),
