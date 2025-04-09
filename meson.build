@@ -35,6 +35,7 @@ global_args += '-DHAVE_NANOSLEEP'
 if is_libretro
     is_vita = core_is_static and host_cpu_family == 'arm' and compilers['c'].has_header_symbol('sys/config.h', '__vita__')
     is_devkitarm = core_is_static and host_cpu_family == 'arm' and not is_vita
+    is_devkitppc = core_is_static and host_cpu_family == 'ppc'
 
     embedtool = executable('embedtool', sources: 'embedtool.cpp', native: true, override_options: ['buildtype=release', 'b_coverage=false', 'b_lto=false', 'b_ndebug=false', 'b_pgo=off', 'b_sanitize=none'])
 
@@ -349,6 +350,11 @@ if is_libretro
     if is_devkitarm
         libretro_defines += '-D__DEVKITPRO__'
         libretro_defines += '-D__DEVKITARM__'
+    endif
+
+    if is_devkitppc
+        libretro_defines += '-D__DEVKITPRO__'
+        libretro_defines += '-D__DEVKITPPC__'
     endif
 
     # Position-independent code is not supported on some platforms where we need to build a static library, e.g. https://github.com/vitasdk/vita-toolchain/issues/264

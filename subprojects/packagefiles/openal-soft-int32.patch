@@ -16,7 +16,7 @@
       */
      return fastf2i(clampf(val*2147483648.0f, -2147483648.0f, 2147483520.0f));
  }
-+#ifdef __DEVKITARM__
++#if defined(__DEVKITARM__) || defined(__DEVKITPPC__)
 +template<> inline long SampleConv(float val) noexcept { return (long)SampleConv<int>(val); }
 +#endif
  template<> inline int16_t SampleConv(float val) noexcept
