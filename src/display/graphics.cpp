@@ -74,7 +74,7 @@
 #  define DEF_SCREEN_W 640
 #  define DEF_SCREEN_H 480
 
-#  define DEF_FRAMERATE 60
+#  define DEF_FRAMERATE 40
 #else
 #  define DEF_SCREEN_W (rgssVer == 1 ? 640 : 544)
 #  define DEF_SCREEN_H (rgssVer == 1 ? 480 : 416)

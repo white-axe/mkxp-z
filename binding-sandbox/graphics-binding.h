@@ -196,7 +196,26 @@ namespace mkxp_sandbox {
         }
 
         static VALUE get_frame_rate(VALUE self) {
-            return sb()->bind<struct rb_float_new>()()(60.0); // TODO: use actual FPS
+            return sb()->bind<struct rb_ll2inum>()()(shState->graphics().getFrameRate());
+        }
+
+        static VALUE set_frame_rate(VALUE self, VALUE value) {
+            SANDBOX_COROUTINE(coro,
+                int frame_rate;
+
+                VALUE operator()(VALUE self, VALUE value) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT_AND_SET(frame_rate, rb_num2int, value);
+                        GFX_LOCK;
+                        shState->graphics().setFrameRate(frame_rate);
+                        GFX_UNLOCK;
+                    }
+
+                    return value;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, value);
         }
 
         VALUE module;
@@ -214,6 +233,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_module_function, module, "frame_count", (VALUE (*)(ANYARGS))get_frame_count, 0);
                 SANDBOX_AWAIT(rb_define_module_function, module, "frame_count=", (VALUE (*)(ANYARGS))set_frame_count, 1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "frame_rate", (VALUE (*)(ANYARGS))get_frame_rate, 0);
+                SANDBOX_AWAIT(rb_define_module_function, module, "frame_rate=", (VALUE (*)(ANYARGS))set_frame_rate, 1);
             }
         }
     )

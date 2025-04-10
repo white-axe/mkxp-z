@@ -36,11 +36,29 @@
 #include "filesystem.h"
 #include "gl-fun.h"
 #include "glstate.h"
+#include "sharedmidistate.h"
 
 using namespace mkxp_retro;
 using namespace mkxp_sandbox;
 
 static uint64_t frame_count;
+
+extern const uint8_t mkxp_retro_dist_zip[];
+extern const size_t mkxp_retro_dist_zip_len;
+
+static bool initialized = false;
+static ALCdevice *al_device = NULL;
+static ALCcontext *al_context = NULL;
+static LPALCRENDERSAMPLESSOFT alcRenderSamplesSOFT = NULL;
+static LPALCLOOPBACKOPENDEVICESOFT alcLoopbackOpenDeviceSOFT = NULL;
+static uint32_t frame_rate;
+static uint32_t frame_rate_remainder;
+static uint32_t samples_per_frame;
+static uint32_t samples_per_frame_remainder;
+static int16_t *sound_buf = NULL;
+static bool retro_framebuffer_supported;
+static bool shared_state_initialized;
+static PHYSFS_File *rgssad = NULL;
 
 namespace mkxp_retro {
     retro_log_printf_t log_printf;
@@ -53,22 +71,9 @@ namespace mkxp_retro {
     retro_hw_render_callback hw_render;
 
     uint64_t get_ticks() noexcept {
-        return (frame_count * 1000) / 60;
+        return (frame_count * 1000) / shState->graphics().getFrameRate();
     }
 }
-
-extern const uint8_t mkxp_retro_dist_zip[];
-extern const size_t mkxp_retro_dist_zip_len;
-
-static bool initialized = false;
-static ALCdevice *al_device = NULL;
-static ALCcontext *al_context = NULL;
-static LPALCRENDERSAMPLESSOFT alcRenderSamplesSOFT = NULL;
-static LPALCLOOPBACKOPENDEVICESOFT alcLoopbackOpenDeviceSOFT = NULL;
-static int16_t *sound_buf;
-static bool retro_framebuffer_supported;
-static bool shared_state_initialized;
-static PHYSFS_File *rgssad = NULL;
 
 static void fallback_log(enum retro_log_level level, const char *fmt, ...) {
     std::va_list va;
@@ -142,6 +147,10 @@ SANDBOX_COROUTINE(main,
 )
 
 static void deinit_sandbox() {
+    if (sound_buf != NULL) {
+        mkxp_aligned_free(sound_buf);
+        sound_buf = NULL;
+    }
     mkxp_retro::sandbox.reset();
     audio.reset();
     if (al_context != NULL) {
@@ -230,7 +239,7 @@ static bool init_sandbox() {
         ALC_FORMAT_TYPE_SOFT,
         ALC_SHORT_SOFT,
         ALC_FREQUENCY,
-        44100,
+        SYNTH_SAMPLERATE,
         0,
     };
     al_context = alcCreateContext(al_device, al_attrs);
@@ -255,6 +264,9 @@ static bool init_sandbox() {
         return false;
     }
 
+    sound_buf = NULL;
+    frame_rate = 0;
+    frame_rate_remainder = 0;
     frame_count = 0;
     shared_state_initialized = false;
 
@@ -313,11 +325,9 @@ extern "C" RETRO_API void retro_set_input_state(retro_input_state_t cb) {
 extern "C" RETRO_API void retro_init() {
     initialized = true;
     frame_buf = (uint32_t *)std::calloc(640 * 480, sizeof *frame_buf);
-    sound_buf = (int16_t *)mkxp_aligned_malloc(16, 735 * 2 * sizeof *sound_buf);
 }
 
 extern "C" RETRO_API void retro_deinit() {
-    mkxp_aligned_free(sound_buf);
     std::free(frame_buf);
     initialized = false;
 }
@@ -338,8 +348,8 @@ extern "C" RETRO_API void retro_get_system_info(struct retro_system_info *info) 
 extern "C" RETRO_API void retro_get_system_av_info(struct retro_system_av_info *info) {
     std::memset(info, 0, sizeof *info);
     info->timing = {
-        .fps = 60.0,
-        .sample_rate = 44100.0,
+        .fps = 40.0,
+        .sample_rate = (double)SYNTH_SAMPLERATE,
     };
     info->geometry = {
         .base_width = 640,
@@ -381,6 +391,39 @@ extern "C" RETRO_API void retro_run() {
         }
     }
 
+    if (mkxp_retro::sandbox.has_value()) {
+        // Update frame rate if needed
+        if (frame_rate != shState->graphics().getFrameRate()) {
+            frame_rate = shState->graphics().getFrameRate();
+            frame_rate_remainder %= frame_rate;
+            samples_per_frame = SYNTH_SAMPLERATE / frame_rate;
+            samples_per_frame_remainder = SYNTH_SAMPLERATE % frame_rate;
+
+            if (sound_buf != NULL) {
+                mkxp_aligned_free(sound_buf);
+            }
+            sound_buf = (int16_t *)mkxp_aligned_malloc(16, (samples_per_frame + !!samples_per_frame_remainder) * 2 * sizeof(int16_t));
+            if (sound_buf == NULL) {
+                throw std::bad_alloc();
+            }
+
+            struct retro_system_av_info info;
+            std::memset(&info, 0, sizeof info);
+            info.timing = {
+                .fps = (double)frame_rate,
+                .sample_rate = (double)SYNTH_SAMPLERATE,
+            };
+            info.geometry = {
+                .base_width = 640,
+                .base_height = 480,
+                .max_width = 640,
+                .max_height = 480,
+                .aspect_ratio = 640.0f / 480.0f,
+            };
+            environment(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO, &info);
+        }
+    }
+
     void *fb;
     if (hw_render.context_type != RETRO_HW_CONTEXT_NONE) {
         gl.UseProgram(0);
@@ -408,8 +451,16 @@ extern "C" RETRO_API void retro_run() {
 
     if (mkxp_retro::sandbox.has_value()) {
         audio->render();
-        alcRenderSamplesSOFT(al_device, sound_buf, 735);
-        audio_sample_batch(sound_buf, 735);
+
+        uint32_t samples = samples_per_frame;
+        frame_rate_remainder += samples_per_frame_remainder;
+        if (frame_rate_remainder >= frame_rate) {
+            ++samples;
+            frame_rate_remainder -= frame_rate;
+        }
+
+        alcRenderSamplesSOFT(al_device, sound_buf, samples);
+        audio_sample_batch(sound_buf, samples);
     }
 
     ++frame_count;
