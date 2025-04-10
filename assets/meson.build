@@ -25,3 +25,17 @@ foreach file : embedded_assets_f
     )
     count += 1
 endforeach
+
+if is_libretro
+    global_sources += custom_target(
+        'GMGSx',
+        input: 'GMGSx.sf2',
+        output: 'GMGSx.sf2.cpp',
+        command: [
+            embedtool,
+            '@INPUT@',
+            '@OUTPUT@',
+            'mkxp_gmgsx_sf2',
+        ],
+    )
+endif
