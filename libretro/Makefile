@@ -139,6 +139,7 @@ $(DOWNLOADS)/crossruby/configure.ac: $(DOWNLOADS)/ruby-12995.patch
 	mkdir -p $(DOWNLOADS)
 	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/crossruby -b $(RUBY_VERSION)
 	cd $(DOWNLOADS)/crossruby && $(GIT) apply $(DOWNLOADS)/ruby-12995.patch
+	cd $(DOWNLOADS)/crossruby && $(GIT) apply ${PWD}/ruby-compat.patch
 	echo '#include "${PWD}/ruby-bindings.h"' >> $(DOWNLOADS)/crossruby/gc.c
 
 $(DOWNLOADS)/ruby-12995.patch:
