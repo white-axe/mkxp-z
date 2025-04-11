@@ -1,3 +1,7 @@
+if get_option('cjk_fallback_font') == true
+    global_args += '-DMKXPZ_CJK_FONT'
+endif
+
 if is_libretro
     cmake = import('cmake')
 
@@ -14,7 +18,7 @@ if is_libretro
     boost_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
         'CMAKE_C_FLAGS': ' '.join(global_args),
-        'CMAKE_CXX_FLAGS': ' '.join(global_args),
+        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'BUILD_TESTING': false,
     })
@@ -37,7 +41,7 @@ if is_libretro
     zlib_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
         'CMAKE_C_FLAGS': ' '.join(global_args),
-        'CMAKE_CXX_FLAGS': ' '.join(global_args),
+        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'BUILD_SHARED_LIBS': false,
         'ZLIB_BUILD_EXAMPLES': false,
@@ -48,7 +52,7 @@ if is_libretro
     physfs_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
         'CMAKE_C_FLAGS': ' '.join(global_args),
-        'CMAKE_CXX_FLAGS': ' '.join(global_args),
+        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'PHYSFS_BUILD_STATIC': true,
         'PHYSFS_BUILD_SHARED': false,
@@ -61,7 +65,7 @@ if is_libretro
     openal_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
         'CMAKE_C_FLAGS': ' '.join(global_args),
-        'CMAKE_CXX_FLAGS': ' '.join(global_args),
+        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'LIBTYPE': 'STATIC',
         'ALSOFT_DLOPEN': false,
@@ -97,7 +101,7 @@ if is_libretro
     fluidsynth_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
         'CMAKE_C_FLAGS': ' '.join(global_args),
-        'CMAKE_CXX_FLAGS': ' '.join(global_args),
+        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'BUILD_SHARED_LIBS': false,
         'enable-aufile': false,
@@ -134,7 +138,7 @@ if is_libretro
     ogg_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
         'CMAKE_C_FLAGS': ' '.join(global_args),
-        'CMAKE_CXX_FLAGS': ' '.join(global_args),
+        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'BUILD_SHARED_LIBS': false,
         'BUILD_TESTING': false,
@@ -146,7 +150,7 @@ if is_libretro
     vorbis_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
         'CMAKE_C_FLAGS': ' '.join(global_args),
-        'CMAKE_CXX_FLAGS': ' '.join(global_args),
+        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'BUILD_SHARED_LIBS': false,
         'BUILD_TESTING': false,
@@ -159,7 +163,7 @@ if is_libretro
     flac_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
         'CMAKE_C_FLAGS': ' '.join(global_args),
-        'CMAKE_CXX_FLAGS': ' '.join(global_args),
+        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'BUILD_SHARED_LIBS': false,
         'BUILD_CXXLIBS': false,
@@ -180,7 +184,7 @@ if is_libretro
     opus_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
         'CMAKE_C_FLAGS': ' '.join(global_args),
-        'CMAKE_CXX_FLAGS': ' '.join(global_args),
+        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'BUILD_SHARED_LIBS': false,
         'OPUS_BUILD_SHARED_LIBRARY': false,
@@ -200,7 +204,7 @@ if is_libretro
     mpg123_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
         'CMAKE_C_FLAGS': ' '.join(global_args),
-        'CMAKE_CXX_FLAGS': ' '.join(global_args),
+        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'BUILD_SHARED_LIBS': false,
         'BUILD_PROGRAMS': false,
@@ -215,7 +219,7 @@ if is_libretro
     libsndfile_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
         'CMAKE_C_FLAGS': ' '.join(global_args),
-        'CMAKE_CXX_FLAGS': ' '.join(global_args),
+        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'BUILD_SHARED_LIBS': false,
         'BUILD_PROGRAMS': false,
@@ -235,7 +239,7 @@ if is_libretro
     pixman_region_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
         'CMAKE_C_FLAGS': ' '.join(global_args),
-        'CMAKE_CXX_FLAGS': ' '.join(global_args),
+        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'CMAKE_BUILD_TYPE': 'None',
     })
@@ -260,6 +264,17 @@ if is_libretro
         'zlib=disabled',
     ]
     global_dependencies += subproject('freetype', default_options: freetype_options).get_variable('freetype_dep')
+
+    uchardet_options = cmake.subproject_options()
+    uchardet_options.add_cmake_defines({
+        'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
+        'CMAKE_C_FLAGS': ' '.join(global_args),
+        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
+        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
+        'BUILD_BINARY': false,
+        'BUILD_SHARED_LIBS': false,
+    })
+    global_dependencies += cmake.subproject('uchardet', options: uchardet_options).dependency('libuchardet')
 else
     physfs = dependency('physfs', version: '>=2.1', static: build_static)
     openal = dependency('openal', static: build_static, method: 'pkg-config')
@@ -350,10 +365,6 @@ else
             global_dependencies += compilers['cpp'].find_library('dsound')
         endif
     endif
-endif
-
-if get_option('cjk_fallback_font') == true
-    global_args += '-DMKXPZ_CJK_FONT'
 endif
 
 global_include_dirs += include_directories('.',

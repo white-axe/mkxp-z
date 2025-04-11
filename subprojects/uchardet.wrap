@@ -1,0 +1,4 @@
+[wrap-git]
+url = https://gitlab.freedesktop.org/uchardet/uchardet
+revision = v0.0.8
+depth = 1
