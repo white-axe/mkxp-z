@@ -385,7 +385,6 @@ try { exp } catch (...) {}
 #ifndef MKXPZ_RETRO
     // Determine whether to open a console window on... Windows
     winConsole = getEnvironmentBool("MKXPZ_WINDOWS_CONSOLE", editor.debug);
-#endif // MKXPZ_RETRO
     
 #ifdef __APPLE__
     // Determine whether to use the Metal renderer on macOS
@@ -393,7 +392,6 @@ try { exp } catch (...) {}
     preferMetalRenderer = isMetalSupported() && getEnvironmentBool("MKXPZ_MACOS_METAL", preferMetalRenderer);
 #endif
     
-#ifndef MKXPZ_RETRO
     // Determine whether to allow manual selection of a game folder on startup
     // Only works on macOS atm, mainly used to test games located outside of the bundle.
     // The config is re-read after the window is already created, so some entries
