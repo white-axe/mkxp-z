@@ -127,19 +127,12 @@ void GLState::reset() {
   blendMode.init(BlendNormal);
   blend.init(true);
   scissorTest.init(false);
-#ifdef MKXPZ_RETRO
-  scissorBox.init(IntRect(0, 0, 640, 480)); // TODO: get from config
-  viewport.init(IntRect(0, 0, 640, 480));
-#else
   scissorBox.init(IntRect(0, 0, conf.defScreenW, conf.defScreenH));
   viewport.init(IntRect(0, 0, conf.defScreenW, conf.defScreenH));
-#endif // MKXPZ_RETRO
   program.init(0);
 
   gl.ActiveTexture(GL_TEXTURE0);
 
-#ifndef MKXPZ_RETRO // TODO
   if (conf.maxTextureSize > 0)
     caps.maxTexSize = conf.maxTextureSize;
-#endif // MKXPZ_RETRO
 }

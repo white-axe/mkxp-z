@@ -88,6 +88,9 @@ public:
 		inline PHYSFS_File &operator*() {
 			return *get();
 		}
+		inline bool is_open() {
+			return inner != NULL;
+		}
 	};
 
 	FileSystem(const char *argv0,

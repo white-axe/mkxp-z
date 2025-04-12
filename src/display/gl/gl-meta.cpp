@@ -195,18 +195,10 @@ int smoothScalingMethod(int scaleIsSpecial)
 	case SameScale:
 		return NearestNeighbor;
 	case DownScale:
-#ifdef MKXPZ_RETRO
-		return 0; // TODO: get from config
-#else
 		return shState->config().smoothScalingDown;
-#endif // MKXPZ_RETRO
 	}
 
-#ifdef MKXPZ_RETRO
-	return 0; // TODO: get from config
-#else
 	return shState->config().smoothScaling;
-#endif // MKXPZ_RETRO
 }
 
 static void _blitBegin(FBO::ID fbo, const Vec2i &size, int scaleIsSpecial)

@@ -70,17 +70,10 @@
 #include <climits>
 
 
-#ifdef MKXPZ_RETRO
-#  define DEF_SCREEN_W 640
-#  define DEF_SCREEN_H 480
+#define DEF_SCREEN_W (rgssVer == 1 ? 640 : 544)
+#define DEF_SCREEN_H (rgssVer == 1 ? 480 : 416)
 
-#  define DEF_FRAMERATE 40
-#else
-#  define DEF_SCREEN_W (rgssVer == 1 ? 640 : 544)
-#  define DEF_SCREEN_H (rgssVer == 1 ? 480 : 416)
-
-#  define DEF_FRAMERATE (rgssVer == 1 ? 40 : 60)
-#endif // MKXPZ_RETRO
+#define DEF_FRAMERATE (rgssVer == 1 ? 40 : 60)
 
 #define DEF_MAX_VIDEO_FRAMES 30
 #define VIDEO_DELAY 10
@@ -859,18 +852,10 @@ struct GraphicsPrivate {
     
     GraphicsPrivate(RGSSThreadData *rtData)
     : scResLores(DEF_SCREEN_W, DEF_SCREEN_H),
-#ifdef MKXPZ_RETRO
-    scRes(DEF_SCREEN_W, DEF_SCREEN_H), // TODO: get from config
-#else
     scRes(rtData->config.enableHires ? (int)lround(rtData->config.framebufferScalingFactor * DEF_SCREEN_W) : DEF_SCREEN_W,
         rtData->config.enableHires ? (int)lround(rtData->config.framebufferScalingFactor * DEF_SCREEN_H) : DEF_SCREEN_H),
-#endif // MKXPZ_RETRO
     scSize(scRes),
-#ifdef MKXPZ_RETRO
-    winSize(640, 480), // TODO: use actual screen size
-#else
     winSize(rtData->config.defScreenW, rtData->config.defScreenH),
-#endif // MKXPZ_RETRO
     screen(scRes.x, scRes.y), threadData(rtData),
 #ifndef MKXPZ_RETRO
     glCtx(SDL_GL_GetCurrentContext()),
@@ -880,11 +865,7 @@ struct GraphicsPrivate {
 #ifndef MKXPZ_RETRO
     fpsLimiter(frameRate),
 #endif // MKXPZ_RETRO
-#ifdef MKXPZ_RETRO
-    useFrameSkip(false), // TODO: get from config
-#else
     useFrameSkip(rtData->config.frameSkip),
-#endif // MKXPZ_RETRO
     frozen(false),
     last_update(0), last_avg_update(0), backingScaleFactor(1), integerScaleFactor(0, 0),
 #ifdef MKXPZ_RETRO
@@ -906,11 +887,7 @@ struct GraphicsPrivate {
             rebuildIntegerScaleBuffer();
         }
         
-#ifdef MKXPZ_RETRO
-        recalculateScreenSize(true); // TODO: get from config
-#else
         recalculateScreenSize(rtData->config.fixedAspectRatio);
-#endif // MKXPZ_RETRO
         updateScreenResoRatio(rtData);
         
         TEXFBO::init(frozenScene);
@@ -1575,7 +1552,7 @@ int Graphics::displayContentHeight() const {
 
 int Graphics::displayWidth() const {
 #ifdef MKXPZ_RETRO
-    return 640; // TODO: use actual width
+    return Graphics::displayContentWidth();
 #else
     SDL_DisplayMode dm{};
     SDL_GetCurrentDisplayMode(SDL_GetWindowDisplayIndex(shState->sdlWindow()), &dm);
@@ -1585,7 +1562,7 @@ int Graphics::displayWidth() const {
 
 int Graphics::displayHeight() const {
 #ifdef MKXPZ_RETRO
-    return 480; // TODO: use actual height
+    return Graphics::displayContentHeight();
 #else
     SDL_DisplayMode dm{};
     SDL_GetCurrentDisplayMode(SDL_GetWindowDisplayIndex(shState->sdlWindow()), &dm);
@@ -1794,11 +1771,7 @@ bool Graphics::getFixedAspectRatio() const
 {
     // It's a bit hacky to expose config values as a Graphics
     // attribute, but there's really no point in state duplication
-#ifdef MKXPZ_RETRO
-    return true; // TODO: get from config
-#else
     return shState->config().fixedAspectRatio;
-#endif // MKXPZ_RETRO
 }
 
 void Graphics::setFixedAspectRatio(bool value)
@@ -1815,11 +1788,7 @@ void Graphics::setFixedAspectRatio(bool value)
 int Graphics::getSmoothScaling() const
 {
     // Same deal as with fixed aspect ratio
-#ifdef MKXPZ_RETRO
-    return 0; // TODO: get from config
-#else
     return shState->config().smoothScaling;
-#endif // MKXPZ_RETRO
 }
 
 void Graphics::setSmoothScaling(int value)

@@ -1237,11 +1237,7 @@ void Bitmap::stretchBlt(IntRect destRect,
         if (srcSurf)
         {
             SDL_Rect srcRect = sourceRect;
-#ifdef MKXPZ_RETRO
-            bool subImageFix = false; // TODO: get from config
-#else
             bool subImageFix = shState->config().subImageFix;
-#endif // MKXPZ_RETRO
             bool srcRectTooBig = srcRect.w > glState.caps.maxTexSize ||
                                  srcRect.h > glState.caps.maxTexSize;
             bool srcSurfTooBig = !unpack_subimage && (
@@ -1843,7 +1839,10 @@ Color Bitmap::getPixel(int x, int y) const
     }
     
 #ifdef MKXPZ_RETRO
-    return Color(); // TODO: implement
+    return Color(((uint8_t *)p->surface->pixels)[4 * (p->surface->w * y + x)],
+                 ((uint8_t *)p->surface->pixels)[4 * (p->surface->w * y + x) + 1],
+                 ((uint8_t *)p->surface->pixels)[4 * (p->surface->w * y + x) + 2],
+                 ((uint8_t *)p->surface->pixels)[4 * (p->surface->w * y + x) + 3]);
 #else
     uint32_t pixel = getPixelAt(p->surface, p->format, x, y);
     
@@ -2686,11 +2685,7 @@ int Bitmap::addFrame(Bitmap &source, int position)
         p->animation.startTime = 0;
         
         if (p->animation.fps <= 0)
-#ifdef MKXPZ_RETRO // TODO: use actual FPS
-            p->animation.fps = 60.0;
-#else
             p->animation.fps = shState->graphics().getFrameRate();
-#endif // MKXPZ_RETRO
         
         p->animation.frames.push_back(p->gl);
         

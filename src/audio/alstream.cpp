@@ -242,11 +242,7 @@ struct ALStreamOpenHandler : FileSystem::OpenHandler
 
 			if (!strcmp(sig, "MThd"))
 			{
-#ifdef MKXPZ_RETRO
-				shState->midiState().initIfNeeded();
-#else
 				shState->midiState().initIfNeeded(shState->config());
-#endif // MKXPZ_RETRO
 
 				if (HAVE_FLUID)
 				{

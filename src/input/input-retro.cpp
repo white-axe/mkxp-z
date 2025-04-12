@@ -21,12 +21,13 @@
 
 #include "input.h"
 #include "core.h"
+#include "sharedstate.h"
+#include "graphics.h"
 
 #define JOYPAD_BUTTON_MAX 16
 #define REPEAT_NONE 255
-#define REPEAT_START 0.4 // TODO: should be 0.375 when RGSS version >= 2
+#define REPEAT_START (rgssVer >= 2 ? 0.375 : 0.400)
 #define REPEAT_DELAY 0.1
-#define FPS 60.0 // TODO: use the actual FPS
 
 static std::unordered_map<int, uint8_t> codeToJoypadId = {
     {Input::Down, RETRO_DEVICE_ID_JOYPAD_DOWN},
@@ -233,7 +234,8 @@ bool Input::isReleased(int button)
 
 bool Input::isRepeated(int button)
 {
-    return p->isRepeat(button) && (p->repeatCount == 0 || (p->repeatCount >= (size_t)std::ceil(REPEAT_START * FPS) && (p->repeatCount + 1) % (size_t)std::ceil(REPEAT_DELAY * FPS) == 0));
+    int frame_rate = shState->graphics().getFrameRate();
+    return p->isRepeat(button) && (p->repeatCount == 0 || (p->repeatCount >= (size_t)std::ceil(REPEAT_START * frame_rate) && (p->repeatCount + 1) % (size_t)std::ceil(REPEAT_DELAY * frame_rate) == 0));
 }
 
 unsigned int Input::count(int button)
@@ -243,7 +245,7 @@ unsigned int Input::count(int button)
 
 double Input::repeatTime(int button)
 {
-    return p->isRepeat(button) ? (double)p->repeatCount / FPS : 0;
+    return p->isRepeat(button) ? (double)p->repeatCount / shState->graphics().getFrameRate() : 0;
 }
 
 bool Input::isPressedEx(int button, bool isVKey)

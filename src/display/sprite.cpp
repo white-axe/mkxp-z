@@ -632,11 +632,7 @@ void Sprite::draw()
     int sourceWidthHires = p->bitmap->hasHires() ? p->bitmap->getHires()->width() : p->bitmap->width();
     int sourceHeightHires = p->bitmap->hasHires() ? p->bitmap->getHires()->height() : p->bitmap->height();
 
-#ifdef MKXPZ_RETRO
-    double framebufferScalingFactor = 1.0; // TODO: get from config
-#else
     double framebufferScalingFactor = shState->config().enableHires ? shState->config().framebufferScalingFactor : 1.0;
-#endif // MKXPZ_RETRO
 
     int targetWidthHires = (int)lround(framebufferScalingFactor * p->bitmap->width() * p->trans.getScale().x);
     int targetHeightHires = (int)lround(framebufferScalingFactor * p->bitmap->height() * p->trans.getScale().y);
@@ -747,11 +743,7 @@ void Sprite::draw()
             shader.bind();
 
             shader.setTexSize(Vec2i(sourceWidthHires, sourceHeightHires));
-#ifdef MKXPZ_RETRO
-            shader.setSharpness(100); // TODO: get from config
-#else
             shader.setSharpness(shState->config().bicubicSharpness);
-#endif // MKXPZ_RETRO
             shader.setSpriteMat(p->trans.getMatrix());
             shader.applyViewportProj();
             base = &shader;
@@ -775,11 +767,7 @@ void Sprite::draw()
             shader.bind();
 
             shader.setTexSize(Vec2i(sourceWidthHires, sourceHeightHires));
-#ifdef MKXPZ_RETRO
-            shader.setTargetScale(Vec2(1.0f, 1.0f)); // TODO: get from config
-#else
             shader.setTargetScale(Vec2((float)(shState->config().xbrzScalingFactor), (float)(shState->config().xbrzScalingFactor)));
-#endif // MKXPZ_RETRO
             shader.setSpriteMat(p->trans.getMatrix());
             shader.applyViewportProj();
             base = &shader;

@@ -77,9 +77,9 @@ struct SharedStatePrivate
 	FileSystem fileSystem;
 
 	EventThread &eThread;
+#endif // MKXPZ_RETRO
 	RGSSThreadData &rtData;
 	Config &config;
-#endif // MKXPZ_RETRO
 	SharedMidiState midiState;
 
 	Graphics graphics;
@@ -117,9 +117,9 @@ struct SharedStatePrivate
 	      sdlWindow(threadData->window),
 	      fileSystem(threadData->argv0, threadData->config.allowSymlinks),
 	      eThread(*threadData->ethread),
+#endif // MKXPZ_RETRO
 	      rtData(*threadData),
 	      config(threadData->config),
-#endif // MKXPZ_RETRO
 #ifdef MKXPZ_RETRO
               midiState(),
 #else
@@ -184,12 +184,10 @@ struct SharedStatePrivate
 		TEXFBO::allocEmpty(gpTexFBO, globalTexW, globalTexH);
 		TEXFBO::linkFBO(gpTexFBO);
 
-#ifndef MKXPZ_RETRO
 		/* RGSS3 games will call setup_midi, so there's
 		 * no need to do it on startup */
 		if (rgssVer <= 2)
 			midiState.initIfNeeded(threadData->config);
-#endif // MKXPZ_RETRO
 	}
 
 	~SharedStatePrivate()
@@ -206,9 +204,7 @@ void SharedState::initInstance(RGSSThreadData *threadData)
 	 * SharedState depends on GlobalIBO existing,
 	 * Font depends on SharedState existing */
 
-#ifndef MKXPZ_RETRO
 	rgssVersion = threadData->config.rgssVersion;
-#endif // MKXPZ_RETRO
     
 	_globalIBO = new GlobalIBO();
 	_globalIBO->ensureSize(1);
@@ -262,9 +258,9 @@ GSATT(Scene*, screen)
 #ifndef MKXPZ_RETRO
 GSATT(FileSystem&, fileSystem)
 GSATT(EventThread&, eThread)
+#endif // MKXPZ_RETRO
 GSATT(RGSSThreadData&, rtData)
 GSATT(Config&, config)
-#endif // MKXPZ_RETRO
 GSATT(Graphics&, graphics)
 #ifndef MKXPZ_RETRO
 GSATT(Input&, input)

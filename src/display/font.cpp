@@ -624,11 +624,7 @@ void Font::initDefaults(const SharedFontState &sfs)
 	std::vector<std::string> &names = FontPrivate::initialDefaultNames;
 	names.clear();
 
-#ifdef MKXPZ_RETRO // TODO: get from config
-	switch (1)
-#else
 	switch (rgssVer)
-#endif // MKXPZ_RETRO
 	{
 	case 1 :
 		// FIXME: Japanese version has "MS PGothic" instead
@@ -648,13 +644,8 @@ void Font::initDefaults(const SharedFontState &sfs)
 
 	setDefaultName(names, sfs);
 
-#ifdef MKXPZ_RETRO // TODO: get from config
-	FontPrivate::defaultOutline = false;
-	FontPrivate::defaultShadow  = false;
-#else
 	FontPrivate::defaultOutline = (rgssVer >= 3 ? true : false);
 	FontPrivate::defaultShadow  = (rgssVer == 2 ? true : false);
-#endif // MKXPZ_RETRO
 }
 
 #ifdef MKXPZ_RETRO

@@ -8,9 +8,7 @@ if is_libretro
     global_args += '-DMPG123_NO_LARGENAME'
     global_args += '-DGL_GLES_PROTOTYPES=0'
 
-    if host_system == 'darwin'
-        global_dependencies += compilers['cpp'].find_library('iconv')
-    endif
+    global_dependencies += dependency('iconv', static: core_is_static or host_system == 'windows')
 
     global_dependencies += subproject('libretro-common').get_variable('libretro_common')
 
@@ -381,7 +379,7 @@ global_include_dirs += include_directories('.',
 
 main_source = files(
     is_libretro ? 'core.cpp' : 'main.cpp',
-    is_libretro ? [] : 'config.cpp',
+    'config.cpp',
     is_libretro ? [] : 'eventthread.cpp',
     is_libretro ? [] : 'settingsmenu.cpp',
     'sharedstate.cpp',
@@ -427,7 +425,7 @@ main_source = files(
     'display/gl/tilequad.cpp',
     'display/gl/vertex.cpp',
 
-    is_libretro ? [] : 'util/iniconfig.cpp',
+    'util/iniconfig.cpp',
     is_libretro ? [] : 'util/win-consoleutils.cpp',
 
     'etc/etc.cpp',

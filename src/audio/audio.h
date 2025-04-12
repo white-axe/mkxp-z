@@ -77,15 +77,13 @@ public:
 
 	void reset();
 
-#ifdef MKXPZ_RETRO
-	Audio();
-	~Audio();
-#endif // MKXPZ_RETRO
-
-private:
 #ifndef MKXPZ_RETRO
+private:
+#endif // MKXPZ_RETRO
 	Audio(RGSSThreadData &rtData);
 	~Audio();
+#ifdef MKXPZ_RETRO
+private:
 #endif // MKXPZ_RETRO
 
 	friend struct SharedStatePrivate;

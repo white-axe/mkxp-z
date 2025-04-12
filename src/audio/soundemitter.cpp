@@ -94,17 +94,9 @@ arrayPushBack(std::vector<size_t> &array, size_t size, size_t index)
 	array[size-1] = v;
 }
 
-#ifdef MKXPZ_RETRO
-SoundEmitter::SoundEmitter()
-#else
 SoundEmitter::SoundEmitter(const Config &conf)
-#endif // MKXPZ_RETRO
     : bufferBytes(0),
-#ifdef MKXPZ_RETRO
-      srcCount(6), // TODO: get from config
-#else
       srcCount(conf.SE.sourceCount),
-#endif // MKXPZ_RETRO
       alSrcs(srcCount),
       atchBufs(srcCount),
       srcPrio(srcCount)

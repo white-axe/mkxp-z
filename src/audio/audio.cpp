@@ -31,7 +31,9 @@
 #include <string>
 #include <vector>
 
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+#  include "graphics.h"
+#else
 #  include "sdl-util.h"
 #  include <SDL_thread.h>
 #  include <SDL_timer.h>
@@ -74,24 +76,16 @@ struct AudioPrivate
 		MeWatchState state;
 	} meWatch;
 
-#ifdef MKXPZ_RETRO
-	AudioPrivate()
-#else
 	AudioPrivate(RGSSThreadData &rtData)
-#endif // MKXPZ_RETRO
 	    : bgs(ALStream::Looped, "bgs"),
 	      me(ALStream::NotLooped, "me"),
-#ifndef MKXPZ_RETRO
 	      se(rtData.config),
+#ifndef MKXPZ_RETRO
 	      syncPoint(rtData.syncPoint),
 #endif // MKXPZ_RETRO
           volumeRatio(1)
 	{
-#ifdef MKXPZ_RETRO
-        for (int i = 0; i < 16; i++) { // TODO: read BGM track count from config
-#else
         for (int i = 0; i < rtData.config.BGM.trackCount; i++) {
-#endif // MKXPZ_RETRO
             std::string id = std::string("bgm" + std::to_string(i));
             bgmTracks.push_back(new AudioStream(ALStream::Looped, id.c_str()));
         }
@@ -123,9 +117,10 @@ struct AudioPrivate
 
 	void meWatchProc()
 	{
-#ifdef MKXPZ_RETRO // TODO: use FPS
-		const float fadeOutStep = 1.f / (200  / 17);
-		const float fadeInStep  = 1.f / (1000 / 17);
+#ifdef MKXPZ_RETRO
+		const int fps = shState->graphics().getFrameRate();
+		const float fadeOutStep = 5.f / fps;
+		const float fadeInStep  = 1.f / fps;
 #else
 		const float fadeOutStep = 1.f / (200  / AUDIO_SLEEP);
 		const float fadeInStep  = 1.f / (1000 / AUDIO_SLEEP);
@@ -316,15 +311,9 @@ struct AudioPrivate
 #endif // MKXPZ_RETRO
 };
 
-#ifdef MKXPZ_RETRO
-Audio::Audio()
-	: p(new AudioPrivate())
-{}
-#else
 Audio::Audio(RGSSThreadData &rtData)
 	: p(new AudioPrivate(rtData))
 {}
-#endif // MKXPZ_RETRO
 
 #ifdef MKXPZ_RETRO
 void Audio::render() {

@@ -6,7 +6,11 @@
 //
 
 #include "config.h"
-#include <SDL_filesystem.h>
+#ifdef MKXPZ_RETRO
+#  include "core.h"
+#else
+#  include <SDL_filesystem.h>
+#endif // MKXPZ_RETRO
 #include <assert.h>
 
 #include <stdint.h>
@@ -28,7 +32,8 @@
 
 namespace json = json5pp;
 
-std::string prefPath(const char *org, const char *app) {
+#ifndef MKXPZ_RETRO
+static std::string prefPath(const char *org, const char *app) {
     char *path = SDL_GetPrefPath(org, app);
     if (!path)
         return std::string("");
@@ -36,8 +41,9 @@ std::string prefPath(const char *org, const char *app) {
     SDL_free(path);
     return ret;
 }
+#endif // MKXPZ_RETRO
 
-void fillStringVec(json::value &item, std::vector<std::string> &vector) {
+static void fillStringVec(json::value &item, std::vector<std::string> &vector) {
     if (!item.is_array()) {
         if (item.is_string()) {
             vector.push_back(item.as_string());
@@ -53,7 +59,7 @@ void fillStringVec(json::value &item, std::vector<std::string> &vector) {
     }
 }
 
-bool copyObject(json::value &dest, json::value &src, const char *objectName = "") {
+static bool copyObject(json::value &dest, json::value &src, const char *objectName = "") {
     assert(dest.is_object());
     if (src.is_null())
         return false;
@@ -84,7 +90,8 @@ bool copyObject(json::value &dest, json::value &src, const char *objectName = ""
     return true;
 }
 
-bool getEnvironmentBool(const char *env, bool defaultValue) {
+#ifndef MKXPZ_RETRO
+static bool getEnvironmentBool(const char *env, bool defaultValue) {
     const char *e = SDL_getenv(env);
     if (!e)
         return defaultValue;
@@ -96,16 +103,40 @@ bool getEnvironmentBool(const char *env, bool defaultValue) {
     
     return defaultValue;
 }
+#endif // MKXPZ_RETRO
 
-json::value readConfFile(const char *path) {
+static json::value readConfFile(const char *path) {
     
     json::value ret(0);
-    if (!mkxp_fs::fileExists(path)) {
+
+#ifdef MKXPZ_RETRO
+    FileSystem::File file(*mkxp_retro::fs, path, FileSystem::OpenMode::Read);
+    if (!file.is_open())
+#else
+    if (!mkxp_fs::fileExists(path))
+#endif // MKXPZ_RETRO
+    {
         return json::object({});
     }
     
     try {
+#ifdef MKXPZ_RETRO
+        std::vector<uint8_t> buf(16);
+        size_t size = 0;
+        for (;;) {
+            PHYSFS_sint64 n = PHYSFS_readBytes(file.get(), buf.data() + size, buf.size() - size);
+            if (n <= 0) {
+                break;
+            }
+            size += n;
+            if (size >= buf.size()) {
+                buf.resize(buf.size() * 2);
+            }
+        }
+        std::string cfg(buf.begin(), buf.begin() + size);
+#else
         std::string cfg = mkxp_fs::contentsOfFileAsString(path);
+#endif // MKXPZ_RETRO
         ret = json::parse5(Encoding::convertString(cfg));
     }
     catch (const std::exception &e) {
@@ -121,7 +152,12 @@ json::value readConfFile(const char *path) {
     return ret;
 }
 
-#define CONF_FILE "mkxp.json"
+#define _CONF_FILE "mkxp.json"
+#ifdef MKXPZ_RETRO
+#  define CONF_FILE "/mkxp-retro-game/" _CONF_FILE
+#else
+#  define CONF_FILE _CONF_FILE
+#endif // MKXPZ_RETRO
 
 Config::Config() {}
 
@@ -254,17 +290,21 @@ try { exp } catch (...) {}
     SET_OPT(defScreenW, integer);
     SET_OPT(defScreenH, integer);
     
+#ifndef MKXPZ_RETRO
     // Take a break real quick and witch to set game folder and read the game's ini
     if (!gameFolder.empty() && !mkxp_fs::setCurrentDirectory(gameFolder.c_str())) {
         throw Exception(Exception::MKXPError, "Unable to switch into gameFolder %s", gameFolder.c_str());
     }
+#endif // MKXPZ_RETRO
     
     readGameINI();
     
+#ifndef MKXPZ_RETRO
     // Now check for an extra mkxp.conf in the user's save directory and merge anything else from that
     userConfPath = mkxp_fs::normalizePath(std::string(customDataPath + "/" CONF_FILE).c_str(), 0, 1);
     json::value userConf = readConfFile(userConfPath.c_str());
     copyObject(optsJ, userConf);
+#endif // MKXPZ_RETRO
     
     // now RESUME
     
@@ -342,8 +382,10 @@ try { exp } catch (...) {}
     SE.sourceCount = clamp(SE.sourceCount, 1, 64);
     BGM.trackCount = clamp(BGM.trackCount, 1, 16);
     
+#ifndef MKXPZ_RETRO
     // Determine whether to open a console window on... Windows
     winConsole = getEnvironmentBool("MKXPZ_WINDOWS_CONSOLE", editor.debug);
+#endif // MKXPZ_RETRO
     
 #ifdef __APPLE__
     // Determine whether to use the Metal renderer on macOS
@@ -351,11 +393,13 @@ try { exp } catch (...) {}
     preferMetalRenderer = isMetalSupported() && getEnvironmentBool("MKXPZ_MACOS_METAL", preferMetalRenderer);
 #endif
     
+#ifndef MKXPZ_RETRO
     // Determine whether to allow manual selection of a game folder on startup
     // Only works on macOS atm, mainly used to test games located outside of the bundle.
     // The config is re-read after the window is already created, so some entries
     // may not take effect
     manualFolderSelect = getEnvironmentBool("MKXPZ_FOLDER_SELECT", false);
+#endif // MKXPZ_RETRO
     
     raw = optsJ;
 }
@@ -387,14 +431,29 @@ void Config::readGameINI() {
         return;
     }
     
+#ifdef MKXPZ_RETRO
+    std::string iniFileName("/mkxp-retro-game/" + execName + ".ini");
+    std::shared_ptr<FileSystem::File> iniFile(new FileSystem::File(*mkxp_retro::fs, iniFileName.c_str(), FileSystem::OpenMode::Read));
+#else
     std::string iniFileName(execName + ".ini");
     SDLRWStream iniFile(iniFileName.c_str(), "r");
+#endif // MKXPZ_RETRO
     
     bool convSuccess = false;
+#ifdef MKXPZ_RETRO
+    if (iniFile->is_open())
+#else
     if (iniFile)
+#endif // MKXPZ_RETRO
     {
         INIConfiguration ic;
+#ifdef MKXPZ_RETRO
+        PHYSFSRWBuf buf(iniFile);
+        std::istream stream(&buf);
+        if (ic.load(stream))
+#else
         if (ic.load(iniFile.stream()))
+#endif // MKXPZ_RETRO
         {
             GUARD(game.title = ic.getStringProperty("Game", "Title"););
             GUARD(game.scripts = ic.getStringProperty("Game", "Scripts"););
@@ -429,7 +488,9 @@ void Config::readGameINI() {
     if (dataPathApp.empty())
         dataPathApp = game.title;
     
+#ifndef MKXPZ_RETRO
     customDataPath = mkxp_fs::normalizePath(prefPath(dataPathOrg.c_str(), dataPathApp.c_str()).c_str(), 0, 1);
+#endif // MKXPZ_RETRO
     
     if (rgssVersion == 0) {
         /* Try to guess RGSS version based on Data/Scripts extension */

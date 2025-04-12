@@ -37,6 +37,7 @@
 #include "gl-fun.h"
 #include "glstate.h"
 #include "sharedmidistate.h"
+#include "eventthread.h"
 
 using namespace mkxp_retro;
 using namespace mkxp_sandbox;
@@ -59,6 +60,7 @@ static int16_t *sound_buf = NULL;
 static bool retro_framebuffer_supported;
 static bool shared_state_initialized;
 static PHYSFS_File *rgssad = NULL;
+static retro_system_av_info av_info;
 
 namespace mkxp_retro {
     retro_log_printf_t log_printf;
@@ -107,6 +109,8 @@ boost::optional<struct sandbox> mkxp_retro::sandbox;
 boost::optional<Audio> mkxp_retro::audio;
 boost::optional<Input> mkxp_retro::input;
 boost::optional<FileSystem> mkxp_retro::fs;
+static boost::optional<Config> conf;
+static boost::optional<RGSSThreadData> thread_data;
 static std::string game_path;
 
 static VALUE func(VALUE arg) {
@@ -165,6 +169,8 @@ static void deinit_sandbox() {
         PHYSFS_close(rgssad);
         rgssad = NULL;
     }
+    thread_data.reset();
+    conf.reset();
     fs.reset();
     input.reset();
 }
@@ -201,13 +207,16 @@ static bool init_sandbox() {
 
         fs->addPath(parsed_game_path.c_str(), "/mkxp-retro-game");
 
-        // TODO: use execName from config instead of hardcoding "Game" as the filename
-        if ((rgssad = PHYSFS_openRead("/mkxp-retro-game/Game.rgssad")) != NULL) {
-            PHYSFS_mountHandle(rgssad, "Game.rgssad", "/mkxp-retro-game", 1);
-        } else if ((rgssad = PHYSFS_openRead("/mkxp-retro-game/Game.rgss2a")) != NULL) {
-            PHYSFS_mountHandle(rgssad, "Game.rgss2a", "/mkxp-retro-game", 1);
-        } else if ((rgssad = PHYSFS_openRead("/mkxp-retro-game/Game.rgss3a")) != NULL) {
-            PHYSFS_mountHandle(rgssad, "Game.rgss3a", "/mkxp-retro-game", 1);
+        conf.emplace();
+        conf->read(0, NULL);
+        thread_data.emplace((EventThread *)NULL, (const char *)NULL, (SDL_Window *)NULL, (ALCdevice *)NULL, 60, 1, *conf);
+
+        if ((rgssad = PHYSFS_openRead(("/mkxp-retro-game/" + conf->execName + ".rgssad").c_str())) != NULL) {
+            PHYSFS_mountHandle(rgssad, (conf->execName + ".rgssad").c_str(), "/mkxp-retro-game", 1);
+        } else if ((rgssad = PHYSFS_openRead(("/mkxp-retro-game/" + conf->execName + ".rgss2a").c_str())) != NULL) {
+            PHYSFS_mountHandle(rgssad, (conf->execName + ".rgss2a").c_str(), "/mkxp-retro-game", 1);
+        } else if ((rgssad = PHYSFS_openRead(("/mkxp-retro-game/" + conf->execName + ".rgss3a").c_str())) != NULL) {
+            PHYSFS_mountHandle(rgssad, (conf->execName + ".rgss3a").c_str(), "/mkxp-retro-game", 1);
         }
 
         PHYSFS_mountMemory(mkxp_retro_dist_zip, mkxp_retro_dist_zip_len, NULL, "mkxp-retro-dist.zip", "/mkxp-retro-dist", 1);
@@ -254,7 +263,7 @@ static bool init_sandbox() {
     fluid_set_log_function(FLUID_INFO, fluid_log, NULL);
     fluid_set_log_function(FLUID_DBG, fluid_log, NULL);
 
-    audio.emplace();
+    audio.emplace(*thread_data);
 
     try {
         mkxp_retro::sandbox.emplace();
@@ -263,6 +272,16 @@ static bool init_sandbox() {
         deinit_sandbox();
         return false;
     }
+
+    int default_width = conf->rgssVersion == 1 ? 640 : 544;
+    int default_height = conf->rgssVersion == 1 ? 480 : 544;
+    av_info.geometry.base_width = conf->enableHires ? (int)lround(conf->framebufferScalingFactor * default_width) : default_width;
+    av_info.geometry.base_height = conf->enableHires ? (int)lround(conf->framebufferScalingFactor * default_height) : default_height;
+    av_info.geometry.max_width = av_info.geometry.base_width;
+    av_info.geometry.max_height = av_info.geometry.base_height;
+    av_info.geometry.aspect_ratio = (float)av_info.geometry.base_width / (float)av_info.geometry.base_height;
+    av_info.timing.fps = conf->rgssVersion == 1 ? 40.0 : 60.0;
+    av_info.timing.sample_rate = (double)SYNTH_SAMPLERATE;
 
     sound_buf = NULL;
     frame_rate = 0;
@@ -346,18 +365,7 @@ extern "C" RETRO_API void retro_get_system_info(struct retro_system_info *info) 
 }
 
 extern "C" RETRO_API void retro_get_system_av_info(struct retro_system_av_info *info) {
-    std::memset(info, 0, sizeof *info);
-    info->timing = {
-        .fps = 40.0,
-        .sample_rate = (double)SYNTH_SAMPLERATE,
-    };
-    info->geometry = {
-        .base_width = 640,
-        .base_height = 480,
-        .max_width = 640,
-        .max_height = 480,
-        .aspect_ratio = 640.0f / 480.0f,
-    };
+    *info = av_info;
 }
 
 extern "C" RETRO_API void retro_set_controller_port_device(unsigned int port, unsigned int device) {
@@ -373,7 +381,7 @@ extern "C" RETRO_API void retro_run() {
 
     // We deferred initializing the shared state since the OpenGL symbols aren't available until the first call to `retro_run()`
     if (!shared_state_initialized) {
-        SharedState::initInstance(NULL);
+        SharedState::initInstance(&thread_data.get());
         shared_state_initialized = true;
     } else if (hw_render.context_type != RETRO_HW_CONTEXT_NONE) {
         glState.reset();
@@ -391,37 +399,22 @@ extern "C" RETRO_API void retro_run() {
         }
     }
 
-    if (mkxp_retro::sandbox.has_value()) {
-        // Update frame rate if needed
-        if (frame_rate != shState->graphics().getFrameRate()) {
-            frame_rate = shState->graphics().getFrameRate();
-            frame_rate_remainder %= frame_rate;
-            samples_per_frame = SYNTH_SAMPLERATE / frame_rate;
-            samples_per_frame_remainder = SYNTH_SAMPLERATE % frame_rate;
+    if (mkxp_retro::sandbox.has_value() && frame_rate != shState->graphics().getFrameRate()) {
+        frame_rate = shState->graphics().getFrameRate();
+        frame_rate_remainder %= frame_rate;
+        samples_per_frame = SYNTH_SAMPLERATE / frame_rate;
+        samples_per_frame_remainder = SYNTH_SAMPLERATE % frame_rate;
 
-            if (sound_buf != NULL) {
-                mkxp_aligned_free(sound_buf);
-            }
-            sound_buf = (int16_t *)mkxp_aligned_malloc(16, (samples_per_frame + !!samples_per_frame_remainder) * 2 * sizeof(int16_t));
-            if (sound_buf == NULL) {
-                throw std::bad_alloc();
-            }
-
-            struct retro_system_av_info info;
-            std::memset(&info, 0, sizeof info);
-            info.timing = {
-                .fps = (double)frame_rate,
-                .sample_rate = (double)SYNTH_SAMPLERATE,
-            };
-            info.geometry = {
-                .base_width = 640,
-                .base_height = 480,
-                .max_width = 640,
-                .max_height = 480,
-                .aspect_ratio = 640.0f / 480.0f,
-            };
-            environment(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO, &info);
+        if (sound_buf != NULL) {
+            mkxp_aligned_free(sound_buf);
         }
+        sound_buf = (int16_t *)mkxp_aligned_malloc(16, (samples_per_frame + !!samples_per_frame_remainder) * 2 * sizeof(int16_t));
+        if (sound_buf == NULL) {
+            throw std::bad_alloc();
+        }
+
+        av_info.timing.fps = frame_rate;
+        environment(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO, &av_info);
     }
 
     void *fb;
@@ -447,7 +440,9 @@ extern "C" RETRO_API void retro_run() {
             fb = frame_buf;
         }
     }
-    video_refresh(fb, 640, 480, 640 * 4);
+    unsigned int width = shState->graphics().width();
+    unsigned int height = shState->graphics().height();
+    video_refresh(fb, width, height, width * 4);
 
     if (mkxp_retro::sandbox.has_value()) {
         audio->render();

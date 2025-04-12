@@ -605,11 +605,7 @@ struct TilemapPrivate
 			/* Mega surface tileset */
 			SDL_Surface *tsSurf = tileset->megaSurface();
 
-#ifdef MKXPZ_RETRO
-			if (false) // TODO: get from config
-#else
 			if (shState->config().subImageFix)
-#endif // MKXPZ_RETRO
 			{
 				/* Implementation for broken GL drivers */
 				FBO::bind(atlas.gl.fbo);

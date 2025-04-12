@@ -111,12 +111,8 @@ Viewport::Viewport()
     : SceneElement(*shState->screen()),
       sceneLink(this)
 {
-#ifdef MKXPZ_RETRO
-	initViewport(0, 0, 640, 480); // TODO: use the actual viewport size
-#else
 	const Graphics &graphics = shState->graphics();
 	initViewport(0, 0, graphics.width(), graphics.height());
-#endif // MKXPZ_RETRO
 }
 
 void Viewport::initViewport(int x, int y, int width, int height)

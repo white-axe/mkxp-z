@@ -35,7 +35,9 @@ struct Config {
     int rgssVersion;
     
     bool debugMode;
+#ifndef MKXPZ_RETRO
     bool winConsole;
+#endif // MKXPZ_RETRO
     bool preferMetalRenderer;
     bool displayFPS;
     bool printFPS;
@@ -78,7 +80,9 @@ struct Config {
     } integerScaling;
     
     std::string gameFolder;
+#ifndef MKXPZ_RETRO
     bool manualFolderSelect;
+#endif // MKXPZ_RETRO
     
     bool anyAltToggleFS;
     bool enableReset;
@@ -165,7 +169,9 @@ struct Config {
     std::string userConfPath;
     
     /* Internal */
+#ifndef MKXPZ_RETRO
     std::string customDataPath;
+#endif // MKXPZ_RETRO
     
     Config();
     

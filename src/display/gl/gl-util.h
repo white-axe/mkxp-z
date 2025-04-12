@@ -104,16 +104,12 @@ namespace TEX
 
 	static inline void setSmooth(bool mode)
 	{
-#ifndef MKXPZ_RETRO // TODO: get from config
 		if (mode && shState->config().smoothScalingMipmaps) {
 			gl.GenerateMipmap(GL_TEXTURE_2D);
 			gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		} else {
-#endif // MKXPZ_RETRO
 			gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, mode ? GL_LINEAR : GL_NEAREST);
-#ifndef MKXPZ_RETRO
 		}
-#endif // MKXPZ_RETRO
 
 		gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mode ? GL_LINEAR : GL_NEAREST);
 	}
