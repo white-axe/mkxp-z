@@ -1,0 +1,2 @@
+option('cflags', type: 'string')
+option('cppflags', type: 'string')

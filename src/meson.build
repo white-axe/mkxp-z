@@ -8,9 +8,26 @@ if is_libretro
     global_args += '-DMPG123_NO_LARGENAME'
     global_args += '-DGL_GLES_PROTOTYPES=0'
 
-    global_dependencies += dependency('iconv', static: core_is_static or host_system == 'windows')
-
     global_dependencies += subproject('libretro-common').get_variable('libretro_common')
+
+    uchardet_options = cmake.subproject_options()
+    uchardet_options.add_cmake_defines({
+        'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
+        'CMAKE_C_FLAGS': ' '.join(global_args),
+        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
+        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
+        'BUILD_BINARY': false,
+        'BUILD_SHARED_LIBS': false,
+    })
+    global_dependencies += cmake.subproject('uchardet', options: uchardet_options).dependency('libuchardet')
+
+    libiconv_options = [
+        'cflags=@0@'.format(','.join(global_args)),
+        'cppflags=@0@'.format(','.join(global_args)),
+        'default_library=static',
+        'b_staticpic=@0@'.format(use_pic),
+    ]
+    global_dependencies += subproject('libiconv', default_options: libiconv_options).get_variable('libiconv')
 
     boost_options = cmake.subproject_options()
     boost_options.add_cmake_defines({
@@ -262,17 +279,6 @@ if is_libretro
         'zlib=disabled',
     ]
     global_dependencies += subproject('freetype', default_options: freetype_options).get_variable('freetype_dep')
-
-    uchardet_options = cmake.subproject_options()
-    uchardet_options.add_cmake_defines({
-        'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
-        'CMAKE_C_FLAGS': ' '.join(global_args),
-        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
-        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
-        'BUILD_BINARY': false,
-        'BUILD_SHARED_LIBS': false,
-    })
-    global_dependencies += cmake.subproject('uchardet', options: uchardet_options).dependency('libuchardet')
 else
     physfs = dependency('physfs', version: '>=2.1', static: build_static)
     openal = dependency('openal', static: build_static, method: 'pkg-config')
