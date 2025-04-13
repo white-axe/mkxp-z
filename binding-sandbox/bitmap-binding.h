@@ -29,26 +29,27 @@
 namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type bitmap_type;
 
+    SANDBOX_COROUTINE(bitmap_init_props,
+        VALUE id;
+        VALUE klass;
+        VALUE font;
+
+        void operator()(Bitmap *bitmap, VALUE obj) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_AND_SET(id, rb_intern, "Font");
+                SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                SANDBOX_AWAIT_AND_SET(font, rb_class_new_instance, 0, NULL, klass);
+                SANDBOX_AWAIT(rb_iv_set, obj, "font", font);
+                // TODO: handle hires bitmaps
+                bitmap->setInitFont(get_private_data<Font>(font));
+            }
+        }
+    )
+
+
     SANDBOX_COROUTINE(bitmap_binding_init,
         SANDBOX_DEF_ALLOC(bitmap_type)
         SANDBOX_DEF_DFREE(Bitmap)
-
-        SANDBOX_COROUTINE(init_props,
-            VALUE id;
-            VALUE klass;
-            VALUE font;
-
-            void operator()(Bitmap *bitmap, VALUE obj) {
-                BOOST_ASIO_CORO_REENTER (this) {
-                    SANDBOX_AWAIT_AND_SET(id, rb_intern, "Font");
-                    SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                    SANDBOX_AWAIT_AND_SET(font, rb_class_new_instance, 0, NULL, klass);
-                    SANDBOX_AWAIT(rb_iv_set, obj, "font", font);
-                    // TODO: handle hires bitmaps
-                    bitmap->setInitFont(get_private_data<Font>(font));
-                }
-            }
-        )
 
         static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
             SANDBOX_COROUTINE(coro,
@@ -69,7 +70,7 @@ namespace mkxp_sandbox {
                         }
 
                         set_private_data(self, bitmap);
-                        SANDBOX_AWAIT(init_props, bitmap, self);
+                        SANDBOX_AWAIT(bitmap_init_props, bitmap, self);
                     }
 
                     return SANDBOX_NIL;
@@ -95,7 +96,7 @@ namespace mkxp_sandbox {
                         orig = get_private_data<Bitmap>(value);
                         GFX_GUARD_EXC(bitmap = new Bitmap(*orig););
 
-                        SANDBOX_AWAIT(init_props, bitmap, self);
+                        SANDBOX_AWAIT(bitmap_init_props, bitmap, self);
                         bitmap->setFont(orig->getFont());
                         set_private_data(self, bitmap);
                     }
@@ -344,6 +345,7 @@ namespace mkxp_sandbox {
             SANDBOX_COROUTINE(coro,
                 Bitmap *bitmap;
                 wasm_ptr_t str;
+                VALUE obj;
                 int align;
                 int x;
                 int y;
@@ -354,10 +356,13 @@ namespace mkxp_sandbox {
                     BOOST_ASIO_CORO_REENTER (this) {
                         bitmap = get_private_data<Bitmap>(self);
 
-                        // TODO: handle RGSS version >= 2
-
                         if (argc == 2 || argc == 3) {
-                            SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, (VALUE *)(**sb() + argv) + 1);
+                            if (rgssVer >= 2) {
+                                SANDBOX_AWAIT_AND_SET(obj, rb_obj_as_string, ((VALUE *)(**sb() + argv))[1]);
+                                SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &obj);
+                            } else {
+                                SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, (VALUE *)(**sb() + argv) + 1);
+                            }
                             if (argc == 2) {
                                 GFX_GUARD_EXC(bitmap->drawText(get_private_data<Rect>(((VALUE *)(**sb() + argv))[0])->toIntRect(), (const char *)(**sb() + str));)
                             } else {
@@ -369,7 +374,12 @@ namespace mkxp_sandbox {
                             SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
                             SANDBOX_AWAIT_AND_SET(width, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
                             SANDBOX_AWAIT_AND_SET(height, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
-                            SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, (VALUE *)(**sb() + argv) + 4);
+                            if (rgssVer >= 2) {
+                                SANDBOX_AWAIT_AND_SET(obj, rb_obj_as_string, ((VALUE *)(**sb() + argv))[4]);
+                                SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &obj);
+                            } else {
+                                SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, (VALUE *)(**sb() + argv) + 4);
+                            }
                             if (argc < 6) {
                                 GFX_GUARD_EXC(bitmap->drawText(x, y, width, height, (const char *)(**sb() + str));)
                             } else {
@@ -411,7 +421,16 @@ namespace mkxp_sandbox {
                             SANDBOX_AWAIT(rb_iv_set, f, "bold", prop);
                             SANDBOX_AWAIT_AND_SET(prop, rb_iv_get, value, "italic");
                             SANDBOX_AWAIT(rb_iv_set, f, "italic", prop);
-                            // TODO: handle shadow and outline
+
+                            if (rgssVer >= 2) {
+                                SANDBOX_AWAIT_AND_SET(prop, rb_iv_get, value, "shadow");
+                                SANDBOX_AWAIT(rb_iv_set, f, "shadow", prop);
+                            }
+
+                            if (rgssVer >= 3) {
+                                SANDBOX_AWAIT_AND_SET(prop, rb_iv_get, value, "outline");
+                                SANDBOX_AWAIT(rb_iv_set, f, "outline", prop);
+                            }
                         }
                     }
 
@@ -431,7 +450,12 @@ namespace mkxp_sandbox {
 
                 VALUE operator()(VALUE self, VALUE text) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &text);
+                        if (rgssVer >= 2) {
+                            SANDBOX_AWAIT_AND_SET(obj, rb_obj_as_string, text);
+                            SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &obj);
+                        } else {
+                            SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &text);
+                        }
                         SANDBOX_AWAIT_AND_SET(id, rb_intern, "Rect");
                         SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
                         SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);

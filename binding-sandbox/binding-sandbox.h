@@ -36,8 +36,10 @@
 #include "sprite-binding.h"
 #include "table-binding.h"
 #include "tilemap-binding.h"
+#include "tilemapvx-binding.h"
 #include "viewport-binding.h"
 #include "window-binding.h"
+#include "windowvx-binding.h"
 
 extern const char module_rpg1[];
 extern const char module_rpg2[];
@@ -113,7 +115,15 @@ namespace mkxp_sandbox {
                 decode_buffer = NULL;
 
                 // Unmarshal the script array
-                SANDBOX_AWAIT_AND_SET(value, rb_file_open, "/mkxp-retro-game/Data/Scripts.rxdata", "rb"); // TODO: handle VX/VXA games
+                if (rgssVer == 1) {
+                    SANDBOX_AWAIT_AND_SET(value, rb_file_open, "/mkxp-retro-game/Data/Scripts.rxdata", "rb");
+                } else if (rgssVer == 2) {
+                    SANDBOX_AWAIT_AND_SET(value, rb_file_open, "/mkxp-retro-game/Data/Scripts.rvdata", "rb");
+                } else if (rgssVer == 3) {
+                    SANDBOX_AWAIT_AND_SET(value, rb_file_open, "/mkxp-retro-game/Data/Scripts.rvdata2", "rb");
+                } else {
+                    std::abort();
+                }
                 SANDBOX_AWAIT_AND_SET(scripts, rb_marshal_load, value);
                 SANDBOX_AWAIT(rb_io_close, value);
 
@@ -123,7 +133,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT_AND_SET(script_count, get_length, scripts);
                 decode_buffer_len = 0x1000;
                 if ((decode_buffer = (unsigned char *)std::malloc(decode_buffer_len)) == NULL) {
-                    throw SandboxOutOfMemoryException();
+                    throw std::bad_alloc();
                 }
 
                 for (i = 0; i < script_count; ++i) {
@@ -138,7 +148,7 @@ namespace mkxp_sandbox {
                     SANDBOX_AWAIT_AND_SET(value, rb_ary_entry, script, 1);
                     SANDBOX_AWAIT_AND_SET(script_name, rb_string_value_cstr, &value);
                     SANDBOX_AWAIT_AND_SET(value, rb_ary_entry, script, 2);
-                    SANDBOX_AWAIT_AND_SET(script_string_len, get_length, value);
+                    SANDBOX_AWAIT_AND_SET(script_string_len, get_bytesize, value);
                     SANDBOX_AWAIT_AND_SET(script_string, rb_string_value_ptr, &value);
 
                     // Decompress the script contents
@@ -160,12 +170,12 @@ namespace mkxp_sandbox {
 
                             unsigned long new_decode_buffer_len;
                             if (__builtin_add_overflow(decode_buffer_len, decode_buffer_len, &new_decode_buffer_len)) {
-                                throw SandboxOutOfMemoryException();
+                                throw std::bad_alloc();
                             }
                             decode_buffer_len = new_decode_buffer_len;
                             unsigned char *new_decode_buffer = (unsigned char *)std::realloc(decode_buffer, decode_buffer_len);
                             if (new_decode_buffer == NULL) {
-                                throw SandboxOutOfMemoryException();
+                                throw std::bad_alloc();
                             }
                             decode_buffer = new_decode_buffer;
                             buffer_len = decode_buffer_len - 1;
@@ -242,6 +252,36 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(path);
         }
 
+        static VALUE rgss_main(VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                VALUE operator()(VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        // TODO
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self);
+        }
+
+        static VALUE rgss_stop(VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                VALUE operator()(VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        while (true) {
+                            SANDBOX_YIELD;
+                        }
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self);
+        }
+
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT(table_binding_init);
@@ -252,9 +292,13 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(viewport_binding_init);
                 SANDBOX_AWAIT(plane_binding_init);
 
-                // TODO: pick the correct window and tilemap bindings depending on RPG Maker version
-                SANDBOX_AWAIT(window_binding_init);
-                SANDBOX_AWAIT(tilemap_binding_init);
+                if (rgssVer == 1) {
+                    SANDBOX_AWAIT(window_binding_init);
+                    SANDBOX_AWAIT(tilemap_binding_init);
+                } else {
+                    SANDBOX_AWAIT(windowvx_binding_init);
+                    SANDBOX_AWAIT(tilemapvx_binding_init);
+                }
 
                 SANDBOX_AWAIT(input_binding_init);
                 SANDBOX_AWAIT(audio_binding_init);
@@ -262,8 +306,20 @@ namespace mkxp_sandbox {
 
                 SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "load_data", (VALUE (*)(ANYARGS))load_data, 1);
 
-                // TODO: pick the correct module to load depending on RPG Maker version
-                SANDBOX_AWAIT(rb_eval_string, module_rpg1);
+                if (rgssVer >= 3) {
+                    SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "rgss_main", (VALUE (*)(ANYARGS))rgss_main, 0);
+                    SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "rgss_stop", (VALUE (*)(ANYARGS))rgss_stop, 0);
+                }
+
+                if (rgssVer == 1) {
+                    SANDBOX_AWAIT(rb_eval_string, module_rpg1);
+                } else if (rgssVer == 2) {
+                    SANDBOX_AWAIT(rb_eval_string, module_rpg2);
+                } else if (rgssVer == 3) {
+                    SANDBOX_AWAIT(rb_eval_string, module_rpg3);
+                } else {
+                    std::abort();
+                }
 
                 SANDBOX_AWAIT(run_rmxp_scripts);
             }

@@ -204,11 +204,16 @@ static const Vec2i shadowArea(freeArea.x+2, freeArea.y);
 static SDL_Surface*
 createShadowSet()
 {
+#ifdef MKXPZ_RETRO
+	SDL_Surface *surf = new SDL_Surface;
+	surf->pixels = std::calloc(1*32 * 16*32, 4);
+#else
 	int bpp;
 	Uint32 rm, gm, bm, am;
 
 	SDL_PixelFormatEnumToMasks(SDL_PIXELFORMAT_ABGR8888, &bpp, &rm, &gm, &bm, &am);
 	SDL_Surface *surf = SDL_CreateRGBSurface(0, 1*32, 16*32, bpp, rm, gm, bm, am);
+#endif // MKXPZ_RETRO
 
 	std::vector<SDL_Rect> rects;
 	SDL_Rect rect = { 0, 0, 16, 16 };
@@ -251,8 +256,15 @@ createShadowSet()
 	}
 
 	/* Fill rects with half opacity black */
+#ifdef MKXPZ_RETRO
+	for (SDL_Rect &rect : rects)
+		for (int y = rect.y; y < rect.h; ++y)
+			for (int x = rect.x; x < rect.w; ++x)
+				((uint32_t *)surf->pixels)[rect.w * y + x] = 0x80808080;
+#else
 	uint32_t color = (0x80808080 & am);
 	SDL_FillRects(surf, dataPtr(rects), rects.size(), color);
+#endif // MKXPZ_RETRO
 
 	return surf;
 }
@@ -283,6 +295,7 @@ void build(TEXFBO &tf, Bitmap *bitmaps[BM_COUNT])
 	if (rgssVer >= 3)
 	{
 		SDL_Surface *shadow = createShadowSet();
+#ifndef MKXPZ_RETRO // TODO: implement
 		if (tf.selfHires != nullptr) {
 			SDL_Rect srcRect({0, 0, shadow->w, shadow->h});
 			int destX = shadowArea.x*32 * tf.selfHires->width / tf.width;
@@ -304,11 +317,18 @@ void build(TEXFBO &tf, Bitmap *bitmaps[BM_COUNT])
 				blitTemp->w, blitTemp->h, blitTemp->pixels, GL_RGBA);
 		}
 		else {
+#endif // MKXPZ_RETRO
 			TEX::bind(tf.tex);
 			TEX::uploadSubImage(shadowArea.x*32, shadowArea.y*32,
 				shadow->w, shadow->h, shadow->pixels, GL_RGBA);
+#ifndef MKXPZ_RETRO
 		}
+#endif // MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+		delete shadow;
+#else
 		SDL_FreeSurface(shadow);
+#endif // MKXPZ_RETRO
 	}
 
 	Bitmap *bm;

@@ -209,6 +209,7 @@ static bool init_sandbox() {
 
         conf.emplace();
         conf->read(0, NULL);
+        SharedState::rgssVersion = conf->rgssVersion;
         thread_data.emplace((EventThread *)NULL, (const char *)NULL, (SDL_Window *)NULL, (ALCdevice *)NULL, 60, 1, *conf);
 
         if ((rgssad = PHYSFS_openRead(("/mkxp-retro-game/" + conf->execName + ".rgssad").c_str())) != NULL) {
@@ -273,14 +274,14 @@ static bool init_sandbox() {
         return false;
     }
 
-    int default_width = conf->rgssVersion == 1 ? 640 : 544;
-    int default_height = conf->rgssVersion == 1 ? 480 : 544;
+    int default_width = rgssVer == 1 ? 640 : 544;
+    int default_height = rgssVer == 1 ? 480 : 544;
     av_info.geometry.base_width = conf->enableHires ? (int)lround(conf->framebufferScalingFactor * default_width) : default_width;
     av_info.geometry.base_height = conf->enableHires ? (int)lround(conf->framebufferScalingFactor * default_height) : default_height;
     av_info.geometry.max_width = av_info.geometry.base_width;
     av_info.geometry.max_height = av_info.geometry.base_height;
     av_info.geometry.aspect_ratio = (float)av_info.geometry.base_width / (float)av_info.geometry.base_height;
-    av_info.timing.fps = conf->rgssVersion == 1 ? 40.0 : 60.0;
+    av_info.timing.fps = rgssVer == 1 ? 40.0 : 60.0;
     av_info.timing.sample_rate = (double)SYNTH_SAMPLERATE;
 
     sound_buf = NULL;

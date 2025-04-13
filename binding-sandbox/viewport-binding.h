@@ -46,8 +46,10 @@ namespace mkxp_sandbox {
 
                 VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        // TODO: allow 0 arguments if RGSS version >= 3
-                        if (argc == 1) {
+                        if (argc == 0 && rgssVer >= 3) {
+                            GFX_LOCK;
+                            viewport = new Viewport;
+                        } else if (argc == 1) {
                             GFX_LOCK;
                             viewport = new Viewport(get_private_data<Rect>(((VALUE *)(**sb() + argv))[0]));
                         } else {
