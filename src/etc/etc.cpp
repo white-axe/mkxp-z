@@ -24,9 +24,30 @@
 #include "serial-util.h"
 #include "exception.h"
 
-#ifndef MKXPZ_RETRO
-#include <SDL_types.h>
-#include <SDL_pixels.h>
+#ifdef MKXPZ_RETRO
+bool SDL_IntersectRect(const SDL_Rect *in1, const SDL_Rect *in2, SDL_Rect *out)
+{
+	if (in1 == NULL || in2 == NULL || out == NULL)
+		return false;
+	if (in1->w <= 0 || in1->h <= 0 || in2->w <= 0 || in2->h <= 0)
+		return false;
+	out->x = std::max(in1->x, in2->x);
+	out->y = std::max(in1->y, in2->y);
+	out->w = std::min(in1->x + in1->w, in2->x + in2->w) - out->x;
+	out->h = std::min(in1->y + in1->h, in2->y + in2->h) - out->y;
+	if (out->w <= 0 || out->h <= 0)
+		return false;
+	return true;
+}
+
+bool SDL_HasIntersection(const SDL_Rect *in1, const SDL_Rect *in2)
+{
+	SDL_Rect out;
+	return SDL_IntersectRect(in1, in2, &out);
+}
+#else
+#  include <SDL_types.h>
+#  include <SDL_pixels.h>
 #endif // MKXPZ_RETRO
 
 Color::Color(double red, double green, double blue, double alpha)

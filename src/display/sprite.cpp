@@ -243,11 +243,7 @@ struct SpritePrivate
         self.w = bitmap->width();
         self.h = bitmap->height();
         
-#ifdef MKXPZ_RETRO // TODO
-        isVisible = true;
-#else
         isVisible = SDL_HasIntersection(&self, &sceneRect);
-#endif // MKXPZ_RETRO
     }
     
     void emitWaveChunk(SVertex *&vert, float phase, int width,

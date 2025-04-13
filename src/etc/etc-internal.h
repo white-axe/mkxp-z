@@ -32,6 +32,8 @@ struct SDL_Rect
 	int w;
 	int h;
 };
+bool SDL_IntersectRect(const SDL_Rect *in1, const SDL_Rect *in2, SDL_Rect *out);
+bool SDL_HasIntersection(const SDL_Rect *in1, const SDL_Rect *in2);
 #else
 #  include <SDL_rect.h>
 #endif // MKXPZ_RETRO
