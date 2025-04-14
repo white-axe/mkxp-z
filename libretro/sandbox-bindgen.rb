@@ -428,7 +428,10 @@ File.readlines('tags', chomp: true).each do |line|
   args = line[4]
   next unless args.start_with?('signature:(') && args.end_with?(')')
   args = args[11...-1]
-  args = args.gsub('VALUE,VALUE', '$').split(',').map { |arg| arg.gsub('$', 'VALUE,VALUE') }.map { |arg| arg == '...' ? '...' : arg.match?(/\(\* \w+\)/) ? arg.gsub(/\(\* \w+\)/, '(*)') : arg.rpartition(' ')[0].strip }
+  args = args
+    .gsub('VALUE,VALUE', '$').split(',').map { |arg| arg.gsub('$', 'VALUE,VALUE') } # Split into an array, where each element is one argument as a string, e.g. 'int argc' or 'char **argv' or 'void (*func)(int, void *)'
+    .filter { |arg| arg != 'void' } # Remove arguments that are equal to 'void'
+    .map { |arg| arg == '...' ? '...' : arg.match?(/\(\* \w+\)/) ? arg.gsub(/\(\* \w+\)/, '(*)') : arg.rpartition(' ')[0].strip } # Retrieve only the type of each argument, removing the variable name
   next unless (0...args.length).all? { |i| args[i] == '...' || (ARG_HANDLERS.include?(args[i]) && (ARG_HANDLERS[args[i]][:condition].nil? || ARG_HANDLERS[args[i]][:condition].call(func_name, args, i))) }
 
   coroutine_initializer = ''
