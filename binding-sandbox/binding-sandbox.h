@@ -87,7 +87,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT_AND_SET(value, rb_class_new_instance, 0, NULL, sb()->rb_cArray());
                 SANDBOX_AWAIT(rb_ary_push, value, string);
                 SANDBOX_AWAIT(rb_ary_push, value, filename);
-                SANDBOX_AWAIT_AND_SET(value, rb_rescue, func, value, rescue, SANDBOX_NIL);
+                SANDBOX_AWAIT_AND_SET(value, rb_rescue2, func, value, rescue, SANDBOX_NIL, sb()->rb_eException(), 0);
             }
 
             return value;
