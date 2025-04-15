@@ -51,8 +51,11 @@
 // LLVM uses a stack alignment of 16 on WebAssembly targets
 #define WASMSTACKALIGN 16
 
+// Rounds a number up to the nearest multiple of the WebAssembly stack alignment
+#define CEIL_WASMSTACKALIGN(x) (((x) + (size_t)(WASMSTACKALIGN - 1)) & ~(size_t)(WASMSTACKALIGN - 1))
+
 // Same as `sizeof(T)`, but rounds the result up to the nearest multiple of the WebAssembly stack alignment
-#define SIZEOF_WASMSTACKALIGN(T) ((sizeof(T) + (size_t)(WASMSTACKALIGN - 1)) & ~(size_t)(WASMSTACKALIGN - 1))
+#define SIZEOF_WASMSTACKALIGN(T) CEIL_WASMSTACKALIGN(sizeof(T))
 
 namespace mkxp_sandbox {
     struct binding_base {

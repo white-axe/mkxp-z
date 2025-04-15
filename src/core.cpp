@@ -145,7 +145,7 @@ static VALUE rescue(VALUE arg, VALUE exception) {
 SANDBOX_COROUTINE(main,
     void operator()() {
         BOOST_ASIO_CORO_REENTER (this) {
-            SANDBOX_AWAIT(rb_rescue2, func, 0, rescue, 0, sb()->rb_eException(), 0);
+            SANDBOX_AWAIT(rb_rescue2, func, SANDBOX_NIL, rescue, SANDBOX_NIL, sb()->rb_eException(), 0);
         }
     }
 )

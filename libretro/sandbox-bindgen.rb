@@ -511,52 +511,65 @@ File.readlines('tags', chomp: true).each do |line|
 
   coroutine_vars = []
 
+  fields = (0...args.length).filter_map do |i|
+    transformed_args.include?(i) && "wasm_ptr_t f#{i}"
+  end
+
   # If this is a varargs function, manually generate bindings for getting the varargs based on the function name
   if !args.empty? && args[-1] == '...'
     case func_name
     when 'rb_funcall'
       coroutine_initializer += <<~HEREDOC
-        f#{args.length - 1} = bind.sandbox_malloc(a#{args.length - 2} * sizeof(VALUE));
-        if (f#{args.length - 1} == 0) throw SandboxOutOfMemoryException();
+        fp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance());
+        sp = fp - CEIL_WASMSTACKALIGN(a#{args.length - 2} * sizeof(VALUE));
+        if (sp > fp) {
+            throw SandboxOutOfMemoryException();
+        }
+        w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), sp);
         std::va_list a;
         va_start(a, a#{args.length - 2});
         for (long i = 0; i < a#{args.length - 2}; ++i) {
-            ((VALUE *)(*bind + f#{args.length - 1}))[i] = va_arg(a, VALUE);
+            ((VALUE *)(*bind + sp))[i] = va_arg(a, VALUE);
         }
         va_end(a);
       HEREDOC
       coroutine_initializer += "\n"
-      buffers.append("f#{args.length - 1}")
+      fields.append('wasm_ptr_t fp')
+      fields.append('wasm_ptr_t sp')
+      buffers.append('fp')
+      buffers.append('sp')
     when 'rb_rescue2'
-      coroutine_vars.append('wasm_size_t n')
       coroutine_initializer += <<~HEREDOC
-        std::va_list a, b;
-        va_start(a, a#{args.length - 2});
-        va_copy(b, a);
-        n = 0;
-        do ++n; while (va_arg(b, VALUE));
-        va_end(b);
-        f#{args.length - 1} = bind.sandbox_malloc(n * sizeof(VALUE));
-        if (f#{args.length - 1} == 0) {
+        {
+            std::va_list a, b;
+            va_start(a, a#{args.length - 2});
+            va_copy(b, a);
+            wasm_size_t n = 0;
+            do ++n; while (va_arg(b, VALUE));
+            va_end(b);
+            fp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance());
+            sp = fp - CEIL_WASMSTACKALIGN(n * sizeof(VALUE));
+            if (sp > fp) {
+                throw SandboxOutOfMemoryException();
+            }
+            w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), sp);
+            for (wasm_size_t i = 0; i < n; ++i) {
+                ((VALUE *)(*bind + sp))[i] = va_arg(a, VALUE);
+            }
             va_end(a);
-            throw SandboxOutOfMemoryException();
-        }
-        for (wasm_size_t i = 0; i < n; ++i) {
-            ((VALUE *)(*bind + f#{args.length - 1}))[i] = va_arg(a, VALUE);
         }
       HEREDOC
       coroutine_initializer += "\n"
-      buffers.append("f#{args.length - 1}")
+      fields.append('wasm_ptr_t fp')
+      fields.append('wasm_ptr_t sp')
+      buffers.append('fp')
+      buffers.append('sp')
     else
       next
     end
   end
 
   handler = RET_HANDLERS[ret]
-
-  fields = (0...args.length).filter_map do |i|
-    (args[i] == '...' || transformed_args.include?(i)) && "wasm_ptr_t f#{i}"
-  end
 
   coroutine_ret = !RET_HANDLERS[ret][:keep] ? VAR_TYPE_TABLE[RET_HANDLERS[ret][:primitive]] : ret;
 
@@ -577,14 +590,16 @@ File.readlines('tags', chomp: true).each do |line|
   end
 
   coroutine_inner = <<~HEREDOC
-    #{handler[:primitive] == :void ? '' : 'r = '}w2c_#{MODULE_NAME}_#{func_name}(#{(['&bind.instance()'] + (0...args.length).map { |i| args[i] == '...' || transformed_args.include?(i) ? "f#{i}" : args[i] == 'VALUE' ? "SERIALIZE_VALUE(a#{i})" : args[i] == 'const rb_data_type_t *' ? "a#{i}.get()" : "a#{i}" }).join(', ')});
+    #{handler[:primitive] == :void ? '' : 'r = '}w2c_#{MODULE_NAME}_#{func_name}(#{(['&bind.instance()'] + (0...args.length).map { |i| args[i] == '...' ? 'sp' : transformed_args.include?(i) ? "f#{i}" : args[i] == 'VALUE' ? "SERIALIZE_VALUE(a#{i})" : args[i] == 'const rb_data_type_t *' ? "a#{i}.get()" : "a#{i}" }).join(', ')});
     if (w2c_#{MODULE_NAME}_asyncify_get_state(&bind.instance()) != 1) break;
     BOOST_ASIO_CORO_YIELD;
   HEREDOC
 
   coroutine_destructor = buffers.empty? ? '' : <<~HEREDOC
     #{func_name}::~#{func_name}() {
-    #{(0...buffers.length).map { |i| "    if (#{buffers[buffers.length - 1 - i]} != 0) bind.sandbox_free(#{buffers[buffers.length - 1 - i]});" }.join("\n")}
+    #{(0...buffers.length)
+      .filter { |i| buffers[buffers.length - 1 - i] != 'sp' }
+      .map { |i| "    if (#{buffers[buffers.length - 1 - i]} != 0) #{buffers[buffers.length - 1 - i] == 'fp' ? "w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), #{buffers[buffers.length - 1 - i]})" : "bind.sandbox_free(#{buffers[buffers.length - 1 - i]})"};" }.join("\n")}
     }
   HEREDOC
 
