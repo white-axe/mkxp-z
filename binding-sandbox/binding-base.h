@@ -123,7 +123,6 @@ namespace mkxp_sandbox {
             }
 
             static wasm_ptr_t init_inner(struct binding_base &bind, struct fiber &fiber) {
-                wasm_ptr_t sp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance());
                 uint32_t state = w2c_ruby_asyncify_get_state(&bind.instance());
 
                 if (fiber.stack_ptr > fiber.stack.size()) {
@@ -145,11 +144,12 @@ namespace mkxp_sandbox {
                     fiber.stack.pop_back();
                 }
                 ++fiber.stack_ptr;
+                wasm_ptr_t sp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance()) - SIZEOF_WASMSTACKALIGN(T);
                 fiber.stack.emplace_back(
                     bind,
                     stack_frame_destructor,
                     boost::typeindex::type_id<T>(),
-                    (sp -= SIZEOF_WASMSTACKALIGN(T))
+                    sp
                 );
                 assert(sp % sizeof(VALUE) == 0);
                 assert(sp % WASMSTACKALIGN == 0);
