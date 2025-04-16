@@ -25,8 +25,6 @@ if is_libretro and (host_cpu_family == 'ppc' or host_cpu_family == 'ppc64') and 
     error('LTO is required when building for PowerPC architectures. Please pass either `-Db_lto=true` or `-Druby_lto=true` to Meson.')
 endif
 
-embedtool = executable('embedtool', sources: 'embedtool.cpp', native: true, override_options: ['buildtype=release', 'b_coverage=false', 'b_lto=false', 'b_ndebug=false', 'b_pgo=off', 'b_sanitize=none'])
-
 global_sources = [vcs_tag(command: ['git', 'rev-parse', '--short=7', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h')]
 global_dependencies = []
 global_include_dirs = []
@@ -418,6 +416,7 @@ if not is_libretro
     global_args += '-DMKXPZ_INIT_GL_LATER'
 endif
 
+subdir('tools')
 subdir('src')
 subdir(is_libretro ? 'binding-sandbox' : 'binding')
 subdir('shader')
