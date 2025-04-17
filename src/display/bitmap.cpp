@@ -304,7 +304,12 @@ struct BitmapPrivate
     
     void allocSurface()
     {
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+        surface = new SDL_Surface {.w = gl.width, .h = gl.height, .pixels = std::malloc(4 * gl.width * gl.height)};
+        if (surface->pixels == nullptr) {
+            throw std::bad_alloc();
+        }
+#else
         surface = SDL_CreateRGBSurface(0, gl.width, gl.height, format->BitsPerPixel,
                                        format->Rmask, format->Gmask,
                                        format->Bmask, format->Amask);

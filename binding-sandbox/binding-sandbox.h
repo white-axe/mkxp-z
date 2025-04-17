@@ -261,9 +261,38 @@ namespace mkxp_sandbox {
 
         static VALUE rgss_main(VALUE self) {
             SANDBOX_COROUTINE(coro,
+                static VALUE func(VALUE block) {
+                    SANDBOX_COROUTINE(coro,
+                        ID id;
+
+                        VALUE operator()(VALUE block) {
+                            BOOST_ASIO_CORO_REENTER (this) {
+                                SANDBOX_AWAIT_AND_SET(id, rb_intern, "call");
+                                SANDBOX_AWAIT(rb_funcall, block, id, 0);
+                            }
+
+                            return SANDBOX_UNDEF;
+                        }
+                    )
+
+                    return sb()->bind<struct coro>()()(block);
+                }
+
+                static VALUE rescue(VALUE arg, VALUE exception) {
+                    return exception;
+                }
+
+                VALUE block;
+                VALUE exception;
+
                 VALUE operator()(VALUE self) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        // TODO
+                        SANDBOX_AWAIT_AND_SET(block, rb_block_proc);
+                        SANDBOX_AWAIT_AND_SET(exception, rb_rescue2, func, block, rescue, SANDBOX_NIL, sb()->rb_eException(), 0);
+                        if (exception != SANDBOX_UNDEF) {
+                            // TODO: handle reset
+                            SANDBOX_AWAIT(rb_exc_raise, exception);
+                        }
                     }
 
                     return SANDBOX_NIL;

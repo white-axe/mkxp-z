@@ -62,8 +62,8 @@ namespace mkxp_sandbox {
                             table->resize(x, y, z);
                         } else {
                             table = new Table(x, y, z);
+                            set_private_data(self, table);
                         }
-                        set_private_data(self, table);
                     }
 
                     return SANDBOX_NIL;

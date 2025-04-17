@@ -258,9 +258,9 @@ createShadowSet()
 	/* Fill rects with half opacity black */
 #ifdef MKXPZ_RETRO
 	for (SDL_Rect &rect : rects)
-		for (int y = rect.y; y < rect.h; ++y)
-			for (int x = rect.x; x < rect.w; ++x)
-				((uint32_t *)surf->pixels)[rect.w * y + x] = 0x80808080;
+		for (int y = 0; y < rect.h; ++y)
+			for (int x = 0; x < rect.w; ++x)
+				((uint32_t *)surf->pixels)[1*32 * (rect.y + y) + rect.x + x] = 0x80808080;
 #else
 	uint32_t color = (0x80808080 & am);
 	SDL_FillRects(surf, dataPtr(rects), rects.size(), color);

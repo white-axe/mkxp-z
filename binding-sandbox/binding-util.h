@@ -134,7 +134,7 @@ namespace mkxp_sandbox {
                 BOOST_ASIO_CORO_REENTER (this) {
                     SANDBOX_AWAIT_AND_SET(data.obj, rb_obj_alloc, self);
                     SANDBOX_AWAIT_AND_SET(data.ptr, rb_string_value_ptr, &serialized);
-                    SANDBOX_AWAIT_AND_SET(data.len, get_length, serialized);
+                    SANDBOX_AWAIT_AND_SET(data.len, get_bytesize, serialized);
                 }
 
                 return data;

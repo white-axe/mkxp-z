@@ -90,7 +90,6 @@ namespace mkxp_sandbox {
 
             static VALUE set(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 SANDBOX_COROUTINE(coro,
-                    Color *color;
                     double red;
                     double green;
                     double blue;
@@ -98,18 +97,19 @@ namespace mkxp_sandbox {
 
                     VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                         BOOST_ASIO_CORO_REENTER (this) {
-                            color = get_private_data<Color>(self);
-
-                            SANDBOX_AWAIT_AND_SET(red, rb_num2dbl, ((VALUE *)(**sb() + argv))[0]);
-                            SANDBOX_AWAIT_AND_SET(green, rb_num2dbl, ((VALUE *)(**sb() + argv))[1]);
-                            SANDBOX_AWAIT_AND_SET(blue, rb_num2dbl, ((VALUE *)(**sb() + argv))[2]);
-                            if (argc <= 3) {
-                                alpha = 255;
+                            if (argc == 1) {
+                                *get_private_data<Color>(self) = *get_private_data<Color>(((VALUE *)(**sb() + argv))[0]);
                             } else {
-                                SANDBOX_AWAIT_AND_SET(alpha, rb_num2dbl, ((VALUE *)(**sb() + argv))[3]);
+                                SANDBOX_AWAIT_AND_SET(red, rb_num2dbl, ((VALUE *)(**sb() + argv))[0]);
+                                SANDBOX_AWAIT_AND_SET(green, rb_num2dbl, ((VALUE *)(**sb() + argv))[1]);
+                                SANDBOX_AWAIT_AND_SET(blue, rb_num2dbl, ((VALUE *)(**sb() + argv))[2]);
+                                if (argc <= 3) {
+                                    alpha = 255;
+                                } else {
+                                    SANDBOX_AWAIT_AND_SET(alpha, rb_num2dbl, ((VALUE *)(**sb() + argv))[3]);
+                                }
+                                get_private_data<Color>(self)->set(red, green, blue, alpha);
                             }
-
-                            color->set(red, green, blue, alpha);
                         }
 
                         return SANDBOX_NIL;
@@ -284,7 +284,6 @@ namespace mkxp_sandbox {
 
             static VALUE set(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 SANDBOX_COROUTINE(coro,
-                    Tone *tone;
                     double red;
                     double green;
                     double blue;
@@ -292,18 +291,19 @@ namespace mkxp_sandbox {
 
                     VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                         BOOST_ASIO_CORO_REENTER (this) {
-                            tone = get_private_data<Tone>(self);
-
-                            SANDBOX_AWAIT_AND_SET(red, rb_num2dbl, ((VALUE *)(**sb() + argv))[0]);
-                            SANDBOX_AWAIT_AND_SET(green, rb_num2dbl, ((VALUE *)(**sb() + argv))[1]);
-                            SANDBOX_AWAIT_AND_SET(blue, rb_num2dbl, ((VALUE *)(**sb() + argv))[2]);
-                            if (argc <= 3) {
-                                gray = 0;
+                            if (argc == 1) {
+                                *get_private_data<Tone>(self) = *get_private_data<Tone>(((VALUE *)(**sb() + argv))[0]);
                             } else {
-                                SANDBOX_AWAIT_AND_SET(gray, rb_num2dbl, ((VALUE *)(**sb() + argv))[3]);
+                                SANDBOX_AWAIT_AND_SET(red, rb_num2dbl, ((VALUE *)(**sb() + argv))[0]);
+                                SANDBOX_AWAIT_AND_SET(green, rb_num2dbl, ((VALUE *)(**sb() + argv))[1]);
+                                SANDBOX_AWAIT_AND_SET(blue, rb_num2dbl, ((VALUE *)(**sb() + argv))[2]);
+                                if (argc <= 3) {
+                                    gray = 0;
+                                } else {
+                                    SANDBOX_AWAIT_AND_SET(gray, rb_num2dbl, ((VALUE *)(**sb() + argv))[3]);
+                                }
+                                get_private_data<Tone>(self)->set(red, green, blue, gray);
                             }
-
-                            tone->set(red, green, blue, gray);
                         }
 
                         return SANDBOX_NIL;
@@ -474,7 +474,6 @@ namespace mkxp_sandbox {
 
             static VALUE set(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 SANDBOX_COROUTINE(coro,
-                    Rect *rect;
                     int x;
                     int y;
                     int width;
@@ -482,14 +481,15 @@ namespace mkxp_sandbox {
 
                     VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                         BOOST_ASIO_CORO_REENTER (this) {
-                            rect = get_private_data<Rect>(self);
-
-                            SANDBOX_AWAIT_AND_SET(x, rb_num2dbl, ((VALUE *)(**sb() + argv))[0]);
-                            SANDBOX_AWAIT_AND_SET(y, rb_num2dbl, ((VALUE *)(**sb() + argv))[1]);
-                            SANDBOX_AWAIT_AND_SET(width, rb_num2dbl, ((VALUE *)(**sb() + argv))[2]);
-                            SANDBOX_AWAIT_AND_SET(height, rb_num2dbl, ((VALUE *)(**sb() + argv))[3]);
-
-                            rect->set(x, y, width, height);
+                            if (argc == 1) {
+                                *get_private_data<Rect>(self) = *get_private_data<Rect>(((VALUE *)(**sb() + argv))[0]);
+                            } else {
+                                SANDBOX_AWAIT_AND_SET(x, rb_num2dbl, ((VALUE *)(**sb() + argv))[0]);
+                                SANDBOX_AWAIT_AND_SET(y, rb_num2dbl, ((VALUE *)(**sb() + argv))[1]);
+                                SANDBOX_AWAIT_AND_SET(width, rb_num2dbl, ((VALUE *)(**sb() + argv))[2]);
+                                SANDBOX_AWAIT_AND_SET(height, rb_num2dbl, ((VALUE *)(**sb() + argv))[3]);
+                                get_private_data<Rect>(self)->set(x, y, width, height);
+                            }
                         }
 
                         return SANDBOX_NIL;

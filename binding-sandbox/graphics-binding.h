@@ -218,6 +218,14 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self, value);
         }
 
+        static VALUE width(VALUE self) {
+            return sb()->bind<struct rb_ll2inum>()()(shState->graphics().width());
+        }
+
+        static VALUE height(VALUE self) {
+            return sb()->bind<struct rb_ll2inum>()()(shState->graphics().height());
+        }
+
         VALUE module;
 
         void operator()() {
@@ -234,6 +242,8 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_module_function, module, "frame_count=", (VALUE (*)(ANYARGS))set_frame_count, 1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "frame_rate", (VALUE (*)(ANYARGS))get_frame_rate, 0);
                 SANDBOX_AWAIT(rb_define_module_function, module, "frame_rate=", (VALUE (*)(ANYARGS))set_frame_rate, 1);
+                SANDBOX_AWAIT(rb_define_module_function, module, "width", (VALUE (*)(ANYARGS))width, 0);
+                SANDBOX_AWAIT(rb_define_module_function, module, "height", (VALUE (*)(ANYARGS))height, 0);
             }
         }
     )

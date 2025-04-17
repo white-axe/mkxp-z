@@ -218,6 +218,14 @@ namespace mkxp_sandbox {
             return value;
         }
 
+        static VALUE width(VALUE self) {
+            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getWidth());
+        }
+
+        static VALUE height(VALUE self) {
+            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getHeight());
+        }
+
         static VALUE get_x(VALUE self) {
             return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getX());
         }
@@ -503,6 +511,8 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, klass, "tone=", (VALUE (*)(ANYARGS))set_tone, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "visible", (VALUE (*)(ANYARGS))get_visible, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "visible=", (VALUE (*)(ANYARGS))set_visible, 1);
+                SANDBOX_AWAIT(rb_define_method, klass, "width", (VALUE (*)(ANYARGS))width, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "height", (VALUE (*)(ANYARGS))height, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "x", (VALUE (*)(ANYARGS))get_x, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "x=", (VALUE (*)(ANYARGS))set_x, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "y", (VALUE (*)(ANYARGS))get_y, 0);

@@ -275,7 +275,7 @@ static bool init_sandbox() {
     }
 
     int default_width = rgssVer == 1 ? 640 : 544;
-    int default_height = rgssVer == 1 ? 480 : 544;
+    int default_height = rgssVer == 1 ? 480 : 416;
     av_info.geometry.base_width = conf->enableHires ? (int)lround(conf->framebufferScalingFactor * default_width) : default_width;
     av_info.geometry.base_height = conf->enableHires ? (int)lround(conf->framebufferScalingFactor * default_height) : default_height;
     av_info.geometry.max_width = av_info.geometry.base_width;
