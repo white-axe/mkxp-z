@@ -469,6 +469,36 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self, text);
         }
 
+        static VALUE snap_to_bitmap(VALUE self, VALUE position) {
+            SANDBOX_COROUTINE(coro,
+                Bitmap *bitmap;
+                VALUE obj;
+                int32_t pos;
+
+                VALUE operator()(VALUE self, VALUE position) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        if (position == SANDBOX_NIL) {
+                            pos = -1;
+                        } else {
+                            SANDBOX_AWAIT_AND_SET(pos, rb_num2int, position);
+                        }
+
+                        GFX_GUARD_EXC(bitmap = new Bitmap(*get_private_data<Bitmap>(self), pos););
+
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_class, self);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, obj);
+
+                        SANDBOX_AWAIT(bitmap_init_props, bitmap, obj);
+                        set_private_data(obj, bitmap);
+                    }
+
+                    return obj;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, position);
+        }
+
         VALUE klass;
 
         void operator()() {
@@ -496,6 +526,8 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, klass, "font", (VALUE (*)(ANYARGS))get_font, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "font=", (VALUE (*)(ANYARGS))set_font, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "text_size", (VALUE (*)(ANYARGS))text_size, 1);
+
+                SANDBOX_AWAIT(rb_define_method, klass, "snap_to_bitmap", (VALUE (*)(ANYARGS))snap_to_bitmap, 1);
             }
         }
     )

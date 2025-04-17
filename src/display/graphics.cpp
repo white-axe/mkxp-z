@@ -1515,7 +1515,6 @@ void Graphics::fadein(int duration, int start, int stop) {
 Bitmap *Graphics::snapToBitmap() {
     p->screen.composite();
 
-#ifndef MKXPZ_RETRO
     if (shState->config().enableHires) {
         // TODO: Maybe don't reconstruct this struct every time?
         TEXFBO tf;
@@ -1525,7 +1524,6 @@ Bitmap *Graphics::snapToBitmap() {
 
         return new Bitmap(tf);
     }
-#endif // MKXPZ_RETRO
 
     return new Bitmap(p->screen.getPP().frontBuffer());
 }

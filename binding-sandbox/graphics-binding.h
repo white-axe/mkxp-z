@@ -23,6 +23,8 @@
 #define MKXPZ_SANDBOX_GRAPHICS_BINDING_H
 
 #include "sandbox.h"
+#include "binding-util.h"
+#include "bitmap-binding.h"
 #include "sharedstate.h"
 #include "graphics.h"
 #include "bitmap.h"
@@ -226,6 +228,30 @@ namespace mkxp_sandbox {
             return sb()->bind<struct rb_ll2inum>()()(shState->graphics().height());
         }
 
+        static VALUE snap_to_bitmap(VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                Bitmap *bitmap;
+                ID id;
+                VALUE klass;
+                VALUE obj;
+
+                VALUE operator()(VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        GFX_GUARD_EXC(bitmap = shState->graphics().snapToBitmap(););
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Bitmap");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                        set_private_data(obj, bitmap);
+                        SANDBOX_AWAIT(bitmap_init_props, bitmap, obj);
+                    }
+
+                    return obj;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self);
+        }
+
         VALUE module;
 
         void operator()() {
@@ -244,6 +270,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_module_function, module, "frame_rate=", (VALUE (*)(ANYARGS))set_frame_rate, 1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "width", (VALUE (*)(ANYARGS))width, 0);
                 SANDBOX_AWAIT(rb_define_module_function, module, "height", (VALUE (*)(ANYARGS))height, 0);
+                SANDBOX_AWAIT(rb_define_module_function, module, "snap_to_bitmap", (VALUE (*)(ANYARGS))snap_to_bitmap, 0);
             }
         }
     )
