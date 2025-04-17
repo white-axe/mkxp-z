@@ -233,19 +233,26 @@ namespace mkxp_sandbox {
                 VALUE value;
                 VALUE file;
                 wasm_ptr_t ptr;
-                std::string path_str;
+                std::string *path_str;
 
                 VALUE operator()(VALUE path) {
                     BOOST_ASIO_CORO_REENTER (this) {
+                        path_str = NULL;
                         SANDBOX_AWAIT_AND_SET(ptr, rb_string_value_cstr, &path);
-                        path_str = std::string("/mkxp-retro-game/");
-                        path_str.append((const char *)(**sb() + ptr));
-                        SANDBOX_AWAIT_AND_SET(file, rb_file_open, path_str.c_str(), "rb");
+                        path_str = new std::string("/mkxp-retro-game/");
+                        path_str->append((const char *)(**sb() + ptr));
+                        SANDBOX_AWAIT_AND_SET(file, rb_file_open, path_str->c_str(), "rb");
                         SANDBOX_AWAIT_AND_SET(value, rb_marshal_load, file);
                         SANDBOX_AWAIT(rb_io_close, file);
                     }
 
                     return value;
+                }
+
+                ~coro() {
+                    if (path_str != NULL) {
+                        delete path_str;
+                    }
                 }
             )
 

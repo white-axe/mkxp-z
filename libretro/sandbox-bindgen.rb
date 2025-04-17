@@ -617,7 +617,6 @@ File.readlines('tags', chomp: true).each do |line|
   coroutine_declaration = <<~HEREDOC
     struct #{func_name} : boost::asio::coroutine {
         friend struct bindings::stack_frame_guard<struct #{func_name}>;
-        BOOST_TYPE_INDEX_REGISTER_CLASS
         #{coroutine_ret} operator()(#{declaration_args.join(', ')});
         #{coroutine_destructor.empty? ? '' : "~#{func_name}();\n    "}private:
         struct binding_base &bind;

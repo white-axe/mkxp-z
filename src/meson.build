@@ -47,7 +47,6 @@ if is_libretro
         cmake.subproject('boost_throw_exception', options: boost_options).dependency('boost_throw_exception'),
         cmake.subproject('boost_core', options: boost_options).dependency('boost_core'),
         cmake.subproject('boost_container_hash', options: boost_options).dependency('boost_container_hash'),
-        cmake.subproject('boost_type_index', options: boost_options).dependency('boost_type_index'),
         cmake.subproject('boost_type_traits', options: boost_options).dependency('boost_type_traits'),
         cmake.subproject('boost_optional', options: boost_options).dependency('boost_optional'),
     ]

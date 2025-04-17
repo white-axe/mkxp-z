@@ -37,10 +37,21 @@
 
 using namespace mkxp_sandbox;
 
-binding_base::stack_frame::stack_frame(struct binding_base &bind, void (*destructor)(void *ptr), boost::typeindex::type_index type, wasm_ptr_t ptr) : bind(bind), destructor(destructor), type(type), ptr(ptr) {}
+binding_base::stack_frame::stack_frame(struct binding_base &bind, void (*destructor)(void *ptr), wasm_ptr_t ptr) : bind(&bind), destructor(destructor), ptr(ptr) {}
+
+binding_base::stack_frame::stack_frame(struct binding_base::stack_frame &&frame) noexcept : bind(std::exchange(frame.bind, nullptr)), destructor(std::exchange(frame.destructor, nullptr)), ptr(std::exchange(frame.ptr, 0)) {}
+
+struct binding_base::stack_frame &binding_base::stack_frame::operator=(struct binding_base::stack_frame &&frame) noexcept {
+    bind = std::exchange(frame.bind, nullptr);
+    destructor = std::exchange(frame.destructor, nullptr);
+    ptr = std::exchange(frame.ptr, 0);
+    return *this;
+}
 
 binding_base::stack_frame::~stack_frame() {
-    destructor(*bind + ptr);
+    if (destructor != nullptr) {
+        destructor(**bind + ptr);
+    }
 }
 
 binding_base::binding_base(std::shared_ptr<struct w2c_ruby> m) : next_func_ptr(-1), _instance(m) {}

@@ -27,9 +27,9 @@
 #include <cstring>
 #include <memory>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include <boost/container_hash/hash.hpp>
-#include <boost/type_index.hpp>
 #include <boost/asio/coroutine.hpp>
 #include <mkxp-retro-ruby.h>
 #include "types.h"
@@ -59,16 +59,18 @@
 
 namespace mkxp_sandbox {
     struct binding_base {
-        private:
-
+    private:
         typedef std::tuple<wasm_ptr_t, wasm_ptr_t, wasm_ptr_t> key_t;
 
         struct stack_frame {
-            struct binding_base &bind;
+            struct binding_base *bind;
             void (*destructor)(void *ptr);
-            boost::typeindex::type_index type;
             wasm_ptr_t ptr;
-            stack_frame(struct binding_base &bind, void (*destructor)(void *ptr), boost::typeindex::type_index type, wasm_ptr_t ptr);
+            stack_frame(struct binding_base &bind, void (*destructor)(void *ptr), wasm_ptr_t ptr);
+            stack_frame(const struct stack_frame &frame) = delete;
+            stack_frame(struct stack_frame &&frame) noexcept;
+            struct stack_frame &operator=(const struct stack_frame &frame) = delete;
+            struct stack_frame &operator=(struct stack_frame &&frame) noexcept;
             ~stack_frame();
         };
 
@@ -82,8 +84,7 @@ namespace mkxp_sandbox {
         std::shared_ptr<struct w2c_ruby> _instance;
         std::unordered_map<key_t, struct fiber, boost::hash<key_t>> fibers;
 
-        public:
-
+    public:
         binding_base(std::shared_ptr<struct w2c_ruby> m);
         ~binding_base();
         struct w2c_ruby &instance() const noexcept;
@@ -100,10 +101,9 @@ namespace mkxp_sandbox {
         template <typename T> struct stack_frame_guard {
             friend struct binding_base;
 
-            private:
-
-            struct binding_base &bind;
-            struct fiber &fiber;
+        private:
+            struct binding_base *bind;
+            struct fiber *fiber;
             wasm_ptr_t ptr;
 
             static void stack_frame_destructor(void *ptr) {
@@ -134,7 +134,6 @@ namespace mkxp_sandbox {
                     if (fiber.stack_ptr == fiber.stack.size()) {
                         std::abort();
                     }
-                    assert(fiber.stack[fiber.stack_ptr].type == boost::typeindex::type_id<T>());
                     return fiber.stack[fiber.stack_ptr++].ptr;
                 }
 
@@ -145,10 +144,10 @@ namespace mkxp_sandbox {
                 }
                 ++fiber.stack_ptr;
                 wasm_ptr_t sp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance()) - SIZEOF_WASMSTACKALIGN(T);
+                fiber.stack.reserve(fiber.stack_ptr);
                 fiber.stack.emplace_back(
                     bind,
                     stack_frame_destructor,
-                    boost::typeindex::type_id<T>(),
                     sp
                 );
                 assert(sp % sizeof(VALUE) == 0);
@@ -158,33 +157,47 @@ namespace mkxp_sandbox {
                 return sp;
             }
 
-            stack_frame_guard(struct binding_base &b) : bind(b), fiber(init_fiber(b)), ptr(init_inner(b, fiber)) {}
+            stack_frame_guard(struct binding_base &b) : bind(&b), fiber(&init_fiber(b)), ptr(init_inner(b, *fiber)) {}
 
-            public:
+        public:
+            stack_frame_guard(const stack_frame_guard &frame) = delete;
+
+            stack_frame_guard(stack_frame_guard &&frame) noexcept : bind(std::exchange(frame.bind, nullptr)), fiber(std::exchange(frame.fiber, nullptr)), ptr(std::exchange(frame.ptr, 0)) {}
+
+            struct stack_frame_guard &operator=(const stack_frame_guard &frame) = delete;
+
+            struct stack_frame_guard &operator=(stack_frame_guard &&frame) noexcept {
+                bind = std::exchange(frame.bind, nullptr);
+                fiber = std::exchange(frame.fiber, nullptr);
+                ptr = std::exchange(frame.ptr, 0);
+                return *this;
+            }
 
             ~stack_frame_guard() {
-                if (get()->is_complete()) {
-                    while (fiber.stack.size() > fiber.stack_ptr) {
-                        fiber.stack.pop_back();
-                    }
-
-                    // Check for stack corruptions
-                    assert(fiber.stack.size() == fiber.stack_ptr);
-                    assert(fiber.stack.back().type == boost::typeindex::type_id<T>());
-
-                    w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), fiber.stack.back().ptr + SIZEOF_WASMSTACKALIGN(T));
-                    fiber.stack.pop_back();
+                if (fiber == nullptr) {
+                    return;
                 }
 
-                --fiber.stack_ptr;
+                if (get()->is_complete()) {
+                    while (fiber->stack.size() > fiber->stack_ptr) {
+                        fiber->stack.pop_back();
+                    }
 
-                if (fiber.stack.empty()) {
-                    bind.fibers.erase(fiber.key);
+                    assert(fiber->stack.size() == fiber->stack_ptr);
+
+                    w2c_ruby_rb_wasm_set_stack_pointer(&bind->instance(), fiber->stack.back().ptr + SIZEOF_WASMSTACKALIGN(T));
+                    fiber->stack.pop_back();
+                }
+
+                --fiber->stack_ptr;
+
+                if (fiber->stack.empty()) {
+                    bind->fibers.erase(fiber->key);
                 }
             }
 
             inline T *get() const noexcept {
-                return (T *)(*bind + ptr);
+                return (T *)(**bind + ptr);
             }
 
             inline T &operator()() const noexcept {
