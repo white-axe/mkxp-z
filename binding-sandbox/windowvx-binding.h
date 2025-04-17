@@ -489,11 +489,11 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self, xv, yv, wv, hv);
         }
 
-        static VALUE open(VALUE self) {
+        static VALUE is_open(VALUE self) {
             return SANDBOX_BOOL_TO_VALUE(get_private_data<WindowVX>(self)->isOpen());
         }
 
-        static VALUE closed(VALUE self) {
+        static VALUE is_closed(VALUE self) {
             return SANDBOX_BOOL_TO_VALUE(get_private_data<WindowVX>(self)->isClosed());
         }
 
@@ -616,8 +616,8 @@ namespace mkxp_sandbox {
 
                 if (rgssVer >= 3) {
                     SANDBOX_AWAIT(rb_define_method, klass, "move", (VALUE (*)(ANYARGS))move, 4);
-                    SANDBOX_AWAIT(rb_define_method, klass, "open?", (VALUE (*)(ANYARGS))open, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "closed?", (VALUE (*)(ANYARGS))closed, 0);
+                    SANDBOX_AWAIT(rb_define_method, klass, "open?", (VALUE (*)(ANYARGS))is_open, 0);
+                    SANDBOX_AWAIT(rb_define_method, klass, "close?", (VALUE (*)(ANYARGS))is_closed, 0);
                     SANDBOX_AWAIT(rb_define_method, klass, "arrows_visible", (VALUE (*)(ANYARGS))get_arrows_visible, 0);
                     SANDBOX_AWAIT(rb_define_method, klass, "arrows_visible=", (VALUE (*)(ANYARGS))set_arrows_visible, 1);
                     SANDBOX_AWAIT(rb_define_method, klass, "padding", (VALUE (*)(ANYARGS))get_padding, 0);

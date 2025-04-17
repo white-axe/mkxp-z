@@ -25,8 +25,11 @@
 #include "sandbox.h"
 #include "core.h"
 #include "input.h"
+#include "sharedstate.h"
 
 namespace mkxp_sandbox {
+    static VALUE symhash;
+
     struct {
         const char *str;
         Input::ButtonCode val;
@@ -59,6 +62,33 @@ namespace mkxp_sandbox {
     };
 
     SANDBOX_COROUTINE(input_binding_init,
+        SANDBOX_COROUTINE(get_button_arg,
+            VALUE value;
+            int32_t button;
+
+            int32_t operator()(VALUE arg) {
+                BOOST_ASIO_CORO_REENTER (this) {
+                    SANDBOX_AWAIT_AND_SET(value, rb_obj_is_kind_of, arg, sb()->rb_cInteger());
+                    if (SANDBOX_VALUE_TO_BOOL(value)) {
+                        SANDBOX_AWAIT_AND_SET(button, rb_num2int, arg);
+                    } else {
+                        SANDBOX_AWAIT_AND_SET(value, rb_obj_is_kind_of, arg, sb()->rb_cSymbol());
+                        if (SANDBOX_VALUE_TO_BOOL(value) && rgssVer >= 3) {
+                            SANDBOX_AWAIT_AND_SET(value, rb_ll2inum, Input::None);
+                            SANDBOX_AWAIT_AND_SET(value, rb_hash_lookup2, symhash, arg, value);
+                            SANDBOX_AWAIT_AND_SET(button, rb_num2int, value);
+                        } else {
+                            // FIXME: RMXP allows only few more types that
+                            // don't make sense (symbols in pre 3, floats)
+                            button = 0;
+                        }
+                    }
+                }
+
+                return button;
+            }
+        )
+
         static VALUE delta(VALUE self) {
             return sb()->bind<struct rb_float_new>()()(mkxp_retro::input->getDelta());
         }
@@ -74,8 +104,8 @@ namespace mkxp_sandbox {
 
                 VALUE operator()(VALUE self, VALUE code) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(button, rb_num2int, code);
-                        return mkxp_retro::input->isPressed(button) ? SANDBOX_TRUE : SANDBOX_FALSE;
+                        SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
+                        return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isPressed(button));
                     }
 
                     return SANDBOX_UNDEF;
@@ -91,8 +121,8 @@ namespace mkxp_sandbox {
 
                 VALUE operator()(VALUE self, VALUE code) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(button, rb_num2int, code);
-                        return mkxp_retro::input->isTriggered(button) ? SANDBOX_TRUE : SANDBOX_FALSE;
+                        SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
+                        return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isTriggered(button));
                     }
 
                     return SANDBOX_UNDEF;
@@ -108,8 +138,8 @@ namespace mkxp_sandbox {
 
                 VALUE operator()(VALUE self, VALUE code) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(button, rb_num2int, code);
-                        return mkxp_retro::input->isRepeated(button) ? SANDBOX_TRUE : SANDBOX_FALSE;
+                        SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
+                        return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isRepeated(button));
                     }
 
                     return SANDBOX_UNDEF;
@@ -125,8 +155,8 @@ namespace mkxp_sandbox {
 
                 VALUE operator()(VALUE self, VALUE code) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(button, rb_num2int, code);
-                        return mkxp_retro::input->isReleased(button) ? SANDBOX_TRUE : SANDBOX_FALSE;
+                        SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
+                        return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isReleased(button));
                     }
 
                     return SANDBOX_UNDEF;
@@ -144,7 +174,7 @@ namespace mkxp_sandbox {
 
                 VALUE operator()(VALUE self, VALUE code) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(button, rb_num2int, code);
+                        SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
                         count = mkxp_retro::input->count(button);
                         SANDBOX_AWAIT_AND_SET(value, rb_ll2inum, count);
                     }
@@ -164,7 +194,7 @@ namespace mkxp_sandbox {
 
                 VALUE operator()(VALUE self, VALUE code) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(button, rb_num2int, code);
+                        SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
                         time = mkxp_retro::input->repeatTime(button);
                         SANDBOX_AWAIT_AND_SET(value, rb_float_new, time);
                     }
@@ -182,8 +212,8 @@ namespace mkxp_sandbox {
 
                 VALUE operator()(VALUE self, VALUE code) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(button, rb_num2int, code);
-                        return mkxp_retro::input->isPressedEx(button, false) ? SANDBOX_TRUE : SANDBOX_FALSE;
+                        SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
+                        return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isPressedEx(button, false));
                     }
 
                     return SANDBOX_UNDEF;
@@ -199,8 +229,8 @@ namespace mkxp_sandbox {
 
                 VALUE operator()(VALUE self, VALUE code) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(button, rb_num2int, code);
-                        return mkxp_retro::input->isTriggeredEx(button, false) ? SANDBOX_TRUE : SANDBOX_FALSE;
+                        SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
+                        return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isTriggeredEx(button, false));
                     }
 
                     return SANDBOX_UNDEF;
@@ -216,8 +246,8 @@ namespace mkxp_sandbox {
 
                 VALUE operator()(VALUE self, VALUE code) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(button, rb_num2int, code);
-                        return mkxp_retro::input->isRepeatedEx(button, false) ? SANDBOX_TRUE : SANDBOX_FALSE;
+                        SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
+                        return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isRepeatedEx(button, false));
                     }
 
                     return SANDBOX_UNDEF;
@@ -233,8 +263,8 @@ namespace mkxp_sandbox {
 
                 VALUE operator()(VALUE self, VALUE code) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(button, rb_num2int, code);
-                        return mkxp_retro::input->isReleasedEx(button, false) ? SANDBOX_TRUE : SANDBOX_FALSE;
+                        SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
+                        return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isReleasedEx(button, false));
                     }
 
                     return SANDBOX_UNDEF;
@@ -252,7 +282,7 @@ namespace mkxp_sandbox {
 
                 VALUE operator()(VALUE self, VALUE code) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(button, rb_num2int, code);
+                        SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
                         count = mkxp_retro::input->repeatcount(button, false);
                         SANDBOX_AWAIT_AND_SET(value, rb_ll2inum, count);
                     }
@@ -272,7 +302,7 @@ namespace mkxp_sandbox {
 
                 VALUE operator()(VALUE self, VALUE code) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(button, rb_num2int, code);
+                        SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
                         time = mkxp_retro::input->repeatTimeEx(button, false);
                         SANDBOX_AWAIT_AND_SET(value, rb_float_new, time);
                     }
@@ -302,6 +332,7 @@ namespace mkxp_sandbox {
 
         VALUE module;
         VALUE button_val;
+        VALUE id_val;
         size_t i;
         ID id;
 
@@ -330,10 +361,27 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_module_function, module, "mouse_in_window", (VALUE (*)(ANYARGS))todo_bool, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "mouse_in_window?", (VALUE (*)(ANYARGS))todo_bool, -1);
 
-                for (i = 0; i < sizeof(codes) / sizeof(*codes); ++i) {
-                    SANDBOX_AWAIT_AND_SET(id, rb_intern, codes[i].str);
-                    SANDBOX_AWAIT_AND_SET(button_val, rb_ll2inum, codes[i].val);
-                    SANDBOX_AWAIT(rb_const_set, module, id, button_val);
+                if (rgssVer >= 3) {
+                    SANDBOX_AWAIT_AND_SET(symhash, rb_hash_new);
+
+                    for (i = 0; i < sizeof(codes) / sizeof(*codes); ++i) {
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, codes[i].str);
+                        SANDBOX_AWAIT_AND_SET(button_val, rb_ll2inum, codes[i].val);
+
+                        /* In RGSS3 all Input::XYZ constants are equal to :XYZ symbols,
+                         * to be compatible with the previous convention */
+                        SANDBOX_AWAIT_AND_SET(id_val, rb_id2sym, id);
+                        SANDBOX_AWAIT(rb_const_set, module, id, id_val);
+                        SANDBOX_AWAIT(rb_hash_aset, symhash, id_val, button_val);
+                    }
+
+                    SANDBOX_AWAIT(rb_iv_set, module, "buttoncodes", symhash);
+                } else {
+                    for (i = 0; i < sizeof(codes) / sizeof(*codes); ++i) {
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, codes[i].str);
+                        SANDBOX_AWAIT_AND_SET(button_val, rb_ll2inum, codes[i].val);
+                        SANDBOX_AWAIT(rb_const_set, module, id, button_val);
+                    }
                 }
             }
         }
