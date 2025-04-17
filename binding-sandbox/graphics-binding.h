@@ -252,6 +252,29 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self);
         }
 
+        static VALUE get_brightness(VALUE self) {
+            return sb()->bind<struct rb_ll2inum>()()(shState->graphics().getBrightness());
+        }
+
+        static VALUE set_brightness(VALUE self, VALUE value) {
+            SANDBOX_COROUTINE(coro,
+                int32_t brightness;
+
+                VALUE operator()(VALUE self, VALUE value) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT_AND_SET(brightness, rb_num2int, value);
+                        GFX_LOCK;
+                        shState->graphics().setBrightness(brightness);
+                        GFX_UNLOCK;
+                    }
+
+                    return value;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, value);
+        }
+
         VALUE module;
 
         void operator()() {
@@ -271,6 +294,8 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_module_function, module, "width", (VALUE (*)(ANYARGS))width, 0);
                 SANDBOX_AWAIT(rb_define_module_function, module, "height", (VALUE (*)(ANYARGS))height, 0);
                 SANDBOX_AWAIT(rb_define_module_function, module, "snap_to_bitmap", (VALUE (*)(ANYARGS))snap_to_bitmap, 0);
+                SANDBOX_AWAIT(rb_define_module_function, module, "brightness", (VALUE (*)(ANYARGS))get_brightness, 0);
+                SANDBOX_AWAIT(rb_define_module_function, module, "brightness=", (VALUE (*)(ANYARGS))set_brightness, 1);
             }
         }
     )

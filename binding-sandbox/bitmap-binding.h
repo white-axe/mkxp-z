@@ -499,6 +499,95 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self, position);
         }
 
+        static VALUE gradient_fill_rect(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                int32_t x;
+                int32_t y;
+                int32_t w;
+                int32_t h;
+                bool vertical;
+
+                VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        if (argc == 3 || argc == 4) {
+                            if (argc == 4) {
+                                vertical = SANDBOX_VALUE_TO_BOOL(((VALUE *)(**sb() + argv))[3]);
+                            } else {
+                                vertical = false;
+                            }
+                            GFX_GUARD_EXC(get_private_data<Bitmap>(self)->gradientFillRect(get_private_data<Rect>(((VALUE *)(**sb() + argv))[0])->toIntRect(), get_private_data<Color>(((VALUE *)(**sb() + argv))[1])->norm, get_private_data<Color>(((VALUE *)(**sb() + argv))[2])->norm, vertical););
+                        } else {
+                            SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                            SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                            SANDBOX_AWAIT_AND_SET(w, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                            SANDBOX_AWAIT_AND_SET(h, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
+                            if (argc >= 7) {
+                                vertical = SANDBOX_VALUE_TO_BOOL(((VALUE *)(**sb() + argv))[6]);
+                            } else {
+                                vertical = false;
+                            }
+                            GFX_GUARD_EXC(get_private_data<Bitmap>(self)->gradientFillRect(x, y, w, h, get_private_data<Color>(((VALUE *)(**sb() + argv))[4])->norm, get_private_data<Color>(((VALUE *)(**sb() + argv))[5])->norm, vertical););
+                        }
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(argc, argv, self);
+        }
+
+        static VALUE clear_rect(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                int32_t x;
+                int32_t y;
+                int32_t w;
+                int32_t h;
+
+                VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        if (argc == 1) {
+                            GFX_GUARD_EXC(get_private_data<Bitmap>(self)->clearRect(get_private_data<Rect>(((VALUE *)(**sb() + argv))[0])->toIntRect()););
+                        } else {
+                            SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                            SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                            SANDBOX_AWAIT_AND_SET(w, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                            SANDBOX_AWAIT_AND_SET(h, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
+                            GFX_GUARD_EXC(get_private_data<Bitmap>(self)->clearRect(x, y, w, h););
+                        }
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(argc, argv, self);
+        }
+
+        static VALUE blur(VALUE self) {
+            get_private_data<Bitmap>(self)->blur();
+            return SANDBOX_NIL;
+        }
+
+        static VALUE radial_blur(VALUE self, VALUE angle, VALUE divisions) {
+            SANDBOX_COROUTINE(coro,
+                int32_t a;
+                int32_t d;
+
+                VALUE operator()(VALUE self, VALUE angle, VALUE divisions) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT_AND_SET(a, rb_num2int, angle);
+                        SANDBOX_AWAIT_AND_SET(d, rb_num2int, divisions);
+                        get_private_data<Bitmap>(self)->radialBlur(a, d);
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, angle, divisions);
+        }
+
         VALUE klass;
 
         void operator()() {
@@ -526,6 +615,11 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, klass, "font", (VALUE (*)(ANYARGS))get_font, 0);
                 SANDBOX_AWAIT(rb_define_method, klass, "font=", (VALUE (*)(ANYARGS))set_font, 1);
                 SANDBOX_AWAIT(rb_define_method, klass, "text_size", (VALUE (*)(ANYARGS))text_size, 1);
+
+                SANDBOX_AWAIT(rb_define_method, klass, "gradient_fill_rect", (VALUE (*)(ANYARGS))gradient_fill_rect, -1);
+                SANDBOX_AWAIT(rb_define_method, klass, "clear_rect", (VALUE (*)(ANYARGS))clear_rect, -1);
+                SANDBOX_AWAIT(rb_define_method, klass, "blur", (VALUE (*)(ANYARGS))blur, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "radial_blur", (VALUE (*)(ANYARGS))radial_blur, 2);
 
                 SANDBOX_AWAIT(rb_define_method, klass, "snap_to_bitmap", (VALUE (*)(ANYARGS))snap_to_bitmap, 1);
             }
