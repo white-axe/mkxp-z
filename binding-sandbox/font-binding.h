@@ -313,7 +313,7 @@ namespace mkxp_sandbox {
         }
 
         static VALUE get_default_size(VALUE self) {
-            return Font::getDefaultSize();
+            return sb()->bind<struct rb_ll2inum>()()(Font::getDefaultSize());
         }
 
         static VALUE set_default_size(VALUE self, VALUE value) {
