@@ -196,7 +196,11 @@ void Config::read(int argc, char *argv[]) {
 #else
         {"preferMetalRenderer", false},
 #endif
+#ifdef MKXPZ_RETRO
+        {"subImageFix", mkxp_retro::hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES2 || mkxp_retro::hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES3 || mkxp_retro::hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES_VERSION},
+#else
         {"subImageFix", false},
+#endif // MKXPZ_RETRO
 #ifdef __WIN32__
         {"enableBlitting", false},
 #else
