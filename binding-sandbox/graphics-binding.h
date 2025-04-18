@@ -127,13 +127,15 @@ namespace mkxp_sandbox {
             SANDBOX_COROUTINE(coro,
                 int32_t duration;
                 int32_t i;
+                int32_t brightness;
 
                 VALUE operator()(VALUE self, VALUE value) {
                     BOOST_ASIO_CORO_REENTER (this) {
                         SANDBOX_AWAIT_AND_SET(duration, rb_num2int, value);
+                        brightness = shState->graphics().getBrightness();
 
                         for (i = 0; i < duration; ++i) {
-                            shState->graphics().fadeout(duration, i, i);
+                            shState->graphics().fadeout(duration, i, i, brightness);
                             SANDBOX_YIELD;
                         }
                     }
@@ -149,13 +151,15 @@ namespace mkxp_sandbox {
             SANDBOX_COROUTINE(coro,
                 int32_t duration;
                 int32_t i;
+                int32_t brightness;
 
                 VALUE operator()(VALUE self, VALUE value) {
                     BOOST_ASIO_CORO_REENTER (this) {
                         SANDBOX_AWAIT_AND_SET(duration, rb_num2int, value);
+                        brightness = shState->graphics().getBrightness();
 
                         for (i = 0; i < duration; ++i) {
-                            shState->graphics().fadein(duration, i, i);
+                            shState->graphics().fadein(duration, i, i, brightness);
                             SANDBOX_YIELD;
                         }
                     }

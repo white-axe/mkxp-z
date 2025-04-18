@@ -55,8 +55,8 @@ public:
 	DECL_ATTR( Brightness, int )
 
 	void wait(int duration, int start = 0, int stop = INT_MAX);
-	void fadeout(int duration, int start = 0, int stop = INT_MAX);
-	void fadein(int duration, int start = 0, int stop = INT_MAX);
+	void fadeout(int duration, int start = 0, int stop = INT_MAX, int brightness = -1);
+	void fadein(int duration, int start = 0, int stop = INT_MAX, int brightness = -1);
 
 	Bitmap *snapToBitmap();
 

@@ -1458,14 +1458,14 @@ void Graphics::wait(int duration, int start, int stop) {
     }
 }
 
-void Graphics::fadeout(int duration, int start, int stop) {
+void Graphics::fadeout(int duration, int start, int stop, int brightness) {
     FBO::unbind();
     
-    float curr = p->brightness;
+    float curr = brightness >= 0 && brightness <= 255 ? brightness : p->brightness;
     float diff = 255.0f - curr;
     
-    for (int i = std::min(stop, duration - 1); i >= start; --i) {
-        setBrightness(diff + (curr / duration) * i);
+    for (int i = start; i <= stop && i < duration;) {
+        setBrightness(diff + (curr / duration) * (duration - ++i));
         
         if (p->frozen) {
             int scaleIsSpecial = GLMeta::blitScaleIsSpecial(p->integerScaleBuffer, false, IntRect(0, 0, p->scSize.x, p->scSize.y), p->frozenScene, IntRect(0, 0, p->scRes.x, p->scRes.y));
@@ -1485,10 +1485,10 @@ void Graphics::fadeout(int duration, int start, int stop) {
     }
 }
 
-void Graphics::fadein(int duration, int start, int stop) {
+void Graphics::fadein(int duration, int start, int stop, int brightness) {
     FBO::unbind();
     
-    float curr = p->brightness;
+    float curr = brightness >= 0 && brightness <= 255 ? brightness : p->brightness;
     float diff = 255.0f - curr;
     
     for (int i = start; i <= stop && i < duration;) {
