@@ -353,7 +353,12 @@ bool SharedFontState::fontPresent(std::string family) const
 	return !(set.regular.empty() && set.other.empty());
 }
 
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+FT_Library SharedFontState::getLibrary() const noexcept
+{
+	return p->library;
+}
+#else
 _TTF_Font *SharedFontState::openBundled(int size)
 {
 	SDL_RWops *ops = openBundledFont();
@@ -366,7 +371,7 @@ void SharedFontState::setDefaultFontFamily(const std::string &family) {
     p->defaultFamily = family;
 }
 
-void pickExistingFontName(const std::vector<std::string> &names,
+static void pickExistingFontName(const std::vector<std::string> &names,
                           std::string &out,
                           const SharedFontState &sfs)
 {

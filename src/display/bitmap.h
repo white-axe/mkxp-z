@@ -22,6 +22,11 @@
 #ifndef BITMAP_H
 #define BITMAP_H
 
+#ifdef MKXPZ_RETRO
+#  include <ft2build.h>
+#  include FT_FREETYPE_H
+#endif // MKXPZ_RETRO
+
 #include "disposable.h"
 #include "etc-internal.h"
 #include "etc.h"
@@ -180,6 +185,7 @@ private:
 
 #ifdef MKXPZ_RETRO
 	IntRect textRect(const char *str, bool solid);
+	SDL_Surface *drawTextInner(FT_Face font, const char *str, SDL_Color &c, size_t outline);
 #endif // MKXPZ_RETRO
 };
 

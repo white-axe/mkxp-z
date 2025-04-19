@@ -25,6 +25,8 @@
 #  include "stb_image_malloc.h"
 #  include <stb_image.h>
 #  include <pixman-region/pixman-region.h>
+#  include FT_STROKER_H
+#  include "mkxp-polyfill.h" // std::lround
 #else
 #  include <SDL.h>
 #  include <SDL_image.h>
@@ -305,7 +307,7 @@ struct BitmapPrivate
     void allocSurface()
     {
 #ifdef MKXPZ_RETRO
-        surface = new SDL_Surface {.w = gl.width, .h = gl.height, .pixels = std::malloc(4 * gl.width * gl.height)};
+        surface = new SDL_Surface {.w = gl.width, .h = gl.height, .pixels = STBI_MALLOC(4 * gl.width * gl.height)};
         if (surface->pixels == nullptr) {
             throw std::bad_alloc();
         }
@@ -2085,11 +2087,25 @@ static std::string fixupString(const char *str)
     return s;
 }
 
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+static void applyShadow(SDL_Surface *&in, const SDL_Color &c)
+#else
 static void applyShadow(SDL_Surface *&in, const SDL_PixelFormat &fm, const SDL_Color &c)
+#endif // MKXPZ_RETRO
 {
+#ifdef MKXPZ_RETRO
+    SDL_Surface *out = new SDL_Surface {.w = in->w+1, .h = in->h+1, .pixels = STBI_MALLOC(4 * (in->w+1) * (in->h+1))};
+    if (out->pixels == nullptr) {
+        throw std::bad_alloc();
+    }
+    const int inPitch = in->w;
+    const int outPitch = out->w;
+#else
     SDL_Surface *out = SDL_CreateRGBSurface
     (0, in->w+1, in->h+1, fm.BitsPerPixel, fm.Rmask, fm.Gmask, fm.Bmask, fm.Amask);
+    const int inPitch = in->pitch;
+    const int outPitch = out->pitch;
+#endif // MKXPZ_RETRO
     
     float fr = c.r / 255.0f;
     float fg = c.g / 255.0f;
@@ -2107,16 +2123,24 @@ static void applyShadow(SDL_Surface *&in, const SDL_PixelFormat &fm, const SDL_C
             uint32_t src = 0, shd = 0;
             
             /* Output pixel location */
-            uint32_t *outP = ((uint32_t*) ((uint8_t*) out->pixels + y*out->pitch)) + x;
+            uint32_t *outP = ((uint32_t*) ((uint8_t*) out->pixels + y*outPitch)) + x;
             
             if (y < in->h && x < in->w)
-                src = ((uint32_t*) ((uint8_t*) in->pixels + y*in->pitch))[x];
+                src = ((uint32_t*) ((uint8_t*) in->pixels + y*inPitch))[x];
             
             if (y > 0 && x > 0)
-                shd = ((uint32_t*) ((uint8_t*) in->pixels + (y-1)*in->pitch))[x-1];
+                shd = ((uint32_t*) ((uint8_t*) in->pixels + (y-1)*inPitch))[x-1];
             
             /* Set shadow pixel RGB values to 0 (black) */
+#ifdef MKXPZ_RETRO
+#  ifdef MKXPZ_BIG_ENDIAN
+            shd &= 0x000000ff;
+#  else
+            shd &= 0xff000000;
+#  endif // MKXPZ_BIG_ENDIAN
+#else
             shd &= fm.Amask;
+#endif // MKXPZ_RETRO
             
             if (x == 0 || y == 0)
             {
@@ -2132,8 +2156,18 @@ static void applyShadow(SDL_Surface *&in, const SDL_PixelFormat &fm, const SDL_C
             
             /* Input and shadow alpha values */
             uint8_t srcA, shdA;
+#ifdef MKXPZ_RETRO
+#  ifdef MKXPZ_BIG_ENDIAN
+            srcA = (src & 0x000000ff);
+            shdA = (shd & 0x000000ff);
+#  else
+            srcA = (src & 0xff000000) >> 24;
+            shdA = (shd & 0xff000000) >> 24;
+#  endif // MKXPZ_BIG_ENDIAN
+#else
             srcA = (src & fm.Amask) >> fm.Ashift;
             shdA = (shd & fm.Amask) >> fm.Ashift;
+#endif // MKXPZ_RETRO
             
             if (srcA == 255 || shdA == 0)
             {
@@ -2165,14 +2199,25 @@ static void applyShadow(SDL_Surface *&in, const SDL_PixelFormat &fm, const SDL_C
             b = clamp<float>(fb * co3, 0, 1) * 255.0f;
             a = clamp<float>(fa, 0, 1) * 255.0f;
             
+#ifdef MKXPZ_RETRO
+            ((uint8_t *)outP)[0] = r;
+            ((uint8_t *)outP)[1] = g;
+            ((uint8_t *)outP)[2] = b;
+            ((uint8_t *)outP)[3] = a;
+#else
             *outP = SDL_MapRGBA(&fm, r, g, b, a);
+#endif // MKXPZ_RETRO
         }
     
     /* Store new surface in the input pointer */
+#ifdef MKXPZ_RETRO
+    stbi_image_free(in->pixels);
+    delete in;
+#else
     SDL_FreeSurface(in);
+#endif // MKXPZ_RETRO
     in = out;
 }
-#endif // MKXPZ_RETRO
 
 #ifdef MKXPZ_RETRO
 IntRect Bitmap::textRect(const char *str, bool solid)
@@ -2189,7 +2234,7 @@ IntRect Bitmap::textRect(const char *str, bool solid)
 
     for (const char *ptr = str; *ptr != 0; ++ptr)
     {
-        if (FT_Load_Char(font, *ptr, solid ? (FT_LOAD_RENDER | FT_LOAD_TARGET_MONO) : (FT_LOAD_RENDER | FT_LOAD_TARGET_NORMAL)))
+        if (FT_Load_Char(font, *ptr, solid ? (FT_LOAD_DEFAULT | FT_LOAD_BITMAP_METRICS_ONLY | FT_LOAD_TARGET_MONO) : (FT_LOAD_DEFAULT | FT_LOAD_BITMAP_METRICS_ONLY | FT_LOAD_TARGET_NORMAL)))
             continue;
 
         int glyph_left = glyph_x + font->glyph->bitmap_left;
@@ -2207,6 +2252,109 @@ IntRect Bitmap::textRect(const char *str, bool solid)
     }
 
     return IntRect(bitmap_left, bitmap_top, bitmap_right - bitmap_left, bitmap_bottom - bitmap_top);
+}
+
+SDL_Surface *Bitmap::drawTextInner(FT_Face font, const char *str, SDL_Color &c, size_t outline)
+{
+    // TODO: handle kerning
+    const bool solid = p->font->isSolid();
+    IntRect bitmapRect = textRect(str, solid);
+    bitmapRect.x -= outline;
+    bitmapRect.y -= outline;
+    bitmapRect.w += 2 * outline;
+    bitmapRect.h += 2 * outline;
+
+    SDL_Surface *txtSurf = new SDL_Surface;
+    if ((txtSurf->pixels = std::calloc(bitmapRect.w * bitmapRect.h, 4)) == NULL)
+        throw std::bad_alloc();
+    txtSurf->w = bitmapRect.w;
+    txtSurf->h = bitmapRect.h;
+
+    int glyph_x = -bitmapRect.x;
+    int glyph_y = -bitmapRect.y;
+
+    FT_Glyph glyph;
+
+    for (const char *ptr = str; *ptr != 0; ++ptr)
+    {
+        if (outline > 0)
+        {
+            if (FT_Load_Char(font, *ptr, solid ? (FT_LOAD_DEFAULT | FT_LOAD_TARGET_MONO) : (FT_LOAD_DEFAULT | FT_LOAD_TARGET_NORMAL)))
+                continue;
+            if (FT_Get_Glyph(font->glyph, &glyph))
+                continue;
+            {
+                FT_Stroker stroker;
+                if (FT_Stroker_New(shState->fontState().getLibrary(), &stroker))
+                {
+                    FT_Done_Glyph(glyph);
+                    continue;
+                }
+                FT_Stroker_Set(stroker, 64 * (FT_Fixed)outline, FT_STROKER_LINECAP_ROUND, FT_STROKER_LINEJOIN_ROUND, 0);
+                if (FT_Glyph_Stroke(&glyph, stroker, 1))
+                {
+                    FT_Stroker_Done(stroker);
+                    FT_Done_Glyph(glyph);
+                    continue;
+                }
+                FT_Stroker_Done(stroker);
+            }
+            if (FT_Glyph_To_Bitmap(&glyph, solid ? FT_RENDER_MODE_MONO : FT_RENDER_MODE_NORMAL, NULL, true))
+            {
+                FT_Done_Glyph(glyph);
+                continue;
+            }
+        }
+        else
+        {
+            if (FT_Load_Char(font, *ptr, solid ? (FT_LOAD_DEFAULT | FT_LOAD_RENDER | FT_LOAD_TARGET_MONO) : (FT_LOAD_DEFAULT | FT_LOAD_RENDER | FT_LOAD_TARGET_NORMAL)))
+                continue;
+        }
+
+        int glyph_left = glyph_x + (outline > 0 ? ((FT_BitmapGlyph)glyph)->left : font->glyph->bitmap_left);
+        int glyph_top = glyph_y - (outline > 0 ? ((FT_BitmapGlyph)glyph)->top : font->glyph->bitmap_top);
+        FT_Bitmap *bitmap = outline > 0 ? &((FT_BitmapGlyph)glyph)->bitmap : &font->glyph->bitmap;
+        unsigned int glyph_width = bitmap->width;
+        unsigned int glyph_height = bitmap->rows;
+
+        if (solid)
+            for (unsigned int y = 0; y < glyph_height; ++y)
+            {
+                for (unsigned int x = 0; x < glyph_width; ++x)
+                {
+                    if (((uint8_t *)bitmap->buffer)[bitmap->pitch * y + x / 8] & (1 << (7 - (x % 8))))
+                    {
+                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x)] = c.r;
+                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 1] = c.g;
+                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 2] = c.b;
+                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 3] = 255;
+                    }
+                }
+            }
+        else
+            for (unsigned int y = 0; y < glyph_height; ++y)
+            {
+                for (unsigned int x = 0; x < glyph_width; ++x)
+                {
+                    uint8_t alpha = ((uint8_t *)bitmap->buffer)[bitmap->pitch * y + x];
+                    if (alpha > 0)
+                    {
+                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x)] = c.r;
+                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 1] = c.g;
+                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 2] = c.b;
+                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 3] = alpha;
+                    }
+                }
+            }
+
+        glyph_x += font->glyph->advance.x / 64;
+        glyph_y += font->glyph->advance.y / 64;
+
+        if (outline > 0)
+            FT_Done_Glyph(glyph);
+    }
+
+    return txtSurf;
 }
 #endif // MKXPZ_RETRO
 
@@ -2262,62 +2410,7 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
     SDL_Surface *txtSurf;
     
 #ifdef MKXPZ_RETRO
-    // TODO: handle kerning
-    const bool solid = p->font->isSolid();
-    IntRect bitmapRect = textRect(str, solid);
-
-    txtSurf = new SDL_Surface;
-    if ((txtSurf->pixels = std::calloc(bitmapRect.w * bitmapRect.h, 4)) == NULL)
-        throw std::bad_alloc();
-    txtSurf->w = bitmapRect.w;
-    txtSurf->h = bitmapRect.h;
-
-    int glyph_x = -bitmapRect.x;
-    int glyph_y = -bitmapRect.y;
-
-    for (const char *ptr = str; *ptr != 0; ++ptr)
-    {
-        if (FT_Load_Char(font, *ptr, solid ? (FT_LOAD_RENDER | FT_LOAD_TARGET_MONO) : (FT_LOAD_RENDER | FT_LOAD_TARGET_NORMAL)))
-            continue;
-
-        int glyph_left = glyph_x + font->glyph->bitmap_left;
-        int glyph_top = glyph_y - font->glyph->bitmap_top;
-        unsigned int glyph_width = font->glyph->bitmap.width;
-        unsigned int glyph_height = font->glyph->bitmap.rows;
-
-        if (solid)
-            for (unsigned int y = 0; y < glyph_height; ++y)
-            {
-                for (unsigned int x = 0; x < glyph_width; ++x)
-                {
-                    if (((uint8_t *)font->glyph->bitmap.buffer)[font->glyph->bitmap.pitch * y + x / 8] & (1 << (7 - (x % 8))))
-                    {
-                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x)] = c.r;
-                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 1] = c.g;
-                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 2] = c.b;
-                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 3] = 255;
-                    }
-                }
-            }
-        else
-            for (unsigned int y = 0; y < glyph_height; ++y)
-            {
-                for (unsigned int x = 0; x < glyph_width; ++x)
-                {
-                    uint8_t alpha = ((uint8_t *)font->glyph->bitmap.buffer)[font->glyph->bitmap.pitch * y + x];
-                    if (alpha > 0)
-                    {
-                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x)] = c.r;
-                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 1] = c.g;
-                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 2] = c.b;
-                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 3] = alpha;
-                    }
-                }
-            }
-
-        glyph_x += font->glyph->advance.x / 64;
-        glyph_y += font->glyph->advance.y / 64;
-    }
+    txtSurf = drawTextInner(font, str, c, 0);
 #else
     if (p->font->isSolid())
         txtSurf = TTF_RenderUTF8_Solid(font, str, c);
@@ -2329,9 +2422,12 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
     
     int rawTxtSurfH = txtSurf->h;
     
-#ifndef MKXPZ_RETRO // TODO
     if (p->font->getShadow())
+#ifdef MKXPZ_RETRO
+        applyShadow(txtSurf, c);
+#else
         applyShadow(txtSurf, *p->format, c);
+#endif // MKXPZ_RETRO
     
     /* outline using TTF_Outline and blending it together with SDL_BlitSurface
      * FIXME: outline is forced to have the same opacity as the font color */
@@ -2345,6 +2441,26 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
         if (p->selfLores) {
             scaledOutlineSize = scaledOutlineSize * width() / p->selfLores->width();
         }
+#ifdef MKXPZ_RETRO
+        outline = drawTextInner(font, str, co, scaledOutlineSize);
+        for (size_t y = 0; y < txtSurf->h; ++y)
+        {
+            for (size_t x = 0; x < txtSurf->w; ++x)
+            {
+                uint8_t *src = (uint8_t *)&((uint32_t *)txtSurf->pixels)[txtSurf->w * y + x];
+                uint8_t *dst = (uint8_t *)&((uint32_t *)outline->pixels)[(txtSurf->w + 2 * scaledOutlineSize) * (y + scaledOutlineSize) + (x + scaledOutlineSize)];
+                float srcAlpha = src[3] / 255.0f;
+                float dstAlpha = dst[3] / 255.0f;
+                float outAlpha = srcAlpha + (1 - srcAlpha) * dstAlpha;
+                for (size_t i = 0; i < 3; ++i)
+                    dst[i] = (uint8_t)clamp(std::lround((srcAlpha * src[i] + ((1 - srcAlpha) * dstAlpha) * dst[i]) / outAlpha), 0L, 255L);
+                dst[3] = (uint8_t)clamp(std::lround(255.0f * outAlpha), 0L, 255L);
+            }
+        }
+        stbi_image_free(txtSurf->pixels);
+        delete txtSurf;
+        txtSurf = outline;
+#else
         /* set the next font render to render the outline */
         TTF_SetFontOutline(font, scaledOutlineSize);
         if (p->font->isSolid())
@@ -2361,8 +2477,8 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
         txtSurf = outline;
         /* reset outline to 0 */
         TTF_SetFontOutline(font, 0);
-    }
 #endif // MKXPZ_RETRO
+    }
     
     int alignX = rect.x;
     

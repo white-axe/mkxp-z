@@ -74,6 +74,10 @@ public:
 #endif // MKXPZ_RETRO
     void setDefaultFontFamily(const std::string &family);
 
+#ifdef MKXPZ_RETRO
+	FT_Library getLibrary() const noexcept;
+#endif // MKXPZ_RETRO
+
 private:
 	SharedFontStatePrivate *p;
 };
