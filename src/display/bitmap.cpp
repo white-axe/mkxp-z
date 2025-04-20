@@ -2134,9 +2134,9 @@ static void applyShadow(SDL_Surface *&in, const SDL_PixelFormat &fm, const SDL_C
             /* Set shadow pixel RGB values to 0 (black) */
 #ifdef MKXPZ_RETRO
 #  ifdef MKXPZ_BIG_ENDIAN
-            shd &= 0x000000ff;
+            shd &= 0x000000ffU;
 #  else
-            shd &= 0xff000000;
+            shd &= 0xff000000U;
 #  endif // MKXPZ_BIG_ENDIAN
 #else
             shd &= fm.Amask;
@@ -2158,11 +2158,11 @@ static void applyShadow(SDL_Surface *&in, const SDL_PixelFormat &fm, const SDL_C
             uint8_t srcA, shdA;
 #ifdef MKXPZ_RETRO
 #  ifdef MKXPZ_BIG_ENDIAN
-            srcA = (src & 0x000000ff);
-            shdA = (shd & 0x000000ff);
+            srcA = (src & 0x000000ffU);
+            shdA = (shd & 0x000000ffU);
 #  else
-            srcA = (src & 0xff000000) >> 24;
-            shdA = (shd & 0xff000000) >> 24;
+            srcA = (src & 0xff000000U) >> 24;
+            shdA = (shd & 0xff000000U) >> 24;
 #  endif // MKXPZ_BIG_ENDIAN
 #else
             srcA = (src & fm.Amask) >> fm.Ashift;
@@ -2219,6 +2219,114 @@ static void applyShadow(SDL_Surface *&in, const SDL_PixelFormat &fm, const SDL_C
     in = out;
 }
 
+#define UTF8_PARSER_ERROR_BIT 0x80000000U
+
+struct Utf8Parser
+{
+    inline Utf8Parser() : continuation_length(0), continuation_counter(0) {}
+
+    inline uint32_t operator()(uint8_t byte)
+    {
+        error = false;
+
+        if ((byte & 0b11000000U) == 0b10000000U)
+        {
+            if (continuation_counter == 0)
+            {
+                error = true;
+                codepoint = 0;
+            }
+
+            else
+            {
+                codepoint <<= 6;
+                codepoint |= byte & 0b00111111U;
+                --continuation_counter;
+            }
+        }
+        else
+        {
+            if (continuation_counter != 0)
+                error = true;
+
+            if ((byte & 0b10000000U) == 0b00000000U)
+            {
+                codepoint = byte & 0b01111111U;
+                continuation_counter = continuation_length = 0;
+            }
+
+            else if ((byte & 0b11100000U) == 0b11000000U)
+            {
+                codepoint = byte & 0b00011111U;
+                continuation_counter = continuation_length = 1;
+            }
+
+            else if ((byte & 0b11110000U) == 0b11100000U)
+            {
+                codepoint = byte & 0b00001111U;
+                continuation_counter = continuation_length = 2;
+            }
+
+            else if ((byte & 0b11111000U) == 0b11110000U)
+            {
+                codepoint = byte & 0b00000111U;
+                continuation_counter = continuation_length = 3;
+            }
+
+            else
+            {
+                error = true;
+                codepoint = 0;
+                continuation_counter = continuation_length = 0;
+            }
+        }
+
+        // Disallow invalid code points and overlong encodings
+        if (continuation_counter == 0)
+        {
+            if (codepoint > 0x10ffffU)
+            {
+                error = true;
+                codepoint = 0;
+            }
+
+            else if (codepoint >= 0xd800U && codepoint <= 0xdfffU)
+            {
+                error = true;
+                codepoint = 0;
+            }
+
+            else if (continuation_length == 1 && codepoint < 0x80U)
+            {
+                error = true;
+                codepoint = 0;
+            }
+
+            else if (continuation_length == 2 && codepoint < 0x800U)
+            {
+                error = true;
+                codepoint = 0;
+            }
+
+            else if (continuation_length == 3 && codepoint < 0x10000U)
+            {
+                error = true;
+                codepoint = 0;
+            }
+
+            continuation_length = 0;
+        }
+
+        return (error ? UTF8_PARSER_ERROR_BIT : 0U) | (continuation_counter == 0 ? codepoint : 0U);
+    }
+
+private:
+    uint32_t codepoint;
+    uint8_t continuation_length;
+    uint8_t continuation_counter;
+    bool error;
+};
+
 #ifdef MKXPZ_RETRO
 IntRect Bitmap::textRect(const char *str, bool solid)
 {
@@ -2232,24 +2340,47 @@ IntRect Bitmap::textRect(const char *str, bool solid)
     int glyph_x = 0;
     int glyph_y = 0;
 
-    for (const char *ptr = str; *ptr != 0; ++ptr)
+    Utf8Parser parser;
+    uint8_t *ptr = (uint8_t *)str;
+
+    do
     {
-        if (FT_Load_Char(font, *ptr, solid ? (FT_LOAD_DEFAULT | FT_LOAD_BITMAP_METRICS_ONLY | FT_LOAD_TARGET_MONO) : (FT_LOAD_DEFAULT | FT_LOAD_BITMAP_METRICS_ONLY | FT_LOAD_TARGET_NORMAL)))
-            continue;
+        uint32_t codepoint = parser(*ptr);
 
-        int glyph_left = glyph_x + font->glyph->bitmap_left;
-        int glyph_right = glyph_left + font->glyph->bitmap.width;
-        int glyph_top = glyph_y - font->glyph->bitmap_top;
-        int glyph_bottom = glyph_top + font->glyph->bitmap.rows;
+        for (;;)
+        {
+            uint32_t charcode;
+            if (codepoint & UTF8_PARSER_ERROR_BIT)
+            {
+                charcode = 0xfffd;
+                codepoint &= ~UTF8_PARSER_ERROR_BIT;
+            }
+            else if (codepoint > 0)
+            {
+                charcode = codepoint;
+                codepoint = 0;
+            }
+            else
+                break;
 
-        glyph_x += font->glyph->advance.x / 64;
-        glyph_y += font->glyph->advance.y / 64;
+            if (FT_Load_Char(font, charcode, solid ? (FT_LOAD_DEFAULT | FT_LOAD_BITMAP_METRICS_ONLY | FT_LOAD_TARGET_MONO) : (FT_LOAD_DEFAULT | FT_LOAD_BITMAP_METRICS_ONLY | FT_LOAD_TARGET_NORMAL)))
+                continue;
 
-        bitmap_left = std::min(bitmap_left, std::min(glyph_left, glyph_x));
-        bitmap_right = std::max(bitmap_right, std::max(glyph_right, glyph_x));
-        bitmap_top = std::min(bitmap_top, std::min(glyph_top, glyph_y));
-        bitmap_bottom = std::max(bitmap_bottom, std::max(glyph_bottom, glyph_y));
+            int glyph_left = glyph_x + font->glyph->bitmap_left;
+            int glyph_right = glyph_left + font->glyph->bitmap.width;
+            int glyph_top = glyph_y - font->glyph->bitmap_top;
+            int glyph_bottom = glyph_top + font->glyph->bitmap.rows;
+
+            glyph_x += font->glyph->advance.x / 64;
+            glyph_y += font->glyph->advance.y / 64;
+
+            bitmap_left = std::min(bitmap_left, std::min(glyph_left, glyph_x));
+            bitmap_right = std::max(bitmap_right, std::max(glyph_right, glyph_x));
+            bitmap_top = std::min(bitmap_top, std::min(glyph_top, glyph_y));
+            bitmap_bottom = std::max(bitmap_bottom, std::max(glyph_bottom, glyph_y));
+        }
     }
+    while (*ptr++ != 0);
 
     return IntRect(bitmap_left, bitmap_top, bitmap_right - bitmap_left, bitmap_bottom - bitmap_top);
 }
@@ -2274,85 +2405,107 @@ SDL_Surface *Bitmap::drawTextInner(FT_Face font, const char *str, SDL_Color &c, 
     int glyph_y = -bitmapRect.y;
 
     FT_Glyph glyph;
+    Utf8Parser parser;
+    uint8_t *ptr = (uint8_t *)str;
 
-    for (const char *ptr = str; *ptr != 0; ++ptr)
+    do
     {
-        if (outline > 0)
+        uint32_t codepoint = parser(*ptr);
+
+        for (;;)
         {
-            if (FT_Load_Char(font, *ptr, solid ? (FT_LOAD_DEFAULT | FT_LOAD_TARGET_MONO) : (FT_LOAD_DEFAULT | FT_LOAD_TARGET_NORMAL)))
-                continue;
-            if (FT_Get_Glyph(font->glyph, &glyph))
-                continue;
+            uint32_t charcode;
+            if (codepoint & UTF8_PARSER_ERROR_BIT)
             {
-                FT_Stroker stroker;
-                if (FT_Stroker_New(shState->fontState().getLibrary(), &stroker))
-                {
-                    FT_Done_Glyph(glyph);
+                charcode = 0xfffd;
+                codepoint &= ~UTF8_PARSER_ERROR_BIT;
+            }
+            else if (codepoint > 0)
+            {
+                charcode = codepoint;
+                codepoint = 0;
+            }
+            else
+                break;
+
+            if (outline > 0)
+            {
+                if (FT_Load_Char(font, charcode, solid ? (FT_LOAD_DEFAULT | FT_LOAD_TARGET_MONO) : (FT_LOAD_DEFAULT | FT_LOAD_TARGET_NORMAL)))
                     continue;
-                }
-                FT_Stroker_Set(stroker, 64 * (FT_Fixed)outline, FT_STROKER_LINECAP_ROUND, FT_STROKER_LINEJOIN_ROUND, 0);
-                if (FT_Glyph_Stroke(&glyph, stroker, 1))
+                if (FT_Get_Glyph(font->glyph, &glyph))
+                    continue;
                 {
+                    FT_Stroker stroker;
+                    if (FT_Stroker_New(shState->fontState().getLibrary(), &stroker))
+                    {
+                        FT_Done_Glyph(glyph);
+                        continue;
+                    }
+                    FT_Stroker_Set(stroker, 64 * (FT_Fixed)outline, FT_STROKER_LINECAP_ROUND, FT_STROKER_LINEJOIN_ROUND, 0);
+                    if (FT_Glyph_Stroke(&glyph, stroker, 1))
+                    {
+                        FT_Stroker_Done(stroker);
+                        FT_Done_Glyph(glyph);
+                        continue;
+                    }
                     FT_Stroker_Done(stroker);
+                }
+                if (FT_Glyph_To_Bitmap(&glyph, solid ? FT_RENDER_MODE_MONO : FT_RENDER_MODE_NORMAL, NULL, true))
+                {
                     FT_Done_Glyph(glyph);
                     continue;
                 }
-                FT_Stroker_Done(stroker);
             }
-            if (FT_Glyph_To_Bitmap(&glyph, solid ? FT_RENDER_MODE_MONO : FT_RENDER_MODE_NORMAL, NULL, true))
+            else
             {
+                if (FT_Load_Char(font, charcode, solid ? (FT_LOAD_DEFAULT | FT_LOAD_RENDER | FT_LOAD_TARGET_MONO) : (FT_LOAD_DEFAULT | FT_LOAD_RENDER | FT_LOAD_TARGET_NORMAL)))
+                    continue;
+            }
+
+            int glyph_left = glyph_x + (outline > 0 ? ((FT_BitmapGlyph)glyph)->left : font->glyph->bitmap_left);
+            int glyph_top = glyph_y - (outline > 0 ? ((FT_BitmapGlyph)glyph)->top : font->glyph->bitmap_top);
+            FT_Bitmap *bitmap = outline > 0 ? &((FT_BitmapGlyph)glyph)->bitmap : &font->glyph->bitmap;
+            unsigned int glyph_width = bitmap->width;
+            unsigned int glyph_height = bitmap->rows;
+
+            if (solid)
+                for (unsigned int y = 0; y < glyph_height; ++y)
+                {
+                    for (unsigned int x = 0; x < glyph_width; ++x)
+                    {
+                        if (((uint8_t *)bitmap->buffer)[bitmap->pitch * y + x / 8] & (1 << (7 - (x % 8))))
+                        {
+                            ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x)] = c.r;
+                            ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 1] = c.g;
+                            ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 2] = c.b;
+                            ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 3] = 255;
+                        }
+                    }
+                }
+            else
+                for (unsigned int y = 0; y < glyph_height; ++y)
+                {
+                    for (unsigned int x = 0; x < glyph_width; ++x)
+                    {
+                        uint8_t alpha = ((uint8_t *)bitmap->buffer)[bitmap->pitch * y + x];
+                        if (alpha > 0)
+                        {
+                            ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x)] = c.r;
+                            ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 1] = c.g;
+                            ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 2] = c.b;
+                            ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 3] = alpha;
+                        }
+                    }
+                }
+
+            glyph_x += font->glyph->advance.x / 64;
+            glyph_y += font->glyph->advance.y / 64;
+
+            if (outline > 0)
                 FT_Done_Glyph(glyph);
-                continue;
-            }
         }
-        else
-        {
-            if (FT_Load_Char(font, *ptr, solid ? (FT_LOAD_DEFAULT | FT_LOAD_RENDER | FT_LOAD_TARGET_MONO) : (FT_LOAD_DEFAULT | FT_LOAD_RENDER | FT_LOAD_TARGET_NORMAL)))
-                continue;
-        }
-
-        int glyph_left = glyph_x + (outline > 0 ? ((FT_BitmapGlyph)glyph)->left : font->glyph->bitmap_left);
-        int glyph_top = glyph_y - (outline > 0 ? ((FT_BitmapGlyph)glyph)->top : font->glyph->bitmap_top);
-        FT_Bitmap *bitmap = outline > 0 ? &((FT_BitmapGlyph)glyph)->bitmap : &font->glyph->bitmap;
-        unsigned int glyph_width = bitmap->width;
-        unsigned int glyph_height = bitmap->rows;
-
-        if (solid)
-            for (unsigned int y = 0; y < glyph_height; ++y)
-            {
-                for (unsigned int x = 0; x < glyph_width; ++x)
-                {
-                    if (((uint8_t *)bitmap->buffer)[bitmap->pitch * y + x / 8] & (1 << (7 - (x % 8))))
-                    {
-                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x)] = c.r;
-                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 1] = c.g;
-                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 2] = c.b;
-                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 3] = 255;
-                    }
-                }
-            }
-        else
-            for (unsigned int y = 0; y < glyph_height; ++y)
-            {
-                for (unsigned int x = 0; x < glyph_width; ++x)
-                {
-                    uint8_t alpha = ((uint8_t *)bitmap->buffer)[bitmap->pitch * y + x];
-                    if (alpha > 0)
-                    {
-                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x)] = c.r;
-                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 1] = c.g;
-                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 2] = c.b;
-                        ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 3] = alpha;
-                    }
-                }
-            }
-
-        glyph_x += font->glyph->advance.x / 64;
-        glyph_y += font->glyph->advance.y / 64;
-
-        if (outline > 0)
-            FT_Done_Glyph(glyph);
     }
+    while (*ptr++ != 0);
 
     return txtSurf;
 }
