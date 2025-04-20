@@ -135,16 +135,13 @@ $(DOWNLOADS)/crossruby/configure: $(DOWNLOADS)/crossruby/configure.ac $(RUBY)
 	cd $(DOWNLOADS)/crossruby && $(RUBY) tool/downloader.rb -d tool -e gnu config.guess config.sub
 	cd $(DOWNLOADS)/crossruby && $(AUTORECONF) -i
 
-$(DOWNLOADS)/crossruby/configure.ac: $(DOWNLOADS)/ruby-12995.patch
+$(DOWNLOADS)/crossruby/configure.ac:
 	mkdir -p $(DOWNLOADS)
 	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/crossruby -b $(RUBY_VERSION)
-	cd $(DOWNLOADS)/crossruby && $(GIT) apply $(DOWNLOADS)/ruby-12995.patch
+	cd $(DOWNLOADS)/crossruby && $(GIT) apply ${PWD}/ruby-stack-pointer.patch
+	cd $(DOWNLOADS)/crossruby && $(GIT) apply ${PWD}/ruby-jump-buffer.patch
 	cd $(DOWNLOADS)/crossruby && $(GIT) apply ${PWD}/ruby-compat.patch
 	echo '#include "${PWD}/ruby-bindings.h"' >> $(DOWNLOADS)/crossruby/gc.c
-
-$(DOWNLOADS)/ruby-12995.patch:
-	mkdir -p $(DOWNLOADS)
-	$(CURL) -Lo $(DOWNLOADS)/ruby-12995.patch $(GITHUB)/ruby/ruby/pull/12995.diff
 
 # Base Ruby (targets the build machine)
 

@@ -1,0 +1,53 @@
+# Fixes a memory leak in WASI builds of Ruby where VM jump buffers are sometimes not freed.
+
+--- a/eval_intern.h
++++ b/eval_intern.h
+@@ -163,6 +163,18 @@ rb_ec_tag_jump(const rb_execution_context_t *ec, enum ruby_tag_type st)
+ {
+     RUBY_ASSERT(st != TAG_NONE);
+     ec->tag->state = st;
++
++#if defined(__wasm__) && !defined(__EMSCRIPTEN__)
++    /* Destroy all the jump buffers that belong to tags between the current tag
++     * and the tag we're jumping to, since jump buffers are allocated on the
++     * heap on this platform instead of on the stack like on most other
++     * platforms. */
++    for (struct rb_vm_tag *tag = GET_EC()->tag; tag != ec->tag; tag = tag->prev) {
++        RUBY_ASSERT(tag != NULL);
++        rb_vm_tag_jmpbuf_deinit(&tag->buf);
++    }
++#endif
++
+     ruby_longjmp(RB_VM_TAG_JMPBUF_GET(ec->tag->buf), 1);
+ }
+ 
+--- a/signal.c
++++ b/signal.c
+@@ -849,6 +849,7 @@ check_stack_overflow(int sig, const uintptr_t addr, const ucontext_t *ctx)
+              * otherwise it can cause stack overflow again at the same
+              * place. */
+             if ((crit = (!ec->tag->prev || !--uplevel)) != FALSE) break;
++            rb_vm_tag_jmpbuf_deinit(&ec->tag->buf);
+             ec->tag = ec->tag->prev;
+         }
+         reset_sigmask(sig);
+--- a/vm.c
++++ b/vm.c
+@@ -2729,6 +2729,7 @@ vm_exec_handle_exception(rb_execution_context_t *ec, enum ruby_tag_type state, V
+             if (VM_FRAME_FINISHED_P(ec->cfp)) {
+                 rb_vm_pop_frame(ec);
+                 ec->errinfo = (VALUE)err;
++                rb_vm_tag_jmpbuf_deinit(&ec->tag->buf);
+                 ec->tag = ec->tag->prev;
+                 EC_JUMP_TAG(ec, state);
+             }
+--- a/vm_trace.c
++++ b/vm_trace.c
+@@ -455,6 +455,7 @@ rb_exec_event_hooks(rb_trace_arg_t *trace_arg, rb_hook_list_t *hooks, int pop_p)
+             if (state) {
+                 if (pop_p) {
+                     if (VM_FRAME_FINISHED_P(ec->cfp)) {
++                        rb_vm_tag_jmpbuf_deinit(&ec->tag->buf);
+                         ec->tag = ec->tag->prev;
+                     }
+                     rb_vm_pop_frame(ec);
