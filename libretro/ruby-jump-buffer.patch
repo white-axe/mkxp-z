@@ -1,26 +1,5 @@
 # Fixes a memory leak in WASI builds of Ruby where VM jump buffers are sometimes not freed.
 
---- a/eval_intern.h
-+++ b/eval_intern.h
-@@ -163,6 +163,18 @@ rb_ec_tag_jump(const rb_execution_context_t *ec, enum ruby_tag_type st)
- {
-     RUBY_ASSERT(st != TAG_NONE);
-     ec->tag->state = st;
-+
-+#if defined(__wasm__) && !defined(__EMSCRIPTEN__)
-+    /* Destroy all the jump buffers that belong to tags between the current tag
-+     * and the tag we're jumping to, since jump buffers are allocated on the
-+     * heap on this platform instead of on the stack like on most other
-+     * platforms. */
-+    for (struct rb_vm_tag *tag = GET_EC()->tag; tag != ec->tag; tag = tag->prev) {
-+        RUBY_ASSERT(tag != NULL);
-+        rb_vm_tag_jmpbuf_deinit(&tag->buf);
-+    }
-+#endif
-+
-     ruby_longjmp(RB_VM_TAG_JMPBUF_GET(ec->tag->buf), 1);
- }
- 
 --- a/signal.c
 +++ b/signal.c
 @@ -849,6 +849,7 @@ check_stack_overflow(int sig, const uintptr_t addr, const ucontext_t *ctx)
