@@ -59,6 +59,7 @@
 #define SANDBOX_DEF_DFREE(T) \
     static void dfree(wasm_ptr_t _buf) { \
         delete *(T **)(**mkxp_sandbox::sb() + _buf); \
+        mkxp_sandbox::sb()->sandbox_free(_buf); \
     }
 
 #define SANDBOX_DEF_LOAD(T) \

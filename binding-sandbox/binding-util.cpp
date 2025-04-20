@@ -33,7 +33,6 @@ void mkxp_sandbox::set_private_data(VALUE obj, void *ptr) {
     // Free the old value if it already exists (initialize called twice?)
     if (*(wasm_ptr_t *)(**sb() + data) != 0 && *(void **)(**sb() + *(wasm_ptr_t *)(**sb() + data)) != ptr) {
         sb()->rtypeddata_dfree(obj, *(wasm_ptr_t *)(**sb() + data));
-        sb()->sandbox_free(*(wasm_ptr_t *)(**sb() + data));
         *(wasm_ptr_t *)(**sb() + data) = 0;
     }
 
