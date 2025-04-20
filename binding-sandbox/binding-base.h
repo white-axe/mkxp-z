@@ -144,7 +144,6 @@ namespace mkxp_sandbox {
                 }
                 ++fiber.stack_ptr;
                 wasm_ptr_t sp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance()) - SIZEOF_WASMSTACKALIGN(T);
-                fiber.stack.reserve(fiber.stack_ptr);
                 fiber.stack.emplace_back(
                     bind,
                     stack_frame_destructor,
