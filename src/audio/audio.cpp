@@ -71,8 +71,8 @@ struct AudioPrivate
 	{
 #ifndef MKXPZ_RETRO
 		SDL_Thread *thread;
-#endif // MKXPZ_RETRO
 		AtomicFlag termReq;
+#endif // MKXPZ_RETRO
 		MeWatchState state;
 	} meWatch;
 

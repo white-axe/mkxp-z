@@ -44,12 +44,7 @@ ALStream::ALStream(LoopMode loopMode,
 	: looped(loopMode == Looped),
 	  state(Closed),
 	  source(0),
-#ifdef MKXPZ_RETRO
-	  streamInited(false),
-	  sourceExhausted(false),
-	  threadTermReq(false),
-	  needsRewind(false),
-#else
+#ifndef MKXPZ_RETRO
 	  thread(0),
 #endif // MKXPZ_RETRO
 	  preemptPause(false),
@@ -304,18 +299,16 @@ void ALStream::openSource(const std::string &filename)
 	}
 	
 	source = handler.source;
-#ifndef MKXPZ_RETRO
 	needsRewind.clear();
-#endif // MKXPZ_RETRO
 }
 
 void ALStream::stopStream()
 {
-#ifdef MKXPZ_RETRO
-	threadTermReq = true;
-#else
 	threadTermReq.set();
 
+#ifdef MKXPZ_RETRO
+	needsRewind.set();
+#else
 	if (thread)
 	{
 		SDL_WaitThread(thread, 0);
@@ -337,15 +330,9 @@ void ALStream::startStream(double offset)
 	AL::Source::clearQueue(alSrc);
 
 	preemptPause = false;
-#ifdef MKXPZ_RETRO
-	streamInited = false;
-	sourceExhausted = false;
-	threadTermReq = false;
-#else
 	streamInited.clear();
 	sourceExhausted.clear();
 	threadTermReq.clear();
-#endif // MKXPZ_RETRO
 
 	startOffset = offset;
 	procFrames = offset * source->sampleRate();
@@ -443,11 +430,7 @@ void ALStream::renderInit() {
 			resumeStream();
 
 			firstBuffer = false;
-#ifdef MKXPZ_RETRO
-			streamInited = true;
-#else
 			streamInited.set();
-#endif // MKXPZ_RETRO
 		}
 
 		if (threadTermReq)
@@ -455,11 +438,7 @@ void ALStream::renderInit() {
 
 		if (status == ALDataSource::EndOfStream)
 		{
-#ifdef MKXPZ_RETRO
-			sourceExhausted = true;
-#else
 			sourceExhausted.set();
-#endif // MKXPZ_RETRO
 			break;
 		}
 	}
@@ -515,11 +494,7 @@ void ALStream::render() {
 
 		if (status == ALDataSource::Error)
 		{
-#ifdef MKXPZ_RETRO
-			sourceExhausted = true;
-#else
 			sourceExhausted.set();
-#endif // MKXPZ_RETRO
 			return;
 		}
 
@@ -538,11 +513,7 @@ void ALStream::render() {
 			lastBuf = buf;
 
 		if (status == ALDataSource::EndOfStream)
-#ifdef MKXPZ_RETRO
-			sourceExhausted = true;
-#else
 			sourceExhausted.set();
-#endif // MKXPZ_RETRO
 	}
 }
 
