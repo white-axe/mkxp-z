@@ -122,7 +122,7 @@ $(DOWNLOADS)/crossruby/Makefile $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ru
 		WASMOPT=$(WASM_OPT) \
 		WASI_SDK_PATH=$(WASI_SDK) \
 		$(WASI_TOOLCHAIN) \
-		LDFLAGS='-Wl,--export-dynamic,--stack-first,-z,stack-size=16777216 $(WASI_LDFLAGS)' \
+		LDFLAGS='-Wl,--export-dynamic,--stack-first,-z,stack-size=2097152 $(WASI_LDFLAGS)' \
 		XCFLAGS='-DWASM_SETJMP_STACK_BUFFER_SIZE=24576 -DWASM_FIBER_STACK_BUFFER_SIZE=24576 -DWASM_SCAN_STACK_BUFFER_SIZE=24576' \
 		cppflags='$(WASI_CXXFLAGS)' \
 		optflags='$(WASI_CFLAGS) -fno-fast-math' \
