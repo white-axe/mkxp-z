@@ -69,6 +69,14 @@ if core_is_static and host_cpu_family == 'arm'
     global_args += '-mfloat-abi=hard'
 endif
 
+if is_emscripten
+    if get_option('emscripten_threaded')
+        global_args += '-pthread'
+    else
+        global_args += '-DMKXPZ_NO_THREADED_AUDIO'
+    endif
+endif
+
 if host_endian == 'big'
     global_args += '-DMKXPZ_BIG_ENDIAN'
 endif

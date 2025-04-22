@@ -32,8 +32,48 @@
  *   integers that _look_ like sample offsets but I can't
  *   quite make out their meaning yet) */
 
+#ifdef MKXPZ_RETRO
+#  include "mkxp-polyfill.h"
+#else
+#  include <SDL_mutex.h>
+#endif // MKXPZ_RETRO
+
 struct AudioPrivate;
 struct RGSSThreadData;
+
+#if defined(MKXPZ_RETRO) && !defined(MKXPZ_NO_THREADED_AUDIO) && (!defined(MKXPZ_NO_PTHREAD_H) || !defined(MKXPZ_NO_STD_MUTEX))
+#  define MKXPZ_HAVE_THREADED_AUDIO
+#endif
+
+class AudioMutex
+{
+public:
+	AudioMutex();
+	~AudioMutex();
+	void lock();
+	void unlock();
+
+private:
+#ifdef MKXPZ_RETRO
+	mkxp_mutex_t mutex;
+#else
+	SDL_mutex *mutex;
+#endif // MKXPZ_RETRO
+};
+
+class AudioMutexGuard
+{
+public:
+	AudioMutexGuard(AudioMutex &mutex);
+	AudioMutexGuard(const AudioMutexGuard &guard) = delete;
+	AudioMutexGuard(AudioMutexGuard &&guard) noexcept;
+	AudioMutexGuard &operator=(const AudioMutexGuard &guard) = delete;
+	AudioMutexGuard &operator=(AudioMutexGuard &&guard) noexcept;
+	~AudioMutexGuard();
+
+private:
+	AudioMutex *mutex;
+};
 
 class Audio
 {

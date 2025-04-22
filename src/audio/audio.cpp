@@ -29,15 +29,80 @@
 #include "exception.h"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #ifdef MKXPZ_RETRO
 #  include "graphics.h"
 #else
 #  include "sdl-util.h"
+#  include <SDL_mutex.h>
 #  include <SDL_thread.h>
 #  include <SDL_timer.h>
 #endif // MKXPZ_RETRO
+
+AudioMutex::AudioMutex()
+{
+#ifdef MKXPZ_RETRO
+	if (mkxp_mutex_init(&mutex, false))
+#else
+	if (mutex == NULL)
+#endif // MKXPZ_RETRO
+	{
+		std::abort();
+	}
+}
+
+AudioMutex::~AudioMutex()
+{
+#ifdef MKXPZ_RETRO
+	mkxp_mutex_destroy(&mutex);
+#else
+	SDL_DestroyMutex(mutex);
+#endif // MKXPZ_RETRO
+}
+
+void AudioMutex::lock()
+{
+#ifdef MKXPZ_RETRO
+	if (mkxp_mutex_lock(&mutex))
+	{
+		std::abort();
+	}
+#else
+	SDL_LockMutex(mutex);
+#endif // MKXPZ_RETRO
+}
+
+void AudioMutex::unlock()
+{
+#ifdef MKXPZ_RETRO
+	if (mkxp_mutex_unlock(&mutex))
+	{
+		std::abort();
+	}
+#else
+	SDL_UnlockMutex(mutex);
+#endif // MKXPZ_RETRO
+}
+
+AudioMutexGuard::AudioMutexGuard(AudioMutex &mutex) : mutex(&mutex)
+{
+	mutex.lock();
+}
+
+AudioMutexGuard::AudioMutexGuard(AudioMutexGuard &&guard) noexcept : mutex(std::exchange(guard.mutex, nullptr)) {}
+
+AudioMutexGuard &AudioMutexGuard::operator=(AudioMutexGuard &&guard) noexcept
+{
+	mutex = std::exchange(guard.mutex, nullptr);
+	return *this;
+}
+
+AudioMutexGuard::~AudioMutexGuard()
+{
+	if (mutex != nullptr) mutex->unlock();
+}
 
 struct AudioPrivate
 {
@@ -117,20 +182,30 @@ struct AudioPrivate
 
 	void meWatchProc()
 	{
+		float fadeOutStep;
+		float fadeInStep;
+
 #ifdef MKXPZ_RETRO
-		const int fps = shState->graphics().getFrameRate();
-		const float fadeOutStep = 5.f / fps;
-		const float fadeInStep  = 1.f / fps;
-#else
-		const float fadeOutStep = 1.f / (200  / AUDIO_SLEEP);
-		const float fadeInStep  = 1.f / (1000 / AUDIO_SLEEP);
+		if (mkxp_retro::using_threaded_audio())
+#endif // MKXPZ_RETRO
+		{
+			fadeOutStep = .5f / AUDIO_SLEEP;
+			fadeInStep  = .1f / AUDIO_SLEEP;
+		}
+#ifdef MKXPZ_RETRO
+		else
+		{
+			const int fps = shState->graphics().getFrameRate();
+			fadeOutStep = 5.f / fps;
+			fadeInStep  = 1.f / fps;
+		}
 #endif // MKXPZ_RETRO
 
 		switch (meWatch.state)
 		{
 			case MeNotPlaying:
 			{
-				me.lockStream();
+				AudioMutexGuard guard(me.mutex);
 
 				if (me.stream.queryState() == ALStream::Playing)
 				{
@@ -141,19 +216,16 @@ struct AudioPrivate
 					meWatch.state = BgmFadingOut;
 				}
 
-				me.unlockStream();
-
 				break;
 			}
 
 			case BgmFadingOut :
 			{
-				me.lockStream();
+				AudioMutexGuard guard(me.mutex);
 
 				if (me.stream.queryState() != ALStream::Playing)
 				{
 					/* ME has ended while fading OUT BGM. -> FadeInBGM */
-					me.unlockStream();
 					meWatch.state = BgmFadingIn;
 
 					break;
@@ -161,20 +233,25 @@ struct AudioPrivate
 
 				bool shouldBreak = false;
 
-				for (int i = 0; i < (int)(bgmTracks.size()); i++) {
-					AudioStream *track = bgmTracks[i];
+				for (auto track : bgmTracks) {
+					bool shouldPause;
 
-					track->lockStream();
+					{
+						AudioMutexGuard trackGuard(track->mutex);
 
-					float vol = track->getVolume(AudioStream::External);
-					vol -= fadeOutStep;
+						float vol = track->getVolume(AudioStream::External);
+						vol -= fadeOutStep;
 
-					if (vol < 0 || track->stream.queryState() != ALStream::Playing) {
-						/* Either BGM has fully faded out, or stopped midway. -> MePlaying */
-						track->setVolume(AudioStream::External, 0);
-						track->stream.pause();
-						track->unlockStream();
+						if ((shouldPause = vol < 0 || track->stream.queryState() != ALStream::Playing)) {
+							/* Either BGM has fully faded out, or stopped midway. -> MePlaying */
+							track->setVolume(AudioStream::External, 0);
+							track->stream.pause();
+						} else {
+							track->setVolume(AudioStream::External, vol);
+						}
+					}
 
+					if (shouldPause) {
 						// check to see if there are any tracks still playing,
 						// and if the last one was ended this round, this branch should exit
 						std::vector<AudioStream*> playingTracks;
@@ -186,31 +263,25 @@ struct AudioPrivate
 						if (playingTracks.size() <= 0 && !shouldBreak) shouldBreak = true;
 						continue;
 					}
-
-					track->setVolume(AudioStream::External, vol);
-					track->unlockStream();
 				}
 
 				if (shouldBreak) {
 					meWatch.state = MePlaying;
-					me.unlockStream();
 					break;
 				}
-
-				me.unlockStream();
 
 				break;
 			}
 
 			case MePlaying :
 			{
-				me.lockStream();
+				AudioMutexGuard guard(me.mutex);
 
 				if (me.stream.queryState() != ALStream::Playing)
 				{
 					/* ME has ended */
 					for (auto track : bgmTracks) {
-						track->lockStream();
+						AudioMutexGuard trackGuard(track->mutex);
 						track->extPaused = false;
 
 						ALStream::State sState = track->stream.queryState();
@@ -229,20 +300,18 @@ struct AudioPrivate
 
 							meWatch.state = MeNotPlaying;
 						}
-
-						track->unlockStream();
 					}
 				}
-
-				me.unlockStream();
 
 				break;
 			}
 
 			case BgmFadingIn :
 			{
+				std::vector<AudioMutexGuard> trackGuards;
+				trackGuards.reserve(bgmTracks.size());
 				for (auto track : bgmTracks)
-					track->lockStream();
+					trackGuards.emplace_back(track->mutex);
 
 				if (bgmTracks[0]->stream.queryState() == ALStream::Stopped)
 				{
@@ -250,13 +319,11 @@ struct AudioPrivate
 					for (auto track : bgmTracks)
 						track->setVolume(AudioStream::External, 1.0f);
 					meWatch.state = MeNotPlaying;
-					for (auto track : bgmTracks)
-						track->unlockStream();
 
 					break;
 				}
 
-				me.lockStream();
+				AudioMutexGuard guard(me.mutex);
 
 				if (me.stream.queryState() == ALStream::Playing)
 				{
@@ -264,9 +331,6 @@ struct AudioPrivate
 					for (auto track : bgmTracks)
 						track->extPaused = true;
 					meWatch.state = BgmFadingOut;
-					me.unlockStream();
-					for (auto track : bgmTracks)
-						track->unlockStream();
 
 					break;
 				}
@@ -283,10 +347,6 @@ struct AudioPrivate
 
 				for (auto track : bgmTracks)
 					track->setVolume(AudioStream::External, vol);
-
-				me.unlockStream();
-				for (auto track : bgmTracks)
-					track->unlockStream();
 
 				break;
 			}

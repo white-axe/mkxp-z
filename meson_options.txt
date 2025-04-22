@@ -25,3 +25,4 @@ option('gfx_backend', type: 'combo', value: 'gl', choices: ['gl', 'gles'], descr
 option('libretro', type: 'boolean', value: false, description: 'Build a libretro core instead of an executable')
 option('libretro_stage1_path', type: 'string', value: 'libretro/build/libretro-stage1', description: 'Path to libretro-stage1 for libretro builds')
 option('ruby_lto', type: 'boolean', value: false, description: 'Enable link-time optimization for libruby in libretro builds, even if link-time optimization is disabled for everything else')
+option('emscripten_threaded', type: 'boolean', value: true, description: 'Enable multithreading support in libretro builds')

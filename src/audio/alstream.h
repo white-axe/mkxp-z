@@ -22,6 +22,7 @@
 #ifndef ALSTREAM_H
 #define ALSTREAM_H
 
+#include "audio.h"
 #include "al-util.h"
 #include "sdl-util.h"
 #ifndef MKXPZ_RETRO
@@ -55,9 +56,9 @@ struct ALStream
 	SDL_Thread *thread;
 
 	std::string threadName;
-
-	SDL_mutex *pauseMut;
 #endif // MKXPZ_RETRO
+
+	AudioMutex pauseMut;
 
 	/* When this flag isn't set and alSrc is
 	 * in 'STOPPED' state, stream isn't over

@@ -60,8 +60,6 @@ ALStream::ALStream(LoopMode loopMode,
 		alBuf[i] = AL::Buffer::gen();
 
 #ifndef MKXPZ_RETRO
-	pauseMut = SDL_CreateMutex();
-
 	threadName = std::string("al_stream (") + threadId + ")";
 #endif // MKXPZ_RETRO
 }
@@ -75,10 +73,6 @@ ALStream::~ALStream()
 
 	for (int i = 0; i < STREAM_BUFS; ++i)
 		AL::Buffer::del(alBuf[i]);
-
-#ifndef MKXPZ_RETRO
-	SDL_DestroyMutex(pauseMut);
-#endif // MKXPZ_RETRO
 }
 
 void ALStream::close()
@@ -347,34 +341,22 @@ void ALStream::startStream(double offset)
 
 void ALStream::pauseStream()
 {
-#ifndef MKXPZ_RETRO
-	SDL_LockMutex(pauseMut);
-#endif // MKXPZ_RETRO
+	AudioMutexGuard guard(pauseMut);
 
 	if (AL::Source::getState(alSrc) != AL_PLAYING)
 		preemptPause = true;
 	else
 		AL::Source::pause(alSrc);
-
-#ifndef MKXPZ_RETRO
-	SDL_UnlockMutex(pauseMut);
-#endif // MKXPZ_RETRO
 }
 
 void ALStream::resumeStream()
 {
-#ifndef MKXPZ_RETRO
-	SDL_LockMutex(pauseMut);
-#endif // MKXPZ_RETRO
+	AudioMutexGuard guard(pauseMut);
 
 	if (preemptPause)
 		preemptPause = false;
 	else
 		AL::Source::play(alSrc);
-
-#ifndef MKXPZ_RETRO
-	SDL_UnlockMutex(pauseMut);
-#endif // MKXPZ_RETRO
 }
 
 void ALStream::checkStopped()

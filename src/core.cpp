@@ -38,9 +38,33 @@
 #include "glstate.h"
 #include "sharedmidistate.h"
 #include "eventthread.h"
+#include "audio.h"
+#include "al-util.h"
+
+#define THREADED_AUDIO_SAMPLES (((size_t)SYNTH_SAMPLERATE * (size_t)AUDIO_SLEEP) / (size_t)1000)
 
 using namespace mkxp_retro;
 using namespace mkxp_sandbox;
+
+struct lock_guard {
+    std::mutex &mutex;
+
+    lock_guard(std::mutex &mutex) : mutex(mutex) {
+        mutex.lock();
+    }
+
+    lock_guard(const struct lock_guard &guard) = delete;
+
+    lock_guard(struct lock_guard &&guard) noexcept = delete;
+
+    struct lock_guard &operator=(const struct lock_guard &guard) = delete;
+
+    struct lock_guard &operator=(struct lock_guard &&guard) noexcept = delete;
+
+    ~lock_guard() {
+        mutex.unlock();
+    }
+};
 
 static uint64_t frame_count;
 
@@ -58,9 +82,11 @@ static uint32_t samples_per_frame;
 static uint32_t samples_per_frame_remainder;
 static int16_t *sound_buf = NULL;
 static bool retro_framebuffer_supported;
-static bool shared_state_initialized;
 static PHYSFS_File *rgssad = NULL;
 static retro_system_av_info av_info;
+static std::mutex threaded_audio_mutex;
+static bool threaded_audio_enabled = false;
+static bool shared_state_initialized = false;
 
 namespace mkxp_retro {
     retro_log_printf_t log_printf;
@@ -74,6 +100,10 @@ namespace mkxp_retro {
 
     uint64_t get_ticks() noexcept {
         return (frame_count * 1000) / shState->graphics().getFrameRate();
+    }
+
+    bool using_threaded_audio() noexcept {
+        return threaded_audio_enabled;
     }
 }
 
@@ -151,6 +181,10 @@ SANDBOX_COROUTINE(main,
 )
 
 static void deinit_sandbox() {
+    {
+        struct lock_guard guard(threaded_audio_mutex);
+        shared_state_initialized = false;
+    }
     if (sound_buf != NULL) {
         mkxp_aligned_free(sound_buf);
         sound_buf = NULL;
@@ -286,7 +320,13 @@ static bool init_sandbox() {
     frame_rate = 0;
     frame_rate_remainder = 0;
     frame_count = 0;
-    shared_state_initialized = false;
+
+    if (threaded_audio_enabled) {
+        sound_buf = (int16_t *)mkxp_aligned_malloc(16, THREADED_AUDIO_SAMPLES * 2 * sizeof(int16_t));
+        if (sound_buf == NULL) {
+            throw std::bad_alloc();
+        }
+    }
 
     return true;
 }
@@ -318,6 +358,30 @@ extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
         .perf_log = nullptr,
     };
     cb(RETRO_ENVIRONMENT_GET_PERF_INTERFACE, &perf);
+
+#ifdef MKXPZ_HAVE_THREADED_AUDIO
+    static const struct retro_audio_callback audio_callback = {
+        .callback = []() {
+            struct lock_guard guard(threaded_audio_mutex);
+
+            if (!shared_state_initialized) {
+                return;
+            }
+
+            audio->render();
+            alcRenderSamplesSOFT(al_device, sound_buf, THREADED_AUDIO_SAMPLES);
+            audio_sample_batch(sound_buf, THREADED_AUDIO_SAMPLES);
+        },
+        .set_state = [](bool enabled) {},
+    };
+    {
+        struct lock_guard guard(threaded_audio_mutex);
+        threaded_audio_enabled = cb(RETRO_ENVIRONMENT_SET_AUDIO_CALLBACK, (void *)&audio_callback);
+        log_printf(RETRO_LOG_INFO, threaded_audio_enabled ? "Using threaded audio driver\n" : "Not using threaded audio driver because the frontend does not support it\n");
+    }
+#else
+    log_printf(RETRO_LOG_INFO, "Not using threaded audio driver because multithreading is not supported on this platform\n");
+#endif // MKXPZ_HAVE_THREADED_AUDIO
 }
 
 extern "C" RETRO_API void retro_set_video_refresh(retro_video_refresh_t cb) {
@@ -381,6 +445,7 @@ extern "C" RETRO_API void retro_run() {
     // We deferred initializing the shared state since the OpenGL symbols aren't available until the first call to `retro_run()`
     if (!shared_state_initialized) {
         SharedState::initInstance(&thread_data.get());
+        struct lock_guard guard(threaded_audio_mutex);
         shared_state_initialized = true;
     } else if (hw_render.context_type != RETRO_HW_CONTEXT_NONE) {
         glState.reset();
@@ -404,12 +469,14 @@ extern "C" RETRO_API void retro_run() {
         samples_per_frame = SYNTH_SAMPLERATE / frame_rate;
         samples_per_frame_remainder = SYNTH_SAMPLERATE % frame_rate;
 
-        if (sound_buf != NULL) {
-            mkxp_aligned_free(sound_buf);
-        }
-        sound_buf = (int16_t *)mkxp_aligned_malloc(16, (samples_per_frame + !!samples_per_frame_remainder) * 2 * sizeof(int16_t));
-        if (sound_buf == NULL) {
-            throw std::bad_alloc();
+        if (!threaded_audio_enabled) {
+            if (sound_buf != NULL) {
+                mkxp_aligned_free(sound_buf);
+            }
+            sound_buf = (int16_t *)mkxp_aligned_malloc(16, (samples_per_frame + !!samples_per_frame_remainder) * 2 * sizeof(int16_t));
+            if (sound_buf == NULL) {
+                throw std::bad_alloc();
+            }
         }
 
         av_info.timing.fps = frame_rate;
@@ -443,7 +510,7 @@ extern "C" RETRO_API void retro_run() {
     unsigned int height = shState->graphics().height();
     video_refresh(fb, width, height, width * 4);
 
-    if (mkxp_retro::sandbox.has_value()) {
+    if (!threaded_audio_enabled && mkxp_retro::sandbox.has_value()) {
         audio->render();
 
         uint32_t samples = samples_per_frame;

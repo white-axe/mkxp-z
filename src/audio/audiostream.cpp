@@ -53,8 +53,6 @@ AudioStream::AudioStream(ALStream::LoopMode loopMode,
 
 	fadeIn.thread = 0;
 	fadeIn.threadName = std::string("audio_fadein (") + threadId + ")";
-
-	streamMut = SDL_CreateMutex();
 #endif // MKXPZ_RETRO
 }
 
@@ -74,16 +72,10 @@ AudioStream::~AudioStream()
 	}
 #endif // MKXPZ_RETRO
 
-	lockStream();
+	AudioMutexGuard guard(mutex);
 
 	stream.stop();
 	stream.close();
-
-	unlockStream();
-
-#ifndef MKXPZ_RETRO
-	SDL_DestroyMutex(streamMut);
-#endif // MKXPZ_RETRO
 }
 
 void AudioStream::play(const std::string &filename,
@@ -93,7 +85,7 @@ void AudioStream::play(const std::string &filename,
 {
 	finiFadeOutInt();
 
-	lockStream();
+	AudioMutexGuard guard(mutex);
 
 	float _volume = clamp<int>(volume, 0, 100) / 100.0f;
 	float _pitch  = clamp<int>(pitch, 50, 150) / 100.0f;
@@ -107,7 +99,6 @@ void AudioStream::play(const std::string &filename,
 	&&  _pitch   == current.pitch
 	&&  (sState == ALStream::Playing || sState == ALStream::Paused))
 	{
-		unlockStream();
 		return;
 	}
 
@@ -119,7 +110,6 @@ void AudioStream::play(const std::string &filename,
 	{
 		setVolume(Base, _volume);
 		current.volume = _volume;
-		unlockStream();
 		return;
 	}
 
@@ -136,7 +126,6 @@ void AudioStream::play(const std::string &filename,
 		}
 		catch (const Exception &e)
 		{
-			unlockStream();
 			throw e;
 		}
 	} else {
@@ -165,49 +154,39 @@ void AudioStream::play(const std::string &filename,
 		stream.play(offset);
 	else
 		noResumeStop = false;
-
-	unlockStream();
 }
 
 void AudioStream::stop()
 {
 	finiFadeOutInt();
 
-	lockStream();
+	AudioMutexGuard guard(mutex);
 
 	noResumeStop = true;
 
 	stream.stop();
-
-	unlockStream();
 }
 
 void AudioStream::fadeOut(int duration)
 {
-	lockStream();
+	AudioMutexGuard guard(mutex);
 
 	ALStream::State sState = stream.queryState();
 	noResumeStop = true;
 
 	if (fade.active)
 	{
-		unlockStream();
-
 		return;
 	}
 
 	if (sState == ALStream::Paused)
 	{
 		stream.stop();
-		unlockStream();
-
 		return;
 	}
 
 	if (sState != ALStream::Playing)
 	{
-		unlockStream();
-
 		return;
 	}
 
@@ -243,32 +222,12 @@ void AudioStream::fadeOut(int duration)
 	fade.thread = createSDLThread
 		<AudioStream, &AudioStream::fadeOutThread>(this, fade.threadName);
 #endif // MKXPZ_RETRO
-
-	unlockStream();
 }
 
 void AudioStream::seek(double offset)
 {
-	lockStream();
+	AudioMutexGuard guard(mutex);
 	stream.play(offset);
-	unlockStream();
-}
-
-/* Any access to this classes 'stream' member,
- * whether state query or modification, must be
- * protected by a 'lock'/'unlock' pair */
-void AudioStream::lockStream()
-{
-#ifndef MKXPZ_RETRO
-	SDL_LockMutex(streamMut);
-#endif // MKXPZ_RETRO
-}
-
-void AudioStream::unlockStream()
-{
-#ifndef MKXPZ_RETRO
-	SDL_UnlockMutex(streamMut);
-#endif // MKXPZ_RETRO
 }
 
 void AudioStream::setVolume(VolumeType type, float value)
@@ -366,7 +325,7 @@ bool AudioStream::fadeOutProc()
 		return false;
 	}
 
-	lockStream();
+	AudioMutexGuard guard(mutex);
 
 #ifdef MKXPZ_RETRO
 	uint64_t curDur = mkxp_retro::get_ticks() - fade.startTicks;
@@ -385,15 +344,12 @@ bool AudioStream::fadeOutProc()
 			stream.stop();
 
 		setVolume(FadeOut, 1.0f);
-		unlockStream();
 
 		fade.active.clear();
 		return false;
 	}
 
 	setVolume(FadeOut, resVol);
-
-	unlockStream();
 
 	return true;
 }
@@ -403,7 +359,7 @@ bool AudioStream::fadeInProc()
 	if (fadeIn.rqTerm)
 		return false;
 
-	lockStream();
+	AudioMutexGuard guard(mutex);
 
 	/* Fade in duration is always 1 second */
 #ifdef MKXPZ_RETRO
@@ -420,14 +376,11 @@ bool AudioStream::fadeInProc()
 	||  fadeIn.rqFini)
 	{
 		setVolume(FadeIn, 1.0f);
-		unlockStream();
 
 		return false;
 	}
 
 	setVolume(FadeIn, prog);
-
-	unlockStream();
 
 	return true;
 }

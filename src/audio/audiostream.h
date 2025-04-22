@@ -22,6 +22,7 @@
 #ifndef AUDIOSTREAM_H
 #define AUDIOSTREAM_H
 
+#include "audio.h"
 #include "al-util.h"
 #include "alstream.h"
 #include "sdl-util.h"
@@ -82,9 +83,7 @@ struct AudioStream
 
 	ALStream stream;
 
-#ifndef MKXPZ_RETRO
-	SDL_mutex *streamMut;
-#endif // MKXPZ_RETRO
+	AudioMutex mutex;
 
 	/* Fade out */
 	struct
@@ -142,12 +141,6 @@ struct AudioStream
 	void stop();
 	void fadeOut(int duration);
 	void seek(double offset);
-
-	/* Any access to this classes 'stream' member,
-	 * whether state query or modification, must be
-	 * protected by a 'lock'/'unlock' pair */
-	void lockStream();
-	void unlockStream();
 
 	void setVolume(VolumeType type, float value);
 	float getVolume(VolumeType type);
