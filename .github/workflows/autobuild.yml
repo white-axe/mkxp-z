@@ -929,6 +929,10 @@ jobs:
           CLICOLOR_FORCE=1 emmake make -f Makefile.emscripten LIBRETRO=mkxp-z $threading_flags
           mv mkxp-z_libretro.wasm ${{ runner.temp }}/dist
           mv mkxp-z_libretro.js ${{ runner.temp }}/dist
+          if [ '${{ matrix.threading }}' = 'threaded' ]
+          then
+            mv mkxp-z_libretro.worker.js ${{ runner.temp }}/dist
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
