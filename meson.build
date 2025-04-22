@@ -9,6 +9,7 @@ compilers = {'c': meson.get_compiler('c'), 'cpp': meson.get_compiler('cpp')}
 is_libretro = get_option('libretro')
 is_emscripten = host_system == 'emscripten'
 core_is_static = is_libretro and (is_emscripten or host_system == 'bare' or host_system == 'none')
+core_is_relocatable_object = is_libretro and is_emscripten and compilers['c'].version().version_compare('<3.1.52')
 is_vita = core_is_static and host_cpu_family == 'arm' and compilers['c'].has_header_symbol('sys/config.h', '__vita__')
 is_devkitarm = core_is_static and host_cpu_family == 'arm' and not is_vita
 is_devkitppc = core_is_static and host_cpu_family == 'ppc'
@@ -493,7 +494,7 @@ if is_libretro
         global_dependencies_processed = global_dependencies
     endif
 
-    if is_emscripten
+    if core_is_relocatable_object
         libretro_target_type = 'executable' # Actually a relocatable object; we just pass 'executable' as the target type to get Meson to use the correct commands
     elif core_is_static
         libretro_target_type = 'static_library'
@@ -504,7 +505,7 @@ if is_libretro
     libretro = build_target(
         meson.project_name() + '_libretro',
         name_prefix: '',
-        name_suffix: is_emscripten ? 'bc' : [],
+        name_suffix: core_is_relocatable_object ? 'bc' : [],
         target_type: libretro_target_type,
         dependencies: global_dependencies_processed,
         c_args: global_args,
