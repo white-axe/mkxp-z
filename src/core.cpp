@@ -239,6 +239,7 @@ static bool init_sandbox() {
             parsed_game_path = parsed_game_path.substr(0, last_slash_index);
         }
 
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Game path: \"%s\" -> \"%s\"\n", game_path.c_str(), parsed_game_path.c_str());
         fs->addPath(parsed_game_path.c_str(), "/mkxp-retro-game");
 
         conf.emplace();

@@ -929,6 +929,7 @@ jobs:
             flags='HAVE_THREADS=0 PROXY_TO_PTHREAD=0 HAVE_AL=1 HAVE_AUDIOWORKLET=0 HAVE_WASMFS=0 HAVE_EXTRA_WASMFS=0'
           fi
           CLICOLOR_FORCE=1 emmake make -f Makefile.emscripten LIBRETRO=mkxp-z DEBUG=1 $flags
+          find . -type f
           mv mkxp-z_libretro* ${{ runner.temp }}/dist
 
       - name: Upload artifact

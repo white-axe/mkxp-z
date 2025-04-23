@@ -356,6 +356,7 @@ void FileSystem::addPath(const char *path, const char *mountpoint, bool reload) 
 
     if (!state) {
         PHYSFS_ErrorCode err = PHYSFS_getLastErrorCode();
+        mkxp_retro::log_printf(RETRO_LOG_ERROR, "Failed to mount %s (%s)\n", path, PHYSFS_getErrorByCode(err));
         throw Exception(Exception::PHYSFSError, "Failed to mount %s (%s)", path, PHYSFS_getErrorByCode(err));
     }
     
