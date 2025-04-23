@@ -84,9 +84,13 @@ static int16_t *sound_buf = NULL;
 static bool retro_framebuffer_supported;
 static PHYSFS_File *rgssad = NULL;
 static retro_system_av_info av_info;
+static struct retro_audio_callback audio_callback;
+static struct retro_frame_time_callback frame_time_callback;
 static std::mutex threaded_audio_mutex;
 static bool threaded_audio_enabled = false;
+static bool frame_time_callback_enabled = false;
 static bool shared_state_initialized = false;
+static uint64_t frame_time;
 
 namespace mkxp_retro {
     retro_log_printf_t log_printf;
@@ -315,11 +319,13 @@ static bool init_sandbox() {
     av_info.geometry.aspect_ratio = (float)av_info.geometry.base_width / (float)av_info.geometry.base_height;
     av_info.timing.fps = rgssVer == 1 ? 40.0 : 60.0;
     av_info.timing.sample_rate = (double)SYNTH_SAMPLERATE;
+    frame_time_callback.reference = 1000000 / (rgssVer == 1 ? 40 : 60);
 
     sound_buf = NULL;
     frame_rate = 0;
     frame_rate_remainder = 0;
     frame_count = 0;
+    frame_time = 0;
 
     if (threaded_audio_enabled) {
         sound_buf = (int16_t *)mkxp_aligned_malloc(16, THREADED_AUDIO_SAMPLES * 2 * sizeof(int16_t));
@@ -358,30 +364,6 @@ extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
         .perf_log = nullptr,
     };
     cb(RETRO_ENVIRONMENT_GET_PERF_INTERFACE, &perf);
-
-#ifdef MKXPZ_HAVE_THREADED_AUDIO
-    static const struct retro_audio_callback audio_callback = {
-        .callback = []() {
-            struct lock_guard guard(threaded_audio_mutex);
-
-            if (!shared_state_initialized) {
-                return;
-            }
-
-            audio->render();
-            alcRenderSamplesSOFT(al_device, sound_buf, THREADED_AUDIO_SAMPLES);
-            audio_sample_batch(sound_buf, THREADED_AUDIO_SAMPLES);
-        },
-        .set_state = [](bool enabled) {},
-    };
-    {
-        struct lock_guard guard(threaded_audio_mutex);
-        threaded_audio_enabled = cb(RETRO_ENVIRONMENT_SET_AUDIO_CALLBACK, (void *)&audio_callback);
-        log_printf(RETRO_LOG_INFO, threaded_audio_enabled ? "Using threaded audio driver\n" : "Not using threaded audio driver because the frontend does not support it\n");
-    }
-#else
-    log_printf(RETRO_LOG_INFO, "Not using threaded audio driver because multithreading is not supported on this platform\n");
-#endif // MKXPZ_HAVE_THREADED_AUDIO
 }
 
 extern "C" RETRO_API void retro_set_video_refresh(retro_video_refresh_t cb) {
@@ -440,6 +422,8 @@ extern "C" RETRO_API void retro_reset() {
 }
 
 extern "C" RETRO_API void retro_run() {
+    bool should_render = mkxp_retro::sandbox.has_value() && (!frame_time_callback_enabled || frame_time >= frame_time_callback.reference);
+
     input_poll();
 
     // We deferred initializing the shared state since the OpenGL symbols aren't available until the first call to `retro_run()`
@@ -451,7 +435,7 @@ extern "C" RETRO_API void retro_run() {
         glState.reset();
     }
 
-    if (mkxp_retro::sandbox.has_value()) {
+    if (should_render) {
         try {
             if (sb().run<struct main>()) {
                 log_printf(RETRO_LOG_INFO, "[Sandbox] Ruby terminated normally\n");
@@ -463,7 +447,7 @@ extern "C" RETRO_API void retro_run() {
         }
     }
 
-    if (mkxp_retro::sandbox.has_value() && frame_rate != shState->graphics().getFrameRate()) {
+    if (should_render && frame_rate != shState->graphics().getFrameRate()) {
         frame_rate = shState->graphics().getFrameRate();
         frame_rate_remainder %= frame_rate;
         samples_per_frame = SYNTH_SAMPLERATE / frame_rate;
@@ -479,6 +463,7 @@ extern "C" RETRO_API void retro_run() {
             }
         }
 
+        frame_time_callback.reference = 1000000 / frame_rate;
         av_info.timing.fps = frame_rate;
         environment(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO, &av_info);
     }
@@ -510,7 +495,7 @@ extern "C" RETRO_API void retro_run() {
     unsigned int height = shState->graphics().height();
     video_refresh(fb, width, height, width * 4);
 
-    if (!threaded_audio_enabled && mkxp_retro::sandbox.has_value()) {
+    if (should_render && !threaded_audio_enabled) {
         audio->render();
 
         uint32_t samples = samples_per_frame;
@@ -524,7 +509,10 @@ extern "C" RETRO_API void retro_run() {
         audio_sample_batch(sound_buf, samples);
     }
 
-    ++frame_count;
+    if (should_render) {
+        frame_time %= frame_time_callback.reference;
+        ++frame_count;
+    }
 }
 
 extern "C" RETRO_API size_t retro_serialize_size() {
@@ -603,6 +591,38 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
         log_printf(RETRO_LOG_ERROR, "Error: Hardware-accelerated graphics not supported\n");
         return false;
     }
+
+#ifdef MKXPZ_HAVE_THREADED_AUDIO
+    audio_callback.callback = []() {
+        struct lock_guard guard(threaded_audio_mutex);
+
+        if (!shared_state_initialized) {
+            return;
+        }
+
+        audio->render();
+        alcRenderSamplesSOFT(al_device, sound_buf, THREADED_AUDIO_SAMPLES);
+        audio_sample_batch(sound_buf, THREADED_AUDIO_SAMPLES);
+    };
+    audio_callback.set_state = nullptr;
+    {
+        struct lock_guard guard(threaded_audio_mutex);
+        threaded_audio_enabled = environment(RETRO_ENVIRONMENT_SET_AUDIO_CALLBACK, (void *)&audio_callback);
+    }
+    log_printf(RETRO_LOG_INFO, threaded_audio_enabled ? "Using threaded audio driver\n" : "Not using threaded audio driver because the frontend does not support it\n");
+
+    if (threaded_audio_enabled) {
+        frame_time_callback.callback = [](retro_usec_t delta) {
+            frame_time += delta;
+        };
+    } else {
+        frame_time_callback.callback = nullptr;
+    }
+    frame_time_callback.reference = 1000000 / 60;
+    frame_time_callback_enabled = environment(RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK, &frame_time_callback) && threaded_audio_enabled;
+#else
+    log_printf(RETRO_LOG_INFO, "Not using threaded audio driver because multithreading is not supported on this platform\n");
+#endif // MKXPZ_HAVE_THREADED_AUDIO
 
     retro_framebuffer_supported = true;
 
