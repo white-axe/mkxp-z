@@ -923,7 +923,9 @@ jobs:
           cd retroarch
           if [ '${{ matrix.threading }}' = 'threaded' ]
           then
-            flags='HAVE_THREADS=1 PROXY_TO_PTHREAD=1 HAVE_AL=0 HAVE_AUDIOWORKLET=1 HAVE_WASMFS=1 HAVE_EXTRA_WASMFS=1'
+            # TODO: investigate why the AudioWorklet driver doesn't work
+            #flags='HAVE_THREADS=1 PROXY_TO_PTHREAD=1 HAVE_AL=0 HAVE_AUDIOWORKLET=1 HAVE_WASMFS=1 HAVE_EXTRA_WASMFS=1'
+            flags='HAVE_THREADS=1 PROXY_TO_PTHREAD=1 HAVE_AL=1 HAVE_AUDIOWORKLET=0 HAVE_WASMFS=1 HAVE_EXTRA_WASMFS=1'
           else
             flags='HAVE_THREADS=0 PROXY_TO_PTHREAD=0 HAVE_AL=1 HAVE_AUDIOWORKLET=0 HAVE_WASMFS=0 HAVE_EXTRA_WASMFS=0'
           fi
