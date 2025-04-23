@@ -863,7 +863,7 @@ jobs:
       - name: Set up Emscripten SDK
         uses: mymindstorm/setup-emsdk@v14
         with:
-          version: 3.1.46
+          version: 4.0.6
 
       - id: short-sha
         name: Get Git commit hash
@@ -899,7 +899,7 @@ jobs:
           else
             threaded=false
           fi
-          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=false -Dlibretro=true -Demscripten_threaded=$threaded
+          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dlibretro=true -Demscripten_threaded=$threaded
 
       - name: Build core
         run: |
@@ -923,9 +923,9 @@ jobs:
           cd retroarch
           if [ '${{ matrix.threading }}' = 'threaded' ]
           then
-            flags='HAVE_THREADS=1 PROXY_TO_PTHREAD=1'
+            flags='HAVE_THREADS=1 PROXY_TO_PTHREAD=1 HAVE_AL=0 HAVE_AUDIOWORKLET=1 HAVE_WASMFS=1 HAVE_EXTRA_WASMFS=1'
           else
-            flags='HAVE_THREADS=0 PROXY_TO_PTHREAD=0'
+            flags='HAVE_THREADS=0 PROXY_TO_PTHREAD=0 HAVE_AL=1 HAVE_AUDIOWORKLET=0 HAVE_WASMFS=0 HAVE_EXTRA_WASMFS=0'
           fi
           CLICOLOR_FORCE=1 emmake make -f Makefile.emscripten LIBRETRO=mkxp-z $flags
           mv mkxp-z_libretro.wasm ${{ runner.temp }}/dist
