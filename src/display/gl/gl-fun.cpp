@@ -89,10 +89,14 @@ Exception(Exception::MKXPError, "%s", msg)
 void initGLFunctions()
 {
 #define EXT_SUFFIX ""
+    mkxp_retro::log_printf(RETRO_LOG_INFO, "Initializing OpenGL 2.0 functions\n");
     GL_20_FUN;
+    mkxp_retro::log_printf(RETRO_LOG_INFO, "Initialized OpenGL 2.0 functions\n");
     
     /* Determine GL version */
+    mkxp_retro::log_printf(RETRO_LOG_INFO, "Getting OpenGL version (%p)\n", gl.GetString);
     const char *ver = (const char*) gl.GetString(GL_VERSION);
+    mkxp_retro::log_printf(RETRO_LOG_INFO, "Got OpenGL version: %s\n", ver);
     
     const char glesPrefix[] = "OpenGL ES ";
     const size_t glesPrefixN = sizeof(glesPrefix)-1;
@@ -129,32 +133,44 @@ void initGLFunctions()
     
     if (gles)
     {
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initializing OpenGL ES functions\n");
         GL_ES_FUN;
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initialized OpenGL ES functions\n");
     }
     
     BoostSet<std::string> ext;
     
-    if (glMajor >= 3)
+    if (glMajor >= 3) {
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initializing extensions (core)\n");
         parseExtensionsCore(gl.GetIntegerv, ext);
-    else
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initialized extensions (core)\n");
+    } else {
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initializing extensions (compatibility)\n");
         parseExtensionsCompat(gl.GetString, ext);
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initialized extensions (compatibility)\n");
+    }
     
 #define HAVE_EXT(_ext) ext.contains("GL_" #_ext)
     
     /* FBO entrypoints */
     if (glMajor >= 3 || HAVE_EXT(ARB_framebuffer_object))
     {
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initializing FBO functions for OpenGL 3\n");
 #undef EXT_SUFFIX
 #define EXT_SUFFIX ""
         GL_FBO_FUN;
         GL_FBO_BLIT_FUN;
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initialized FBO functions for OpenGL 3\n");
     }
     else if (gles && glMajor == 2)
     {
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initializing FBO functions for OpenGL 2\n");
         GL_FBO_FUN;
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initialized FBO functions for OpenGL 2\n");
     }
     else if (HAVE_EXT(EXT_framebuffer_object))
     {
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initializing FBO functions for extension\n");
 #undef EXT_SUFFIX
 #define EXT_SUFFIX "EXT"
         GL_FBO_FUN;
@@ -163,6 +179,7 @@ void initGLFunctions()
         {
             GL_FBO_BLIT_FUN;
         }
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initialized FBO functions for extension\n");
     }
     else
     {
@@ -172,42 +189,54 @@ void initGLFunctions()
     /* VAO entrypoints */
     if (HAVE_EXT(ARB_vertex_array_object) || glMajor >= 3)
     {
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initializing VAO functions (ARB)\n");
 #undef EXT_SUFFIX
 #define EXT_SUFFIX ""
         GL_VAO_FUN;
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initialized VAO functions (ARB)\n");
     }
     else if (HAVE_EXT(APPLE_vertex_array_object))
     {
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initializing VAO functions (Apple)\n");
 #undef EXT_SUFFIX
 #define EXT_SUFFIX "APPLE"
         GL_VAO_FUN;
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initialized VAO functions (Apple)\n");
     }
     else if (HAVE_EXT(OES_vertex_array_object))
     {
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initializing VAO functions (OES)\n");
 #undef EXT_SUFFIX
 #define EXT_SUFFIX "OES"
         GL_VAO_FUN;
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initialized VAO functions (OES)\n");
     }
     
     /* Debug callback entrypoints */
     if (HAVE_EXT(KHR_debug))
     {
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initializing debug functions (KHR)\n");
 #undef EXT_SUFFIX
 #define EXT_SUFFIX ""
         GL_DEBUG_KHR_FUN;
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initialized debug functions (KHR)\n");
     }
     else if (HAVE_EXT(ARB_debug_output))
     {
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initializing debug functions (ARB)\n");
 #undef EXT_SUFFIX
 #define EXT_SUFFIX "ARB"
         GL_DEBUG_KHR_FUN;
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initialized debug functions (ARB)\n");
     }
     
     if (HAVE_EXT(GREMEDY_string_marker))
     {
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initializing debug functions (Graphic Remedy)\n");
 #undef EXT_SUFFIX
 #define EXT_SUFFIX "GREMEDY"
         GL_GREMEMDY_FUN;
+        mkxp_retro::log_printf(RETRO_LOG_INFO, "Initialized debug functions (Graphic Remedy)\n");
     }
     
     /* Misc caps */
