@@ -44,6 +44,7 @@ namespace mkxp_retro {
     extern struct retro_hw_render_callback hw_render;
 
     uint64_t get_ticks() noexcept;
+    double get_refresh_rate() noexcept;
     bool using_threaded_audio() noexcept;
 }
 

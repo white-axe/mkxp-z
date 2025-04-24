@@ -195,9 +195,9 @@ struct AudioPrivate
 #ifdef MKXPZ_RETRO
 		else
 		{
-			const int fps = shState->graphics().getFrameRate();
-			fadeOutStep = 5.f / fps;
-			fadeInStep  = 1.f / fps;
+			double rate = mkxp_retro::get_refresh_rate();
+			fadeOutStep = 5.f / rate;
+			fadeInStep  = 1.f / rate;
 		}
 #endif // MKXPZ_RETRO
 
