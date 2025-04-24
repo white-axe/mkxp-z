@@ -19,6 +19,7 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <atomic>
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
@@ -89,7 +90,7 @@ static struct retro_frame_time_callback frame_time_callback;
 static std::mutex threaded_audio_mutex;
 static bool threaded_audio_enabled = false;
 static bool frame_time_callback_enabled = false;
-static bool shared_state_initialized = false;
+static std::atomic<bool> shared_state_initialized(false);
 static uint64_t frame_time;
 
 namespace mkxp_retro {
@@ -185,10 +186,9 @@ SANDBOX_COROUTINE(main,
 )
 
 static void deinit_sandbox() {
-    {
-        struct lock_guard guard(threaded_audio_mutex);
-        shared_state_initialized = false;
-    }
+    shared_state_initialized.store(false, std::memory_order_seq_cst);
+    struct lock_guard guard(threaded_audio_mutex);
+
     if (sound_buf != NULL) {
         mkxp_aligned_free(sound_buf);
         sound_buf = NULL;
@@ -427,10 +427,9 @@ extern "C" RETRO_API void retro_run() {
     input_poll();
 
     // We deferred initializing the shared state since the OpenGL symbols aren't available until the first call to `retro_run()`
-    if (!shared_state_initialized) {
+    if (!shared_state_initialized.load(std::memory_order_relaxed)) {
         SharedState::initInstance(&thread_data.get());
-        struct lock_guard guard(threaded_audio_mutex);
-        shared_state_initialized = true;
+        shared_state_initialized.store(true, std::memory_order_seq_cst);
     } else if (hw_render.context_type != RETRO_HW_CONTEXT_NONE) {
         glState.reset();
     }
@@ -594,21 +593,18 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
 
 #ifdef MKXPZ_HAVE_THREADED_AUDIO
     audio_callback.callback = []() {
-        struct lock_guard guard(threaded_audio_mutex);
-
-        if (!shared_state_initialized) {
+        if (!shared_state_initialized.load(std::memory_order_seq_cst)) {
             return;
         }
+
+        struct lock_guard guard(threaded_audio_mutex);
 
         audio->render();
         alcRenderSamplesSOFT(al_device, sound_buf, THREADED_AUDIO_SAMPLES);
         audio_sample_batch(sound_buf, THREADED_AUDIO_SAMPLES);
     };
     audio_callback.set_state = nullptr;
-    {
-        struct lock_guard guard(threaded_audio_mutex);
-        threaded_audio_enabled = environment(RETRO_ENVIRONMENT_SET_AUDIO_CALLBACK, (void *)&audio_callback);
-    }
+    threaded_audio_enabled = environment(RETRO_ENVIRONMENT_SET_AUDIO_CALLBACK, &audio_callback);
     log_printf(RETRO_LOG_INFO, threaded_audio_enabled ? "Using threaded audio driver\n" : "Not using threaded audio driver because the frontend does not support it\n");
 
     if (threaded_audio_enabled) {
