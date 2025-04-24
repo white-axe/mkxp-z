@@ -81,6 +81,7 @@ static LPALCRENDERSAMPLESSOFT alcRenderSamplesSOFT = NULL;
 static LPALCLOOPBACKOPENDEVICESOFT alcLoopbackOpenDeviceSOFT = NULL;
 static int16_t *sound_buf = NULL;
 static bool retro_framebuffer_supported;
+static bool dupe_supported;
 static PHYSFS_File *rgssad = NULL;
 static retro_system_av_info av_info;
 static struct retro_audio_callback audio_callback;
@@ -456,10 +457,14 @@ extern "C" RETRO_API void retro_run() {
             log_printf(RETRO_LOG_ERROR, "[Sandbox] Ruby threw an exception\n");
             deinit_sandbox();
         }
+    } else if (!dupe_supported && mkxp_retro::sandbox.has_value()) {
+        shState->graphics().wait(1);
     }
 
     void *fb;
-    if (hw_render.context_type != RETRO_HW_CONTEXT_NONE) {
+    if (dupe_supported && !should_render) {
+        fb = nullptr;
+    } else if (hw_render.context_type != RETRO_HW_CONTEXT_NONE) {
         gl.UseProgram(0);
         gl.ActiveTexture(GL_TEXTURE0);
         gl.BindTexture(GL_TEXTURE_2D, 0);
@@ -599,6 +604,11 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
 #else
     log_printf(RETRO_LOG_INFO, "Not using threaded audio driver because multithreading is not supported on this platform\n");
 #endif // MKXPZ_HAVE_THREADED_AUDIO
+
+    {
+        bool value;
+        dupe_supported = environment(RETRO_ENVIRONMENT_GET_CAN_DUPE, &value) && value;
+    }
 
     retro_framebuffer_supported = true;
 
