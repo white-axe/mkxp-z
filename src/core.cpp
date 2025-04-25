@@ -69,7 +69,8 @@ struct lock_guard {
 };
 
 static uint64_t frame_count;
-static uint64_t frame_time;
+static std::atomic<uint64_t> frame_time;
+static uint64_t frame_time_remainder;
 static uint64_t retro_run_count;
 
 extern const uint8_t mkxp_retro_dist_zip[];
@@ -88,7 +89,8 @@ static retro_system_av_info av_info;
 static struct retro_audio_callback audio_callback;
 static struct retro_frame_time_callback frame_time_callback = {
     .callback = [](retro_usec_t delta) {
-        frame_time += delta;
+        frame_time.fetch_add(delta, std::memory_order_seq_cst);
+        frame_time_remainder += delta;
     },
 };
 static std::mutex threaded_audio_mutex;
@@ -108,7 +110,7 @@ namespace mkxp_retro {
     bool input_polled;
 
     uint64_t get_ticks() noexcept {
-        return frame_time_callback_enabled ? frame_time / 1000 : (frame_count * 1000) / shState->graphics().getFrameRate();
+        return frame_time.load(std::memory_order_seq_cst) / 1000;
     }
 
     double get_refresh_rate() noexcept {
@@ -350,7 +352,8 @@ static bool init_sandbox() {
     }
 
     frame_count = 0;
-    frame_time = 0;
+    frame_time.store(0, std::memory_order_seq_cst);
+    frame_time_remainder = 0;
     retro_run_count = 0;
 
     return true;
@@ -441,7 +444,17 @@ extern "C" RETRO_API void retro_reset() {
 }
 
 extern "C" RETRO_API void retro_run() {
-    bool should_render = mkxp_retro::sandbox.has_value() && (frame_count == 0 || frame_time >= frame_time_callback.reference);
+    bool should_render = mkxp_retro::sandbox.has_value() && (frame_count == 0 || frame_time_remainder >= frame_time_callback.reference);
+
+    if (should_render) {
+        frame_time_remainder %= frame_time_callback.reference;
+    }
+
+    if (!frame_time_callback_enabled) {
+        uint64_t reference = 1000000 / av_info.timing.fps;
+        frame_time.fetch_add(reference, std::memory_order_seq_cst);
+        frame_time_remainder += reference;
+    }
 
     input_polled = false;
 
@@ -505,12 +518,6 @@ extern "C" RETRO_API void retro_run() {
         audio_render((uint64_t)std::ceil((double)((uint64_t)SYNTH_SAMPLERATE * (retro_run_count + 1)) / av_info.timing.fps) - (uint64_t)std::ceil((double)((uint64_t)SYNTH_SAMPLERATE * retro_run_count) / av_info.timing.fps));
     }
 
-    if (should_render) {
-        frame_time %= frame_time_callback.reference;
-        ++frame_count;
-    }
-    ++retro_run_count;
-
     if (mkxp_retro::sandbox.has_value()) {
         retro_usec_t new_reference = 1000000 / shState->graphics().getFrameRate();
         if (new_reference != frame_time_callback.reference) {
@@ -519,9 +526,10 @@ extern "C" RETRO_API void retro_run() {
         }
     }
 
-    if (!frame_time_callback_enabled) {
-        frame_time += frame_time_callback.reference;
+    if (should_render) {
+        ++frame_count;
     }
+    ++retro_run_count;
 }
 
 extern "C" RETRO_API size_t retro_serialize_size() {
