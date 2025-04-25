@@ -46,8 +46,8 @@ usize sandbox::sandbox_malloc(usize size) {
 
     // Verify that the returned pointer is non-null and the entire allocated buffer is in valid memory
     usize buf_end;
-    if (buf == WASM_NULL || __builtin_add_overflow(buf, size, &buf_end) || buf_end >= ruby->w2c_memory.size) {
-        throw SandboxOutOfMemoryException();
+    if (buf == WASM_NULL || (buf_end = buf + size) < buf || buf_end >= ruby->w2c_memory.size) {
+        throw std::bad_alloc();
     }
 
     return buf;
@@ -58,83 +58,78 @@ void sandbox::sandbox_free(usize ptr) {
 }
 
 sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings(ruby), yielding(false), transitioning(false) {
-    try {
-        // Initialize the sandbox
-        wasm2c_ruby_instantiate(RB, wasi.get());
-        w2c_ruby_mkxp_sandbox_init(
-            RB,
-            0,              // heap_free_slots
-            1.1,            // growth_factor
-            0,              // growth_max_slots
-            0,              // heap_free_slots_min_ratio
-            0,              // heap_free_slots_goal_ratio
-            0,              // heap_free_slots_max_ratio
-            0,              // uncollectible_wb_unprotected_objects_limit_ratio
-            0,              // oldobject_limit_factor
-            1 * 0x100000,   // malloc_limit_min
-            4 * 0x100000,   // malloc_limit_max
-            1.1,            // malloc_limit_growth_factor
-            4 * 0x100000,   // oldmalloc_limit_min
-            8 * 0x100000,   // oldmalloc_limit_max
-            1.1             // oldmalloc_limit_growth_factor
-        );
+    // Initialize the sandbox
+    wasm2c_ruby_instantiate(RB, wasi.get());
+    w2c_ruby_mkxp_sandbox_init(
+        RB,
+        0,              // heap_free_slots
+        1.1,            // growth_factor
+        0,              // growth_max_slots
+        0,              // heap_free_slots_min_ratio
+        0,              // heap_free_slots_goal_ratio
+        0,              // heap_free_slots_max_ratio
+        0,              // uncollectible_wb_unprotected_objects_limit_ratio
+        0,              // oldobject_limit_factor
+        1 * 0x100000,   // malloc_limit_min
+        4 * 0x100000,   // malloc_limit_max
+        1.1,            // malloc_limit_growth_factor
+        4 * 0x100000,   // oldmalloc_limit_min
+        8 * 0x100000,   // oldmalloc_limit_max
+        1.1             // oldmalloc_limit_growth_factor
+    );
 
-        // Determine Ruby command-line arguments
-        std::vector<std::string> args{"mkxp-z"};
-        args.push_back("/mkxp-retro-dist/bin/mkxp-z");
-        if (MJIT_ENABLED) {
-            std::string verboseLevel("--mjit-verbose=");
-            std::string maxCache("--mjit-max-cache=");
-            std::string minCalls("--mjit-min-calls=");
-            args.push_back("--mjit");
-            verboseLevel += std::to_string(MJIT_VERBOSE);
-            maxCache += std::to_string(MJIT_MAX_CACHE);
-            minCalls += std::to_string(MJIT_MIN_CALLS);
-            args.push_back(verboseLevel.c_str());
-            args.push_back(maxCache.c_str());
-            args.push_back(minCalls.c_str());
-        } else if (YJIT_ENABLED) {
-            args.push_back("--yjit");
-        }
-
-        // Copy all the command-line arguments into the sandbox (sandboxed code can't access memory that's outside the sandbox!)
-        usize argv_buf = sandbox_malloc(args.size() * sizeof(usize));
-        for (usize i = 0; i < args.size(); ++i) {
-            usize arg_buf = sandbox_malloc(args[i].length() + 1);
-            std::strcpy((char *)WASM_MEM(arg_buf), args[i].c_str());
-            WASM_SET(usize, argv_buf + i * sizeof(usize), arg_buf);
-        }
-
-        // Pass the command-line arguments to Ruby
-        AWAIT(w2c_ruby_ruby_init_stack(RB, w2c_ruby_rb_wasm_get_stack_pointer(RB)));
-        AWAIT(w2c_ruby_ruby_init(RB));
-        usize node;
-        AWAIT(node = w2c_ruby_ruby_options(RB, args.size(), argv_buf));
-
-        // Start up Ruby executable node
-        bool valid;
-        u32 state;
-        usize state_buf = sandbox_malloc(sizeof(usize));
-        AWAIT(valid = w2c_ruby_ruby_executable_node(RB, node, state_buf));
-        if (valid) {
-            AWAIT(state = w2c_ruby_ruby_exec_node(RB, node));
-        }
-        if (!valid || state) {
-            throw SandboxNodeException();
-        }
-        sandbox_free(state_buf);
-
-        // Set the default encoding to UTF-8
-        usize encoding;
-        AWAIT(encoding = w2c_ruby_rb_utf8_encoding(RB));
-        usize enc;
-        AWAIT(enc = w2c_ruby_rb_enc_from_encoding(RB, encoding));
-        AWAIT(w2c_ruby_rb_enc_set_default_internal(RB, enc));
-        AWAIT(w2c_ruby_rb_enc_set_default_external(RB, enc));
-    } catch (SandboxException &) {
-        wasm2c_ruby_free(RB);
-        throw;
+    // Determine Ruby command-line arguments
+    std::vector<std::string> args{"mkxp-z"};
+    args.push_back("/mkxp-retro-dist/bin/mkxp-z");
+    if (MJIT_ENABLED) {
+        std::string verboseLevel("--mjit-verbose=");
+        std::string maxCache("--mjit-max-cache=");
+        std::string minCalls("--mjit-min-calls=");
+        args.push_back("--mjit");
+        verboseLevel += std::to_string(MJIT_VERBOSE);
+        maxCache += std::to_string(MJIT_MAX_CACHE);
+        minCalls += std::to_string(MJIT_MIN_CALLS);
+        args.push_back(verboseLevel.c_str());
+        args.push_back(maxCache.c_str());
+        args.push_back(minCalls.c_str());
+    } else if (YJIT_ENABLED) {
+        args.push_back("--yjit");
     }
+
+    // Copy all the command-line arguments into the sandbox (sandboxed code can't access memory that's outside the sandbox!)
+    usize argv_buf = sandbox_malloc(args.size() * sizeof(usize));
+    for (usize i = 0; i < args.size(); ++i) {
+        usize arg_buf = sandbox_malloc(args[i].length() + 1);
+        std::strcpy((char *)WASM_MEM(arg_buf), args[i].c_str());
+        WASM_SET(usize, argv_buf + i * sizeof(usize), arg_buf);
+    }
+
+    // Pass the command-line arguments to Ruby
+    AWAIT(w2c_ruby_ruby_init_stack(RB, w2c_ruby_rb_wasm_get_stack_pointer(RB)));
+    AWAIT(w2c_ruby_ruby_init(RB));
+    usize node;
+    AWAIT(node = w2c_ruby_ruby_options(RB, args.size(), argv_buf));
+
+    // Start up Ruby executable node
+    bool valid;
+    u32 state;
+    usize state_buf = sandbox_malloc(sizeof(usize));
+    AWAIT(valid = w2c_ruby_ruby_executable_node(RB, node, state_buf));
+    if (valid) {
+        AWAIT(state = w2c_ruby_ruby_exec_node(RB, node));
+    }
+    if (!valid || state) {
+        std::abort();
+    }
+    sandbox_free(state_buf);
+
+    // Set the default encoding to UTF-8
+    usize encoding;
+    AWAIT(encoding = w2c_ruby_rb_utf8_encoding(RB));
+    usize enc;
+    AWAIT(enc = w2c_ruby_rb_enc_from_encoding(RB, encoding));
+    AWAIT(w2c_ruby_rb_enc_set_default_internal(RB, enc));
+    AWAIT(w2c_ruby_rb_enc_set_default_external(RB, enc));
 }
 
 sandbox::~sandbox() {

@@ -83,7 +83,7 @@ wasm_ptr_t binding_base::sandbox_malloc(wasm_size_t size) {
 
     // Verify that the entire allocated buffer is in valid memory
     wasm_ptr_t buf_end;
-    if (buf == 0 || __builtin_add_overflow(buf, size, &buf_end) || buf_end >= instance().w2c_memory.size) {
+    if (buf == 0 || (buf_end = buf + size) < buf || buf_end >= instance().w2c_memory.size) {
         return 0;
     }
 

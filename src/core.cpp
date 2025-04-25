@@ -320,13 +320,7 @@ static bool init_sandbox() {
 
     audio.emplace(*thread_data);
 
-    try {
-        mkxp_retro::sandbox.emplace();
-    } catch (SandboxException) {
-        log_printf(RETRO_LOG_ERROR, "Failed to initialize Ruby\n");
-        deinit_sandbox();
-        return false;
-    }
+    mkxp_retro::sandbox.emplace();
 
     {
         float refresh_rate;
@@ -467,13 +461,8 @@ extern "C" RETRO_API void retro_run() {
     }
 
     if (should_render) {
-        try {
-            if (sb().run<struct main>()) {
-                log_printf(RETRO_LOG_INFO, "[Sandbox] Ruby terminated normally\n");
-                deinit_sandbox();
-            }
-        } catch (SandboxException) {
-            log_printf(RETRO_LOG_ERROR, "[Sandbox] Ruby threw an exception\n");
+        if (sb().run<struct main>()) {
+            log_printf(RETRO_LOG_INFO, "[Sandbox] Ruby terminated normally\n");
             deinit_sandbox();
         }
     } else if (!dupe_supported && mkxp_retro::sandbox.has_value()) {

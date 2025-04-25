@@ -805,7 +805,7 @@ extern "C" u32 w2c_wasi__snapshot__preview1_poll_oneoff(wasi_t *wasi, usize in, 
 
 extern "C" void w2c_wasi__snapshot__preview1_proc_exit(wasi_t *wasi, u32 rval) {
     WASI_DEBUG("proc_exit(%u)\n", rval);
-    throw SandboxTrapException();
+    std::abort();
 }
 
 extern "C" u32 w2c_wasi__snapshot__preview1_random_get(wasi_t *wasi, usize buf, u32 buf_len) {

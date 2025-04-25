@@ -291,7 +291,7 @@ PRELUDE = <<~HEREDOC
   bindings::rb_data_type::rb_data_type(wasm_ptr_t ptr) : ptr(ptr) {}
 
   wasm_ptr_t bindings::rb_data_type::get() const {
-      if (ptr == 0) throw SandboxTrapException();
+      if (ptr == 0) std::abort();
       return ptr;
   }
 
@@ -309,12 +309,12 @@ POSTSCRIPT = <<~HEREDOC
 
       buf = sandbox_malloc(9 * sizeof(wasm_ptr_t));
       if (buf == 0) {
-          throw SandboxOutOfMemoryException();
+          throw std::bad_alloc();
       }
       str = sandbox_malloc(std::strlen(wrap_struct_name) + 1);
       if (str == 0) {
           sandbox_free(buf);
-          throw SandboxOutOfMemoryException();
+          throw std::bad_alloc();
       }
 
       std::strcpy((char *)(**this + str), wrap_struct_name);
@@ -480,7 +480,7 @@ File.readlines('tags', chomp: true).each do |line|
         end
         coroutine_initializer += <<~HEREDOC
               default:
-                  throw SandboxTrapException();
+                  std::abort();
           }
         HEREDOC
       else
@@ -498,7 +498,7 @@ File.readlines('tags', chomp: true).each do |line|
     elsif !handler[:buf_size].nil?
       coroutine_initializer += <<~HEREDOC
         f#{i} = bind.sandbox_malloc(#{handler[:buf_size].gsub('PREV_ARG', "a#{i - 1}").gsub('ARG', "a#{i}")});
-        if (f#{i} == 0) throw SandboxOutOfMemoryException();
+        if (f#{i} == 0) throw std::bad_alloc();
       HEREDOC
       coroutine_initializer += handler[:serialize].gsub('PREV_ARG', "a#{i - 1}").gsub('ARG', "a#{i}").gsub('BUF', "f#{i}")
       coroutine_initializer += "\n"
@@ -523,7 +523,7 @@ File.readlines('tags', chomp: true).each do |line|
         fp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance());
         sp = fp - CEIL_WASMSTACKALIGN(a#{args.length - 2} * sizeof(VALUE));
         if (sp > fp) {
-            throw SandboxOutOfMemoryException();
+            throw std::bad_alloc();
         }
         w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), sp);
         std::va_list a;
@@ -550,7 +550,7 @@ File.readlines('tags', chomp: true).each do |line|
             fp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance());
             sp = fp - CEIL_WASMSTACKALIGN(n * sizeof(VALUE));
             if (sp > fp) {
-                throw SandboxOutOfMemoryException();
+                throw std::bad_alloc();
             }
             w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), sp);
             for (wasm_size_t i = 0; i < n; ++i) {
