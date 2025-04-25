@@ -105,6 +105,7 @@ namespace mkxp_retro {
     retro_input_state_t input_state;
     struct retro_perf_callback perf;
     retro_hw_render_callback hw_render;
+    bool input_polled;
 
     uint64_t get_ticks() noexcept {
         return frame_time_callback_enabled ? frame_time / 1000 : (frame_count * 1000) / shState->graphics().getFrameRate();
@@ -442,7 +443,7 @@ extern "C" RETRO_API void retro_reset() {
 extern "C" RETRO_API void retro_run() {
     bool should_render = mkxp_retro::sandbox.has_value() && (frame_count == 0 || frame_time >= frame_time_callback.reference);
 
-    input_poll();
+    input_polled = false;
 
     // We deferred initializing the shared state since the OpenGL symbols aren't available until the first call to `retro_run()`
     if (!shared_state_initialized.load(std::memory_order_relaxed)) {
@@ -464,6 +465,11 @@ extern "C" RETRO_API void retro_run() {
         }
     } else if (!dupe_supported && mkxp_retro::sandbox.has_value()) {
         shState->graphics().repaint(sb().transitioning);
+    }
+
+    // We need to call `input_poll()` at least once every time `retro_run()` is called
+    if (!input_polled) {
+        input_poll();
     }
 
     void *fb;

@@ -212,6 +212,8 @@ double Input::getDelta()
 
 void Input::update()
 {
+    mkxp_retro::input_poll();
+    mkxp_retro::input_polled = true;
     p->updateJoypad();
     p->updateDir4();
     p->updateDir8();
