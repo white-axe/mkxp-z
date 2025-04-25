@@ -609,6 +609,10 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
 
         struct lock_guard guard(threaded_audio_mutex);
 
+        if (!shared_state_initialized.load(std::memory_order_seq_cst)) {
+            return;
+        }
+
         audio_render(THREADED_AUDIO_SAMPLES);
     };
     audio_callback.set_state = nullptr;
