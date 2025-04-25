@@ -1862,6 +1862,27 @@ void Graphics::setFrameskip(bool value) { p->useFrameSkip = value; }
 
 Scene *Graphics::getScreen() const { return &p->screen; }
 
+void Graphics::repaint(bool useBackBuffer) {
+    /* Repaint the screen with the last good frame we drew */
+    TEXFBO &lastFrame = useBackBuffer ? p->screen.getPP().backBuffer() : p->screen.getPP().frontBuffer();
+
+    int scaleIsSpecial = GLMeta::blitScaleIsSpecial(p->integerScaleBuffer, false, IntRect(0, 0, p->scSize.x, p->scSize.y), lastFrame, IntRect(0, 0, p->scRes.x, p->scRes.y));
+
+    GLMeta::blitBeginScreen(p->winSize, scaleIsSpecial);
+    GLMeta::blitSource(lastFrame, scaleIsSpecial);
+
+    FBO::clear();
+    p->metaBlitBufferFlippedScaled(scaleIsSpecial);
+#ifndef MKXPZ_RETRO
+    SDL_GL_SwapWindow(p->threadData->window);
+    p->fpsLimiter.delay();
+
+    p->threadData->ethread->notifyFrame();
+#endif // MKXPZ_RETRO
+
+    GLMeta::blitEnd();
+}
+
 void Graphics::repaintWait(const AtomicFlag &exitCond, bool checkReset) {
     if (exitCond)
         return;

@@ -82,6 +82,7 @@ namespace mkxp_sandbox {
         void sandbox_free(usize ptr);
 
         public:
+        bool transitioning;
         inline struct mkxp_sandbox::bindings &operator*() noexcept { return *bindings; }
         inline struct mkxp_sandbox::bindings *operator->() noexcept { return &*bindings; }
         sandbox();

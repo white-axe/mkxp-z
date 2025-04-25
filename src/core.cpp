@@ -69,6 +69,7 @@ struct lock_guard {
 };
 
 static uint64_t frame_count;
+static uint64_t frame_time;
 static uint64_t retro_run_count;
 
 extern const uint8_t mkxp_retro_dist_zip[];
@@ -85,12 +86,15 @@ static bool dupe_supported;
 static PHYSFS_File *rgssad = NULL;
 static retro_system_av_info av_info;
 static struct retro_audio_callback audio_callback;
-static struct retro_frame_time_callback frame_time_callback;
+static struct retro_frame_time_callback frame_time_callback = {
+    .callback = [](retro_usec_t delta) {
+        frame_time += delta;
+    },
+};
 static std::mutex threaded_audio_mutex;
 static bool threaded_audio_enabled = false;
 static bool frame_time_callback_enabled = false;
 static std::atomic<bool> shared_state_initialized(false);
-static uint64_t frame_time;
 
 namespace mkxp_retro {
     retro_log_printf_t log_printf;
@@ -337,15 +341,16 @@ static bool init_sandbox() {
     av_info.geometry.aspect_ratio = (float)av_info.geometry.base_width / (float)av_info.geometry.base_height;
     av_info.timing.sample_rate = (double)SYNTH_SAMPLERATE;
     frame_time_callback.reference = 1000000 / (rgssVer == 1 ? 40 : 60);
+    frame_time_callback_enabled = environment(RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK, &frame_time_callback);
 
     sound_buf = (int16_t *)mkxp_aligned_malloc(16, (threaded_audio_enabled ? THREADED_AUDIO_SAMPLES : (size_t)std::ceil((double)SYNTH_SAMPLERATE / av_info.timing.fps)) * 2 * sizeof(int16_t));
     if (sound_buf == NULL) {
         throw std::bad_alloc();
     }
 
-    retro_run_count = 0;
     frame_count = 0;
     frame_time = 0;
+    retro_run_count = 0;
 
     return true;
 }
@@ -435,7 +440,7 @@ extern "C" RETRO_API void retro_reset() {
 }
 
 extern "C" RETRO_API void retro_run() {
-    bool should_render = mkxp_retro::sandbox.has_value() && (!frame_time_callback_enabled || frame_time >= frame_time_callback.reference);
+    bool should_render = mkxp_retro::sandbox.has_value() && (frame_count == 0 || frame_time >= frame_time_callback.reference);
 
     input_poll();
 
@@ -443,7 +448,7 @@ extern "C" RETRO_API void retro_run() {
     if (!shared_state_initialized.load(std::memory_order_relaxed)) {
         SharedState::initInstance(&thread_data.get());
         shared_state_initialized.store(true, std::memory_order_seq_cst);
-    } else if (hw_render.context_type != RETRO_HW_CONTEXT_NONE) {
+    } else if (hw_render.context_type != RETRO_HW_CONTEXT_NONE && (should_render || (!dupe_supported && mkxp_retro::sandbox.has_value()))) {
         glState.reset();
     }
 
@@ -458,7 +463,7 @@ extern "C" RETRO_API void retro_run() {
             deinit_sandbox();
         }
     } else if (!dupe_supported && mkxp_retro::sandbox.has_value()) {
-        shState->graphics().wait(1);
+        shState->graphics().repaint(sb().transitioning);
     }
 
     void *fb;
@@ -501,7 +506,15 @@ extern "C" RETRO_API void retro_run() {
     ++retro_run_count;
 
     if (mkxp_retro::sandbox.has_value()) {
-        frame_time_callback.reference = 1000000 / shState->graphics().getFrameRate();
+        retro_usec_t new_reference = 1000000 / shState->graphics().getFrameRate();
+        if (new_reference != frame_time_callback.reference) {
+            frame_time_callback.reference = new_reference;
+            frame_time_callback_enabled = environment(RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK, &frame_time_callback);
+        }
+    }
+
+    if (!frame_time_callback_enabled) {
+        frame_time += frame_time_callback.reference;
     }
 }
 
@@ -581,12 +594,6 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
         log_printf(RETRO_LOG_ERROR, "Error: Hardware-accelerated graphics not supported\n");
         return false;
     }
-
-    frame_time_callback.callback = [](retro_usec_t delta) {
-        frame_time += delta;
-    };
-    frame_time_callback.reference = 1000000 / 60;
-    frame_time_callback_enabled = environment(RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK, &frame_time_callback);
 
 #ifdef MKXPZ_HAVE_THREADED_AUDIO
     audio_callback.callback = []() {

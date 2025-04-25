@@ -65,6 +65,8 @@ namespace mkxp_sandbox {
                         duration = 8;
                         vague = 40;
 
+                        sb().transitioning = true;
+
                         if (!shState->graphics().frozen()) {
                             return SANDBOX_NIL;
                         }
@@ -92,6 +94,8 @@ namespace mkxp_sandbox {
                 }
 
                 ~coro() {
+                    sb().transitioning = false;
+
                     if (trans_map != NULL) {
                         delete trans_map;
                     }

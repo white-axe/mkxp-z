@@ -93,6 +93,7 @@ public:
 
 	/* <internal> */
 	Scene *getScreen() const;
+	void repaint(bool useBackBuffer = false);
 	/* Repaint screen with static image until exitCond
 	 * is set. Observes reset flag on top of shutdown
 	 * if "checkReset" */
