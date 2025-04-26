@@ -25,6 +25,7 @@
 #include "sandbox.h"
 #include "etc.h"
 #include "binding-util.h"
+#include "sharedstate.h"
 
 namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type color_type;
@@ -203,6 +204,35 @@ namespace mkxp_sandbox {
                 return sb()->bind<struct coro>()()(self, value);
             }
 
+            static VALUE equal(VALUE self, VALUE other) {
+                SANDBOX_COROUTINE(coro,
+                    VALUE value;
+
+                    VALUE operator()(VALUE self, VALUE other) {
+                        BOOST_ASIO_CORO_REENTER (this) {
+                            if (rgssVer >= 3) {
+                                SANDBOX_AWAIT_AND_SET(value, rb_typeddata_is_kind_of, other, color_type);
+                                if (!SANDBOX_VALUE_TO_BOOL(value)) {
+                                    return SANDBOX_FALSE;
+                                }
+                            }
+                            return SANDBOX_BOOL_TO_VALUE(*get_private_data<Color>(self) == *get_private_data<Color>(other));
+                        }
+
+                        return value;
+                    }
+                )
+
+                return sb()->bind<struct coro>()()(self, other);
+            }
+
+            static VALUE stringify(VALUE self) {
+                char buf[sizeof("(%f, %f, %f, %f)") + 4 * 24] = {0};
+                Color *color = get_private_data<Color>(self);
+                std::sprintf(buf, "(%f, %f, %f, %f)", color->red, color->green, color->blue, color->alpha);
+                return sb()->bind<struct rb_str_new_cstr>()()(buf);
+            }
+
             VALUE klass;
 
             void operator()() {
@@ -222,6 +252,10 @@ namespace mkxp_sandbox {
                     SANDBOX_AWAIT(rb_define_method, klass, "blue=", (VALUE (*)(ANYARGS))set_blue, 1);
                     SANDBOX_AWAIT(rb_define_method, klass, "alpha", (VALUE (*)(ANYARGS))get_alpha, 0);
                     SANDBOX_AWAIT(rb_define_method, klass, "alpha=", (VALUE (*)(ANYARGS))set_alpha, 1);
+                    SANDBOX_AWAIT(rb_define_method, klass, "==", (VALUE (*)(ANYARGS))equal, 1);
+                    SANDBOX_AWAIT(rb_define_method, klass, "===", (VALUE (*)(ANYARGS))equal, 1);
+                    SANDBOX_AWAIT(rb_define_method, klass, "to_s", (VALUE (*)(ANYARGS))stringify, 0);
+                    SANDBOX_AWAIT(rb_define_method, klass, "inspect", (VALUE (*)(ANYARGS))stringify, 0);
                 }
             }
         )
@@ -397,6 +431,35 @@ namespace mkxp_sandbox {
                 return sb()->bind<struct coro>()()(self, value);
             }
 
+            static VALUE equal(VALUE self, VALUE other) {
+                SANDBOX_COROUTINE(coro,
+                    VALUE value;
+
+                    VALUE operator()(VALUE self, VALUE other) {
+                        BOOST_ASIO_CORO_REENTER (this) {
+                            if (rgssVer >= 3) {
+                                SANDBOX_AWAIT_AND_SET(value, rb_typeddata_is_kind_of, other, color_type);
+                                if (!SANDBOX_VALUE_TO_BOOL(value)) {
+                                    return SANDBOX_FALSE;
+                                }
+                            }
+                            return SANDBOX_BOOL_TO_VALUE(*get_private_data<Tone>(self) == *get_private_data<Tone>(other));
+                        }
+
+                        return value;
+                    }
+                )
+
+                return sb()->bind<struct coro>()()(self, other);
+            }
+
+            static VALUE stringify(VALUE self) {
+                char buf[sizeof("(%f, %f, %f, %f)") + 4 * 24] = {0};
+                Tone *tone = get_private_data<Tone>(self);
+                std::sprintf(buf, "(%f, %f, %f, %f)", tone->red, tone->green, tone->blue, tone->gray);
+                return sb()->bind<struct rb_str_new_cstr>()()(buf);
+            }
+
             VALUE klass;
 
             void operator()() {
@@ -416,6 +479,10 @@ namespace mkxp_sandbox {
                     SANDBOX_AWAIT(rb_define_method, klass, "blue=", (VALUE (*)(ANYARGS))set_blue, 1);
                     SANDBOX_AWAIT(rb_define_method, klass, "gray", (VALUE (*)(ANYARGS))get_gray, 0);
                     SANDBOX_AWAIT(rb_define_method, klass, "gray=", (VALUE (*)(ANYARGS))set_gray, 1);
+                    SANDBOX_AWAIT(rb_define_method, klass, "==", (VALUE (*)(ANYARGS))equal, 1);
+                    SANDBOX_AWAIT(rb_define_method, klass, "===", (VALUE (*)(ANYARGS))equal, 1);
+                    SANDBOX_AWAIT(rb_define_method, klass, "to_s", (VALUE (*)(ANYARGS))stringify, 0);
+                    SANDBOX_AWAIT(rb_define_method, klass, "inspect", (VALUE (*)(ANYARGS))stringify, 0);
                 }
             }
         )
@@ -588,6 +655,35 @@ namespace mkxp_sandbox {
                 return sb()->bind<struct coro>()()(self, value);
             }
 
+            static VALUE equal(VALUE self, VALUE other) {
+                SANDBOX_COROUTINE(coro,
+                    VALUE value;
+
+                    VALUE operator()(VALUE self, VALUE other) {
+                        BOOST_ASIO_CORO_REENTER (this) {
+                            if (rgssVer >= 3) {
+                                SANDBOX_AWAIT_AND_SET(value, rb_typeddata_is_kind_of, other, color_type);
+                                if (!SANDBOX_VALUE_TO_BOOL(value)) {
+                                    return SANDBOX_FALSE;
+                                }
+                            }
+                            return SANDBOX_BOOL_TO_VALUE(*get_private_data<Rect>(self) == *get_private_data<Rect>(other));
+                        }
+
+                        return value;
+                    }
+                )
+
+                return sb()->bind<struct coro>()()(self, other);
+            }
+
+            static VALUE stringify(VALUE self) {
+                char buf[50] = {0};
+                Rect *rect = get_private_data<Rect>(self);
+                std::sprintf(buf, "(%d, %d, %d, %d)", rect->x, rect->y, rect->width, rect->height);
+                return sb()->bind<struct rb_str_new_cstr>()()(buf);
+            }
+
             VALUE klass;
 
             void operator()() {
@@ -608,6 +704,10 @@ namespace mkxp_sandbox {
                     SANDBOX_AWAIT(rb_define_method, klass, "width=", (VALUE (*)(ANYARGS))set_width, 1);
                     SANDBOX_AWAIT(rb_define_method, klass, "height", (VALUE (*)(ANYARGS))get_height, 0);
                     SANDBOX_AWAIT(rb_define_method, klass, "height=", (VALUE (*)(ANYARGS))set_height, 1);
+                    SANDBOX_AWAIT(rb_define_method, klass, "==", (VALUE (*)(ANYARGS))equal, 1);
+                    SANDBOX_AWAIT(rb_define_method, klass, "===", (VALUE (*)(ANYARGS))equal, 1);
+                    SANDBOX_AWAIT(rb_define_method, klass, "to_s", (VALUE (*)(ANYARGS))stringify, 0);
+                    SANDBOX_AWAIT(rb_define_method, klass, "inspect", (VALUE (*)(ANYARGS))stringify, 0);
                 }
             }
         )
