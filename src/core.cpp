@@ -68,8 +68,60 @@ struct lock_guard {
     }
 };
 
+template <typename T> struct atomic {
+#ifdef MKXPZ_HAVE_THREADED_AUDIO
+    std::atomic<T> atom;
+#else
+    T atom;
+#endif // MKXPZ_HAVE_THREADED_AUDIO
+
+    atomic() {}
+
+    atomic(T value) : atom(value) {}
+
+    atomic(const struct atomic &guard) = delete;
+
+    atomic(struct atomic &&guard) noexcept = delete;
+
+    struct atomic &operator=(const struct atomic &guard) = delete;
+
+    struct atomic &operator=(struct atomic &&guard) noexcept = delete;
+
+    T load_relaxed() const noexcept {
+#ifdef MKXPZ_HAVE_THREADED_AUDIO
+        return atom.load(std::memory_order_relaxed);
+#else
+        return atom;
+#endif // MKXPZ_HAVE_THREADED_AUDIO
+    }
+
+    operator T() const noexcept {
+#ifdef MKXPZ_HAVE_THREADED_AUDIO
+        return atom.load(std::memory_order_seq_cst);
+#else
+        return atom;
+#endif // MKXPZ_HAVE_THREADED_AUDIO
+    }
+
+    void operator=(T value) noexcept {
+#ifdef MKXPZ_HAVE_THREADED_AUDIO
+        atom.store(value, std::memory_order_seq_cst);
+#else
+        atom = value;
+#endif // MKXPZ_HAVE_THREADED_AUDIO
+    }
+
+    void operator+=(T value) noexcept {
+#ifdef MKXPZ_HAVE_THREADED_AUDIO
+        atom.fetch_add(value, std::memory_order_seq_cst);
+#else
+        atom += value;
+#endif // MKXPZ_HAVE_THREADED_AUDIO
+    }
+};
+
 static uint64_t frame_count;
-static std::atomic<uint64_t> frame_time;
+static struct atomic<uint64_t> frame_time;
 static uint64_t frame_time_remainder;
 static uint64_t retro_run_count;
 
@@ -89,14 +141,14 @@ static retro_system_av_info av_info;
 static struct retro_audio_callback audio_callback;
 static struct retro_frame_time_callback frame_time_callback = {
     .callback = [](retro_usec_t delta) {
-        frame_time.fetch_add(delta, std::memory_order_seq_cst);
+        frame_time += delta;
         frame_time_remainder += delta;
     },
 };
 static std::mutex threaded_audio_mutex;
 static bool threaded_audio_enabled = false;
 static bool frame_time_callback_enabled = false;
-static std::atomic<bool> shared_state_initialized(false);
+static struct atomic<bool> shared_state_initialized(false);
 
 namespace mkxp_retro {
     retro_log_printf_t log_printf;
@@ -110,7 +162,7 @@ namespace mkxp_retro {
     bool input_polled;
 
     uint64_t get_ticks() noexcept {
-        return frame_time.load(std::memory_order_seq_cst) / 1000;
+        return frame_time / 1000;
     }
 
     double get_refresh_rate() noexcept {
@@ -204,7 +256,7 @@ SANDBOX_COROUTINE(main,
 )
 
 static void deinit_sandbox() {
-    shared_state_initialized.store(false, std::memory_order_seq_cst);
+    shared_state_initialized = false;
     struct lock_guard guard(threaded_audio_mutex);
 
     if (sound_buf != NULL) {
@@ -348,7 +400,7 @@ static bool init_sandbox() {
     }
 
     frame_count = 0;
-    frame_time.store(0, std::memory_order_seq_cst);
+    frame_time = 0;
     frame_time_remainder = 0;
     retro_run_count = 0;
 
@@ -448,16 +500,16 @@ extern "C" RETRO_API void retro_run() {
 
     if (!frame_time_callback_enabled) {
         uint64_t reference = 1000000 / av_info.timing.fps;
-        frame_time.fetch_add(reference, std::memory_order_seq_cst);
+        frame_time += reference;
         frame_time_remainder += reference;
     }
 
     input_polled = false;
 
     // We deferred initializing the shared state since the OpenGL symbols aren't available until the first call to `retro_run()`
-    if (!shared_state_initialized.load(std::memory_order_relaxed)) {
+    if (!shared_state_initialized.load_relaxed()) {
         SharedState::initInstance(&thread_data.get());
-        shared_state_initialized.store(true, std::memory_order_seq_cst);
+        shared_state_initialized = true;
     } else if (hw_render.context_type != RETRO_HW_CONTEXT_NONE && (should_render || (!dupe_supported && mkxp_retro::sandbox.has_value()))) {
         glState.reset();
     }
@@ -602,13 +654,13 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
 
 #ifdef MKXPZ_HAVE_THREADED_AUDIO
     audio_callback.callback = []() {
-        if (!shared_state_initialized.load(std::memory_order_seq_cst)) {
+        if (!shared_state_initialized) {
             return;
         }
 
         struct lock_guard guard(threaded_audio_mutex);
 
-        if (!shared_state_initialized.load(std::memory_order_seq_cst)) {
+        if (!shared_state_initialized) {
             return;
         }
 
