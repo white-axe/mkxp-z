@@ -158,10 +158,12 @@ static boost::optional<Config> conf;
 static boost::optional<RGSSThreadData> thread_data;
 static std::string game_path;
 
-static void audio_render(uint32_t samples) {
+static void audio_render(size_t samples) {
     audio->render();
     alcRenderSamplesSOFT(al_device, sound_buf, samples);
-    audio_sample_batch(sound_buf, samples);
+    for (size_t n = 0; n < samples;) {
+        n += audio_sample_batch(sound_buf + 2 * n, samples - n);
+    }
 }
 
 static VALUE func(VALUE arg) {
