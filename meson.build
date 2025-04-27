@@ -190,7 +190,7 @@ if not compilers['cpp'].has_header_symbol('thread', 'std::this_thread::yield')
     global_args += '-DMKXPZ_NO_STD_THIS_THREAD_YIELD'
 endif
 
-if not compilers['cpp'].has_header('pthread.h') or not compilers['cpp'].compiles('''
+if not compilers['cpp'].has_header('pthread.h') or not compilers['cpp'].links('''
     #include <pthread.h>
     int main(void) {
         pthread_mutex_t mutex;
@@ -207,9 +207,9 @@ if not compilers['cpp'].has_header('pthread.h') or not compilers['cpp'].compiles
         return result;
     }
 ''', name: 'pthread.h sanity check')
-    global_args += '-DMKXPZ_NO_PTHREAD_H'
+    global_args += is_devkitarm ? '-DMKXPZ_DEVKITARM_NO_PTHREAD_H' : '-DMKXPZ_NO_PTHREAD_H'
     global_args += '-DMKXPZ_NO_SEMAPHORE_H'
-elif not compilers['cpp'].has_header('semaphore.h') or not compilers['cpp'].compiles('''
+elif not compilers['cpp'].has_header('semaphore.h') or not compilers['cpp'].links('''
     #include <semaphore.h>
     int main(void) {
         sem_t sem;

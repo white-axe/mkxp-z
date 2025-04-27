@@ -80,16 +80,33 @@ extern "C" void mkxp_aligned_free(void *ptr) {
 #endif
 }
 
+#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+extern "C" {
+    void *threadGetCurrent(void);
+    void LightLock_Init(_LOCK_T *);
+    void LightLock_Lock(_LOCK_T *);
+    void LightLock_Unlock(_LOCK_T *);
+    void RecursiveLock_Init(_LOCK_RECURSIVE_T *);
+    void RecursiveLock_Lock(_LOCK_RECURSIVE_T *);
+    void RecursiveLock_Unlock(_LOCK_RECURSIVE_T *);
+    void CondVar_Init(mkxp_cond_t *);
+    void CondVar_Wait(mkxp_cond_t *, _LOCK_T *);
+    void CondVar_WakeUp(mkxp_cond_t *, int32_t);
+};
+#endif
+
 #if defined(MKXPZ_NO_SEMAPHORE_H) && !defined(MKXPZ_NO_PTHREAD_H)
 struct mkxp_sem_private {
     unsigned int value;
-    pthread_mutex_t mutex;
-    pthread_cond_t cond;
+    mkxp_mutex_t mutex;
+    mkxp_cond_t cond;
 };
 #endif
 
 extern "C" mkxp_thread_t mkxp_thread_self() {
-#ifndef MKXPZ_NO_PTHREAD_H
+#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+    return threadGetCurrent();
+#elif !defined(MKXPZ_NO_PTHREAD_H)
     return pthread_self();
 #else
     return 42;
@@ -97,7 +114,15 @@ extern "C" mkxp_thread_t mkxp_thread_self() {
 }
 
 extern "C" int mkxp_mutex_init(mkxp_mutex_t *mutex, bool recursive) {
-#ifndef MKXPZ_NO_PTHREAD_H
+#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+    mutex->recursive = recursive;
+    if (recursive) {
+        RecursiveLock_Init(&mutex->inner.recursive);
+    } else {
+        LightLock_Init(&mutex->inner.light);
+    }
+    return 0;
+#elif !defined(MKXPZ_NO_PTHREAD_H)
     if (recursive) {
         pthread_mutexattr_t attr;
         if (pthread_mutexattr_init(&attr)) {
@@ -117,7 +142,9 @@ extern "C" int mkxp_mutex_init(mkxp_mutex_t *mutex, bool recursive) {
 }
 
 extern "C" int mkxp_mutex_destroy(mkxp_mutex_t *mutex) {
-#ifndef MKXPZ_NO_PTHREAD_H
+#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+    return 0;
+#elif !defined(MKXPZ_NO_PTHREAD_H)
     return pthread_mutex_destroy(mutex);
 #else
     assert(!*mutex);
@@ -126,7 +153,14 @@ extern "C" int mkxp_mutex_destroy(mkxp_mutex_t *mutex) {
 }
 
 extern "C" int mkxp_mutex_lock(mkxp_mutex_t *mutex) {
-#ifndef MKXPZ_NO_PTHREAD_H
+#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+    if (mutex->recursive) {
+        RecursiveLock_Lock(&mutex->inner.recursive);
+    } else {
+        LightLock_Lock(&mutex->inner.light);
+    }
+    return 0;
+#elif !defined(MKXPZ_NO_PTHREAD_H)
     return pthread_mutex_lock(mutex);
 #else
     ++*mutex;
@@ -135,7 +169,14 @@ extern "C" int mkxp_mutex_lock(mkxp_mutex_t *mutex) {
 }
 
 extern "C" int mkxp_mutex_unlock(mkxp_mutex_t *mutex) {
-#ifndef MKXPZ_NO_PTHREAD_H
+#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+    if (mutex->recursive) {
+        RecursiveLock_Unlock(&mutex->inner.recursive);
+    } else {
+        LightLock_Unlock(&mutex->inner.light);
+    }
+    return 0;
+#elif !defined(MKXPZ_NO_PTHREAD_H)
     return pthread_mutex_unlock(mutex);
 #else
     assert(*mutex);
@@ -145,7 +186,10 @@ extern "C" int mkxp_mutex_unlock(mkxp_mutex_t *mutex) {
 }
 
 extern "C" int mkxp_cond_init(mkxp_cond_t *cond) {
-#ifndef MKXPZ_NO_PTHREAD_H
+#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+    CondVar_Init(cond);
+    return 0;
+#elif !defined(MKXPZ_NO_PTHREAD_H)
     return pthread_cond_init(cond, NULL);
 #else
     return 0;
@@ -153,7 +197,9 @@ extern "C" int mkxp_cond_init(mkxp_cond_t *cond) {
 }
 
 extern "C" int mkxp_cond_destroy(mkxp_cond_t *cond) {
-#ifndef MKXPZ_NO_PTHREAD_H
+#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+    return 0;
+#elif !defined(MKXPZ_NO_PTHREAD_H)
     return pthread_cond_destroy(cond);
 #else
     return 0;
@@ -161,7 +207,10 @@ extern "C" int mkxp_cond_destroy(mkxp_cond_t *cond) {
 }
 
 extern "C" int mkxp_cond_signal(mkxp_cond_t *cond) {
-#ifndef MKXPZ_NO_PTHREAD_H
+#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+    CondVar_WakeUp(cond, 1);
+    return 0;
+#elif !defined(MKXPZ_NO_PTHREAD_H)
     return pthread_cond_signal(cond);
 #else
     return 0;
@@ -169,7 +218,10 @@ extern "C" int mkxp_cond_signal(mkxp_cond_t *cond) {
 }
 
 extern "C" int mkxp_cond_broadcast(mkxp_cond_t *cond) {
-#ifndef MKXPZ_NO_PTHREAD_H
+#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+    CondVar_WakeUp(cond, -1);
+    return 0;
+#elif !defined(MKXPZ_NO_PTHREAD_H)
     return pthread_cond_broadcast(cond);
 #else
     return 0;
@@ -177,7 +229,13 @@ extern "C" int mkxp_cond_broadcast(mkxp_cond_t *cond) {
 }
 
 extern "C" int mkxp_cond_wait(mkxp_cond_t *cond, mkxp_mutex_t *mutex) {
-#ifndef MKXPZ_NO_PTHREAD_H
+#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+    if (mutex->recursive) {
+        std::abort();
+    }
+    CondVar_Wait(cond, &mutex->inner.light);
+    return 0;
+#elif !defined(MKXPZ_NO_PTHREAD_H)
     return pthread_cond_wait(cond, mutex);
 #else
     return 0;
@@ -189,13 +247,13 @@ extern "C" int mkxp_sem_init(mkxp_sem_t *sem, unsigned int value) {
     return sem_init(sem, 0, value);
 #elif !defined(MKXPZ_NO_PTHREAD_H)
     *sem = (void *)new mkxp_sem_private;
-    int mutex_init_result = pthread_mutex_init(&((struct mkxp_sem_private *)*sem)->mutex, NULL);
+    int mutex_init_result = mkxp_mutex_init(&((struct mkxp_sem_private *)*sem)->mutex, false);
     if (mutex_init_result) {
         return -1;
     }
-    int cond_init_result = pthread_cond_init(&((struct mkxp_sem_private *)*sem)->cond, NULL);
+    int cond_init_result = mkxp_cond_init(&((struct mkxp_sem_private *)*sem)->cond);
     if (cond_init_result) {
-        pthread_mutex_destroy(&((struct mkxp_sem_private *)*sem)->mutex);
+        mkxp_mutex_destroy(&((struct mkxp_sem_private *)*sem)->mutex);
         return -1;
     }
     ((struct mkxp_sem_private *)*sem)->value = value;
@@ -210,8 +268,8 @@ extern "C" int mkxp_sem_destroy(mkxp_sem_t *sem) {
 #ifndef MKXPZ_NO_SEMAPHORE_H
     return sem_destroy(sem);
 #elif !defined(MKXPZ_NO_PTHREAD_H)
-    pthread_cond_destroy(&((struct mkxp_sem_private *)*sem)->cond);
-    pthread_mutex_destroy(&((struct mkxp_sem_private *)*sem)->mutex);
+    mkxp_cond_destroy(&((struct mkxp_sem_private *)*sem)->cond);
+    mkxp_mutex_destroy(&((struct mkxp_sem_private *)*sem)->mutex);
     delete (struct mkxp_sem_private *)*sem;
     return 0;
 #else
@@ -223,10 +281,10 @@ extern "C" int mkxp_sem_post(mkxp_sem_t *sem) {
 #ifndef MKXPZ_NO_SEMAPHORE_H
     return sem_post(sem);
 #elif !defined(MKXPZ_NO_PTHREAD_H)
-    while (pthread_mutex_lock(&((struct mkxp_sem_private *)*sem)->mutex)) {}
+    while (mkxp_mutex_lock(&((struct mkxp_sem_private *)*sem)->mutex)) {}
     ++((struct mkxp_sem_private *)*sem)->value;
-    pthread_cond_signal(&((struct mkxp_sem_private *)*sem)->cond);
-    pthread_mutex_unlock(&((struct mkxp_sem_private *)*sem)->mutex);
+    mkxp_cond_signal(&((struct mkxp_sem_private *)*sem)->cond);
+    mkxp_mutex_unlock(&((struct mkxp_sem_private *)*sem)->mutex);
     return 0;
 #else
     ++*sem;
@@ -238,14 +296,14 @@ extern "C" int mkxp_sem_wait(mkxp_sem_t *sem) {
 #ifndef MKXPZ_NO_SEMAPHORE_H
     return sem_wait(sem);
 #elif !defined(MKXPZ_NO_PTHREAD_H)
-    while (pthread_mutex_lock(&((struct mkxp_sem_private *)*sem)->mutex)) {}
+    while (mkxp_mutex_lock(&((struct mkxp_sem_private *)*sem)->mutex)) {}
     for (;;) {
         if (((struct mkxp_sem_private *)*sem)->value) {
             --((struct mkxp_sem_private *)*sem)->value;
-            pthread_mutex_unlock(&((struct mkxp_sem_private *)*sem)->mutex);
+            mkxp_mutex_unlock(&((struct mkxp_sem_private *)*sem)->mutex);
             return 0;
         }
-        while (pthread_cond_wait(&((struct mkxp_sem_private *)*sem)->cond, &((struct mkxp_sem_private *)*sem)->mutex)) {}
+        while (mkxp_cond_wait(&((struct mkxp_sem_private *)*sem)->cond, &((struct mkxp_sem_private *)*sem)->mutex)) {}
     }
 #else
     assert(*sem);

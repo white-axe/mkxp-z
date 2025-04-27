@@ -26,6 +26,7 @@
 #include "etc.h"
 #include "binding-util.h"
 #include "sharedstate.h"
+#include "mkxp-polyfill.h" // sprintf
 
 namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type color_type;

@@ -36,21 +36,18 @@
 #  include <semaphore.h>
 #endif
 
-#ifdef __cplusplus
-#include <array>
-#include <cstdio>
-#include <cstdlib>
-#include <mutex>
-#include <condition_variable>
-#include <string>
-
-extern "C" long long strtoll(const char *str, char **str_end, int base);
-extern "C" unsigned long long strtoull(const char *str, char **str_end, int base);
-
-extern "C" {
-#endif
-
-#ifndef MKXPZ_NO_PTHREAD_H
+#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+#  include <sys/lock.h>
+typedef void *mkxp_thread_t;
+typedef struct {
+    union {
+        _LOCK_T light;
+        _LOCK_RECURSIVE_T recursive;
+    } inner;
+    bool recursive;
+} mkxp_mutex_t;
+typedef int32_t mkxp_cond_t;
+#elif !defined(MKXPZ_NO_PTHREAD_H)
 typedef pthread_t mkxp_thread_t;
 typedef pthread_mutex_t mkxp_mutex_t;
 typedef pthread_cond_t mkxp_cond_t;
@@ -70,6 +67,20 @@ typedef unsigned int mkxp_sem_t;
 
 #if defined(MKXPZ_HAVE_POSIX_MEMALIGN) || defined(MKXPZ_HAVE_ALIGNED_MALLOC) || defined(MKXPZ_HAVE_ALIGNED_ALLOC) || defined(MKXPZ_BUILD_XCODE)
 #  define MKXPZ_HAVE_ANY_ALIGNED_MALLOC 1
+#endif
+
+#ifdef __cplusplus
+#include <array>
+#include <cstdio>
+#include <cstdlib>
+#include <mutex>
+#include <condition_variable>
+#include <string>
+
+extern "C" long long strtoll(const char *str, char **str_end, int base);
+extern "C" unsigned long long strtoull(const char *str, char **str_end, int base);
+
+extern "C" {
 #endif
 
 #ifdef MKXPZ_NO_SPRINTF
