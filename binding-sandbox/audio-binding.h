@@ -326,6 +326,16 @@ namespace mkxp_sandbox {
             return SANDBOX_NIL;
         }
 
+        static VALUE setup_midi(VALUE self) {
+            mkxp_retro::audio->setupMidi();
+            return SANDBOX_NIL;
+        }
+
+        static VALUE reset(VALUE self) {
+            mkxp_retro::audio->reset();
+            return SANDBOX_NIL;
+        }
+
         VALUE module;
 
         void operator()() {
@@ -346,6 +356,8 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_module_function, module, "me_fade", (VALUE (*)(ANYARGS))me_fade, 1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "se_play", (VALUE (*)(ANYARGS))se_play, -1);
                 SANDBOX_AWAIT(rb_define_module_function, module, "se_stop", (VALUE (*)(ANYARGS))se_stop, 0);
+                SANDBOX_AWAIT(rb_define_module_function, module, "setup_midi", (VALUE (*)(ANYARGS))setup_midi, 0);
+                SANDBOX_AWAIT(rb_define_module_function, module, "__reset__", (VALUE (*)(ANYARGS))reset, 0);
             }
         }
     )

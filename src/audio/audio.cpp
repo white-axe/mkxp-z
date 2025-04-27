@@ -501,9 +501,7 @@ void Audio::seStop()
 
 void Audio::setupMidi()
 {
-#ifndef MKXPZ_RETRO
 	shState->midiState().initIfNeeded(shState->config());
-#endif // MKXPZ_RETRO
 }
 
 double Audio::bgmPos(int track)
