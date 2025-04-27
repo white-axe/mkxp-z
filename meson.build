@@ -287,6 +287,7 @@ endif
 if is_devkitppc
     global_args += '-D__DEVKITPRO__'
     global_args += '-D__DEVKITPPC__'
+    global_args += '-DMKXPZ_NO_THREADED_AUDIO'
 endif
 
 if is_libretro
