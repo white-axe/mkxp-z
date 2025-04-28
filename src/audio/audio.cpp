@@ -196,6 +196,8 @@ struct AudioPrivate
 
 #ifdef MKXPZ_RETRO
 		AudioMutexGuard guard(meWatch.mutex);
+		if (meWatch.termReq)
+			return;
 
 		if (mkxp_retro::using_threaded_audio())
 #endif // MKXPZ_RETRO

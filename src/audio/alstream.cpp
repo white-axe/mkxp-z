@@ -394,6 +394,8 @@ void ALStream::renderInit() {
 	if (threadTermReq)
 		return;
 	AudioMutexGuard guard(renderMut);
+	if (threadTermReq)
+		return;
 #endif // MKXPZ_RETRO
 
 	bool firstBuffer = true;
@@ -440,6 +442,8 @@ void ALStream::render() {
 	if (threadTermReq)
 		return;
 	AudioMutexGuard guard(renderMut);
+	if (threadTermReq)
+		return;
 #endif // MKXPZ_RETRO
 
 	ALint procBufs = AL::Source::getProcBufferCount(alSrc);

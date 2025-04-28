@@ -357,7 +357,13 @@ bool AudioStream::fadeOutProc()
 
 #ifdef MKXPZ_RETRO
 	AudioMutexGuard fadeGuard(fade.mutex);
+	if (fade.reqTerm)
+	{
+		fade.active.clear();
+		return false;
+	}
 #endif // MKXPZ_RETRO
+
 	AudioMutexGuard guard(mutex);
 
 #ifdef MKXPZ_RETRO
@@ -394,7 +400,10 @@ bool AudioStream::fadeInProc()
 
 #ifdef MKXPZ_RETRO
 	AudioMutexGuard fadeGuard(fadeIn.mutex);
+	if (fadeIn.rqTerm)
+		return false;
 #endif // MKXPZ_RETRO
+
 	AudioMutexGuard guard(mutex);
 
 	/* Fade in duration is always 1 second */
