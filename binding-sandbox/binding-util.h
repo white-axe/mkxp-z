@@ -120,6 +120,20 @@ namespace mkxp_sandbox {
         }
     )
 
+    SANDBOX_COROUTINE(wrap_property,
+        VALUE operator()(VALUE self, void *ptr, const char *iv, VALUE klass) {
+            VALUE obj;
+
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                set_private_data(obj, ptr);
+                SANDBOX_AWAIT(rb_iv_set, self, iv, obj);
+            }
+
+            return obj;
+        }
+    )
+
     namespace _load {
         struct load_struct {
             VALUE obj;

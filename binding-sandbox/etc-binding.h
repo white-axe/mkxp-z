@@ -30,8 +30,11 @@
 
 namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type color_type;
+    static VALUE color_class;
     static struct mkxp_sandbox::bindings::rb_data_type tone_type;
+    static VALUE tone_class;
     static struct mkxp_sandbox::bindings::rb_data_type rect_type;
+    static VALUE rect_class;
 
     SANDBOX_COROUTINE(etc_binding_init,
         SANDBOX_COROUTINE(color_binding_init,
@@ -234,29 +237,27 @@ namespace mkxp_sandbox {
                 return sb()->bind<struct rb_str_new_cstr>()()(buf);
             }
 
-            VALUE klass;
-
             void operator()() {
                 BOOST_ASIO_CORO_REENTER (this) {
                     color_type = sb()->rb_data_type("Color", NULL, dfree, NULL, NULL, 0, 0, 0);
-                    SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Color", sb()->rb_cObject());
-                    SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
-                    SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(ANYARGS))load, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "set", (VALUE (*)(ANYARGS))set, -1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "red", (VALUE (*)(ANYARGS))get_red, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "red=", (VALUE (*)(ANYARGS))set_red, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "green", (VALUE (*)(ANYARGS))get_green, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "green=", (VALUE (*)(ANYARGS))set_green, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "blue", (VALUE (*)(ANYARGS))get_blue, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "blue=", (VALUE (*)(ANYARGS))set_blue, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "alpha", (VALUE (*)(ANYARGS))get_alpha, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "alpha=", (VALUE (*)(ANYARGS))set_alpha, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "==", (VALUE (*)(ANYARGS))equal, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "===", (VALUE (*)(ANYARGS))equal, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "to_s", (VALUE (*)(ANYARGS))stringify, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "inspect", (VALUE (*)(ANYARGS))stringify, 0);
+                    SANDBOX_AWAIT_AND_SET(color_class, rb_define_class, "Color", sb()->rb_cObject());
+                    SANDBOX_AWAIT(rb_define_alloc_func, color_class, alloc);
+                    SANDBOX_AWAIT(rb_define_singleton_method, color_class, "_load", (VALUE (*)(ANYARGS))load, 1);
+                    SANDBOX_AWAIT(rb_define_method, color_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+                    SANDBOX_AWAIT(rb_define_method, color_class, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
+                    SANDBOX_AWAIT(rb_define_method, color_class, "set", (VALUE (*)(ANYARGS))set, -1);
+                    SANDBOX_AWAIT(rb_define_method, color_class, "red", (VALUE (*)(ANYARGS))get_red, 0);
+                    SANDBOX_AWAIT(rb_define_method, color_class, "red=", (VALUE (*)(ANYARGS))set_red, 1);
+                    SANDBOX_AWAIT(rb_define_method, color_class, "green", (VALUE (*)(ANYARGS))get_green, 0);
+                    SANDBOX_AWAIT(rb_define_method, color_class, "green=", (VALUE (*)(ANYARGS))set_green, 1);
+                    SANDBOX_AWAIT(rb_define_method, color_class, "blue", (VALUE (*)(ANYARGS))get_blue, 0);
+                    SANDBOX_AWAIT(rb_define_method, color_class, "blue=", (VALUE (*)(ANYARGS))set_blue, 1);
+                    SANDBOX_AWAIT(rb_define_method, color_class, "alpha", (VALUE (*)(ANYARGS))get_alpha, 0);
+                    SANDBOX_AWAIT(rb_define_method, color_class, "alpha=", (VALUE (*)(ANYARGS))set_alpha, 1);
+                    SANDBOX_AWAIT(rb_define_method, color_class, "==", (VALUE (*)(ANYARGS))equal, 1);
+                    SANDBOX_AWAIT(rb_define_method, color_class, "===", (VALUE (*)(ANYARGS))equal, 1);
+                    SANDBOX_AWAIT(rb_define_method, color_class, "to_s", (VALUE (*)(ANYARGS))stringify, 0);
+                    SANDBOX_AWAIT(rb_define_method, color_class, "inspect", (VALUE (*)(ANYARGS))stringify, 0);
                 }
             }
         )
@@ -461,29 +462,27 @@ namespace mkxp_sandbox {
                 return sb()->bind<struct rb_str_new_cstr>()()(buf);
             }
 
-            VALUE klass;
-
             void operator()() {
                 BOOST_ASIO_CORO_REENTER (this) {
                     tone_type = sb()->rb_data_type("Tone", NULL, dfree, NULL, NULL, 0, 0, 0);
-                    SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Tone", sb()->rb_cObject());
-                    SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
-                    SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(ANYARGS))load, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "set", (VALUE (*)(ANYARGS))set, -1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "red", (VALUE (*)(ANYARGS))get_red, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "red=", (VALUE (*)(ANYARGS))set_red, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "green", (VALUE (*)(ANYARGS))get_green, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "green=", (VALUE (*)(ANYARGS))set_green, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "blue", (VALUE (*)(ANYARGS))get_blue, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "blue=", (VALUE (*)(ANYARGS))set_blue, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "gray", (VALUE (*)(ANYARGS))get_gray, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "gray=", (VALUE (*)(ANYARGS))set_gray, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "==", (VALUE (*)(ANYARGS))equal, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "===", (VALUE (*)(ANYARGS))equal, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "to_s", (VALUE (*)(ANYARGS))stringify, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "inspect", (VALUE (*)(ANYARGS))stringify, 0);
+                    SANDBOX_AWAIT_AND_SET(tone_class, rb_define_class, "Tone", sb()->rb_cObject());
+                    SANDBOX_AWAIT(rb_define_alloc_func, tone_class, alloc);
+                    SANDBOX_AWAIT(rb_define_singleton_method, tone_class, "_load", (VALUE (*)(ANYARGS))load, 1);
+                    SANDBOX_AWAIT(rb_define_method, tone_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+                    SANDBOX_AWAIT(rb_define_method, tone_class, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
+                    SANDBOX_AWAIT(rb_define_method, tone_class, "set", (VALUE (*)(ANYARGS))set, -1);
+                    SANDBOX_AWAIT(rb_define_method, tone_class, "red", (VALUE (*)(ANYARGS))get_red, 0);
+                    SANDBOX_AWAIT(rb_define_method, tone_class, "red=", (VALUE (*)(ANYARGS))set_red, 1);
+                    SANDBOX_AWAIT(rb_define_method, tone_class, "green", (VALUE (*)(ANYARGS))get_green, 0);
+                    SANDBOX_AWAIT(rb_define_method, tone_class, "green=", (VALUE (*)(ANYARGS))set_green, 1);
+                    SANDBOX_AWAIT(rb_define_method, tone_class, "blue", (VALUE (*)(ANYARGS))get_blue, 0);
+                    SANDBOX_AWAIT(rb_define_method, tone_class, "blue=", (VALUE (*)(ANYARGS))set_blue, 1);
+                    SANDBOX_AWAIT(rb_define_method, tone_class, "gray", (VALUE (*)(ANYARGS))get_gray, 0);
+                    SANDBOX_AWAIT(rb_define_method, tone_class, "gray=", (VALUE (*)(ANYARGS))set_gray, 1);
+                    SANDBOX_AWAIT(rb_define_method, tone_class, "==", (VALUE (*)(ANYARGS))equal, 1);
+                    SANDBOX_AWAIT(rb_define_method, tone_class, "===", (VALUE (*)(ANYARGS))equal, 1);
+                    SANDBOX_AWAIT(rb_define_method, tone_class, "to_s", (VALUE (*)(ANYARGS))stringify, 0);
+                    SANDBOX_AWAIT(rb_define_method, tone_class, "inspect", (VALUE (*)(ANYARGS))stringify, 0);
                 }
             }
         )
@@ -685,30 +684,28 @@ namespace mkxp_sandbox {
                 return sb()->bind<struct rb_str_new_cstr>()()(buf);
             }
 
-            VALUE klass;
-
             void operator()() {
                 BOOST_ASIO_CORO_REENTER (this) {
                     rect_type = sb()->rb_data_type("Rect", NULL, dfree, NULL, NULL, 0, 0, 0);
-                    SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Rect", sb()->rb_cObject());
-                    SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
-                    SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(ANYARGS))load, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "set", (VALUE (*)(ANYARGS))set, -1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "empty", (VALUE (*)(ANYARGS))empty, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "x", (VALUE (*)(ANYARGS))get_x, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "x=", (VALUE (*)(ANYARGS))set_x, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "y", (VALUE (*)(ANYARGS))get_y, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "y=", (VALUE (*)(ANYARGS))set_y, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "width", (VALUE (*)(ANYARGS))get_width, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "width=", (VALUE (*)(ANYARGS))set_width, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "height", (VALUE (*)(ANYARGS))get_height, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "height=", (VALUE (*)(ANYARGS))set_height, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "==", (VALUE (*)(ANYARGS))equal, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "===", (VALUE (*)(ANYARGS))equal, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "to_s", (VALUE (*)(ANYARGS))stringify, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "inspect", (VALUE (*)(ANYARGS))stringify, 0);
+                    SANDBOX_AWAIT_AND_SET(rect_class, rb_define_class, "Rect", sb()->rb_cObject());
+                    SANDBOX_AWAIT(rb_define_alloc_func, rect_class, alloc);
+                    SANDBOX_AWAIT(rb_define_singleton_method, rect_class, "_load", (VALUE (*)(ANYARGS))load, 1);
+                    SANDBOX_AWAIT(rb_define_method, rect_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+                    SANDBOX_AWAIT(rb_define_method, rect_class, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
+                    SANDBOX_AWAIT(rb_define_method, rect_class, "set", (VALUE (*)(ANYARGS))set, -1);
+                    SANDBOX_AWAIT(rb_define_method, rect_class, "empty", (VALUE (*)(ANYARGS))empty, 0);
+                    SANDBOX_AWAIT(rb_define_method, rect_class, "x", (VALUE (*)(ANYARGS))get_x, 0);
+                    SANDBOX_AWAIT(rb_define_method, rect_class, "x=", (VALUE (*)(ANYARGS))set_x, 1);
+                    SANDBOX_AWAIT(rb_define_method, rect_class, "y", (VALUE (*)(ANYARGS))get_y, 0);
+                    SANDBOX_AWAIT(rb_define_method, rect_class, "y=", (VALUE (*)(ANYARGS))set_y, 1);
+                    SANDBOX_AWAIT(rb_define_method, rect_class, "width", (VALUE (*)(ANYARGS))get_width, 0);
+                    SANDBOX_AWAIT(rb_define_method, rect_class, "width=", (VALUE (*)(ANYARGS))set_width, 1);
+                    SANDBOX_AWAIT(rb_define_method, rect_class, "height", (VALUE (*)(ANYARGS))get_height, 0);
+                    SANDBOX_AWAIT(rb_define_method, rect_class, "height=", (VALUE (*)(ANYARGS))set_height, 1);
+                    SANDBOX_AWAIT(rb_define_method, rect_class, "==", (VALUE (*)(ANYARGS))equal, 1);
+                    SANDBOX_AWAIT(rb_define_method, rect_class, "===", (VALUE (*)(ANYARGS))equal, 1);
+                    SANDBOX_AWAIT(rb_define_method, rect_class, "to_s", (VALUE (*)(ANYARGS))stringify, 0);
+                    SANDBOX_AWAIT(rb_define_method, rect_class, "inspect", (VALUE (*)(ANYARGS))stringify, 0);
                 }
             }
         )

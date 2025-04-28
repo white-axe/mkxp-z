@@ -28,6 +28,7 @@
 #include "sharedstate.h"
 
 namespace mkxp_sandbox {
+    static VALUE input_module;
     static VALUE symhash;
 
     struct {
@@ -330,7 +331,6 @@ namespace mkxp_sandbox {
             return sb()->bind<struct rb_ll2inum>()()(0);
         }
 
-        VALUE module;
         VALUE button_val;
         VALUE id_val;
         size_t i;
@@ -338,28 +338,28 @@ namespace mkxp_sandbox {
 
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(module, rb_define_module, "Input");
-                SANDBOX_AWAIT(rb_define_module_function, module, "delta", (VALUE (*)(ANYARGS))delta, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "update", (VALUE (*)(ANYARGS))update, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "press?", (VALUE (*)(ANYARGS))press, 1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "trigger?", (VALUE (*)(ANYARGS))trigger, 1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "repeat?", (VALUE (*)(ANYARGS))repeat, 1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "release?", (VALUE (*)(ANYARGS))release, 1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "count", (VALUE (*)(ANYARGS))count, 1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "time?", (VALUE (*)(ANYARGS))time, 1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "pressex?", (VALUE (*)(ANYARGS))pressex, 1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "triggerex?", (VALUE (*)(ANYARGS))triggerex, 1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "repeatex?", (VALUE (*)(ANYARGS))repeatex, 1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "releaseex?", (VALUE (*)(ANYARGS))releaseex, 1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "repeatcount", (VALUE (*)(ANYARGS))repeatcount, 1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "timeex?", (VALUE (*)(ANYARGS))timeex, 1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "dir4", (VALUE (*)(ANYARGS))dir4, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "dir8", (VALUE (*)(ANYARGS))dir8, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "mouse_x", (VALUE (*)(ANYARGS))todo_number, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "mouse_y", (VALUE (*)(ANYARGS))todo_number, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "scroll_v", (VALUE (*)(ANYARGS))todo_number, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "mouse_in_window", (VALUE (*)(ANYARGS))todo_bool, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "mouse_in_window?", (VALUE (*)(ANYARGS))todo_bool, -1);
+                SANDBOX_AWAIT_AND_SET(input_module, rb_define_module, "Input");
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "delta", (VALUE (*)(ANYARGS))delta, 0);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "update", (VALUE (*)(ANYARGS))update, 0);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "press?", (VALUE (*)(ANYARGS))press, 1);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "trigger?", (VALUE (*)(ANYARGS))trigger, 1);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "repeat?", (VALUE (*)(ANYARGS))repeat, 1);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "release?", (VALUE (*)(ANYARGS))release, 1);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "count", (VALUE (*)(ANYARGS))count, 1);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "time?", (VALUE (*)(ANYARGS))time, 1);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "pressex?", (VALUE (*)(ANYARGS))pressex, 1);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "triggerex?", (VALUE (*)(ANYARGS))triggerex, 1);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "repeatex?", (VALUE (*)(ANYARGS))repeatex, 1);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "releaseex?", (VALUE (*)(ANYARGS))releaseex, 1);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "repeatcount", (VALUE (*)(ANYARGS))repeatcount, 1);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "timeex?", (VALUE (*)(ANYARGS))timeex, 1);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "dir4", (VALUE (*)(ANYARGS))dir4, 0);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "dir8", (VALUE (*)(ANYARGS))dir8, 0);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "mouse_x", (VALUE (*)(ANYARGS))todo_number, -1);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "mouse_y", (VALUE (*)(ANYARGS))todo_number, -1);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "scroll_v", (VALUE (*)(ANYARGS))todo_number, -1);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "mouse_in_window", (VALUE (*)(ANYARGS))todo_bool, -1);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "mouse_in_window?", (VALUE (*)(ANYARGS))todo_bool, -1);
 
                 if (rgssVer >= 3) {
                     SANDBOX_AWAIT_AND_SET(symhash, rb_hash_new);
@@ -371,16 +371,16 @@ namespace mkxp_sandbox {
                         /* In RGSS3 all Input::XYZ constants are equal to :XYZ symbols,
                          * to be compatible with the previous convention */
                         SANDBOX_AWAIT_AND_SET(id_val, rb_id2sym, id);
-                        SANDBOX_AWAIT(rb_const_set, module, id, id_val);
+                        SANDBOX_AWAIT(rb_const_set, input_module, id, id_val);
                         SANDBOX_AWAIT(rb_hash_aset, symhash, id_val, button_val);
                     }
 
-                    SANDBOX_AWAIT(rb_iv_set, module, "buttoncodes", symhash);
+                    SANDBOX_AWAIT(rb_iv_set, input_module, "buttoncodes", symhash);
                 } else {
                     for (i = 0; i < sizeof(codes) / sizeof(*codes); ++i) {
                         SANDBOX_AWAIT_AND_SET(id, rb_intern, codes[i].str);
                         SANDBOX_AWAIT_AND_SET(button_val, rb_ll2inum, codes[i].val);
-                        SANDBOX_AWAIT(rb_const_set, module, id, button_val);
+                        SANDBOX_AWAIT(rb_const_set, input_module, id, button_val);
                     }
                 }
             }

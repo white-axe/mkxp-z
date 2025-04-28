@@ -25,9 +25,11 @@
 #include "sandbox.h"
 #include "binding-util.h"
 #include "window.h"
+#include "etc-binding.h"
 
 namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type window_type;
+    static VALUE window_class;
 
     SANDBOX_COROUTINE(window_binding_init,
         SANDBOX_DEF_ALLOC(window_type)
@@ -38,9 +40,7 @@ namespace mkxp_sandbox {
                 Window *window;
                 VALUE viewport_obj;
                 Viewport *viewport;
-                VALUE klass;
                 VALUE obj;
-                ID id;
 
                 VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     BOOST_ASIO_CORO_REENTER (this) {
@@ -60,11 +60,7 @@ namespace mkxp_sandbox {
                         set_private_data(self, window);
                         window->initDynAttribs();
 
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Rect");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &window->getCursorRect());
-                        SANDBOX_AWAIT(rb_iv_set, self, "cursor_rect", obj);
+                        SANDBOX_AWAIT(wrap_property, self, &window->getCursorRect(), "cursor_rect", rect_class);
 
                         GFX_UNLOCK
                     }
@@ -415,53 +411,51 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self, value);
         }
 
-        VALUE klass;
-
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
                 window_type = sb()->rb_data_type("Window", NULL, dfree, NULL, NULL, 0, 0, 0);
-                SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Window", sb()->rb_cObject());
-                SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
-                SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
-                SANDBOX_AWAIT(rb_define_method, klass, "update", (VALUE (*)(ANYARGS))update, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "viewport", (VALUE (*)(ANYARGS))get_viewport, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "viewport=", (VALUE (*)(ANYARGS))set_viewport, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "windowskin", (VALUE (*)(ANYARGS))get_windowskin, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "windowskin=", (VALUE (*)(ANYARGS))set_windowskin, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "contents", (VALUE (*)(ANYARGS))get_contents, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "contents=", (VALUE (*)(ANYARGS))set_contents, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "cursor_rect", (VALUE (*)(ANYARGS))get_cursor_rect, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "cursor_rect=", (VALUE (*)(ANYARGS))set_cursor_rect, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "stretch", (VALUE (*)(ANYARGS))get_stretch, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "stretch=", (VALUE (*)(ANYARGS))set_stretch, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "active", (VALUE (*)(ANYARGS))get_active, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "active=", (VALUE (*)(ANYARGS))set_active, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "visible", (VALUE (*)(ANYARGS))get_visible, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "visible=", (VALUE (*)(ANYARGS))set_visible, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "pause", (VALUE (*)(ANYARGS))get_pause, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "pause=", (VALUE (*)(ANYARGS))set_pause, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "x", (VALUE (*)(ANYARGS))get_x, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "x=", (VALUE (*)(ANYARGS))set_x, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "y", (VALUE (*)(ANYARGS))get_y, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "y=", (VALUE (*)(ANYARGS))set_y, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "width", (VALUE (*)(ANYARGS))get_width, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "width=", (VALUE (*)(ANYARGS))set_width, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "height", (VALUE (*)(ANYARGS))get_height, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "height=", (VALUE (*)(ANYARGS))set_height, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "ox", (VALUE (*)(ANYARGS))get_ox, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "ox=", (VALUE (*)(ANYARGS))set_ox, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "oy", (VALUE (*)(ANYARGS))get_oy, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "oy=", (VALUE (*)(ANYARGS))set_oy, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "opacity", (VALUE (*)(ANYARGS))get_opacity, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "opacity=", (VALUE (*)(ANYARGS))set_opacity, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "back_opacity", (VALUE (*)(ANYARGS))get_back_opacity, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "back_opacity=", (VALUE (*)(ANYARGS))set_back_opacity, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "contents_opacity", (VALUE (*)(ANYARGS))get_contents_opacity, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "contents_opacity=", (VALUE (*)(ANYARGS))set_contents_opacity, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "z", (VALUE (*)(ANYARGS))get_z, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "z=", (VALUE (*)(ANYARGS))set_z, 1);
+                SANDBOX_AWAIT_AND_SET(window_class, rb_define_class, "Window", sb()->rb_cObject());
+                SANDBOX_AWAIT(rb_define_alloc_func, window_class, alloc);
+                SANDBOX_AWAIT(rb_define_method, window_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+                SANDBOX_AWAIT(rb_define_method, window_class, "update", (VALUE (*)(ANYARGS))update, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "viewport", (VALUE (*)(ANYARGS))get_viewport, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "viewport=", (VALUE (*)(ANYARGS))set_viewport, 1);
+                SANDBOX_AWAIT(rb_define_method, window_class, "windowskin", (VALUE (*)(ANYARGS))get_windowskin, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "windowskin=", (VALUE (*)(ANYARGS))set_windowskin, 1);
+                SANDBOX_AWAIT(rb_define_method, window_class, "contents", (VALUE (*)(ANYARGS))get_contents, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "contents=", (VALUE (*)(ANYARGS))set_contents, 1);
+                SANDBOX_AWAIT(rb_define_method, window_class, "cursor_rect", (VALUE (*)(ANYARGS))get_cursor_rect, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "cursor_rect=", (VALUE (*)(ANYARGS))set_cursor_rect, 1);
+                SANDBOX_AWAIT(rb_define_method, window_class, "stretch", (VALUE (*)(ANYARGS))get_stretch, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "stretch=", (VALUE (*)(ANYARGS))set_stretch, 1);
+                SANDBOX_AWAIT(rb_define_method, window_class, "active", (VALUE (*)(ANYARGS))get_active, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "active=", (VALUE (*)(ANYARGS))set_active, 1);
+                SANDBOX_AWAIT(rb_define_method, window_class, "visible", (VALUE (*)(ANYARGS))get_visible, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "visible=", (VALUE (*)(ANYARGS))set_visible, 1);
+                SANDBOX_AWAIT(rb_define_method, window_class, "pause", (VALUE (*)(ANYARGS))get_pause, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "pause=", (VALUE (*)(ANYARGS))set_pause, 1);
+                SANDBOX_AWAIT(rb_define_method, window_class, "x", (VALUE (*)(ANYARGS))get_x, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "x=", (VALUE (*)(ANYARGS))set_x, 1);
+                SANDBOX_AWAIT(rb_define_method, window_class, "y", (VALUE (*)(ANYARGS))get_y, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "y=", (VALUE (*)(ANYARGS))set_y, 1);
+                SANDBOX_AWAIT(rb_define_method, window_class, "width", (VALUE (*)(ANYARGS))get_width, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "width=", (VALUE (*)(ANYARGS))set_width, 1);
+                SANDBOX_AWAIT(rb_define_method, window_class, "height", (VALUE (*)(ANYARGS))get_height, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "height=", (VALUE (*)(ANYARGS))set_height, 1);
+                SANDBOX_AWAIT(rb_define_method, window_class, "ox", (VALUE (*)(ANYARGS))get_ox, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "ox=", (VALUE (*)(ANYARGS))set_ox, 1);
+                SANDBOX_AWAIT(rb_define_method, window_class, "oy", (VALUE (*)(ANYARGS))get_oy, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "oy=", (VALUE (*)(ANYARGS))set_oy, 1);
+                SANDBOX_AWAIT(rb_define_method, window_class, "opacity", (VALUE (*)(ANYARGS))get_opacity, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "opacity=", (VALUE (*)(ANYARGS))set_opacity, 1);
+                SANDBOX_AWAIT(rb_define_method, window_class, "back_opacity", (VALUE (*)(ANYARGS))get_back_opacity, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "back_opacity=", (VALUE (*)(ANYARGS))set_back_opacity, 1);
+                SANDBOX_AWAIT(rb_define_method, window_class, "contents_opacity", (VALUE (*)(ANYARGS))get_contents_opacity, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "contents_opacity=", (VALUE (*)(ANYARGS))set_contents_opacity, 1);
+                SANDBOX_AWAIT(rb_define_method, window_class, "z", (VALUE (*)(ANYARGS))get_z, 0);
+                SANDBOX_AWAIT(rb_define_method, window_class, "z=", (VALUE (*)(ANYARGS))set_z, 1);
             }
         }
     )

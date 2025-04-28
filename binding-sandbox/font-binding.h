@@ -27,21 +27,16 @@
 #include "font.h"
 #include "etc.h"
 #include "sharedstate.h"
+#include "etc-binding.h"
 
 namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type font_type;
+    static VALUE font_class;
 
     SANDBOX_COROUTINE(font_binding_init,
         SANDBOX_DEF_ALLOC(font_type)
         SANDBOX_DEF_DFREE(Font)
 
-        VALUE klass;
-        ID default_color_id;
-        VALUE default_color_klass;
-        VALUE default_color_obj;
-        ID default_out_color_id;
-        VALUE default_out_color_klass;
-        VALUE default_out_color_obj;
         VALUE default_names;
         VALUE default_name;
         wasm_size_t default_name_index;
@@ -85,17 +80,13 @@ namespace mkxp_sandbox {
                 std::vector<std::string> *names;
                 VALUE names_obj;
                 int32_t size;
-                ID id;
-                VALUE klass;
-                VALUE obj;
 
                 VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     BOOST_ASIO_CORO_REENTER (this) {
                         names = new std::vector<std::string>;
 
                         if (argc == 0) {
-                            SANDBOX_AWAIT_AND_SET(klass, rb_obj_class, self);
-                            SANDBOX_AWAIT_AND_SET(names_obj, rb_iv_get, klass, "default_name");
+                            SANDBOX_AWAIT_AND_SET(names_obj, rb_iv_get, font_class, "default_name");
                             font = new Font();
                         } else if (argc == 1) {
                             names_obj = ((VALUE *)(**sb() + argv))[0];
@@ -116,18 +107,10 @@ namespace mkxp_sandbox {
                          * However the same bug/behavior exists in all RM versions. */
                         SANDBOX_AWAIT(rb_iv_set, self, "name", names_obj);
 
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &font->getColor());
-                        SANDBOX_AWAIT(rb_iv_set, self, "color", obj);
+                        SANDBOX_AWAIT(wrap_property, self, &font->getColor(), "color", color_class);
 
                         if (rgssVer >= 3) {
-                            SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
-                            SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                            SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                            set_private_data(obj, &font->getOutColor());
-                            SANDBOX_AWAIT(rb_iv_set, self, "out_color", obj);
+                            SANDBOX_AWAIT(wrap_property, self, &font->getOutColor(), "out_color", color_class);
                         }
                     }
 
@@ -145,9 +128,6 @@ namespace mkxp_sandbox {
         static VALUE initialize_copy(VALUE self, VALUE value) {
             SANDBOX_COROUTINE(coro,
                 Font *font;
-                ID id;
-                VALUE klass;
-                VALUE obj;
 
                 VALUE operator()(VALUE self, VALUE value) {
                     BOOST_ASIO_CORO_REENTER (this) {
@@ -161,18 +141,10 @@ namespace mkxp_sandbox {
 
                         font->initDynAttribs();
 
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &font->getColor());
-                        SANDBOX_AWAIT(rb_iv_set, self, "color", obj);
+                        SANDBOX_AWAIT(wrap_property, self, &font->getColor(), "color", color_class);
 
                         if (rgssVer >= 3) {
-                            SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
-                            SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                            SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                            set_private_data(obj, &font->getOutColor());
-                            SANDBOX_AWAIT(rb_iv_set, self, "out_color", obj);
+                            SANDBOX_AWAIT(wrap_property, self, &font->getOutColor(), "out_color", color_class);
                         }
                     }
 
@@ -413,23 +385,15 @@ namespace mkxp_sandbox {
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
                 font_type = sb()->rb_data_type("Font", NULL, dfree, NULL, NULL, 0, 0, 0);
-                SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Font", sb()->rb_cObject());
-                SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
+                SANDBOX_AWAIT_AND_SET(font_class, rb_define_class, "Font", sb()->rb_cObject());
+                SANDBOX_AWAIT(rb_define_alloc_func, font_class, alloc);
 
                 Font::initDefaultDynAttribs();
 
-                SANDBOX_AWAIT_AND_SET(default_color_id, rb_intern, "Color");
-                SANDBOX_AWAIT_AND_SET(default_color_klass, rb_const_get, sb()->rb_cObject(), default_color_id);
-                SANDBOX_AWAIT_AND_SET(default_color_obj, rb_obj_alloc, default_color_klass);
-                set_private_data(default_color_obj, &Font::getDefaultColor());
-                SANDBOX_AWAIT(rb_iv_set, klass, "default_color", default_color_obj);
+                SANDBOX_AWAIT(wrap_property, font_class, &Font::getDefaultColor(), "default_color", color_class);
 
                 if (rgssVer >= 3) {
-                    SANDBOX_AWAIT_AND_SET(default_out_color_id, rb_intern, "Color");
-                    SANDBOX_AWAIT_AND_SET(default_out_color_klass, rb_const_get, sb()->rb_cObject(), default_out_color_id);
-                    SANDBOX_AWAIT_AND_SET(default_out_color_obj, rb_obj_alloc, default_out_color_klass);
-                    set_private_data(default_out_color_obj, &Font::getDefaultOutColor());
-                    SANDBOX_AWAIT(rb_iv_set, klass, "default_out_color", default_out_color_obj);
+                    SANDBOX_AWAIT(wrap_property, font_class, &Font::getDefaultOutColor(), "default_out_color", color_class);
                 }
 
                 if (Font::getInitialDefaultNames().size() == 1) {
@@ -441,58 +405,58 @@ namespace mkxp_sandbox {
                         SANDBOX_AWAIT(rb_ary_push, default_names, default_name);
                     }
                 }
-                SANDBOX_AWAIT(rb_iv_set, klass, "default_name", default_names);
+                SANDBOX_AWAIT(rb_iv_set, font_class, "default_name", default_names);
 
-                SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
-                SANDBOX_AWAIT(rb_define_method, klass, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
+                SANDBOX_AWAIT(rb_define_method, font_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+                SANDBOX_AWAIT(rb_define_method, font_class, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
 
-                SANDBOX_AWAIT(rb_define_method, klass, "name", (VALUE (*)(ANYARGS))get_name, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "name=", (VALUE (*)(ANYARGS))set_name, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "size", (VALUE (*)(ANYARGS))get_size, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "size=", (VALUE (*)(ANYARGS))set_size, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "bold", (VALUE (*)(ANYARGS))get_bold, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "bold=", (VALUE (*)(ANYARGS))set_bold, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "italic", (VALUE (*)(ANYARGS))get_italic, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "italic=", (VALUE (*)(ANYARGS))set_italic, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "color", (VALUE (*)(ANYARGS))get_color, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "color=", (VALUE (*)(ANYARGS))set_color, 1);
+                SANDBOX_AWAIT(rb_define_method, font_class, "name", (VALUE (*)(ANYARGS))get_name, 0);
+                SANDBOX_AWAIT(rb_define_method, font_class, "name=", (VALUE (*)(ANYARGS))set_name, 1);
+                SANDBOX_AWAIT(rb_define_method, font_class, "size", (VALUE (*)(ANYARGS))get_size, 0);
+                SANDBOX_AWAIT(rb_define_method, font_class, "size=", (VALUE (*)(ANYARGS))set_size, 1);
+                SANDBOX_AWAIT(rb_define_method, font_class, "bold", (VALUE (*)(ANYARGS))get_bold, 0);
+                SANDBOX_AWAIT(rb_define_method, font_class, "bold=", (VALUE (*)(ANYARGS))set_bold, 1);
+                SANDBOX_AWAIT(rb_define_method, font_class, "italic", (VALUE (*)(ANYARGS))get_italic, 0);
+                SANDBOX_AWAIT(rb_define_method, font_class, "italic=", (VALUE (*)(ANYARGS))set_italic, 1);
+                SANDBOX_AWAIT(rb_define_method, font_class, "color", (VALUE (*)(ANYARGS))get_color, 0);
+                SANDBOX_AWAIT(rb_define_method, font_class, "color=", (VALUE (*)(ANYARGS))set_color, 1);
 
                 if (rgssVer >= 2) {
-                    SANDBOX_AWAIT(rb_define_method, klass, "shadow", (VALUE (*)(ANYARGS))get_shadow, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "shadow=", (VALUE (*)(ANYARGS))set_shadow, 1);
+                    SANDBOX_AWAIT(rb_define_method, font_class, "shadow", (VALUE (*)(ANYARGS))get_shadow, 0);
+                    SANDBOX_AWAIT(rb_define_method, font_class, "shadow=", (VALUE (*)(ANYARGS))set_shadow, 1);
                 }
 
                 if (rgssVer >= 3) {
-                    SANDBOX_AWAIT(rb_define_method, klass, "outline", (VALUE (*)(ANYARGS))get_outline, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "outline=", (VALUE (*)(ANYARGS))set_outline, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "out_color", (VALUE (*)(ANYARGS))get_out_color, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "out_color=", (VALUE (*)(ANYARGS))set_out_color, 1);
+                    SANDBOX_AWAIT(rb_define_method, font_class, "outline", (VALUE (*)(ANYARGS))get_outline, 0);
+                    SANDBOX_AWAIT(rb_define_method, font_class, "outline=", (VALUE (*)(ANYARGS))set_outline, 1);
+                    SANDBOX_AWAIT(rb_define_method, font_class, "out_color", (VALUE (*)(ANYARGS))get_out_color, 0);
+                    SANDBOX_AWAIT(rb_define_method, font_class, "out_color=", (VALUE (*)(ANYARGS))set_out_color, 1);
                 }
 
-                SANDBOX_AWAIT(rb_define_singleton_method, klass, "default_name", (VALUE (*)(ANYARGS))get_default_name, 0);
-                SANDBOX_AWAIT(rb_define_singleton_method, klass, "default_name=", (VALUE (*)(ANYARGS))set_default_name, 1);
-                SANDBOX_AWAIT(rb_define_singleton_method, klass, "default_size", (VALUE (*)(ANYARGS))get_default_size, 0);
-                SANDBOX_AWAIT(rb_define_singleton_method, klass, "default_size=", (VALUE (*)(ANYARGS))set_default_size, 1);
-                SANDBOX_AWAIT(rb_define_singleton_method, klass, "default_bold", (VALUE (*)(ANYARGS))get_default_bold, 0);
-                SANDBOX_AWAIT(rb_define_singleton_method, klass, "default_bold=", (VALUE (*)(ANYARGS))set_default_bold, 1);
-                SANDBOX_AWAIT(rb_define_singleton_method, klass, "default_italic", (VALUE (*)(ANYARGS))get_default_italic, 0);
-                SANDBOX_AWAIT(rb_define_singleton_method, klass, "default_italic=", (VALUE (*)(ANYARGS))set_default_italic, 1);
-                SANDBOX_AWAIT(rb_define_singleton_method, klass, "default_color", (VALUE (*)(ANYARGS))get_default_color, 0);
-                SANDBOX_AWAIT(rb_define_singleton_method, klass, "default_color=", (VALUE (*)(ANYARGS))set_default_color, 1);
+                SANDBOX_AWAIT(rb_define_singleton_method, font_class, "default_name", (VALUE (*)(ANYARGS))get_default_name, 0);
+                SANDBOX_AWAIT(rb_define_singleton_method, font_class, "default_name=", (VALUE (*)(ANYARGS))set_default_name, 1);
+                SANDBOX_AWAIT(rb_define_singleton_method, font_class, "default_size", (VALUE (*)(ANYARGS))get_default_size, 0);
+                SANDBOX_AWAIT(rb_define_singleton_method, font_class, "default_size=", (VALUE (*)(ANYARGS))set_default_size, 1);
+                SANDBOX_AWAIT(rb_define_singleton_method, font_class, "default_bold", (VALUE (*)(ANYARGS))get_default_bold, 0);
+                SANDBOX_AWAIT(rb_define_singleton_method, font_class, "default_bold=", (VALUE (*)(ANYARGS))set_default_bold, 1);
+                SANDBOX_AWAIT(rb_define_singleton_method, font_class, "default_italic", (VALUE (*)(ANYARGS))get_default_italic, 0);
+                SANDBOX_AWAIT(rb_define_singleton_method, font_class, "default_italic=", (VALUE (*)(ANYARGS))set_default_italic, 1);
+                SANDBOX_AWAIT(rb_define_singleton_method, font_class, "default_color", (VALUE (*)(ANYARGS))get_default_color, 0);
+                SANDBOX_AWAIT(rb_define_singleton_method, font_class, "default_color=", (VALUE (*)(ANYARGS))set_default_color, 1);
 
                 if (rgssVer >= 2) {
-                    SANDBOX_AWAIT(rb_define_method, klass, "default_shadow", (VALUE (*)(ANYARGS))get_default_shadow, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "default_shadow=", (VALUE (*)(ANYARGS))set_default_shadow, 1);
+                    SANDBOX_AWAIT(rb_define_method, font_class, "default_shadow", (VALUE (*)(ANYARGS))get_default_shadow, 0);
+                    SANDBOX_AWAIT(rb_define_method, font_class, "default_shadow=", (VALUE (*)(ANYARGS))set_default_shadow, 1);
                 }
 
                 if (rgssVer >= 3) {
-                    SANDBOX_AWAIT(rb_define_method, klass, "default_outline", (VALUE (*)(ANYARGS))get_default_outline, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "default_outline=", (VALUE (*)(ANYARGS))set_default_outline, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "default_out_color", (VALUE (*)(ANYARGS))get_default_out_color, 0);
-                    SANDBOX_AWAIT(rb_define_method, klass, "default_out_color=", (VALUE (*)(ANYARGS))set_default_out_color, 1);
+                    SANDBOX_AWAIT(rb_define_method, font_class, "default_outline", (VALUE (*)(ANYARGS))get_default_outline, 0);
+                    SANDBOX_AWAIT(rb_define_method, font_class, "default_outline=", (VALUE (*)(ANYARGS))set_default_outline, 1);
+                    SANDBOX_AWAIT(rb_define_method, font_class, "default_out_color", (VALUE (*)(ANYARGS))get_default_out_color, 0);
+                    SANDBOX_AWAIT(rb_define_method, font_class, "default_out_color=", (VALUE (*)(ANYARGS))set_default_out_color, 1);
                 }
 
-                SANDBOX_AWAIT(rb_define_singleton_method, klass, "exist?", (VALUE (*)(ANYARGS))exist, 1);
+                SANDBOX_AWAIT(rb_define_singleton_method, font_class, "exist?", (VALUE (*)(ANYARGS))exist, 1);
             }
         }
     )

@@ -25,9 +25,11 @@
 #include "sandbox.h"
 #include "binding-util.h"
 #include "sprite.h"
+#include "etc-binding.h"
 
 namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type sprite_type;
+    static VALUE sprite_class;
 
     SANDBOX_COROUTINE(sprite_binding_init,
         SANDBOX_DEF_ALLOC(sprite_type)
@@ -38,9 +40,6 @@ namespace mkxp_sandbox {
                 Sprite *sprite;
                 VALUE viewport_obj;
                 Viewport *viewport;
-                ID id;
-                VALUE klass;
-                VALUE obj;
 
                 VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     BOOST_ASIO_CORO_REENTER (this) {
@@ -61,23 +60,9 @@ namespace mkxp_sandbox {
                         set_private_data(self, sprite);
                         sprite->initDynAttribs();
 
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Rect");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &sprite->getSrcRect());
-                        SANDBOX_AWAIT(rb_iv_set, self, "src_rect", obj);
-
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &sprite->getColor());
-                        SANDBOX_AWAIT(rb_iv_set, self, "color", obj);
-
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Tone");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &sprite->getTone());
-                        SANDBOX_AWAIT(rb_iv_set, self, "tone", obj);
+                        SANDBOX_AWAIT(wrap_property, self, &sprite->getSrcRect(), "src_rect", rect_class);
+                        SANDBOX_AWAIT(wrap_property, self, &sprite->getColor(), "color", color_class);
+                        SANDBOX_AWAIT(wrap_property, self, &sprite->getTone(), "tone", tone_class);
 
                         GFX_UNLOCK
                     }
@@ -487,58 +472,56 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self, value);
         }
 
-        VALUE klass;
-
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
                 sprite_type = sb()->rb_data_type("Sprite", NULL, dfree, NULL, NULL, 0, 0, 0);
-                SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Sprite", sb()->rb_cObject());
-                SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
-                SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
-                SANDBOX_AWAIT(rb_define_method, klass, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "flash", (VALUE (*)(ANYARGS))flash, 2);
-                SANDBOX_AWAIT(rb_define_method, klass, "update", (VALUE (*)(ANYARGS))update, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "viewport", (VALUE (*)(ANYARGS))get_viewport, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "viewport=", (VALUE (*)(ANYARGS))set_viewport, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "bitmap", (VALUE (*)(ANYARGS))get_bitmap, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "bitmap=", (VALUE (*)(ANYARGS))set_bitmap, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "src_rect", (VALUE (*)(ANYARGS))get_src_rect, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "src_rect=", (VALUE (*)(ANYARGS))set_src_rect, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "color", (VALUE (*)(ANYARGS))get_color, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "color=", (VALUE (*)(ANYARGS))set_color, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "tone", (VALUE (*)(ANYARGS))get_tone, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "tone=", (VALUE (*)(ANYARGS))set_tone, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "visible", (VALUE (*)(ANYARGS))get_visible, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "visible=", (VALUE (*)(ANYARGS))set_visible, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "width", (VALUE (*)(ANYARGS))width, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "height", (VALUE (*)(ANYARGS))height, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "x", (VALUE (*)(ANYARGS))get_x, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "x=", (VALUE (*)(ANYARGS))set_x, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "y", (VALUE (*)(ANYARGS))get_y, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "y=", (VALUE (*)(ANYARGS))set_y, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "ox", (VALUE (*)(ANYARGS))get_ox, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "ox=", (VALUE (*)(ANYARGS))set_ox, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "oy", (VALUE (*)(ANYARGS))get_oy, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "oy=", (VALUE (*)(ANYARGS))set_oy, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "zoom_x", (VALUE (*)(ANYARGS))get_zoom_x, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "zoom_x=", (VALUE (*)(ANYARGS))set_zoom_x, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "zoom_y", (VALUE (*)(ANYARGS))get_zoom_y, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "zoom_y=", (VALUE (*)(ANYARGS))set_zoom_y, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "z", (VALUE (*)(ANYARGS))get_z, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "z=", (VALUE (*)(ANYARGS))set_z, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "angle", (VALUE (*)(ANYARGS))get_angle, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "angle=", (VALUE (*)(ANYARGS))set_angle, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "mirror", (VALUE (*)(ANYARGS))get_mirror, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "mirror=", (VALUE (*)(ANYARGS))set_mirror, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "bush_depth", (VALUE (*)(ANYARGS))get_bush_depth, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "bush_depth=", (VALUE (*)(ANYARGS))set_bush_depth, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "bush_opacity", (VALUE (*)(ANYARGS))get_bush_opacity, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "bush_opacity=", (VALUE (*)(ANYARGS))set_bush_opacity, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "opacity", (VALUE (*)(ANYARGS))get_opacity, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "opacity=", (VALUE (*)(ANYARGS))set_opacity, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "blend_type", (VALUE (*)(ANYARGS))get_blend_type, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "blend_type=", (VALUE (*)(ANYARGS))set_blend_type, 1);
+                SANDBOX_AWAIT_AND_SET(sprite_class, rb_define_class, "Sprite", sb()->rb_cObject());
+                SANDBOX_AWAIT(rb_define_alloc_func, sprite_class, alloc);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "flash", (VALUE (*)(ANYARGS))flash, 2);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "update", (VALUE (*)(ANYARGS))update, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "viewport", (VALUE (*)(ANYARGS))get_viewport, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "viewport=", (VALUE (*)(ANYARGS))set_viewport, 1);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "bitmap", (VALUE (*)(ANYARGS))get_bitmap, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "bitmap=", (VALUE (*)(ANYARGS))set_bitmap, 1);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "src_rect", (VALUE (*)(ANYARGS))get_src_rect, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "src_rect=", (VALUE (*)(ANYARGS))set_src_rect, 1);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "color", (VALUE (*)(ANYARGS))get_color, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "color=", (VALUE (*)(ANYARGS))set_color, 1);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "tone", (VALUE (*)(ANYARGS))get_tone, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "tone=", (VALUE (*)(ANYARGS))set_tone, 1);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "visible", (VALUE (*)(ANYARGS))get_visible, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "visible=", (VALUE (*)(ANYARGS))set_visible, 1);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "width", (VALUE (*)(ANYARGS))width, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "height", (VALUE (*)(ANYARGS))height, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "x", (VALUE (*)(ANYARGS))get_x, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "x=", (VALUE (*)(ANYARGS))set_x, 1);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "y", (VALUE (*)(ANYARGS))get_y, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "y=", (VALUE (*)(ANYARGS))set_y, 1);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "ox", (VALUE (*)(ANYARGS))get_ox, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "ox=", (VALUE (*)(ANYARGS))set_ox, 1);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "oy", (VALUE (*)(ANYARGS))get_oy, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "oy=", (VALUE (*)(ANYARGS))set_oy, 1);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "zoom_x", (VALUE (*)(ANYARGS))get_zoom_x, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "zoom_x=", (VALUE (*)(ANYARGS))set_zoom_x, 1);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "zoom_y", (VALUE (*)(ANYARGS))get_zoom_y, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "zoom_y=", (VALUE (*)(ANYARGS))set_zoom_y, 1);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "z", (VALUE (*)(ANYARGS))get_z, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "z=", (VALUE (*)(ANYARGS))set_z, 1);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "angle", (VALUE (*)(ANYARGS))get_angle, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "angle=", (VALUE (*)(ANYARGS))set_angle, 1);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "mirror", (VALUE (*)(ANYARGS))get_mirror, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "mirror=", (VALUE (*)(ANYARGS))set_mirror, 1);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "bush_depth", (VALUE (*)(ANYARGS))get_bush_depth, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "bush_depth=", (VALUE (*)(ANYARGS))set_bush_depth, 1);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "bush_opacity", (VALUE (*)(ANYARGS))get_bush_opacity, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "bush_opacity=", (VALUE (*)(ANYARGS))set_bush_opacity, 1);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "opacity", (VALUE (*)(ANYARGS))get_opacity, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "opacity=", (VALUE (*)(ANYARGS))set_opacity, 1);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "blend_type", (VALUE (*)(ANYARGS))get_blend_type, 0);
+                SANDBOX_AWAIT(rb_define_method, sprite_class, "blend_type=", (VALUE (*)(ANYARGS))set_blend_type, 1);
             }
         }
     )

@@ -25,9 +25,11 @@
 #include "sandbox.h"
 #include "binding-util.h"
 #include "plane.h"
+#include "etc-binding.h"
 
 namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type plane_type;
+    static VALUE plane_class;
 
     SANDBOX_COROUTINE(plane_binding_init,
         SANDBOX_DEF_ALLOC(plane_type)
@@ -42,9 +44,6 @@ namespace mkxp_sandbox {
                 int32_t y;
                 int32_t w;
                 int32_t h;
-                ID id;
-                VALUE klass;
-                VALUE obj;
                 VALUE ary;
                 unsigned int i;
 
@@ -67,18 +66,8 @@ namespace mkxp_sandbox {
 
                         plane->initDynAttribs();
 
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &plane->getColor());
-                        SANDBOX_AWAIT(rb_iv_set, self, "color", obj);
-
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Tone");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &plane->getTone());
-                        SANDBOX_AWAIT(rb_iv_set, self, "tone", obj);
-
+                        SANDBOX_AWAIT(wrap_property, self, &plane->getColor(), "color", color_class);
+                        SANDBOX_AWAIT(wrap_property, self, &plane->getTone(), "tone", tone_class);
                         GFX_UNLOCK
                     }
 
@@ -323,40 +312,38 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self, value);
         }
 
-        VALUE klass;
-
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
                 plane_type = sb()->rb_data_type("Plane", NULL, dfree, NULL, NULL, 0, 0, 0);
-                SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Plane", sb()->rb_cObject());
-                SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
-                SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
-                SANDBOX_AWAIT(rb_define_method, klass, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "viewport", (VALUE (*)(ANYARGS))get_viewport, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "viewport=", (VALUE (*)(ANYARGS))set_viewport, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "bitmap", (VALUE (*)(ANYARGS))get_bitmap, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "bitmap=", (VALUE (*)(ANYARGS))set_bitmap, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "color", (VALUE (*)(ANYARGS))get_color, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "color=", (VALUE (*)(ANYARGS))set_color, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "tone", (VALUE (*)(ANYARGS))get_tone, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "tone=", (VALUE (*)(ANYARGS))set_tone, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "visible", (VALUE (*)(ANYARGS))get_visible, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "visible=", (VALUE (*)(ANYARGS))set_visible, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "ox", (VALUE (*)(ANYARGS))get_ox, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "ox=", (VALUE (*)(ANYARGS))set_ox, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "oy", (VALUE (*)(ANYARGS))get_oy, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "oy=", (VALUE (*)(ANYARGS))set_oy, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "zoom_x", (VALUE (*)(ANYARGS))get_zoom_x, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "zoom_x=", (VALUE (*)(ANYARGS))set_zoom_x, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "zoom_y", (VALUE (*)(ANYARGS))get_zoom_y, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "zoom_y=", (VALUE (*)(ANYARGS))set_zoom_y, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "z", (VALUE (*)(ANYARGS))get_z, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "z=", (VALUE (*)(ANYARGS))set_z, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "opacity", (VALUE (*)(ANYARGS))get_opacity, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "opacity=", (VALUE (*)(ANYARGS))set_opacity, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "blend_type", (VALUE (*)(ANYARGS))get_blend_type, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "blend_type=", (VALUE (*)(ANYARGS))set_blend_type, 1);
+                SANDBOX_AWAIT_AND_SET(plane_class, rb_define_class, "Plane", sb()->rb_cObject());
+                SANDBOX_AWAIT(rb_define_alloc_func, plane_class, alloc);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "viewport", (VALUE (*)(ANYARGS))get_viewport, 0);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "viewport=", (VALUE (*)(ANYARGS))set_viewport, 1);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "bitmap", (VALUE (*)(ANYARGS))get_bitmap, 0);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "bitmap=", (VALUE (*)(ANYARGS))set_bitmap, 1);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "color", (VALUE (*)(ANYARGS))get_color, 0);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "color=", (VALUE (*)(ANYARGS))set_color, 1);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "tone", (VALUE (*)(ANYARGS))get_tone, 0);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "tone=", (VALUE (*)(ANYARGS))set_tone, 1);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "visible", (VALUE (*)(ANYARGS))get_visible, 0);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "visible=", (VALUE (*)(ANYARGS))set_visible, 1);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "ox", (VALUE (*)(ANYARGS))get_ox, 0);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "ox=", (VALUE (*)(ANYARGS))set_ox, 1);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "oy", (VALUE (*)(ANYARGS))get_oy, 0);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "oy=", (VALUE (*)(ANYARGS))set_oy, 1);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "zoom_x", (VALUE (*)(ANYARGS))get_zoom_x, 0);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "zoom_x=", (VALUE (*)(ANYARGS))set_zoom_x, 1);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "zoom_y", (VALUE (*)(ANYARGS))get_zoom_y, 0);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "zoom_y=", (VALUE (*)(ANYARGS))set_zoom_y, 1);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "z", (VALUE (*)(ANYARGS))get_z, 0);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "z=", (VALUE (*)(ANYARGS))set_z, 1);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "opacity", (VALUE (*)(ANYARGS))get_opacity, 0);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "opacity=", (VALUE (*)(ANYARGS))set_opacity, 1);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "blend_type", (VALUE (*)(ANYARGS))get_blend_type, 0);
+                SANDBOX_AWAIT(rb_define_method, plane_class, "blend_type=", (VALUE (*)(ANYARGS))set_blend_type, 1);
             }
         }
     )

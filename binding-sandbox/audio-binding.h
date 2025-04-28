@@ -26,6 +26,8 @@
 #include "sandbox.h"
 
 namespace mkxp_sandbox {
+    static VALUE audio_module;
+
     SANDBOX_COROUTINE(audio_binding_init,
         static VALUE bgm_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
             SANDBOX_COROUTINE(coro,
@@ -336,28 +338,26 @@ namespace mkxp_sandbox {
             return SANDBOX_NIL;
         }
 
-        VALUE module;
-
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(module, rb_define_module, "Audio");
-                SANDBOX_AWAIT(rb_define_module_function, module, "bgm_play", (VALUE (*)(ANYARGS))bgm_play, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "bgm_stop", (VALUE (*)(ANYARGS))bgm_stop, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "bgm_fade", (VALUE (*)(ANYARGS))bgm_fade, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "bgm_pos", (VALUE (*)(ANYARGS))bgm_pos, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "bgm_volume", (VALUE (*)(ANYARGS))bgm_volume, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "bgm_set_volume", (VALUE (*)(ANYARGS))bgm_set_volume, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "bgs_play", (VALUE (*)(ANYARGS))bgs_play, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "bgs_stop", (VALUE (*)(ANYARGS))bgs_stop, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "bgs_fade", (VALUE (*)(ANYARGS))bgs_fade, 1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "bgs_pos", (VALUE (*)(ANYARGS))bgs_pos, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "me_play", (VALUE (*)(ANYARGS))me_play, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "me_stop", (VALUE (*)(ANYARGS))me_stop, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "me_fade", (VALUE (*)(ANYARGS))me_fade, 1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "se_play", (VALUE (*)(ANYARGS))se_play, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "se_stop", (VALUE (*)(ANYARGS))se_stop, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "setup_midi", (VALUE (*)(ANYARGS))setup_midi, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "__reset__", (VALUE (*)(ANYARGS))reset, 0);
+                SANDBOX_AWAIT_AND_SET(audio_module, rb_define_module, "Audio");
+                SANDBOX_AWAIT(rb_define_module_function, audio_module, "bgm_play", (VALUE (*)(ANYARGS))bgm_play, -1);
+                SANDBOX_AWAIT(rb_define_module_function, audio_module, "bgm_stop", (VALUE (*)(ANYARGS))bgm_stop, 0);
+                SANDBOX_AWAIT(rb_define_module_function, audio_module, "bgm_fade", (VALUE (*)(ANYARGS))bgm_fade, -1);
+                SANDBOX_AWAIT(rb_define_module_function, audio_module, "bgm_pos", (VALUE (*)(ANYARGS))bgm_pos, -1);
+                SANDBOX_AWAIT(rb_define_module_function, audio_module, "bgm_volume", (VALUE (*)(ANYARGS))bgm_volume, -1);
+                SANDBOX_AWAIT(rb_define_module_function, audio_module, "bgm_set_volume", (VALUE (*)(ANYARGS))bgm_set_volume, -1);
+                SANDBOX_AWAIT(rb_define_module_function, audio_module, "bgs_play", (VALUE (*)(ANYARGS))bgs_play, -1);
+                SANDBOX_AWAIT(rb_define_module_function, audio_module, "bgs_stop", (VALUE (*)(ANYARGS))bgs_stop, 0);
+                SANDBOX_AWAIT(rb_define_module_function, audio_module, "bgs_fade", (VALUE (*)(ANYARGS))bgs_fade, 1);
+                SANDBOX_AWAIT(rb_define_module_function, audio_module, "bgs_pos", (VALUE (*)(ANYARGS))bgs_pos, 0);
+                SANDBOX_AWAIT(rb_define_module_function, audio_module, "me_play", (VALUE (*)(ANYARGS))me_play, -1);
+                SANDBOX_AWAIT(rb_define_module_function, audio_module, "me_stop", (VALUE (*)(ANYARGS))me_stop, 0);
+                SANDBOX_AWAIT(rb_define_module_function, audio_module, "me_fade", (VALUE (*)(ANYARGS))me_fade, 1);
+                SANDBOX_AWAIT(rb_define_module_function, audio_module, "se_play", (VALUE (*)(ANYARGS))se_play, -1);
+                SANDBOX_AWAIT(rb_define_module_function, audio_module, "se_stop", (VALUE (*)(ANYARGS))se_stop, 0);
+                SANDBOX_AWAIT(rb_define_module_function, audio_module, "setup_midi", (VALUE (*)(ANYARGS))setup_midi, 0);
+                SANDBOX_AWAIT(rb_define_module_function, audio_module, "__reset__", (VALUE (*)(ANYARGS))reset, 0);
             }
         }
     )

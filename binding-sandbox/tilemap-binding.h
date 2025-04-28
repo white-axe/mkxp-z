@@ -25,10 +25,13 @@
 #include "sandbox.h"
 #include "binding-util.h"
 #include "tilemap.h"
+#include "etc-binding.h"
 
 namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type tilemap_type;
+    static VALUE tilemap_class;
     static struct mkxp_sandbox::bindings::rb_data_type tilemap_autotiles_type;
+    static VALUE tilemap_autotiles_class;
 
     SANDBOX_COROUTINE(tilemap_binding_init,
         SANDBOX_COROUTINE(tilemap_autotiles_binding_init,
@@ -86,15 +89,13 @@ namespace mkxp_sandbox {
                 return sb()->bind<struct coro>()()(self, i, obj);
             }
 
-            VALUE klass;
-
             void operator()() {
                 BOOST_ASIO_CORO_REENTER (this) {
                     tilemap_autotiles_type = sb()->rb_data_type("TilemapAutotiles", NULL, NULL, NULL, NULL, 0, 0, 0);
-                    SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "TilemapAutotiles", sb()->rb_cObject());
-                    SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
-                    SANDBOX_AWAIT(rb_define_method, klass, "[]", (VALUE (*)(ANYARGS))get, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "[]=", (VALUE (*)(ANYARGS))set, 2);
+                    SANDBOX_AWAIT_AND_SET(tilemap_autotiles_class, rb_define_class, "TilemapAutotiles", sb()->rb_cObject());
+                    SANDBOX_AWAIT(rb_define_alloc_func, tilemap_autotiles_class, alloc);
+                    SANDBOX_AWAIT(rb_define_method, tilemap_autotiles_class, "[]", (VALUE (*)(ANYARGS))get, 1);
+                    SANDBOX_AWAIT(rb_define_method, tilemap_autotiles_class, "[]=", (VALUE (*)(ANYARGS))set, 2);
                 }
             }
         )
@@ -111,8 +112,6 @@ namespace mkxp_sandbox {
                 int32_t y;
                 int32_t w;
                 int32_t h;
-                ID id;
-                VALUE klass;
                 VALUE obj;
                 VALUE ary;
                 unsigned int i;
@@ -142,25 +141,10 @@ namespace mkxp_sandbox {
                             set_private_data(obj, NULL);
                         }
 
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "TilemapAutotiles");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &tilemap->getAutotiles());
-                        SANDBOX_AWAIT(rb_iv_set, self, "autotiles", obj);
+                        SANDBOX_AWAIT_AND_SET(obj, wrap_property, self, &tilemap->getAutotiles(), "autotiles", tilemap_autotiles_class);
 
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &tilemap->getColor());
-                        SANDBOX_AWAIT(rb_iv_set, self, "color", obj);
-
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Tone");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &tilemap->getTone());
-                        SANDBOX_AWAIT(rb_iv_set, self, "tone", obj);
-
-                        SANDBOX_AWAIT_AND_SET(obj, rb_iv_get, self, "autotiles");
+                        SANDBOX_AWAIT(wrap_property, self, &tilemap->getColor(), "color", color_class);
+                        SANDBOX_AWAIT(wrap_property, self, &tilemap->getTone(), "tone", tone_class);
 
                         SANDBOX_AWAIT_AND_SET(ary, rb_class_new_instance, 0, NULL, sb()->rb_cArray());
                         for (i = 0; i < 7; ++i) {
@@ -403,42 +387,40 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self, value);
         }
 
-        VALUE klass;
-
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT(tilemap_autotiles_binding_init);
 
                 tilemap_type = sb()->rb_data_type("Tilemap", NULL, dfree, NULL, NULL, 0, 0, 0);
-                SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Tilemap", sb()->rb_cObject());
-                SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
-                SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
-                SANDBOX_AWAIT(rb_define_method, klass, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "update", (VALUE (*)(ANYARGS))update, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "autotiles", (VALUE (*)(ANYARGS))autotiles, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "tileset", (VALUE (*)(ANYARGS))get_tileset, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "tileset=", (VALUE (*)(ANYARGS))set_tileset, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "map_data", (VALUE (*)(ANYARGS))get_map_data, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "map_data=", (VALUE (*)(ANYARGS))set_map_data, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "flash_data", (VALUE (*)(ANYARGS))get_flash_data, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "flash_data=", (VALUE (*)(ANYARGS))set_flash_data, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "priorities", (VALUE (*)(ANYARGS))get_priorities, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "priorities=", (VALUE (*)(ANYARGS))set_priorities, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "color", (VALUE (*)(ANYARGS))get_color, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "color=", (VALUE (*)(ANYARGS))set_color, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "tone", (VALUE (*)(ANYARGS))get_tone, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "tone=", (VALUE (*)(ANYARGS))set_tone, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "visible", (VALUE (*)(ANYARGS))get_visible, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "visible=", (VALUE (*)(ANYARGS))set_visible, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "ox", (VALUE (*)(ANYARGS))get_ox, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "ox=", (VALUE (*)(ANYARGS))set_ox, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "oy", (VALUE (*)(ANYARGS))get_oy, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "oy=", (VALUE (*)(ANYARGS))set_oy, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "opacity", (VALUE (*)(ANYARGS))get_opacity, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "opacity=", (VALUE (*)(ANYARGS))set_opacity, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "blend_type", (VALUE (*)(ANYARGS))get_blend_type, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "blend_type=", (VALUE (*)(ANYARGS))set_blend_type, 1);
+                SANDBOX_AWAIT_AND_SET(tilemap_class, rb_define_class, "Tilemap", sb()->rb_cObject());
+                SANDBOX_AWAIT(rb_define_alloc_func, tilemap_class, alloc);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "update", (VALUE (*)(ANYARGS))update, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "autotiles", (VALUE (*)(ANYARGS))autotiles, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "tileset", (VALUE (*)(ANYARGS))get_tileset, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "tileset=", (VALUE (*)(ANYARGS))set_tileset, 1);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "map_data", (VALUE (*)(ANYARGS))get_map_data, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "map_data=", (VALUE (*)(ANYARGS))set_map_data, 1);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "flash_data", (VALUE (*)(ANYARGS))get_flash_data, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "flash_data=", (VALUE (*)(ANYARGS))set_flash_data, 1);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "priorities", (VALUE (*)(ANYARGS))get_priorities, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "priorities=", (VALUE (*)(ANYARGS))set_priorities, 1);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "color", (VALUE (*)(ANYARGS))get_color, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "color=", (VALUE (*)(ANYARGS))set_color, 1);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "tone", (VALUE (*)(ANYARGS))get_tone, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "tone=", (VALUE (*)(ANYARGS))set_tone, 1);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "visible", (VALUE (*)(ANYARGS))get_visible, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "visible=", (VALUE (*)(ANYARGS))set_visible, 1);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "ox", (VALUE (*)(ANYARGS))get_ox, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "ox=", (VALUE (*)(ANYARGS))set_ox, 1);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "oy", (VALUE (*)(ANYARGS))get_oy, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "oy=", (VALUE (*)(ANYARGS))set_oy, 1);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "opacity", (VALUE (*)(ANYARGS))get_opacity, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "opacity=", (VALUE (*)(ANYARGS))set_opacity, 1);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "blend_type", (VALUE (*)(ANYARGS))get_blend_type, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemap_class, "blend_type=", (VALUE (*)(ANYARGS))set_blend_type, 1);
             }
         }
     )

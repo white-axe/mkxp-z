@@ -25,9 +25,11 @@
 #include "sandbox.h"
 #include "binding-util.h"
 #include "viewport.h"
+#include "etc-binding.h"
 
 namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type viewport_type;
+    static VALUE viewport_class;
 
     SANDBOX_COROUTINE(viewport_binding_init,
         SANDBOX_DEF_ALLOC(viewport_type)
@@ -40,8 +42,6 @@ namespace mkxp_sandbox {
                 int32_t y;
                 int32_t w;
                 int32_t h;
-                ID id;
-                VALUE klass;
                 VALUE obj;
 
                 VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
@@ -65,23 +65,9 @@ namespace mkxp_sandbox {
 
                         viewport->initDynAttribs();
 
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Rect");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &viewport->getRect());
-                        SANDBOX_AWAIT(rb_iv_set, self, "rect", obj);
-
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &viewport->getColor());
-                        SANDBOX_AWAIT(rb_iv_set, self, "color", obj);
-
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Tone");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &viewport->getTone());
-                        SANDBOX_AWAIT(rb_iv_set, self, "tone", obj);
+                        SANDBOX_AWAIT(wrap_property, self, &viewport->getRect(), "rect", rect_class);
+                        SANDBOX_AWAIT(wrap_property, self, &viewport->getColor(), "color", color_class);
+                        SANDBOX_AWAIT(wrap_property, self, &viewport->getTone(), "tone", tone_class);
 
                         GFX_UNLOCK
                     }
@@ -238,30 +224,28 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self, value);
         }
 
-        VALUE klass;
-
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
                 viewport_type = sb()->rb_data_type("Viewport", NULL, dfree, NULL, NULL, 0, 0, 0);
-                SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Viewport", sb()->rb_cObject());
-                SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
-                SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
-                SANDBOX_AWAIT(rb_define_method, klass, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "flash", (VALUE (*)(ANYARGS))flash, 2);
-                SANDBOX_AWAIT(rb_define_method, klass, "update", (VALUE (*)(ANYARGS))update, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "rect", (VALUE (*)(ANYARGS))get_rect, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "rect=", (VALUE (*)(ANYARGS))set_rect, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "color", (VALUE (*)(ANYARGS))get_color, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "color=", (VALUE (*)(ANYARGS))set_color, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "tone", (VALUE (*)(ANYARGS))get_tone, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "tone=", (VALUE (*)(ANYARGS))set_tone, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "ox", (VALUE (*)(ANYARGS))get_ox, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "ox=", (VALUE (*)(ANYARGS))set_ox, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "oy", (VALUE (*)(ANYARGS))get_oy, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "oy=", (VALUE (*)(ANYARGS))set_oy, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "z", (VALUE (*)(ANYARGS))get_z, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "z=", (VALUE (*)(ANYARGS))set_z, 1);
+                SANDBOX_AWAIT_AND_SET(viewport_class, rb_define_class, "Viewport", sb()->rb_cObject());
+                SANDBOX_AWAIT(rb_define_alloc_func, viewport_class, alloc);
+                SANDBOX_AWAIT(rb_define_method, viewport_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+                SANDBOX_AWAIT(rb_define_method, viewport_class, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
+                SANDBOX_AWAIT(rb_define_method, viewport_class, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
+                SANDBOX_AWAIT(rb_define_method, viewport_class, "flash", (VALUE (*)(ANYARGS))flash, 2);
+                SANDBOX_AWAIT(rb_define_method, viewport_class, "update", (VALUE (*)(ANYARGS))update, 0);
+                SANDBOX_AWAIT(rb_define_method, viewport_class, "rect", (VALUE (*)(ANYARGS))get_rect, 0);
+                SANDBOX_AWAIT(rb_define_method, viewport_class, "rect=", (VALUE (*)(ANYARGS))set_rect, 1);
+                SANDBOX_AWAIT(rb_define_method, viewport_class, "color", (VALUE (*)(ANYARGS))get_color, 0);
+                SANDBOX_AWAIT(rb_define_method, viewport_class, "color=", (VALUE (*)(ANYARGS))set_color, 1);
+                SANDBOX_AWAIT(rb_define_method, viewport_class, "tone", (VALUE (*)(ANYARGS))get_tone, 0);
+                SANDBOX_AWAIT(rb_define_method, viewport_class, "tone=", (VALUE (*)(ANYARGS))set_tone, 1);
+                SANDBOX_AWAIT(rb_define_method, viewport_class, "ox", (VALUE (*)(ANYARGS))get_ox, 0);
+                SANDBOX_AWAIT(rb_define_method, viewport_class, "ox=", (VALUE (*)(ANYARGS))set_ox, 1);
+                SANDBOX_AWAIT(rb_define_method, viewport_class, "oy", (VALUE (*)(ANYARGS))get_oy, 0);
+                SANDBOX_AWAIT(rb_define_method, viewport_class, "oy=", (VALUE (*)(ANYARGS))set_oy, 1);
+                SANDBOX_AWAIT(rb_define_method, viewport_class, "z", (VALUE (*)(ANYARGS))get_z, 0);
+                SANDBOX_AWAIT(rb_define_method, viewport_class, "z=", (VALUE (*)(ANYARGS))set_z, 1);
             }
         }
     )

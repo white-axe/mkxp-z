@@ -29,6 +29,7 @@
 
 namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type table_type;
+    static VALUE table_class;
 
     SANDBOX_COROUTINE(table_binding_init,
         SANDBOX_DEF_ALLOC_WITH_INIT(table_type, new Table(0, 0, 0))
@@ -207,22 +208,20 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
-        VALUE klass;
-
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
                 table_type = sb()->rb_data_type("Table", NULL, dfree, NULL, NULL, 0, 0, 0);
-                SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Table", sb()->rb_cObject());
-                SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
-                SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(ANYARGS))load, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
-                SANDBOX_AWAIT(rb_define_method, klass, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "resize", (VALUE (*)(ANYARGS))resize, -1);
-                SANDBOX_AWAIT(rb_define_method, klass, "xsize", (VALUE (*)(ANYARGS))xsize, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "ysize", (VALUE (*)(ANYARGS))ysize, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "zsize", (VALUE (*)(ANYARGS))zsize, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "[]", (VALUE (*)(ANYARGS))get, -1);
-                SANDBOX_AWAIT(rb_define_method, klass, "[]=", (VALUE (*)(ANYARGS))set, -1);
+                SANDBOX_AWAIT_AND_SET(table_class, rb_define_class, "Table", sb()->rb_cObject());
+                SANDBOX_AWAIT(rb_define_alloc_func, table_class, alloc);
+                SANDBOX_AWAIT(rb_define_singleton_method, table_class, "_load", (VALUE (*)(ANYARGS))load, 1);
+                SANDBOX_AWAIT(rb_define_method, table_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+                SANDBOX_AWAIT(rb_define_method, table_class, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
+                SANDBOX_AWAIT(rb_define_method, table_class, "resize", (VALUE (*)(ANYARGS))resize, -1);
+                SANDBOX_AWAIT(rb_define_method, table_class, "xsize", (VALUE (*)(ANYARGS))xsize, 0);
+                SANDBOX_AWAIT(rb_define_method, table_class, "ysize", (VALUE (*)(ANYARGS))ysize, 0);
+                SANDBOX_AWAIT(rb_define_method, table_class, "zsize", (VALUE (*)(ANYARGS))zsize, 0);
+                SANDBOX_AWAIT(rb_define_method, table_class, "[]", (VALUE (*)(ANYARGS))get, -1);
+                SANDBOX_AWAIT(rb_define_method, table_class, "[]=", (VALUE (*)(ANYARGS))set, -1);
             }
         }
     )

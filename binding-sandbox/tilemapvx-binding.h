@@ -28,7 +28,9 @@
 
 namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type tilemapvx_type;
+    static VALUE tilemapvx_class;
     static struct mkxp_sandbox::bindings::rb_data_type bitmap_array_type;
+    static VALUE bitmap_array_class;
 
     SANDBOX_COROUTINE(tilemapvx_binding_init,
         SANDBOX_COROUTINE(bitmap_array_binding_init,
@@ -86,15 +88,13 @@ namespace mkxp_sandbox {
                 return sb()->bind<struct coro>()()(self, i, obj);
             }
 
-            VALUE klass;
-
             void operator()() {
                 BOOST_ASIO_CORO_REENTER (this) {
                     bitmap_array_type = sb()->rb_data_type("BitmapArray", NULL, NULL, NULL, NULL, 0, 0, 0);
-                    SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "BitmapArray", sb()->rb_cObject());
-                    SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
-                    SANDBOX_AWAIT(rb_define_method, klass, "[]", (VALUE (*)(ANYARGS))get, 1);
-                    SANDBOX_AWAIT(rb_define_method, klass, "[]=", (VALUE (*)(ANYARGS))set, 2);
+                    SANDBOX_AWAIT_AND_SET(bitmap_array_class, rb_define_class, "BitmapArray", sb()->rb_cObject());
+                    SANDBOX_AWAIT(rb_define_alloc_func, bitmap_array_class, alloc);
+                    SANDBOX_AWAIT(rb_define_method, bitmap_array_class, "[]", (VALUE (*)(ANYARGS))get, 1);
+                    SANDBOX_AWAIT(rb_define_method, bitmap_array_class, "[]=", (VALUE (*)(ANYARGS))set, 2);
                 }
             }
         )
@@ -111,8 +111,6 @@ namespace mkxp_sandbox {
                 int32_t y;
                 int32_t w;
                 int32_t h;
-                ID id;
-                VALUE klass;
                 VALUE obj;
                 VALUE ary;
                 unsigned int i;
@@ -140,13 +138,7 @@ namespace mkxp_sandbox {
                             set_private_data(obj, NULL);
                         }
 
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "BitmapArray");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &tilemap->getBitmapArray());
-                        SANDBOX_AWAIT(rb_iv_set, self, "bitmap_array", obj);
-
-                        SANDBOX_AWAIT_AND_SET(obj, rb_iv_get, self, "bitmap_array");
+                        SANDBOX_AWAIT_AND_SET(obj, wrap_property, self, &tilemap->getBitmapArray(), "bitmap_array", bitmap_array_class);
 
                         SANDBOX_AWAIT_AND_SET(ary, rb_class_new_instance, 0, NULL, sb()->rb_cArray());
                         for (i = 0; i < 9; ++i) {
@@ -301,32 +293,30 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self, value);
         }
 
-        VALUE klass;
-
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT(bitmap_array_binding_init);
 
                 tilemapvx_type = sb()->rb_data_type("Tilemap", NULL, dfree, NULL, NULL, 0, 0, 0);
-                SANDBOX_AWAIT_AND_SET(klass, rb_define_class, "Tilemap", sb()->rb_cObject());
-                SANDBOX_AWAIT(rb_define_alloc_func, klass, alloc);
-                SANDBOX_AWAIT(rb_define_method, klass, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
-                SANDBOX_AWAIT(rb_define_method, klass, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "update", (VALUE (*)(ANYARGS))update, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "bitmaps", (VALUE (*)(ANYARGS))bitmaps, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "map_data", (VALUE (*)(ANYARGS))get_map_data, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "map_data=", (VALUE (*)(ANYARGS))set_map_data, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "flash_data", (VALUE (*)(ANYARGS))get_flash_data, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "flash_data=", (VALUE (*)(ANYARGS))set_flash_data, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, rgssVer == 3 ? "flags" : "passages", (VALUE (*)(ANYARGS))get_flags, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, rgssVer == 3 ? "flags=" : "passages=", (VALUE (*)(ANYARGS))set_flags, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "visible", (VALUE (*)(ANYARGS))get_visible, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "visible=", (VALUE (*)(ANYARGS))set_visible, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "ox", (VALUE (*)(ANYARGS))get_ox, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "ox=", (VALUE (*)(ANYARGS))set_ox, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "oy", (VALUE (*)(ANYARGS))get_oy, 0);
-                SANDBOX_AWAIT(rb_define_method, klass, "oy=", (VALUE (*)(ANYARGS))set_oy, 1);
+                SANDBOX_AWAIT_AND_SET(tilemapvx_class, rb_define_class, "Tilemap", sb()->rb_cObject());
+                SANDBOX_AWAIT(rb_define_alloc_func, tilemapvx_class, alloc);
+                SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+                SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "update", (VALUE (*)(ANYARGS))update, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "bitmaps", (VALUE (*)(ANYARGS))bitmaps, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "map_data", (VALUE (*)(ANYARGS))get_map_data, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "map_data=", (VALUE (*)(ANYARGS))set_map_data, 1);
+                SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "flash_data", (VALUE (*)(ANYARGS))get_flash_data, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "flash_data=", (VALUE (*)(ANYARGS))set_flash_data, 1);
+                SANDBOX_AWAIT(rb_define_method, tilemapvx_class, rgssVer == 3 ? "flags" : "passages", (VALUE (*)(ANYARGS))get_flags, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemapvx_class, rgssVer == 3 ? "flags=" : "passages=", (VALUE (*)(ANYARGS))set_flags, 1);
+                SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "visible", (VALUE (*)(ANYARGS))get_visible, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "visible=", (VALUE (*)(ANYARGS))set_visible, 1);
+                SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "ox", (VALUE (*)(ANYARGS))get_ox, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "ox=", (VALUE (*)(ANYARGS))set_ox, 1);
+                SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "oy", (VALUE (*)(ANYARGS))get_oy, 0);
+                SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "oy=", (VALUE (*)(ANYARGS))set_oy, 1);
             }
         }
     )

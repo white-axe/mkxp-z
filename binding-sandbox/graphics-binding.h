@@ -30,6 +30,8 @@
 #include "bitmap.h"
 
 namespace mkxp_sandbox {
+    static VALUE graphics_module;
+
     SANDBOX_COROUTINE(graphics_binding_init,
         static VALUE update(VALUE self) {
             SANDBOX_COROUTINE(coro,
@@ -239,16 +241,12 @@ namespace mkxp_sandbox {
         static VALUE snap_to_bitmap(VALUE self) {
             SANDBOX_COROUTINE(coro,
                 Bitmap *bitmap;
-                ID id;
-                VALUE klass;
                 VALUE obj;
 
                 VALUE operator()(VALUE self) {
                     BOOST_ASIO_CORO_REENTER (this) {
                         GFX_GUARD_EXC(bitmap = shState->graphics().snapToBitmap(););
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Bitmap");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, bitmap_class);
                         set_private_data(obj, bitmap);
                         SANDBOX_AWAIT(bitmap_init_props, bitmap, obj);
                     }
@@ -283,27 +281,25 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self, value);
         }
 
-        VALUE module;
-
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(module, rb_define_module, "Graphics");
-                SANDBOX_AWAIT(rb_define_module_function, module, "update", (VALUE (*)(ANYARGS))update, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "freeze", (VALUE (*)(ANYARGS))freeze, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "transition", (VALUE (*)(ANYARGS))transition, -1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "wait", (VALUE (*)(ANYARGS))wait, 1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "fadeout", (VALUE (*)(ANYARGS))fadeout, 1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "fadein", (VALUE (*)(ANYARGS))fadein, 1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "frame_reset", (VALUE (*)(ANYARGS))frame_reset, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "frame_count", (VALUE (*)(ANYARGS))get_frame_count, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "frame_count=", (VALUE (*)(ANYARGS))set_frame_count, 1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "frame_rate", (VALUE (*)(ANYARGS))get_frame_rate, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "frame_rate=", (VALUE (*)(ANYARGS))set_frame_rate, 1);
-                SANDBOX_AWAIT(rb_define_module_function, module, "width", (VALUE (*)(ANYARGS))width, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "height", (VALUE (*)(ANYARGS))height, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "snap_to_bitmap", (VALUE (*)(ANYARGS))snap_to_bitmap, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "brightness", (VALUE (*)(ANYARGS))get_brightness, 0);
-                SANDBOX_AWAIT(rb_define_module_function, module, "brightness=", (VALUE (*)(ANYARGS))set_brightness, 1);
+                SANDBOX_AWAIT_AND_SET(graphics_module, rb_define_module, "Graphics");
+                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "update", (VALUE (*)(ANYARGS))update, 0);
+                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "freeze", (VALUE (*)(ANYARGS))freeze, 0);
+                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "transition", (VALUE (*)(ANYARGS))transition, -1);
+                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "wait", (VALUE (*)(ANYARGS))wait, 1);
+                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "fadeout", (VALUE (*)(ANYARGS))fadeout, 1);
+                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "fadein", (VALUE (*)(ANYARGS))fadein, 1);
+                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "frame_reset", (VALUE (*)(ANYARGS))frame_reset, 0);
+                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "frame_count", (VALUE (*)(ANYARGS))get_frame_count, 0);
+                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "frame_count=", (VALUE (*)(ANYARGS))set_frame_count, 1);
+                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "frame_rate", (VALUE (*)(ANYARGS))get_frame_rate, 0);
+                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "frame_rate=", (VALUE (*)(ANYARGS))set_frame_rate, 1);
+                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "width", (VALUE (*)(ANYARGS))width, 0);
+                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "height", (VALUE (*)(ANYARGS))height, 0);
+                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "snap_to_bitmap", (VALUE (*)(ANYARGS))snap_to_bitmap, 0);
+                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "brightness", (VALUE (*)(ANYARGS))get_brightness, 0);
+                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "brightness=", (VALUE (*)(ANYARGS))set_brightness, 1);
             }
         }
     )
