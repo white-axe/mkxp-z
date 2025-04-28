@@ -58,7 +58,19 @@ AudioStream::AudioStream(ALStream::LoopMode loopMode,
 
 AudioStream::~AudioStream()
 {
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+	if (fade.enabled)
+	{
+		fade.reqTerm.set();
+		AudioMutexGuard guard(fade.mutex);
+	}
+
+	if (fadeIn.enabled)
+	{
+		fadeIn.rqTerm.set();
+		AudioMutexGuard guard(fadeIn.mutex);
+	}
+#else
 	if (fade.thread)
 	{
 		fade.reqTerm.set();
@@ -196,11 +208,17 @@ void AudioStream::fadeOut(int duration)
 	if (fade.thread)
 #endif // MKXPZ_RETRO
 	{
-		fade.reqFini.set();
 #ifdef MKXPZ_RETRO
+		fade.reqTerm.set();
+		{
+			AudioMutexGuard guard(fade.mutex);
+		}
+		fade.reqTerm.clear();
+		fade.reqFini.set();
 		fadeOutProc();
 		fade.enabled = false;
 #else
+		fade.reqFini.set();
 		SDL_WaitThread(fade.thread, 0);
 		fade.thread = 0;
 #endif // MKXPZ_RETRO
@@ -264,11 +282,17 @@ void AudioStream::finiFadeOutInt()
 	if (fade.thread)
 #endif // MKXPZ_RETRO
 	{
-		fade.reqFini.set();
 #ifdef MKXPZ_RETRO
+		fade.reqTerm.set();
+		{
+			AudioMutexGuard guard(fade.mutex);
+		}
+		fade.reqTerm.clear();
+		fade.reqFini.set();
 		fadeOutProc();
 		fade.enabled = false;
 #else
+		fade.reqFini.set();
 		SDL_WaitThread(fade.thread, 0);
 		fade.thread = 0;
 #endif // MKXPZ_RETRO
@@ -280,11 +304,17 @@ void AudioStream::finiFadeOutInt()
 	if (fadeIn.thread)
 #endif // MKXPZ_RETRO
 	{
-		fadeIn.rqFini.set();
 #ifdef MKXPZ_RETRO
+		fadeIn.rqTerm.set();
+		{
+			AudioMutexGuard guard(fadeIn.mutex);
+		}
+		fadeIn.rqTerm.clear();
+		fadeIn.rqFini.set();
 		fadeInProc();
 		fadeIn.enabled = false;
 #else
+		fadeIn.rqFini.set();
 		SDL_WaitThread(fadeIn.thread, 0);
 		fadeIn.thread = 0;
 #endif // MKXPZ_RETRO
@@ -325,6 +355,9 @@ bool AudioStream::fadeOutProc()
 		return false;
 	}
 
+#ifdef MKXPZ_RETRO
+	AudioMutexGuard fadeGuard(fade.mutex);
+#endif // MKXPZ_RETRO
 	AudioMutexGuard guard(mutex);
 
 #ifdef MKXPZ_RETRO
@@ -359,6 +392,9 @@ bool AudioStream::fadeInProc()
 	if (fadeIn.rqTerm)
 		return false;
 
+#ifdef MKXPZ_RETRO
+	AudioMutexGuard fadeGuard(fadeIn.mutex);
+#endif // MKXPZ_RETRO
 	AudioMutexGuard guard(mutex);
 
 	/* Fade in duration is always 1 second */

@@ -134,10 +134,12 @@ struct AudioPrivate
 
 	struct
 	{
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+		AudioMutex mutex;
+#else
 		SDL_Thread *thread;
-		AtomicFlag termReq;
 #endif // MKXPZ_RETRO
+		AtomicFlag termReq;
 		MeWatchState state;
 	} meWatch;
 
@@ -164,8 +166,12 @@ struct AudioPrivate
 
 	~AudioPrivate()
 	{
-#ifndef MKXPZ_RETRO
 		meWatch.termReq.set();
+#ifdef MKXPZ_RETRO
+		{
+			AudioMutexGuard guard(meWatch.mutex);
+		}
+#else
 		SDL_WaitThread(meWatch.thread, 0);
 #endif // MKXPZ_RETRO
         for (auto track : bgmTracks)
@@ -185,7 +191,12 @@ struct AudioPrivate
 		float fadeOutStep;
 		float fadeInStep;
 
+		if (meWatch.termReq)
+			return;
+
 #ifdef MKXPZ_RETRO
+		AudioMutexGuard guard(meWatch.mutex);
+
 		if (mkxp_retro::using_threaded_audio())
 #endif // MKXPZ_RETRO
 		{
@@ -359,9 +370,6 @@ struct AudioPrivate
 		while (true)
 		{
 			syncPoint.passSecondarySync();
-
-			if (meWatch.termReq)
-				return;
 
 			meWatchProc();
 

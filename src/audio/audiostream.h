@@ -100,6 +100,7 @@ struct AudioStream
 		AtomicFlag reqTerm;
 
 #ifdef MKXPZ_RETRO
+		AudioMutex mutex;
 		bool enabled;
 #else
 		SDL_Thread *thread;
@@ -121,6 +122,7 @@ struct AudioStream
 		AtomicFlag rqTerm;
 
 #ifdef MKXPZ_RETRO
+		AudioMutex mutex;
 		bool enabled;
 #else
 		SDL_Thread *thread;

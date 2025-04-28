@@ -301,7 +301,10 @@ void ALStream::stopStream()
 	threadTermReq.set();
 
 #ifdef MKXPZ_RETRO
-	needsRewind.set();
+	{
+		AudioMutexGuard guard(renderMut);
+		needsRewind.set();
+	}
 #else
 	if (thread)
 	{
@@ -387,6 +390,12 @@ void ALStream::checkStopped()
 }
 
 void ALStream::renderInit() {
+#ifdef MKXPZ_RETRO
+	if (threadTermReq)
+		return;
+	AudioMutexGuard guard(renderMut);
+#endif // MKXPZ_RETRO
+
 	bool firstBuffer = true;
 	ALDataSource::Status status;
 
@@ -427,6 +436,12 @@ void ALStream::renderInit() {
 }
 
 void ALStream::render() {
+#ifdef MKXPZ_RETRO
+	if (threadTermReq)
+		return;
+	AudioMutexGuard guard(renderMut);
+#endif // MKXPZ_RETRO
+
 	ALint procBufs = AL::Source::getProcBufferCount(alSrc);
 
 	while (procBufs--)

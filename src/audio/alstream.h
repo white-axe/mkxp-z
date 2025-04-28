@@ -52,7 +52,9 @@ struct ALStream
 
 	ALDataSource *source;
 
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+	AudioMutex renderMut;
+#else
 	SDL_Thread *thread;
 
 	std::string threadName;
