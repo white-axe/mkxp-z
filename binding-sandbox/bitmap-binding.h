@@ -502,18 +502,18 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self, value);
         }
 
-        static VALUE snap_to_bitmap(VALUE self, VALUE position) {
+        static VALUE snap_to_bitmap(int32_t argc, wasm_ptr_t argv, VALUE self) {
             SANDBOX_COROUTINE(coro,
                 Bitmap *bitmap;
                 VALUE obj;
                 int32_t pos;
 
-                VALUE operator()(VALUE self, VALUE position) {
+                VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        if (position == SANDBOX_NIL) {
+                        if (argc < 1) {
                             pos = -1;
                         } else {
-                            SANDBOX_AWAIT_AND_SET(pos, rb_num2int, position);
+                            SANDBOX_AWAIT_AND_SET(pos, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
                         }
 
                         GFX_GUARD_EXC(bitmap = new Bitmap(*get_private_data<Bitmap>(self), pos););
@@ -528,7 +528,7 @@ namespace mkxp_sandbox {
                 }
             )
 
-            return sb()->bind<struct coro>()()(self, position);
+            return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
         static VALUE gradient_fill_rect(int32_t argc, wasm_ptr_t argv, VALUE self) {
@@ -699,6 +699,118 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(self, value);
         }
 
+        static VALUE frame_count(VALUE self) {
+            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Bitmap>(self)->numFrames());
+        }
+
+        static VALUE current_frame(VALUE self) {
+            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Bitmap>(self)->currentFrameI());
+        }
+
+        static VALUE add_frame(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                VALUE value;
+                int32_t pos;
+
+                VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        // TODO: require at least 1 argument
+                        if (argc < 2) {
+                            pos = -1;
+                        } else {
+                            SANDBOX_AWAIT_AND_SET(pos, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                            if (pos < 0) {
+                                pos = 0;
+                            }
+                        }
+                        if (argc >= 1) {
+                            Bitmap *src = get_private_data<Bitmap>(((VALUE *)(**sb() + argv))[0]);
+                            Bitmap *b = get_private_data<Bitmap>(self);
+                            GFX_GUARD_EXC(pos = b->addFrame(*src, pos););
+                        }
+                        SANDBOX_AWAIT_AND_SET(value, rb_ll2inum, pos);
+                    }
+
+                    return value;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(argc, argv, self);
+        }
+
+        static VALUE remove_frame(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            SANDBOX_COROUTINE(coro,
+                int32_t pos;
+
+                VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        if (argc < 2) {
+                            pos = -1;
+                        } else {
+                            SANDBOX_AWAIT_AND_SET(pos, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                            if (pos < 0) {
+                                pos = 0;
+                            }
+                        }
+                        Bitmap *b = get_private_data<Bitmap>(self);
+                        GFX_GUARD_EXC(b->removeFrame(pos););
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(argc, argv, self);
+        }
+
+        static VALUE next_frame(VALUE self) {
+            Bitmap *b = get_private_data<Bitmap>(self);
+            GFX_GUARD_EXC(b->nextFrame());
+            return sb()->bind<struct rb_ll2inum>()()(b->currentFrameI());
+        }
+
+        static VALUE previous_frame(VALUE self) {
+            Bitmap *b = get_private_data<Bitmap>(self);
+            GFX_GUARD_EXC(b->previousFrame());
+            return sb()->bind<struct rb_ll2inum>()()(b->currentFrameI());
+        }
+
+        static VALUE get_frame_rate(VALUE self) {
+            Bitmap *b = get_private_data<Bitmap>(self);
+            float frame_rate;
+            GFX_GUARD_EXC(frame_rate = b->getAnimationFPS());
+            return sb()->bind<struct rb_float_new>()()(frame_rate);
+        }
+
+        static VALUE set_frame_rate(VALUE self, VALUE value) {
+            SANDBOX_COROUTINE(coro,
+                float frame_rate;
+
+                VALUE operator()(VALUE self, VALUE value) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT_AND_SET(frame_rate, rb_num2dbl, value);
+                        Bitmap *bitmap = get_private_data<Bitmap>(self);
+                        GFX_GUARD_EXC(bitmap->setAnimationFPS(frame_rate););
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            )
+
+            return sb()->bind<struct coro>()()(self, value);
+        }
+
+        static VALUE get_looping(VALUE self) {
+            Bitmap *bitmap = get_private_data<Bitmap>(self);
+            return SANDBOX_BOOL_TO_VALUE(bitmap->getLooping());
+        }
+
+        static VALUE set_looping(VALUE self, VALUE value) {
+            Bitmap *bitmap = get_private_data<Bitmap>(self);
+            GFX_GUARD_EXC(bitmap->setLooping(SANDBOX_VALUE_TO_BOOL(value)));
+            return value;
+        }
+
         static VALUE get_font(VALUE self) {
             return sb()->bind<struct rb_iv_get>()()(self, "font");
         }
@@ -790,7 +902,17 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "stop", (VALUE (*)(ANYARGS))stop, 0);
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "goto_and_play", (VALUE (*)(ANYARGS))goto_and_play, 1);
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "goto_and_stop", (VALUE (*)(ANYARGS))goto_and_stop, 1);
-                SANDBOX_AWAIT(rb_define_method, bitmap_class, "snap_to_bitmap", (VALUE (*)(ANYARGS))snap_to_bitmap, 1);
+                SANDBOX_AWAIT(rb_define_method, bitmap_class, "frame_count", (VALUE (*)(ANYARGS))frame_count, 0);
+                SANDBOX_AWAIT(rb_define_method, bitmap_class, "current_frame", (VALUE (*)(ANYARGS))current_frame, 0);
+                SANDBOX_AWAIT(rb_define_method, bitmap_class, "add_frame", (VALUE (*)(ANYARGS))add_frame, -1);
+                SANDBOX_AWAIT(rb_define_method, bitmap_class, "remove_frame", (VALUE (*)(ANYARGS))remove_frame, -1);
+                SANDBOX_AWAIT(rb_define_method, bitmap_class, "next_frame", (VALUE (*)(ANYARGS))next_frame, 0);
+                SANDBOX_AWAIT(rb_define_method, bitmap_class, "previous_frame", (VALUE (*)(ANYARGS))previous_frame, 0);
+                SANDBOX_AWAIT(rb_define_method, bitmap_class, "frame_rate", (VALUE (*)(ANYARGS))get_frame_rate, 0);
+                SANDBOX_AWAIT(rb_define_method, bitmap_class, "frame_rate=", (VALUE (*)(ANYARGS))set_frame_rate, 1);
+                SANDBOX_AWAIT(rb_define_method, bitmap_class, "looping", (VALUE (*)(ANYARGS))get_looping, 0);
+                SANDBOX_AWAIT(rb_define_method, bitmap_class, "looping=", (VALUE (*)(ANYARGS))set_looping, 1);
+                SANDBOX_AWAIT(rb_define_method, bitmap_class, "snap_to_bitmap", (VALUE (*)(ANYARGS))snap_to_bitmap, -1);
 
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "font", (VALUE (*)(ANYARGS))get_font, 0);
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "font=", (VALUE (*)(ANYARGS))set_font, 1);
