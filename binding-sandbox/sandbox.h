@@ -32,9 +32,9 @@
 #define SANDBOX_AWAIT(coroutine, ...) \
     do { \
         { \
-            struct mkxp_sandbox::bindings::stack_frame_guard<struct coroutine> frame = mkxp_sandbox::sb()->bind<struct coroutine>(); \
-            frame()(__VA_ARGS__); \
-            if (frame().is_complete()) break; \
+            struct mkxp_sandbox::bindings::stack_frame_guard<struct coroutine> _frame = mkxp_sandbox::sb()->bind<struct coroutine>(); \
+            _frame()(__VA_ARGS__); \
+            if (_frame().is_complete()) break; \
         } \
         BOOST_ASIO_CORO_YIELD; \
     } while (1)
@@ -42,9 +42,9 @@
 #define SANDBOX_AWAIT_AND_SET(variable, coroutine, ...) \
     do { \
         { \
-            struct mkxp_sandbox::bindings::stack_frame_guard<struct coroutine> frame = mkxp_sandbox::sb()->bind<struct coroutine>(); \
-            auto ret = frame()(__VA_ARGS__); \
-            if (frame().is_complete()) { \
+            struct mkxp_sandbox::bindings::stack_frame_guard<struct coroutine> _frame = mkxp_sandbox::sb()->bind<struct coroutine>(); \
+            auto ret = _frame()(__VA_ARGS__); \
+            if (_frame().is_complete()) { \
                 variable = ret; \
                 break; \
             } \
