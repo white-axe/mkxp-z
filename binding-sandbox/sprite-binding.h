@@ -40,9 +40,6 @@ namespace mkxp_sandbox {
                 Sprite *sprite;
                 VALUE viewport_obj;
                 Viewport *viewport;
-                ID id;
-                VALUE klass;
-                VALUE obj;
 
                 VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     BOOST_ASIO_CORO_REENTER (this) {
@@ -63,23 +60,9 @@ namespace mkxp_sandbox {
                         set_private_data(self, sprite);
                         sprite->initDynAttribs();
 
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Rect");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &sprite->getSrcRect());
-                        SANDBOX_AWAIT(rb_iv_set, self, "src_rect", obj);
-
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &sprite->getColor());
-                        SANDBOX_AWAIT(rb_iv_set, self, "color", obj);
-
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Tone");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &sprite->getTone());
-                        SANDBOX_AWAIT(rb_iv_set, self, "tone", obj);
+                        SANDBOX_AWAIT(wrap_property, self, &sprite->getSrcRect(), "src_rect", rect_class);
+                        SANDBOX_AWAIT(wrap_property, self, &sprite->getColor(), "color", color_class);
+                        SANDBOX_AWAIT(wrap_property, self, &sprite->getTone(), "tone", tone_class);
 
                         GFX_UNLOCK
                     }
