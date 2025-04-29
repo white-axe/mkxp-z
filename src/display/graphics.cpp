@@ -1241,7 +1241,7 @@ double Graphics::lastUpdate() {
     return p->last_update;
 }
 
-void Graphics::update(bool checkForShutdown) {
+bool Graphics::update(bool checkForShutdown) {
     p->threadData->rqWindowAdjust.wait();
     p->last_update = shState->runTime();
     
@@ -1268,7 +1268,7 @@ void Graphics::update(bool checkForShutdown) {
 #endif // MKXPZ_RETRO
     
     if (p->frozen)
-        return;
+        return false;
     
 #ifndef MKXPZ_RETRO
     if (p->fpsLimiter.frameSkipRequired()) {
@@ -1278,16 +1278,18 @@ void Graphics::update(bool checkForShutdown) {
             ++p->frameCount;
             p->threadData->ethread->notifyFrame();
             
-            return;
+            return true;
         } else {
             /* Just reset frame adjust counter */
             p->fpsLimiter.resetFrameAdjust();
         }
     }
+#endif // MKXPZ_RETRO
     
     p->checkResize();
-#endif // MKXPZ_RETRO
     p->redrawScreen();
+
+    return true;
 }
 
 void Graphics::freeze() {

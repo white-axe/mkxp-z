@@ -161,8 +161,12 @@ namespace mkxp_retro {
     retro_hw_render_callback hw_render;
     bool input_polled;
 
-    uint64_t get_ticks() noexcept {
+    uint64_t get_ticks_ms() noexcept {
         return frame_time / 1000;
+    }
+
+    uint64_t get_ticks_us() noexcept {
+        return frame_time;
     }
 
     double get_refresh_rate() noexcept {
@@ -507,7 +511,7 @@ extern "C" RETRO_API void retro_run() {
     input_polled = false;
 
     // We deferred initializing the shared state since the OpenGL symbols aren't available until the first call to `retro_run()`
-    if (!shared_state_initialized.load_relaxed()) {
+    if (mkxp_retro::sandbox.has_value() && !shared_state_initialized.load_relaxed()) {
         SharedState::initInstance(&thread_data.get());
         shared_state_initialized = true;
     } else if (hw_render.context_type != RETRO_HW_CONTEXT_NONE && (should_render || (!dupe_supported && mkxp_retro::sandbox.has_value()))) {

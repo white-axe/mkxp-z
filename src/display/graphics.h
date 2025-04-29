@@ -40,7 +40,7 @@ public:
     double getDelta();
     double lastUpdate();
     
-	void update(bool checkForShutdown = true);
+	bool update(bool checkForShutdown = true);
 	void freeze();
 	bool frozen();
 	void transition(int duration = 8,

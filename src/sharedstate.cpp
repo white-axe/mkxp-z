@@ -400,9 +400,13 @@ Font &SharedState::defaultFont() const
 }
 
 double SharedState::runTime() {
-    if (!p) return 0;
-    const auto now = std::chrono::steady_clock::now();
-    return std::chrono::duration_cast<std::chrono::microseconds>(now - p->startupTime).count() / 1000.0 / 1000.0;
+	if (!p) return 0;
+#ifdef MKXPZ_RETRO
+	return mkxp_retro::get_ticks_us() / 1000000.0;
+#else
+	const auto now = std::chrono::steady_clock::now();
+	return std::chrono::duration_cast<std::chrono::microseconds>(now - p->startupTime).count() / 1000.0 / 1000.0;
+#endif // MKXPZ_RETRO
 }
 
 unsigned int SharedState::genTimeStamp()

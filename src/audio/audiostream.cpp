@@ -229,7 +229,7 @@ void AudioStream::fadeOut(int duration)
 	fade.reqFini.clear();
 	fade.reqTerm.clear();
 #ifdef MKXPZ_RETRO
-	fade.startTicks = mkxp_retro::get_ticks();
+	fade.startTicks = mkxp_retro::get_ticks_ms();
 #else
 	fade.startTicks = SDL_GetTicks64();
 #endif // MKXPZ_RETRO
@@ -333,7 +333,7 @@ void AudioStream::startFadeIn()
 	fadeIn.rqFini.clear();
 	fadeIn.rqTerm.clear();
 #ifdef MKXPZ_RETRO
-	fadeIn.startTicks = mkxp_retro::get_ticks();
+	fadeIn.startTicks = mkxp_retro::get_ticks_ms();
 #else
 	fadeIn.startTicks = SDL_GetTicks64();
 #endif // MKXPZ_RETRO
@@ -367,7 +367,7 @@ bool AudioStream::fadeOutProc()
 	AudioMutexGuard guard(mutex);
 
 #ifdef MKXPZ_RETRO
-	uint64_t curDur = mkxp_retro::get_ticks() - fade.startTicks;
+	uint64_t curDur = mkxp_retro::get_ticks_ms() - fade.startTicks;
 #else
 	uint64_t curDur = SDL_GetTicks64() - fade.startTicks;
 #endif // MKXPZ_RETRO
@@ -408,7 +408,7 @@ bool AudioStream::fadeInProc()
 
 	/* Fade in duration is always 1 second */
 #ifdef MKXPZ_RETRO
-	uint64_t cur = mkxp_retro::get_ticks() - fadeIn.startTicks;
+	uint64_t cur = mkxp_retro::get_ticks_ms() - fadeIn.startTicks;
 #else
 	uint64_t cur = SDL_GetTicks64() - fadeIn.startTicks;
 #endif // MKXPZ_RETRO
