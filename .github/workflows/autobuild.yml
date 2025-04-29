@@ -911,14 +911,7 @@ jobs:
       - name: Build frontend
         run: |
           cd ${{ runner.temp }}
-          tag_name=$(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest | jq -r '.tag_name')
-          if [ $tag_name = 'v1.20.0' ]
-          then
-            # Use nightly instead of 1.20.0 for now
-            git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b master
-          else
-            git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $tag_name
-          fi
+          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest | jq -r '.tag_name')
           mv mkxp-z_libretro.a retroarch/libretro_emscripten.a
           cd retroarch
           if [ '${{ matrix.threading }}' = 'threaded' ]
@@ -1143,15 +1136,9 @@ jobs:
       - name: Build frontend
         run: |
           cd ~
-          tag_name=$(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest | jq -r '.tag_name')
-          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $tag_name
+          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest | jq -r '.tag_name')
           mv mkxp-z_libretro.a retroarch/libretro_vita.a
           cd retroarch
-          if [ $tag_name = 'v1.20.0' ]
-          then
-            wget -O ~/retroarch-17760.patch https://github.com/libretro/RetroArch/pull/17760.diff
-            git apply ~/retroarch-17760.patch
-          fi
           CLICOLOR_FORCE=1 make -f Makefile.vita LIBRETRO=mkxp-z
           mv retroarch_vita.self ~/dist/mkxp-z_libretro.self
 
