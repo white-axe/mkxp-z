@@ -46,7 +46,7 @@ AudioMutex::AudioMutex()
 #ifdef MKXPZ_RETRO
 	if (mkxp_mutex_init(&mutex, false))
 #else
-	if (mutex == NULL)
+	if ((mutex = SDL_CreateMutex()) == NULL)
 #endif // MKXPZ_RETRO
 	{
 		std::abort();
