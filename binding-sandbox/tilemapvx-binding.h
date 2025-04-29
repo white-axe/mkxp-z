@@ -111,6 +111,8 @@ namespace mkxp_sandbox {
                 int32_t y;
                 int32_t w;
                 int32_t h;
+                ID id;
+                VALUE klass;
                 VALUE obj;
                 VALUE ary;
                 unsigned int i;
@@ -138,7 +140,13 @@ namespace mkxp_sandbox {
                             set_private_data(obj, NULL);
                         }
 
-                        SANDBOX_AWAIT_AND_SET(obj, wrap_property, self, &tilemap->getBitmapArray(), "bitmap_array", bitmap_array_class);
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "BitmapArray");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                        set_private_data(obj, &tilemap->getBitmapArray());
+                        SANDBOX_AWAIT(rb_iv_set, self, "bitmap_array", obj);
+
+                        SANDBOX_AWAIT_AND_SET(obj, rb_iv_get, self, "bitmap_array");
 
                         SANDBOX_AWAIT_AND_SET(ary, rb_class_new_instance, 0, NULL, sb()->rb_cArray());
                         for (i = 0; i < 9; ++i) {

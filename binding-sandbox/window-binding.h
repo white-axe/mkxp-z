@@ -40,7 +40,9 @@ namespace mkxp_sandbox {
                 Window *window;
                 VALUE viewport_obj;
                 Viewport *viewport;
+                VALUE klass;
                 VALUE obj;
+                ID id;
 
                 VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     BOOST_ASIO_CORO_REENTER (this) {
@@ -60,7 +62,11 @@ namespace mkxp_sandbox {
                         set_private_data(self, window);
                         window->initDynAttribs();
 
-                        SANDBOX_AWAIT(wrap_property, self, &window->getCursorRect(), "cursor_rect", rect_class);
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Rect");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                        set_private_data(obj, &window->getCursorRect());
+                        SANDBOX_AWAIT(rb_iv_set, self, "cursor_rect", obj);
 
                         GFX_UNLOCK
                     }

@@ -37,6 +37,12 @@ namespace mkxp_sandbox {
         SANDBOX_DEF_ALLOC(font_type)
         SANDBOX_DEF_DFREE(Font)
 
+        ID default_color_id;
+        VALUE default_color_klass;
+        VALUE default_color_obj;
+        ID default_out_color_id;
+        VALUE default_out_color_klass;
+        VALUE default_out_color_obj;
         VALUE default_names;
         VALUE default_name;
         wasm_size_t default_name_index;
@@ -80,13 +86,17 @@ namespace mkxp_sandbox {
                 std::vector<std::string> *names;
                 VALUE names_obj;
                 int32_t size;
+                ID id;
+                VALUE klass;
+                VALUE obj;
 
                 VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     BOOST_ASIO_CORO_REENTER (this) {
                         names = new std::vector<std::string>;
 
                         if (argc == 0) {
-                            SANDBOX_AWAIT_AND_SET(names_obj, rb_iv_get, font_class, "default_name");
+                            SANDBOX_AWAIT_AND_SET(klass, rb_obj_class, self);
+                            SANDBOX_AWAIT_AND_SET(names_obj, rb_iv_get, klass, "default_name");
                             font = new Font();
                         } else if (argc == 1) {
                             names_obj = ((VALUE *)(**sb() + argv))[0];
@@ -107,10 +117,18 @@ namespace mkxp_sandbox {
                          * However the same bug/behavior exists in all RM versions. */
                         SANDBOX_AWAIT(rb_iv_set, self, "name", names_obj);
 
-                        SANDBOX_AWAIT(wrap_property, self, &font->getColor(), "color", color_class);
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                        set_private_data(obj, &font->getColor());
+                        SANDBOX_AWAIT(rb_iv_set, self, "color", obj);
 
                         if (rgssVer >= 3) {
-                            SANDBOX_AWAIT(wrap_property, self, &font->getOutColor(), "out_color", color_class);
+                            SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
+                            SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                            SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                            set_private_data(obj, &font->getOutColor());
+                            SANDBOX_AWAIT(rb_iv_set, self, "out_color", obj);
                         }
                     }
 
@@ -128,6 +146,9 @@ namespace mkxp_sandbox {
         static VALUE initialize_copy(VALUE self, VALUE value) {
             SANDBOX_COROUTINE(coro,
                 Font *font;
+                ID id;
+                VALUE klass;
+                VALUE obj;
 
                 VALUE operator()(VALUE self, VALUE value) {
                     BOOST_ASIO_CORO_REENTER (this) {
@@ -141,10 +162,18 @@ namespace mkxp_sandbox {
 
                         font->initDynAttribs();
 
-                        SANDBOX_AWAIT(wrap_property, self, &font->getColor(), "color", color_class);
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                        set_private_data(obj, &font->getColor());
+                        SANDBOX_AWAIT(rb_iv_set, self, "color", obj);
 
                         if (rgssVer >= 3) {
-                            SANDBOX_AWAIT(wrap_property, self, &font->getOutColor(), "out_color", color_class);
+                            SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
+                            SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                            SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                            set_private_data(obj, &font->getOutColor());
+                            SANDBOX_AWAIT(rb_iv_set, self, "out_color", obj);
                         }
                     }
 
@@ -390,10 +419,18 @@ namespace mkxp_sandbox {
 
                 Font::initDefaultDynAttribs();
 
-                SANDBOX_AWAIT(wrap_property, font_class, &Font::getDefaultColor(), "default_color", color_class);
+                SANDBOX_AWAIT_AND_SET(default_color_id, rb_intern, "Color");
+                SANDBOX_AWAIT_AND_SET(default_color_klass, rb_const_get, sb()->rb_cObject(), default_color_id);
+                SANDBOX_AWAIT_AND_SET(default_color_obj, rb_obj_alloc, default_color_klass);
+                set_private_data(default_color_obj, &Font::getDefaultColor());
+                SANDBOX_AWAIT(rb_iv_set, font_class, "default_color", default_color_obj);
 
                 if (rgssVer >= 3) {
-                    SANDBOX_AWAIT(wrap_property, font_class, &Font::getDefaultOutColor(), "default_out_color", color_class);
+                    SANDBOX_AWAIT_AND_SET(default_out_color_id, rb_intern, "Color");
+                    SANDBOX_AWAIT_AND_SET(default_out_color_klass, rb_const_get, sb()->rb_cObject(), default_out_color_id);
+                    SANDBOX_AWAIT_AND_SET(default_out_color_obj, rb_obj_alloc, default_out_color_klass);
+                    set_private_data(default_out_color_obj, &Font::getDefaultOutColor());
+                    SANDBOX_AWAIT(rb_iv_set, font_class, "default_out_color", default_out_color_obj);
                 }
 
                 if (Font::getInitialDefaultNames().size() == 1) {

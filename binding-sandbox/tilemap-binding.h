@@ -112,6 +112,8 @@ namespace mkxp_sandbox {
                 int32_t y;
                 int32_t w;
                 int32_t h;
+                ID id;
+                VALUE klass;
                 VALUE obj;
                 VALUE ary;
                 unsigned int i;
@@ -141,10 +143,25 @@ namespace mkxp_sandbox {
                             set_private_data(obj, NULL);
                         }
 
-                        SANDBOX_AWAIT_AND_SET(obj, wrap_property, self, &tilemap->getAutotiles(), "autotiles", tilemap_autotiles_class);
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "TilemapAutotiles");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                        set_private_data(obj, &tilemap->getAutotiles());
+                        SANDBOX_AWAIT(rb_iv_set, self, "autotiles", obj);
 
-                        SANDBOX_AWAIT(wrap_property, self, &tilemap->getColor(), "color", color_class);
-                        SANDBOX_AWAIT(wrap_property, self, &tilemap->getTone(), "tone", tone_class);
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                        set_private_data(obj, &tilemap->getColor());
+                        SANDBOX_AWAIT(rb_iv_set, self, "color", obj);
+
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Tone");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                        set_private_data(obj, &tilemap->getTone());
+                        SANDBOX_AWAIT(rb_iv_set, self, "tone", obj);
+
+                        SANDBOX_AWAIT_AND_SET(obj, rb_iv_get, self, "autotiles");
 
                         SANDBOX_AWAIT_AND_SET(ary, rb_class_new_instance, 0, NULL, sb()->rb_cArray());
                         for (i = 0; i < 7; ++i) {

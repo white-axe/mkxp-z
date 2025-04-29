@@ -42,6 +42,8 @@ namespace mkxp_sandbox {
                 int32_t y;
                 int32_t w;
                 int32_t h;
+                ID id;
+                VALUE klass;
                 VALUE obj;
 
                 VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
@@ -65,9 +67,23 @@ namespace mkxp_sandbox {
 
                         viewport->initDynAttribs();
 
-                        SANDBOX_AWAIT(wrap_property, self, &viewport->getRect(), "rect", rect_class);
-                        SANDBOX_AWAIT(wrap_property, self, &viewport->getColor(), "color", color_class);
-                        SANDBOX_AWAIT(wrap_property, self, &viewport->getTone(), "tone", tone_class);
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Rect");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                        set_private_data(obj, &viewport->getRect());
+                        SANDBOX_AWAIT(rb_iv_set, self, "rect", obj);
+
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                        set_private_data(obj, &viewport->getColor());
+                        SANDBOX_AWAIT(rb_iv_set, self, "color", obj);
+
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Tone");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                        set_private_data(obj, &viewport->getTone());
+                        SANDBOX_AWAIT(rb_iv_set, self, "tone", obj);
 
                         GFX_UNLOCK
                     }

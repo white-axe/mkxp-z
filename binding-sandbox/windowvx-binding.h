@@ -43,7 +43,9 @@ namespace mkxp_sandbox {
                 WindowVX *window;
                 VALUE viewport_obj;
                 Viewport *viewport;
+                VALUE klass;
                 VALUE obj;
+                ID id;
                 Bitmap *contents;
                 int32_t x;
                 int32_t y;
@@ -80,13 +82,23 @@ namespace mkxp_sandbox {
                         set_private_data(self, window);
                         window->initDynAttribs();
 
-                        SANDBOX_AWAIT(wrap_property, self, &window->getCursorRect(), "cursor_rect", rect_class);
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Rect");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                        set_private_data(obj, &window->getCursorRect());
+                        SANDBOX_AWAIT(rb_iv_set, self, "cursor_rect", obj);
 
                         if (rgssVer >= 3) {
-                            SANDBOX_AWAIT(wrap_property, self, &window->getTone(), "tone", tone_class);
+                            SANDBOX_AWAIT_AND_SET(id, rb_intern, "Tone");
+                            SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                            SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                            set_private_data(obj, &window->getTone());
+                            SANDBOX_AWAIT(rb_iv_set, self, "tone", obj);
                         }
 
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, bitmap_class);
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Bitmap");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
                         contents = new Bitmap(1, 1);
                         set_private_data(obj, contents);
                         SANDBOX_AWAIT(bitmap_init_props, contents, obj);

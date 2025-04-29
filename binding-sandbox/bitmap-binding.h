@@ -33,22 +33,32 @@ namespace mkxp_sandbox {
     static VALUE bitmap_class;
 
     SANDBOX_COROUTINE(bitmap_init_props,
+        ID id;
+        VALUE klass;
+        VALUE obj;
         VALUE font;
-        VALUE hires;
         VALUE hires_font;
 
         void operator()(Bitmap *bitmap, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(font, rb_class_new_instance, 0, NULL, font_class);
+                SANDBOX_AWAIT_AND_SET(id, rb_intern, "Font");
+                SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                SANDBOX_AWAIT_AND_SET(font, rb_class_new_instance, 0, NULL, klass);
                 SANDBOX_AWAIT(rb_iv_set, self, "font", font);
 
                 // Leave property as default nil if hasHires() is false.
                 if (bitmap->hasHires()) {
                     bitmap->assumeRubyGC();
-                    SANDBOX_AWAIT_AND_SET(hires, wrap_property, self, bitmap->getHires(), "hires", bitmap_class);
+                    SANDBOX_AWAIT_AND_SET(id, rb_intern, "Bitmap");
+                    SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                    SANDBOX_AWAIT_AND_SET(self, rb_obj_alloc, klass);
+                    set_private_data(obj, bitmap->getHires());
+                    SANDBOX_AWAIT(rb_iv_set, self, "hires", obj);
 
-                    SANDBOX_AWAIT_AND_SET(hires_font, rb_class_new_instance, 0, NULL, font_class);
-                    SANDBOX_AWAIT(rb_iv_set, hires, "font", hires_font);
+                    SANDBOX_AWAIT_AND_SET(id, rb_intern, "Font");
+                    SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                    SANDBOX_AWAIT_AND_SET(hires_font, rb_class_new_instance, 0, NULL, klass);
+                    SANDBOX_AWAIT(rb_iv_set, obj, "font", hires_font);
                     bitmap->getHires()->setInitFont(get_private_data<Font>(hires_font));
                 }
 
@@ -160,11 +170,15 @@ namespace mkxp_sandbox {
 
         static VALUE rect(VALUE self) {
             SANDBOX_COROUTINE(coro,
+                ID id;
+                VALUE klass;
                 VALUE obj;
 
                 VALUE operator()(VALUE self) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, rect_class);
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Rect");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
                         set_private_data(obj, new Rect(get_private_data<Bitmap>(self)->rect()));
                     }
 
@@ -287,6 +301,8 @@ namespace mkxp_sandbox {
                 int x;
                 int y;
                 Color *color;
+                ID id;
+                VALUE klass;
                 VALUE obj;
 
                 VALUE operator()(VALUE self, VALUE xval, VALUE yval) {
@@ -306,7 +322,9 @@ namespace mkxp_sandbox {
                             color = new Color(value);
                         }
 
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, color_class);
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
                         set_private_data(obj, color);
                     }
 
@@ -420,6 +438,8 @@ namespace mkxp_sandbox {
         static VALUE text_size(VALUE self, VALUE text) {
             SANDBOX_COROUTINE(coro,
                 wasm_ptr_t str;
+                ID id;
+                VALUE klass;
                 VALUE obj;
 
                 VALUE operator()(VALUE self, VALUE text) {
@@ -430,7 +450,9 @@ namespace mkxp_sandbox {
                         } else {
                             SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &text);
                         }
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, rect_class);
+                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Rect");
+                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
                         set_private_data(obj, new Rect(get_private_data<Bitmap>(self)->textSize((const char *)(**sb() + str))));
                     }
 
@@ -518,7 +540,8 @@ namespace mkxp_sandbox {
 
                         GFX_GUARD_EXC(bitmap = new Bitmap(*get_private_data<Bitmap>(self), pos););
 
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, bitmap_class);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_class, self);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, obj);
 
                         SANDBOX_AWAIT(bitmap_init_props, bitmap, obj);
                         set_private_data(obj, bitmap);
