@@ -1242,10 +1242,10 @@ double Graphics::lastUpdate() {
 }
 
 void Graphics::update(bool checkForShutdown) {
-#ifndef MKXPZ_RETRO
     p->threadData->rqWindowAdjust.wait();
     p->last_update = shState->runTime();
     
+#ifndef MKXPZ_RETRO
     // update Input.repeat timing, rounding the framerate to the nearest 2
     {
         static const double mult = 2.0;
@@ -1261,14 +1261,16 @@ void Graphics::update(bool checkForShutdown) {
     p->checkSyncLock();
     
     
-#ifdef MKXPZ_STEAM
+#  ifdef MKXPZ_STEAM
     if (STEAMSHIM_alive())
         STEAMSHIM_pump();
-#endif
+#  endif // MKXPZ_STEAM
+#endif // MKXPZ_RETRO
     
     if (p->frozen)
         return;
     
+#ifndef MKXPZ_RETRO
     if (p->fpsLimiter.frameSkipRequired()) {
         if (p->useFrameSkip) {
             /* Skip frame */
@@ -1310,7 +1312,9 @@ void Graphics::transition(int duration, Bitmap *transMap, int vague, int start, 
     
     vague = clamp(vague, 1, 256);
     
-    setBrightness(255);
+    if (start <= 0) {
+        setBrightness(255);
+    }
     
     /* Capture new scene */
     p->screen.composite();

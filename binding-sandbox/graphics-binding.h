@@ -86,9 +86,13 @@ namespace mkxp_sandbox {
                             }
                         }
 
-                        for (i = 0; i < duration; ++i) {
-                            shState->graphics().transition(duration, trans_map, vague, i, i);
-                            SANDBOX_YIELD;
+                        if (duration <= 0) {
+                            shState->graphics().transition(duration, trans_map, vague, 0, 0);
+                        } else {
+                            for (i = 0; i < duration; ++i) {
+                                shState->graphics().transition(duration, trans_map, vague, i, i);
+                                SANDBOX_YIELD;
+                            }
                         }
                     }
 
