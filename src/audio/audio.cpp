@@ -186,19 +186,25 @@ struct AudioPrivate
         return bgmTracks[index];
     }
 
-	void meWatchProc()
+	bool meWatchProc()
 	{
-		float fadeOutStep;
-		float fadeInStep;
+#ifndef MKXPZ_RETRO
+		syncPoint.passSecondarySync();
+#endif // MKXPZ_RETRO
 
 		if (meWatch.termReq)
-			return;
+			return false;
 
 #ifdef MKXPZ_RETRO
 		AudioMutexGuard guard(meWatch.mutex);
 		if (meWatch.termReq)
-			return;
+			return false;
+#endif // MKXPZ_RETRO
 
+		float fadeOutStep;
+		float fadeInStep;
+
+#ifdef MKXPZ_RETRO
 		if (mkxp_retro::using_threaded_audio())
 #endif // MKXPZ_RETRO
 		{
@@ -364,19 +370,15 @@ struct AudioPrivate
 				break;
 			}
 		}
+
+		return true;
 	}
 
 #ifndef MKXPZ_RETRO
 	void meWatchThread()
 	{
-		while (true)
-		{
-			syncPoint.passSecondarySync();
-
-			meWatchProc();
-
+		while (meWatchProc())
 			SDL_Delay(AUDIO_SLEEP);
-		}
 	}
 #endif // MKXPZ_RETRO
 };
