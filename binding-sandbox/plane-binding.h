@@ -44,9 +44,6 @@ namespace mkxp_sandbox {
                 int32_t y;
                 int32_t w;
                 int32_t h;
-                ID id;
-                VALUE klass;
-                VALUE obj;
                 VALUE ary;
                 unsigned int i;
 
@@ -69,18 +66,8 @@ namespace mkxp_sandbox {
 
                         plane->initDynAttribs();
 
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Color");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &plane->getColor());
-                        SANDBOX_AWAIT(rb_iv_set, self, "color", obj);
-
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Tone");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                        set_private_data(obj, &plane->getTone());
-                        SANDBOX_AWAIT(rb_iv_set, self, "tone", obj);
-
+                        SANDBOX_AWAIT(wrap_property, self, &plane->getColor(), "color", color_class);
+                        SANDBOX_AWAIT(wrap_property, self, &plane->getTone(), "tone", tone_class);
                         GFX_UNLOCK
                     }
 

@@ -241,16 +241,12 @@ namespace mkxp_sandbox {
         static VALUE snap_to_bitmap(VALUE self) {
             SANDBOX_COROUTINE(coro,
                 Bitmap *bitmap;
-                ID id;
-                VALUE klass;
                 VALUE obj;
 
                 VALUE operator()(VALUE self) {
                     BOOST_ASIO_CORO_REENTER (this) {
                         GFX_GUARD_EXC(bitmap = shState->graphics().snapToBitmap(););
-                        SANDBOX_AWAIT_AND_SET(id, rb_intern, "Bitmap");
-                        SANDBOX_AWAIT_AND_SET(klass, rb_const_get, sb()->rb_cObject(), id);
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, bitmap_class);
                         set_private_data(obj, bitmap);
                         SANDBOX_AWAIT(bitmap_init_props, bitmap, obj);
                     }
