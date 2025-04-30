@@ -23,6 +23,7 @@
 #include "core.h"
 #include "sharedstate.h"
 #include "graphics.h"
+#include "mkxp-polyfill.h" // std::lround
 
 #define JOYPAD_BUTTON_MAX 16
 #define REPEAT_NONE 255
@@ -63,6 +64,15 @@ struct InputPrivate
     uint8_t currDir4;
     uint8_t prevDir4;
     uint8_t dir8;
+    int16_t mouseX;
+    int16_t mouseY;
+    uint32_t scrollV;
+    bool mouseInWindow;
+    bool mouseLeft;
+    bool mouseMiddle;
+    bool mouseRight;
+    bool mouseX1;
+    bool mouseX2;
     bool joypadMaskSupported;
 
     InputPrivate() :
@@ -73,6 +83,15 @@ struct InputPrivate
         currDir4(0),
         prevDir4(0),
         dir8(0),
+        mouseX(0),
+        mouseY(0),
+        scrollV(0),
+        mouseInWindow(false),
+        mouseLeft(false),
+        mouseMiddle(false),
+        mouseRight(false),
+        mouseX1(false),
+        mouseX2(false),
         joypadMaskSupported(mkxp_retro::environment(RETRO_ENVIRONMENT_GET_INPUT_BITMASKS, NULL))
     {}
 
@@ -181,6 +200,20 @@ struct InputPrivate
         }
     }
 
+    void updateMouse()
+    {
+        mouseX = (int16_t)mkxp_retro::input_state(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X);
+        mouseY = (int16_t)mkxp_retro::input_state(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y);
+        mouseInWindow = !mkxp_retro::input_state(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_IS_OFFSCREEN);
+        scrollV += mkxp_retro::input_state(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_WHEELDOWN);
+        scrollV -= mkxp_retro::input_state(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_WHEELUP);
+        mouseLeft = mkxp_retro::input_state(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT);
+        mouseMiddle = mkxp_retro::input_state(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE);
+        mouseRight = mkxp_retro::input_state(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT);
+        mouseX1 = mkxp_retro::input_state(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_BUTTON_4);
+        mouseX2 = mkxp_retro::input_state(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_BUTTON_5);
+    }
+
     bool getCurrJoypadState(int button)
     {
         auto it = codeToJoypadId.find(button);
@@ -217,6 +250,7 @@ void Input::update()
     p->updateJoypad();
     p->updateDir4();
     p->updateDir8();
+    p->updateMouse();
 }
 
 bool Input::isPressed(int button)
@@ -324,6 +358,30 @@ int Input::dir4Value()
 int Input::dir8Value()
 {
     return p->dir8;
+}
+
+int Input::mouseX()
+{
+    uint16_t x = clamp(p->mouseX, (int16_t)-32767, (int16_t)32767);
+    x += 32767;
+    return (int)std::lround(((float)x / 65534.0f) * shState->graphics().width());
+}
+
+int Input::mouseY()
+{
+    uint16_t y = clamp(p->mouseY, (int16_t)-32767, (int16_t)32767);
+    y += 32767;
+    return (int)std::lround(((float)y / 65534.0f) * shState->graphics().height());
+}
+
+int Input::scrollV()
+{
+    return (int)p->scrollV;
+}
+
+bool Input::mouseInWindow()
+{
+    return p->mouseInWindow;
 }
 
 Input::~Input()

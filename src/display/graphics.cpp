@@ -1582,13 +1582,11 @@ void Graphics::resizeScreen(int width, int height) {
     
     Vec2i sizeLores(width, height);
 
-#ifndef MKXPZ_RETRO
     if (shState->config().enableHires) {
         double framebufferScalingFactor = shState->config().framebufferScalingFactor;
         width = (int)lround(framebufferScalingFactor * width);
         height = (int)lround(framebufferScalingFactor * height);
     }
-#endif // MKXPZ_RETRO
 
     Vec2i size(width, height);
     

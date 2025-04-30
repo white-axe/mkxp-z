@@ -323,12 +323,20 @@ namespace mkxp_sandbox {
             return sb()->bind<struct rb_ll2inum>()()(mkxp_retro::input->dir8Value());
         }
 
-        static VALUE todo_bool(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            return SANDBOX_FALSE;
+        static VALUE mouse_x(VALUE self) {
+            return sb()->bind<struct rb_ll2inum>()()(mkxp_retro::input->mouseX());
         }
 
-        static VALUE todo_number(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(0);
+        static VALUE mouse_y(VALUE self) {
+            return sb()->bind<struct rb_ll2inum>()()(mkxp_retro::input->mouseY());
+        }
+
+        static VALUE scroll_v(VALUE self) {
+            return sb()->bind<struct rb_ll2inum>()()(mkxp_retro::input->scrollV());
+        }
+
+        static VALUE mouse_in_window(VALUE self) {
+            return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->mouseInWindow());
         }
 
         VALUE button_val;
@@ -355,11 +363,12 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_module_function, input_module, "timeex?", (VALUE (*)(ANYARGS))timeex, 1);
                 SANDBOX_AWAIT(rb_define_module_function, input_module, "dir4", (VALUE (*)(ANYARGS))dir4, 0);
                 SANDBOX_AWAIT(rb_define_module_function, input_module, "dir8", (VALUE (*)(ANYARGS))dir8, 0);
-                SANDBOX_AWAIT(rb_define_module_function, input_module, "mouse_x", (VALUE (*)(ANYARGS))todo_number, -1);
-                SANDBOX_AWAIT(rb_define_module_function, input_module, "mouse_y", (VALUE (*)(ANYARGS))todo_number, -1);
-                SANDBOX_AWAIT(rb_define_module_function, input_module, "scroll_v", (VALUE (*)(ANYARGS))todo_number, -1);
-                SANDBOX_AWAIT(rb_define_module_function, input_module, "mouse_in_window", (VALUE (*)(ANYARGS))todo_bool, -1);
-                SANDBOX_AWAIT(rb_define_module_function, input_module, "mouse_in_window?", (VALUE (*)(ANYARGS))todo_bool, -1);
+
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "mouse_x", (VALUE (*)(ANYARGS))mouse_x, 0);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "mouse_y", (VALUE (*)(ANYARGS))mouse_y, 0);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "scroll_v", (VALUE (*)(ANYARGS))scroll_v, 0);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "mouse_in_window", (VALUE (*)(ANYARGS))mouse_in_window, 0);
+                SANDBOX_AWAIT(rb_define_module_function, input_module, "mouse_in_window?", (VALUE (*)(ANYARGS))mouse_in_window, 0);
 
                 if (rgssVer >= 3) {
                     SANDBOX_AWAIT_AND_SET(symhash, rb_hash_new);

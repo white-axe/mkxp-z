@@ -101,12 +101,12 @@ public:
 	int dir4Value();
 	int dir8Value();
 
-#ifndef MKXPZ_RETRO
 	int mouseX();
 	int mouseY();
     int scrollV();
     bool mouseInWindow();
     
+#ifndef MKXPZ_RETRO
     bool getControllerConnected();
     const char *getControllerName();
     int getControllerPowerLevel();
