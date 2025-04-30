@@ -91,226 +91,18 @@ namespace mkxp_sandbox {
             return plane == NULL || plane->isDisposed() ? SANDBOX_TRUE : SANDBOX_FALSE;
         }
 
-        static VALUE get_viewport(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "viewport");
-        }
-
-        static VALUE set_viewport(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Plane>(self)->setViewport(get_private_data<Viewport>(value)));
-                        SANDBOX_AWAIT(rb_iv_set, self, "viewport", value);
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_bitmap(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "bitmap");
-        }
-
-        static VALUE set_bitmap(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Plane>(self)->setBitmap(get_private_data<Bitmap>(value)));
-                        SANDBOX_AWAIT(rb_iv_set, self, "bitmap", value);
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_color(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "color");
-        }
-
-        static VALUE set_color(VALUE self, VALUE value) {
-            GFX_GUARD_EXC(get_private_data<Plane>(self)->setColor(*get_private_data<Color>(value)));
-            return value;
-        }
-
-        static VALUE get_tone(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "tone");
-        }
-
-        static VALUE set_tone(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Plane>(self)->setTone(*get_private_data<Tone>(value)));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_visible(VALUE self) {
-            return get_private_data<Plane>(self)->getVisible() ? SANDBOX_TRUE : SANDBOX_FALSE;
-        }
-
-        static VALUE set_visible(VALUE self, VALUE value) {
-            GFX_GUARD_EXC(get_private_data<Plane>(self)->setVisible(value != SANDBOX_FALSE && value != SANDBOX_NIL));
-            return value;
-        }
-
-        static VALUE get_ox(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Plane>(self)->getOX());
-        }
-
-        static VALUE set_ox(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t ox;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(ox, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Plane>(self)->setOX(ox));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_oy(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Plane>(self)->getOY());
-        }
-
-        static VALUE set_oy(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t oy;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(oy, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Plane>(self)->setOY(oy));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_zoom_x(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Plane>(self)->getZoomX());
-        }
-
-        static VALUE set_zoom_x(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t zoom_x;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(zoom_x, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Plane>(self)->setZoomX(zoom_x));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_zoom_y(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Plane>(self)->getZoomY());
-        }
-
-        static VALUE set_zoom_y(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t zoom_y;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(zoom_y, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Plane>(self)->setZoomY(zoom_y));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_z(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Plane>(self)->getZ());
-        }
-
-        static VALUE set_z(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t z;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(z, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Plane>(self)->setZ(z));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_opacity(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Plane>(self)->getOpacity());
-        }
-
-        static VALUE set_opacity(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t opacity;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(opacity, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Plane>(self)->setOpacity(opacity));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_blend_type(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Plane>(self)->getBlendType());
-        }
-
-        static VALUE set_blend_type(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t blend_type;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(blend_type, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Plane>(self)->setBlendType(blend_type));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
+        SANDBOX_DEF_GFX_PROP_OBJ_REF(Plane, Viewport, Viewport, viewport);
+        SANDBOX_DEF_GFX_PROP_OBJ_REF(Plane, Bitmap, Bitmap, bitmap);
+        SANDBOX_DEF_GFX_PROP_OBJ_VAL(Plane, Color, Color, color);
+        SANDBOX_DEF_GFX_PROP_OBJ_VAL(Plane, Tone, Tone, tone);
+        SANDBOX_DEF_GFX_PROP_B(Plane, Visible, visible);
+        SANDBOX_DEF_GFX_PROP_I(Plane, OX, ox);
+        SANDBOX_DEF_GFX_PROP_I(Plane, OY, oy);
+        SANDBOX_DEF_GFX_PROP_F(Plane, ZoomX, zoom_x);
+        SANDBOX_DEF_GFX_PROP_F(Plane, ZoomY, zoom_y);
+        SANDBOX_DEF_GFX_PROP_I(Plane, Z, z);
+        SANDBOX_DEF_GFX_PROP_I(Plane, Opacity, opacity);
+        SANDBOX_DEF_GFX_PROP_I(Plane, BlendType, blend_type);
 
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
@@ -320,30 +112,18 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, plane_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
                 SANDBOX_AWAIT(rb_define_method, plane_class, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
                 SANDBOX_AWAIT(rb_define_method, plane_class, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "viewport", (VALUE (*)(ANYARGS))get_viewport, 0);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "viewport=", (VALUE (*)(ANYARGS))set_viewport, 1);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "bitmap", (VALUE (*)(ANYARGS))get_bitmap, 0);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "bitmap=", (VALUE (*)(ANYARGS))set_bitmap, 1);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "color", (VALUE (*)(ANYARGS))get_color, 0);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "color=", (VALUE (*)(ANYARGS))set_color, 1);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "tone", (VALUE (*)(ANYARGS))get_tone, 0);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "tone=", (VALUE (*)(ANYARGS))set_tone, 1);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "visible", (VALUE (*)(ANYARGS))get_visible, 0);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "visible=", (VALUE (*)(ANYARGS))set_visible, 1);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "ox", (VALUE (*)(ANYARGS))get_ox, 0);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "ox=", (VALUE (*)(ANYARGS))set_ox, 1);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "oy", (VALUE (*)(ANYARGS))get_oy, 0);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "oy=", (VALUE (*)(ANYARGS))set_oy, 1);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "zoom_x", (VALUE (*)(ANYARGS))get_zoom_x, 0);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "zoom_x=", (VALUE (*)(ANYARGS))set_zoom_x, 1);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "zoom_y", (VALUE (*)(ANYARGS))get_zoom_y, 0);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "zoom_y=", (VALUE (*)(ANYARGS))set_zoom_y, 1);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "z", (VALUE (*)(ANYARGS))get_z, 0);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "z=", (VALUE (*)(ANYARGS))set_z, 1);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "opacity", (VALUE (*)(ANYARGS))get_opacity, 0);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "opacity=", (VALUE (*)(ANYARGS))set_opacity, 1);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "blend_type", (VALUE (*)(ANYARGS))get_blend_type, 0);
-                SANDBOX_AWAIT(rb_define_method, plane_class, "blend_type=", (VALUE (*)(ANYARGS))set_blend_type, 1);
+                SANDBOX_INIT_PROP_BIND(plane_class, viewport);
+                SANDBOX_INIT_PROP_BIND(plane_class, bitmap);
+                SANDBOX_INIT_PROP_BIND(plane_class, color);
+                SANDBOX_INIT_PROP_BIND(plane_class, tone);
+                SANDBOX_INIT_PROP_BIND(plane_class, visible);
+                SANDBOX_INIT_PROP_BIND(plane_class, ox);
+                SANDBOX_INIT_PROP_BIND(plane_class, oy);
+                SANDBOX_INIT_PROP_BIND(plane_class, zoom_x);
+                SANDBOX_INIT_PROP_BIND(plane_class, zoom_y);
+                SANDBOX_INIT_PROP_BIND(plane_class, z);
+                SANDBOX_INIT_PROP_BIND(plane_class, opacity);
+                SANDBOX_INIT_PROP_BIND(plane_class, blend_type);
             }
         }
     )

@@ -2876,6 +2876,19 @@ bool Bitmap::isPlaying() const
     return p->animation.currentFrameIRaw() < p->animation.frames.size();
 }
 
+bool Bitmap::getPlaying() const
+{
+    return isPlaying();
+}
+
+void Bitmap::setPlaying(bool playing)
+{
+    if (playing)
+        play();
+    else
+        stop();
+}
+
 void Bitmap::gotoAndStop(int frame)
 {
     guardDisposed();

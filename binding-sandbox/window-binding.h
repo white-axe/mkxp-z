@@ -90,326 +90,24 @@ namespace mkxp_sandbox {
             return SANDBOX_NIL;
         }
 
-        static VALUE get_viewport(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "viewport");
-        }
-
-        static VALUE set_viewport(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Window>(self)->setViewport(get_private_data<Viewport>(value)));
-                        SANDBOX_AWAIT(rb_iv_set, self, "viewport", value);
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_windowskin(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "windowskin");
-        }
-
-        static VALUE set_windowskin(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Window>(self)->setWindowskin(value == SANDBOX_NIL ? NULL : get_private_data<Bitmap>(value)));
-                        SANDBOX_AWAIT(rb_iv_set, self, "windowskin", value);
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_contents(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "contents");
-        }
-
-        static VALUE set_contents(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Window>(self)->setContents(value == SANDBOX_NIL ? NULL : get_private_data<Bitmap>(value)));
-                        SANDBOX_AWAIT(rb_iv_set, self, "contents", value);
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_cursor_rect(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "cursor_rect");
-        }
-
-        static VALUE set_cursor_rect(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Window>(self)->setCursorRect(*get_private_data<Rect>(value)));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_stretch(VALUE self) {
-            return SANDBOX_BOOL_TO_VALUE(get_private_data<Window>(self)->getStretch());
-        }
-
-        static VALUE set_stretch(VALUE self, VALUE value) {
-            GFX_GUARD_EXC(get_private_data<Window>(self)->setStretch(SANDBOX_VALUE_TO_BOOL(value));)
-            return value;
-        }
-
-        static VALUE get_active(VALUE self) {
-            return SANDBOX_BOOL_TO_VALUE(get_private_data<Window>(self)->getActive());
-        }
-
-        static VALUE set_active(VALUE self, VALUE value) {
-            GFX_GUARD_EXC(get_private_data<Window>(self)->setActive(SANDBOX_VALUE_TO_BOOL(value));)
-            return value;
-        }
-
-        static VALUE get_visible(VALUE self) {
-            return SANDBOX_BOOL_TO_VALUE(get_private_data<Window>(self)->getVisible());
-        }
-
-        static VALUE set_visible(VALUE self, VALUE value) {
-            GFX_GUARD_EXC(get_private_data<Window>(self)->setVisible(SANDBOX_VALUE_TO_BOOL(value)));
-            return value;
-        }
-
-        static VALUE get_pause(VALUE self) {
-            return SANDBOX_BOOL_TO_VALUE(get_private_data<Window>(self)->getPause());
-        }
-
-        static VALUE set_pause(VALUE self, VALUE value) {
-            GFX_GUARD_EXC(get_private_data<Window>(self)->setPause(SANDBOX_VALUE_TO_BOOL(value)));
-            return value;
-        }
-
-        static VALUE get_x(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Window>(self)->getX());
-        }
-
-        static VALUE set_x(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                int x;
-
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(x, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Window>(self)->setX(x));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_y(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Window>(self)->getY());
-        }
-
-        static VALUE set_y(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                int y;
-
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(y, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Window>(self)->setY(y));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_width(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Window>(self)->getWidth());
-        }
-
-        static VALUE set_width(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                int width;
-
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(width, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Window>(self)->setWidth(width));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_height(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Window>(self)->getHeight());
-        }
-
-        static VALUE set_height(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                int height;
-
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(height, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Window>(self)->setHeight(height));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_ox(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Window>(self)->getOX());
-        }
-
-        static VALUE set_ox(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                int ox;
-
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(ox, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Window>(self)->setOX(ox));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_oy(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Window>(self)->getOY());
-        }
-
-        static VALUE set_oy(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                int oy;
-
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(oy, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Window>(self)->setOY(oy));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_z(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Window>(self)->getZ());
-        }
-
-        static VALUE set_z(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                int z;
-
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(z, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Window>(self)->setZ(z));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_opacity(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Window>(self)->getOpacity());
-        }
-
-        static VALUE set_opacity(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                int opacity;
-
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(opacity, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Window>(self)->setOpacity(opacity));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_back_opacity(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Window>(self)->getBackOpacity());
-        }
-
-        static VALUE set_back_opacity(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                int back_opacity;
-
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(back_opacity, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Window>(self)->setBackOpacity(back_opacity));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_contents_opacity(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Window>(self)->getContentsOpacity());
-        }
-
-        static VALUE set_contents_opacity(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                int contents_opacity;
-
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(contents_opacity, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Window>(self)->setContentsOpacity(contents_opacity));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
+        SANDBOX_DEF_GFX_PROP_OBJ_REF(Window, Viewport, Viewport, viewport);
+        SANDBOX_DEF_GFX_PROP_OBJ_REF(Window, Bitmap, Windowskin, windowskin);
+        SANDBOX_DEF_GFX_PROP_OBJ_REF(Window, Bitmap, Contents, contents);
+        SANDBOX_DEF_GFX_PROP_OBJ_VAL(Window, Rect, CursorRect, cursor_rect);
+        SANDBOX_DEF_GFX_PROP_B(Window, Stretch, stretch);
+        SANDBOX_DEF_GFX_PROP_B(Window, Active, active);
+        SANDBOX_DEF_GFX_PROP_B(Window, Visible, visible);
+        SANDBOX_DEF_GFX_PROP_B(Window, Pause, pause);
+        SANDBOX_DEF_GFX_PROP_I(Window, X, x);
+        SANDBOX_DEF_GFX_PROP_I(Window, Y, y);
+        SANDBOX_DEF_GFX_PROP_I(Window, Width, width);
+        SANDBOX_DEF_GFX_PROP_I(Window, Height, height);
+        SANDBOX_DEF_GFX_PROP_I(Window, OX, ox);
+        SANDBOX_DEF_GFX_PROP_I(Window, OY, oy);
+        SANDBOX_DEF_GFX_PROP_I(Window, Z, z);
+        SANDBOX_DEF_GFX_PROP_I(Window, Opacity, opacity);
+        SANDBOX_DEF_GFX_PROP_I(Window, BackOpacity, back_opacity);
+        SANDBOX_DEF_GFX_PROP_I(Window, ContentsOpacity, contents_opacity);
 
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
@@ -420,42 +118,24 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, window_class, "update", (VALUE (*)(ANYARGS))update, 0);
                 SANDBOX_AWAIT(rb_define_method, window_class, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
                 SANDBOX_AWAIT(rb_define_method, window_class, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
-                SANDBOX_AWAIT(rb_define_method, window_class, "viewport", (VALUE (*)(ANYARGS))get_viewport, 0);
-                SANDBOX_AWAIT(rb_define_method, window_class, "viewport=", (VALUE (*)(ANYARGS))set_viewport, 1);
-                SANDBOX_AWAIT(rb_define_method, window_class, "windowskin", (VALUE (*)(ANYARGS))get_windowskin, 0);
-                SANDBOX_AWAIT(rb_define_method, window_class, "windowskin=", (VALUE (*)(ANYARGS))set_windowskin, 1);
-                SANDBOX_AWAIT(rb_define_method, window_class, "contents", (VALUE (*)(ANYARGS))get_contents, 0);
-                SANDBOX_AWAIT(rb_define_method, window_class, "contents=", (VALUE (*)(ANYARGS))set_contents, 1);
-                SANDBOX_AWAIT(rb_define_method, window_class, "cursor_rect", (VALUE (*)(ANYARGS))get_cursor_rect, 0);
-                SANDBOX_AWAIT(rb_define_method, window_class, "cursor_rect=", (VALUE (*)(ANYARGS))set_cursor_rect, 1);
-                SANDBOX_AWAIT(rb_define_method, window_class, "stretch", (VALUE (*)(ANYARGS))get_stretch, 0);
-                SANDBOX_AWAIT(rb_define_method, window_class, "stretch=", (VALUE (*)(ANYARGS))set_stretch, 1);
-                SANDBOX_AWAIT(rb_define_method, window_class, "active", (VALUE (*)(ANYARGS))get_active, 0);
-                SANDBOX_AWAIT(rb_define_method, window_class, "active=", (VALUE (*)(ANYARGS))set_active, 1);
-                SANDBOX_AWAIT(rb_define_method, window_class, "visible", (VALUE (*)(ANYARGS))get_visible, 0);
-                SANDBOX_AWAIT(rb_define_method, window_class, "visible=", (VALUE (*)(ANYARGS))set_visible, 1);
-                SANDBOX_AWAIT(rb_define_method, window_class, "pause", (VALUE (*)(ANYARGS))get_pause, 0);
-                SANDBOX_AWAIT(rb_define_method, window_class, "pause=", (VALUE (*)(ANYARGS))set_pause, 1);
-                SANDBOX_AWAIT(rb_define_method, window_class, "x", (VALUE (*)(ANYARGS))get_x, 0);
-                SANDBOX_AWAIT(rb_define_method, window_class, "x=", (VALUE (*)(ANYARGS))set_x, 1);
-                SANDBOX_AWAIT(rb_define_method, window_class, "y", (VALUE (*)(ANYARGS))get_y, 0);
-                SANDBOX_AWAIT(rb_define_method, window_class, "y=", (VALUE (*)(ANYARGS))set_y, 1);
-                SANDBOX_AWAIT(rb_define_method, window_class, "width", (VALUE (*)(ANYARGS))get_width, 0);
-                SANDBOX_AWAIT(rb_define_method, window_class, "width=", (VALUE (*)(ANYARGS))set_width, 1);
-                SANDBOX_AWAIT(rb_define_method, window_class, "height", (VALUE (*)(ANYARGS))get_height, 0);
-                SANDBOX_AWAIT(rb_define_method, window_class, "height=", (VALUE (*)(ANYARGS))set_height, 1);
-                SANDBOX_AWAIT(rb_define_method, window_class, "ox", (VALUE (*)(ANYARGS))get_ox, 0);
-                SANDBOX_AWAIT(rb_define_method, window_class, "ox=", (VALUE (*)(ANYARGS))set_ox, 1);
-                SANDBOX_AWAIT(rb_define_method, window_class, "oy", (VALUE (*)(ANYARGS))get_oy, 0);
-                SANDBOX_AWAIT(rb_define_method, window_class, "oy=", (VALUE (*)(ANYARGS))set_oy, 1);
-                SANDBOX_AWAIT(rb_define_method, window_class, "opacity", (VALUE (*)(ANYARGS))get_opacity, 0);
-                SANDBOX_AWAIT(rb_define_method, window_class, "opacity=", (VALUE (*)(ANYARGS))set_opacity, 1);
-                SANDBOX_AWAIT(rb_define_method, window_class, "back_opacity", (VALUE (*)(ANYARGS))get_back_opacity, 0);
-                SANDBOX_AWAIT(rb_define_method, window_class, "back_opacity=", (VALUE (*)(ANYARGS))set_back_opacity, 1);
-                SANDBOX_AWAIT(rb_define_method, window_class, "contents_opacity", (VALUE (*)(ANYARGS))get_contents_opacity, 0);
-                SANDBOX_AWAIT(rb_define_method, window_class, "contents_opacity=", (VALUE (*)(ANYARGS))set_contents_opacity, 1);
-                SANDBOX_AWAIT(rb_define_method, window_class, "z", (VALUE (*)(ANYARGS))get_z, 0);
-                SANDBOX_AWAIT(rb_define_method, window_class, "z=", (VALUE (*)(ANYARGS))set_z, 1);
+                SANDBOX_INIT_PROP_BIND(window_class, viewport);
+                SANDBOX_INIT_PROP_BIND(window_class, windowskin);
+                SANDBOX_INIT_PROP_BIND(window_class, contents);
+                SANDBOX_INIT_PROP_BIND(window_class, cursor_rect);
+                SANDBOX_INIT_PROP_BIND(window_class, stretch);
+                SANDBOX_INIT_PROP_BIND(window_class, active);
+                SANDBOX_INIT_PROP_BIND(window_class, visible);
+                SANDBOX_INIT_PROP_BIND(window_class, pause);
+                SANDBOX_INIT_PROP_BIND(window_class, x);
+                SANDBOX_INIT_PROP_BIND(window_class, y);
+                SANDBOX_INIT_PROP_BIND(window_class, width);
+                SANDBOX_INIT_PROP_BIND(window_class, height);
+                SANDBOX_INIT_PROP_BIND(window_class, ox);
+                SANDBOX_INIT_PROP_BIND(window_class, oy);
+                SANDBOX_INIT_PROP_BIND(window_class, z);
+                SANDBOX_INIT_PROP_BIND(window_class, opacity);
+                SANDBOX_INIT_PROP_BIND(window_class, back_opacity);
+                SANDBOX_INIT_PROP_BIND(window_class, contents_opacity);
             }
         }
     )

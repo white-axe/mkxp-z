@@ -116,113 +116,12 @@ namespace mkxp_sandbox {
             return SANDBOX_NIL;
         }
 
-        static VALUE get_rect(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "rect");
-        }
-
-        static VALUE set_rect(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Viewport>(self)->setRect(*get_private_data<Rect>(value)));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_color(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "color");
-        }
-
-        static VALUE set_color(VALUE self, VALUE value) {
-            GFX_GUARD_EXC(get_private_data<Viewport>(self)->setColor(*get_private_data<Color>(value)));
-            return value;
-        }
-
-        static VALUE get_tone(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "tone");
-        }
-
-        static VALUE set_tone(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Viewport>(self)->setTone(*get_private_data<Tone>(value)));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_ox(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Viewport>(self)->getOX());
-        }
-
-        static VALUE set_ox(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t ox;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(ox, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Viewport>(self)->setOX(ox));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_oy(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Viewport>(self)->getOY());
-        }
-
-        static VALUE set_oy(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t oy;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(oy, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Viewport>(self)->setOY(oy));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_z(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Viewport>(self)->getZ());
-        }
-
-        static VALUE set_z(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t z;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(z, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Viewport>(self)->setZ(z));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
+        SANDBOX_DEF_GFX_PROP_OBJ_VAL(Viewport, Rect, Rect, rect);
+        SANDBOX_DEF_GFX_PROP_OBJ_VAL(Viewport, Color, Color, color);
+        SANDBOX_DEF_GFX_PROP_OBJ_VAL(Viewport, Tone, Tone, tone);
+        SANDBOX_DEF_GFX_PROP_I(Viewport, OX, ox);
+        SANDBOX_DEF_GFX_PROP_I(Viewport, OY, oy);
+        SANDBOX_DEF_GFX_PROP_I(Viewport, Z, z);
 
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
@@ -234,18 +133,12 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, viewport_class, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
                 SANDBOX_AWAIT(rb_define_method, viewport_class, "flash", (VALUE (*)(ANYARGS))flash, 2);
                 SANDBOX_AWAIT(rb_define_method, viewport_class, "update", (VALUE (*)(ANYARGS))update, 0);
-                SANDBOX_AWAIT(rb_define_method, viewport_class, "rect", (VALUE (*)(ANYARGS))get_rect, 0);
-                SANDBOX_AWAIT(rb_define_method, viewport_class, "rect=", (VALUE (*)(ANYARGS))set_rect, 1);
-                SANDBOX_AWAIT(rb_define_method, viewport_class, "color", (VALUE (*)(ANYARGS))get_color, 0);
-                SANDBOX_AWAIT(rb_define_method, viewport_class, "color=", (VALUE (*)(ANYARGS))set_color, 1);
-                SANDBOX_AWAIT(rb_define_method, viewport_class, "tone", (VALUE (*)(ANYARGS))get_tone, 0);
-                SANDBOX_AWAIT(rb_define_method, viewport_class, "tone=", (VALUE (*)(ANYARGS))set_tone, 1);
-                SANDBOX_AWAIT(rb_define_method, viewport_class, "ox", (VALUE (*)(ANYARGS))get_ox, 0);
-                SANDBOX_AWAIT(rb_define_method, viewport_class, "ox=", (VALUE (*)(ANYARGS))set_ox, 1);
-                SANDBOX_AWAIT(rb_define_method, viewport_class, "oy", (VALUE (*)(ANYARGS))get_oy, 0);
-                SANDBOX_AWAIT(rb_define_method, viewport_class, "oy=", (VALUE (*)(ANYARGS))set_oy, 1);
-                SANDBOX_AWAIT(rb_define_method, viewport_class, "z", (VALUE (*)(ANYARGS))get_z, 0);
-                SANDBOX_AWAIT(rb_define_method, viewport_class, "z=", (VALUE (*)(ANYARGS))set_z, 1);
+                SANDBOX_INIT_PROP_BIND(viewport_class, rect);
+                SANDBOX_INIT_PROP_BIND(viewport_class, color);
+                SANDBOX_INIT_PROP_BIND(viewport_class, tone);
+                SANDBOX_INIT_PROP_BIND(viewport_class, ox);
+                SANDBOX_INIT_PROP_BIND(viewport_class, oy);
+                SANDBOX_INIT_PROP_BIND(viewport_class, z);
             }
         }
     )

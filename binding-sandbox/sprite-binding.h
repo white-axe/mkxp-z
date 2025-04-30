@@ -111,97 +111,12 @@ namespace mkxp_sandbox {
             return SANDBOX_NIL;
         }
 
-        static VALUE get_viewport(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "viewport");
-        }
-
-        static VALUE set_viewport(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Sprite>(self)->setViewport(get_private_data<Viewport>(value)));
-                        SANDBOX_AWAIT(rb_iv_set, self, "viewport", value);
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_bitmap(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "bitmap");
-        }
-
-        static VALUE set_bitmap(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Sprite>(self)->setBitmap(get_private_data<Bitmap>(value)));
-                        SANDBOX_AWAIT(rb_iv_set, self, "bitmap", value);
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_src_rect(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "src_rect");
-        }
-
-        static VALUE set_src_rect(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Sprite>(self)->setSrcRect(*get_private_data<Rect>(value)));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_color(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "color");
-        }
-
-        static VALUE set_color(VALUE self, VALUE value) {
-            GFX_GUARD_EXC(get_private_data<Sprite>(self)->setColor(*get_private_data<Color>(value)));
-            return value;
-        }
-
-        static VALUE get_tone(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "tone");
-        }
-
-        static VALUE set_tone(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Sprite>(self)->setTone(*get_private_data<Tone>(value)));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_visible(VALUE self) {
-            return get_private_data<Sprite>(self)->getVisible() ? SANDBOX_TRUE : SANDBOX_FALSE;
-        }
-
-        static VALUE set_visible(VALUE self, VALUE value) {
-            GFX_GUARD_EXC(get_private_data<Sprite>(self)->setVisible(value != SANDBOX_FALSE && value != SANDBOX_NIL));
-            return value;
-        }
+        SANDBOX_DEF_GFX_PROP_OBJ_REF(Sprite, Viewport, Viewport, viewport);
+        SANDBOX_DEF_GFX_PROP_OBJ_REF(Sprite, Bitmap, Bitmap, bitmap);
+        SANDBOX_DEF_GFX_PROP_OBJ_VAL(Sprite, Rect, SrcRect, src_rect);
+        SANDBOX_DEF_GFX_PROP_OBJ_VAL(Sprite, Color, Color, color);
+        SANDBOX_DEF_GFX_PROP_OBJ_VAL(Sprite, Tone, Tone, tone);
+        SANDBOX_DEF_GFX_PROP_B(Sprite, Visible, visible);
 
         static VALUE width(VALUE self) {
             return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getWidth());
@@ -211,266 +126,19 @@ namespace mkxp_sandbox {
             return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getHeight());
         }
 
-        static VALUE get_x(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getX());
-        }
-
-        static VALUE set_x(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t x;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(x, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Sprite>(self)->setX(x));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_y(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getY());
-        }
-
-        static VALUE set_y(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t y;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(y, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Sprite>(self)->setY(y));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_ox(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getOX());
-        }
-
-        static VALUE set_ox(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t ox;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(ox, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Sprite>(self)->setOX(ox));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_oy(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getOY());
-        }
-
-        static VALUE set_oy(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t oy;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(oy, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Sprite>(self)->setOY(oy));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_zoom_x(VALUE self) {
-            return sb()->bind<struct rb_float_new>()()(get_private_data<Sprite>(self)->getZoomX());
-        }
-
-        static VALUE set_zoom_x(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    float zoom_x;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(zoom_x, rb_num2dbl, value);
-                        GFX_GUARD_EXC(get_private_data<Sprite>(self)->setZoomX(zoom_x));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_zoom_y(VALUE self) {
-            return sb()->bind<struct rb_float_new>()()(get_private_data<Sprite>(self)->getZoomY());
-        }
-
-        static VALUE set_zoom_y(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    float zoom_y;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(zoom_y, rb_num2dbl, value);
-                        GFX_GUARD_EXC(get_private_data<Sprite>(self)->setZoomY(zoom_y));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_z(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getZ());
-        }
-
-        static VALUE set_z(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t z;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(z, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Sprite>(self)->setZ(z));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_angle(VALUE self) {
-            return sb()->bind<struct rb_float_new>()()(get_private_data<Sprite>(self)->getAngle());
-        }
-
-        static VALUE set_angle(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    float angle;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(angle, rb_num2dbl, value);
-                        GFX_GUARD_EXC(get_private_data<Sprite>(self)->setAngle(angle));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_mirror(VALUE self) {
-            return SANDBOX_BOOL_TO_VALUE(get_private_data<Sprite>(self)->getMirror());
-        }
-
-        static VALUE set_mirror(VALUE self, VALUE value) {
-            get_private_data<Sprite>(self)->setMirror(SANDBOX_VALUE_TO_BOOL(value));
-            return value;
-        }
-
-        static VALUE get_bush_depth(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getBushDepth());
-        }
-
-        static VALUE set_bush_depth(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t bush_depth;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(bush_depth, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Sprite>(self)->setBushDepth(bush_depth));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_bush_opacity(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getBushOpacity());
-        }
-
-        static VALUE set_bush_opacity(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t bush_opacity;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(bush_opacity, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Sprite>(self)->setBushOpacity(bush_opacity));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_opacity(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getOpacity());
-        }
-
-        static VALUE set_opacity(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t opacity;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(opacity, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Sprite>(self)->setOpacity(opacity));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_blend_type(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getBlendType());
-        }
-
-        static VALUE set_blend_type(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t blend_type;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(blend_type, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Sprite>(self)->setBlendType(blend_type));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
+        SANDBOX_DEF_GFX_PROP_I(Sprite, X, x);
+        SANDBOX_DEF_GFX_PROP_I(Sprite, Y, y);
+        SANDBOX_DEF_GFX_PROP_I(Sprite, OX, ox);
+        SANDBOX_DEF_GFX_PROP_I(Sprite, OY, oy);
+        SANDBOX_DEF_GFX_PROP_F(Sprite, ZoomX, zoom_x);
+        SANDBOX_DEF_GFX_PROP_F(Sprite, ZoomY, zoom_y);
+        SANDBOX_DEF_GFX_PROP_I(Sprite, Z, z);
+        SANDBOX_DEF_GFX_PROP_F(Sprite, Angle, angle);
+        SANDBOX_DEF_GFX_PROP_B(Sprite, Mirror, mirror);
+        SANDBOX_DEF_GFX_PROP_I(Sprite, BushDepth, bush_depth);
+        SANDBOX_DEF_GFX_PROP_I(Sprite, BushOpacity, bush_opacity);
+        SANDBOX_DEF_GFX_PROP_I(Sprite, Opacity, opacity);
+        SANDBOX_DEF_GFX_PROP_I(Sprite, BlendType, blend_type);
 
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
@@ -482,46 +150,27 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, sprite_class, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
                 SANDBOX_AWAIT(rb_define_method, sprite_class, "flash", (VALUE (*)(ANYARGS))flash, 2);
                 SANDBOX_AWAIT(rb_define_method, sprite_class, "update", (VALUE (*)(ANYARGS))update, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "viewport", (VALUE (*)(ANYARGS))get_viewport, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "viewport=", (VALUE (*)(ANYARGS))set_viewport, 1);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "bitmap", (VALUE (*)(ANYARGS))get_bitmap, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "bitmap=", (VALUE (*)(ANYARGS))set_bitmap, 1);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "src_rect", (VALUE (*)(ANYARGS))get_src_rect, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "src_rect=", (VALUE (*)(ANYARGS))set_src_rect, 1);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "color", (VALUE (*)(ANYARGS))get_color, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "color=", (VALUE (*)(ANYARGS))set_color, 1);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "tone", (VALUE (*)(ANYARGS))get_tone, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "tone=", (VALUE (*)(ANYARGS))set_tone, 1);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "visible", (VALUE (*)(ANYARGS))get_visible, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "visible=", (VALUE (*)(ANYARGS))set_visible, 1);
+                SANDBOX_INIT_PROP_BIND(sprite_class, viewport);
+                SANDBOX_INIT_PROP_BIND(sprite_class, bitmap);
+                SANDBOX_INIT_PROP_BIND(sprite_class, src_rect);
+                SANDBOX_INIT_PROP_BIND(sprite_class, color);
+                SANDBOX_INIT_PROP_BIND(sprite_class, tone);
+                SANDBOX_INIT_PROP_BIND(sprite_class, visible);
                 SANDBOX_AWAIT(rb_define_method, sprite_class, "width", (VALUE (*)(ANYARGS))width, 0);
                 SANDBOX_AWAIT(rb_define_method, sprite_class, "height", (VALUE (*)(ANYARGS))height, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "x", (VALUE (*)(ANYARGS))get_x, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "x=", (VALUE (*)(ANYARGS))set_x, 1);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "y", (VALUE (*)(ANYARGS))get_y, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "y=", (VALUE (*)(ANYARGS))set_y, 1);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "ox", (VALUE (*)(ANYARGS))get_ox, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "ox=", (VALUE (*)(ANYARGS))set_ox, 1);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "oy", (VALUE (*)(ANYARGS))get_oy, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "oy=", (VALUE (*)(ANYARGS))set_oy, 1);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "zoom_x", (VALUE (*)(ANYARGS))get_zoom_x, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "zoom_x=", (VALUE (*)(ANYARGS))set_zoom_x, 1);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "zoom_y", (VALUE (*)(ANYARGS))get_zoom_y, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "zoom_y=", (VALUE (*)(ANYARGS))set_zoom_y, 1);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "z", (VALUE (*)(ANYARGS))get_z, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "z=", (VALUE (*)(ANYARGS))set_z, 1);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "angle", (VALUE (*)(ANYARGS))get_angle, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "angle=", (VALUE (*)(ANYARGS))set_angle, 1);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "mirror", (VALUE (*)(ANYARGS))get_mirror, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "mirror=", (VALUE (*)(ANYARGS))set_mirror, 1);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "bush_depth", (VALUE (*)(ANYARGS))get_bush_depth, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "bush_depth=", (VALUE (*)(ANYARGS))set_bush_depth, 1);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "bush_opacity", (VALUE (*)(ANYARGS))get_bush_opacity, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "bush_opacity=", (VALUE (*)(ANYARGS))set_bush_opacity, 1);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "opacity", (VALUE (*)(ANYARGS))get_opacity, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "opacity=", (VALUE (*)(ANYARGS))set_opacity, 1);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "blend_type", (VALUE (*)(ANYARGS))get_blend_type, 0);
-                SANDBOX_AWAIT(rb_define_method, sprite_class, "blend_type=", (VALUE (*)(ANYARGS))set_blend_type, 1);
+                SANDBOX_INIT_PROP_BIND(sprite_class, x);
+                SANDBOX_INIT_PROP_BIND(sprite_class, y);
+                SANDBOX_INIT_PROP_BIND(sprite_class, ox);
+                SANDBOX_INIT_PROP_BIND(sprite_class, oy);
+                SANDBOX_INIT_PROP_BIND(sprite_class, zoom_x);
+                SANDBOX_INIT_PROP_BIND(sprite_class, zoom_y);
+                SANDBOX_INIT_PROP_BIND(sprite_class, z);
+                SANDBOX_INIT_PROP_BIND(sprite_class, angle);
+                SANDBOX_INIT_PROP_BIND(sprite_class, mirror);
+                SANDBOX_INIT_PROP_BIND(sprite_class, bush_depth);
+                SANDBOX_INIT_PROP_BIND(sprite_class, bush_opacity);
+                SANDBOX_INIT_PROP_BIND(sprite_class, opacity);
+                SANDBOX_INIT_PROP_BIND(sprite_class, blend_type);
             }
         }
     )

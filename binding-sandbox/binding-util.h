@@ -25,7 +25,7 @@
 #include "core.h"
 #include "sandbox.h"
 
-#define GFX_GUARD_EXC(exp) exp // TODO: implement
+#define GFX_GUARD_EXC(exp) exp
 
 #define SANDBOX_DEF_ALLOC(rbtype) \
     static VALUE alloc(VALUE _klass) { \
@@ -65,17 +65,296 @@
 #define SANDBOX_DEF_LOAD(T) \
     static VALUE load(VALUE _self, VALUE _serialized) { \
         SANDBOX_COROUTINE(load, \
-            struct mkxp_sandbox::_load::load_struct _data; \
+            VALUE _obj; \
+            wasm_ptr_t _ptr; \
+            wasm_size_t _len; \
             VALUE operator()(VALUE _self, VALUE _serialized) { \
                 BOOST_ASIO_CORO_REENTER (this) { \
-                    SANDBOX_AWAIT_AND_SET(_data, mkxp_sandbox::_load::load_inner, _self, _serialized); \
-                    set_private_data(_data.obj, T::deserialize((const char *)(**mkxp_sandbox::sb() + _data.ptr), _data.len)); /* TODO: free when sandbox is deallocated */ \
+                    SANDBOX_AWAIT_AND_SET(_obj, rb_obj_alloc, _self); \
+                    SANDBOX_AWAIT_AND_SET(_ptr, rb_string_value_ptr, &_serialized); \
+                    SANDBOX_AWAIT_AND_SET(_len, get_bytesize, _serialized); \
+                    set_private_data(_obj, T::deserialize((const char *)(**mkxp_sandbox::sb() + _ptr), _len)); /* TODO: free when sandbox is deallocated */ \
                 } \
-                return _data.obj; \
+                return _obj; \
             } \
         ) \
         return mkxp_sandbox::sb()->bind<struct load>()()(_self, _serialized); \
     }
+
+#define SANDBOX_DEF_CLASS_PROP_B(S, prop, name) \
+    static VALUE get_##name(VALUE self) { \
+        return SANDBOX_BOOL_TO_VALUE(S::get##prop()); \
+    } \
+    static VALUE set_##name(VALUE self, VALUE value) { \
+        bool v = SANDBOX_VALUE_TO_BOOL(value); \
+        S::set##prop(v); \
+        return value; \
+    }
+
+#define SANDBOX_DEF_CLASS_PROP(V, num2val, val2num, S, prop, name) \
+    static VALUE get_##name(VALUE self) { \
+        return mkxp_sandbox::sb()->bind<struct num2val>()()(S::get##prop()); \
+    } \
+    static VALUE set_##name(VALUE self, VALUE value) { \
+        SANDBOX_COROUTINE(coro, \
+            VALUE operator()(VALUE self, VALUE value) { \
+                V v; \
+                BOOST_ASIO_CORO_REENTER (this) { \
+                    SANDBOX_AWAIT_AND_SET(v, val2num, value); \
+                    S::set##prop(v); \
+                } \
+                return value; \
+            } \
+        ) \
+        return mkxp_sandbox::sb()->bind<struct coro>()()(self, value); \
+    }
+
+#define SANDBOX_DEF_CLASS_PROP_I(S, prop, name) SANDBOX_DEF_CLASS_PROP(int32_t, rb_ll2inum, rb_num2int, S, prop, name)
+#define SANDBOX_DEF_CLASS_PROP_F(S, prop, name) SANDBOX_DEF_CLASS_PROP(float, rb_float_new, rb_num2dbl, S, prop, name)
+#define SANDBOX_DEF_CLASS_PROP_D(S, prop, name) SANDBOX_DEF_CLASS_PROP(double, rb_float_new, rb_num2dbl, S, prop, name)
+
+#define SANDBOX_DEF_CLASS_PROP_OBJ_REF(S, V, prop, name) \
+    static VALUE get_##name(VALUE self) { \
+        return mkxp_sandbox::sb()->bind<struct rb_iv_get>()()(self, #name); \
+    } \
+    static VALUE set_##name(VALUE self, VALUE value) { \
+        SANDBOX_COROUTINE(coro, \
+            VALUE operator()(VALUE self, VALUE value) { \
+                BOOST_ASIO_CORO_REENTER (this) { \
+                    { \
+                        V *v = value == SANDBOX_NIL ? nullptr : get_private_data<V>(value); \
+                        S::set##prop(v); \
+                    } \
+                    SANDBOX_AWAIT(rb_iv_set, self, #name, value); \
+                } \
+                return value; \
+            } \
+        ) \
+        return mkxp_sandbox::sb()->bind<struct coro>()()(self, value); \
+    }
+
+#define SANDBOX_DEF_CLASS_PROP_OBJ_VAL(S, V, prop, name) \
+    static VALUE get_##name(VALUE self) { \
+        return mkxp_sandbox::sb()->bind<struct rb_iv_get>()()(self, #name); \
+    } \
+    static VALUE set_##name(VALUE self, VALUE value) { \
+        V *v = get_private_data<V>(value); \
+        S::set##prop(*v); \
+        return value; \
+    }
+
+#define SANDBOX_DEF_PROP_B(S, prop, name) \
+    static VALUE get_##name(VALUE self) { \
+        S *s = get_private_data<S>(self); \
+        return SANDBOX_BOOL_TO_VALUE(s->get##prop()); \
+    } \
+    static VALUE set_##name(VALUE self, VALUE value) { \
+        S *s = get_private_data<S>(self); \
+        bool v = SANDBOX_VALUE_TO_BOOL(value); \
+        s->set##prop(v); \
+        return value; \
+    }
+
+#define SANDBOX_DEF_PROP(V, num2val, val2num, S, prop, name) \
+    static VALUE get_##name(VALUE self) { \
+        return mkxp_sandbox::sb()->bind<struct num2val>()()(get_private_data<S>(self)->get##prop()); \
+    } \
+    static VALUE set_##name(VALUE self, VALUE value) { \
+        SANDBOX_COROUTINE(coro, \
+            VALUE operator()(VALUE self, VALUE value) { \
+                V v; \
+                BOOST_ASIO_CORO_REENTER (this) { \
+                    SANDBOX_AWAIT_AND_SET(v, val2num, value); \
+                    S *s = get_private_data<S>(self); \
+                    s->set##prop(v); \
+                } \
+                return value; \
+            } \
+        ) \
+        return mkxp_sandbox::sb()->bind<struct coro>()()(self, value); \
+    }
+
+#define SANDBOX_DEF_PROP_I(S, prop, name) SANDBOX_DEF_PROP(int32_t, rb_ll2inum, rb_num2int, S, prop, name)
+#define SANDBOX_DEF_PROP_F(S, prop, name) SANDBOX_DEF_PROP(float, rb_float_new, rb_num2dbl, S, prop, name)
+#define SANDBOX_DEF_PROP_D(S, prop, name) SANDBOX_DEF_PROP(double, rb_float_new, rb_num2dbl, S, prop, name)
+
+#define SANDBOX_DEF_PROP_OBJ_REF(S, V, prop, name) \
+    static VALUE get_##name(VALUE self) { \
+        return mkxp_sandbox::sb()->bind<struct rb_iv_get>()()(self, #name); \
+    } \
+    static VALUE set_##name(VALUE self, VALUE value) { \
+        SANDBOX_COROUTINE(coro, \
+            VALUE operator()(VALUE self, VALUE value) { \
+                BOOST_ASIO_CORO_REENTER (this) { \
+                    { \
+                        S *s = get_private_data<S>(self); \
+                        V *v = value == SANDBOX_NIL ? nullptr : get_private_data<V>(value); \
+                        s->set##prop(v); \
+                    } \
+                    SANDBOX_AWAIT(rb_iv_set, self, #name, value); \
+                } \
+                return value; \
+            } \
+        ) \
+        return mkxp_sandbox::sb()->bind<struct coro>()()(self, value); \
+    }
+
+#define SANDBOX_DEF_PROP_OBJ_VAL(S, V, prop, name) \
+    static VALUE get_##name(VALUE self) { \
+        return mkxp_sandbox::sb()->bind<struct rb_iv_get>()()(self, #name); \
+    } \
+    static VALUE set_##name(VALUE self, VALUE value) { \
+        S *s = get_private_data<S>(self); \
+        V *v = get_private_data<V>(value); \
+        s->set##prop(*v); \
+        return value; \
+    }
+
+#define SANDBOX_DEF_GFX_PROP_B(S, prop, name) \
+    static VALUE get_##name(VALUE self) { \
+        S *s = get_private_data<S>(self); \
+        return SANDBOX_BOOL_TO_VALUE(s->get##prop()); \
+    } \
+    static VALUE set_##name(VALUE self, VALUE value) { \
+        S *s = get_private_data<S>(self); \
+        bool v = SANDBOX_VALUE_TO_BOOL(value); \
+        GFX_GUARD_EXC(s->set##prop(v);); \
+        return value; \
+    }
+
+#define SANDBOX_DEF_GFX_PROP(V, num2val, val2num, S, prop, name) \
+    static VALUE get_##name(VALUE self) { \
+        return mkxp_sandbox::sb()->bind<struct num2val>()()(get_private_data<S>(self)->get##prop()); \
+    } \
+    static VALUE set_##name(VALUE self, VALUE value) { \
+        SANDBOX_COROUTINE(coro, \
+            VALUE operator()(VALUE self, VALUE value) { \
+                V v; \
+                BOOST_ASIO_CORO_REENTER (this) { \
+                    SANDBOX_AWAIT_AND_SET(v, val2num, value); \
+                    S *s = get_private_data<S>(self); \
+                    GFX_GUARD_EXC(s->set##prop(v);); \
+                } \
+                return value; \
+            } \
+        ) \
+        return mkxp_sandbox::sb()->bind<struct coro>()()(self, value); \
+    }
+
+#define SANDBOX_DEF_GFX_PROP_I(S, prop, name) SANDBOX_DEF_GFX_PROP(int32_t, rb_ll2inum, rb_num2int, S, prop, name)
+#define SANDBOX_DEF_GFX_PROP_F(S, prop, name) SANDBOX_DEF_GFX_PROP(float, rb_float_new, rb_num2dbl, S, prop, name)
+#define SANDBOX_DEF_GFX_PROP_D(S, prop, name) SANDBOX_DEF_GFX_PROP(double, rb_float_new, rb_num2dbl, S, prop, name)
+
+#define SANDBOX_DEF_GFX_PROP_OBJ_REF(S, V, prop, name) \
+    static VALUE get_##name(VALUE self) { \
+        return mkxp_sandbox::sb()->bind<struct rb_iv_get>()()(self, #name); \
+    } \
+    static VALUE set_##name(VALUE self, VALUE value) { \
+        SANDBOX_COROUTINE(coro, \
+            VALUE operator()(VALUE self, VALUE value) { \
+                BOOST_ASIO_CORO_REENTER (this) { \
+                    { \
+                        S *s = get_private_data<S>(self); \
+                        V *v = value == SANDBOX_NIL ? nullptr : get_private_data<V>(value); \
+                        GFX_GUARD_EXC(s->set##prop(v);); \
+                    } \
+                    SANDBOX_AWAIT(rb_iv_set, self, #name, value); \
+                } \
+                return value; \
+            } \
+        ) \
+        return mkxp_sandbox::sb()->bind<struct coro>()()(self, value); \
+    }
+
+#define SANDBOX_DEF_GFX_PROP_OBJ_VAL(S, V, prop, name) \
+    static VALUE get_##name(VALUE self) { \
+        return mkxp_sandbox::sb()->bind<struct rb_iv_get>()()(self, #name); \
+    } \
+    static VALUE set_##name(VALUE self, VALUE value) { \
+        S *s = get_private_data<S>(self); \
+        V *v = get_private_data<V>(value); \
+        GFX_GUARD_EXC(s->set##prop(*v);); \
+        return value; \
+    }
+
+#define SANDBOX_DEF_GRA_PROP_B(prop, name) \
+    static VALUE get_##name(VALUE self) { \
+        return SANDBOX_BOOL_TO_VALUE(shState->graphics().get##prop()); \
+    } \
+    static VALUE set_##name(VALUE self, VALUE value) { \
+        bool v = SANDBOX_VALUE_TO_BOOL(value); \
+        GFX_LOCK; \
+        shState->graphics().set##prop(v); \
+        GFX_UNLOCK; \
+        return value; \
+    }
+
+#define SANDBOX_DEF_GRA_PROP(V, num2val, val2num, prop, name) \
+    static VALUE get_##name(VALUE self) { \
+        return mkxp_sandbox::sb()->bind<struct num2val>()()(shState->graphics().get##prop()); \
+    } \
+    static VALUE set_##name(VALUE self, VALUE value) { \
+        SANDBOX_COROUTINE(coro, \
+            VALUE operator()(VALUE self, VALUE value) { \
+                V v; \
+                BOOST_ASIO_CORO_REENTER (this) { \
+                    SANDBOX_AWAIT_AND_SET(v, val2num, value); \
+                    GFX_LOCK; \
+                    shState->graphics().set##prop(v); \
+                    GFX_UNLOCK; \
+                } \
+                return value; \
+            } \
+        ) \
+        return mkxp_sandbox::sb()->bind<struct coro>()()(self, value); \
+    }
+
+#define SANDBOX_DEF_GRA_PROP_I(prop, name) SANDBOX_DEF_GRA_PROP(int32_t, rb_ll2inum, rb_num2int, prop, name)
+#define SANDBOX_DEF_GRA_PROP_F(prop, name) SANDBOX_DEF_GRA_PROP(float, rb_float_new, rb_num2dbl, prop, name)
+#define SANDBOX_DEF_GRA_PROP_D(prop, name) SANDBOX_DEF_GRA_PROP(double, rb_float_new, rb_num2dbl, prop, name)
+
+#define SANDBOX_DEF_GRA_PROP_OBJ_REF(V, prop, name) \
+    static VALUE get_##name(VALUE self) { \
+        return mkxp_sandbox::sb()->bind<struct rb_iv_get>()()(self, #name); \
+    } \
+    static VALUE set_##name(VALUE self, VALUE value) { \
+        SANDBOX_COROUTINE(coro, \
+            VALUE operator()(VALUE self, VALUE value) { \
+                BOOST_ASIO_CORO_REENTER (this) { \
+                    { \
+                        V *v = value == SANDBOX_NIL ? nullptr : get_private_data<V>(value); \
+                        GFX_LOCK; \
+                        shState->graphics().set##prop(v); \
+                        GFX_UNLOCK; \
+                    } \
+                    SANDBOX_AWAIT(rb_iv_set, self, #name, value); \
+                } \
+                return value; \
+            } \
+        ) \
+        return mkxp_sandbox::sb()->bind<struct coro>()()(self, value); \
+    }
+
+#define SANDBOX_DEF_GRA_PROP_OBJ_VAL(V, prop, name) \
+    static VALUE get_##name(VALUE self) { \
+        return mkxp_sandbox::sb()->bind<struct rb_iv_get>()()(self, #name); \
+    } \
+    static VALUE set_##name(VALUE self, VALUE value) { \
+        V *v = get_private_data<V>(value); \
+        GFX_LOCK; \
+        shState->graphics().set##prop(*v); \
+        GFX_UNLOCK; \
+        return value; \
+    }
+
+#define SANDBOX_INIT_FUNC_PROP_BIND(func, target, name) do { \
+    SANDBOX_AWAIT(func, target, #name, (VALUE (*)(ANYARGS))get_##name, 0); \
+    SANDBOX_AWAIT(func, target, #name "=", (VALUE (*)(ANYARGS))set_##name, 1); \
+} while (0)
+
+#define SANDBOX_INIT_PROP_BIND(klass, name) SANDBOX_INIT_FUNC_PROP_BIND(rb_define_method, klass, name)
+#define SANDBOX_INIT_SINGLETON_PROP_BIND(klass, name) SANDBOX_INIT_FUNC_PROP_BIND(rb_define_singleton_method, klass, name)
+#define SANDBOX_INIT_MODULE_PROP_BIND(module, name) SANDBOX_INIT_FUNC_PROP_BIND(rb_define_module_function, module, name)
 
 namespace mkxp_sandbox {
     // Given Ruby typed data `obj`, stores `ptr` into the private data field of `obj`.
@@ -133,29 +412,6 @@ namespace mkxp_sandbox {
             return obj;
         }
     )
-
-    namespace _load {
-        struct load_struct {
-            VALUE obj;
-            wasm_ptr_t ptr;
-            wasm_size_t len;
-        };
-
-        // Internal-use utility coroutine for the `SANDBOX_DEF_LOAD` macro.
-        SANDBOX_COROUTINE(load_inner,
-            struct load_struct data;
-
-            struct load_struct operator()(VALUE self, VALUE serialized) {
-                BOOST_ASIO_CORO_REENTER (this) {
-                    SANDBOX_AWAIT_AND_SET(data.obj, rb_obj_alloc, self);
-                    SANDBOX_AWAIT_AND_SET(data.ptr, rb_string_value_ptr, &serialized);
-                    SANDBOX_AWAIT_AND_SET(data.len, get_bytesize, serialized);
-                }
-
-                return data;
-            }
-        )
-    }
 
     // Prints the backtrace of a Ruby exception to the log.
     SANDBOX_COROUTINE(log_backtrace,

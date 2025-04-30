@@ -191,201 +191,17 @@ namespace mkxp_sandbox {
             return sb()->bind<struct rb_iv_get>()()(self, "autotiles");
         }
 
-        static VALUE get_tileset(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "tileset");
-        }
-
-        static VALUE set_tileset(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Tilemap>(self)->setTileset(get_private_data<Bitmap>(value)));
-                        SANDBOX_AWAIT(rb_iv_set, self, "tileset", value);
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_map_data(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "map_data");
-        }
-
-        static VALUE set_map_data(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Tilemap>(self)->setMapData(get_private_data<Table>(value)));
-                        SANDBOX_AWAIT(rb_iv_set, self, "map_data", value);
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_flash_data(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "flash_data");
-        }
-
-        static VALUE set_flash_data(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Tilemap>(self)->setFlashData(get_private_data<Table>(value)));
-                        SANDBOX_AWAIT(rb_iv_set, self, "flash_data", value);
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_priorities(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "priorities");
-        }
-
-        static VALUE set_priorities(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Tilemap>(self)->setPriorities(get_private_data<Table>(value)));
-                        SANDBOX_AWAIT(rb_iv_set, self, "priorities", value);
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_color(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "color");
-        }
-
-        static VALUE set_color(VALUE self, VALUE value) {
-            GFX_GUARD_EXC(get_private_data<Tilemap>(self)->setColor(*get_private_data<Color>(value)));
-            return value;
-        }
-
-        static VALUE get_tone(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "tone");
-        }
-
-        static VALUE set_tone(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Tilemap>(self)->setTone(*get_private_data<Tone>(value)));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_visible(VALUE self) {
-            return get_private_data<Tilemap>(self)->getVisible() ? SANDBOX_TRUE : SANDBOX_FALSE;
-        }
-
-        static VALUE set_visible(VALUE self, VALUE value) {
-            GFX_GUARD_EXC(get_private_data<Tilemap>(self)->setVisible(value != SANDBOX_FALSE && value != SANDBOX_NIL));
-            return value;
-        }
-
-        static VALUE get_ox(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Tilemap>(self)->getOX());
-        }
-
-        static VALUE set_ox(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t ox;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(ox, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Tilemap>(self)->setOX(ox));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_oy(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Tilemap>(self)->getOY());
-        }
-
-        static VALUE set_oy(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t oy;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(oy, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Tilemap>(self)->setOY(oy));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_opacity(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Tilemap>(self)->getOpacity());
-        }
-
-        static VALUE set_opacity(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t opacity;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(opacity, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Tilemap>(self)->setOpacity(opacity));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_blend_type(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(get_private_data<Tilemap>(self)->getBlendType());
-        }
-
-        static VALUE set_blend_type(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    int32_t blend_type;
-
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(blend_type, rb_num2int, value);
-                        GFX_GUARD_EXC(get_private_data<Tilemap>(self)->setBlendType(blend_type));
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
+        SANDBOX_DEF_GFX_PROP_OBJ_REF(Tilemap, Bitmap, Tileset, tileset);
+        SANDBOX_DEF_GFX_PROP_OBJ_REF(Tilemap, Table, MapData, map_data);
+        SANDBOX_DEF_GFX_PROP_OBJ_REF(Tilemap, Table, FlashData, flash_data);
+        SANDBOX_DEF_GFX_PROP_OBJ_REF(Tilemap, Table, Priorities, priorities);
+        SANDBOX_DEF_GFX_PROP_OBJ_VAL(Tilemap, Color, Color, color);
+        SANDBOX_DEF_GFX_PROP_OBJ_VAL(Tilemap, Tone, Tone, tone);
+        SANDBOX_DEF_GFX_PROP_B(Tilemap, Visible, visible);
+        SANDBOX_DEF_GFX_PROP_I(Tilemap, OX, ox);
+        SANDBOX_DEF_GFX_PROP_I(Tilemap, OY, oy);
+        SANDBOX_DEF_GFX_PROP_I(Tilemap, Opacity, opacity);
+        SANDBOX_DEF_GFX_PROP_I(Tilemap, BlendType, blend_type);
 
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
@@ -399,28 +215,17 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, tilemap_class, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
                 SANDBOX_AWAIT(rb_define_method, tilemap_class, "update", (VALUE (*)(ANYARGS))update, 0);
                 SANDBOX_AWAIT(rb_define_method, tilemap_class, "autotiles", (VALUE (*)(ANYARGS))autotiles, 0);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "tileset", (VALUE (*)(ANYARGS))get_tileset, 0);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "tileset=", (VALUE (*)(ANYARGS))set_tileset, 1);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "map_data", (VALUE (*)(ANYARGS))get_map_data, 0);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "map_data=", (VALUE (*)(ANYARGS))set_map_data, 1);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "flash_data", (VALUE (*)(ANYARGS))get_flash_data, 0);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "flash_data=", (VALUE (*)(ANYARGS))set_flash_data, 1);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "priorities", (VALUE (*)(ANYARGS))get_priorities, 0);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "priorities=", (VALUE (*)(ANYARGS))set_priorities, 1);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "color", (VALUE (*)(ANYARGS))get_color, 0);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "color=", (VALUE (*)(ANYARGS))set_color, 1);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "tone", (VALUE (*)(ANYARGS))get_tone, 0);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "tone=", (VALUE (*)(ANYARGS))set_tone, 1);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "visible", (VALUE (*)(ANYARGS))get_visible, 0);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "visible=", (VALUE (*)(ANYARGS))set_visible, 1);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "ox", (VALUE (*)(ANYARGS))get_ox, 0);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "ox=", (VALUE (*)(ANYARGS))set_ox, 1);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "oy", (VALUE (*)(ANYARGS))get_oy, 0);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "oy=", (VALUE (*)(ANYARGS))set_oy, 1);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "opacity", (VALUE (*)(ANYARGS))get_opacity, 0);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "opacity=", (VALUE (*)(ANYARGS))set_opacity, 1);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "blend_type", (VALUE (*)(ANYARGS))get_blend_type, 0);
-                SANDBOX_AWAIT(rb_define_method, tilemap_class, "blend_type=", (VALUE (*)(ANYARGS))set_blend_type, 1);
+                SANDBOX_INIT_PROP_BIND(tilemap_class, tileset);
+                SANDBOX_INIT_PROP_BIND(tilemap_class, map_data);
+                SANDBOX_INIT_PROP_BIND(tilemap_class, flash_data);
+                SANDBOX_INIT_PROP_BIND(tilemap_class, priorities);
+                SANDBOX_INIT_PROP_BIND(tilemap_class, color);
+                SANDBOX_INIT_PROP_BIND(tilemap_class, tone);
+                SANDBOX_INIT_PROP_BIND(tilemap_class, visible);
+                SANDBOX_INIT_PROP_BIND(tilemap_class, ox);
+                SANDBOX_INIT_PROP_BIND(tilemap_class, oy);
+                SANDBOX_INIT_PROP_BIND(tilemap_class, opacity);
+                SANDBOX_INIT_PROP_BIND(tilemap_class, blend_type);
             }
         }
     )

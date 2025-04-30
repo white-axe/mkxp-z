@@ -140,6 +140,8 @@ public:
     void stop();
     void play();
     bool isPlaying() const;
+    bool getPlaying() const;
+    void setPlaying(bool playing);
     void gotoAndStop(int frame);
     void gotoAndPlay(int frame);
     int numFrames() const;

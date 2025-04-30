@@ -159,51 +159,8 @@ namespace mkxp_sandbox {
             return SANDBOX_NIL;
         }
 
-        static VALUE get_frame_count(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(shState->graphics().getFrameCount());
-        }
-
-        static VALUE set_frame_count(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                int frame_count;
-
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(frame_count, rb_num2int, value);
-                        GFX_LOCK;
-                        shState->graphics().setFrameCount(frame_count);
-                        GFX_UNLOCK;
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_frame_rate(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(shState->graphics().getFrameRate());
-        }
-
-        static VALUE set_frame_rate(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                int frame_rate;
-
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(frame_rate, rb_num2int, value);
-                        GFX_LOCK;
-                        shState->graphics().setFrameRate(frame_rate);
-                        GFX_UNLOCK;
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
+        SANDBOX_DEF_GRA_PROP_I(FrameCount, frame_count);
+        SANDBOX_DEF_GRA_PROP_I(FrameRate, frame_rate);
 
         static VALUE average_frame_rate(VALUE self) {
             return sb()->bind<struct rb_float_new>()()(shState->graphics().averageFrameRate());
@@ -367,28 +324,7 @@ namespace mkxp_sandbox {
             return SANDBOX_NIL;
         }
 
-        static VALUE get_brightness(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(shState->graphics().getBrightness());
-        }
-
-        static VALUE set_brightness(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                int32_t brightness;
-
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(brightness, rb_num2int, value);
-                        GFX_LOCK;
-                        shState->graphics().setBrightness(brightness);
-                        GFX_UNLOCK;
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
+        SANDBOX_DEF_GRA_PROP_I(Brightness, brightness);
 
         static VALUE play_movie(int32_t argc, wasm_ptr_t argv, VALUE self) {
             SANDBOX_COROUTINE(coro,
@@ -416,128 +352,15 @@ namespace mkxp_sandbox {
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
-        static VALUE get_fullscreen(VALUE self) {
-            return SANDBOX_BOOL_TO_VALUE(shState->graphics().getFullscreen());
-        }
-
-        static VALUE set_fullscreen(VALUE self, VALUE value) {
-            GFX_LOCK;
-            shState->graphics().setFullscreen(SANDBOX_VALUE_TO_BOOL(value));
-            GFX_UNLOCK;
-            return value;
-        }
-
-        static VALUE get_show_cursor(VALUE self) {
-            return SANDBOX_BOOL_TO_VALUE(shState->graphics().getShowCursor());
-        }
-
-        static VALUE set_show_cursor(VALUE self, VALUE value) {
-            GFX_LOCK;
-            shState->graphics().setShowCursor(SANDBOX_VALUE_TO_BOOL(value));
-            GFX_UNLOCK;
-            return value;
-        }
-
-        static VALUE get_scale(VALUE self) {
-            return sb()->bind<struct rb_float_new>()()(shState->graphics().getScale());
-        }
-
-        static VALUE set_scale(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                double scale;
-
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(scale, rb_num2dbl, value);
-                        GFX_LOCK;
-                        shState->graphics().setScale(scale);
-                        GFX_UNLOCK;
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_frameskip(VALUE self) {
-            return SANDBOX_BOOL_TO_VALUE(shState->graphics().getFrameskip());
-        }
-
-        static VALUE set_frameskip(VALUE self, VALUE value) {
-            GFX_LOCK;
-            shState->graphics().setFrameskip(SANDBOX_VALUE_TO_BOOL(value));
-            GFX_UNLOCK;
-            return value;
-        }
-
-        static VALUE get_fixed_aspect_ratio(VALUE self) {
-            return SANDBOX_BOOL_TO_VALUE(shState->graphics().getFixedAspectRatio());
-        }
-
-        static VALUE set_fixed_aspect_ratio(VALUE self, VALUE value) {
-            GFX_LOCK;
-            shState->graphics().setFixedAspectRatio(SANDBOX_VALUE_TO_BOOL(value));
-            GFX_UNLOCK;
-            return value;
-        }
-
-        static VALUE get_smooth_scaling(VALUE self) {
-            return sb()->bind<struct rb_ll2inum>()()(shState->graphics().getSmoothScaling());
-        }
-
-        static VALUE set_smooth_scaling(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                int32_t smooth_scaling;
-
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(smooth_scaling, rb_num2int, value);
-                        GFX_LOCK;
-                        shState->graphics().setSmoothScaling(smooth_scaling);
-                        GFX_UNLOCK;
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_integer_scaling(VALUE self) {
-            return SANDBOX_BOOL_TO_VALUE(shState->graphics().getIntegerScaling());
-        }
-
-        static VALUE set_integer_scaling(VALUE self, VALUE value) {
-            GFX_LOCK;
-            shState->graphics().setIntegerScaling(SANDBOX_VALUE_TO_BOOL(value));
-            GFX_UNLOCK;
-            return value;
-        }
-
-        static VALUE get_last_mile_scaling(VALUE self) {
-            return SANDBOX_BOOL_TO_VALUE(shState->graphics().getLastMileScaling());
-        }
-
-        static VALUE set_last_mile_scaling(VALUE self, VALUE value) {
-            GFX_LOCK;
-            shState->graphics().setLastMileScaling(SANDBOX_VALUE_TO_BOOL(value));
-            GFX_UNLOCK;
-            return value;
-        }
-
-        static VALUE get_threadsafe(VALUE self) {
-            return SANDBOX_BOOL_TO_VALUE(shState->graphics().getThreadsafe());
-        }
-
-        static VALUE set_threadsafe(VALUE self, VALUE value) {
-            GFX_LOCK;
-            shState->graphics().setThreadsafe(SANDBOX_VALUE_TO_BOOL(value));
-            GFX_UNLOCK;
-            return value;
-        }
+        SANDBOX_DEF_GRA_PROP_B(Fullscreen, fullscreen);
+        SANDBOX_DEF_GRA_PROP_B(ShowCursor, show_cursor);
+        SANDBOX_DEF_GRA_PROP_D(Scale, scale);
+        SANDBOX_DEF_GRA_PROP_B(Frameskip, frameskip);
+        SANDBOX_DEF_GRA_PROP_B(FixedAspectRatio, fixed_aspect_ratio);
+        SANDBOX_DEF_GRA_PROP_B(SmoothScaling, smooth_scaling);
+        SANDBOX_DEF_GRA_PROP_B(IntegerScaling, integer_scaling);
+        SANDBOX_DEF_GRA_PROP_B(LastMileScaling, last_mile_scaling);
+        SANDBOX_DEF_GRA_PROP_B(Threadsafe, threadsafe);
 
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
@@ -551,10 +374,8 @@ namespace mkxp_sandbox {
 
                 SANDBOX_AWAIT(rb_define_module_function, graphics_module, "__reset__", (VALUE (*)(ANYARGS))reset, 0);
 
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "frame_count", (VALUE (*)(ANYARGS))get_frame_count, 0);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "frame_count=", (VALUE (*)(ANYARGS))set_frame_count, 1);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "frame_rate", (VALUE (*)(ANYARGS))get_frame_rate, 0);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "frame_rate=", (VALUE (*)(ANYARGS))set_frame_rate, 1);
+                SANDBOX_INIT_MODULE_PROP_BIND(graphics_module, frame_count);
+                SANDBOX_INIT_MODULE_PROP_BIND(graphics_module, frame_rate);
                 SANDBOX_AWAIT(rb_define_module_function, graphics_module, "average_frame_rate", (VALUE (*)(ANYARGS))average_frame_rate, 0);
 
                 SANDBOX_AWAIT(rb_define_module_function, graphics_module, "width", (VALUE (*)(ANYARGS))width, 0);
@@ -569,29 +390,19 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_module_function, graphics_module, "resize_window", (VALUE (*)(ANYARGS))resize_window, -1);
                 SANDBOX_AWAIT(rb_define_module_function, graphics_module, "center", (VALUE (*)(ANYARGS))center, 0);
 
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "brightness", (VALUE (*)(ANYARGS))get_brightness, 0);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "brightness=", (VALUE (*)(ANYARGS))set_brightness, 1);
+                SANDBOX_INIT_MODULE_PROP_BIND(graphics_module, brightness);
 
                 SANDBOX_AWAIT(rb_define_module_function, graphics_module, "play_movie", (VALUE (*)(ANYARGS))play_movie, -1);
 
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "fullscreen", (VALUE (*)(ANYARGS))get_fullscreen, 0);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "fullscreen=", (VALUE (*)(ANYARGS))set_fullscreen, 1);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "show_cursor", (VALUE (*)(ANYARGS))get_show_cursor, 0);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "show_cursor=", (VALUE (*)(ANYARGS))set_show_cursor, 1);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "scale", (VALUE (*)(ANYARGS))get_scale, 0);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "scale=", (VALUE (*)(ANYARGS))set_scale, 1);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "frameskip", (VALUE (*)(ANYARGS))get_frameskip, 0);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "frameskip=", (VALUE (*)(ANYARGS))set_frameskip, 1);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "fixed_aspect_ratio", (VALUE (*)(ANYARGS))get_fixed_aspect_ratio, 0);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "fixed_aspect_ratio=", (VALUE (*)(ANYARGS))set_fixed_aspect_ratio, 1);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "smooth_scaling", (VALUE (*)(ANYARGS))get_smooth_scaling, 0);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "smooth_scaling=", (VALUE (*)(ANYARGS))set_smooth_scaling, 1);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "integer_scaling", (VALUE (*)(ANYARGS))get_integer_scaling, 0);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "integer_scaling=", (VALUE (*)(ANYARGS))set_integer_scaling, 1);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "last_mile_scaling", (VALUE (*)(ANYARGS))get_last_mile_scaling, 0);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "last_mile_scaling=", (VALUE (*)(ANYARGS))set_last_mile_scaling, 1);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "threadsafe", (VALUE (*)(ANYARGS))get_threadsafe, 0);
-                SANDBOX_AWAIT(rb_define_module_function, graphics_module, "threadsafe=", (VALUE (*)(ANYARGS))set_threadsafe, 1);
+                SANDBOX_INIT_MODULE_PROP_BIND(graphics_module, fullscreen);
+                SANDBOX_INIT_MODULE_PROP_BIND(graphics_module, show_cursor);
+                SANDBOX_INIT_MODULE_PROP_BIND(graphics_module, scale);
+                SANDBOX_INIT_MODULE_PROP_BIND(graphics_module, frameskip);
+                SANDBOX_INIT_MODULE_PROP_BIND(graphics_module, fixed_aspect_ratio);
+                SANDBOX_INIT_MODULE_PROP_BIND(graphics_module, smooth_scaling);
+                SANDBOX_INIT_MODULE_PROP_BIND(graphics_module, integer_scaling);
+                SANDBOX_INIT_MODULE_PROP_BIND(graphics_module, last_mile_scaling);
+                SANDBOX_INIT_MODULE_PROP_BIND(graphics_module, threadsafe);
             }
         }
     )

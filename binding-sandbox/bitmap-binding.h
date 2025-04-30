@@ -139,24 +139,7 @@ namespace mkxp_sandbox {
             return sb()->bind<struct rb_ull2inum>()()(get_private_data<Bitmap>(self)->height());
         }
 
-        static VALUE get_hires(VALUE self) {
-            return sb()->bind<struct rb_iv_get>()()(self, "hires");
-        }
-
-        static VALUE set_hires(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        GFX_GUARD_EXC(get_private_data<Bitmap>(self)->setHires(get_private_data<Bitmap>(value)));
-                        SANDBOX_AWAIT(rb_iv_set, self, "hires", value);
-                    }
-
-                    return value;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
+        SANDBOX_DEF_GFX_PROP_OBJ_REF(Bitmap, Bitmap, Hires, hires);
 
         static VALUE rect(VALUE self) {
             SANDBOX_COROUTINE(coro,
@@ -638,18 +621,7 @@ namespace mkxp_sandbox {
             return SANDBOX_BOOL_TO_VALUE(ret);
         }
 
-        static VALUE get_playing(VALUE self) {
-            Bitmap *bitmap = get_private_data<Bitmap>(self);
-            bool ret;
-            GFX_GUARD_EXC(ret = bitmap->isPlaying(););
-            return SANDBOX_BOOL_TO_VALUE(ret);
-        }
-
-        static VALUE set_playing(VALUE self, VALUE value) {
-            Bitmap *bitmap = get_private_data<Bitmap>(self);
-            GFX_GUARD_EXC(SANDBOX_VALUE_TO_BOOL(value) ? bitmap->play() : bitmap->stop(););
-            return SANDBOX_NIL;
-        }
+        SANDBOX_DEF_GFX_PROP_B(Bitmap, Playing, playing);
 
         static VALUE play(VALUE self) {
             Bitmap *bitmap = get_private_data<Bitmap>(self);
@@ -775,41 +747,8 @@ namespace mkxp_sandbox {
             return sb()->bind<struct rb_ll2inum>()()(b->currentFrameI());
         }
 
-        static VALUE get_frame_rate(VALUE self) {
-            Bitmap *b = get_private_data<Bitmap>(self);
-            float frame_rate;
-            GFX_GUARD_EXC(frame_rate = b->getAnimationFPS());
-            return sb()->bind<struct rb_float_new>()()(frame_rate);
-        }
-
-        static VALUE set_frame_rate(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
-                float frame_rate;
-
-                VALUE operator()(VALUE self, VALUE value) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(frame_rate, rb_num2dbl, value);
-                        Bitmap *bitmap = get_private_data<Bitmap>(self);
-                        GFX_GUARD_EXC(bitmap->setAnimationFPS(frame_rate););
-                    }
-
-                    return SANDBOX_NIL;
-                }
-            )
-
-            return sb()->bind<struct coro>()()(self, value);
-        }
-
-        static VALUE get_looping(VALUE self) {
-            Bitmap *bitmap = get_private_data<Bitmap>(self);
-            return SANDBOX_BOOL_TO_VALUE(bitmap->getLooping());
-        }
-
-        static VALUE set_looping(VALUE self, VALUE value) {
-            Bitmap *bitmap = get_private_data<Bitmap>(self);
-            GFX_GUARD_EXC(bitmap->setLooping(SANDBOX_VALUE_TO_BOOL(value)));
-            return value;
-        }
+        SANDBOX_DEF_GFX_PROP_F(Bitmap, AnimationFPS, frame_rate);
+        SANDBOX_DEF_GFX_PROP_B(Bitmap, Looping, looping);
 
         static VALUE get_font(VALUE self) {
             return sb()->bind<struct rb_iv_get>()()(self, "font");
@@ -869,8 +808,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "width", (VALUE (*)(ANYARGS))width, 0);
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "height", (VALUE (*)(ANYARGS))height, 0);
 
-                SANDBOX_AWAIT(rb_define_method, bitmap_class, "hires", (VALUE (*)(ANYARGS))get_hires, 0);
-                SANDBOX_AWAIT(rb_define_method, bitmap_class, "hires=", (VALUE (*)(ANYARGS))set_hires, 1);
+                SANDBOX_INIT_PROP_BIND(bitmap_class, hires);
 
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "rect", (VALUE (*)(ANYARGS))rect, 0);
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "blt", (VALUE (*)(ANYARGS))blt, -1);
@@ -883,8 +821,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "draw_text", (VALUE (*)(ANYARGS))draw_text, -1);
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "text_size", (VALUE (*)(ANYARGS))text_size, 1);
 
-                SANDBOX_AWAIT(rb_define_method, bitmap_class, "raw_data", (VALUE (*)(ANYARGS))get_raw_data, 0);
-                SANDBOX_AWAIT(rb_define_method, bitmap_class, "raw_data=", (VALUE (*)(ANYARGS))set_raw_data, 1);
+                SANDBOX_INIT_PROP_BIND(bitmap_class, raw_data);
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "to_file", (VALUE (*)(ANYARGS))to_file, 1);
 
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "gradient_fill_rect", (VALUE (*)(ANYARGS))gradient_fill_rect, -1);
@@ -896,8 +833,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_singleton_method, bitmap_class, "max_size", (VALUE (*)(ANYARGS))max_size, 0);
 
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "animated?", (VALUE (*)(ANYARGS))get_animated, 0);
-                SANDBOX_AWAIT(rb_define_method, bitmap_class, "playing", (VALUE (*)(ANYARGS))get_playing, 0);
-                SANDBOX_AWAIT(rb_define_method, bitmap_class, "playing=", (VALUE (*)(ANYARGS))set_playing, 1);
+                SANDBOX_INIT_PROP_BIND(bitmap_class, playing);
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "play", (VALUE (*)(ANYARGS))play, 0);
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "stop", (VALUE (*)(ANYARGS))stop, 0);
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "goto_and_play", (VALUE (*)(ANYARGS))goto_and_play, 1);
@@ -908,14 +844,11 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "remove_frame", (VALUE (*)(ANYARGS))remove_frame, -1);
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "next_frame", (VALUE (*)(ANYARGS))next_frame, 0);
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "previous_frame", (VALUE (*)(ANYARGS))previous_frame, 0);
-                SANDBOX_AWAIT(rb_define_method, bitmap_class, "frame_rate", (VALUE (*)(ANYARGS))get_frame_rate, 0);
-                SANDBOX_AWAIT(rb_define_method, bitmap_class, "frame_rate=", (VALUE (*)(ANYARGS))set_frame_rate, 1);
-                SANDBOX_AWAIT(rb_define_method, bitmap_class, "looping", (VALUE (*)(ANYARGS))get_looping, 0);
-                SANDBOX_AWAIT(rb_define_method, bitmap_class, "looping=", (VALUE (*)(ANYARGS))set_looping, 1);
+                SANDBOX_INIT_PROP_BIND(bitmap_class, frame_rate);
+                SANDBOX_INIT_PROP_BIND(bitmap_class, looping);
                 SANDBOX_AWAIT(rb_define_method, bitmap_class, "snap_to_bitmap", (VALUE (*)(ANYARGS))snap_to_bitmap, -1);
 
-                SANDBOX_AWAIT(rb_define_method, bitmap_class, "font", (VALUE (*)(ANYARGS))get_font, 0);
-                SANDBOX_AWAIT(rb_define_method, bitmap_class, "font=", (VALUE (*)(ANYARGS))set_font, 1);
+                SANDBOX_INIT_PROP_BIND(bitmap_class, font);
             }
         }
     )

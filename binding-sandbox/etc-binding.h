@@ -124,89 +124,10 @@ namespace mkxp_sandbox {
                 return sb()->bind<struct coro>()()(argc, argv, self);
             }
 
-            static VALUE get_red(VALUE self) {
-                return sb()->bind<struct rb_ll2inum>()()(get_private_data<Color>(self)->getRed());
-            }
-
-            static VALUE set_red(VALUE self, VALUE value) {
-                SANDBOX_COROUTINE(coro,
-                    int red;
-
-                    VALUE operator()(VALUE self, VALUE value) {
-                        BOOST_ASIO_CORO_REENTER (this) {
-                            SANDBOX_AWAIT_AND_SET(red, rb_num2int, value);
-                            GFX_GUARD_EXC(get_private_data<Color>(self)->setRed(red));
-                        }
-
-                        return value;
-                    }
-                )
-
-                return sb()->bind<struct coro>()()(self, value);
-            }
-
-            static VALUE get_green(VALUE self) {
-                return sb()->bind<struct rb_ll2inum>()()(get_private_data<Color>(self)->getGreen());
-            }
-
-            static VALUE set_green(VALUE self, VALUE value) {
-                SANDBOX_COROUTINE(coro,
-                    int green;
-
-                    VALUE operator()(VALUE self, VALUE value) {
-                        BOOST_ASIO_CORO_REENTER (this) {
-                            SANDBOX_AWAIT_AND_SET(green, rb_num2int, value);
-                            GFX_GUARD_EXC(get_private_data<Color>(self)->setGreen(green));
-                        }
-
-                        return value;
-                    }
-                )
-
-                return sb()->bind<struct coro>()()(self, value);
-            }
-
-            static VALUE get_blue(VALUE self) {
-                return sb()->bind<struct rb_ll2inum>()()(get_private_data<Color>(self)->getBlue());
-            }
-
-            static VALUE set_blue(VALUE self, VALUE value) {
-                SANDBOX_COROUTINE(coro,
-                    int blue;
-
-                    VALUE operator()(VALUE self, VALUE value) {
-                        BOOST_ASIO_CORO_REENTER (this) {
-                            SANDBOX_AWAIT_AND_SET(blue, rb_num2int, value);
-                            GFX_GUARD_EXC(get_private_data<Color>(self)->setBlue(blue));
-                        }
-
-                        return value;
-                    }
-                )
-
-                return sb()->bind<struct coro>()()(self, value);
-            }
-
-            static VALUE get_alpha(VALUE self) {
-                return sb()->bind<struct rb_ll2inum>()()(get_private_data<Color>(self)->getAlpha());
-            }
-
-            static VALUE set_alpha(VALUE self, VALUE value) {
-                SANDBOX_COROUTINE(coro,
-                    int alpha;
-
-                    VALUE operator()(VALUE self, VALUE value) {
-                        BOOST_ASIO_CORO_REENTER (this) {
-                            SANDBOX_AWAIT_AND_SET(alpha, rb_num2int, value);
-                            GFX_GUARD_EXC(get_private_data<Color>(self)->setAlpha(alpha));
-                        }
-
-                        return value;
-                    }
-                )
-
-                return sb()->bind<struct coro>()()(self, value);
-            }
+            SANDBOX_DEF_PROP_D(Color, Red, red);
+            SANDBOX_DEF_PROP_D(Color, Green, green);
+            SANDBOX_DEF_PROP_D(Color, Blue, blue);
+            SANDBOX_DEF_PROP_D(Color, Alpha, alpha);
 
             static VALUE equal(VALUE self, VALUE other) {
                 SANDBOX_COROUTINE(coro,
@@ -246,14 +167,10 @@ namespace mkxp_sandbox {
                     SANDBOX_AWAIT(rb_define_method, color_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
                     SANDBOX_AWAIT(rb_define_method, color_class, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
                     SANDBOX_AWAIT(rb_define_method, color_class, "set", (VALUE (*)(ANYARGS))set, -1);
-                    SANDBOX_AWAIT(rb_define_method, color_class, "red", (VALUE (*)(ANYARGS))get_red, 0);
-                    SANDBOX_AWAIT(rb_define_method, color_class, "red=", (VALUE (*)(ANYARGS))set_red, 1);
-                    SANDBOX_AWAIT(rb_define_method, color_class, "green", (VALUE (*)(ANYARGS))get_green, 0);
-                    SANDBOX_AWAIT(rb_define_method, color_class, "green=", (VALUE (*)(ANYARGS))set_green, 1);
-                    SANDBOX_AWAIT(rb_define_method, color_class, "blue", (VALUE (*)(ANYARGS))get_blue, 0);
-                    SANDBOX_AWAIT(rb_define_method, color_class, "blue=", (VALUE (*)(ANYARGS))set_blue, 1);
-                    SANDBOX_AWAIT(rb_define_method, color_class, "alpha", (VALUE (*)(ANYARGS))get_alpha, 0);
-                    SANDBOX_AWAIT(rb_define_method, color_class, "alpha=", (VALUE (*)(ANYARGS))set_alpha, 1);
+                    SANDBOX_INIT_PROP_BIND(color_class, red);
+                    SANDBOX_INIT_PROP_BIND(color_class, green);
+                    SANDBOX_INIT_PROP_BIND(color_class, blue);
+                    SANDBOX_INIT_PROP_BIND(color_class, alpha);
                     SANDBOX_AWAIT(rb_define_method, color_class, "==", (VALUE (*)(ANYARGS))equal, 1);
                     SANDBOX_AWAIT(rb_define_method, color_class, "===", (VALUE (*)(ANYARGS))equal, 1);
                     SANDBOX_AWAIT(rb_define_method, color_class, "to_s", (VALUE (*)(ANYARGS))stringify, 0);
@@ -349,89 +266,10 @@ namespace mkxp_sandbox {
                 return sb()->bind<struct coro>()()(argc, argv, self);
             }
 
-            static VALUE get_red(VALUE self) {
-                return sb()->bind<struct rb_ll2inum>()()(get_private_data<Tone>(self)->getRed());
-            }
-
-            static VALUE set_red(VALUE self, VALUE value) {
-                SANDBOX_COROUTINE(coro,
-                    int red;
-
-                    VALUE operator()(VALUE self, VALUE value) {
-                        BOOST_ASIO_CORO_REENTER (this) {
-                            SANDBOX_AWAIT_AND_SET(red, rb_num2int, value);
-                            GFX_GUARD_EXC(get_private_data<Tone>(self)->setRed(red));
-                        }
-
-                        return value;
-                    }
-                )
-
-                return sb()->bind<struct coro>()()(self, value);
-            }
-
-            static VALUE get_green(VALUE self) {
-                return sb()->bind<struct rb_ll2inum>()()(get_private_data<Tone>(self)->getGreen());
-            }
-
-            static VALUE set_green(VALUE self, VALUE value) {
-                SANDBOX_COROUTINE(coro,
-                    int green;
-
-                    VALUE operator()(VALUE self, VALUE value) {
-                        BOOST_ASIO_CORO_REENTER (this) {
-                            SANDBOX_AWAIT_AND_SET(green, rb_num2int, value);
-                            GFX_GUARD_EXC(get_private_data<Tone>(self)->setGreen(green));
-                        }
-
-                        return value;
-                    }
-                )
-
-                return sb()->bind<struct coro>()()(self, value);
-            }
-
-            static VALUE get_blue(VALUE self) {
-                return sb()->bind<struct rb_ll2inum>()()(get_private_data<Tone>(self)->getBlue());
-            }
-
-            static VALUE set_blue(VALUE self, VALUE value) {
-                SANDBOX_COROUTINE(coro,
-                    int blue;
-
-                    VALUE operator()(VALUE self, VALUE value) {
-                        BOOST_ASIO_CORO_REENTER (this) {
-                            SANDBOX_AWAIT_AND_SET(blue, rb_num2int, value);
-                            GFX_GUARD_EXC(get_private_data<Tone>(self)->setBlue(blue));
-                        }
-
-                        return value;
-                    }
-                )
-
-                return sb()->bind<struct coro>()()(self, value);
-            }
-
-            static VALUE get_gray(VALUE self) {
-                return sb()->bind<struct rb_ll2inum>()()(get_private_data<Tone>(self)->getGray());
-            }
-
-            static VALUE set_gray(VALUE self, VALUE value) {
-                SANDBOX_COROUTINE(coro,
-                    int gray;
-
-                    VALUE operator()(VALUE self, VALUE value) {
-                        BOOST_ASIO_CORO_REENTER (this) {
-                            SANDBOX_AWAIT_AND_SET(gray, rb_num2int, value);
-                            GFX_GUARD_EXC(get_private_data<Tone>(self)->setGray(gray));
-                        }
-
-                        return value;
-                    }
-                )
-
-                return sb()->bind<struct coro>()()(self, value);
-            }
+            SANDBOX_DEF_PROP_D(Tone, Red, red);
+            SANDBOX_DEF_PROP_D(Tone, Green, green);
+            SANDBOX_DEF_PROP_D(Tone, Blue, blue);
+            SANDBOX_DEF_PROP_D(Tone, Gray, gray);
 
             static VALUE equal(VALUE self, VALUE other) {
                 SANDBOX_COROUTINE(coro,
@@ -471,14 +309,10 @@ namespace mkxp_sandbox {
                     SANDBOX_AWAIT(rb_define_method, tone_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
                     SANDBOX_AWAIT(rb_define_method, tone_class, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
                     SANDBOX_AWAIT(rb_define_method, tone_class, "set", (VALUE (*)(ANYARGS))set, -1);
-                    SANDBOX_AWAIT(rb_define_method, tone_class, "red", (VALUE (*)(ANYARGS))get_red, 0);
-                    SANDBOX_AWAIT(rb_define_method, tone_class, "red=", (VALUE (*)(ANYARGS))set_red, 1);
-                    SANDBOX_AWAIT(rb_define_method, tone_class, "green", (VALUE (*)(ANYARGS))get_green, 0);
-                    SANDBOX_AWAIT(rb_define_method, tone_class, "green=", (VALUE (*)(ANYARGS))set_green, 1);
-                    SANDBOX_AWAIT(rb_define_method, tone_class, "blue", (VALUE (*)(ANYARGS))get_blue, 0);
-                    SANDBOX_AWAIT(rb_define_method, tone_class, "blue=", (VALUE (*)(ANYARGS))set_blue, 1);
-                    SANDBOX_AWAIT(rb_define_method, tone_class, "gray", (VALUE (*)(ANYARGS))get_gray, 0);
-                    SANDBOX_AWAIT(rb_define_method, tone_class, "gray=", (VALUE (*)(ANYARGS))set_gray, 1);
+                    SANDBOX_INIT_PROP_BIND(tone_class, red);
+                    SANDBOX_INIT_PROP_BIND(tone_class, green);
+                    SANDBOX_INIT_PROP_BIND(tone_class, blue);
+                    SANDBOX_INIT_PROP_BIND(tone_class, gray);
                     SANDBOX_AWAIT(rb_define_method, tone_class, "==", (VALUE (*)(ANYARGS))equal, 1);
                     SANDBOX_AWAIT(rb_define_method, tone_class, "===", (VALUE (*)(ANYARGS))equal, 1);
                     SANDBOX_AWAIT(rb_define_method, tone_class, "to_s", (VALUE (*)(ANYARGS))stringify, 0);
@@ -571,89 +405,10 @@ namespace mkxp_sandbox {
                 return self;
             }
 
-            static VALUE get_x(VALUE self) {
-                return sb()->bind<struct rb_ll2inum>()()(get_private_data<Rect>(self)->getX());
-            }
-
-            static VALUE set_x(VALUE self, VALUE value) {
-                SANDBOX_COROUTINE(coro,
-                    int x;
-
-                    VALUE operator()(VALUE self, VALUE value) {
-                        BOOST_ASIO_CORO_REENTER (this) {
-                            SANDBOX_AWAIT_AND_SET(x, rb_num2int, value);
-                            GFX_GUARD_EXC(get_private_data<Rect>(self)->setX(x));
-                        }
-
-                        return value;
-                    }
-                )
-
-                return sb()->bind<struct coro>()()(self, value);
-            }
-
-            static VALUE get_y(VALUE self) {
-                return sb()->bind<struct rb_ll2inum>()()(get_private_data<Rect>(self)->getY());
-            }
-
-            static VALUE set_y(VALUE self, VALUE value) {
-                SANDBOX_COROUTINE(coro,
-                    int y;
-
-                    VALUE operator()(VALUE self, VALUE value) {
-                        BOOST_ASIO_CORO_REENTER (this) {
-                            SANDBOX_AWAIT_AND_SET(y, rb_num2int, value);
-                            GFX_GUARD_EXC(get_private_data<Rect>(self)->setY(y));
-                        }
-
-                        return value;
-                    }
-                )
-
-                return sb()->bind<struct coro>()()(self, value);
-            }
-
-            static VALUE get_width(VALUE self) {
-                return sb()->bind<struct rb_ll2inum>()()(get_private_data<Rect>(self)->getWidth());
-            }
-
-            static VALUE set_width(VALUE self, VALUE value) {
-                SANDBOX_COROUTINE(coro,
-                    int width;
-
-                    VALUE operator()(VALUE self, VALUE value) {
-                        BOOST_ASIO_CORO_REENTER (this) {
-                            SANDBOX_AWAIT_AND_SET(width, rb_num2int, value);
-                            GFX_GUARD_EXC(get_private_data<Rect>(self)->setWidth(width));
-                        }
-
-                        return value;
-                    }
-                )
-
-                return sb()->bind<struct coro>()()(self, value);
-            }
-
-            static VALUE get_height(VALUE self) {
-                return sb()->bind<struct rb_ll2inum>()()(get_private_data<Rect>(self)->getHeight());
-            }
-
-            static VALUE set_height(VALUE self, VALUE value) {
-                SANDBOX_COROUTINE(coro,
-                    int height;
-
-                    VALUE operator()(VALUE self, VALUE value) {
-                        BOOST_ASIO_CORO_REENTER (this) {
-                            SANDBOX_AWAIT_AND_SET(height, rb_num2int, value);
-                            GFX_GUARD_EXC(get_private_data<Rect>(self)->setHeight(height));
-                        }
-
-                        return value;
-                    }
-                )
-
-                return sb()->bind<struct coro>()()(self, value);
-            }
+            SANDBOX_DEF_PROP_D(Rect, X, x);
+            SANDBOX_DEF_PROP_D(Rect, Y, y);
+            SANDBOX_DEF_PROP_D(Rect, Width, width);
+            SANDBOX_DEF_PROP_D(Rect, Height, height);
 
             static VALUE equal(VALUE self, VALUE other) {
                 SANDBOX_COROUTINE(coro,
@@ -694,14 +449,10 @@ namespace mkxp_sandbox {
                     SANDBOX_AWAIT(rb_define_method, rect_class, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
                     SANDBOX_AWAIT(rb_define_method, rect_class, "set", (VALUE (*)(ANYARGS))set, -1);
                     SANDBOX_AWAIT(rb_define_method, rect_class, "empty", (VALUE (*)(ANYARGS))empty, 0);
-                    SANDBOX_AWAIT(rb_define_method, rect_class, "x", (VALUE (*)(ANYARGS))get_x, 0);
-                    SANDBOX_AWAIT(rb_define_method, rect_class, "x=", (VALUE (*)(ANYARGS))set_x, 1);
-                    SANDBOX_AWAIT(rb_define_method, rect_class, "y", (VALUE (*)(ANYARGS))get_y, 0);
-                    SANDBOX_AWAIT(rb_define_method, rect_class, "y=", (VALUE (*)(ANYARGS))set_y, 1);
-                    SANDBOX_AWAIT(rb_define_method, rect_class, "width", (VALUE (*)(ANYARGS))get_width, 0);
-                    SANDBOX_AWAIT(rb_define_method, rect_class, "width=", (VALUE (*)(ANYARGS))set_width, 1);
-                    SANDBOX_AWAIT(rb_define_method, rect_class, "height", (VALUE (*)(ANYARGS))get_height, 0);
-                    SANDBOX_AWAIT(rb_define_method, rect_class, "height=", (VALUE (*)(ANYARGS))set_height, 1);
+                    SANDBOX_INIT_PROP_BIND(rect_class, x);
+                    SANDBOX_INIT_PROP_BIND(rect_class, y);
+                    SANDBOX_INIT_PROP_BIND(rect_class, width);
+                    SANDBOX_INIT_PROP_BIND(rect_class, height);
                     SANDBOX_AWAIT(rb_define_method, rect_class, "==", (VALUE (*)(ANYARGS))equal, 1);
                     SANDBOX_AWAIT(rb_define_method, rect_class, "===", (VALUE (*)(ANYARGS))equal, 1);
                     SANDBOX_AWAIT(rb_define_method, rect_class, "to_s", (VALUE (*)(ANYARGS))stringify, 0);
