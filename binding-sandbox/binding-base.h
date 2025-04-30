@@ -26,9 +26,11 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <boost/core/enable_if.hpp>
 #include <boost/container_hash/hash.hpp>
 #include <boost/asio/coroutine.hpp>
 #include <mkxp-retro-ruby.h>
@@ -122,7 +124,15 @@ namespace mkxp_sandbox {
                 return bind.fibers[key];
             }
 
-            static wasm_ptr_t init_inner(struct binding_base &bind, struct fiber &fiber) {
+            template <typename U> static typename boost::enable_if<std::is_constructible<U, struct binding_base &>, void>::type construct_frame_at(void *ptr, struct binding_base &bind) {
+                new(ptr) U(bind);
+            }
+
+            template <typename U> static typename boost::disable_if<std::is_constructible<U, struct binding_base &>, void>::type construct_frame_at(void *ptr, struct binding_base &bind) {
+                new(ptr) U;
+            }
+
+            static wasm_ptr_t init_frame(struct binding_base &bind, struct fiber &fiber) {
                 uint32_t state = w2c_ruby_asyncify_get_state(&bind.instance());
 
                 if (fiber.stack_ptr > fiber.stack.size()) {
@@ -151,12 +161,12 @@ namespace mkxp_sandbox {
                 );
                 assert(sp % sizeof(VALUE) == 0);
                 assert(sp % WASMSTACKALIGN == 0);
-                new(*bind + sp) T(bind);
+                construct_frame_at<T>(*bind + sp, bind);
                 w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), sp);
                 return sp;
             }
 
-            stack_frame_guard(struct binding_base &b) : bind(&b), fiber(&init_fiber(b)), ptr(init_inner(b, *fiber)) {}
+            stack_frame_guard(struct binding_base &b) : bind(&b), fiber(&init_fiber(b)), ptr(init_frame(b, *fiber)) {}
 
         public:
             stack_frame_guard(const stack_frame_guard &frame) = delete;

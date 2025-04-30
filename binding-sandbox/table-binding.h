@@ -31,13 +31,13 @@ namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type table_type;
     static VALUE table_class;
 
-    SANDBOX_COROUTINE(table_binding_init,
+    struct table_binding_init : boost::asio::coroutine {
         SANDBOX_DEF_ALLOC_WITH_INIT(table_type, new Table(0, 0, 0))
         SANDBOX_DEF_DFREE(Table)
         SANDBOX_DEF_LOAD(Table)
 
         static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t x;
                 int32_t y;
                 int32_t z;
@@ -69,13 +69,13 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
         static VALUE initialize_copy(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 VALUE operator()(VALUE self, VALUE value) {
                     BOOST_ASIO_CORO_REENTER (this) {
                         if (self != value) {
@@ -86,13 +86,13 @@ namespace mkxp_sandbox {
 
                     return self;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, value);
         }
 
         static VALUE resize(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 Table *table;
                 int32_t x;
                 int32_t y;
@@ -119,7 +119,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
@@ -137,7 +137,7 @@ namespace mkxp_sandbox {
         }
 
         static VALUE get(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 Table *table;
                 VALUE value;
                 int32_t x;
@@ -167,13 +167,13 @@ namespace mkxp_sandbox {
 
                     return value;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
         static VALUE set(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 Table *table;
                 int32_t x;
                 int32_t y;
@@ -203,7 +203,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_UNDEF;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
@@ -224,7 +224,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_method, table_class, "[]=", (VALUE (*)(ANYARGS))set, -1);
             }
         }
-    )
+    };
 }
 
 #endif // MKXPZ_SANDBOX_TABLE_BINDING_H

@@ -27,12 +27,11 @@
 #include <mkxp-sandbox-bindgen.h>
 #include "types.h"
 
-#define SANDBOX_COROUTINE(name, definition) struct name : boost::asio::coroutine { inline name(struct mkxp_sandbox::binding_base &bind) {} definition };
-
 #define SANDBOX_AWAIT(coroutine, ...) \
     do { \
         { \
-            struct mkxp_sandbox::bindings::stack_frame_guard<struct coroutine> _frame = mkxp_sandbox::sb()->bind<struct coroutine>(); \
+            using namespace ::mkxp_sandbox; \
+            struct bindings::stack_frame_guard<struct coroutine> _frame = sb()->bind<struct coroutine>(); \
             _frame()(__VA_ARGS__); \
             if (_frame().is_complete()) break; \
         } \
@@ -42,7 +41,8 @@
 #define SANDBOX_AWAIT_AND_SET(variable, coroutine, ...) \
     do { \
         { \
-            struct mkxp_sandbox::bindings::stack_frame_guard<struct coroutine> _frame = mkxp_sandbox::sb()->bind<struct coroutine>(); \
+            using namespace ::mkxp_sandbox; \
+            struct bindings::stack_frame_guard<struct coroutine> _frame = sb()->bind<struct coroutine>(); \
             auto ret = _frame()(__VA_ARGS__); \
             if (_frame().is_complete()) { \
                 variable = ret; \
@@ -54,6 +54,7 @@
 
 #define SANDBOX_YIELD \
     do { \
+        using namespace ::mkxp_sandbox; \
         sb()._begin_yield(); \
         BOOST_ASIO_CORO_YIELD; \
         sb()._end_yield(); \

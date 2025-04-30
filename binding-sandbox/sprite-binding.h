@@ -31,12 +31,12 @@ namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type sprite_type;
     static VALUE sprite_class;
 
-    SANDBOX_COROUTINE(sprite_binding_init,
+    struct sprite_binding_init : boost::asio::coroutine {
         SANDBOX_DEF_ALLOC(sprite_type)
         SANDBOX_DEF_DFREE(Sprite)
 
         static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 Sprite *sprite;
                 VALUE viewport_obj;
                 Viewport *viewport;
@@ -69,7 +69,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
@@ -88,7 +88,7 @@ namespace mkxp_sandbox {
         }
 
         static VALUE flash(VALUE self, VALUE obj, VALUE value) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int duration;
 
                 VALUE operator()(VALUE self, VALUE obj, VALUE value) {
@@ -99,7 +99,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, obj, value);
         }
@@ -173,7 +173,7 @@ namespace mkxp_sandbox {
                 SANDBOX_INIT_PROP_BIND(sprite_class, blend_type);
             }
         }
-    )
+    };
 }
 
 #endif // MKXPZ_SANDBOX_SPRITE_BINDING_H

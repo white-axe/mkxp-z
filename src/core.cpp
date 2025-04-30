@@ -223,13 +223,13 @@ static void audio_render(size_t samples) {
 }
 
 static VALUE func(VALUE arg) {
-    SANDBOX_COROUTINE(coro,
+    struct coro : boost::asio::coroutine {
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT(sandbox_binding_init);
             }
         }
-    )
+    };
 
     sb()->bind<struct coro>()()();
 
@@ -237,27 +237,27 @@ static VALUE func(VALUE arg) {
 }
 
 static VALUE rescue(VALUE arg, VALUE exception) {
-    SANDBOX_COROUTINE(coro,
+    struct coro : boost::asio::coroutine {
         void operator()(VALUE exception) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT(rb_eval_string, "puts 'Entered rescue()'");
                 SANDBOX_AWAIT(rb_p, exception);
             }
         }
-    )
+    };
 
     sb()->bind<struct coro>()()(exception);
 
     return arg;
 }
 
-SANDBOX_COROUTINE(main,
+struct main : boost::asio::coroutine {
     void operator()() {
         BOOST_ASIO_CORO_REENTER (this) {
             SANDBOX_AWAIT(rb_rescue2, func, SANDBOX_NIL, rescue, SANDBOX_NIL, sb()->rb_eException(), 0);
         }
     }
-)
+};
 
 static void deinit_sandbox() {
     shared_state_initialized = false;

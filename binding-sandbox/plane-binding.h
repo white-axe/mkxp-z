@@ -31,12 +31,12 @@ namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type plane_type;
     static VALUE plane_class;
 
-    SANDBOX_COROUTINE(plane_binding_init,
+    struct plane_binding_init : boost::asio::coroutine {
         SANDBOX_DEF_ALLOC(plane_type)
         SANDBOX_DEF_DFREE(Plane)
 
         static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 Plane *plane;
                 VALUE viewport_obj;
                 Viewport *viewport;
@@ -73,7 +73,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
@@ -126,7 +126,7 @@ namespace mkxp_sandbox {
                 SANDBOX_INIT_PROP_BIND(plane_class, blend_type);
             }
         }
-    )
+    };
 }
 
 #endif // MKXPZ_SANDBOX_PLANE_BINDING_H

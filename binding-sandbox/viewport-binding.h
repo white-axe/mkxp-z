@@ -31,12 +31,12 @@ namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type viewport_type;
     static VALUE viewport_class;
 
-    SANDBOX_COROUTINE(viewport_binding_init,
+    struct viewport_binding_init : boost::asio::coroutine {
         SANDBOX_DEF_ALLOC(viewport_type)
         SANDBOX_DEF_DFREE(Viewport)
 
         static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 Viewport *viewport;
                 int32_t x;
                 int32_t y;
@@ -74,7 +74,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
@@ -93,7 +93,7 @@ namespace mkxp_sandbox {
         }
 
         static VALUE flash(VALUE self, VALUE obj, VALUE value) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int duration;
 
                 VALUE operator()(VALUE self, VALUE obj, VALUE value) {
@@ -104,7 +104,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, obj, value);
         }
@@ -141,7 +141,7 @@ namespace mkxp_sandbox {
                 SANDBOX_INIT_PROP_BIND(viewport_class, z);
             }
         }
-    )
+    };
 }
 
 #endif // MKXPZ_SANDBOX_VIEWPORT_BINDING_H

@@ -28,9 +28,9 @@
 namespace mkxp_sandbox {
     static VALUE audio_module;
 
-    SANDBOX_COROUTINE(audio_binding_init,
+    struct audio_binding_init : boost::asio::coroutine {
         static VALUE bgm_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 wasm_ptr_t filename;
                 int32_t volume;
                 int32_t pitch;
@@ -69,7 +69,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
@@ -80,7 +80,7 @@ namespace mkxp_sandbox {
         }
 
         static VALUE bgm_fade(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t time;
                 int32_t track;
 
@@ -96,13 +96,13 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
         static VALUE bgm_pos(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t track;
                 double pos;
                 VALUE value;
@@ -119,13 +119,13 @@ namespace mkxp_sandbox {
 
                     return value;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
         static VALUE bgm_volume(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t track;
                 int32_t volume;
                 VALUE value;
@@ -142,13 +142,13 @@ namespace mkxp_sandbox {
 
                     return value;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
         static VALUE bgm_set_volume(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t volume;
                 int32_t track;
 
@@ -164,13 +164,13 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
         static VALUE bgs_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 wasm_ptr_t filename;
                 int32_t volume;
                 int32_t pitch;
@@ -198,7 +198,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
@@ -209,7 +209,7 @@ namespace mkxp_sandbox {
         }
 
         static VALUE bgs_fade(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t time;
 
                 VALUE operator()(VALUE self, VALUE value) {
@@ -220,13 +220,13 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, value);
         }
 
         static VALUE bgs_pos(VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 double pos;
                 VALUE value;
 
@@ -238,13 +238,13 @@ namespace mkxp_sandbox {
 
                     return value;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self);
         }
 
         static VALUE me_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 wasm_ptr_t filename;
                 int32_t volume;
                 int32_t pitch;
@@ -267,7 +267,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
@@ -278,7 +278,7 @@ namespace mkxp_sandbox {
         }
 
         static VALUE me_fade(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t time;
 
                 VALUE operator()(VALUE self, VALUE value) {
@@ -289,13 +289,13 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, value);
         }
 
         static VALUE se_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 wasm_ptr_t filename;
                 int32_t volume;
                 int32_t pitch;
@@ -318,7 +318,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
@@ -360,7 +360,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_module_function, audio_module, "__reset__", (VALUE (*)(ANYARGS))reset, 0);
             }
         }
-    )
+    };
 }
 
 #endif // MKXPZ_SANDBOX_AUDIO_BINDING_H

@@ -33,7 +33,7 @@ namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type font_type;
     static VALUE font_class;
 
-    SANDBOX_COROUTINE(font_binding_init,
+    struct font_binding_init : boost::asio::coroutine {
         SANDBOX_DEF_ALLOC(font_type)
         SANDBOX_DEF_DFREE(Font)
 
@@ -41,7 +41,7 @@ namespace mkxp_sandbox {
         VALUE default_name;
         wasm_size_t default_name_index;
 
-        SANDBOX_COROUTINE(collect_strings,
+        struct collect_strings : boost::asio::coroutine {
             VALUE value;
             VALUE entry;
             wasm_ptr_t str;
@@ -72,10 +72,10 @@ namespace mkxp_sandbox {
                     }
                 }
             }
-        )
+        };
 
         static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 Font *font;
                 std::vector<std::string> *names;
                 VALUE names_obj;
@@ -120,13 +120,13 @@ namespace mkxp_sandbox {
                 ~coro() {
                     delete names;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
         static VALUE initialize_copy(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 Font *font;
 
                 VALUE operator()(VALUE self, VALUE value) {
@@ -150,7 +150,7 @@ namespace mkxp_sandbox {
 
                     return self;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, value);
         }
@@ -160,7 +160,7 @@ namespace mkxp_sandbox {
         }
 
         static VALUE set_name(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 std::vector<std::string> *names;
 
                 VALUE operator()(VALUE self, VALUE value) {
@@ -177,7 +177,7 @@ namespace mkxp_sandbox {
                 ~coro() {
                     delete names;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, value);
         }
@@ -195,7 +195,7 @@ namespace mkxp_sandbox {
         }
 
         static VALUE set_default_name(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 std::vector<std::string> *names;
 
                 VALUE operator()(VALUE self, VALUE value) {
@@ -212,7 +212,7 @@ namespace mkxp_sandbox {
                 ~coro() {
                     delete names;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, value);
         }
@@ -226,7 +226,7 @@ namespace mkxp_sandbox {
         SANDBOX_DEF_CLASS_PROP_OBJ_VAL(Font, Color, DefaultOutColor, default_out_color);
 
         static VALUE exist(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 wasm_ptr_t str;
                 VALUE is_string;
 
@@ -243,7 +243,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_UNDEF;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, value);
         }
@@ -309,7 +309,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rb_define_singleton_method, font_class, "exist?", (VALUE (*)(ANYARGS))exist, 1);
             }
         }
-    )
+    };
 }
 
 #endif // MKXPZ_SANDBOX_FONT_BINDING_H

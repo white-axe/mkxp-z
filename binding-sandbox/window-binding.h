@@ -31,12 +31,12 @@ namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type window_type;
     static VALUE window_class;
 
-    SANDBOX_COROUTINE(window_binding_init,
+    struct window_binding_init : boost::asio::coroutine {
         SANDBOX_DEF_ALLOC(window_type)
         SANDBOX_DEF_DFREE(Window)
 
         static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 Window *window;
                 VALUE viewport_obj;
                 Viewport *viewport;
@@ -67,7 +67,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
@@ -138,7 +138,7 @@ namespace mkxp_sandbox {
                 SANDBOX_INIT_PROP_BIND(window_class, contents_opacity);
             }
         }
-    )
+    };
 }
 
 #endif // MKXPZ_SANDBOX_WINDOW_BINDING_H

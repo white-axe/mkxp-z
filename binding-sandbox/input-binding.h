@@ -62,8 +62,8 @@ namespace mkxp_sandbox {
         {"MOUSEX2", Input::MouseX2},
     };
 
-    SANDBOX_COROUTINE(input_binding_init,
-        SANDBOX_COROUTINE(get_button_arg,
+    struct input_binding_init : boost::asio::coroutine {
+        struct get_button_arg : boost::asio::coroutine {
             VALUE value;
             int32_t button;
 
@@ -88,7 +88,7 @@ namespace mkxp_sandbox {
 
                 return button;
             }
-        )
+        };
 
         static VALUE delta(VALUE self) {
             return sb()->bind<struct rb_float_new>()()(mkxp_retro::input->getDelta());
@@ -100,7 +100,7 @@ namespace mkxp_sandbox {
         }
 
         static VALUE press(VALUE self, VALUE code) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t button;
 
                 VALUE operator()(VALUE self, VALUE code) {
@@ -111,13 +111,13 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_UNDEF;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, code);
         }
 
         static VALUE trigger(VALUE self, VALUE code) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t button;
 
                 VALUE operator()(VALUE self, VALUE code) {
@@ -128,13 +128,13 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_UNDEF;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, code);
         }
 
         static VALUE repeat(VALUE self, VALUE code) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t button;
 
                 VALUE operator()(VALUE self, VALUE code) {
@@ -145,13 +145,13 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_UNDEF;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, code);
         }
 
         static VALUE release(VALUE self, VALUE code) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t button;
 
                 VALUE operator()(VALUE self, VALUE code) {
@@ -162,13 +162,13 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_UNDEF;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, code);
         }
 
         static VALUE count(VALUE self, VALUE code) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t button;
                 int32_t count;
                 VALUE value;
@@ -182,13 +182,13 @@ namespace mkxp_sandbox {
 
                     return value;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, code);
         }
 
         static VALUE time(VALUE self, VALUE code) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t button;
                 double time;
                 VALUE value;
@@ -202,13 +202,13 @@ namespace mkxp_sandbox {
 
                     return value;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, code);
         }
 
         static VALUE pressex(VALUE self, VALUE code) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t button;
 
                 VALUE operator()(VALUE self, VALUE code) {
@@ -219,13 +219,13 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_UNDEF;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, code);
         }
 
         static VALUE triggerex(VALUE self, VALUE code) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t button;
 
                 VALUE operator()(VALUE self, VALUE code) {
@@ -236,13 +236,13 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_UNDEF;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, code);
         }
 
         static VALUE repeatex(VALUE self, VALUE code) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t button;
 
                 VALUE operator()(VALUE self, VALUE code) {
@@ -253,13 +253,13 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_UNDEF;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, code);
         }
 
         static VALUE releaseex(VALUE self, VALUE code) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t button;
 
                 VALUE operator()(VALUE self, VALUE code) {
@@ -270,13 +270,13 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_UNDEF;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, code);
         }
 
         static VALUE repeatcount(VALUE self, VALUE code) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t button;
                 int32_t count;
                 VALUE value;
@@ -290,13 +290,13 @@ namespace mkxp_sandbox {
 
                     return value;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, code);
         }
 
         static VALUE timeex(VALUE self, VALUE code) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t button;
                 double time;
                 VALUE value;
@@ -310,7 +310,7 @@ namespace mkxp_sandbox {
 
                     return value;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, code);
         }
@@ -394,7 +394,7 @@ namespace mkxp_sandbox {
                 }
             }
         }
-    )
+    };
 }
 
 #endif // MKXPZ_SANDBOX_INPUT_BINDING_H

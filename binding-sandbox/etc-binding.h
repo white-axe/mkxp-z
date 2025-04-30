@@ -36,14 +36,14 @@ namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type rect_type;
     static VALUE rect_class;
 
-    SANDBOX_COROUTINE(etc_binding_init,
-        SANDBOX_COROUTINE(color_binding_init,
+    struct etc_binding_init : boost::asio::coroutine {
+        struct color_binding_init : boost::asio::coroutine {
             SANDBOX_DEF_ALLOC_WITH_INIT(color_type, new Color)
             SANDBOX_DEF_DFREE(Color)
             SANDBOX_DEF_LOAD(Color)
 
             static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
-                SANDBOX_COROUTINE(coro,
+                struct coro : boost::asio::coroutine {
                     Color *color;
                     double red;
                     double green;
@@ -71,13 +71,13 @@ namespace mkxp_sandbox {
 
                         return SANDBOX_NIL;
                     }
-                )
+                };
 
                 return sb()->bind<struct coro>()()(argc, argv, self);
             }
 
             static VALUE initialize_copy(VALUE self, VALUE value) {
-                SANDBOX_COROUTINE(coro,
+                struct coro : boost::asio::coroutine {
                     VALUE operator()(VALUE self, VALUE value) {
                         BOOST_ASIO_CORO_REENTER (this) {
                             if (self != value) {
@@ -88,13 +88,13 @@ namespace mkxp_sandbox {
 
                         return self;
                     }
-                )
+                };
 
                 return sb()->bind<struct coro>()()(self, value);
             }
 
             static VALUE set(int32_t argc, wasm_ptr_t argv, VALUE self) {
-                SANDBOX_COROUTINE(coro,
+                struct coro : boost::asio::coroutine {
                     double red;
                     double green;
                     double blue;
@@ -119,7 +119,7 @@ namespace mkxp_sandbox {
 
                         return SANDBOX_NIL;
                     }
-                )
+                };
 
                 return sb()->bind<struct coro>()()(argc, argv, self);
             }
@@ -130,7 +130,7 @@ namespace mkxp_sandbox {
             SANDBOX_DEF_PROP_D(Color, Alpha, alpha);
 
             static VALUE equal(VALUE self, VALUE other) {
-                SANDBOX_COROUTINE(coro,
+                struct coro : boost::asio::coroutine {
                     VALUE value;
 
                     VALUE operator()(VALUE self, VALUE other) {
@@ -146,7 +146,7 @@ namespace mkxp_sandbox {
 
                         return value;
                     }
-                )
+                };
 
                 return sb()->bind<struct coro>()()(self, other);
             }
@@ -177,15 +177,15 @@ namespace mkxp_sandbox {
                     SANDBOX_AWAIT(rb_define_method, color_class, "inspect", (VALUE (*)(ANYARGS))stringify, 0);
                 }
             }
-        )
+        };
 
-        SANDBOX_COROUTINE(tone_binding_init,
+        struct tone_binding_init : boost::asio::coroutine {
             SANDBOX_DEF_ALLOC_WITH_INIT(tone_type, new Tone)
             SANDBOX_DEF_DFREE(Tone)
             SANDBOX_DEF_LOAD(Tone)
 
             static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
-                SANDBOX_COROUTINE(coro,
+                struct coro : boost::asio::coroutine {
                     Tone *tone;
                     double red;
                     double green;
@@ -213,13 +213,13 @@ namespace mkxp_sandbox {
 
                         return SANDBOX_NIL;
                     }
-                )
+                };
 
                 return sb()->bind<struct coro>()()(argc, argv, self);
             }
 
             static VALUE initialize_copy(VALUE self, VALUE value) {
-                SANDBOX_COROUTINE(coro,
+                struct coro : boost::asio::coroutine {
                     VALUE operator()(VALUE self, VALUE value) {
                         BOOST_ASIO_CORO_REENTER (this) {
                             if (self != value) {
@@ -230,13 +230,13 @@ namespace mkxp_sandbox {
 
                         return self;
                     }
-                )
+                };
 
                 return sb()->bind<struct coro>()()(self, value);
             }
 
             static VALUE set(int32_t argc, wasm_ptr_t argv, VALUE self) {
-                SANDBOX_COROUTINE(coro,
+                struct coro : boost::asio::coroutine {
                     double red;
                     double green;
                     double blue;
@@ -261,7 +261,7 @@ namespace mkxp_sandbox {
 
                         return SANDBOX_NIL;
                     }
-                )
+                };
 
                 return sb()->bind<struct coro>()()(argc, argv, self);
             }
@@ -272,7 +272,7 @@ namespace mkxp_sandbox {
             SANDBOX_DEF_PROP_D(Tone, Gray, gray);
 
             static VALUE equal(VALUE self, VALUE other) {
-                SANDBOX_COROUTINE(coro,
+                struct coro : boost::asio::coroutine {
                     VALUE value;
 
                     VALUE operator()(VALUE self, VALUE other) {
@@ -288,7 +288,7 @@ namespace mkxp_sandbox {
 
                         return value;
                     }
-                )
+                };
 
                 return sb()->bind<struct coro>()()(self, other);
             }
@@ -319,15 +319,15 @@ namespace mkxp_sandbox {
                     SANDBOX_AWAIT(rb_define_method, tone_class, "inspect", (VALUE (*)(ANYARGS))stringify, 0);
                 }
             }
-        )
+        };
 
-        SANDBOX_COROUTINE(rect_binding_init,
+        struct rect_binding_init : boost::asio::coroutine {
             SANDBOX_DEF_ALLOC_WITH_INIT(rect_type, new Rect)
             SANDBOX_DEF_DFREE(Rect)
             SANDBOX_DEF_LOAD(Rect)
 
             static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
-                SANDBOX_COROUTINE(coro,
+                struct coro : boost::asio::coroutine {
                     Rect *rect;
                     int x;
                     int y;
@@ -351,13 +351,13 @@ namespace mkxp_sandbox {
 
                         return SANDBOX_NIL;
                     }
-                )
+                };
 
                 return sb()->bind<struct coro>()()(argc, argv, self);
             }
 
             static VALUE initialize_copy(VALUE self, VALUE value) {
-                SANDBOX_COROUTINE(coro,
+                struct coro : boost::asio::coroutine {
                     VALUE operator()(VALUE self, VALUE value) {
                         BOOST_ASIO_CORO_REENTER (this) {
                             if (self != value) {
@@ -368,13 +368,13 @@ namespace mkxp_sandbox {
 
                         return self;
                     }
-                )
+                };
 
                 return sb()->bind<struct coro>()()(self, value);
             }
 
             static VALUE set(int32_t argc, wasm_ptr_t argv, VALUE self) {
-                SANDBOX_COROUTINE(coro,
+                struct coro : boost::asio::coroutine {
                     int x;
                     int y;
                     int width;
@@ -395,7 +395,7 @@ namespace mkxp_sandbox {
 
                         return SANDBOX_NIL;
                     }
-                )
+                };
 
                 return sb()->bind<struct coro>()()(argc, argv, self);
             }
@@ -411,7 +411,7 @@ namespace mkxp_sandbox {
             SANDBOX_DEF_PROP_D(Rect, Height, height);
 
             static VALUE equal(VALUE self, VALUE other) {
-                SANDBOX_COROUTINE(coro,
+                struct coro : boost::asio::coroutine {
                     VALUE value;
 
                     VALUE operator()(VALUE self, VALUE other) {
@@ -427,7 +427,7 @@ namespace mkxp_sandbox {
 
                         return value;
                     }
-                )
+                };
 
                 return sb()->bind<struct coro>()()(self, other);
             }
@@ -459,7 +459,7 @@ namespace mkxp_sandbox {
                     SANDBOX_AWAIT(rb_define_method, rect_class, "inspect", (VALUE (*)(ANYARGS))stringify, 0);
                 }
             }
-        )
+        };
 
         void operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
@@ -468,7 +468,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(rect_binding_init);
             }
         }
-    )
+    };
 }
 
 #endif // MKXPZ_SANDBOX_ETC_BINDING_H

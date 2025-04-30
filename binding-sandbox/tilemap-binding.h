@@ -33,12 +33,12 @@ namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type tilemap_autotiles_type;
     static VALUE tilemap_autotiles_class;
 
-    SANDBOX_COROUTINE(tilemap_binding_init,
-        SANDBOX_COROUTINE(tilemap_autotiles_binding_init,
+    struct tilemap_binding_init : boost::asio::coroutine {
+        struct tilemap_autotiles_binding_init : boost::asio::coroutine {
             SANDBOX_DEF_ALLOC(tilemap_autotiles_type)
 
             static VALUE get(VALUE self, VALUE i) {
-                SANDBOX_COROUTINE(coro,
+                struct coro : boost::asio::coroutine {
                     VALUE ary;
                     wasm_size_t index;
                     VALUE value;
@@ -52,13 +52,13 @@ namespace mkxp_sandbox {
 
                         return value;
                     }
-                )
+                };
 
                 return sb()->bind<struct coro>()()(self, i);
             }
 
             static VALUE set(VALUE self, VALUE i, VALUE obj) {
-                SANDBOX_COROUTINE(coro,
+                struct coro : boost::asio::coroutine {
                     Tilemap::Autotiles *autotiles;
                     Bitmap *bitmap;
                     VALUE ary;
@@ -84,7 +84,7 @@ namespace mkxp_sandbox {
 
                         return self;
                     }
-                )
+                };
 
                 return sb()->bind<struct coro>()()(self, i, obj);
             }
@@ -98,13 +98,13 @@ namespace mkxp_sandbox {
                     SANDBOX_AWAIT(rb_define_method, tilemap_autotiles_class, "[]=", (VALUE (*)(ANYARGS))set, 2);
                 }
             }
-        )
+        };
 
         SANDBOX_DEF_ALLOC(tilemap_type)
         SANDBOX_DEF_DFREE(Tilemap)
 
         static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 Tilemap *tilemap;
                 VALUE viewport_obj;
                 Viewport *viewport;
@@ -162,7 +162,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
@@ -228,7 +228,7 @@ namespace mkxp_sandbox {
                 SANDBOX_INIT_PROP_BIND(tilemap_class, blend_type);
             }
         }
-    )
+    };
 }
 
 #endif // MKXPZ_SANDBOX_TILEMAP_BINDING_H

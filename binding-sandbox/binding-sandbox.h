@@ -47,10 +47,10 @@ extern const char module_rpg3[];
 
 namespace mkxp_sandbox {
     // Evaluates a script, returning the exception if it encountered an exception or `SANDBOX_UNDEF` otherwise.
-    SANDBOX_COROUTINE(eval_script,
+    struct eval_script : boost::asio::coroutine {
         private:
         static VALUE func(VALUE arg) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 VALUE string;
                 VALUE filename;
                 ID id;
@@ -63,18 +63,18 @@ namespace mkxp_sandbox {
                         SANDBOX_AWAIT(rb_funcall, SANDBOX_NIL, id, 3, string, SANDBOX_NIL, filename);
                     }
                 }
-            )
+            };
 
             sb()->bind<struct coro>()()(arg);
             return SANDBOX_UNDEF;
         }
 
         static VALUE rescue(VALUE arg, VALUE exception) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 VALUE operator()(VALUE exception) {
                     return exception;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(exception);
         }
@@ -92,10 +92,10 @@ namespace mkxp_sandbox {
 
             return value;
         }
-    )
+    };
 
     // Runs the game scripts.
-    SANDBOX_COROUTINE(run_rmxp_scripts,
+    struct run_rmxp_scripts : boost::asio::coroutine {
         VALUE value;
         VALUE scripts;
         wasm_size_t script_count;
@@ -225,11 +225,11 @@ namespace mkxp_sandbox {
                 std::free(decode_buffer);
             }
         }
-    )
+    };
 
-    SANDBOX_COROUTINE(sandbox_binding_init,
+    struct sandbox_binding_init : boost::asio::coroutine {
         static VALUE load_data(VALUE self, VALUE path) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 VALUE value;
                 VALUE file;
                 wasm_ptr_t ptr;
@@ -254,15 +254,15 @@ namespace mkxp_sandbox {
                         delete path_str;
                     }
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(path);
         }
 
         static VALUE rgss_main(VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 static VALUE func(VALUE block) {
-                    SANDBOX_COROUTINE(coro,
+                    struct coro : boost::asio::coroutine {
                         ID id;
 
                         VALUE operator()(VALUE block) {
@@ -273,7 +273,7 @@ namespace mkxp_sandbox {
 
                             return SANDBOX_UNDEF;
                         }
-                    )
+                    };
 
                     return sb()->bind<struct coro>()()(block);
                 }
@@ -297,13 +297,13 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self);
         }
 
         static VALUE rgss_stop(VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 VALUE operator()(VALUE self) {
                     BOOST_ASIO_CORO_REENTER (this) {
                         while (true) {
@@ -313,7 +313,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self);
         }
@@ -360,7 +360,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT(run_rmxp_scripts);
             }
         }
-    )
+    };
 }
 
 #endif // MKXPZ_BINDING_SANDBOX_H

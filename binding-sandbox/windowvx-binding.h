@@ -34,12 +34,12 @@ namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type windowvx_type;
     static VALUE windowvx_class;
 
-    SANDBOX_COROUTINE(windowvx_binding_init,
+    struct windowvx_binding_init : boost::asio::coroutine {
         SANDBOX_DEF_ALLOC(windowvx_type)
         SANDBOX_DEF_DFREE(WindowVX)
 
         static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 WindowVX *window;
                 VALUE viewport_obj;
                 Viewport *viewport;
@@ -97,7 +97,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
@@ -140,7 +140,7 @@ namespace mkxp_sandbox {
         SANDBOX_DEF_GFX_PROP_I(WindowVX, Openness, openness);
 
         static VALUE move(VALUE self, VALUE xv, VALUE yv, VALUE wv, VALUE hv) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 WindowVX *window;
                 int32_t x;
                 int32_t y;
@@ -160,7 +160,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, xv, yv, wv, hv);
         }
@@ -217,7 +217,7 @@ namespace mkxp_sandbox {
                 }
             }
         }
-    )
+    };
 }
 
 #endif // MKXPZ_SANDBOX_WINDOWVX_BINDING_H

@@ -32,7 +32,7 @@ namespace mkxp_sandbox {
     static struct mkxp_sandbox::bindings::rb_data_type bitmap_type;
     static VALUE bitmap_class;
 
-    SANDBOX_COROUTINE(bitmap_init_props,
+    struct bitmap_init_props : boost::asio::coroutine {
         VALUE font;
         VALUE hires;
         VALUE hires_font;
@@ -55,14 +55,14 @@ namespace mkxp_sandbox {
                 bitmap->setInitFont(get_private_data<Font>(font));
             }
         }
-    )
+    };
 
-    SANDBOX_COROUTINE(bitmap_binding_init,
+    struct bitmap_binding_init : boost::asio::coroutine {
         SANDBOX_DEF_ALLOC(bitmap_type)
         SANDBOX_DEF_DFREE(Bitmap)
 
         static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 Bitmap *bitmap;
                 wasm_ptr_t filename;
                 wasm_size_t width;
@@ -85,13 +85,13 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
         static VALUE initialize_copy(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 Bitmap *bitmap;
                 Bitmap *orig;
 
@@ -113,7 +113,7 @@ namespace mkxp_sandbox {
 
                     return self;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, value);
         }
@@ -142,7 +142,7 @@ namespace mkxp_sandbox {
         SANDBOX_DEF_GFX_PROP_OBJ_REF(Bitmap, Bitmap, Hires, hires);
 
         static VALUE rect(VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 VALUE obj;
 
                 VALUE operator()(VALUE self) {
@@ -153,13 +153,13 @@ namespace mkxp_sandbox {
 
                     return obj;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self);
         }
 
         static VALUE blt(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int x;
                 int y;
                 VALUE srcObj;
@@ -189,13 +189,13 @@ namespace mkxp_sandbox {
 
                     return self;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
         static VALUE stretch_blt(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 VALUE destRectObj;
                 VALUE srcObj;
                 VALUE srcRectObj;
@@ -224,13 +224,13 @@ namespace mkxp_sandbox {
 
                     return self;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
         static VALUE fill_rect(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 Bitmap *bitmap;
                 int x;
                 int y;
@@ -254,7 +254,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
@@ -265,7 +265,7 @@ namespace mkxp_sandbox {
         }
 
         static VALUE get_pixel(VALUE self, VALUE xval, VALUE yval) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 Bitmap *bitmap;
                 int x;
                 int y;
@@ -295,13 +295,13 @@ namespace mkxp_sandbox {
 
                     return obj;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, xval, yval);
         }
 
         static VALUE set_pixel(VALUE self, VALUE xval, VALUE yval, VALUE colorObj) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 Bitmap *bitmap;
                 int x;
                 int y;
@@ -319,13 +319,13 @@ namespace mkxp_sandbox {
 
                     return self;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, xval, yval, colorObj);
         }
 
         static VALUE hue_change(VALUE self, VALUE hueval) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 Bitmap *bitmap;
                 int hue;
 
@@ -340,13 +340,13 @@ namespace mkxp_sandbox {
 
                     return self;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, hueval);
         }
 
         static VALUE draw_text(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 Bitmap *bitmap;
                 wasm_ptr_t str;
                 VALUE obj;
@@ -395,13 +395,13 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
         static VALUE text_size(VALUE self, VALUE text) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 wasm_ptr_t str;
                 VALUE obj;
 
@@ -419,13 +419,13 @@ namespace mkxp_sandbox {
 
                     return obj;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, text);
         }
 
         static VALUE get_raw_data(VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 VALUE value;
                 wasm_ptr_t str;
 
@@ -442,13 +442,13 @@ namespace mkxp_sandbox {
 
                     return value;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self);
         }
 
         static VALUE set_raw_data(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 wasm_ptr_t str;
                 wasm_size_t size;
 
@@ -462,13 +462,13 @@ namespace mkxp_sandbox {
 
                     return self;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, value);
         }
 
         static VALUE to_file(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 wasm_ptr_t str;
 
                 VALUE operator()(VALUE self, VALUE value) {
@@ -480,13 +480,13 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, value);
         }
 
         static VALUE snap_to_bitmap(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 Bitmap *bitmap;
                 VALUE obj;
                 int32_t pos;
@@ -509,13 +509,13 @@ namespace mkxp_sandbox {
 
                     return obj;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
         static VALUE gradient_fill_rect(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t x;
                 int32_t y;
                 int32_t w;
@@ -547,13 +547,13 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
         static VALUE clear_rect(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t x;
                 int32_t y;
                 int32_t w;
@@ -574,7 +574,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
@@ -585,7 +585,7 @@ namespace mkxp_sandbox {
         }
 
         static VALUE radial_blur(VALUE self, VALUE angle, VALUE divisions) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t a;
                 int32_t d;
 
@@ -598,7 +598,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, angle, divisions);
         }
@@ -636,7 +636,7 @@ namespace mkxp_sandbox {
         }
 
         static VALUE goto_and_play(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t frame;
 
                 VALUE operator()(VALUE self, VALUE value) {
@@ -648,13 +648,13 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, value);
         }
 
         static VALUE goto_and_stop(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t frame;
 
                 VALUE operator()(VALUE self, VALUE value) {
@@ -666,7 +666,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, value);
         }
@@ -680,7 +680,7 @@ namespace mkxp_sandbox {
         }
 
         static VALUE add_frame(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 VALUE value;
                 int32_t pos;
 
@@ -705,13 +705,13 @@ namespace mkxp_sandbox {
 
                     return value;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
 
         static VALUE remove_frame(int32_t argc, wasm_ptr_t argv, VALUE self) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 int32_t pos;
 
                 VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
@@ -730,7 +730,7 @@ namespace mkxp_sandbox {
 
                     return SANDBOX_NIL;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(argc, argv, self);
         }
@@ -755,7 +755,7 @@ namespace mkxp_sandbox {
         }
 
         static VALUE set_font(VALUE self, VALUE value) {
-            SANDBOX_COROUTINE(coro,
+            struct coro : boost::asio::coroutine {
                 VALUE f;
                 VALUE prop;
 
@@ -790,7 +790,7 @@ namespace mkxp_sandbox {
 
                     return value;
                 }
-            )
+            };
 
             return sb()->bind<struct coro>()()(self, value);
         }
@@ -851,7 +851,7 @@ namespace mkxp_sandbox {
                 SANDBOX_INIT_PROP_BIND(bitmap_class, font);
             }
         }
-    )
+    };
 }
 
 #endif // MKXPZ_SANDBOX_BITMAP_BINDING_H
