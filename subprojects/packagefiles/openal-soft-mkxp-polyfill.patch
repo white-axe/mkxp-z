@@ -443,7 +443,7 @@
      tss()
      {
 -        if(int res{tss_create(&mTss, nullptr)}; res != thrd_success)
-+        if ((mTss = (void **)std::malloc(sizeof *mTss)) == NULL)
++        if ((mTss = static_cast<void **>(std::malloc(sizeof *mTss))) == nullptr)
              throw std::runtime_error{"al::tss::tss()"};
 +        *mTss = nullptr;
      }
@@ -451,7 +451,7 @@
      {
 -        if(int res{tss_set(mTss, to_ptr(init))}; res != thrd_success)
 -            throw std::runtime_error{"al::tss::tss(T)"};
-+        if ((mTss = (void **)std::malloc(sizeof *mTss)) == NULL)
++        if ((mTss = static_cast<void **>(std::malloc(sizeof *mTss))) == nullptr)
 +            throw std::runtime_error{"al::tss::tss()"};
 +        *mTss = to_ptr(init);
      }

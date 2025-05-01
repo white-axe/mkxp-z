@@ -21,12 +21,12 @@ if is_libretro
     })
     global_dependencies += cmake.subproject('uchardet', options: uchardet_options).dependency('libuchardet')
 
-    libiconv_options = [
-        'cflags=@0@'.format(','.join(global_args)),
-        'cppflags=@0@'.format(','.join(global_args)),
-        'default_library=static',
-        'b_staticpic=@0@'.format(use_pic),
-    ]
+    libiconv_options = {
+        'cflags': global_args,
+        'cppflags': global_args,
+        'default_library': 'static',
+        'b_staticpic': use_pic,
+    }
     global_dependencies += subproject('libiconv', default_options: libiconv_options).get_variable('libiconv')
 
     boost_options = cmake.subproject_options()
@@ -217,8 +217,8 @@ if is_libretro
     mpg123_options = cmake.subproject_options()
     mpg123_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
-        'CMAKE_C_FLAGS': ' '.join(global_args),
-        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
+        'CMAKE_C_FLAGS': ' '.join(global_args + '-Wno-macro-redefined'),
+        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args + '-Wno-macro-redefined'),
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
         'BUILD_SHARED_LIBS': false,
         'BUILD_PROGRAMS': false,
@@ -264,19 +264,19 @@ if is_libretro
 
     global_dependencies += subproject('opengl-registry').get_variable('opengl_registry')
 
-    freetype_options = [
-        'cflags=@0@'.format(','.join(global_args)),
-        'cppflags=@0@'.format(','.join(global_args)),
-        'default_library=static',
-        'b_staticpic=@0@'.format(use_pic),
-        'brotli=disabled',
-        'bzip2=disabled',
-        'harfbuzz=disabled',
-        'mmap=disabled',
-        'png=disabled',
-        'tests=disabled',
-        'zlib=disabled',
-    ]
+    freetype_options = {
+        'cflags': global_args,
+        'cppflags': global_args,
+        'default_library': 'static',
+        'b_staticpic': use_pic,
+        'brotli': 'disabled',
+        'bzip2': 'disabled',
+        'harfbuzz': 'disabled',
+        'mmap': 'disabled',
+        'png': 'disabled',
+        'tests': 'disabled',
+        'zlib': 'disabled',
+    }
     global_dependencies += subproject('freetype', default_options: freetype_options).get_variable('freetype_dep')
 else
     physfs = dependency('physfs', version: '>=2.1', static: build_static)

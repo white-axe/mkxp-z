@@ -1,2 +1,2 @@
-option('cflags', type: 'string')
-option('cppflags', type: 'string')
+option('cflags', type: 'array', value: [])
+option('cppflags', type: 'array', value: [])

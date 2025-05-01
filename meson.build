@@ -5,6 +5,7 @@ host_endian = host_machine.endian()
 host_cpu_family = host_machine.cpu_family()
 
 compilers = {'c': meson.get_compiler('c'), 'cpp': meson.get_compiler('cpp')}
+is_clang = ['armclang', 'clang', 'emscripten', 'llvm'].contains(compilers['cpp'].get_id())
 
 is_libretro = get_option('libretro')
 is_emscripten = host_system == 'emscripten'
@@ -40,11 +41,12 @@ win64 = (sizeof['void*'] != sizeof['long'])
 
 global_args += '-DMKXPZ_BUILD_MESON'
 global_args += '-DMKXPZ_VERSION="@0@"'.format(meson.project_version())
-global_args += '-DHAVE_NANOSLEEP'
 
 if is_libretro
     global_args += '-DMKXPZ_RETRO'
     global_args += '-D_FILE_OFFSET_BITS=64'
+else
+    global_args += '-DHAVE_NANOSLEEP'
 endif
 
 if core_is_static and not is_emscripten and get_option('b_lto')
@@ -380,12 +382,14 @@ endif
 
 # Suppress warnings
 global_cpp_args += ['-Wno-non-virtual-dtor', '-Wno-reorder']
-global_args += ['-Wno-uninitialized', '-Wno-unknown-pragmas', '-Wno-stringop-truncation']
-if compilers['cpp'].get_id() == 'clang'
+global_args += ['-Wno-uninitialized', '-Wno-unknown-pragmas']
+if is_clang
     global_args += ['-Wno-undefined-var-template', '-Wno-delete-non-abstract-non-virtual-dtor']
+else
+    global_args += ['-Wno-stringop-truncation']
 endif
 if host_system == 'windows'
-    if compilers['cpp'].get_id() != 'clang'
+    if not is_clang
         global_args += '-masm=intel'
     endif
 endif
@@ -443,12 +447,11 @@ if is_libretro
             'ruby',
             c_args: global_args + libretro_ruby_args + [
                 '-frounding-math',
-                '-fsignaling-nans',
                 '-Wno-unused-function',
                 '-Wno-unused-value',
                 '-Wno-unused-variable',
                 '-Wno-unused-but-set-variable',
-            ],
+            ] + (is_clang ? [] : ['-fsignaling-nans']),
             include_directories: [
                 include_directories('binding-sandbox'),
                 include_directories(libretro_stage1_path),
