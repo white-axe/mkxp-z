@@ -1,12 +1,13 @@
 # Configure flags are based on the ones from https://github.com/ruby/ruby.wasm
 
 RUBY_VERSION ?= v3_3_7
+WABT_VERSION ?= 1.0.37
 LIBYAML_VERSION ?= 0.2.5
 ZLIB_VERSION ?= 1.3.1
+PICOSHA2_VERSION ?= 27fcf6979298949e8a462e16d09a0351c18fcaf2
 TARGET ?= wasm32-wasip1
 WASI_SDK ?= /opt/wasi-sdk
 WASM_OPT ?= wasm-opt
-WASM2C ?= wasm2c
 CTAGS ?= ctags
 AUTORECONF ?= autoreconf
 CURL ?= curl
@@ -32,6 +33,7 @@ OUTDIR := $(BUILD_PREFIX)/libretro-stage1
 LIBDIR := $(BUILD_PREFIX)/lib
 DOWNLOADS := $(BUILD_PREFIX)/downloads
 RUBY := $(LIBDIR)/bin/ruby
+WASM2C := $(LIBDIR)/bin/wasm2c
 CLONE := $(GIT) clone -q --depth 1
 GITHUB := https://github.com
 WASI_CC := $(WASI_SDK)/bin/clang
@@ -64,7 +66,7 @@ clean-ruby-bindings:
 
 # Cross Ruby (targets WASI)
 
-$(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_0.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_1.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_2.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_3.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_4.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_5.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_6.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_7.c &: $(LIBDIR)/mkxp-retro-dist/bin/ruby
+$(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_0.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_1.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_2.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_3.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_4.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_5.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_6.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_7.c &: $(WASM2C) $(LIBDIR)/mkxp-retro-dist/bin/ruby
 	mkdir -p $(OUTDIR)/mkxp-retro-ruby
 	$(WASM2C) $(LIBDIR)/mkxp-retro-dist/bin/ruby -n ruby --num-outputs=8 -o $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.c
 	# Find all the function types declared using `FUNC_TYPE_DECL_EXTERN_T` and redeclare them as macros to fix the "initializer element is not constant" compilation error that occurs when using GCC versions earlier than 8.1.0
@@ -76,6 +78,7 @@ $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro
 	$(SED) -i 's/ *# *define * FUNC_TYPE_EXTERN_T *([^()]).*/#define FUNC_TYPE_EXTERN_T(x) const char _mkxp_unused_##x[]/g' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h
 	$(SED) -i 's/ *# *define * FUNC_TYPE_T *([^()]).*/#define FUNC_TYPE_T(x) static const char _mkxp_unused_##x[]/g' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h
 	$(SED) -i 's/__has_builtin *([^()]*)/0/g' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h
+	$(SED) -i 's/#error "Missing implementation of __builtin_add_overflow or _addcarry_u64"/return __builtin_add_overflow(a, b, resptr);/g' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h
 
 $(OUTDIR)/mkxp-retro-dist.zip: $(LIBDIR)/mkxp-retro-dist/bin/ruby $(RUBY)
 	rm -rf $(LIBDIR)/_mkxp-retro-dist
@@ -158,6 +161,88 @@ $(DOWNLOADS)/baseruby/configure: $(DOWNLOADS)/baseruby/configure.ac
 $(DOWNLOADS)/baseruby/configure.ac:
 	mkdir -p $(DOWNLOADS)
 	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/baseruby -b $(RUBY_VERSION)
+
+# wasm2c
+
+WASM2C_SRC := \
+	$(DOWNLOADS)/wabt/src/apply-names.cc \
+	$(DOWNLOADS)/wabt/src/binary-reader-ir.cc \
+	$(DOWNLOADS)/wabt/src/binary-reader-logging.cc \
+	$(DOWNLOADS)/wabt/src/binary-reader.cc \
+	$(DOWNLOADS)/wabt/src/binary-writer-spec.cc \
+	$(DOWNLOADS)/wabt/src/binary-writer.cc \
+	$(DOWNLOADS)/wabt/src/binary.cc \
+	$(DOWNLOADS)/wabt/src/binding-hash.cc \
+	$(DOWNLOADS)/wabt/src/color.cc \
+	$(DOWNLOADS)/wabt/src/common.cc \
+	$(DOWNLOADS)/wabt/src/config.cc \
+	$(DOWNLOADS)/wabt/src/decompiler.cc \
+	$(DOWNLOADS)/wabt/src/error-formatter.cc \
+	$(DOWNLOADS)/wabt/src/expr-visitor.cc \
+	$(DOWNLOADS)/wabt/src/feature.cc \
+	$(DOWNLOADS)/wabt/src/filenames.cc \
+	$(DOWNLOADS)/wabt/src/generate-names.cc \
+	$(DOWNLOADS)/wabt/src/ir-util.cc \
+	$(DOWNLOADS)/wabt/src/ir.cc \
+	$(DOWNLOADS)/wabt/src/leb128.cc \
+	$(DOWNLOADS)/wabt/src/lexer-source-line-finder.cc \
+	$(DOWNLOADS)/wabt/src/lexer-source.cc \
+	$(DOWNLOADS)/wabt/src/literal.cc \
+	$(DOWNLOADS)/wabt/src/opcode-code-table.c \
+	$(DOWNLOADS)/wabt/src/opcode.cc \
+	$(DOWNLOADS)/wabt/src/option-parser.cc \
+	$(DOWNLOADS)/wabt/src/resolve-names.cc \
+	$(DOWNLOADS)/wabt/src/sha256.cc \
+	$(DOWNLOADS)/wabt/src/shared-validator.cc \
+	$(DOWNLOADS)/wabt/src/stream.cc \
+	$(DOWNLOADS)/wabt/src/token.cc \
+	$(DOWNLOADS)/wabt/src/tracing.cc \
+	$(DOWNLOADS)/wabt/src/type-checker.cc \
+	$(DOWNLOADS)/wabt/src/utf8.cc \
+	$(DOWNLOADS)/wabt/src/validator.cc \
+	$(DOWNLOADS)/wabt/src/wast-lexer.cc \
+	$(DOWNLOADS)/wabt/src/wast-parser.cc \
+	$(DOWNLOADS)/wabt/src/wat-writer.cc \
+	$(DOWNLOADS)/wabt/src/c-writer.cc \
+	$(DOWNLOADS)/wabt/src/prebuilt/wasm2c_header_top.cc \
+	$(DOWNLOADS)/wabt/src/prebuilt/wasm2c_header_bottom.cc \
+	$(DOWNLOADS)/wabt/src/prebuilt/wasm2c_source_includes.cc \
+	$(DOWNLOADS)/wabt/src/prebuilt/wasm2c_source_declarations.cc \
+	$(DOWNLOADS)/wabt/src/prebuilt/wasm2c_simd_source_declarations.cc \
+	$(DOWNLOADS)/wabt/src/prebuilt/wasm2c_atomicops_source_declarations.cc \
+	$(DOWNLOADS)/wabt/src/interp/binary-reader-interp.cc \
+	$(DOWNLOADS)/wabt/src/interp/interp.cc \
+	$(DOWNLOADS)/wabt/src/interp/interp-util.cc \
+	$(DOWNLOADS)/wabt/src/interp/istream.cc \
+	$(DOWNLOADS)/wabt/src/tools/wasm2c.cc
+
+$(WASM2C): $(addsuffix .o,$(WASM2C_SRC))
+	mkdir -p $(LIBDIR)/bin
+	$(CXX) $(LDFLAGS) -o $@ $^
+
+$(DOWNLOADS)/wabt/src/%.c.o: $(DOWNLOADS)/wabt/src/%.c $(DOWNLOADS)/wabt/include/wabt/config.h $(DOWNLOADS)/picosha2/picosha2.h
+	$(CC) $(CFLAGS) -I$(DOWNLOADS)/wabt/include -I$(DOWNLOADS)/picosha2 -c -o $@ $<
+
+$(DOWNLOADS)/wabt/src/%.cc.o: $(DOWNLOADS)/wabt/src/%.cc $(DOWNLOADS)/wabt/include/wabt/config.h $(DOWNLOADS)/picosha2/picosha2.h
+	$(CXX) $(CXXFLAGS) -I$(DOWNLOADS)/wabt/include -I$(DOWNLOADS)/picosha2 -c -o $@ $<
+
+$(DOWNLOADS)/wabt/include/wabt/config.h: $(DOWNLOADS)/wabt/src/config.h.in
+	$(SED) \
+		-e 's/#cmakedefine WABT_VERSION_STRING "@WABT_VERSION_STRING@"/#define WABT_VERSION_STRING "$(WABT_VERSION) (mkxp-z internal use)"/' \
+		-e 's/#cmakedefine WABT_DEBUG @WABT_DEBUG@/#define WABT_DEBUG 0/' \
+		-e 's/#cmakedefine01 HAVE_SNPRINTF/#define HAVE_SNPRINTF 1/' \
+		-e 's/#cmakedefine01 HAVE_STRCASECMP/#define HAVE_STRCASECMP 1/' \
+		-e 's/#cmakedefine01 COMPILER_IS_GNU/#define COMPILER_IS_GNU 1/' \
+		-e 's/#cmakedefine01 \(\w*\)/#define \1 0/' \
+		$< > $@
+
+$(WASM2C_SRC) $(DOWNLOADS)/wabt/src/config.h.in &:
+	mkdir -p $(DOWNLOADS)
+	$(CLONE) $(GITHUB)/WebAssembly/wabt $(DOWNLOADS)/wabt -b $(WABT_VERSION)
+
+$(DOWNLOADS)/picosha2/picosha2.h:
+	mkdir -p $(DOWNLOADS)/picosha2
+	$(CURL) -L -o $@ https://raw.githubusercontent.com/okdshin/PicoSHA2/$(PICOSHA2_VERSION)/picosha2.h
 
 # libyaml
 

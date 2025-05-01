@@ -66,7 +66,10 @@ extern "C" WASM_RT_NO_RETURN void wasm_rt_trap(wasm_rt_trap_t error) {
     std::abort();
 }
 
-extern "C" void wasm_rt_allocate_memory(wasm_rt_memory_t *memory, uint32_t initial_pages, uint32_t max_pages, bool is64) {
+extern "C" void wasm_rt_allocate_memory(wasm_rt_memory_t *memory, uint32_t initial_pages, uint32_t max_pages, bool is64, uint32_t page_size) {
+    if (page_size != WASM_PAGE_SIZE) {
+        throw std::bad_alloc();
+    }
     if ((memory->size = (uint64_t)initial_pages * WASM_PAGE_SIZE) > SIZE_MAX) {
         throw std::bad_alloc();
     }
