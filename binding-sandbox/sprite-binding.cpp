@@ -32,7 +32,6 @@ VALUE mkxp_sandbox::sprite_class;
 static struct bindings::rb_data_type sprite_type;
 
 SANDBOX_DEF_ALLOC(sprite_type);
-SANDBOX_DEF_DFREE(Sprite);
 
 static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
@@ -81,7 +80,7 @@ SANDBOX_DEF_GFX_PROP_I(Sprite, BlendType, blend_type);
 
 void sprite_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        sprite_type = sb()->rb_data_type("Sprite", NULL, dfree, NULL, NULL, 0, 0, 0);
+        sprite_type = sb()->rb_data_type("Sprite", NULL, dfree<Sprite>, NULL, NULL, 0, 0, 0);
         SANDBOX_AWAIT_AND_SET(sprite_class, rb_define_class, "Sprite", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, sprite_class, alloc);
         SANDBOX_AWAIT(rb_define_method, sprite_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);

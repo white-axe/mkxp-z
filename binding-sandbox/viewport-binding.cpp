@@ -32,7 +32,6 @@ VALUE mkxp_sandbox::viewport_class;
 static struct bindings::rb_data_type viewport_type;
 
 SANDBOX_DEF_ALLOC(viewport_type);
-SANDBOX_DEF_DFREE(Viewport);
 
 static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
@@ -86,7 +85,7 @@ SANDBOX_DEF_GFX_PROP_I(Viewport, OY, oy);
 
 void viewport_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        viewport_type = sb()->rb_data_type("Viewport", NULL, dfree, NULL, NULL, 0, 0, 0);
+        viewport_type = sb()->rb_data_type("Viewport", NULL, dfree<Viewport>, NULL, NULL, 0, 0, 0);
         SANDBOX_AWAIT_AND_SET(viewport_class, rb_define_class, "Viewport", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, viewport_class, alloc);
         SANDBOX_AWAIT(rb_define_method, viewport_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);

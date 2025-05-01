@@ -98,7 +98,6 @@ struct tilemap_autotiles_binding_init : boost::asio::coroutine {
 };
 
 SANDBOX_DEF_ALLOC(tilemap_type)
-SANDBOX_DEF_DFREE(Tilemap)
 
 static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
@@ -191,7 +190,7 @@ void tilemap_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
         SANDBOX_AWAIT(tilemap_autotiles_binding_init);
 
-        tilemap_type = sb()->rb_data_type("Tilemap", NULL, dfree, NULL, NULL, 0, 0, 0);
+        tilemap_type = sb()->rb_data_type("Tilemap", NULL, dfree<Tilemap>, NULL, NULL, 0, 0, 0);
         SANDBOX_AWAIT_AND_SET(tilemap_class, rb_define_class, "Tilemap", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, tilemap_class, alloc);
         SANDBOX_AWAIT(rb_define_method, tilemap_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);

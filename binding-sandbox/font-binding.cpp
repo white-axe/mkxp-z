@@ -30,7 +30,6 @@ VALUE mkxp_sandbox::font_class;
 static struct bindings::rb_data_type font_type;
 
 SANDBOX_DEF_ALLOC(font_type);
-SANDBOX_DEF_DFREE(Font);
 
 struct collect_strings : boost::asio::coroutine {
     VALUE value;
@@ -241,7 +240,7 @@ static VALUE exist(VALUE self, VALUE value) {
 
 void font_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        font_type = sb()->rb_data_type("Font", NULL, dfree, NULL, NULL, 0, 0, 0);
+        font_type = sb()->rb_data_type("Font", NULL, dfree<Font>, NULL, NULL, 0, 0, 0);
         SANDBOX_AWAIT_AND_SET(font_class, rb_define_class, "Font", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, font_class, alloc);
 

@@ -20,6 +20,7 @@
 */
 
 #include "table-binding.h"
+#include "serializable-binding.h"
 #include "table.h"
 
 using namespace mkxp_sandbox;
@@ -28,8 +29,6 @@ VALUE mkxp_sandbox::table_class;
 static struct bindings::rb_data_type table_type;
 
 SANDBOX_DEF_ALLOC_WITH_INIT(table_type, new Table(0, 0, 0))
-SANDBOX_DEF_DFREE(Table)
-SANDBOX_DEF_LOAD(Table)
 
 static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
@@ -205,12 +204,12 @@ static VALUE set(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
 void table_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        table_type = sb()->rb_data_type("Table", NULL, dfree, NULL, NULL, 0, 0, 0);
+        table_type = sb()->rb_data_type("Table", NULL, dfree<Table>, NULL, NULL, 0, 0, 0);
         SANDBOX_AWAIT_AND_SET(table_class, rb_define_class, "Table", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, table_class, alloc);
-        SANDBOX_AWAIT(rb_define_singleton_method, table_class, "_load", (VALUE (*)(ANYARGS))load, 1);
         SANDBOX_AWAIT(rb_define_method, table_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
         SANDBOX_AWAIT(rb_define_method, table_class, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
+        SANDBOX_AWAIT(serializable_binding_init<Table>, table_class);
         SANDBOX_AWAIT(rb_define_method, table_class, "resize", (VALUE (*)(ANYARGS))resize, -1);
         SANDBOX_AWAIT(rb_define_method, table_class, "xsize", (VALUE (*)(ANYARGS))xsize, 0);
         SANDBOX_AWAIT(rb_define_method, table_class, "ysize", (VALUE (*)(ANYARGS))ysize, 0);

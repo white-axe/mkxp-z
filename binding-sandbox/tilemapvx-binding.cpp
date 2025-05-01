@@ -31,7 +31,7 @@ static struct bindings::rb_data_type tilemapvx_type;
 static struct bindings::rb_data_type bitmap_array_type;
 
 struct bitmap_array_binding_init : boost::asio::coroutine {
-    SANDBOX_DEF_ALLOC(bitmap_array_type)
+    SANDBOX_DEF_ALLOC(bitmap_array_type);
 
     static VALUE get(VALUE self, VALUE i) {
         struct coro : boost::asio::coroutine {
@@ -96,8 +96,7 @@ struct bitmap_array_binding_init : boost::asio::coroutine {
     }
 };
 
-SANDBOX_DEF_ALLOC(tilemapvx_type)
-SANDBOX_DEF_DFREE(TilemapVX)
+SANDBOX_DEF_ALLOC(tilemapvx_type);
 
 static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
@@ -181,7 +180,7 @@ void tilemapvx_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
         SANDBOX_AWAIT(bitmap_array_binding_init);
 
-        tilemapvx_type = sb()->rb_data_type("Tilemap", NULL, dfree, NULL, NULL, 0, 0, 0);
+        tilemapvx_type = sb()->rb_data_type("Tilemap", NULL, dfree<TilemapVX>, NULL, NULL, 0, 0, 0);
         SANDBOX_AWAIT_AND_SET(tilemapvx_class, rb_define_class, "Tilemap", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, tilemapvx_class, alloc);
         SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);

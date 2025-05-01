@@ -31,7 +31,6 @@ VALUE mkxp_sandbox::bitmap_class;
 static struct bindings::rb_data_type bitmap_type;
 
 SANDBOX_DEF_ALLOC(bitmap_type);
-SANDBOX_DEF_DFREE(Bitmap);
 
 void bitmap_init_props::operator()(VALUE self) {
     BOOST_ASIO_CORO_REENTER (this) {
@@ -778,7 +777,7 @@ static VALUE set_font(VALUE self, VALUE value) {
 
 void bitmap_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        bitmap_type = sb()->rb_data_type("Bitmap", NULL, dfree, NULL, NULL, 0, 0, 0);
+        bitmap_type = sb()->rb_data_type("Bitmap", NULL, dfree<Bitmap>, NULL, NULL, 0, 0, 0);
         SANDBOX_AWAIT_AND_SET(bitmap_class, rb_define_class, "Bitmap", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, bitmap_class, alloc);
         SANDBOX_AWAIT(rb_define_method, bitmap_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);

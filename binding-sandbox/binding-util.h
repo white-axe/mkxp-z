@@ -58,32 +58,12 @@
         return sb()->bind<struct coro>()()(_klass); \
     }
 
-#define SANDBOX_DEF_DFREE(T) \
-    static void dfree(wasm_ptr_t _buf) { \
-        using namespace ::mkxp_sandbox; \
-        delete *(T **)(**sb() + _buf); \
-        sb()->sandbox_free(_buf); \
+namespace mkxp_sandbox {
+    template <class T> void dfree(wasm_ptr_t buf) {
+        delete *(T **)(**sb() + buf);
+        sb()->sandbox_free(buf);
     }
-
-#define SANDBOX_DEF_LOAD(T) \
-    static VALUE load(VALUE _self, VALUE _serialized) { \
-        using namespace ::mkxp_sandbox; \
-        struct coro : boost::asio::coroutine { \
-            VALUE _obj; \
-            wasm_ptr_t _ptr; \
-            wasm_size_t _len; \
-            VALUE operator()(VALUE _self, VALUE _serialized) { \
-                BOOST_ASIO_CORO_REENTER (this) { \
-                    SANDBOX_AWAIT_AND_SET(_obj, rb_obj_alloc, _self); \
-                    SANDBOX_AWAIT_AND_SET(_ptr, rb_string_value_ptr, &_serialized); \
-                    SANDBOX_AWAIT_AND_SET(_len, get_bytesize, _serialized); \
-                    set_private_data(_obj, T::deserialize((const char *)(**sb() + _ptr), _len)); /* TODO: free when sandbox is deallocated */ \
-                } \
-                return _obj; \
-            } \
-        }; \
-        return sb()->bind<struct coro>()()(_self, _serialized); \
-    }
+}
 
 #define SANDBOX_DEF_CLASS_PROP_B(S, prop, name) \
     static VALUE get_##name(VALUE self) { \

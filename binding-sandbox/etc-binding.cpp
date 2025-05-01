@@ -20,7 +20,8 @@
 */
 
 #include "etc-binding.h"
-#include "mkxp-polyfill.h" // sprintf
+#include "serializable-binding.h"
+#include "mkxp-polyfill.h" // std::sprintf
 #include "etc.h"
 #include "sharedstate.h"
 
@@ -35,8 +36,6 @@ static struct bindings::rb_data_type rect_type;
 
 struct color_binding_init : boost::asio::coroutine {
     SANDBOX_DEF_ALLOC_WITH_INIT(color_type, new Color);
-    SANDBOX_DEF_DFREE(Color);
-    SANDBOX_DEF_LOAD(Color);
 
     static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
         struct coro : boost::asio::coroutine {
@@ -156,12 +155,12 @@ struct color_binding_init : boost::asio::coroutine {
 
     void operator()() {
         BOOST_ASIO_CORO_REENTER (this) {
-            color_type = sb()->rb_data_type("Color", NULL, dfree, NULL, NULL, 0, 0, 0);
+            color_type = sb()->rb_data_type("Color", NULL, dfree<Color>, NULL, NULL, 0, 0, 0);
             SANDBOX_AWAIT_AND_SET(color_class, rb_define_class, "Color", sb()->rb_cObject());
             SANDBOX_AWAIT(rb_define_alloc_func, color_class, alloc);
-            SANDBOX_AWAIT(rb_define_singleton_method, color_class, "_load", (VALUE (*)(ANYARGS))load, 1);
             SANDBOX_AWAIT(rb_define_method, color_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
             SANDBOX_AWAIT(rb_define_method, color_class, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
+            SANDBOX_AWAIT(serializable_binding_init<Color>, color_class);
             SANDBOX_AWAIT(rb_define_method, color_class, "set", (VALUE (*)(ANYARGS))set, -1);
             SANDBOX_INIT_PROP_BIND(color_class, red);
             SANDBOX_INIT_PROP_BIND(color_class, green);
@@ -177,8 +176,6 @@ struct color_binding_init : boost::asio::coroutine {
 
 struct tone_binding_init : boost::asio::coroutine {
     SANDBOX_DEF_ALLOC_WITH_INIT(tone_type, new Tone);
-    SANDBOX_DEF_DFREE(Tone);
-    SANDBOX_DEF_LOAD(Tone);
 
     static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
         struct coro : boost::asio::coroutine {
@@ -298,12 +295,12 @@ struct tone_binding_init : boost::asio::coroutine {
 
     void operator()() {
         BOOST_ASIO_CORO_REENTER (this) {
-            tone_type = sb()->rb_data_type("Tone", NULL, dfree, NULL, NULL, 0, 0, 0);
+            tone_type = sb()->rb_data_type("Tone", NULL, dfree<Tone>, NULL, NULL, 0, 0, 0);
             SANDBOX_AWAIT_AND_SET(tone_class, rb_define_class, "Tone", sb()->rb_cObject());
             SANDBOX_AWAIT(rb_define_alloc_func, tone_class, alloc);
-            SANDBOX_AWAIT(rb_define_singleton_method, tone_class, "_load", (VALUE (*)(ANYARGS))load, 1);
             SANDBOX_AWAIT(rb_define_method, tone_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
             SANDBOX_AWAIT(rb_define_method, tone_class, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
+            SANDBOX_AWAIT(serializable_binding_init<Tone>, tone_class);
             SANDBOX_AWAIT(rb_define_method, tone_class, "set", (VALUE (*)(ANYARGS))set, -1);
             SANDBOX_INIT_PROP_BIND(tone_class, red);
             SANDBOX_INIT_PROP_BIND(tone_class, green);
@@ -319,8 +316,6 @@ struct tone_binding_init : boost::asio::coroutine {
 
 struct rect_binding_init : boost::asio::coroutine {
     SANDBOX_DEF_ALLOC_WITH_INIT(rect_type, new Rect);
-    SANDBOX_DEF_DFREE(Rect);
-    SANDBOX_DEF_LOAD(Rect);
 
     static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
         struct coro : boost::asio::coroutine {
@@ -437,12 +432,12 @@ struct rect_binding_init : boost::asio::coroutine {
 
     void operator()() {
         BOOST_ASIO_CORO_REENTER (this) {
-            rect_type = sb()->rb_data_type("Rect", NULL, dfree, NULL, NULL, 0, 0, 0);
+            rect_type = sb()->rb_data_type("Rect", NULL, dfree<Rect>, NULL, NULL, 0, 0, 0);
             SANDBOX_AWAIT_AND_SET(rect_class, rb_define_class, "Rect", sb()->rb_cObject());
             SANDBOX_AWAIT(rb_define_alloc_func, rect_class, alloc);
-            SANDBOX_AWAIT(rb_define_singleton_method, rect_class, "_load", (VALUE (*)(ANYARGS))load, 1);
             SANDBOX_AWAIT(rb_define_method, rect_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
             SANDBOX_AWAIT(rb_define_method, rect_class, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);
+            SANDBOX_AWAIT(serializable_binding_init<Rect>, rect_class);
             SANDBOX_AWAIT(rb_define_method, rect_class, "set", (VALUE (*)(ANYARGS))set, -1);
             SANDBOX_AWAIT(rb_define_method, rect_class, "empty", (VALUE (*)(ANYARGS))empty, 0);
             SANDBOX_INIT_PROP_BIND(rect_class, x);
