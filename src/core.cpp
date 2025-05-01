@@ -20,28 +20,27 @@
 */
 
 #include <atomic>
-#include <cassert>
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
 #include <cstdarg>
-#include <cstring>
+
 #include <boost/optional.hpp>
-#include "mkxp-polyfill.h"
 #include <alc.h>
 #include <alext.h>
 #include <fluidsynth.h>
+
+#include "mkxp-polyfill.h" // std::mutex
 #include "git-hash.h"
-#include "sandbox.h"
+
 #include "binding-sandbox.h"
-#include "core.h"
+
+#include "al-util.h"
+#include "audio.h"
+#include "eventthread.h"
 #include "filesystem.h"
 #include "gl-fun.h"
 #include "glstate.h"
+#include "graphics.h"
 #include "sharedmidistate.h"
-#include "eventthread.h"
-#include "audio.h"
-#include "al-util.h"
+#include "sharedstate.h"
 
 #define THREADED_AUDIO_SAMPLES (((size_t)SYNTH_SAMPLERATE * (size_t)AUDIO_SLEEP) / (size_t)1000)
 

@@ -403,71 +403,36 @@ namespace mkxp_sandbox {
 
     // Gets the length of a Ruby object.
     struct get_length : boost::asio::coroutine {
+        wasm_size_t operator()(VALUE obj);
+    private:
         ID id;
         VALUE length_value;
         wasm_size_t result;
-
-        wasm_size_t operator()(VALUE obj) {
-            BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(id, rb_intern, "length");
-                SANDBOX_AWAIT_AND_SET(length_value, rb_funcall, obj, id, 0);
-                SANDBOX_AWAIT_AND_SET(result, rb_num2ulong, length_value);
-            }
-
-            return result;
-        }
     };
 
     // Gets the bytesize of a Ruby object.
     struct get_bytesize : boost::asio::coroutine {
+        wasm_size_t operator()(VALUE obj);
+    private:
         ID id;
         VALUE length_value;
         wasm_size_t result;
-
-        wasm_size_t operator()(VALUE obj) {
-            BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(id, rb_intern, "bytesize");
-                SANDBOX_AWAIT_AND_SET(length_value, rb_funcall, obj, id, 0);
-                SANDBOX_AWAIT_AND_SET(result, rb_num2ulong, length_value);
-            }
-
-            return result;
-        }
     };
 
     struct wrap_property : boost::asio::coroutine {
+        VALUE operator()(VALUE self, void *ptr, const char *iv, VALUE klass);
+    private:
         VALUE obj;
-
-        VALUE operator()(VALUE self, void *ptr, const char *iv, VALUE klass) {
-            BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                set_private_data(obj, ptr);
-                SANDBOX_AWAIT(rb_iv_set, self, iv, obj);
-            }
-
-            return obj;
-        }
     };
 
     // Prints the backtrace of a Ruby exception to the log.
     struct log_backtrace : boost::asio::coroutine {
+        void operator()(VALUE exception);
+    private:
         ID id;
         VALUE backtrace;
         VALUE separator;
         wasm_ptr_t backtrace_str;
-
-        void operator()(VALUE exception) {
-            BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT(rb_p, exception);
-                SANDBOX_AWAIT_AND_SET(id, rb_intern, "backtrace");
-                SANDBOX_AWAIT_AND_SET(backtrace, rb_funcall, exception, id, 0);
-                SANDBOX_AWAIT_AND_SET(id, rb_intern, "join");
-                SANDBOX_AWAIT_AND_SET(separator, rb_str_new_cstr, "\n\t");
-                SANDBOX_AWAIT_AND_SET(backtrace, rb_funcall, backtrace, id, 1, separator);
-                SANDBOX_AWAIT_AND_SET(backtrace_str, rb_string_value_cstr, &backtrace);
-                mkxp_retro::log_printf(RETRO_LOG_ERROR, "%s\n", **sb() + backtrace_str);
-            }
-        }
     };
 }
 

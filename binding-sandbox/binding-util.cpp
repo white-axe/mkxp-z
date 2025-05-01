@@ -21,6 +21,8 @@
 
 #include "binding-util.h"
 
+using namespace mkxp_sandbox;
+
 void mkxp_sandbox::set_private_data(VALUE obj, void *ptr) {
     /* RGSS's behavior is to just leak memory if a disposable is reinitialized,
      * with the original disposable being left permanently instantiated,
@@ -40,5 +42,48 @@ void mkxp_sandbox::set_private_data(VALUE obj, void *ptr) {
         wasm_ptr_t buf = sb()->sandbox_malloc(sizeof(void *));
         *(void **)(**sb() + buf) = ptr;
         *(wasm_ptr_t *)(**sb() + data) = buf;
+    }
+}
+
+wasm_size_t get_length::operator()(VALUE obj) {
+    BOOST_ASIO_CORO_REENTER (this) {
+        SANDBOX_AWAIT_AND_SET(id, rb_intern, "length");
+        SANDBOX_AWAIT_AND_SET(length_value, rb_funcall, obj, id, 0);
+        SANDBOX_AWAIT_AND_SET(result, rb_num2ulong, length_value);
+    }
+
+    return result;
+}
+
+wasm_size_t get_bytesize::operator()(VALUE obj) {
+    BOOST_ASIO_CORO_REENTER (this) {
+        SANDBOX_AWAIT_AND_SET(id, rb_intern, "bytesize");
+        SANDBOX_AWAIT_AND_SET(length_value, rb_funcall, obj, id, 0);
+        SANDBOX_AWAIT_AND_SET(result, rb_num2ulong, length_value);
+    }
+
+    return result;
+}
+
+VALUE wrap_property::operator()(VALUE self, void *ptr, const char *iv, VALUE klass) {
+    BOOST_ASIO_CORO_REENTER (this) {
+        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
+        set_private_data(obj, ptr);
+        SANDBOX_AWAIT(rb_iv_set, self, iv, obj);
+    }
+
+    return obj;
+}
+
+void log_backtrace::operator()(VALUE exception) {
+    BOOST_ASIO_CORO_REENTER (this) {
+        SANDBOX_AWAIT(rb_p, exception);
+        SANDBOX_AWAIT_AND_SET(id, rb_intern, "backtrace");
+        SANDBOX_AWAIT_AND_SET(backtrace, rb_funcall, exception, id, 0);
+        SANDBOX_AWAIT_AND_SET(id, rb_intern, "join");
+        SANDBOX_AWAIT_AND_SET(separator, rb_str_new_cstr, "\n\t");
+        SANDBOX_AWAIT_AND_SET(backtrace, rb_funcall, backtrace, id, 1, separator);
+        SANDBOX_AWAIT_AND_SET(backtrace_str, rb_string_value_cstr, &backtrace);
+        mkxp_retro::log_printf(RETRO_LOG_ERROR, "%s\n", **sb() + backtrace_str);
     }
 }

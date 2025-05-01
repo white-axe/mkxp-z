@@ -1,0 +1,171 @@
+/*
+** sprite-binding.cpp
+**
+** This file is part of mkxp.
+**
+** Copyright (C) 2013 - 2021 Amaryllis Kulla <ancurio@mapleshrine.eu>
+**
+** mkxp is free software: you can redistribute it and/or modify
+** it under the terms of the GNU General Public License as published by
+** the Free Software Foundation, either version 2 of the License, or
+** (at your option) any later version.
+**
+** mkxp is distributed in the hope that it will be useful,
+** but WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+** GNU General Public License for more details.
+**
+** You should have received a copy of the GNU General Public License
+** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include "sprite-binding.h"
+#include "etc-binding.h"
+#include "sprite.h"
+
+using namespace mkxp_sandbox;
+
+VALUE mkxp_sandbox::sprite_class;
+static struct bindings::rb_data_type sprite_type;
+
+SANDBOX_DEF_ALLOC(sprite_type);
+SANDBOX_DEF_DFREE(Sprite);
+
+static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
+    struct coro : boost::asio::coroutine {
+        Sprite *sprite;
+        VALUE viewport_obj;
+        Viewport *viewport;
+
+        VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                viewport_obj = SANDBOX_NIL;
+                viewport = NULL;
+                if (argc > 0) {
+                    viewport_obj = *(VALUE *)(**sb() + argv);
+                    if (viewport_obj != SANDBOX_NIL) {
+                        viewport = get_private_data<Viewport>(viewport_obj);
+                    }
+                }
+
+                GFX_LOCK
+
+                sprite = new Sprite(viewport);
+                SANDBOX_AWAIT(rb_iv_set, self, "viewport", viewport_obj);
+
+                set_private_data(self, sprite);
+                sprite->initDynAttribs();
+
+                SANDBOX_AWAIT(wrap_property, self, &sprite->getSrcRect(), "src_rect", rect_class);
+                SANDBOX_AWAIT(wrap_property, self, &sprite->getColor(), "color", color_class);
+                SANDBOX_AWAIT(wrap_property, self, &sprite->getTone(), "tone", tone_class);
+
+                GFX_UNLOCK
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(argc, argv, self);
+}
+
+static VALUE dispose(VALUE self) {
+    Sprite *sprite = get_private_data<Sprite>(self);
+    if (sprite != NULL) {
+        sprite->dispose();
+    }
+    return SANDBOX_NIL;
+}
+
+static VALUE disposed(VALUE self) {
+    Sprite *sprite = get_private_data<Sprite>(self);
+    return sprite == NULL || sprite->isDisposed() ? SANDBOX_TRUE : SANDBOX_FALSE;
+}
+
+static VALUE flash(VALUE self, VALUE obj, VALUE value) {
+    struct coro : boost::asio::coroutine {
+        int duration;
+
+        VALUE operator()(VALUE self, VALUE obj, VALUE value) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_AND_SET(duration, rb_num2int, value);
+                get_private_data<Sprite>(self)->flash(obj == SANDBOX_NIL ? NULL : &get_private_data<Color>(obj)->norm, duration);
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self, obj, value);
+}
+
+static VALUE update(VALUE self) {
+    GFX_LOCK;
+    get_private_data<Sprite>(self)->update();
+    GFX_UNLOCK;
+    return SANDBOX_NIL;
+}
+
+SANDBOX_DEF_GFX_PROP_OBJ_REF(Sprite, Viewport, Viewport, viewport);
+SANDBOX_DEF_GFX_PROP_OBJ_REF(Sprite, Bitmap, Bitmap, bitmap);
+SANDBOX_DEF_GFX_PROP_OBJ_VAL(Sprite, Rect, SrcRect, src_rect);
+SANDBOX_DEF_GFX_PROP_OBJ_VAL(Sprite, Color, Color, color);
+SANDBOX_DEF_GFX_PROP_OBJ_VAL(Sprite, Tone, Tone, tone);
+SANDBOX_DEF_GFX_PROP_B(Sprite, Visible, visible);
+
+static VALUE width(VALUE self) {
+    return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getWidth());
+}
+
+static VALUE height(VALUE self) {
+    return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getHeight());
+}
+
+SANDBOX_DEF_GFX_PROP_I(Sprite, X, x);
+SANDBOX_DEF_GFX_PROP_I(Sprite, Y, y);
+SANDBOX_DEF_GFX_PROP_I(Sprite, OX, ox);
+SANDBOX_DEF_GFX_PROP_I(Sprite, OY, oy);
+SANDBOX_DEF_GFX_PROP_F(Sprite, ZoomX, zoom_x);
+SANDBOX_DEF_GFX_PROP_F(Sprite, ZoomY, zoom_y);
+SANDBOX_DEF_GFX_PROP_I(Sprite, Z, z);
+SANDBOX_DEF_GFX_PROP_F(Sprite, Angle, angle);
+SANDBOX_DEF_GFX_PROP_B(Sprite, Mirror, mirror);
+SANDBOX_DEF_GFX_PROP_I(Sprite, BushDepth, bush_depth);
+SANDBOX_DEF_GFX_PROP_I(Sprite, BushOpacity, bush_opacity);
+SANDBOX_DEF_GFX_PROP_I(Sprite, Opacity, opacity);
+SANDBOX_DEF_GFX_PROP_I(Sprite, BlendType, blend_type);
+
+void sprite_binding_init::operator()() {
+    BOOST_ASIO_CORO_REENTER (this) {
+        sprite_type = sb()->rb_data_type("Sprite", NULL, dfree, NULL, NULL, 0, 0, 0);
+        SANDBOX_AWAIT_AND_SET(sprite_class, rb_define_class, "Sprite", sb()->rb_cObject());
+        SANDBOX_AWAIT(rb_define_alloc_func, sprite_class, alloc);
+        SANDBOX_AWAIT(rb_define_method, sprite_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+        SANDBOX_AWAIT(rb_define_method, sprite_class, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
+        SANDBOX_AWAIT(rb_define_method, sprite_class, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
+        SANDBOX_AWAIT(rb_define_method, sprite_class, "flash", (VALUE (*)(ANYARGS))flash, 2);
+        SANDBOX_AWAIT(rb_define_method, sprite_class, "update", (VALUE (*)(ANYARGS))update, 0);
+        SANDBOX_INIT_PROP_BIND(sprite_class, viewport);
+        SANDBOX_INIT_PROP_BIND(sprite_class, bitmap);
+        SANDBOX_INIT_PROP_BIND(sprite_class, src_rect);
+        SANDBOX_INIT_PROP_BIND(sprite_class, color);
+        SANDBOX_INIT_PROP_BIND(sprite_class, tone);
+        SANDBOX_INIT_PROP_BIND(sprite_class, visible);
+        SANDBOX_AWAIT(rb_define_method, sprite_class, "width", (VALUE (*)(ANYARGS))width, 0);
+        SANDBOX_AWAIT(rb_define_method, sprite_class, "height", (VALUE (*)(ANYARGS))height, 0);
+        SANDBOX_INIT_PROP_BIND(sprite_class, x);
+        SANDBOX_INIT_PROP_BIND(sprite_class, y);
+        SANDBOX_INIT_PROP_BIND(sprite_class, ox);
+        SANDBOX_INIT_PROP_BIND(sprite_class, oy);
+        SANDBOX_INIT_PROP_BIND(sprite_class, zoom_x);
+        SANDBOX_INIT_PROP_BIND(sprite_class, zoom_y);
+        SANDBOX_INIT_PROP_BIND(sprite_class, z);
+        SANDBOX_INIT_PROP_BIND(sprite_class, angle);
+        SANDBOX_INIT_PROP_BIND(sprite_class, mirror);
+        SANDBOX_INIT_PROP_BIND(sprite_class, bush_depth);
+        SANDBOX_INIT_PROP_BIND(sprite_class, bush_opacity);
+        SANDBOX_INIT_PROP_BIND(sprite_class, opacity);
+        SANDBOX_INIT_PROP_BIND(sprite_class, blend_type);
+    }
+}
