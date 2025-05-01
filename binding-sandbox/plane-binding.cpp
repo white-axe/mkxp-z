@@ -75,6 +75,7 @@ void plane_binding_init::operator()() {
         SANDBOX_AWAIT(rb_define_method, plane_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
         SANDBOX_AWAIT(disposable_binding_init<Plane>, plane_class);
         SANDBOX_AWAIT(viewportelement_binding_init<Plane>, plane_class);
+
         SANDBOX_INIT_PROP_BIND(plane_class, bitmap);
         SANDBOX_INIT_PROP_BIND(plane_class, color);
         SANDBOX_INIT_PROP_BIND(plane_class, tone);

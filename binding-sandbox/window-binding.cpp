@@ -56,8 +56,8 @@ static VALUE update(VALUE self) {
 
 SANDBOX_DEF_GFX_PROP_OBJ_REF(Window, Bitmap, Windowskin, windowskin);
 SANDBOX_DEF_GFX_PROP_OBJ_REF(Window, Bitmap, Contents, contents);
-SANDBOX_DEF_GFX_PROP_OBJ_VAL(Window, Rect, CursorRect, cursor_rect);
 SANDBOX_DEF_GFX_PROP_B(Window, Stretch, stretch);
+SANDBOX_DEF_GFX_PROP_OBJ_VAL(Window, Rect, CursorRect, cursor_rect);
 SANDBOX_DEF_GFX_PROP_B(Window, Active, active);
 SANDBOX_DEF_GFX_PROP_B(Window, Pause, pause);
 SANDBOX_DEF_GFX_PROP_I(Window, X, x);
@@ -78,11 +78,13 @@ void window_binding_init::operator()() {
         SANDBOX_AWAIT(rb_define_method, window_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
         SANDBOX_AWAIT(disposable_binding_init<Window>, window_class);
         SANDBOX_AWAIT(viewportelement_binding_init<Window>, window_class);
+
         SANDBOX_AWAIT(rb_define_method, window_class, "update", (VALUE (*)(ANYARGS))update, 0);
+
         SANDBOX_INIT_PROP_BIND(window_class, windowskin);
         SANDBOX_INIT_PROP_BIND(window_class, contents);
-        SANDBOX_INIT_PROP_BIND(window_class, cursor_rect);
         SANDBOX_INIT_PROP_BIND(window_class, stretch);
+        SANDBOX_INIT_PROP_BIND(window_class, cursor_rect);
         SANDBOX_INIT_PROP_BIND(window_class, active);
         SANDBOX_INIT_PROP_BIND(window_class, pause);
         SANDBOX_INIT_PROP_BIND(window_class, x);

@@ -104,7 +104,6 @@ SANDBOX_DEF_GFX_PROP_I(WindowVX, Openness, openness);
 
 static VALUE move(VALUE self, VALUE xv, VALUE yv, VALUE wv, VALUE hv) {
     struct coro : boost::asio::coroutine {
-        WindowVX *window;
         int32_t x;
         int32_t y;
         int32_t w;
@@ -149,7 +148,9 @@ void windowvx_binding_init::operator()() {
         SANDBOX_AWAIT(rb_define_method, windowvx_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
         SANDBOX_AWAIT(disposable_binding_init<WindowVX>, windowvx_class);
         SANDBOX_AWAIT(viewportelement_binding_init<WindowVX>, windowvx_class);
+
         SANDBOX_AWAIT(rb_define_method, windowvx_class, "update", (VALUE (*)(ANYARGS))update, 0);
+
         SANDBOX_INIT_PROP_BIND(windowvx_class, windowskin);
         SANDBOX_INIT_PROP_BIND(windowvx_class, contents);
         SANDBOX_INIT_PROP_BIND(windowvx_class, cursor_rect);
@@ -170,6 +171,7 @@ void windowvx_binding_init::operator()() {
             SANDBOX_AWAIT(rb_define_method, windowvx_class, "move", (VALUE (*)(ANYARGS))move, 4);
             SANDBOX_AWAIT(rb_define_method, windowvx_class, "open?", (VALUE (*)(ANYARGS))is_open, 0);
             SANDBOX_AWAIT(rb_define_method, windowvx_class, "close?", (VALUE (*)(ANYARGS))is_closed, 0);
+
             SANDBOX_INIT_PROP_BIND(windowvx_class, arrows_visible);
             SANDBOX_INIT_PROP_BIND(windowvx_class, padding);
             SANDBOX_INIT_PROP_BIND(windowvx_class, padding_bottom);

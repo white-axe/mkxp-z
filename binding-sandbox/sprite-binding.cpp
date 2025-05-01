@@ -54,6 +54,17 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
 SANDBOX_DEF_GFX_PROP_OBJ_REF(Sprite, Bitmap, Bitmap, bitmap);
 SANDBOX_DEF_GFX_PROP_OBJ_VAL(Sprite, Rect, SrcRect, src_rect);
+SANDBOX_DEF_GFX_PROP_I(Sprite, X, x);
+SANDBOX_DEF_GFX_PROP_I(Sprite, Y, y);
+SANDBOX_DEF_GFX_PROP_I(Sprite, OX, ox);
+SANDBOX_DEF_GFX_PROP_I(Sprite, OY, oy);
+SANDBOX_DEF_GFX_PROP_F(Sprite, ZoomX, zoom_x);
+SANDBOX_DEF_GFX_PROP_F(Sprite, ZoomY, zoom_y);
+SANDBOX_DEF_GFX_PROP_F(Sprite, Angle, angle);
+SANDBOX_DEF_GFX_PROP_B(Sprite, Mirror, mirror);
+SANDBOX_DEF_GFX_PROP_I(Sprite, BushDepth, bush_depth);
+SANDBOX_DEF_GFX_PROP_I(Sprite, Opacity, opacity);
+SANDBOX_DEF_GFX_PROP_I(Sprite, BlendType, blend_type);
 SANDBOX_DEF_GFX_PROP_OBJ_VAL(Sprite, Color, Color, color);
 SANDBOX_DEF_GFX_PROP_OBJ_VAL(Sprite, Tone, Tone, tone);
 
@@ -65,18 +76,21 @@ static VALUE height(VALUE self) {
     return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getHeight());
 }
 
-SANDBOX_DEF_GFX_PROP_I(Sprite, X, x);
-SANDBOX_DEF_GFX_PROP_I(Sprite, Y, y);
-SANDBOX_DEF_GFX_PROP_I(Sprite, OX, ox);
-SANDBOX_DEF_GFX_PROP_I(Sprite, OY, oy);
-SANDBOX_DEF_GFX_PROP_F(Sprite, ZoomX, zoom_x);
-SANDBOX_DEF_GFX_PROP_F(Sprite, ZoomY, zoom_y);
-SANDBOX_DEF_GFX_PROP_F(Sprite, Angle, angle);
-SANDBOX_DEF_GFX_PROP_B(Sprite, Mirror, mirror);
-SANDBOX_DEF_GFX_PROP_I(Sprite, BushDepth, bush_depth);
 SANDBOX_DEF_GFX_PROP_I(Sprite, BushOpacity, bush_opacity);
-SANDBOX_DEF_GFX_PROP_I(Sprite, Opacity, opacity);
-SANDBOX_DEF_GFX_PROP_I(Sprite, BlendType, blend_type);
+
+SANDBOX_DEF_GFX_PROP_OBJ_REF(Sprite, Bitmap, Pattern, pattern);
+SANDBOX_DEF_GFX_PROP_I(Sprite, PatternBlendType, pattern_blend_type);
+SANDBOX_DEF_GFX_PROP_B(Sprite, PatternTile, pattern_tile);
+SANDBOX_DEF_GFX_PROP_I(Sprite, PatternOpacity, pattern_opacity);
+SANDBOX_DEF_GFX_PROP_I(Sprite, PatternScrollX, pattern_scroll_x);
+SANDBOX_DEF_GFX_PROP_I(Sprite, PatternScrollY, pattern_scroll_y);
+SANDBOX_DEF_GFX_PROP_F(Sprite, PatternZoomX, pattern_zoom_x);
+SANDBOX_DEF_GFX_PROP_F(Sprite, PatternZoomY, pattern_zoom_y);
+SANDBOX_DEF_GFX_PROP_B(Sprite, Invert, invert);
+
+SANDBOX_DEF_GFX_PROP_I(Sprite, WaveAmp, wave_amp);
+SANDBOX_DEF_GFX_PROP_I(Sprite, WaveLength, wave_length);
+SANDBOX_DEF_GFX_PROP_I(Sprite, WaveSpeed, wave_speed);
 
 void sprite_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
@@ -87,12 +101,9 @@ void sprite_binding_init::operator()() {
         SANDBOX_AWAIT(disposable_binding_init<Sprite>, sprite_class);
         SANDBOX_AWAIT(flashable_binding_init<Sprite>, sprite_class);
         SANDBOX_AWAIT(viewportelement_binding_init<Sprite>, sprite_class);
+
         SANDBOX_INIT_PROP_BIND(sprite_class, bitmap);
         SANDBOX_INIT_PROP_BIND(sprite_class, src_rect);
-        SANDBOX_INIT_PROP_BIND(sprite_class, color);
-        SANDBOX_INIT_PROP_BIND(sprite_class, tone);
-        SANDBOX_AWAIT(rb_define_method, sprite_class, "width", (VALUE (*)(ANYARGS))width, 0);
-        SANDBOX_AWAIT(rb_define_method, sprite_class, "height", (VALUE (*)(ANYARGS))height, 0);
         SANDBOX_INIT_PROP_BIND(sprite_class, x);
         SANDBOX_INIT_PROP_BIND(sprite_class, y);
         SANDBOX_INIT_PROP_BIND(sprite_class, ox);
@@ -102,8 +113,28 @@ void sprite_binding_init::operator()() {
         SANDBOX_INIT_PROP_BIND(sprite_class, angle);
         SANDBOX_INIT_PROP_BIND(sprite_class, mirror);
         SANDBOX_INIT_PROP_BIND(sprite_class, bush_depth);
-        SANDBOX_INIT_PROP_BIND(sprite_class, bush_opacity);
         SANDBOX_INIT_PROP_BIND(sprite_class, opacity);
         SANDBOX_INIT_PROP_BIND(sprite_class, blend_type);
+        SANDBOX_INIT_PROP_BIND(sprite_class, color);
+        SANDBOX_INIT_PROP_BIND(sprite_class, tone);
+
+        SANDBOX_AWAIT(rb_define_method, sprite_class, "width", (VALUE (*)(ANYARGS))width, 0);
+        SANDBOX_AWAIT(rb_define_method, sprite_class, "height", (VALUE (*)(ANYARGS))height, 0);
+
+        SANDBOX_INIT_PROP_BIND(sprite_class, bush_opacity);
+
+        SANDBOX_INIT_PROP_BIND(sprite_class, pattern);
+        SANDBOX_INIT_PROP_BIND(sprite_class, pattern_blend_type);
+        SANDBOX_INIT_PROP_BIND(sprite_class, pattern_tile);
+        SANDBOX_INIT_PROP_BIND(sprite_class, pattern_opacity);
+        SANDBOX_INIT_PROP_BIND(sprite_class, pattern_scroll_x);
+        SANDBOX_INIT_PROP_BIND(sprite_class, pattern_scroll_y);
+        SANDBOX_INIT_PROP_BIND(sprite_class, pattern_zoom_x);
+        SANDBOX_INIT_PROP_BIND(sprite_class, pattern_zoom_y);
+        SANDBOX_INIT_PROP_BIND(sprite_class, invert);
+
+        SANDBOX_INIT_PROP_BIND(sprite_class, wave_amp);
+        SANDBOX_INIT_PROP_BIND(sprite_class, wave_length);
+        SANDBOX_INIT_PROP_BIND(sprite_class, wave_speed);
     }
 }

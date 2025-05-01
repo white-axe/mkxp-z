@@ -35,7 +35,6 @@ SANDBOX_DEF_ALLOC(viewport_type);
 
 static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        Viewport *viewport;
         int32_t x;
         int32_t y;
         int32_t w;
@@ -44,28 +43,32 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                if (argc == 0 && rgssVer >= 3) {
-                    GFX_LOCK;
-                    viewport = new Viewport;
-                } else if (argc == 1) {
-                    GFX_LOCK;
-                    viewport = new Viewport(get_private_data<Rect>(((VALUE *)(**sb() + argv))[0]));
-                } else {
-                    SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
-                    SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
-                    SANDBOX_AWAIT_AND_SET(w, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
-                    SANDBOX_AWAIT_AND_SET(h, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
-                    GFX_LOCK;
-                    viewport = new Viewport(x, y, w, h);
+                {
+                    Viewport *viewport;
+
+                    if (argc == 0 && rgssVer >= 3) {
+                        GFX_LOCK;
+                        viewport = new Viewport;
+                    } else if (argc == 1) {
+                        GFX_LOCK;
+                        viewport = new Viewport(get_private_data<Rect>(((VALUE *)(**sb() + argv))[0]));
+                    } else {
+                        SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                        SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                        SANDBOX_AWAIT_AND_SET(w, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                        SANDBOX_AWAIT_AND_SET(h, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
+                        GFX_LOCK;
+                        viewport = new Viewport(x, y, w, h);
+                    }
+
+                    set_private_data(self, viewport);
+
+                    viewport->initDynAttribs();
                 }
 
-                set_private_data(self, viewport);
-
-                viewport->initDynAttribs();
-
-                SANDBOX_AWAIT(wrap_property, self, &viewport->getRect(), "rect", rect_class);
-                SANDBOX_AWAIT(wrap_property, self, &viewport->getColor(), "color", color_class);
-                SANDBOX_AWAIT(wrap_property, self, &viewport->getTone(), "tone", tone_class);
+                SANDBOX_AWAIT(wrap_property, self, &get_private_data<Viewport>(self)->getRect(), "rect", rect_class);
+                SANDBOX_AWAIT(wrap_property, self, &get_private_data<Viewport>(self)->getColor(), "color", color_class);
+                SANDBOX_AWAIT(wrap_property, self, &get_private_data<Viewport>(self)->getTone(), "tone", tone_class);
 
                 GFX_UNLOCK
             }
@@ -78,10 +81,10 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
 }
 
 SANDBOX_DEF_GFX_PROP_OBJ_VAL(Viewport, Rect, Rect, rect);
-SANDBOX_DEF_GFX_PROP_OBJ_VAL(Viewport, Color, Color, color);
-SANDBOX_DEF_GFX_PROP_OBJ_VAL(Viewport, Tone, Tone, tone);
 SANDBOX_DEF_GFX_PROP_I(Viewport, OX, ox);
 SANDBOX_DEF_GFX_PROP_I(Viewport, OY, oy);
+SANDBOX_DEF_GFX_PROP_OBJ_VAL(Viewport, Color, Color, color);
+SANDBOX_DEF_GFX_PROP_OBJ_VAL(Viewport, Tone, Tone, tone);
 
 void viewport_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
@@ -92,10 +95,11 @@ void viewport_binding_init::operator()() {
         SANDBOX_AWAIT(disposable_binding_init<Viewport>, viewport_class);
         SANDBOX_AWAIT(flashable_binding_init<Viewport>, viewport_class);
         SANDBOX_AWAIT(sceneelement_binding_init<Viewport>, viewport_class);
+
         SANDBOX_INIT_PROP_BIND(viewport_class, rect);
-        SANDBOX_INIT_PROP_BIND(viewport_class, color);
-        SANDBOX_INIT_PROP_BIND(viewport_class, tone);
         SANDBOX_INIT_PROP_BIND(viewport_class, ox);
         SANDBOX_INIT_PROP_BIND(viewport_class, oy);
+        SANDBOX_INIT_PROP_BIND(viewport_class, color);
+        SANDBOX_INIT_PROP_BIND(viewport_class, tone);
     }
 }
