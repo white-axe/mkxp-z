@@ -178,7 +178,7 @@ static VALUE display_height(VALUE self) {
     return sb()->bind<struct rb_ll2inum>()()(shState->graphics().displayHeight());
 }
 
-static VALUE wait(VALUE self, VALUE value) {
+static VALUE wait_(VALUE self, VALUE value) {
     struct coro : boost::asio::coroutine {
         int32_t duration;
         int32_t i;
@@ -378,7 +378,7 @@ void graphics_binding_init::operator()() {
         SANDBOX_AWAIT(rb_define_module_function, graphics_module, "height", (VALUE (*)(ANYARGS))height, 0);
         SANDBOX_AWAIT(rb_define_module_function, graphics_module, "display_width", (VALUE (*)(ANYARGS))display_width, 0);
         SANDBOX_AWAIT(rb_define_module_function, graphics_module, "display_height", (VALUE (*)(ANYARGS))display_height, 0);
-        SANDBOX_AWAIT(rb_define_module_function, graphics_module, "wait", (VALUE (*)(ANYARGS))wait, 1);
+        SANDBOX_AWAIT(rb_define_module_function, graphics_module, "wait", (VALUE (*)(ANYARGS))wait_, 1);
         SANDBOX_AWAIT(rb_define_module_function, graphics_module, "fadeout", (VALUE (*)(ANYARGS))fadeout, 1);
         SANDBOX_AWAIT(rb_define_module_function, graphics_module, "fadein", (VALUE (*)(ANYARGS))fadein, 1);
         SANDBOX_AWAIT(rb_define_module_function, graphics_module, "snap_to_bitmap", (VALUE (*)(ANYARGS))snap_to_bitmap, 0);
