@@ -20,6 +20,7 @@
 */
 
 #include "tilemap-binding.h"
+#include "disposable-binding.h"
 #include "etc-binding.h"
 #include "tilemap.h"
 
@@ -163,19 +164,6 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     return sb()->bind<struct coro>()()(argc, argv, self);
 }
 
-static VALUE dispose(VALUE self) {
-    Tilemap *tilemap = get_private_data<Tilemap>(self);
-    if (tilemap != NULL) {
-        tilemap->dispose();
-    }
-    return SANDBOX_NIL;
-}
-
-static VALUE disposed(VALUE self) {
-    Tilemap *tilemap = get_private_data<Tilemap>(self);
-    return tilemap == NULL || tilemap->isDisposed() ? SANDBOX_TRUE : SANDBOX_FALSE;
-}
-
 static VALUE update(VALUE self) {
     GFX_LOCK;
     get_private_data<Tilemap>(self)->update();
@@ -207,8 +195,7 @@ void tilemap_binding_init::operator()() {
         SANDBOX_AWAIT_AND_SET(tilemap_class, rb_define_class, "Tilemap", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, tilemap_class, alloc);
         SANDBOX_AWAIT(rb_define_method, tilemap_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
-        SANDBOX_AWAIT(rb_define_method, tilemap_class, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
-        SANDBOX_AWAIT(rb_define_method, tilemap_class, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
+        SANDBOX_AWAIT(disposable_binding_init<Tilemap>, tilemap_class);
         SANDBOX_AWAIT(rb_define_method, tilemap_class, "update", (VALUE (*)(ANYARGS))update, 0);
         SANDBOX_AWAIT(rb_define_method, tilemap_class, "autotiles", (VALUE (*)(ANYARGS))autotiles, 0);
         SANDBOX_INIT_PROP_BIND(tilemap_class, tileset);

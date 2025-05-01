@@ -20,6 +20,7 @@
 */
 
 #include "tilemapvx-binding.h"
+#include "disposable-binding.h"
 #include "tilemapvx.h"
 
 using namespace mkxp_sandbox;
@@ -157,19 +158,6 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     return sb()->bind<struct coro>()()(argc, argv, self);
 }
 
-static VALUE dispose(VALUE self) {
-    TilemapVX *tilemap = get_private_data<TilemapVX>(self);
-    if (tilemap != NULL) {
-        tilemap->dispose();
-    }
-    return SANDBOX_NIL;
-}
-
-static VALUE disposed(VALUE self) {
-    TilemapVX *tilemap = get_private_data<TilemapVX>(self);
-    return tilemap == NULL || tilemap->isDisposed() ? SANDBOX_TRUE : SANDBOX_FALSE;
-}
-
 static VALUE update(VALUE self) {
     GFX_LOCK;
     get_private_data<TilemapVX>(self)->update();
@@ -197,8 +185,7 @@ void tilemapvx_binding_init::operator()() {
         SANDBOX_AWAIT_AND_SET(tilemapvx_class, rb_define_class, "Tilemap", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, tilemapvx_class, alloc);
         SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
-        SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
-        SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
+        SANDBOX_AWAIT(disposable_binding_init<TilemapVX>, tilemapvx_class);
         SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "update", (VALUE (*)(ANYARGS))update, 0);
         SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "bitmaps", (VALUE (*)(ANYARGS))bitmaps, 0);
         SANDBOX_INIT_PROP_BIND(tilemapvx_class, map_data);

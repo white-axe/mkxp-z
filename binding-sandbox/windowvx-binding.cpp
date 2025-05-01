@@ -21,7 +21,10 @@
 
 #include "windowvx-binding.h"
 #include "bitmap-binding.h"
+#include "disposable-binding.h"
 #include "etc-binding.h"
+#include "viewportelement-binding.h"
+#include "bitmap.h"
 #include "windowvx.h"
 
 using namespace mkxp_sandbox;
@@ -34,11 +37,7 @@ SANDBOX_DEF_DFREE(WindowVX);
 
 static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        WindowVX *window;
-        VALUE viewport_obj;
-        Viewport *viewport;
         VALUE obj;
-        Bitmap *contents;
         int32_t x;
         int32_t y;
         int32_t w;
@@ -47,11 +46,8 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 x = y = w = h = 0;
-                viewport_obj = SANDBOX_NIL;
-                viewport = NULL;
 
-                GFX_LOCK
-
+                GFX_LOCK;
                 if (rgssVer >= 3) {
                     if (argc == 4) {
                         SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
@@ -59,34 +55,24 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                         SANDBOX_AWAIT_AND_SET(w, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
                         SANDBOX_AWAIT_AND_SET(h, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
                     }
-                    window = new WindowVX(x, y, w, h);
+                    WindowVX *window = new WindowVX(x, y, w, h);
+                    set_private_data(self, window);
+                    window->initDynAttribs();
                 } else {
-                    if (argc > 0) {
-                        viewport_obj = *(VALUE *)(**sb() + argv);
-                        if (viewport_obj != SANDBOX_NIL) {
-                            viewport = get_private_data<Viewport>(viewport_obj);
-                        }
-                    }
-                    window = new WindowVX(viewport);
-                    SANDBOX_AWAIT(rb_iv_set, self, "viewport", viewport_obj);
+                    SANDBOX_AWAIT(viewportelement_initialize<WindowVX>, argc, argv, self);
                 }
 
-                set_private_data(self, window);
-                window->initDynAttribs();
-
-                SANDBOX_AWAIT(wrap_property, self, &window->getCursorRect(), "cursor_rect", rect_class);
+                SANDBOX_AWAIT(wrap_property, self, &get_private_data<WindowVX>(self)->getCursorRect(), "cursor_rect", rect_class);
 
                 if (rgssVer >= 3) {
-                    SANDBOX_AWAIT(wrap_property, self, &window->getTone(), "tone", tone_class);
+                    SANDBOX_AWAIT(wrap_property, self, &get_private_data<WindowVX>(self)->getTone(), "tone", tone_class);
                 }
 
                 SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, bitmap_class);
-                contents = new Bitmap(1, 1);
-                set_private_data(obj, contents);
-                SANDBOX_AWAIT(bitmap_init_props, contents, obj);
+                set_private_data(obj, new Bitmap(1, 1));
+                SANDBOX_AWAIT(bitmap_init_props, obj);
                 SANDBOX_AWAIT(rb_iv_set, self, "contents", obj);
-
-                GFX_UNLOCK
+                GFX_UNLOCK;
             }
 
             return SANDBOX_NIL;
@@ -96,30 +82,15 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     return sb()->bind<struct coro>()()(argc, argv, self);
 }
 
-static VALUE dispose(VALUE self) {
-    WindowVX *window = get_private_data<WindowVX>(self);
-    if (window != NULL) {
-        window->dispose();
-    }
-    return SANDBOX_NIL;
-}
-
-static VALUE disposed(VALUE self) {
-    WindowVX *window = get_private_data<WindowVX>(self);
-    return SANDBOX_BOOL_TO_VALUE(window == NULL || window->isDisposed());
-}
-
 static VALUE update(VALUE self) {
     GFX_GUARD_EXC(get_private_data<WindowVX>(self)->update();)
     return SANDBOX_NIL;
 }
 
-SANDBOX_DEF_GFX_PROP_OBJ_REF(WindowVX, Viewport, Viewport, viewport);
 SANDBOX_DEF_GFX_PROP_OBJ_REF(WindowVX, Bitmap, Windowskin, windowskin);
 SANDBOX_DEF_GFX_PROP_OBJ_REF(WindowVX, Bitmap, Contents, contents);
 SANDBOX_DEF_GFX_PROP_OBJ_VAL(WindowVX, Rect, CursorRect, cursor_rect);
 SANDBOX_DEF_GFX_PROP_B(WindowVX, Active, active);
-SANDBOX_DEF_GFX_PROP_B(WindowVX, Visible, visible);
 SANDBOX_DEF_GFX_PROP_B(WindowVX, Pause, pause);
 SANDBOX_DEF_GFX_PROP_I(WindowVX, X, x);
 SANDBOX_DEF_GFX_PROP_I(WindowVX, Y, y);
@@ -127,7 +98,6 @@ SANDBOX_DEF_GFX_PROP_I(WindowVX, Width, width);
 SANDBOX_DEF_GFX_PROP_I(WindowVX, Height, height);
 SANDBOX_DEF_GFX_PROP_I(WindowVX, OX, ox);
 SANDBOX_DEF_GFX_PROP_I(WindowVX, OY, oy);
-SANDBOX_DEF_GFX_PROP_I(WindowVX, Z, z);
 SANDBOX_DEF_GFX_PROP_I(WindowVX, Opacity, opacity);
 SANDBOX_DEF_GFX_PROP_I(WindowVX, BackOpacity, back_opacity);
 SANDBOX_DEF_GFX_PROP_I(WindowVX, ContentsOpacity, contents_opacity);
@@ -178,15 +148,13 @@ void windowvx_binding_init::operator()() {
         SANDBOX_AWAIT_AND_SET(windowvx_class, rb_define_class, "Window", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, windowvx_class, alloc);
         SANDBOX_AWAIT(rb_define_method, windowvx_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
+        SANDBOX_AWAIT(disposable_binding_init<WindowVX>, windowvx_class);
+        SANDBOX_AWAIT(viewportelement_binding_init<WindowVX>, windowvx_class);
         SANDBOX_AWAIT(rb_define_method, windowvx_class, "update", (VALUE (*)(ANYARGS))update, 0);
-        SANDBOX_AWAIT(rb_define_method, windowvx_class, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
-        SANDBOX_AWAIT(rb_define_method, windowvx_class, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
-        SANDBOX_INIT_PROP_BIND(windowvx_class, viewport);
         SANDBOX_INIT_PROP_BIND(windowvx_class, windowskin);
         SANDBOX_INIT_PROP_BIND(windowvx_class, contents);
         SANDBOX_INIT_PROP_BIND(windowvx_class, cursor_rect);
         SANDBOX_INIT_PROP_BIND(windowvx_class, active);
-        SANDBOX_INIT_PROP_BIND(windowvx_class, visible);
         SANDBOX_INIT_PROP_BIND(windowvx_class, pause);
         SANDBOX_INIT_PROP_BIND(windowvx_class, x);
         SANDBOX_INIT_PROP_BIND(windowvx_class, y);
@@ -194,7 +162,6 @@ void windowvx_binding_init::operator()() {
         SANDBOX_INIT_PROP_BIND(windowvx_class, height);
         SANDBOX_INIT_PROP_BIND(windowvx_class, ox);
         SANDBOX_INIT_PROP_BIND(windowvx_class, oy);
-        SANDBOX_INIT_PROP_BIND(windowvx_class, z);
         SANDBOX_INIT_PROP_BIND(windowvx_class, opacity);
         SANDBOX_INIT_PROP_BIND(windowvx_class, back_opacity);
         SANDBOX_INIT_PROP_BIND(windowvx_class, contents_opacity);

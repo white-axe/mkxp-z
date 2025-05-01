@@ -250,15 +250,17 @@ static VALUE fadein(VALUE self, VALUE value) {
 
 static VALUE snap_to_bitmap(VALUE self) {
     struct coro : boost::asio::coroutine {
-        Bitmap *bitmap;
         VALUE obj;
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                GFX_GUARD_EXC(bitmap = shState->graphics().snapToBitmap(););
                 SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, bitmap_class);
-                set_private_data(obj, bitmap);
-                SANDBOX_AWAIT(bitmap_init_props, bitmap, obj);
+                {
+                    Bitmap *bitmap;
+                    GFX_GUARD_EXC(bitmap = shState->graphics().snapToBitmap(););
+                    set_private_data(obj, bitmap);
+                }
+                SANDBOX_AWAIT(bitmap_init_props, obj);
             }
 
             return obj;

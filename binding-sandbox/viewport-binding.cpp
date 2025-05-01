@@ -20,7 +20,10 @@
 */
 
 #include "viewport-binding.h"
+#include "disposable-binding.h"
 #include "etc-binding.h"
+#include "flashable-binding.h"
+#include "sceneelement-binding.h"
 #include "viewport.h"
 
 using namespace mkxp_sandbox;
@@ -75,49 +78,11 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     return sb()->bind<struct coro>()()(argc, argv, self);
 }
 
-static VALUE dispose(VALUE self) {
-    Viewport *viewport = get_private_data<Viewport>(self);
-    if (viewport != NULL) {
-        viewport->dispose();
-    }
-    return SANDBOX_NIL;
-}
-
-static VALUE disposed(VALUE self) {
-    Viewport *viewport = get_private_data<Viewport>(self);
-    return viewport == NULL || viewport->isDisposed() ? SANDBOX_TRUE : SANDBOX_FALSE;
-}
-
-static VALUE flash(VALUE self, VALUE obj, VALUE value) {
-    struct coro : boost::asio::coroutine {
-        int duration;
-
-        VALUE operator()(VALUE self, VALUE obj, VALUE value) {
-            BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(duration, rb_num2int, value);
-                get_private_data<Viewport>(self)->flash(obj == SANDBOX_NIL ? NULL : &get_private_data<Color>(obj)->norm, duration);
-            }
-
-            return SANDBOX_NIL;
-        }
-    };
-
-    return sb()->bind<struct coro>()()(self, obj, value);
-}
-
-static VALUE update(VALUE self) {
-    GFX_LOCK;
-    get_private_data<Viewport>(self)->update();
-    GFX_UNLOCK;
-    return SANDBOX_NIL;
-}
-
 SANDBOX_DEF_GFX_PROP_OBJ_VAL(Viewport, Rect, Rect, rect);
 SANDBOX_DEF_GFX_PROP_OBJ_VAL(Viewport, Color, Color, color);
 SANDBOX_DEF_GFX_PROP_OBJ_VAL(Viewport, Tone, Tone, tone);
 SANDBOX_DEF_GFX_PROP_I(Viewport, OX, ox);
 SANDBOX_DEF_GFX_PROP_I(Viewport, OY, oy);
-SANDBOX_DEF_GFX_PROP_I(Viewport, Z, z);
 
 void viewport_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
@@ -125,15 +90,13 @@ void viewport_binding_init::operator()() {
         SANDBOX_AWAIT_AND_SET(viewport_class, rb_define_class, "Viewport", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, viewport_class, alloc);
         SANDBOX_AWAIT(rb_define_method, viewport_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
-        SANDBOX_AWAIT(rb_define_method, viewport_class, "dispose", (VALUE (*)(ANYARGS))dispose, 0);
-        SANDBOX_AWAIT(rb_define_method, viewport_class, "disposed?", (VALUE (*)(ANYARGS))disposed, 0);
-        SANDBOX_AWAIT(rb_define_method, viewport_class, "flash", (VALUE (*)(ANYARGS))flash, 2);
-        SANDBOX_AWAIT(rb_define_method, viewport_class, "update", (VALUE (*)(ANYARGS))update, 0);
+        SANDBOX_AWAIT(disposable_binding_init<Viewport>, viewport_class);
+        SANDBOX_AWAIT(flashable_binding_init<Viewport>, viewport_class);
+        SANDBOX_AWAIT(sceneelement_binding_init<Viewport>, viewport_class);
         SANDBOX_INIT_PROP_BIND(viewport_class, rect);
         SANDBOX_INIT_PROP_BIND(viewport_class, color);
         SANDBOX_INIT_PROP_BIND(viewport_class, tone);
         SANDBOX_INIT_PROP_BIND(viewport_class, ox);
         SANDBOX_INIT_PROP_BIND(viewport_class, oy);
-        SANDBOX_INIT_PROP_BIND(viewport_class, z);
     }
 }

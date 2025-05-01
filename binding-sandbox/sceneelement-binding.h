@@ -1,5 +1,5 @@
 /*
-** bitmap-binding.h
+** sceneelement-binding.h
 **
 ** This file is part of mkxp.
 **
@@ -19,25 +19,25 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MKXPZ_SANDBOX_BITMAP_BINDING_H
-#define MKXPZ_SANDBOX_BITMAP_BINDING_H
+#ifndef MKXPZ_SANDBOX_SCENEELEMENT_BINDING_H
+#define MKXPZ_SANDBOX_SCENEELEMENT_BINDING_H
 
 #include "binding-util.h"
 
 namespace mkxp_sandbox {
-    extern VALUE bitmap_class;
-
-    struct bitmap_init_props : boost::asio::coroutine {
-        void operator()(VALUE self);
+    template <class C> struct sceneelement_binding_init : boost::asio::coroutine {
     private:
-        VALUE font;
-        VALUE hires;
-        VALUE hires_font;
-    };
+        SANDBOX_DEF_GFX_PROP_I(C, Z, z);
+        SANDBOX_DEF_GFX_PROP_B(C, Visible, visible);
 
-    struct bitmap_binding_init : boost::asio::coroutine {
-        void operator()();
+    public:
+        void operator()(VALUE klass) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_INIT_PROP_BIND(klass, z);
+                SANDBOX_INIT_PROP_BIND(klass, visible);
+            }
+        }
     };
 }
 
-#endif // MKXPZ_SANDBOX_BITMAP_BINDING_H
+#endif // MKXPZ_SANDBOX_SCENEELEMENT_BINDING_H
