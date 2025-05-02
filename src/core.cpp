@@ -30,6 +30,7 @@
 #include "mkxp-polyfill.h" // std::mutex
 #include "git-hash.h"
 
+#include "core.h"
 #include "binding-sandbox.h"
 
 #include "al-util.h"
@@ -158,6 +159,7 @@ namespace mkxp_retro {
     retro_input_state_t input_state;
     struct retro_perf_callback perf;
     retro_hw_render_callback hw_render;
+    bool keyboard_state[RETROK_LAST];
     bool input_polled;
 
     uint64_t get_ticks_ms() noexcept {
@@ -426,6 +428,16 @@ extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
     } else {
         log_printf = fallback_log;
     }
+
+    static const struct retro_keyboard_callback keyboard = {
+        .callback = [](bool down, unsigned int keycode, uint32_t character, uint16_t key_modifiers) {
+            if (keycode < RETROK_LAST) {
+                keyboard_state[keycode] = down;
+            }
+        }
+    };
+    std::memset(keyboard_state, 0, sizeof keyboard_state);
+    cb(RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK, (void *)&keyboard);
 
     perf = {
         .get_time_usec = nullptr,

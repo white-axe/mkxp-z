@@ -42,6 +42,7 @@ namespace mkxp_retro {
     extern retro_input_state_t input_state;
     extern struct retro_perf_callback perf;
     extern struct retro_hw_render_callback hw_render;
+    extern bool keyboard_state[RETROK_LAST];
     extern bool input_polled;
 
     uint64_t get_ticks_ms() noexcept;
