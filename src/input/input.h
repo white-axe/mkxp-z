@@ -27,7 +27,52 @@
 #include <string>
 #include <vector>
 
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+enum SDL_GameControllerAxis
+{
+	SDL_CONTROLLER_AXIS_LEFTX = 0,
+	SDL_CONTROLLER_AXIS_LEFTY = 1,
+	SDL_CONTROLLER_AXIS_RIGHTX = 2,
+	SDL_CONTROLLER_AXIS_RIGHTY = 3,
+	SDL_CONTROLLER_AXIS_TRIGGERLEFT = 4,
+	SDL_CONTROLLER_AXIS_TRIGGERRIGHT = 5,
+};
+
+enum SDL_GameControllerButton
+{
+	SDL_CONTROLLER_BUTTON_A = 0,
+	SDL_CONTROLLER_BUTTON_B = 1,
+	SDL_CONTROLLER_BUTTON_X = 2,
+	SDL_CONTROLLER_BUTTON_Y = 3,
+	SDL_CONTROLLER_BUTTON_BACK = 4,
+	SDL_CONTROLLER_BUTTON_GUIDE = 5,
+	SDL_CONTROLLER_BUTTON_START = 6,
+	SDL_CONTROLLER_BUTTON_LEFTSTICK = 7,
+	SDL_CONTROLLER_BUTTON_RIGHTSTICK = 8,
+	SDL_CONTROLLER_BUTTON_LEFTSHOULDER = 9,
+	SDL_CONTROLLER_BUTTON_RIGHTSHOULDER = 10,
+	SDL_CONTROLLER_BUTTON_DPAD_UP = 11,
+	SDL_CONTROLLER_BUTTON_DPAD_DOWN = 12,
+	SDL_CONTROLLER_BUTTON_DPAD_LEFT = 13,
+	SDL_CONTROLLER_BUTTON_DPAD_RIGHT = 14,
+	SDL_CONTROLLER_BUTTON_MISC1 = 15,
+	SDL_CONTROLLER_BUTTON_PADDLE1 = 16,
+	SDL_CONTROLLER_BUTTON_PADDLE2 = 17,
+	SDL_CONTROLLER_BUTTON_PADDLE3 = 18,
+	SDL_CONTROLLER_BUTTON_PADDLE4 = 19,
+	SDL_CONTROLLER_BUTTON_TOUCHPAD = 20,
+};
+
+enum SDL_JoystickPowerLevel
+{
+	SDL_JOYSTICK_POWER_UNKNOWN = 0,
+	SDL_JOYSTICK_POWER_EMPTY = 1,
+	SDL_JOYSTICK_POWER_LOW = 2,
+	SDL_JOYSTICK_POWER_MEDIUM = 3,
+	SDL_JOYSTICK_POWER_FULL = 4,
+	SDL_JOYSTICK_POWER_WIRED = 5,
+};
+#else
 #include <SDL_gamecontroller.h>
 extern std::unordered_map<int, int> vKeyToScancode;
 extern std::unordered_map<std::string, int> strToScancode;
@@ -59,9 +104,7 @@ public:
         MouseX1 = 41, MouseX2 = 42
 	};
     
-#ifndef MKXPZ_RETRO
     void recalcRepeat(unsigned int fps);
-#endif // MKXPZ_RETRO
 
     double getDelta();
 	void update();
@@ -87,7 +130,6 @@ public:
     unsigned int controllerRepeatcount(int button);
     double controllerRepeatTimeEx(int button);
     
-#ifndef MKXPZ_RETRO
     uint8_t *rawKeyStates();
     unsigned int rawKeyStatesLength();
     uint8_t *rawButtonStates();
@@ -96,7 +138,6 @@ public:
     unsigned int rawAxesLength();
     
     short getControllerAxisValue(SDL_GameControllerAxis axis);
-#endif // MKXPZ_RETRO
 
 	int dir4Value();
 	int dir8Value();
@@ -106,7 +147,6 @@ public:
     int scrollV();
     bool mouseInWindow();
     
-#ifndef MKXPZ_RETRO
     bool getControllerConnected();
     const char *getControllerName();
     int getControllerPowerLevel();
@@ -116,12 +156,11 @@ public:
     const char *getText();
     void clearText();
     
-    char *getClipboardText();
-    void setClipboardText(char *text);
+    const char *getClipboardText();
+    void setClipboardText(const char *text);
     
     const char *getAxisName(SDL_GameControllerAxis axis);
     const char *getButtonName(SDL_GameControllerButton button);
-#endif // MKXPZ_RETRO
 
 #ifdef MKXPZ_RETRO
 	Input();

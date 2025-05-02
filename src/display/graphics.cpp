@@ -1245,14 +1245,17 @@ bool Graphics::update(bool checkForShutdown) {
     p->threadData->rqWindowAdjust.wait();
     p->last_update = shState->runTime();
     
-#ifndef MKXPZ_RETRO
     // update Input.repeat timing, rounding the framerate to the nearest 2
     {
         static const double mult = 2.0;
         double afr = std::abs(averageFrameRate()); // abs shouldn't be necessary but that's ok
         afr += mult / 2;
         afr -= std::fmod(afr, mult);
+#ifdef MKXPZ_RETRO // TODO: merge into shState
+        mkxp_retro::input->recalcRepeat(std::floor(afr));
+#else
         shState->input().recalcRepeat(std::floor(afr));
+#endif // MKXPZ_RETRO
     }
     
     if (checkForShutdown)
@@ -1261,11 +1264,10 @@ bool Graphics::update(bool checkForShutdown) {
     p->checkSyncLock();
     
     
-#  ifdef MKXPZ_STEAM
+#ifdef MKXPZ_STEAM
     if (STEAMSHIM_alive())
         STEAMSHIM_pump();
-#  endif // MKXPZ_STEAM
-#endif // MKXPZ_RETRO
+#endif // MKXPZ_STEAM
     
     if (p->frozen)
         return false;

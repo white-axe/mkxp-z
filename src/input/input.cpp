@@ -1491,15 +1491,16 @@ void Input::clearText()
     shState->eThread().textInputBuffer.clear();
 }
 
-char *Input::getClipboardText()
+const char *Input::getClipboardText()
 {
-    char *tx = SDL_GetClipboardText();
+    // FIXME: this doesn't appear to be freed anywhere
+    const char *tx = SDL_GetClipboardText();
     if (!tx)
         throw Exception(Exception::SDLError, "Failed to get clipboard text: %s", SDL_GetError());
     return tx;
 }
 
-void Input::setClipboardText(char *text)
+void Input::setClipboardText(const char *text)
 {
     if (SDL_SetClipboardText(text) < 0)
         throw Exception(Exception::SDLError, "Failed to set clipboard text: %s", SDL_GetError());

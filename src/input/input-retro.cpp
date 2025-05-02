@@ -238,6 +238,11 @@ Input::Input()
     p = new InputPrivate();
 }
 
+void Input::recalcRepeat(unsigned int fps)
+{
+    // TODO
+}
+
 double Input::getDelta()
 {
     return 0.0; // TODO
@@ -329,6 +334,11 @@ bool Input::controllerIsReleasedEx(int button)
     return false; // TODO
 }
 
+unsigned int Input::controllerRepeatcount(int button)
+{
+    return 0; // TODO
+}
+
 bool Input::controllerIsRepeatedEx(int button)
 {
     return false; // TODO
@@ -337,6 +347,41 @@ bool Input::controllerIsRepeatedEx(int button)
 double Input::controllerRepeatTimeEx(int button)
 {
     return 0.0; // TODO
+}
+
+uint8_t *Input::rawKeyStates()
+{
+    return nullptr; // TODO
+}
+
+unsigned int Input::rawKeyStatesLength()
+{
+    return 0; // TODO
+}
+
+uint8_t *Input::rawButtonStates()
+{
+    return nullptr; // TODO
+}
+
+unsigned int Input::rawButtonStatesLength()
+{
+    return 0; // TODO
+}
+
+int16_t *Input::rawAxes()
+{
+    return nullptr; // TODO
+}
+
+unsigned int Input::rawAxesLength()
+{
+    return 0; // TODO
+}
+
+short Input::getControllerAxisValue(SDL_GameControllerAxis axis)
+{
+    return 0; // TODO
 }
 
 int Input::dir4Value()
@@ -382,6 +427,51 @@ int Input::scrollV()
 bool Input::mouseInWindow()
 {
     return p->mouseInWindow;
+}
+
+bool Input::getControllerConnected()
+{
+    return true;
+}
+
+const char *Input::getControllerName()
+{
+    return "RetroPad";
+}
+
+int Input::getControllerPowerLevel()
+{
+    return (int)SDL_JOYSTICK_POWER_UNKNOWN;
+}
+
+bool Input::getTextInputMode()
+{
+    return false;
+}
+
+void Input::setTextInputMode(bool mode)
+{
+
+}
+
+const char *Input::getText()
+{
+    return "";
+}
+
+void Input::clearText()
+{
+
+}
+
+const char *Input::getClipboardText()
+{
+    return "";
+}
+
+void Input::setClipboardText(const char *text)
+{
+
 }
 
 Input::~Input()

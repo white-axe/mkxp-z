@@ -26,6 +26,7 @@
 
 namespace mkxp_sandbox {
     extern VALUE input_module;
+    extern VALUE input_controller_module;
 
     struct input_binding_init : boost::asio::coroutine {
         void operator()();
