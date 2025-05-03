@@ -1,4 +1,4 @@
-# Prevents Vorbis's build system from trying to look for Ogg externally since Meson already handles that.
+# Prevents Vorbis from trying to look for Ogg externally since Meson already handles that.
 
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt

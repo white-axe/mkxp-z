@@ -1,4 +1,4 @@
-# Prevents FLAC's build system from trying to look for Ogg externally since Meson already handles that.
+# Prevents FLAC from trying to look for Ogg externally since Meson already handles that.
 
 --- a/src/libFLAC/include/private/ogg_decoder_aspect.h
 +++ b/src/libFLAC/include/private/ogg_decoder_aspect.h

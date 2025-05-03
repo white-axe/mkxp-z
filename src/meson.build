@@ -278,6 +278,14 @@ if is_libretro
         'zlib': 'disabled',
     }
     global_dependencies += subproject('freetype', default_options: freetype_options).get_variable('freetype_dep')
+
+    theora_options = {
+        'cflags': global_args,
+        'cppflags': global_args,
+        'default_library': 'static',
+        'b_staticpic': use_pic,
+    }
+    global_dependencies += subproject('theora', default_options: theora_options).get_variable('theoradec')
 else
     physfs = dependency('physfs', version: '>=2.1', static: build_static)
     openal = dependency('openal', static: build_static, method: 'pkg-config')
