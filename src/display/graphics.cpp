@@ -41,14 +41,15 @@
 #include "shader.h"
 #include "sharedstate.h"
 #include "texpool.h"
-#ifndef MKXPZ_RETRO
-#  include "theoraplay/theoraplay.h"
-#endif // MKXPZ_RETRO
+#include "theoraplay/theoraplay.h"
 #include "util.h"
 #include "input.h"
 #include "sprite.h"
 
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+#  include <memory>
+#  include "mkxp-polyfill.h"
+#else
 #  include <SDL.h>
 #  include <SDL_image.h>
 #  include <SDL_timer.h>
@@ -80,7 +81,6 @@
 #define MOVIE_AUDIO_BUFFER_SIZE 2048
 #define AUDIO_BUFFER_LEN_MS 2000
 
-#ifndef MKXPZ_RETRO
 typedef struct AudioQueue
 {
     const THEORAPLAY_AudioPacket *audio;
@@ -91,17 +91,43 @@ typedef struct AudioQueue
 
 static long readMovie(THEORAPLAY_Io *io, void *buf, long buflen)
 {
+#ifdef MKXPZ_RETRO
+    std::shared_ptr<struct FileSystem::File> *f = (std::shared_ptr<struct FileSystem::File> *) io->userdata;
+    return (long) PHYSFS_readBytes((*f)->get(), buf, buflen);
+#else
     SDL_RWops *f = (SDL_RWops *) io->userdata;
     return (long) SDL_RWread(f, buf, 1, buflen);
+#endif // MKXPZ_RETRO
 } // IoFopenRead
 
 
 static void closeMovie(THEORAPLAY_Io *io)
 {
+#ifndef MKXPZ_RETRO
     SDL_RWops *f = (SDL_RWops *) io->userdata;
     SDL_RWclose(f);
+#endif // MKXPZ_RETRO
     free(io);
 } // IoFopenClose
+
+
+static void movieSleep(uint32_t milliseconds)
+{
+#ifdef MKXPZ_RETRO
+    mkxp_sleep_ms(milliseconds);
+#else
+    SDL_Delay(milliseconds);
+#endif // MKXPZ_RETRO
+}
+
+
+#ifdef MKXPZ_RETRO
+template<class C, void (C::*func)()>
+static void movieThreadFun(C *obj)
+{
+	(obj->*func)();
+}
+#endif // MKXPZ_RETRO
 
 
 struct Movie
@@ -113,20 +139,49 @@ struct Movie
     bool hasAudio;
     bool skippable;
     Bitmap *videoBitmap;
+#ifdef MKXPZ_RETRO
+    std::shared_ptr<struct FileSystem::File> srcOps;
+#else
     SDL_RWops srcOps;
     SDL_Thread *audioThread;
+#endif // MKXPZ_RETRO
     AtomicFlag audioThreadTermReq;
     volatile AudioQueue *audioQueueHead;
     volatile AudioQueue *audioQueueTail;
     ALuint audioSource;
     ALuint alBuffers[STREAM_BUFS];
     ALshort audioBuffer[MOVIE_AUDIO_BUFFER_SIZE];
-    SDL_mutex *audioMutex;
+    AudioMutex audioMutex;
+    Sprite *movieSprite;
+    Sprite *letterboxSprite;
+    Bitmap *letterbox;
+    uint64_t frameMs;
+    uint64_t baseTicks;
+    float volume;
+    bool openedAudio;
+
+    // Variables used by streamMovieAudioProc
+    ALint streamMovieAudioState;
+    ALint procBufs;
+    volatile AudioQueue *audioPacketAndOffset;
+    int channels;
+    int sampleRate;
+    float *sourceSamples;
+    ALuint samplesToProcess;
+    ALshort *sampleBuffer;
+    ALuint remainingSamples;
     
-    Movie(bool skippable_)
-    : decoder(0), audio(0), video(0), skippable(skippable_), videoBitmap(0), audioThread(0)
+    Movie(float volume, bool skippable_)
+    : decoder(0), audio(0), video(0), skippable(skippable_), videoBitmap(0),
+#ifndef MKXPZ_RETRO
+        audioThread(0),
+#endif // MKXPZ_RETRO
+        movieSprite(nullptr), letterboxSprite(nullptr), letterbox(nullptr), frameMs(0), baseTicks(-1), volume(volume), openedAudio(false),
+        streamMovieAudioState(0), procBufs(STREAM_BUFS)
     {
+        audioThreadTermReq.set();
     }
+
     bool preparePlayback()
     {
         
@@ -134,7 +189,9 @@ struct Movie
         // https://ffmpeg.org/doxygen/0.11/group__lavc__misc__pixfmt.html
         THEORAPLAY_Io *io = (THEORAPLAY_Io *) malloc(sizeof (THEORAPLAY_Io));
         if(!io) {
+#ifndef MKXPZ_RETRO
             SDL_RWclose(&srcOps);
+#endif // MKXPZ_RETRO
             return false;
         }
         
@@ -143,13 +200,15 @@ struct Movie
         io->userdata = &srcOps;
         decoder = THEORAPLAY_startDecode(io, DEF_MAX_VIDEO_FRAMES, THEORAPLAY_VIDFMT_RGBA);
         if (!decoder) {
+#ifndef MKXPZ_RETRO
             SDL_RWclose(&srcOps);
+#endif // MKXPZ_RETRO
             return false;
         }
         
         // Wait until the decoder has parsed out some basic truths from the file.
         while (!THEORAPLAY_isInitialized(decoder)) {
-            SDL_Delay(VIDEO_DELAY);
+            movieSleep(VIDEO_DELAY);
         }
         
         // Once we're initialized, we can tell if this file has audio and/or video.
@@ -162,7 +221,7 @@ struct Movie
                 if ((THEORAPLAY_availableVideo(decoder) >= DEF_MAX_VIDEO_FRAMES)) {
                     break;  // we'll never progress, there's no audio yet but we've prebuffered as much as we plan to.
                 }
-                SDL_Delay(VIDEO_DELAY);
+                movieSleep(VIDEO_DELAY);
             }
         }
         
@@ -174,14 +233,14 @@ struct Movie
         
         // Wait until we have video
         while ((video = THEORAPLAY_getVideo(decoder)) == NULL) {
-            SDL_Delay(VIDEO_DELAY);
+            movieSleep(VIDEO_DELAY);
         }
         
         // Wait until we have audio, if applicable
         audio = NULL;
         if (hasAudio) {
             while ((audio = THEORAPLAY_getAudio(decoder)) == NULL && THEORAPLAY_availableVideo(decoder) < DEF_MAX_VIDEO_FRAMES) {
-                SDL_Delay(VIDEO_DELAY);
+                movieSleep(VIDEO_DELAY);
             }
         }
         // Create this Bitmap without a hires replacement, because we don't
@@ -210,17 +269,16 @@ struct Movie
         item->offset = 0;
         item->next = NULL;
         
-        SDL_LockMutex(audioMutex);
+        AudioMutexGuard guard(audioMutex);
         if (audioQueueTail) {
             audioQueueTail->next = item;
         } else {
             audioQueueHead = item;
         }
         audioQueueTail = item;
-        SDL_UnlockMutex(audioMutex);
     }
     
-    void bufferMovieAudio(THEORAPLAY_Decoder *decoder, const Uint32 now) {
+    void bufferMovieAudio(THEORAPLAY_Decoder *decoder, const uint32_t now) {
         const THEORAPLAY_AudioPacket *audio;
         while ((audio = THEORAPLAY_getAudio(decoder)) != NULL) {
             queueAudioPacket(audio);
@@ -230,25 +288,18 @@ struct Movie
         }
     }
 
-    void streamMovieAudio(){
-        ALint state = 0;
-        ALint procBufs = STREAM_BUFS;	    
-        volatile AudioQueue *audioPacketAndOffset;
-        int channels;
-        int sampleRate;
-        float *sourceSamples;
-        ALuint samplesToProcess;
-        ALshort *sampleBuffer;
-        ALuint remainingSamples;
+    bool streamMovieAudioProc() {
+        // Quit if audio thread terminate request has been made
+        if (audioThreadTermReq) return false;
 
-        while(true) {
-            while(procBufs--) {
-                // Quit if audio thread terminate request has been made
-                if (audioThreadTermReq) return;
+        if(procBufs > 0) {
+            --procBufs;
 
-                remainingSamples = MOVIE_AUDIO_BUFFER_SIZE;
-                sampleBuffer = audioBuffer;
-                SDL_LockMutex(audioMutex);
+            remainingSamples = MOVIE_AUDIO_BUFFER_SIZE;
+            sampleBuffer = audioBuffer;
+
+            {
+                AudioMutexGuard guard(audioMutex);
 
                 while(audioQueueHead && (remainingSamples > 0)) {
                     audioPacketAndOffset = audioQueueHead;
@@ -283,27 +334,32 @@ struct Movie
                 }
 
                 if(!audioQueueHead) audioQueueTail = NULL;
-
-                SDL_UnlockMutex(audioMutex);
-
-                alBufferData(alBuffers[procBufs], channels == 1 ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16, audioBuffer,
-                    (MOVIE_AUDIO_BUFFER_SIZE - remainingSamples) * sizeof(ALshort), sampleRate);
-                alSourceQueueBuffers(audioSource, 1, &alBuffers[procBufs]);     
-                alGetSourcei(audioSource, AL_SOURCE_STATE, &state);
-                if(state != AL_PLAYING) alSourcePlay(audioSource);
             }
 
-            // Periodically check the buffers until one is available
-            while(true) {
-                // Quit if audio thread terminate request has been made
-                if (audioThreadTermReq) return;
-
-                alGetSourcei(audioSource, AL_BUFFERS_PROCESSED, &procBufs);
-                if(procBufs > 0) break;
-                SDL_Delay(AUDIO_SLEEP);
-            }
-            alSourceUnqueueBuffers(audioSource, procBufs, alBuffers);
+            alBufferData(alBuffers[procBufs], channels == 1 ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16, audioBuffer,
+                (MOVIE_AUDIO_BUFFER_SIZE - remainingSamples) * sizeof(ALshort), sampleRate);
+            alSourceQueueBuffers(audioSource, 1, &alBuffers[procBufs]);     
+            alGetSourcei(audioSource, AL_SOURCE_STATE, &streamMovieAudioState);
+            if(streamMovieAudioState != AL_PLAYING) alSourcePlay(audioSource);
         }
+
+        // Periodically check the buffers until one is available
+        else {
+            alGetSourcei(audioSource, AL_BUFFERS_PROCESSED, &procBufs);
+            if(procBufs > 0) {
+                alSourceUnqueueBuffers(audioSource, procBufs, alBuffers);
+            } else {
+#ifndef MKXPZ_RETRO
+                movieSleep(AUDIO_SLEEP);
+#endif // MKXPZ_RETRO
+            }
+        }
+
+        return true;
+    }
+
+    void streamMovieAudio() {
+        while(streamMovieAudioProc());
     }
     
     bool startAudio(float volume)
@@ -313,31 +369,45 @@ struct Movie
         alSourcef(audioSource, AL_GAIN, volume);
 
         audioThreadTermReq.clear();
-        audioMutex = SDL_CreateMutex();
         queueAudioPacket(audio);
         audio = NULL;
         bufferMovieAudio(decoder, 0);
+#ifndef MKXPZ_RETRO
         audioThread = createSDLThread <Movie, &Movie::streamMovieAudio>(this, "movieaudio");
+#endif // MKXPZ_RETRO
 
         return true;
     }
     
-    void play(float volume)
+    bool play()
     {
-        Uint32 frameMs = 0;
-        Uint32 baseTicks = SDL_GetTicks();
-        bool openedAudio = false;
+        if (baseTicks == (uint64_t)-1) {
+#ifdef MKXPZ_RETRO
+            baseTicks = mkxp_retro::get_ticks_ms();
+#else
+            baseTicks = SDL_GetTicks();
+#endif // MKXPZ_RETRO
+        }
         while (THEORAPLAY_isDecoding(decoder)) {
             // Check for reset/shutdown input
             if(shState->graphics().updateMovieInput(this)) break;
             
             // Check for attempted skip
             if (skippable) {
+#ifdef MKXPZ_RETRO // TODO: move into shState
+                mkxp_retro::input->update();
+                if  (mkxp_retro::input->isTriggered(Input::C) || mkxp_retro::input->isTriggered(Input::B)) break;
+#else
                 shState->input().update();
                 if  (shState->input().isTriggered(Input::C) || shState->input().isTriggered(Input::B)) break;
+#endif // MKXPZ_RETRO
             }
             
-            const Uint32 now = SDL_GetTicks() - baseTicks;
+#ifdef MKXPZ_RETRO
+            const uint64_t now = mkxp_retro::get_ticks_ms() - baseTicks;
+#else
+            const uint64_t now = SDL_GetTicks() - baseTicks;
+#endif // MKXPZ_RETRO
             
             if (!video) {
                 video = THEORAPLAY_getVideo(decoder);
@@ -359,7 +429,7 @@ struct Movie
             }
             
             if (video && (video->playms <= now)) {
-                frameMs = (video->fps == 0.0) ? 0 : ((Uint32) (1000.0 / video->fps));
+                frameMs = (video->fps == 0.0) ? 0 : ((uint64_t) (1000.0 / video->fps));
                 if ( frameMs && ((now - video->playms) >= frameMs) )
                 {
                     // Skip frames to catch up
@@ -389,18 +459,29 @@ struct Movie
                 video = NULL;
 
             } else {
+#ifndef MKXPZ_RETRO
                 // Next video frame not yet ready, let the CPU breathe
-                SDL_Delay(VIDEO_DELAY);
+                movieSleep(VIDEO_DELAY);
+#endif // MKXPZ_RETRO
             }
             
             if (openedAudio) {
                 bufferMovieAudio(decoder, now);
             }
+
+#ifdef MKXPZ_RETRO
+            return true;
+#endif // MKXPZ_RETRO
         }
+
+        return false;
     }
     
     ~Movie()
     {
+        if (letterbox) delete letterbox;
+        if (letterboxSprite) delete letterboxSprite;
+        if (movieSprite) delete movieSprite;
         if (hasAudio) {
             if (audioQueueTail) {
                 THEORAPLAY_freeAudio(audioQueueTail->audio);
@@ -411,12 +492,13 @@ struct Movie
                 THEORAPLAY_freeAudio(audioQueueHead->audio);
             }
             audioQueueHead = NULL;
-            SDL_DestroyMutex(audioMutex);
             audioThreadTermReq.set();
+#ifndef MKXPZ_RETRO
             if(audioThread) {
                 SDL_WaitThread(audioThread, 0);
                 audioThread = 0;
             }
+#endif // MKXPZ_RETRO
             alSourceStop(audioSource);
             alDeleteSources(1, &audioSource);
             alDeleteBuffers(STREAM_BUFS, alBuffers);
@@ -430,19 +512,30 @@ struct Movie
 
 struct MovieOpenHandler : FileSystem::OpenHandler
 {
+#ifdef MKXPZ_RETRO
+    std::shared_ptr<struct FileSystem::File> *srcOps;
+#else
     SDL_RWops *srcOps;
+#endif // MKXPZ_RETRO
     
+#ifdef MKXPZ_RETRO
+    MovieOpenHandler(std::shared_ptr<struct FileSystem::File> &srcOps)
+#else
     MovieOpenHandler(SDL_RWops &srcOps)
+#endif // MKXPZ_RETRO
     :   srcOps(&srcOps)
     {}
     
+#ifdef MKXPZ_RETRO
+    bool tryRead(std::shared_ptr<struct FileSystem::File> ops, const char *ext)
+#else
     bool tryRead(SDL_RWops &ops, const char *ext)
+#endif // MKXPZ_RETRO
     {
         *srcOps = ops;
         return true;
     }
 };
-#endif // MKXPZ_RETRO
 
 struct PingPong {
     TEXFBO rt[2];
@@ -1634,48 +1727,80 @@ void Graphics::resizeWindow(int width, int height, bool center) {
 }
 
 bool Graphics::updateMovieInput(Movie *movie) {
-#ifdef MKXPZ_RETRO
-    return false; // TODO
-#else
     return  p->threadData->rqTerm || p->threadData->rqReset;
-#endif // MKXPZ_RETRO
 }
 
-void Graphics::playMovie(const char *filename, int volume_, bool skippable) {
-#ifndef MKXPZ_RETRO
+Movie *Graphics::playMovie(const char *filename, int volume_, bool skippable) {
     if (shState->config().enableHires) {
         Debug() << "BUG: High-res Graphics playMovie not implemented";
     }
 
-    Movie *movie = new Movie(skippable);
+    Movie *movie = new Movie(volume_, skippable);
     MovieOpenHandler handler(movie->srcOps);
+#ifdef MKXPZ_RETRO // TODO: move into shState
+    {
+        std::string path("/mkxp-retro-game/");
+        path.append(filename);
+        mkxp_retro::fs->openRead(handler, path.c_str());
+    }
+#else
     shState->fileSystem().openRead(handler, filename);
+#endif // MKXPZ_RETRO
     float volume = volume_ * 0.01f;
     
     if (movie->preparePlayback()) {        
-        Sprite movieSprite;
+        movie->movieSprite = new Sprite;
         
         // Currently this stretches to fit the screen. VX Ace behavior is to center it and let the edges run off
-        movieSprite.setBitmap(movie->videoBitmap);
+        movie->movieSprite->setBitmap(movie->videoBitmap);
         double ratio = std::min((double)width() / movie->video->width, (double)height() / movie->video->height);
-        movieSprite.setZoomX(ratio);
-        movieSprite.setZoomY(ratio);
-        movieSprite.setX((width() / 2) - (movie->video->width * ratio / 2));
-        movieSprite.setY((height() / 2) - (movie->video->height * ratio / 2));
+        movie->movieSprite->setZoomX(ratio);
+        movie->movieSprite->setZoomY(ratio);
+        movie->movieSprite->setX((width() / 2) - (movie->video->width * ratio / 2));
+        movie->movieSprite->setY((height() / 2) - (movie->video->height * ratio / 2));
         
-        Sprite letterboxSprite;
-        Bitmap letterbox(width(), height());
-        letterbox.fillRect(0, 0, width(), height(), Vec4(0,0,0,255));
-        letterboxSprite.setBitmap(&letterbox);
+        movie->letterboxSprite = new Sprite;
+        movie->letterbox = new Bitmap(width(), height());
+        movie->letterbox->fillRect(0, 0, width(), height(), Vec4(0,0,0,255));
+        movie->letterboxSprite->setBitmap(movie->letterbox);
         
-        letterboxSprite.setZ(4999);
-        movieSprite.setZ(5001);
+        movie->letterboxSprite->setZ(4999);
+        movie->movieSprite->setZ(5001);
         
-        movie->play(volume);
+        if (movie->play()) {
+            return movie;
+        }
     }
     
+#ifndef MKXPZ_RETRO
     delete movie;
 #endif // MKXPZ_RETRO
+    return nullptr;
+}
+
+Movie *Graphics::playMovie(Movie *movie) {
+    if (movie == nullptr) {
+        return nullptr;
+    }
+
+    if (movie->play()) {
+        return movie;
+    }
+
+#ifndef MKXPZ_RETRO
+    delete movie;
+#endif // MKXPZ_RETRO
+    return nullptr;
+}
+
+void Graphics::stopMovie(Movie *movie) {
+    if (movie != nullptr) {
+        delete movie;
+    }
+}
+
+bool Graphics::streamMovieAudioProc(Movie *movie) {
+    return movie->streamMovieAudioProc();
 }
 
 void Graphics::screenshot(const char *filename) {

@@ -26,6 +26,7 @@
 #include <tgmath.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #ifndef MKXPZ_NO_PTHREAD_H
@@ -130,6 +131,8 @@ int mkxp_sem_destroy(mkxp_sem_t *sem);
 int mkxp_sem_post(mkxp_sem_t *sem);
 
 int mkxp_sem_wait(mkxp_sem_t *sem);
+
+void mkxp_sleep_ms(uint32_t milliseconds);
 
 #ifdef __cplusplus
 }

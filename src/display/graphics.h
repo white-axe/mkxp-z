@@ -73,7 +73,10 @@ public:
     void resizeWindow(int width, int height, bool center=false);
 	void drawMovieFrame(const THEORAPLAY_VideoFrame* video, Bitmap *videoBitmap);
 	bool updateMovieInput(Movie *movie);
-	void playMovie(const char *filename, int volume, bool skippable);
+	Movie *playMovie(const char *filename, int volume, bool skippable);
+	Movie *playMovie(Movie *movie);
+	static void stopMovie(Movie *movie);
+	static bool streamMovieAudioProc(Movie *movie);
 	void screenshot(const char *filename);
 
 	void reset();

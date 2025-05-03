@@ -389,6 +389,13 @@ Audio::Audio(RGSSThreadData &rtData)
 
 #ifdef MKXPZ_RETRO
 void Audio::render() {
+	if (mkxp_retro::sandbox->get_movie_from_audio_thread() != nullptr) {
+		AudioMutexGuard guard(mkxp_retro::sandbox->movie_mutex);
+		/* We need to call `get_movie_from_audio_thread()` a second time to avoid race
+		 * conditions where the movie gets destroyed after the first time we checked
+		 * that the movie isn't null but before we lock the mutex */
+		Graphics::streamMovieAudioProc(mkxp_retro::sandbox->get_movie_from_audio_thread());
+	}
 	p->meWatchProc();
 	for (int i = 0; i < (int)p->bgmTracks.size(); i++) {
 		p->bgmTracks[i]->render();

@@ -22,10 +22,13 @@
 #ifndef MKXPZ_SANDBOX_H
 #define MKXPZ_SANDBOX_H
 
+#include <atomic>
 #include <memory>
 #include <boost/optional.hpp>
 #include <mkxp-sandbox-bindgen.h>
 #include "types.h"
+#include "audio.h"
+#include "graphics.h"
 
 #define SANDBOX_AWAIT(coroutine, ...) \
     do { \
@@ -78,16 +81,21 @@ namespace mkxp_sandbox {
         std::shared_ptr<struct w2c_ruby> ruby;
         std::unique_ptr<struct w2c_wasi__snapshot__preview1> wasi;
         boost::optional<struct mkxp_sandbox::bindings> bindings;
+        std::atomic<Movie *> movie;
         bool yielding;
         usize sandbox_malloc(usize size);
         void sandbox_free(usize ptr);
 
         public:
+        AudioMutex movie_mutex;
         bool transitioning;
         inline struct mkxp_sandbox::bindings &operator*() noexcept { return *bindings; }
         inline struct mkxp_sandbox::bindings *operator->() noexcept { return &*bindings; }
         sandbox();
         ~sandbox();
+        Movie *get_movie_from_main_thread();
+        Movie *get_movie_from_audio_thread();
+        void set_movie(Movie *new_movie);
 
         // Internal utility method of the `SANDBOX_YIELD` macro.
         inline void _begin_yield() {

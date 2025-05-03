@@ -406,7 +406,7 @@ main_source = files(
     is_libretro ? 'audio/sndfilesource.cpp' : 'audio/sdlsoundsource.cpp',
     'audio/soundemitter.cpp',
     'audio/vorbissource.cpp',
-    is_libretro ? [] : 'theoraplay/theoraplay.c',
+    'theoraplay/theoraplay.c',
 
     'crypto/rgssad.cpp',
 

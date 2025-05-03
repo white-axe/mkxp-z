@@ -192,6 +192,18 @@ if not compilers['cpp'].has_header_symbol('thread', 'std::this_thread::yield')
     global_args += '-DMKXPZ_NO_STD_THIS_THREAD_YIELD'
 endif
 
+if not compilers['cpp'].has_header_symbol('thread', 'std::this_thread::sleep_for')
+    global_args += '-DMKXPZ_NO_STD_THIS_THREAD_SLEEP_FOR'
+
+    if not compilers['cpp'].has_header_symbol('unistd.h', 'usleep')
+        global_args += '-DMKXPZ_NO_USLEEP'
+
+        if not compilers['cpp'].has_header_symbol('time.h', 'nanosleep')
+            global_args += '-DMKXPZ_NO_NANOSLEEP'
+        endif
+    endif
+endif
+
 if not compilers['cpp'].has_header('pthread.h') or not compilers['cpp'].links('''
     #include <pthread.h>
     int main(void) {

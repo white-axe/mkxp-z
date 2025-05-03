@@ -57,7 +57,7 @@ void sandbox::sandbox_free(usize ptr) {
     w2c_ruby_mkxp_sandbox_free(RB, ptr);
 }
 
-sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings(ruby), yielding(false), transitioning(false) {
+sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings(ruby), movie(nullptr), yielding(false), transitioning(false) {
     // Initialize the sandbox
     wasm2c_ruby_instantiate(RB, wasi.get());
     w2c_ruby_mkxp_sandbox_init(
@@ -133,9 +133,34 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
 }
 
 sandbox::~sandbox() {
+    set_movie(nullptr);
     if (yielding) {
         w2c_ruby_asyncify_stop_unwind(ruby.get());
     }
     bindings.reset(); // Destroy the bindings before destroying the runtime since the bindings destructor requires the runtime to be alive
     wasm2c_ruby_free(RB);
 }
+
+Movie *sandbox::get_movie_from_main_thread() {
+    return movie.load(std::memory_order_relaxed); // No need for synchronization because we always set the movie from the main thread
+}
+
+Movie *sandbox::get_movie_from_audio_thread() {
+    return movie.load(std::memory_order_seq_cst);
+}
+
+void sandbox::set_movie(Movie *new_movie) {
+    Movie *old_movie = get_movie_from_main_thread();
+    if (old_movie == new_movie) {
+        return;
+    }
+    if (old_movie != nullptr) {
+        movie.store(nullptr, std::memory_order_seq_cst);
+        AudioMutexGuard guard(movie_mutex);
+        Graphics::stopMovie(old_movie);
+    }
+    if (new_movie != nullptr) {
+        movie.store(new_movie, std::memory_order_seq_cst);
+    }
+}
+

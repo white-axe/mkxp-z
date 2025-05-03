@@ -27,6 +27,15 @@
 #  include <malloc.h>
 #endif
 
+#ifndef MKXPZ_NO_STD_THIS_THREAD_SLEEP_FOR
+#  include <thread>
+#elif !defined(MKXPZ_NO_USLEEP)
+#  include <unistd.h>
+#elif !defined(MKXPZ_NO_NANOSLEEP)
+#  include <time.h>
+#endif
+
+
 #ifdef MKXPZ_NO_SPRINTF
 extern "C" int sprintf(char *buffer, const char *format, ...) {
     va_list vlist;
@@ -309,5 +318,19 @@ extern "C" int mkxp_sem_wait(mkxp_sem_t *sem) {
     assert(*sem);
     --*sem;
     return 0;
+#endif
+}
+
+extern "C" void mkxp_sleep_ms(uint32_t milliseconds) {
+#ifndef MKXPZ_NO_STD_THIS_THREAD_SLEEP_FOR
+    std::this_thread::sleep_for(std::chrono::duration<uint32_t, std::milli>(milliseconds));
+#elif !defined(MKXPZ_NO_USLEEP)
+    usleep((useconds_t)1000 * (useconds_t)milliseconds);
+#elif !defined(MKXPZ_NO_NANOSLEEP)
+    struct timespec t;
+    t.tv_sec = milliseconds / 1000;
+    t.tv_nsec = milliseconds % 1000;
+    t.tv_nsec *= 1000000;
+    nanosleep(&t, nullptr);
 #endif
 }

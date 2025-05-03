@@ -328,6 +328,7 @@ static VALUE play_movie(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
         wasm_ptr_t str;
         int32_t volume;
+        bool skippable;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
@@ -338,12 +339,20 @@ static VALUE play_movie(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 } else {
                     volume = 100;
                 }
-                bool skippable = argc >= 3 ? SANDBOX_VALUE_TO_BOOL(((VALUE *)(**sb() + argv))[2]) : false;
-                // TODO: use SANDBOX_YIELD as required
-                GFX_GUARD_EXC(shState->graphics().playMovie((const char *)(**sb() + str), volume, skippable));
+                skippable = argc >= 3 ? SANDBOX_VALUE_TO_BOOL(((VALUE *)(**sb() + argv))[2]) : false;
+
+                GFX_GUARD_EXC(sb().set_movie(shState->graphics().playMovie((const char *)(**sb() + str), volume, skippable)););
+                while (sb().get_movie_from_main_thread() != nullptr) {
+                    SANDBOX_YIELD;
+                    GFX_GUARD_EXC(sb().set_movie(shState->graphics().playMovie(sb().get_movie_from_main_thread())););
+                }
             }
 
             return SANDBOX_NIL;
+        }
+
+        ~coro() {
+            GFX_GUARD_EXC(sb().set_movie(nullptr););
         }
     };
 
