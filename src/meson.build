@@ -415,8 +415,8 @@ main_source = files(
     'display/window.cpp',
     'display/windowvx.cpp',
 
-    is_libretro ? [] : 'display/libnsgif/libnsgif.c',
-    is_libretro ? [] : 'display/libnsgif/lzw.c',
+    'display/libnsgif/libnsgif.c',
+    'display/libnsgif/lzw.c',
 
     'display/gl/gl-debug.cpp',
     'display/gl/gl-fun.cpp',

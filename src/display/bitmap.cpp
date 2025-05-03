@@ -454,67 +454,43 @@ struct BitmapPrivate
 
 struct BitmapOpenHandler : FileSystem::OpenHandler
 {
-#ifdef MKXPZ_RETRO
     // Non-GIF
+#ifdef MKXPZ_RETRO
     stbi_uc *image;
     int width;
     int height;
-
-    BitmapOpenHandler()
-    : image(NULL)
-    {}
-
-    bool tryRead(std::shared_ptr<struct FileSystem::File> ops, const char *ext)
-    {
-        struct file {
-            struct FileSystem::File *handle;
-            uint64_t offset;
-        };
-
-        const static stbi_io_callbacks callbacks = {
-            .read = [](void *handle, char *buf, int size) {
-                assert(size >= 0);
-                int n = PHYSFS_readBytes(((struct file *)handle)->handle->get(), buf, size);
-                assert(((struct file *)handle)->offset + (uint64_t)n >= ((struct file *)handle)->offset);
-                ((struct file *)handle)->offset += n;
-                return n;
-            },
-            .skip = [](void *handle, int size) {
-                assert(size >= 0);
-                assert(((struct file *)handle)->offset + (uint64_t)size >= ((struct file *)handle)->offset);
-                PHYSFS_seek(((struct file *)handle)->handle->get(), (((struct file *)handle)->offset += (uint64_t)size));
-            },
-            .eof = [](void *handle) {
-                return PHYSFS_eof(((struct file *)handle)->handle->get());
-            },
-        };
-
-        struct file file {
-            .handle = ops.get(),
-            .offset = 0,
-        };
-        image = stbi_load_from_callbacks(&callbacks, &file, &width, &height, NULL, STBI_rgb_alpha);
-        return image != NULL;
-    }
-
 #else
-    // Non-GIF
     SDL_Surface *surface;
-    
+#endif // MKXPZ_RETRO
+
     // GIF
     std::string error;
     gif_animation *gif;
     unsigned char *gif_data;
     size_t gif_data_size;
-    
-    
+
     BitmapOpenHandler()
-    : surface(0), gif(0), gif_data(0), gif_data_size(0)
+#ifdef MKXPZ_RETRO
+    : image(0),
+#else
+    : surface(0),
+#endif // MKXPZ_RETRO
+    gif(0), gif_data(0), gif_data_size(0)
     {}
     
+#ifdef MKXPZ_RETRO
+    bool tryRead(std::shared_ptr<struct FileSystem::File> ops, const char *ext)
+#else
     bool tryRead(SDL_RWops &ops, const char *ext)
+#endif // MKXPZ_RETRO
     {
+#ifdef MKXPZ_RETRO
+        uint8_t header_buffer[6];
+        PHYSFS_seek(ops->get(), 0);
+        if (PHYSFS_readBytes(ops->get(), header_buffer, 6) == 6 && (!std::memcmp(header_buffer, "GIF87a", 6) || !std::memcmp(header_buffer, "GIF89a", 6))) {
+#else
         if (IMG_isGIF(&ops)) {
+#endif // MKXPZ_RETRO
             // Use libnsgif to initialise the gif data
             gif = new gif_animation;
             
@@ -529,11 +505,20 @@ struct BitmapOpenHandler : FileSystem::OpenHandler
             
             gif_create(gif, &gif_bitmap_callbacks);
             
+#ifdef MKXPZ_RETRO
+            gif_data_size = PHYSFS_fileLength(ops->get());
+#else
             gif_data_size = ops.size(&ops);
+#endif // MKXPZ_RETRO
             
             gif_data = new unsigned char[gif_data_size];
+#ifdef MKXPZ_RETRO
+            PHYSFS_seek(ops->get(), 0);
+            PHYSFS_readBytes(ops->get(), gif_data, gif_data_size);
+#else
             ops.seek(&ops, 0, RW_SEEK_SET);
             ops.read(&ops, gif_data, gif_data_size, 1);
+#endif // MKXPZ_RETRO
             
             int status;
             do {
@@ -557,11 +542,49 @@ struct BitmapOpenHandler : FileSystem::OpenHandler
                 return false;
             }
         } else {
+#ifdef MKXPZ_RETRO
+            PHYSFS_seek(ops->get(), 0);
+
+            struct file {
+                struct FileSystem::File *handle;
+                uint64_t offset;
+            };
+
+            const static stbi_io_callbacks callbacks = {
+                .read = [](void *handle, char *buf, int size) {
+                    assert(size >= 0);
+                    int n = PHYSFS_readBytes(((struct file *)handle)->handle->get(), buf, size);
+                    assert(((struct file *)handle)->offset + (uint64_t)n >= ((struct file *)handle)->offset);
+                    ((struct file *)handle)->offset += n;
+                    return n;
+                },
+                .skip = [](void *handle, int size) {
+                    assert(size >= 0);
+                    assert(((struct file *)handle)->offset + (uint64_t)size >= ((struct file *)handle)->offset);
+                    PHYSFS_seek(((struct file *)handle)->handle->get(), (((struct file *)handle)->offset += (uint64_t)size));
+                },
+                .eof = [](void *handle) {
+                    return PHYSFS_eof(((struct file *)handle)->handle->get());
+                },
+            };
+
+            struct file file {
+                .handle = ops.get(),
+                .offset = 0,
+            };
+
+            image = stbi_load_from_callbacks(&callbacks, &file, &width, &height, nullptr, STBI_rgb_alpha);
+#else
             surface = IMG_LoadTyped_RW(&ops, 1, ext);
-        }
-        return (surface || gif);
-    }
 #endif // MKXPZ_RETRO
+        }
+
+#ifdef MKXPZ_RETRO
+        return (image || gif);
+#else
+        return (surface || gif);
+#endif // MKXPZ_RETRO
+    }
 };
 
 Bitmap::Bitmap(const char *filename)
@@ -595,16 +618,16 @@ Bitmap::Bitmap(const char *filename)
 #else
         shState->fileSystem().openRead(handler, filename);
 #endif // MKXPZ_RETRO
-        
-#ifdef MKXPZ_RETRO
-        if (handler.image == NULL) {
-            throw Exception(Exception::SDLError, "Error loading image '%s': %s", filename, stbi_failure_reason());
-        }
-#else
+
         if (!handler.error.empty()) {
             // Not loaded with SDL, but I want it to be caught with the same exception type
             throw Exception(Exception::SDLError, "Error loading image '%s': %s", filename, handler.error.c_str());
         }
+#ifdef MKXPZ_RETRO
+        else if (!handler.gif && !handler.image) {
+            throw Exception(Exception::SDLError, "Error loading image '%s': %s", filename, stbi_failure_reason());
+        }
+#else
         else if (!handler.gif && !handler.surface) {
             throw Exception(Exception::SDLError, "Error loading image '%s': %s",
                             filename, SDL_GetError());
@@ -616,7 +639,6 @@ Bitmap::Bitmap(const char *filename)
         throw e;
     }
     
-#ifndef MKXPZ_RETRO
     if (handler.gif) {
         if (handler.gif->width >= (uint32_t)glState.caps.maxTexSize || handler.gif->height > (uint32_t)glState.caps.maxTexSize)
         {
@@ -720,14 +742,13 @@ Bitmap::Bitmap(const char *filename)
         return;
     }
 
-    SDL_Surface *imgSurf = handler.surface;
-#endif // MKXPZ_RETRO
-
 #ifdef MKXPZ_RETRO
     SDL_Surface *imgSurf = new SDL_Surface;
     imgSurf->pixels = handler.image;
     imgSurf->w = handler.width;
     imgSurf->h = handler.height;
+#else
+    SDL_Surface *imgSurf = handler.surface;
 #endif // MKXPZ_RETRO
     initFromSurface(imgSurf, hiresBitmap, false);
 }
@@ -775,7 +796,7 @@ Bitmap::Bitmap(void *pixeldata, int width, int height)
     SDL_Surface *surface = new SDL_Surface;
 
     stbi_uc *image = (stbi_uc *)STBI_MALLOC((size_t)4 * (size_t)width * (size_t)height * sizeof(stbi_uc));
-    if (image == NULL)
+    if (image == nullptr)
         throw std::bad_alloc();
 
     surface->pixels = image;
@@ -2396,10 +2417,11 @@ SDL_Surface *Bitmap::drawTextInner(FT_Face font, const char *str, SDL_Color &c, 
     bitmapRect.h += 2 * outline;
 
     SDL_Surface *txtSurf = new SDL_Surface;
-    if ((txtSurf->pixels = std::calloc(bitmapRect.w * bitmapRect.h, 4)) == NULL)
+    if ((txtSurf->pixels = STBI_MALLOC(4 * bitmapRect.w * bitmapRect.h)) == nullptr)
         throw std::bad_alloc();
     txtSurf->w = bitmapRect.w;
     txtSurf->h = bitmapRect.h;
+    std::memset(txtSurf->pixels, 0, 4 * bitmapRect.w * bitmapRect.h);
 
     int glyph_x = -bitmapRect.x;
     int glyph_y = -bitmapRect.y;
