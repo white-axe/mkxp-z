@@ -577,7 +577,7 @@ extern "C" RETRO_API void retro_run() {
     }
 
     if (mkxp_retro::sandbox.has_value()) {
-        retro_usec_t new_reference = 1000000 / shState->graphics().getFrameRate();
+        retro_usec_t new_reference = 1000000 / (sb().get_movie_from_main_thread() != nullptr ? av_info.timing.fps : shState->graphics().getFrameRate());
         if (new_reference != frame_time_callback.reference) {
             frame_time_callback.reference = new_reference;
             frame_time_callback_enabled = environment(RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK, &frame_time_callback);

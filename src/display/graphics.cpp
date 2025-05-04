@@ -79,7 +79,7 @@
 #define DEF_MAX_VIDEO_FRAMES 30
 #define VIDEO_DELAY 10
 #define MOVIE_AUDIO_BUFFER_SIZE 2048
-#define AUDIO_BUFFER_LEN_MS 2000
+#define BUFFER_LEN_MS 200
 
 typedef struct AudioQueue
 {
@@ -121,6 +121,16 @@ static void movieSleep(uint32_t milliseconds)
 }
 
 
+static uint64_t movieTicks()
+{
+#ifdef MKXPZ_RETRO
+    return mkxp_retro::get_ticks_ms();
+#else
+    return SDL_GetTicks64();
+#endif // MKXPZ_RETRO
+}
+
+
 #ifdef MKXPZ_RETRO
 template<class C, void (C::*func)()>
 static void movieThreadFun(C *obj)
@@ -155,8 +165,8 @@ struct Movie
     Sprite *movieSprite;
     Sprite *letterboxSprite;
     Bitmap *letterbox;
-    uint64_t frameMs;
     uint64_t baseTicks;
+    uint64_t currentTicks;
     float volume;
     bool openedAudio;
 
@@ -176,7 +186,7 @@ struct Movie
 #ifndef MKXPZ_RETRO
         audioThread(0),
 #endif // MKXPZ_RETRO
-        movieSprite(nullptr), letterboxSprite(nullptr), letterbox(nullptr), frameMs(0), baseTicks(-1), volume(volume), openedAudio(false),
+        movieSprite(nullptr), letterboxSprite(nullptr), letterbox(nullptr), baseTicks(-1), currentTicks(0), volume(volume), openedAudio(false),
         streamMovieAudioState(0), procBufs(STREAM_BUFS)
     {
         audioThreadTermReq.set();
@@ -278,11 +288,11 @@ struct Movie
         audioQueueTail = item;
     }
     
-    void bufferMovieAudio(THEORAPLAY_Decoder *decoder, const uint32_t now) {
+    void bufferMovieAudio(THEORAPLAY_Decoder *decoder, const uint64_t now) {
         const THEORAPLAY_AudioPacket *audio;
         while ((audio = THEORAPLAY_getAudio(decoder)) != NULL) {
             queueAudioPacket(audio);
-            if (audio->playms >= now + AUDIO_BUFFER_LEN_MS) {  // don't let this get too far ahead.
+            if (audio->playms >= now + BUFFER_LEN_MS) {  // don't let this get too far ahead.
                 break;
             }
         }
@@ -292,7 +302,19 @@ struct Movie
         // Quit if audio thread terminate request has been made
         if (audioThreadTermReq) return false;
 
-        if(procBufs > 0) {
+        // Periodically check the buffers until one is available
+        if (procBufs <= 0) {
+            alGetSourcei(audioSource, AL_BUFFERS_PROCESSED, &procBufs);
+            if(procBufs > 0) {
+                alSourceUnqueueBuffers(audioSource, procBufs, alBuffers);
+            } else {
+#ifndef MKXPZ_RETRO
+                movieSleep(AUDIO_SLEEP);
+#endif // MKXPZ_RETRO
+            }
+        }
+
+        while(procBufs > 0) {
             --procBufs;
 
             remainingSamples = MOVIE_AUDIO_BUFFER_SIZE;
@@ -303,6 +325,15 @@ struct Movie
 
                 while(audioQueueHead && (remainingSamples > 0)) {
                     audioPacketAndOffset = audioQueueHead;
+
+                    // Skip packets to catch up
+                    if (currentTicks >= audioPacketAndOffset->audio->playms + BUFFER_LEN_MS) {
+                        audioQueueHead = audioPacketAndOffset->next;
+                        THEORAPLAY_freeAudio(audioPacketAndOffset->audio);
+                        free((void *) audioPacketAndOffset);
+                        continue;
+                    }
+
                     channels = audioPacketAndOffset->audio->channels;
                     sampleRate = audioPacketAndOffset->audio->freq;
                     sourceSamples = audioPacketAndOffset->audio->samples + (audioPacketAndOffset->offset * channels);
@@ -343,18 +374,6 @@ struct Movie
             if(streamMovieAudioState != AL_PLAYING) alSourcePlay(audioSource);
         }
 
-        // Periodically check the buffers until one is available
-        else {
-            alGetSourcei(audioSource, AL_BUFFERS_PROCESSED, &procBufs);
-            if(procBufs > 0) {
-                alSourceUnqueueBuffers(audioSource, procBufs, alBuffers);
-            } else {
-#ifndef MKXPZ_RETRO
-                movieSleep(AUDIO_SLEEP);
-#endif // MKXPZ_RETRO
-            }
-        }
-
         return true;
     }
 
@@ -382,12 +401,9 @@ struct Movie
     bool play()
     {
         if (baseTicks == (uint64_t)-1) {
-#ifdef MKXPZ_RETRO
-            baseTicks = mkxp_retro::get_ticks_ms();
-#else
-            baseTicks = SDL_GetTicks();
-#endif // MKXPZ_RETRO
+            baseTicks = movieTicks();
         }
+
         while (THEORAPLAY_isDecoding(decoder)) {
             // Check for reset/shutdown input
             if(shState->graphics().updateMovieInput(this)) break;
@@ -403,11 +419,7 @@ struct Movie
 #endif // MKXPZ_RETRO
             }
             
-#ifdef MKXPZ_RETRO
-            const uint64_t now = mkxp_retro::get_ticks_ms() - baseTicks;
-#else
-            const uint64_t now = SDL_GetTicks() - baseTicks;
-#endif // MKXPZ_RETRO
+            uint64_t now = movieTicks() - baseTicks;
             
             if (!video) {
                 video = THEORAPLAY_getVideo(decoder);
@@ -429,8 +441,7 @@ struct Movie
             }
             
             if (video && (video->playms <= now)) {
-                frameMs = (video->fps == 0.0) ? 0 : ((uint64_t) (1000.0 / video->fps));
-                if ( frameMs && ((now - video->playms) >= frameMs) )
+                if (now >= video->playms + BUFFER_LEN_MS)
                 {
                     // Skip frames to catch up
                     const THEORAPLAY_VideoFrame *last = video;
@@ -438,26 +449,25 @@ struct Movie
                     {
                         THEORAPLAY_freeVideo(last);
                         last = video;
-                        if ((now - video->playms) < frameMs)
+                        if (now < video->playms + BUFFER_LEN_MS)
                             break;
                     } 
 
                     if (!video)
                         video = last;
-                }
 
-                // Application is too far behind
-                if (!video) {
-                    Debug() << "WARNING: Video playback cannot keep up!";
-                    break;
+                    baseTicks = movieTicks() - video->playms;
                 }
 
                 // Got a video frame, now draw it
                 videoBitmap->replaceRaw(video->pixels, video->width * video->height * 4);
                 shState->graphics().update(false);
+                {
+                    AudioMutexGuard guard(audioMutex);
+                    currentTicks = video->playms;
+                }
                 THEORAPLAY_freeVideo(video);
                 video = NULL;
-
             } else {
 #ifndef MKXPZ_RETRO
                 // Next video frame not yet ready, let the CPU breathe
@@ -466,7 +476,7 @@ struct Movie
             }
             
             if (openedAudio) {
-                bufferMovieAudio(decoder, now);
+                bufferMovieAudio(decoder, currentTicks);
             }
 
 #ifdef MKXPZ_RETRO
