@@ -378,6 +378,15 @@ else
     endif
 endif
 
+theoraplay_options = {
+    'cflags': global_args,
+    'cppflags': global_args,
+    'default_library': 'static',
+    'b_staticpic': use_pic,
+    'use_shim': is_libretro,
+}
+global_dependencies += subproject('theoraplay', default_options: theoraplay_options).get_variable('theoraplay')
+
 global_include_dirs += include_directories('.',
     'audio',
     'crypto',
@@ -406,7 +415,6 @@ main_source = files(
     is_libretro ? 'audio/sndfilesource.cpp' : 'audio/sdlsoundsource.cpp',
     'audio/soundemitter.cpp',
     'audio/vorbissource.cpp',
-    'theoraplay/theoraplay.c',
 
     'crypto/rgssad.cpp',
 

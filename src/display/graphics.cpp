@@ -41,7 +41,6 @@
 #include "shader.h"
 #include "sharedstate.h"
 #include "texpool.h"
-#include "theoraplay/theoraplay.h"
 #include "util.h"
 #include "input.h"
 #include "sprite.h"
@@ -61,6 +60,8 @@
 #ifdef MKXPZ_STEAM
 #include "steamshim_child.h"
 #endif
+
+#include <theoraplay.h>
 
 #include <algorithm>
 #include <errno.h>
@@ -208,7 +209,7 @@ struct Movie
         io->read = readMovie;
         io->close = closeMovie;
         io->userdata = &srcOps;
-        decoder = THEORAPLAY_startDecode(io, DEF_MAX_VIDEO_FRAMES, THEORAPLAY_VIDFMT_RGBA);
+        decoder = THEORAPLAY_startDecode(io, DEF_MAX_VIDEO_FRAMES, THEORAPLAY_VIDFMT_RGBA, nullptr, true);
         if (!decoder) {
 #ifndef MKXPZ_RETRO
             SDL_RWclose(&srcOps);
