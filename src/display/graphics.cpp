@@ -61,7 +61,7 @@
 #include "steamshim_child.h"
 #endif
 
-#include <theoraplay.h>
+#include "theoraplay.h"
 
 #include <algorithm>
 #include <errno.h>

@@ -383,7 +383,6 @@ theoraplay_options = {
     'cppflags': global_args,
     'default_library': 'static',
     'b_staticpic': use_pic,
-    'use_shim': is_libretro,
 }
 global_dependencies += subproject('theoraplay', default_options: theoraplay_options).get_variable('theoraplay')
 
