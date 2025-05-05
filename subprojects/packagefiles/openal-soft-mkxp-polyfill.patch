@@ -364,24 +364,24 @@
 -using setname_t2 = int(*)(pthread_t, const char*);
 -using setname_t3 = void(*)(pthread_t, const char*);
 -using setname_t4 = int(*)(pthread_t, const char*, void*);
-+using setname_t2 = int(*)(mkxp_thread_t, const char*);
-+using setname_t3 = void(*)(mkxp_thread_t, const char*);
-+using setname_t4 = int(*)(mkxp_thread_t, const char*, void*);
++using setname_t2 = int(*)(void*, const char*);
++using setname_t3 = void(*)(void*, const char*);
++using setname_t4 = int(*)(void*, const char*, void*);
  
  [[maybe_unused]] void setname_caller(setname_t1 func, const char *name)
  { func(name); }
  
  [[maybe_unused]] void setname_caller(setname_t2 func, const char *name)
 -{ func(pthread_self(), name); }
-+{ func(mkxp_thread_self(), name); }
++{ func(nullptr, name); }
  
  [[maybe_unused]] void setname_caller(setname_t3 func, const char *name)
 -{ func(pthread_self(), name); }
-+{ func(mkxp_thread_self(), name); }
++{ func(nullptr, name); }
  
  [[maybe_unused]] void setname_caller(setname_t4 func, const char *name)
 -{ func(pthread_self(), "%s", const_cast<char*>(name)); /* NOLINT(*-const-cast) */ }
-+{ func(mkxp_thread_self(), "%s", const_cast<char*>(name)); /* NOLINT(*-const-cast) */ }
++{ func(nullptr, "%s", const_cast<char*>(name)); /* NOLINT(*-const-cast) */ }
  
  } // namespace
  

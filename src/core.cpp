@@ -69,11 +69,11 @@ struct lock_guard {
 };
 
 template <typename T> struct atomic {
-#ifdef MKXPZ_HAVE_THREADED_AUDIO
+#ifndef MKXPZ_NO_THREADED_AUDIO
     std::atomic<T> atom;
 #else
     T atom;
-#endif // MKXPZ_HAVE_THREADED_AUDIO
+#endif // MKXPZ_NO_THREADED_AUDIO
 
     atomic() {}
 
@@ -88,37 +88,75 @@ template <typename T> struct atomic {
     struct atomic &operator=(struct atomic &&guard) noexcept = delete;
 
     T load_relaxed() const noexcept {
-#ifdef MKXPZ_HAVE_THREADED_AUDIO
+#ifndef MKXPZ_NO_THREADED_AUDIO
         return atom.load(std::memory_order_relaxed);
 #else
         return atom;
-#endif // MKXPZ_HAVE_THREADED_AUDIO
+#endif // MKXPZ_NO_THREADED_AUDIO
     }
 
     operator T() const noexcept {
-#ifdef MKXPZ_HAVE_THREADED_AUDIO
+#ifndef MKXPZ_NO_THREADED_AUDIO
         return atom.load(std::memory_order_seq_cst);
 #else
         return atom;
-#endif // MKXPZ_HAVE_THREADED_AUDIO
+#endif // MKXPZ_NO_THREADED_AUDIO
     }
 
     void operator=(T value) noexcept {
-#ifdef MKXPZ_HAVE_THREADED_AUDIO
+#ifndef MKXPZ_NO_THREADED_AUDIO
         atom.store(value, std::memory_order_seq_cst);
 #else
         atom = value;
-#endif // MKXPZ_HAVE_THREADED_AUDIO
+#endif // MKXPZ_NO_THREADED_AUDIO
     }
 
     void operator+=(T value) noexcept {
-#ifdef MKXPZ_HAVE_THREADED_AUDIO
+#ifndef MKXPZ_NO_THREADED_AUDIO
         atom.fetch_add(value, std::memory_order_seq_cst);
 #else
         atom += value;
-#endif // MKXPZ_HAVE_THREADED_AUDIO
+#endif // MKXPZ_NO_THREADED_AUDIO
     }
 };
+
+#if !defined(MKXPZ_NO_THREADED_AUDIO) && defined(MKXPZ_NO_STD_ATOMIC_UINT64_T)
+template <> struct atomic<uint64_t> {
+    mutable std::mutex mutex;
+    uint64_t atom;
+
+    atomic() {}
+
+    atomic(uint64_t value) : atom(value) {}
+
+    atomic(const struct atomic &guard) = delete;
+
+    atomic(struct atomic &&guard) noexcept = delete;
+
+    struct atomic &operator=(const struct atomic &guard) = delete;
+
+    struct atomic &operator=(struct atomic &&guard) noexcept = delete;
+
+    uint64_t load_relaxed() const noexcept {
+        return atom;
+    }
+
+    operator uint64_t() const noexcept {
+        struct lock_guard guard(mutex);
+        return atom;
+    }
+
+    void operator=(uint64_t value) noexcept {
+        struct lock_guard guard(mutex);
+        atom = value;
+    }
+
+    void operator+=(uint64_t value) noexcept {
+        struct lock_guard guard(mutex);
+        atom += value;
+    }
+};
+#endif // !defined(MKXPZ_NO_THREADED_AUDIO) && defined(MKXPZ_NO_STD_ATOMIC_UINT64_T)
 
 static uint64_t frame_count;
 static struct atomic<uint64_t> frame_time;
@@ -667,7 +705,7 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
         return false;
     }
 
-#ifdef MKXPZ_HAVE_THREADED_AUDIO
+#ifndef MKXPZ_NO_THREADED_AUDIO
     audio_callback.callback = []() {
         if (!shared_state_initialized) {
             return;
@@ -686,7 +724,7 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
     log_printf(RETRO_LOG_INFO, threaded_audio_enabled ? "Using threaded audio driver\n" : "Not using threaded audio driver because the frontend does not support it\n");
 #else
     log_printf(RETRO_LOG_INFO, "Not using threaded audio driver because multithreading is not supported on this platform\n");
-#endif // MKXPZ_HAVE_THREADED_AUDIO
+#endif // MKXPZ_NO_THREADED_AUDIO
 
     {
         bool value;

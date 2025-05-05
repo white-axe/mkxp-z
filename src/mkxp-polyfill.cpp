@@ -21,7 +21,10 @@
 
 #include "mkxp-polyfill.h"
 #include <cassert>
-#include <stb_sprintf.h>
+
+#if defined(MKXPZ_NO_SPRINTF) || defined(MKXPZ_NO_SNPRINTF) || defined(MKXPZ_NO_VSPRINTF) || defined(MKXPZ_NO_VSNPRINTF)
+#  include <stb_sprintf.h>
+#endif
 
 #ifdef MKXPZ_HAVE_ALIGNED_MALLOC
 #  include <malloc.h>
@@ -35,6 +38,9 @@
 #  include <time.h>
 #endif
 
+#ifndef MKXPZ_NO_STD_MUTEX
+#  include <mutex>
+#endif
 
 #ifdef MKXPZ_NO_SPRINTF
 extern "C" int sprintf(char *buffer, const char *format, ...) {
@@ -89,22 +95,37 @@ extern "C" void mkxp_aligned_free(void *ptr) {
 #endif
 }
 
-#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+#if defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_MUTEX) || defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_THREAD)
 extern "C" {
-    void *threadGetCurrent(void);
     void LightLock_Init(_LOCK_T *);
     void LightLock_Lock(_LOCK_T *);
     void LightLock_Unlock(_LOCK_T *);
+    int LightLock_TryLock(_LOCK_T *);
     void RecursiveLock_Init(_LOCK_RECURSIVE_T *);
     void RecursiveLock_Lock(_LOCK_RECURSIVE_T *);
     void RecursiveLock_Unlock(_LOCK_RECURSIVE_T *);
+    int RecursiveLock_TryLock(_LOCK_RECURSIVE_T *);
     void CondVar_Init(mkxp_cond_t *);
     void CondVar_Wait(mkxp_cond_t *, _LOCK_T *);
     void CondVar_WakeUp(mkxp_cond_t *, int32_t);
+    uint32_t APT_CheckNew3DS(bool *out);
+    uint32_t svcGetThreadPriority(int32_t *out, uint32_t handle);
+    void *threadCreate(void (*entrypoint)(void *), void *arg, size_t stack_size, int prio, int core_id, bool detached);
+    void *threadJoin(void *thread, uint64_t timeout_ns);
+    void threadFree(void *thread);
 };
+static bool mutex_inited = false;
+static _LOCK_T safe_double_thread_launch;
+static void *(*start_routine_jump)(void *);
+static void ctr_thread_launcher(void *data) {
+    // Copied from https://github.com/libretro/libretro-common/blob/master/rthreads/ctr_pthread.h (licensed MIT)
+    void *(*start_routine_jump_safe)(void*) = start_routine_jump;
+    LightLock_Unlock(&safe_double_thread_launch);
+    start_routine_jump_safe(data);
+}
 #endif
 
-#if defined(MKXPZ_NO_SEMAPHORE_H) && !defined(MKXPZ_NO_PTHREAD_H)
+#if defined(MKXPZ_NO_SEMAPHORE_H) && !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
 struct mkxp_sem_private {
     unsigned int value;
     mkxp_mutex_t mutex;
@@ -112,18 +133,16 @@ struct mkxp_sem_private {
 };
 #endif
 
-extern "C" mkxp_thread_t mkxp_thread_self() {
-#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
-    return threadGetCurrent();
-#elif !defined(MKXPZ_NO_PTHREAD_H)
-    return pthread_self();
-#else
-    return 42;
-#endif
-}
-
 extern "C" int mkxp_mutex_init(mkxp_mutex_t *mutex, bool recursive) {
-#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+#ifndef MKXPZ_NO_STD_MUTEX
+    mutex->recursive = recursive;
+    if (recursive) {
+        mutex->inner = new std::recursive_mutex;
+    } else {
+        mutex->inner = new std::mutex;
+    }
+    return 0;
+#elif defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_MUTEX)
     mutex->recursive = recursive;
     if (recursive) {
         RecursiveLock_Init(&mutex->inner.recursive);
@@ -131,7 +150,7 @@ extern "C" int mkxp_mutex_init(mkxp_mutex_t *mutex, bool recursive) {
         LightLock_Init(&mutex->inner.light);
     }
     return 0;
-#elif !defined(MKXPZ_NO_PTHREAD_H)
+#elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
     if (recursive) {
         pthread_mutexattr_t attr;
         if (pthread_mutexattr_init(&attr)) {
@@ -151,9 +170,16 @@ extern "C" int mkxp_mutex_init(mkxp_mutex_t *mutex, bool recursive) {
 }
 
 extern "C" int mkxp_mutex_destroy(mkxp_mutex_t *mutex) {
-#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+#ifndef MKXPZ_NO_STD_MUTEX
+    if (mutex->recursive) {
+        delete (std::recursive_mutex *)mutex->inner;
+    } else {
+        delete (std::mutex *)mutex->inner;
+    }
     return 0;
-#elif !defined(MKXPZ_NO_PTHREAD_H)
+#elif defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_MUTEX)
+    return 0;
+#elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
     return pthread_mutex_destroy(mutex);
 #else
     assert(!*mutex);
@@ -162,14 +188,21 @@ extern "C" int mkxp_mutex_destroy(mkxp_mutex_t *mutex) {
 }
 
 extern "C" int mkxp_mutex_lock(mkxp_mutex_t *mutex) {
-#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+#ifndef MKXPZ_NO_STD_MUTEX
+    if (mutex->recursive) {
+        ((std::recursive_mutex *)mutex->inner)->lock();
+    } else {
+        ((std::mutex *)mutex->inner)->lock();
+    }
+    return 0;
+#elif defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_MUTEX)
     if (mutex->recursive) {
         RecursiveLock_Lock(&mutex->inner.recursive);
     } else {
         LightLock_Lock(&mutex->inner.light);
     }
     return 0;
-#elif !defined(MKXPZ_NO_PTHREAD_H)
+#elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
     return pthread_mutex_lock(mutex);
 #else
     ++*mutex;
@@ -178,14 +211,21 @@ extern "C" int mkxp_mutex_lock(mkxp_mutex_t *mutex) {
 }
 
 extern "C" int mkxp_mutex_unlock(mkxp_mutex_t *mutex) {
-#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+#ifndef MKXPZ_NO_STD_MUTEX
+    if (mutex->recursive) {
+        ((std::recursive_mutex *)mutex->inner)->unlock();
+    } else {
+        ((std::mutex *)mutex->inner)->unlock();
+    }
+    return 0;
+#elif defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_MUTEX)
     if (mutex->recursive) {
         RecursiveLock_Unlock(&mutex->inner.recursive);
     } else {
         LightLock_Unlock(&mutex->inner.light);
     }
     return 0;
-#elif !defined(MKXPZ_NO_PTHREAD_H)
+#elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
     return pthread_mutex_unlock(mutex);
 #else
     assert(*mutex);
@@ -195,10 +235,13 @@ extern "C" int mkxp_mutex_unlock(mkxp_mutex_t *mutex) {
 }
 
 extern "C" int mkxp_cond_init(mkxp_cond_t *cond) {
-#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+#ifndef MKXPZ_NO_STD_MUTEX
+    *cond = new std::condition_variable_any;
+    return 0;
+#elif defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_MUTEX)
     CondVar_Init(cond);
     return 0;
-#elif !defined(MKXPZ_NO_PTHREAD_H)
+#elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
     return pthread_cond_init(cond, NULL);
 #else
     return 0;
@@ -206,9 +249,12 @@ extern "C" int mkxp_cond_init(mkxp_cond_t *cond) {
 }
 
 extern "C" int mkxp_cond_destroy(mkxp_cond_t *cond) {
-#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+#ifndef MKXPZ_NO_STD_MUTEX
+    delete (std::condition_variable_any *)*cond;
     return 0;
-#elif !defined(MKXPZ_NO_PTHREAD_H)
+#elif defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_MUTEX)
+    return 0;
+#elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
     return pthread_cond_destroy(cond);
 #else
     return 0;
@@ -216,10 +262,13 @@ extern "C" int mkxp_cond_destroy(mkxp_cond_t *cond) {
 }
 
 extern "C" int mkxp_cond_signal(mkxp_cond_t *cond) {
-#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+#ifndef MKXPZ_NO_STD_MUTEX
+    ((std::condition_variable_any *)*cond)->notify_one();
+    return 0;
+#elif defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_MUTEX)
     CondVar_WakeUp(cond, 1);
     return 0;
-#elif !defined(MKXPZ_NO_PTHREAD_H)
+#elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
     return pthread_cond_signal(cond);
 #else
     return 0;
@@ -227,10 +276,13 @@ extern "C" int mkxp_cond_signal(mkxp_cond_t *cond) {
 }
 
 extern "C" int mkxp_cond_broadcast(mkxp_cond_t *cond) {
-#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+#ifndef MKXPZ_NO_STD_MUTEX
+    ((std::condition_variable_any *)*cond)->notify_all();
+    return 0;
+#elif defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_MUTEX)
     CondVar_WakeUp(cond, -1);
     return 0;
-#elif !defined(MKXPZ_NO_PTHREAD_H)
+#elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
     return pthread_cond_broadcast(cond);
 #else
     return 0;
@@ -238,13 +290,20 @@ extern "C" int mkxp_cond_broadcast(mkxp_cond_t *cond) {
 }
 
 extern "C" int mkxp_cond_wait(mkxp_cond_t *cond, mkxp_mutex_t *mutex) {
-#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+#ifndef MKXPZ_NO_STD_MUTEX
+    if (mutex->recursive) {
+        ((std::condition_variable_any *)*cond)->wait(*(std::recursive_mutex *)mutex->inner);
+    } else {
+        ((std::condition_variable_any *)*cond)->wait(*(std::mutex *)mutex->inner);
+    }
+    return 0;
+#elif defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_MUTEX)
     if (mutex->recursive) {
         std::abort();
     }
     CondVar_Wait(cond, &mutex->inner.light);
     return 0;
-#elif !defined(MKXPZ_NO_PTHREAD_H)
+#elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
     return pthread_cond_wait(cond, mutex);
 #else
     return 0;
@@ -254,7 +313,7 @@ extern "C" int mkxp_cond_wait(mkxp_cond_t *cond, mkxp_mutex_t *mutex) {
 extern "C" int mkxp_sem_init(mkxp_sem_t *sem, unsigned int value) {
 #ifndef MKXPZ_NO_SEMAPHORE_H
     return sem_init(sem, 0, value);
-#elif !defined(MKXPZ_NO_PTHREAD_H)
+#elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
     *sem = (void *)new mkxp_sem_private;
     int mutex_init_result = mkxp_mutex_init(&((struct mkxp_sem_private *)*sem)->mutex, false);
     if (mutex_init_result) {
@@ -276,7 +335,7 @@ extern "C" int mkxp_sem_init(mkxp_sem_t *sem, unsigned int value) {
 extern "C" int mkxp_sem_destroy(mkxp_sem_t *sem) {
 #ifndef MKXPZ_NO_SEMAPHORE_H
     return sem_destroy(sem);
-#elif !defined(MKXPZ_NO_PTHREAD_H)
+#elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
     mkxp_cond_destroy(&((struct mkxp_sem_private *)*sem)->cond);
     mkxp_mutex_destroy(&((struct mkxp_sem_private *)*sem)->mutex);
     delete (struct mkxp_sem_private *)*sem;
@@ -289,7 +348,7 @@ extern "C" int mkxp_sem_destroy(mkxp_sem_t *sem) {
 extern "C" int mkxp_sem_post(mkxp_sem_t *sem) {
 #ifndef MKXPZ_NO_SEMAPHORE_H
     return sem_post(sem);
-#elif !defined(MKXPZ_NO_PTHREAD_H)
+#elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
     while (mkxp_mutex_lock(&((struct mkxp_sem_private *)*sem)->mutex)) {}
     ++((struct mkxp_sem_private *)*sem)->value;
     mkxp_cond_signal(&((struct mkxp_sem_private *)*sem)->cond);
@@ -304,7 +363,7 @@ extern "C" int mkxp_sem_post(mkxp_sem_t *sem) {
 extern "C" int mkxp_sem_wait(mkxp_sem_t *sem) {
 #ifndef MKXPZ_NO_SEMAPHORE_H
     return sem_wait(sem);
-#elif !defined(MKXPZ_NO_PTHREAD_H)
+#elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
     while (mkxp_mutex_lock(&((struct mkxp_sem_private *)*sem)->mutex)) {}
     for (;;) {
         if (((struct mkxp_sem_private *)*sem)->value) {
@@ -334,3 +393,67 @@ extern "C" void mkxp_sleep_ms(uint32_t milliseconds) {
     nanosleep(&t, nullptr);
 #endif
 }
+
+#ifndef MKXPZ_NO_THREAD
+extern "C" int mkxp_thread_create(mkxp_thread_t *thread, void *(*func)(void *), void *arg) {
+#ifndef MKXPZ_NO_STD_THREAD
+    *thread = new std::thread(func, arg);
+    return 0;
+#elif defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_THREAD)
+    // Copied from https://github.com/libretro/libretro-common/blob/master/rthreads/ctr_pthread.h (licensed MIT)
+    int32_t prio = 0;
+    void *new_ctr_thread;
+    int procnum = -2; /* use default cpu */
+    bool isNew3DS;
+
+    APT_CheckNew3DS(&isNew3DS);
+
+    if (isNew3DS)
+        procnum = 2;
+
+    if (!mutex_inited)
+    {
+        LightLock_Init(&safe_double_thread_launch);
+        mutex_inited = true;
+    }
+
+    /* Must wait if attempting to launch 2 threads at once to prevent corruption of function pointer*/
+    while (LightLock_TryLock(&safe_double_thread_launch) != 0);
+
+    svcGetThreadPriority(&prio, 0xFFFF8001);
+
+    start_routine_jump = func;
+    new_ctr_thread     = threadCreate(ctr_thread_launcher, arg, 32 * 1024, prio - 1, procnum, false);
+
+    if (!new_ctr_thread)
+    {
+        LightLock_Unlock(&safe_double_thread_launch);
+        return EAGAIN;
+    }
+
+    *thread = new_ctr_thread;
+    return 0;
+#elif !defined(MKXPZ_NO_PTHREAD_H_THREAD)
+    return pthread_create(thread, nullptr, func, arg);
+#endif
+}
+
+extern "C" int mkxp_thread_join(mkxp_thread_t thread) {
+#ifndef MKXPZ_NO_STD_THREAD
+    ((std::thread *)thread)->join();
+    delete (std::thread *)thread;
+    return 0;
+#elif defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_THREAD)
+    // Copied from https://github.com/libretro/libretro-common/blob/master/rthreads/ctr_pthread.h (licensed MIT)
+    /*retval is ignored*/
+    if (threadJoin(thread, (uint64_t)-1))
+       return -1;
+
+    threadFree(thread);
+
+    return 0;
+#elif !defined(MKXPZ_NO_PTHREAD_H_THREAD)
+    return pthread_join(thread, nullptr);
+#endif
+}
+#endif

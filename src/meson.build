@@ -383,6 +383,7 @@ theoraplay_options = {
     'cppflags': global_args,
     'default_library': 'static',
     'b_staticpic': use_pic,
+    'have_thread': have_any_thread,
 }
 global_dependencies += subproject('theoraplay', default_options: theoraplay_options).get_variable('theoraplay')
 
@@ -404,7 +405,7 @@ main_source = files(
     is_libretro ? [] : 'eventthread.cpp',
     is_libretro ? [] : 'settingsmenu.cpp',
     'sharedstate.cpp',
-    is_libretro ? 'mkxp-polyfill.cpp' : [],
+    'mkxp-polyfill.cpp',
 
     'audio/alstream.cpp',
     'audio/audio.cpp',

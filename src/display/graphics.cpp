@@ -209,7 +209,11 @@ struct Movie
         io->read = readMovie;
         io->close = closeMovie;
         io->userdata = &srcOps;
+#ifdef MKXPZ_NO_THREAD
+        decoder = THEORAPLAY_startDecode(io, DEF_MAX_VIDEO_FRAMES, THEORAPLAY_VIDFMT_RGBA, nullptr, false);
+#else
         decoder = THEORAPLAY_startDecode(io, DEF_MAX_VIDEO_FRAMES, THEORAPLAY_VIDFMT_RGBA, nullptr, true);
+#endif // MKXPZ_NO_THREAD
         if (!decoder) {
 #ifndef MKXPZ_RETRO
             SDL_RWclose(&srcOps);
@@ -219,7 +223,11 @@ struct Movie
         
         // Wait until the decoder has parsed out some basic truths from the file.
         while (!THEORAPLAY_isInitialized(decoder)) {
+#ifdef MKXPZ_NO_THREAD
+            THEORAPLAY_pumpDecode(decoder, DEF_MAX_VIDEO_FRAMES);
+#else
             movieSleep(VIDEO_DELAY);
+#endif // MKXPZ_NO_THREAD
         }
         
         // Once we're initialized, we can tell if this file has audio and/or video.
@@ -232,7 +240,11 @@ struct Movie
                 if ((THEORAPLAY_availableVideo(decoder) >= DEF_MAX_VIDEO_FRAMES)) {
                     break;  // we'll never progress, there's no audio yet but we've prebuffered as much as we plan to.
                 }
+#ifdef MKXPZ_NO_THREAD
+                THEORAPLAY_pumpDecode(decoder, DEF_MAX_VIDEO_FRAMES);
+#else
                 movieSleep(VIDEO_DELAY);
+#endif // MKXPZ_NO_THREAD
             }
         }
         
@@ -244,14 +256,22 @@ struct Movie
         
         // Wait until we have video
         while ((video = THEORAPLAY_getVideo(decoder)) == NULL) {
+#ifdef MKXPZ_NO_THREAD
+            THEORAPLAY_pumpDecode(decoder, DEF_MAX_VIDEO_FRAMES);
+#else
             movieSleep(VIDEO_DELAY);
+#endif // MKXPZ_NO_THREAD
         }
         
         // Wait until we have audio, if applicable
         audio = NULL;
         if (hasAudio) {
             while ((audio = THEORAPLAY_getAudio(decoder)) == NULL && THEORAPLAY_availableVideo(decoder) < DEF_MAX_VIDEO_FRAMES) {
+#ifdef MKXPZ_NO_THREAD
+                THEORAPLAY_pumpDecode(decoder, DEF_MAX_VIDEO_FRAMES);
+#else
                 movieSleep(VIDEO_DELAY);
+#endif // MKXPZ_NO_THREAD
             }
         }
         // Create this Bitmap without a hires replacement, because we don't
@@ -419,7 +439,11 @@ struct Movie
                 if  (shState->input().isTriggered(Input::C) || shState->input().isTriggered(Input::B)) break;
 #endif // MKXPZ_RETRO
             }
-            
+
+#ifdef MKXPZ_NO_THREAD
+            THEORAPLAY_pumpDecode(decoder, DEF_MAX_VIDEO_FRAMES);
+#endif // MKXPZ_NO_THREAD
+
             uint64_t now = movieTicks() - baseTicks;
             
             if (!video) {

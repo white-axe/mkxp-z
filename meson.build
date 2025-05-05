@@ -42,6 +42,14 @@ win64 = (sizeof['void*'] != sizeof['long'])
 global_args += '-DMKXPZ_BUILD_MESON'
 global_args += '-DMKXPZ_VERSION="@0@"'.format(meson.project_version())
 
+have_any_mutex = true
+have_any_thread = true
+
+have_std_mutex = true
+have_pthread_mutex = true
+have_std_thread = true
+have_pthread_thread = true
+
 if is_libretro
     global_args += '-DMKXPZ_RETRO'
     global_args += '-D_FILE_OFFSET_BITS=64'
@@ -75,7 +83,8 @@ if is_emscripten
     if get_option('emscripten_threaded')
         global_args += '-pthread'
     else
-        global_args += '-DMKXPZ_NO_THREADED_AUDIO'
+        have_any_mutex = false
+        have_any_thread = false
     endif
 endif
 
@@ -177,6 +186,7 @@ if not compilers['cpp'].has_header_symbol('string', 'std::stold')
 endif
 
 if not compilers['cpp'].has_header_symbol('mutex', 'std::mutex')
+    have_std_mutex = false
     global_args += '-DMKXPZ_NO_STD_MUTEX'
 
     if not compilers['cpp'].has_header_symbol('condition_variable', 'std::condition_variable_any')
@@ -186,6 +196,22 @@ endif
 
 if not compilers['cpp'].has_header_symbol('mutex', 'std::recursive_mutex')
     global_args += '-DMKXPZ_NO_STD_RECURSIVE_MUTEX'
+endif
+
+if not compilers['cpp'].links('''
+    #include <atomic>
+    int main(void) {
+        std::atomic<uint64_t> atom(1);
+        atom.store(2, std::memory_order_seq_cst);
+        return atom.load(std::memory_order_seq_cst) != 2 || atom.fetch_add(3, std::memory_order_seq_cst) != 2 || atom.load(std::memory_order_seq_cst) != 5;
+    }
+''', name: 'check for broken std::atomic<uint64_t>')
+    global_args += '-DMKXPZ_NO_STD_ATOMIC_UINT64_T'
+endif
+
+if not compilers['cpp'].has_header_symbol('thread', 'std::thread')
+    have_std_thread = false
+    global_args += '-DMKXPZ_NO_STD_THREAD'
 endif
 
 if not compilers['cpp'].has_header_symbol('thread', 'std::this_thread::yield')
@@ -220,8 +246,13 @@ if not compilers['cpp'].has_header('pthread.h') or not compilers['cpp'].links(''
         pthread_mutex_destroy(&mutex);
         return result;
     }
-''', name: 'pthread.h sanity check')
-    global_args += is_devkitarm ? '-DMKXPZ_DEVKITARM_NO_PTHREAD_H' : '-DMKXPZ_NO_PTHREAD_H'
+''', name: 'pthread.h mutex sanity check')
+    if is_devkitarm
+        global_args += '-DMKXPZ_DEVKITARM_NO_PTHREAD_H_MUTEX'
+    else
+        have_pthread_mutex = false
+        global_args += '-DMKXPZ_NO_PTHREAD_H_MUTEX'
+    endif
     global_args += '-DMKXPZ_NO_SEMAPHORE_H'
 elif not compilers['cpp'].has_header('semaphore.h') or not compilers['cpp'].links('''
     #include <semaphore.h>
@@ -235,6 +266,27 @@ elif not compilers['cpp'].has_header('semaphore.h') or not compilers['cpp'].link
     }
 ''', name: 'semaphore.h sanity check')
     global_args += '-DMKXPZ_NO_SEMAPHORE_H'
+endif
+
+if not compilers['cpp'].has_header('pthread.h') or not compilers['cpp'].links('''
+    #include <pthread.h>
+    void *func(void *arg) {
+        return NULL;
+    }
+    int main(void) {
+        pthread_t thread;
+        void *ret;
+        pthread_create(&thread, NULL, &func, NULL);
+        pthread_join(thread, &ret);
+        return ret != NULL;
+    }
+''', name: 'pthread.h thread sanity check')
+    if is_devkitarm
+        global_args += '-DMKXPZ_DEVKITARM_NO_PTHREAD_H_THREAD'
+    else
+        have_pthread_thread = false
+        global_args += '-DMKXPZ_NO_PTHREAD_H_THREAD'
+    endif
 endif
 
 if compilers['cpp'].has_header_symbol('stdlib.h', 'posix_memalign') and compilers['cpp'].links('''
@@ -301,7 +353,6 @@ endif
 if is_devkitppc
     global_args += '-D__DEVKITPRO__'
     global_args += '-D__DEVKITPPC__'
-    global_args += '-DMKXPZ_NO_THREADED_AUDIO'
 endif
 
 if is_libretro
@@ -339,6 +390,22 @@ elif get_option('static_executable')
         global_link_args += ['-static-libgcc', '-static-libstdc++']
     endif
     global_args += '-DAL_LIBTYPE_STATIC'
+endif
+
+if not have_std_mutex and not have_pthread_mutex
+    have_any_mutex = false
+endif
+
+if not have_any_mutex or not have_std_thread and not have_pthread_thread
+    have_any_thread = false
+endif
+
+if not have_any_mutex
+    global_args += '-DMKXPZ_NO_THREADED_AUDIO'
+endif
+
+if not have_any_thread
+    global_args += '-DMKXPZ_NO_THREAD'
 endif
 
 # ====================

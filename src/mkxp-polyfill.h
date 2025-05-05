@@ -29,7 +29,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#ifndef MKXPZ_NO_PTHREAD_H
+#if !defined(MKXPZ_NO_PTHREAD_H_MUTEX) || !defined(MKXPZ_NO_PTHREAD_H_THREAD)
 #  include <pthread.h>
 #endif
 
@@ -37,9 +37,14 @@
 #  include <semaphore.h>
 #endif
 
-#ifdef MKXPZ_DEVKITARM_NO_PTHREAD_H
+#ifndef MKXPZ_NO_STD_MUTEX
+typedef struct {
+    void *inner;
+    bool recursive;
+} mkxp_mutex_t;
+typedef void *mkxp_cond_t;
+#elif defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_MUTEX)
 #  include <sys/lock.h>
-typedef void *mkxp_thread_t;
 typedef struct {
     union {
         _LOCK_T light;
@@ -48,22 +53,28 @@ typedef struct {
     bool recursive;
 } mkxp_mutex_t;
 typedef int32_t mkxp_cond_t;
-#elif !defined(MKXPZ_NO_PTHREAD_H)
-typedef pthread_t mkxp_thread_t;
+#elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
 typedef pthread_mutex_t mkxp_mutex_t;
 typedef pthread_cond_t mkxp_cond_t;
 #else
-typedef size_t mkxp_thread_t;
 typedef unsigned int mkxp_mutex_t;
 typedef bool mkxp_cond_t;
 #endif
 
 #ifndef MKXPZ_NO_SEMAPHORE_H
 typedef sem_t mkxp_sem_t;
-#elif !defined(MKXPZ_NO_PTHREAD_H)
+#elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
 typedef void *mkxp_sem_t;
 #else
 typedef unsigned int mkxp_sem_t;
+#endif
+
+#ifndef MKXPZ_NO_STD_THREAD
+typedef void *mkxp_thread_t;
+#elif defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_THREAD)
+typedef void *mkxp_thread_t;
+#elif !defined(MKXPZ_NO_PTHREAD_H_THREAD)
+typedef pthread_t mkxp_thread_t;
 #endif
 
 #if defined(MKXPZ_HAVE_POSIX_MEMALIGN) || defined(MKXPZ_HAVE_ALIGNED_MALLOC) || defined(MKXPZ_HAVE_ALIGNED_ALLOC) || defined(MKXPZ_BUILD_XCODE)
@@ -104,8 +115,6 @@ void *mkxp_aligned_malloc(size_t alignment, size_t size);
 
 void mkxp_aligned_free(void *ptr);
 
-mkxp_thread_t mkxp_thread_self(void);
-
 int mkxp_mutex_init(mkxp_mutex_t *mutex, bool recursive);
 
 int mkxp_mutex_destroy(mkxp_mutex_t *mutex);
@@ -133,6 +142,12 @@ int mkxp_sem_post(mkxp_sem_t *sem);
 int mkxp_sem_wait(mkxp_sem_t *sem);
 
 void mkxp_sleep_ms(uint32_t milliseconds);
+
+#ifndef MKXPZ_NO_THREAD
+int mkxp_thread_create(mkxp_thread_t *thread, void *(*func)(void *), void *arg);
+
+int mkxp_thread_join(mkxp_thread_t thread);
+#endif
 
 #ifdef __cplusplus
 }
