@@ -21,6 +21,7 @@
 
 #include "mkxp-polyfill.h"
 #include <cassert>
+#include <cstring>
 
 #if defined(MKXPZ_NO_SPRINTF) || defined(MKXPZ_NO_SNPRINTF) || defined(MKXPZ_NO_VSPRINTF) || defined(MKXPZ_NO_VSNPRINTF)
 #  include <stb_sprintf.h>
@@ -113,6 +114,7 @@ extern "C" {
     void *threadCreate(void (*entrypoint)(void *), void *arg, size_t stack_size, int prio, int core_id, bool detached);
     void *threadJoin(void *thread, uint64_t timeout_ns);
     void threadFree(void *thread);
+    void *threadGetCurrent(void);
 };
 static bool mutex_inited = false;
 static _LOCK_T safe_double_thread_launch;
@@ -457,3 +459,19 @@ extern "C" int mkxp_thread_join(mkxp_thread_t thread) {
 #endif
 }
 #endif
+
+extern "C" mkxp_thread_id_t mkxp_thread_self(void) {
+#ifndef MKXPZ_NO_STD_THREAD
+    static_assert(sizeof(std::thread::id) <= sizeof(mkxp_thread_id_t), "`std::thread::id` is too big to fit in `mkxp_thread_id_t`");
+    mkxp_thread_id_t output = 0;
+    std::thread::id input = std::this_thread::get_id();
+    std::memcpy(&output, &input, sizeof(std::thread::id));
+    return output;
+#elif defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_THREAD)
+    return threadGetCurrent();
+#elif !defined(MKXPZ_NO_PTHREAD_H_THREAD)
+    return pthread_self();
+#else
+    return 0;
+#endif
+}

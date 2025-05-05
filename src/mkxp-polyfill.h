@@ -71,10 +71,15 @@ typedef unsigned int mkxp_sem_t;
 
 #ifndef MKXPZ_NO_STD_THREAD
 typedef void *mkxp_thread_t;
+typedef size_t mkxp_thread_id_t;
 #elif defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_THREAD)
 typedef void *mkxp_thread_t;
+typedef void *mkxp_thread_id_t;
 #elif !defined(MKXPZ_NO_PTHREAD_H_THREAD)
 typedef pthread_t mkxp_thread_t;
+typedef pthread_t mkxp_thread_id_t;
+#else
+typedef uint8_t mkxp_thread_id_t;
 #endif
 
 #if defined(MKXPZ_HAVE_POSIX_MEMALIGN) || defined(MKXPZ_HAVE_ALIGNED_MALLOC) || defined(MKXPZ_HAVE_ALIGNED_ALLOC) || defined(MKXPZ_BUILD_XCODE)
@@ -142,6 +147,8 @@ int mkxp_sem_post(mkxp_sem_t *sem);
 int mkxp_sem_wait(mkxp_sem_t *sem);
 
 void mkxp_sleep_ms(uint32_t milliseconds);
+
+mkxp_thread_id_t mkxp_thread_self(void);
 
 #ifndef MKXPZ_NO_THREAD
 int mkxp_thread_create(mkxp_thread_t *thread, void *(*func)(void *), void *arg);
