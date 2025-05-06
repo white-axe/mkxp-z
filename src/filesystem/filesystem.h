@@ -132,9 +132,7 @@ public:
 	void openRead(OpenHandler &handler,
 	              const char *filename);
 
-#ifdef MKXPZ_RETRO
-	static void chdir(const char *path);
-#else
+#ifndef MKXPZ_RETRO
 	/* Circumvents extension supplementing */
 	void openReadRaw(SDL_RWops &ops,
 	                 const char *filename,

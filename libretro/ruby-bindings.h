@@ -24,9 +24,11 @@
 #ifndef SANDBOX_RUBY_BINDINGS_H
 #define SANDBOX_RUBY_BINDINGS_H
 
+#include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "wasm/asyncify.h"
 #include "wasm/fiber.h"
 #include "wasm/machine.h"
@@ -38,6 +40,7 @@ MKXP_SANDBOX_API struct __rb_wasm_asyncify_jmp_buf mkxp_sandbox_async_buf;
 MKXP_SANDBOX_API void (*mkxp_sandbox_fiber_entry_point)(void *, void *) = NULL;
 MKXP_SANDBOX_API void *mkxp_sandbox_fiber_arg0 = NULL;
 MKXP_SANDBOX_API void *mkxp_sandbox_fiber_arg1 = NULL;
+MKXP_SANDBOX_API char *mkxp_sandbox_cwd[PATH_MAX] = {0};
 
 /* This function should be called immediately after initializing the sandbox to perform initialization, before calling any other functions.
  * The arguments to this function are the Ruby GC parameters.
@@ -106,6 +109,16 @@ MKXP_SANDBOX_API void mkxp_sandbox_rtypeddata_dcompact(struct RTypedData *data, 
     if (data->type->function.dcompact != NULL) {
         data->type->function.dcompact(ptr);
     }
+}
+
+/* Calls `chdir()` and returns whether or not the call succeeded. */
+MKXP_SANDBOX_API bool mkxp_sandbox_chdir(const char *path) {
+    return chdir(path) == 0;
+}
+
+/* Calls `getcwd()` on `mkxp_sandbox_cwd` and returns whether or not the call succeeded. */
+MKXP_SANDBOX_API bool mkxp_sandbox_getcwd(void) {
+    return getcwd(mkxp_sandbox_cwd, PATH_MAX) != NULL;
 }
 
 /* This function drives Ruby's asynchronous runtime. It's based on the `rb_wasm_rt_start()` function from wasm/runtime.c in the Ruby source code.

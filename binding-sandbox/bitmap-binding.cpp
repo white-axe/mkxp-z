@@ -61,7 +61,6 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 if (argc == 1) {
                     SANDBOX_AWAIT_AND_SET(filename, rb_string_value_cstr, (VALUE *)(**sb() + argv));
-                    SANDBOX_AWAIT(update_cwd);
                 } else {
                     SANDBOX_AWAIT_AND_SET(width, rb_num2ulong, ((VALUE *)(**sb() + argv))[0]);
                     SANDBOX_AWAIT_AND_SET(height, rb_num2ulong, ((VALUE *)(**sb() + argv))[1]);
@@ -453,7 +452,6 @@ static VALUE to_file(VALUE self, VALUE value) {
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &value);
-                SANDBOX_AWAIT(update_cwd);
                 Bitmap *bitmap = get_private_data<Bitmap>(self);
                 GFX_GUARD_EXC(bitmap->saveToFile((const char *)(**sb() + str)););
             }

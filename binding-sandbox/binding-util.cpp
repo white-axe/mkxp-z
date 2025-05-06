@@ -88,12 +88,3 @@ void log_backtrace::operator()(VALUE exception) {
         mkxp_retro::log_printf(RETRO_LOG_ERROR, "%s\n", **sb() + backtrace_str);
     }
 }
-
-void update_cwd::operator()() {
-    BOOST_ASIO_CORO_REENTER (this) {
-        SANDBOX_AWAIT_AND_SET(id, rb_intern, "pwd");
-        SANDBOX_AWAIT_AND_SET(value, rb_funcall, sb()->rb_cDir(), id, 0);
-        SANDBOX_AWAIT_AND_SET(ptr, rb_string_value_cstr, &value);
-        FileSystem::chdir((const char *)(**sb() + ptr));
-    }
-}

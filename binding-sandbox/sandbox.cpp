@@ -72,6 +72,12 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
         1.1             // oldmalloc_limit_growth_factor
     );
 
+    // Change the current working directory to the game directory
+    usize chdir_buf = sandbox_malloc(sizeof("/game"));
+    std::strcpy((char *)WASM_MEM(chdir_buf), "/game");
+    w2c_ruby_mkxp_sandbox_chdir(RB, chdir_buf);
+    sandbox_free(chdir_buf);
+
     // Determine Ruby command-line arguments
     std::vector<std::string> args{"mkxp-z"};
     args.push_back("/dist/bin/mkxp-z");
@@ -144,3 +150,10 @@ void sandbox::set_movie(Movie *new_movie) {
     }
 }
 
+const char *sandbox::getcwd() {
+    if (w2c_ruby_mkxp_sandbox_getcwd(ruby.get())) {
+        return (const char *)(**bindings + ruby->w2c_mkxp_sandbox_cwd);
+    } else {
+        return "/game";
+    }
+}

@@ -43,19 +43,6 @@ extern const char module_rpg1[];
 extern const char module_rpg2[];
 extern const char module_rpg3[];
 
-struct chdir : boost::asio::coroutine {
-    VALUE value;
-    ID id;
-
-    void operator()(const char *path) {
-        BOOST_ASIO_CORO_REENTER (this) {
-            SANDBOX_AWAIT_AND_SET(value, rb_str_new_cstr, path);
-            SANDBOX_AWAIT_AND_SET(id, rb_intern, "chdir");
-            SANDBOX_AWAIT(rb_funcall, sb()->rb_cDir(), id, 1, value);
-        }
-    }
-};
-
 struct eval_script : boost::asio::coroutine {
     void operator()(VALUE string, VALUE filename) {
         ID id;
@@ -275,8 +262,6 @@ static VALUE rgss_stop(VALUE self) {
 
 void sandbox_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        SANDBOX_AWAIT(chdir, "/game");
-
         SANDBOX_AWAIT(table_binding_init);
         SANDBOX_AWAIT(etc_binding_init);
         SANDBOX_AWAIT(font_binding_init);

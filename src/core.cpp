@@ -364,7 +364,6 @@ static bool init_sandbox() {
         }
 
         fs->addPath(parsed_game_path.c_str(), "/game");
-        FileSystem::chdir("/game");
 
         conf.emplace();
         conf->read(0, NULL);

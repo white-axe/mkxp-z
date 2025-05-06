@@ -93,7 +93,6 @@ static VALUE transition(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     if (argc >= 2) {
                         SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &((VALUE *)(**sb() + argv))[1]);
                         if (*(const char *)(**sb() + str)) {
-                            SANDBOX_AWAIT(update_cwd);
                             trans_map = new Bitmap((const char *)(**sb() + str));
                         }
                         if (argc >= 3) {
@@ -141,7 +140,6 @@ static VALUE screenshot(VALUE self, VALUE value) {
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &value);
-                SANDBOX_AWAIT(update_cwd);
                 GFX_GUARD_EXC(shState->graphics().screenshot((const char *)(**sb() + str)););
             }
 
@@ -343,7 +341,6 @@ static VALUE play_movie(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 }
                 skippable = argc >= 3 ? SANDBOX_VALUE_TO_BOOL(((VALUE *)(**sb() + argv))[2]) : false;
 
-                SANDBOX_AWAIT(update_cwd);
                 GFX_GUARD_EXC(sb().set_movie(shState->graphics().playMovie((const char *)(**sb() + str), volume, skippable)););
                 while (sb().get_movie_from_main_thread() != nullptr) {
                     SANDBOX_YIELD;

@@ -97,6 +97,12 @@ namespace mkxp_sandbox {
         Movie *get_movie_from_audio_thread();
         void set_movie(Movie *new_movie);
 
+        // Gets the current working directory in the sandbox.
+        // The returned pointer doesn't need to be freed,
+        // and lives until the next time this function is called, or until the sandbox is destroyed,
+        // whichever comes first.
+        const char *getcwd();
+
         // Internal utility method of the `SANDBOX_YIELD` macro.
         inline void _begin_yield() {
             yielding = true;

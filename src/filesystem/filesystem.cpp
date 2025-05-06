@@ -40,6 +40,7 @@
 #  include <memory>
 #  include <sstream>
 #  include <boost/optional.hpp>
+#  include "core.h"
 #endif // MKXPZ_RETRO
 
 #include <algorithm>
@@ -717,12 +718,6 @@ void FileSystem::openReadRaw(SDL_RWops &ops, const char *filename,
 #endif // MKXPZ_RETRO
 
 #ifdef MKXPZ_RETRO
-static std::string current_working_directory;
-
-void FileSystem::chdir(const char *path) {
-    current_working_directory = path;
-}
-
 static std::string normalizePath(const char *path, bool absolute) {
     // Replace backslashes with forward slashes
     std::string path_str(path);
@@ -734,9 +729,9 @@ static std::string normalizePath(const char *path, bool absolute) {
 
     // If path doesn't start with a forward slash, prepend the current working directory before normalizing
     if (path_str.empty()) {
-        path_str = current_working_directory;
+        path_str = mkxp_retro::sandbox.has_value() ? mkxp_retro::sandbox->getcwd() : "/game";
     } else if (path_str.front() != '/') {
-        path_str = current_working_directory + '/' + path_str;
+        path_str = std::string(mkxp_retro::sandbox.has_value() ? mkxp_retro::sandbox->getcwd() : "/game") + '/' + path_str;
     }
 
     // Lexically normalize the path
