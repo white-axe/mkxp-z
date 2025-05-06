@@ -422,10 +422,14 @@ static PHYSFS_EnumerateCallbackResult cacheEnumCB(void *d, const char *origdir,
 #endif // MKXPZ_RETRO
 
   CacheEnumData &data = *static_cast<CacheEnumData *>(d);
-  char fullPath[512];
+  char fullPath[2048];
 
   if (!*origdir)
+#ifdef MKXPZ_RETRO
+    snprintf(fullPath, sizeof(fullPath), "/%s", fname);
+#else
     snprintf(fullPath, sizeof(fullPath), "%s", fname);
+#endif // MKXPZ_RETRO
   else
     snprintf(fullPath, sizeof(fullPath), "%s/%s", origdir, fname);
 
@@ -650,7 +654,7 @@ openReadEnumCB(void *d, const char *dirpath, const char *filename) {
 }
 
 void FileSystem::openRead(OpenHandler &handler, const char *filename) {
-  std::string filename_nm = normalize(filename, false, false);
+  std::string filename_nm = normalize(filename, false, true);
   char buffer[512];
   size_t len = strcpySafe(buffer, filename_nm.c_str(), sizeof(buffer), -1);
   char *delim;
@@ -713,6 +717,12 @@ void FileSystem::openReadRaw(SDL_RWops &ops, const char *filename,
 #endif // MKXPZ_RETRO
 
 #ifdef MKXPZ_RETRO
+static std::string current_working_directory;
+
+void FileSystem::chdir(const char *path) {
+    current_working_directory = path;
+}
+
 static std::string normalizePath(const char *path, bool absolute) {
     // Replace backslashes with forward slashes
     std::string path_str(path);
@@ -720,6 +730,13 @@ static std::string normalizePath(const char *path, bool absolute) {
         if (path_str[i] == '\\') {
             path_str[i] = '/';
         }
+    }
+
+    // If path doesn't start with a forward slash, prepend the current working directory before normalizing
+    if (path_str.empty()) {
+        path_str = current_working_directory;
+    } else if (path_str.front() != '/') {
+        path_str = current_working_directory + '/' + path_str;
     }
 
     // Lexically normalize the path

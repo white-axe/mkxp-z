@@ -288,9 +288,7 @@ SoundBuffer *SoundEmitter::allocateBuffer(const std::string &filename)
 		/* Buffer not in cache, needs to be loaded */
 		SoundOpenHandler handler;
 #ifdef MKXPZ_RETRO
-		std::string path("/mkxp-retro-game/");
-		path.append(filename);
-		mkxp_retro::fs->openRead(handler, path.c_str()); // TODO: move into shState
+		mkxp_retro::fs->openRead(handler, filename.c_str()); // TODO: move into shState
 #else
 		shState->fileSystem().openRead(handler, filename.c_str());
 #endif // MKXPZ_RETRO

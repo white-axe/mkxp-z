@@ -23,7 +23,7 @@
 #include <algorithm>
 #include <random>
 #include <sstream>
-#include <mkxp-retro-ruby.h>
+#include <mkxp-sandbox-ruby.h>
 #include "filesystem.h"
 #include "core.h"
 #include "wasi.h"
@@ -51,8 +51,8 @@ wasi_t::w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby) : ru
     fdtable.push_back({.type = wasi_fd_type::STDIN});
     fdtable.push_back({.type = wasi_fd_type::STDOUT});
     fdtable.push_back({.type = wasi_fd_type::STDERR});
-    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new std::string("/mkxp-retro-game")});
-    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new std::string("/mkxp-retro-dist")});
+    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new std::string("/game")});
+    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new std::string("/dist")});
 }
 
 wasi_t::~w2c_wasi__snapshot__preview1() {

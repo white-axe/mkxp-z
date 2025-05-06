@@ -43,51 +43,27 @@ extern const char module_rpg1[];
 extern const char module_rpg2[];
 extern const char module_rpg3[];
 
-// Evaluates a script, returning the exception if it encountered an exception or `SANDBOX_UNDEF` otherwise.
-struct eval_script : boost::asio::coroutine {
-    private:
-    static VALUE func(VALUE arg) {
-        struct coro : boost::asio::coroutine {
-            VALUE string;
-            VALUE filename;
-            ID id;
-
-            void operator()(VALUE arg) {
-                BOOST_ASIO_CORO_REENTER (this) {
-                    SANDBOX_AWAIT_AND_SET(string, rb_ary_entry, arg, 0);
-                    SANDBOX_AWAIT_AND_SET(filename, rb_ary_entry, arg, 1);
-                    SANDBOX_AWAIT_AND_SET(id, rb_intern, "eval");
-                    SANDBOX_AWAIT(rb_funcall, SANDBOX_NIL, id, 3, string, SANDBOX_NIL, filename);
-                }
-            }
-        };
-
-        sb()->bind<struct coro>()()(arg);
-        return SANDBOX_UNDEF;
-    }
-
-    static VALUE rescue(VALUE arg, VALUE exception) {
-        struct coro : boost::asio::coroutine {
-            VALUE operator()(VALUE exception) {
-                return exception;
-            }
-        };
-
-        return sb()->bind<struct coro>()()(exception);
-    }
-
-    public:
+struct chdir : boost::asio::coroutine {
     VALUE value;
+    ID id;
 
-    VALUE operator()(VALUE string, VALUE filename) {
+    void operator()(const char *path) {
         BOOST_ASIO_CORO_REENTER (this) {
-            SANDBOX_AWAIT_AND_SET(value, rb_class_new_instance, 0, NULL, sb()->rb_cArray());
-            SANDBOX_AWAIT(rb_ary_push, value, string);
-            SANDBOX_AWAIT(rb_ary_push, value, filename);
-            SANDBOX_AWAIT_AND_SET(value, rb_rescue2, func, value, rescue, SANDBOX_NIL, sb()->rb_eException(), 0);
+            SANDBOX_AWAIT_AND_SET(value, rb_str_new_cstr, path);
+            SANDBOX_AWAIT_AND_SET(id, rb_intern, "chdir");
+            SANDBOX_AWAIT(rb_funcall, sb()->rb_cDir(), id, 1, value);
         }
+    }
+};
 
-        return value;
+struct eval_script : boost::asio::coroutine {
+    void operator()(VALUE string, VALUE filename) {
+        ID id;
+
+        BOOST_ASIO_CORO_REENTER (this) {
+            SANDBOX_AWAIT_AND_SET(id, rb_intern, "eval");
+            SANDBOX_AWAIT(rb_funcall, SANDBOX_NIL, id, 3, string, SANDBOX_NIL, filename);
+        }
     }
 };
 
@@ -113,11 +89,11 @@ struct run_rmxp_scripts : boost::asio::coroutine {
 
             // Unmarshal the script array
             if (rgssVer == 1) {
-                SANDBOX_AWAIT_AND_SET(value, rb_file_open, "/mkxp-retro-game/Data/Scripts.rxdata", "rb");
+                SANDBOX_AWAIT_AND_SET(value, rb_file_open, "Data/Scripts.rxdata", "rb");
             } else if (rgssVer == 2) {
-                SANDBOX_AWAIT_AND_SET(value, rb_file_open, "/mkxp-retro-game/Data/Scripts.rvdata", "rb");
+                SANDBOX_AWAIT_AND_SET(value, rb_file_open, "Data/Scripts.rvdata", "rb");
             } else if (rgssVer == 3) {
-                SANDBOX_AWAIT_AND_SET(value, rb_file_open, "/mkxp-retro-game/Data/Scripts.rvdata2", "rb");
+                SANDBOX_AWAIT_AND_SET(value, rb_file_open, "Data/Scripts.rvdata2", "rb");
             } else {
                 std::abort();
             }
@@ -204,14 +180,7 @@ struct run_rmxp_scripts : boost::asio::coroutine {
 
                     SANDBOX_AWAIT_AND_SET(script_filename_value, rb_ary_entry, script, 1);
                     SANDBOX_AWAIT_AND_SET(script_string_value, rb_ary_entry, script, 3);
-                    SANDBOX_AWAIT_AND_SET(value, eval_script, script_string_value, script_filename_value);
-                    if (value != SANDBOX_UNDEF) {
-                        SANDBOX_AWAIT(log_backtrace, value);
-                        break;
-                    }
-                }
-                if (value != SANDBOX_UNDEF) {
-                    break;
+                    SANDBOX_AWAIT(eval_script, script_string_value, script_filename_value);
                 }
             }
         }
@@ -229,26 +198,16 @@ static VALUE load_data(VALUE self, VALUE path) {
         VALUE value;
         VALUE file;
         wasm_ptr_t ptr;
-        std::string *path_str;
 
         VALUE operator()(VALUE path) {
             BOOST_ASIO_CORO_REENTER (this) {
-                path_str = NULL;
                 SANDBOX_AWAIT_AND_SET(ptr, rb_string_value_cstr, &path);
-                path_str = new std::string("/mkxp-retro-game/");
-                path_str->append((const char *)(**sb() + ptr));
-                SANDBOX_AWAIT_AND_SET(file, rb_file_open, path_str->c_str(), "rb");
+                SANDBOX_AWAIT_AND_SET(file, rb_file_open, (const char *)(**sb() + ptr), "rb");
                 SANDBOX_AWAIT_AND_SET(value, rb_marshal_load, file);
                 SANDBOX_AWAIT(rb_io_close, file);
             }
 
             return value;
-        }
-
-        ~coro() {
-            if (path_str != NULL) {
-                delete path_str;
-            }
         }
     };
 
@@ -316,6 +275,8 @@ static VALUE rgss_stop(VALUE self) {
 
 void sandbox_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
+        SANDBOX_AWAIT(chdir, "/game");
+
         SANDBOX_AWAIT(table_binding_init);
         SANDBOX_AWAIT(etc_binding_init);
         SANDBOX_AWAIT(font_binding_init);

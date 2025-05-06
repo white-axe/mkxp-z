@@ -206,7 +206,7 @@ HEADER_START = <<~HEREDOC
   #  define SERIALIZE_64(value) (value)
   #endif
 
-  #ifdef MKXPZ_RETRO_MEMORY64
+  #ifdef MKXPZ_SANDBOX_MEMORY64
   #  define SERIALIZE_VALUE(value) SERIALIZE_64(value)
   #else
   #  define SERIALIZE_VALUE(value) SERIALIZE_32(value)
@@ -276,7 +276,7 @@ PRELUDE = <<~HEREDOC
   #  define SERIALIZE_64(value) (value)
   #endif
 
-  #ifdef MKXPZ_RETRO_MEMORY64
+  #ifdef MKXPZ_SANDBOX_MEMORY64
   #  define SERIALIZE_VALUE(value) SERIALIZE_64(value)
   #  define WASM_RT_ISIZE WASM_RT_I64
   #else
@@ -639,7 +639,7 @@ File.open('mkxp-sandbox-bindgen.h', 'w') do |file|
   end
   file.write("\n\n")
   file.write("#if WABT_BIG_ENDIAN\n")
-  file.write("#  ifdef MKXPZ_RETRO_MEMORY64\n")
+  file.write("#  ifdef MKXPZ_SANDBOX_MEMORY64\n")
   for const in consts
     file.write("#    define SANDBOX_#{const[0]} 0x#{[const[1]].pack('Q<').unpack('H*')[0]}u\n")
   end

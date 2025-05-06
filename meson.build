@@ -508,17 +508,18 @@ subdir(is_libretro ? 'binding-sandbox' : 'binding')
 subdir('shader')
 subdir('assets')
 
-global_include_dirs += include_directories('src', 'binding')
+global_include_dirs += include_directories('src')
 if is_libretro
     global_include_dirs += include_directories('binding-sandbox')
 endif
+global_include_dirs += include_directories('binding')
 
 if is_libretro
     libretro_stage1_path = get_option('libretro_stage1_path')
 
     libretro_ruby_sources = []
     foreach i : range(8)
-        libretro_ruby_sources += libretro_stage1_path / 'mkxp-retro-ruby/mkxp-retro-ruby_@0@.c'.format(i)
+        libretro_ruby_sources += libretro_stage1_path / 'ruby/mkxp-sandbox-ruby_@0@.c'.format(i)
     endforeach
 
     global_dependencies += declare_dependency(
@@ -534,7 +535,8 @@ if is_libretro
             include_directories: [
                 include_directories('binding-sandbox'),
                 include_directories(libretro_stage1_path),
-                include_directories(libretro_stage1_path / 'mkxp-retro-ruby'),
+                include_directories(libretro_stage1_path / 'sandbox-bindgen'),
+                include_directories(libretro_stage1_path / 'ruby'),
             ],
             sources: libretro_ruby_sources,
             gnu_symbol_visibility: 'hidden',
@@ -543,21 +545,22 @@ if is_libretro
         ),
         include_directories: [
             include_directories(libretro_stage1_path),
-            include_directories(libretro_stage1_path / 'mkxp-retro-ruby'),
+            include_directories(libretro_stage1_path / 'sandbox-bindgen'),
+            include_directories(libretro_stage1_path / 'ruby'),
         ],
     )
 
-    global_sources += libretro_stage1_path / 'mkxp-sandbox-bindgen.cpp'
+    global_sources += libretro_stage1_path / 'sandbox-bindgen/mkxp-sandbox-bindgen.cpp'
 
     global_sources += custom_target(
-        'mkxp-retro-dist',
-        input: libretro_stage1_path / 'mkxp-retro-dist.zip',
-        output: 'mkxp-retro-dist.zip.cpp',
+        'dist-zip',
+        input: libretro_stage1_path / 'dist.zip',
+        output: 'dist.zip.cpp',
         command: [
             embedtool,
             '@INPUT@',
             '@OUTPUT@',
-            'mkxp_retro_dist_zip',
+            'dist_zip',
         ],
     )
 

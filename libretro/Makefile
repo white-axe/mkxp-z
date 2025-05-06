@@ -46,64 +46,66 @@ WASI_TOOLCHAIN := CC=$(WASI_CC) CXX=$(WASI_CXX) LD=$(WASI_LD) AR=$(WASI_AR) RANL
 
 all default: ruby-dist ruby-bindings
 
-ruby-dist: $(OUTDIR)/mkxp-retro-dist.zip $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_0.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_1.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_2.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_3.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_4.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_5.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_6.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_7.c
+ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby_0.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_1.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_2.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_3.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_4.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_5.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_6.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_7.c
 
-ruby-bindings: $(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h
+ruby-bindings: $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.h
 
 clean: clean-ruby-dist clean-ruby-bindings
 	rm -rf $(LIBDIR)/*
 	rm -rf $(DOWNLOADS)/*
 
 clean-ruby-dist:
-	rm -f $(OUTDIR)/mkxp-retro-dist.zip
-	rm -rf $(OUTDIR)/mkxp-retro-ruby
+	rm -f $(OUTDIR)/dist.zip
+	rm -rf $(OUTDIR)/ruby
 
 clean-ruby-bindings:
-	rm -f $(OUTDIR)/mkxp-sandbox-bindgen.cpp
-	rm -f $(OUTDIR)/mkxp-sandbox-bindgen.h
+	rm -rf $(OUTDIR)/sandbox-bindgen
 	rm -f $(LIBDIR)/tags.c
 	rm -f $(LIBDIR)/tags
 
 # Cross Ruby (targets WASI)
 
-$(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_0.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_1.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_2.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_3.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_4.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_5.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_6.c $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby_7.c &: $(WASM2C) $(LIBDIR)/mkxp-retro-dist/bin/ruby
-	mkdir -p $(OUTDIR)/mkxp-retro-ruby
-	$(WASM2C) $(LIBDIR)/mkxp-retro-dist/bin/ruby -n ruby --num-outputs=8 -o $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby.c
+$(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby_0.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_1.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_2.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_3.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_4.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_5.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_6.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_7.c &: $(WASM2C) $(LIBDIR)/dist/bin/ruby
+	mkdir -p $(OUTDIR)/ruby
+	$(WASM2C) $(LIBDIR)/dist/bin/ruby -n ruby --num-outputs=8 -o $(OUTDIR)/ruby/mkxp-sandbox-ruby.c
 	# Find all the function types declared using `FUNC_TYPE_DECL_EXTERN_T` and redeclare them as macros to fix the "initializer element is not constant" compilation error that occurs when using GCC versions earlier than 8.1.0
-	rm -f $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-func-types.h
-	for func_type in $$($(GREP) -r 'FUNC_TYPE_DECL_EXTERN_T *([^()]*)' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h | $(GREP) -v '# *define' | $(SED) -e 's/FUNC_TYPE_DECL_EXTERN_T *( *\(.*\) *).*/\1/'); do \
-		echo "#define $$func_type \"$$(od -N 32 -x /dev/urandom | cut -b 9- | tr -d ' \n' | $(SED) -e 's/.\{2\}/\\x&/g')\"" >> $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-func-types.h; \
+	rm -f $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h
+	for func_type in $$($(GREP) -r 'FUNC_TYPE_DECL_EXTERN_T *([^()]*)' $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h | $(GREP) -v '# *define' | $(SED) -e 's/FUNC_TYPE_DECL_EXTERN_T *( *\(.*\) *).*/\1/'); do \
+		echo "#define $$func_type \"$$(od -N 32 -x /dev/urandom | cut -b 9- | tr -d ' \n' | $(SED) -e 's/.\{2\}/\\x&/g')\"" >> $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h; \
 	done
-	$(SED) -i 's/ *# *define * FUNC_TYPE_DECL_EXTERN_T *([^()]).*/#define FUNC_TYPE_DECL_EXTERN_T(x)/g' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h
-	$(SED) -i 's/ *# *define * FUNC_TYPE_EXTERN_T *([^()]).*/#define FUNC_TYPE_EXTERN_T(x) const char _mkxp_unused_##x[]/g' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h
-	$(SED) -i 's/ *# *define * FUNC_TYPE_T *([^()]).*/#define FUNC_TYPE_T(x) static const char _mkxp_unused_##x[]/g' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h
-	$(SED) -i 's/__has_builtin *([^()]*)/0/g' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h
-	$(SED) -i 's/#error "Missing implementation of __builtin_add_overflow or _addcarry_u64"/return __builtin_add_overflow(a, b, resptr);/g' $(OUTDIR)/mkxp-retro-ruby/mkxp-retro-ruby-impl.h
+	$(SED) -i 's/ *# *define * FUNC_TYPE_DECL_EXTERN_T *([^()]).*/#define FUNC_TYPE_DECL_EXTERN_T(x)/g' $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h
+	$(SED) -i 's/ *# *define * FUNC_TYPE_EXTERN_T *([^()]).*/#define FUNC_TYPE_EXTERN_T(x) const char _mkxp_unused_##x[]/g' $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h
+	$(SED) -i 's/ *# *define * FUNC_TYPE_T *([^()]).*/#define FUNC_TYPE_T(x) static const char _mkxp_unused_##x[]/g' $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h
+	$(SED) -i 's/__has_builtin *([^()]*)/0/g' $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h
+	$(SED) -i 's/#error "Missing implementation of __builtin_add_overflow or _addcarry_u64"/return __builtin_add_overflow(a, b, resptr);/g' $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h
 
-$(OUTDIR)/mkxp-retro-dist.zip: $(LIBDIR)/mkxp-retro-dist/bin/ruby $(RUBY)
-	rm -rf $(LIBDIR)/_mkxp-retro-dist
-	cp -r $(LIBDIR)/mkxp-retro-dist $(LIBDIR)/_mkxp-retro-dist
-	rm $(LIBDIR)/_mkxp-retro-dist/bin/ruby
-	rm $(LIBDIR)/_mkxp-retro-dist/lib/libruby-static.a
-	rm -r $(LIBDIR)/_mkxp-retro-dist/include
-	rm -r $(LIBDIR)/_mkxp-retro-dist/share
-	rm -r $(LIBDIR)/_mkxp-retro-dist/lib/ruby/gems
-	rm -r $(LIBDIR)/_mkxp-retro-dist/lib/ruby/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/bundler
-	rm -r $(LIBDIR)/_mkxp-retro-dist/lib/ruby/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/rdoc
-	rm -r $(LIBDIR)/_mkxp-retro-dist/lib/ruby/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/rubygems
-	echo '# This is a Ruby script that does nothing. We make Ruby load this file on startup just because Ruby needs to load a script on startup for some reason.' > $(LIBDIR)/_mkxp-retro-dist/bin/mkxp-z
-	rm -f $(OUTDIR)/mkxp-retro-dist.zip
-	cd $(LIBDIR)/_mkxp-retro-dist && $(ZIP) -r $(OUTDIR)/mkxp-retro-dist.zip *
-	rm -r $(LIBDIR)/_mkxp-retro-dist
+$(OUTDIR)/dist.zip: $(LIBDIR)/dist/bin/ruby $(RUBY) $(DOWNLOADS)/crossruby/BSDL $(DOWNLOADS)/crossruby/COPYING $(DOWNLOADS)/crossruby/COPYING.ja
+	rm -rf $(LIBDIR)/_dist
+	cp -r $(LIBDIR)/dist $(LIBDIR)/_dist
+	rm $(LIBDIR)/_dist/bin/ruby
+	rm $(LIBDIR)/_dist/lib/libruby-static.a
+	rm -r $(LIBDIR)/_dist/include
+	rm -r $(LIBDIR)/_dist/share
+	rm -r $(LIBDIR)/_dist/lib/ruby/gems
+	rm -r $(LIBDIR)/_dist/lib/ruby/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/bundler
+	rm -r $(LIBDIR)/_dist/lib/ruby/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/rdoc
+	rm -r $(LIBDIR)/_dist/lib/ruby/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/rubygems
+	echo '# This is a Ruby script that does nothing. We make Ruby load this file on startup just because Ruby needs to load a script on startup for some reason.' > $(LIBDIR)/_dist/bin/mkxp-z
+	cp $(DOWNLOADS)/crossruby/BSDL $(LIBDIR)/_dist/lib/ruby
+	cp $(DOWNLOADS)/crossruby/COPYING $(LIBDIR)/_dist/lib/ruby
+	cp $(DOWNLOADS)/crossruby/COPYING.ja $(LIBDIR)/_dist/lib/ruby
+	rm -f $(OUTDIR)/dist.zip
+	cd $(LIBDIR)/_dist && $(ZIP) -r $(OUTDIR)/dist.zip *
+	rm -r $(LIBDIR)/_dist
 
-$(LIBDIR)/mkxp-retro-dist/bin/ruby: $(DOWNLOADS)/crossruby/Makefile ruby-bindings.h
+$(LIBDIR)/dist/bin/ruby: $(DOWNLOADS)/crossruby/Makefile ruby-bindings.h
 	cd $(DOWNLOADS)/crossruby && $(MAKE) install DESTDIR=$(LIBDIR)
 
-$(OUTDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/mkxp-sandbox-bindgen.h &: sandbox-bindgen.rb $(LIBDIR)/tags $(RUBY)
-	mkdir -p $(OUTDIR)
+$(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.h &: sandbox-bindgen.rb $(LIBDIR)/tags $(RUBY)
+	mkdir -p $(OUTDIR)/sandbox-bindgen
 	cd $(LIBDIR) && $(RUBY) ${PWD}/sandbox-bindgen.rb
-	mv $(LIBDIR)/mkxp-sandbox-bindgen.h $(OUTDIR)
-	mv $(LIBDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)
+	mv $(LIBDIR)/mkxp-sandbox-bindgen.h $(OUTDIR)/sandbox-bindgen
+	mv $(LIBDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sandbox-bindgen
 
 $(LIBDIR)/tags: $(LIBDIR)/tags.c
 	$(CTAGS) --fields=kS --kinds-c=epx -o $(LIBDIR)/tags $(LIBDIR)/tags.c
@@ -112,9 +114,9 @@ $(LIBDIR)/tags.c: $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h
 	mkdir -p $(LIBDIR)
 	echo '#include <ruby.h>' | $(WASI_CC) -E -I$(DOWNLOADS)/crossruby/include -I$(DOWNLOADS)/crossruby/.ext/include/$(TARGET) -o $(LIBDIR)/tags.c -
 
-$(DOWNLOADS)/crossruby/Makefile $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h &: $(DOWNLOADS)/crossruby/configure $(RUBY) $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a
+$(DOWNLOADS)/crossruby/Makefile $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h $(DOWNLOADS)/crossruby/BSDL $(DOWNLOADS)/crossruby/COPYING $(DOWNLOADS)/crossruby/COPYING.ja &: $(DOWNLOADS)/crossruby/configure $(RUBY) $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a
 	cd $(DOWNLOADS)/crossruby && ./configure \
-		--prefix=/mkxp-retro-dist \
+		--prefix=/dist \
 		--host $(TARGET) \
 		--build $(shell $(RUBY) -e 'puts(RbConfig::CONFIG["host"])') \
 		--with-static-linked-ext \

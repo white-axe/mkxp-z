@@ -57,6 +57,7 @@ static VALUE bgm_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     }
                 }
 
+                SANDBOX_AWAIT(update_cwd);
                 if (have_track) {
                     mkxp_retro::audio->bgmPlay((const char *)(**sb() + filename), volume, pitch, pos, track);
                 } else {
@@ -190,6 +191,7 @@ static VALUE bgs_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     }
                 }
 
+                SANDBOX_AWAIT(update_cwd);
                 mkxp_retro::audio->bgsPlay((const char *)(**sb() + filename), volume, pitch, pos);
             }
 
@@ -259,6 +261,7 @@ static VALUE me_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     }
                 }
 
+                SANDBOX_AWAIT(update_cwd);
                 mkxp_retro::audio->mePlay((const char *)(**sb() + filename), volume, pitch);
             }
 
@@ -310,6 +313,7 @@ static VALUE se_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     }
                 }
 
+                SANDBOX_AWAIT(update_cwd);
                 mkxp_retro::audio->sePlay((const char *)(**sb() + filename), volume, pitch);
             }
 

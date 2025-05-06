@@ -414,6 +414,15 @@ namespace mkxp_sandbox {
         VALUE separator;
         wasm_ptr_t backtrace_str;
     };
+
+    // Gets the current working directory in the sandbox and updates mkxp-z's filesystem's current working directory to that value.
+    struct update_cwd : boost::asio::coroutine {
+        void operator()();
+    private:
+        wasm_ptr_t ptr;
+        VALUE value;
+        ID id;
+    };
 }
 
 #endif // MKXPZ_SANDBOX_BINDING_UTIL_H

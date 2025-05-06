@@ -152,12 +152,7 @@ static json::value readConfFile(const char *path) {
     return ret;
 }
 
-#define _CONF_FILE "mkxp.json"
-#ifdef MKXPZ_RETRO
-#  define CONF_FILE "/mkxp-retro-game/" _CONF_FILE
-#else
-#  define CONF_FILE _CONF_FILE
-#endif // MKXPZ_RETRO
+#define CONF_FILE "mkxp.json"
 
 Config::Config() {}
 
@@ -434,7 +429,7 @@ void Config::readGameINI() {
     }
     
 #ifdef MKXPZ_RETRO
-    std::string iniFileName("/mkxp-retro-game/" + execName + ".ini");
+    std::string iniFileName(execName + ".ini");
     std::shared_ptr<FileSystem::File> iniFile(new FileSystem::File(*mkxp_retro::fs, iniFileName.c_str(), FileSystem::OpenMode::Read));
 #else
     std::string iniFileName(execName + ".ini");

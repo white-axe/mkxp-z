@@ -28,7 +28,7 @@
 #  include <string.h>
 #endif
 
-#include <mkxp-retro-ruby-func-types.h>
+#include <mkxp-sandbox-ruby-func-types.h>
 
 #ifdef __cplusplus
 extern "C" {

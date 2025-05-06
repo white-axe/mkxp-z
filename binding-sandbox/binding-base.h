@@ -33,7 +33,7 @@
 #include <boost/core/enable_if.hpp>
 #include <boost/container_hash/hash.hpp>
 #include <boost/asio/coroutine.hpp>
-#include <mkxp-retro-ruby.h>
+#include <mkxp-sandbox-ruby.h>
 #include "types.h"
 
 #ifdef MKXPZ_BIG_ENDIAN

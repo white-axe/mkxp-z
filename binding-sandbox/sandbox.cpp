@@ -24,15 +24,9 @@
 #include <string>
 #include <wasm-rt.h>
 #include "wasi.h"
-#include <mkxp-retro-ruby.h>
+#include <mkxp-sandbox-ruby.h>
 #include "mkxp-polyfill.h"
 #include "sandbox.h"
-
-#define MJIT_ENABLED 0
-#define MJIT_VERBOSE 0
-#define MJIT_MAX_CACHE 100
-#define MJIT_MIN_CALLS 10000
-#define YJIT_ENABLED 0
 
 #define RB (ruby.get())
 #define WASM_NULL 0
@@ -80,21 +74,7 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
 
     // Determine Ruby command-line arguments
     std::vector<std::string> args{"mkxp-z"};
-    args.push_back("/mkxp-retro-dist/bin/mkxp-z");
-    if (MJIT_ENABLED) {
-        std::string verboseLevel("--mjit-verbose=");
-        std::string maxCache("--mjit-max-cache=");
-        std::string minCalls("--mjit-min-calls=");
-        args.push_back("--mjit");
-        verboseLevel += std::to_string(MJIT_VERBOSE);
-        maxCache += std::to_string(MJIT_MAX_CACHE);
-        minCalls += std::to_string(MJIT_MIN_CALLS);
-        args.push_back(verboseLevel.c_str());
-        args.push_back(maxCache.c_str());
-        args.push_back(minCalls.c_str());
-    } else if (YJIT_ENABLED) {
-        args.push_back("--yjit");
-    }
+    args.push_back("/dist/bin/mkxp-z");
 
     // Copy all the command-line arguments into the sandbox (sandboxed code can't access memory that's outside the sandbox!)
     usize argv_buf = sandbox_malloc(args.size() * sizeof(usize));

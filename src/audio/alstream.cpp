@@ -264,9 +264,7 @@ void ALStream::openSource(const std::string &filename)
 	try
 	{
 #ifdef MKXPZ_RETRO
-		std::string path("/mkxp-retro-game/");
-		path.append(filename);
-		mkxp_retro::fs->openRead(handler, path.c_str()); // TODO: move into shState
+		mkxp_retro::fs->openRead(handler, filename.c_str()); // TODO: move into shState
 #else
 		shState->fileSystem().openRead(handler, filename.c_str());
 #endif // MKXPZ_RETRO

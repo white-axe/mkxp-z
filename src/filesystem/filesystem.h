@@ -60,7 +60,7 @@ public:
 	public:
 		File(const struct File &) = delete;
 		inline File(FileSystem &fs, const char *filename, OpenMode mode) {
-			_path = fs.normalize(filename, false, false);
+			_path = fs.normalize(filename, false, true);
 			switch (mode) {
 				case OpenMode::Read:
 					inner = PHYSFS_openRead(_path.c_str());
@@ -132,7 +132,9 @@ public:
 	void openRead(OpenHandler &handler,
 	              const char *filename);
 
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+	static void chdir(const char *path);
+#else
 	/* Circumvents extension supplementing */
 	void openReadRaw(SDL_RWops &ops,
 	                 const char *filename,

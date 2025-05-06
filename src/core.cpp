@@ -163,8 +163,8 @@ static struct atomic<uint64_t> frame_time;
 static uint64_t frame_time_remainder;
 static uint64_t retro_run_count;
 
-extern const uint8_t mkxp_retro_dist_zip[];
-extern const size_t mkxp_retro_dist_zip_len;
+extern const uint8_t dist_zip[];
+extern const size_t dist_zip_len;
 
 static bool initialized = false;
 static ALCdevice *al_device = NULL;
@@ -263,37 +263,44 @@ static void audio_render(size_t samples) {
 
 static VALUE func(VALUE arg) {
     struct coro : boost::asio::coroutine {
-        void operator()() {
+        VALUE operator()() {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT(sandbox_binding_init);
             }
+
+            return SANDBOX_TRUE;
         }
     };
 
-    sb()->bind<struct coro>()()();
-
-    return arg;
+    return sb()->bind<struct coro>()()();
 }
 
 static VALUE rescue(VALUE arg, VALUE exception) {
     struct coro : boost::asio::coroutine {
-        void operator()(VALUE exception) {
+        VALUE operator()(VALUE exception) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT(rb_eval_string, "puts 'Entered rescue()'");
                 SANDBOX_AWAIT(rb_p, exception);
+                SANDBOX_AWAIT(log_backtrace, exception);
             }
+
+            return SANDBOX_FALSE;
         }
     };
 
-    sb()->bind<struct coro>()()(exception);
-
-    return arg;
+    return sb()->bind<struct coro>()()(exception);
 }
 
 struct main : boost::asio::coroutine {
+    VALUE success;
+
     void operator()() {
         BOOST_ASIO_CORO_REENTER (this) {
-            SANDBOX_AWAIT(rb_rescue2, func, SANDBOX_NIL, rescue, SANDBOX_NIL, sb()->rb_eException(), 0);
+            SANDBOX_AWAIT_AND_SET(success, rb_rescue2, func, SANDBOX_NIL, rescue, SANDBOX_NIL, sb()->rb_eException(), 0);
+            if (SANDBOX_VALUE_TO_BOOL(success)) {
+                log_printf(RETRO_LOG_INFO, "Game exited; terminating\n");
+            } else {
+                log_printf(RETRO_LOG_ERROR, "Game threw an exception; terminating\n");
+            }
         }
     }
 };
@@ -356,22 +363,23 @@ static bool init_sandbox() {
             parsed_game_path = parsed_game_path.substr(0, last_slash_index);
         }
 
-        fs->addPath(parsed_game_path.c_str(), "/mkxp-retro-game");
+        fs->addPath(parsed_game_path.c_str(), "/game");
+        FileSystem::chdir("/game");
 
         conf.emplace();
         conf->read(0, NULL);
         SharedState::rgssVersion = conf->rgssVersion;
         thread_data.emplace((EventThread *)NULL, (const char *)NULL, (SDL_Window *)NULL, (ALCdevice *)NULL, 60, 1, *conf);
 
-        if ((rgssad = PHYSFS_openRead(("/mkxp-retro-game/" + conf->execName + ".rgssad").c_str())) != NULL) {
-            PHYSFS_mountHandle(rgssad, (conf->execName + ".rgssad").c_str(), "/mkxp-retro-game", 1);
-        } else if ((rgssad = PHYSFS_openRead(("/mkxp-retro-game/" + conf->execName + ".rgss2a").c_str())) != NULL) {
-            PHYSFS_mountHandle(rgssad, (conf->execName + ".rgss2a").c_str(), "/mkxp-retro-game", 1);
-        } else if ((rgssad = PHYSFS_openRead(("/mkxp-retro-game/" + conf->execName + ".rgss3a").c_str())) != NULL) {
-            PHYSFS_mountHandle(rgssad, (conf->execName + ".rgss3a").c_str(), "/mkxp-retro-game", 1);
+        if ((rgssad = PHYSFS_openRead(("/game/" + conf->execName + ".rgssad").c_str())) != NULL) {
+            PHYSFS_mountHandle(rgssad, (conf->execName + ".rgssad").c_str(), "/game", 1);
+        } else if ((rgssad = PHYSFS_openRead(("/game/" + conf->execName + ".rgss2a").c_str())) != NULL) {
+            PHYSFS_mountHandle(rgssad, (conf->execName + ".rgss2a").c_str(), "/game", 1);
+        } else if ((rgssad = PHYSFS_openRead(("/game/" + conf->execName + ".rgss3a").c_str())) != NULL) {
+            PHYSFS_mountHandle(rgssad, (conf->execName + ".rgss3a").c_str(), "/game", 1);
         }
 
-        PHYSFS_mountMemory(mkxp_retro_dist_zip, mkxp_retro_dist_zip_len, NULL, "mkxp-retro-dist.zip", "/mkxp-retro-dist", 1);
+        PHYSFS_mountMemory(dist_zip, dist_zip_len, NULL, "dist.zip", "/dist", 1);
     }
 
     fs->createPathCache();
@@ -569,7 +577,6 @@ extern "C" RETRO_API void retro_run() {
 
     if (should_render) {
         if (sb().run<struct main>()) {
-            log_printf(RETRO_LOG_INFO, "[Sandbox] Ruby terminated normally\n");
             deinit_sandbox();
         }
     } else if (!dupe_supported && mkxp_retro::sandbox.has_value()) {

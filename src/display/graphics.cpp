@@ -1773,11 +1773,7 @@ Movie *Graphics::playMovie(const char *filename, int volume_, bool skippable) {
     Movie *movie = new Movie(volume_, skippable);
     MovieOpenHandler handler(movie->srcOps);
 #ifdef MKXPZ_RETRO // TODO: move into shState
-    {
-        std::string path("/mkxp-retro-game/");
-        path.append(filename);
-        mkxp_retro::fs->openRead(handler, path.c_str());
-    }
+    mkxp_retro::fs->openRead(handler, filename);
 #else
     shState->fileSystem().openRead(handler, filename);
 #endif // MKXPZ_RETRO
