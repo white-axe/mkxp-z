@@ -161,7 +161,9 @@ template <> struct atomic<uint64_t> {
 int mkxp_physfs_allow_duplicates = false;
 
 struct physfs_allow_duplicates_guard {
-    physfs_allow_duplicates_guard() {
+    bool old_value;
+
+    physfs_allow_duplicates_guard() : old_value(mkxp_physfs_allow_duplicates) {
         mkxp_physfs_allow_duplicates = true;
     }
 
@@ -174,7 +176,7 @@ struct physfs_allow_duplicates_guard {
     struct physfs_allow_duplicates_guard &operator=(struct physfs_allow_duplicates_guard &&guard) noexcept = delete;
 
     ~physfs_allow_duplicates_guard() {
-        mkxp_physfs_allow_duplicates = false;
+        mkxp_physfs_allow_duplicates = old_value;
     }
 };
 
@@ -403,13 +405,13 @@ static bool init_sandbox() {
 
     {
         const char *save_path;
-        if (environment(RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY, &save_path)) {
+        if (environment(RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY, &save_path) && save_path != nullptr) {
             // Save to the subdirectory of the save directory corresponding to the game's name set in Game.ini
             std::string save_path_subdir(save_path);
 #ifdef _WIN32
-            save_path_subdir.push_back('\\');
+            save_path_subdir.append("\\mkxp-z\\Saves\\");
 #else
-            save_path_subdir.push_back('/');
+            save_path_subdir.append("/mkxp-z/Saves/");
 #endif // _WIN32
             if (!conf->windowTitle.empty()) {
                 save_path_subdir.append(conf->windowTitle);
@@ -420,7 +422,7 @@ static bool init_sandbox() {
             }
 
             // Sanitize forbidden characters in the game name
-            for (size_t i = std::strlen(save_path) + 1; i < save_path_subdir.length(); ++i) {
+            for (size_t i = std::strlen(save_path) + (sizeof "/mkxp-z/Saves/" - 1); i < save_path_subdir.length(); ++i) {
                 if (save_path_subdir[i] < 32 || save_path_subdir[i] == '/' || save_path_subdir[i] == '\\' || save_path_subdir[i] == '*' || save_path_subdir[i] == '?' || save_path_subdir[i] == '|' || ((save_path_subdir[i] == ' ' || save_path_subdir[i] == '.') && i + 1 == save_path_subdir.length())) {
                     save_path_subdir[i] = '_';
                 } else if (save_path_subdir[i] == '"') {
