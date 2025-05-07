@@ -110,7 +110,7 @@ static json::value readConfFile(const char *path) {
     json::value ret(0);
 
 #ifdef MKXPZ_RETRO
-    FileSystem::File file(*mkxp_retro::fs, path, FileSystem::OpenMode::Read);
+    FileSystem::File file(*mkxp_retro::fs, path);
     if (!file.is_open())
 #else
     if (!mkxp_fs::fileExists(path))
@@ -430,7 +430,7 @@ void Config::readGameINI() {
     
 #ifdef MKXPZ_RETRO
     std::string iniFileName(execName + ".ini");
-    std::shared_ptr<FileSystem::File> iniFile(new FileSystem::File(*mkxp_retro::fs, iniFileName.c_str(), FileSystem::OpenMode::Read));
+    std::shared_ptr<FileSystem::File> iniFile(new FileSystem::File(*mkxp_retro::fs, iniFileName.c_str()));
 #else
     std::string iniFileName(execName + ".ini");
     SDLRWStream iniFile(iniFileName.c_str(), "r");

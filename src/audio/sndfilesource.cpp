@@ -30,8 +30,7 @@
 SF_VIRTUAL_IO sfvirtual = {
 	.get_filelen = [](void *handle) {
 #ifdef MKXPZ_RETRO
-		PHYSFS_Stat stat;
-		return PHYSFS_stat(((struct FileSystem::File *)handle)->path(), &stat) == 0 ? 0 : (sf_count_t)stat.filesize;
+		return (sf_count_t)std::max((PHYSFS_sint64)0, PHYSFS_fileLength(((struct FileSystem::File *)handle)->get()));
 #else
 		Sint64 size = 0;
 		Sint64 pos = SDL_RWtell((SDL_RWops *)handle);
@@ -56,10 +55,7 @@ SF_VIRTUAL_IO sfvirtual = {
 				break;
 			case SF_SEEK_END:
 				{
-					PHYSFS_Stat stat;
-					if (PHYSFS_stat(((struct FileSystem::File *)handle)->path(), &stat) != 0) {
-						offset += stat.filesize;
-					}
+					offset += std::max((PHYSFS_sint64)0, PHYSFS_fileLength(((struct FileSystem::File *)handle)->get()));
 				}
 				break;
 		}

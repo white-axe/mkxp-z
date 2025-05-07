@@ -300,7 +300,7 @@ SharedFontState::getFont(std::string family,
 		const char *path = !req.regular.empty()
 		                 ? req.regular.c_str() : req.other.c_str();
 
-		if (p->ftOpenFile(std::shared_ptr<struct FileSystem::File>(new struct FileSystem::File(*mkxp_retro::fs, path, FileSystem::OpenMode::Read)), font))
+		if (p->ftOpenFile(std::shared_ptr<struct FileSystem::File>(new struct FileSystem::File(*mkxp_retro::fs, path)), font))
 			throw Exception(Exception::SDLError, "failed to load font");
 	}
 

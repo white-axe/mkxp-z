@@ -51,10 +51,7 @@ static int vfSeek(void *ops, ogg_int64_t offset, int whence)
 			break;
 		case SEEK_END:
 			{
-				PHYSFS_Stat stat;
-				if (PHYSFS_stat(static_cast<struct FileSystem::File*>(ops)->path(), &stat) != 0) {
-					offset += stat.filesize;
-				}
+				offset += PHYSFS_fileLength(static_cast<struct FileSystem::File*>(ops)->get());
 			}
 			break;
 	}

@@ -190,14 +190,18 @@
 
 typedef std::pair<u32, std::string> path_cache_entry_t;
 
-struct undefined {};
+struct fs_dir {
+    struct fs_dir *root; // Null if this is a preopened directory handle, otherwise a pointer to the handle of the preopened directory that contains this directory.
+    std::string path; // Path of the directory.
+    bool writable; // If true, writes made to this directory handle will be routed into the save directory. Otherwise, writes are disallowed.
+};
 
 enum wasi_fd_type {
     STDIN, // This file descriptor is standard input. The `handle` field is null.
     STDOUT, // This file descriptor is standard output. The `handle` field is null.
     STDERR, // This file descriptor is standard error. The `handle` field is null.
-    FS, // This file descriptor is a preopened directory handled by PhysFS. The `handle` field is a `std::string *` containing the path of the directory.
-    FSDIR, // This file descriptor is a directory handled by PhysFS. The `handle` field is a `std::string *` containing the path of the directory.
+    FS, // This file descriptor is a preopened directory handled by PhysFS. The `handle` field is a `struct fs_dir *`.
+    FSDIR, // This file descriptor is a directory handled by PhysFS. The `handle` field is a `struct fs_dir *`.
     FSFILE, // This file descriptor is a file handled by PhysFS. The `handle` field is a `struct FileSystem::File *`.
     VACANT, // Indicates this is a vacant file descriptor that doesn't correspond to a file. The `handle` field is null.
 };
@@ -208,7 +212,7 @@ struct wasi_file_entry {
     // The file/directory handle that the file descriptor corresponds to. The exact type of this handle depends on the type of file descriptor.
     void *handle;
 
-    std::string *dir_handle();
+    struct fs_dir *dir_handle();
     struct FileSystem::File *file_handle();
 };
 

@@ -38,8 +38,8 @@ static inline size_t strlen_safe(const char *str, size_t max_length) {
     return ptr == NULL ? max_length : ptr - str;
 }
 
-std::string *wasi_file_entry::dir_handle() {
-    return (std::string *)handle;
+struct fs_dir *wasi_file_entry::dir_handle() {
+    return (struct fs_dir *)handle;
 }
 
 struct FileSystem::File *wasi_file_entry::file_handle() {
@@ -51,8 +51,9 @@ wasi_t::w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby) : ru
     fdtable.push_back({.type = wasi_fd_type::STDIN});
     fdtable.push_back({.type = wasi_fd_type::STDOUT});
     fdtable.push_back({.type = wasi_fd_type::STDERR});
-    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new std::string("/game")});
-    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new std::string("/dist")});
+    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new fs_dir {.root = nullptr, .path = std::string("/game"), .writable = true}});
+    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new fs_dir {.root = nullptr, .path = std::string("/save"), .writable = true}});
+    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new fs_dir {.root = nullptr, .path = std::string("/dist"), .writable = false}});
 }
 
 wasi_t::~w2c_wasi__snapshot__preview1() {
@@ -263,7 +264,7 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_filestat_get(wasi_t *wasi, u32 fd
         case wasi_fd_type::FSDIR:
             {
                 PHYSFS_Stat stat;
-                if (!PHYSFS_stat(wasi->fdtable[fd].dir_handle()->c_str(), &stat)) {
+                if (!PHYSFS_stat(wasi->fdtable[fd].dir_handle()->path.c_str(), &stat)) {
                     return WASI_ENOENT;
                 }
                 if (stat.filetype != PHYSFS_FILETYPE_DIRECTORY) {
@@ -341,7 +342,7 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_prestat_dir_name(wasi_t *wasi, u3
             return WASI_EBADF;
 
         case wasi_fd_type::FS:
-            std::strncpy((char *)WASM_MEM(path), wasi->fdtable[fd].dir_handle()->c_str(), path_len);
+            std::strncpy((char *)WASM_MEM(path), wasi->fdtable[fd].dir_handle()->path.c_str(), path_len);
             return WASI_ESUCCESS;
 
         case wasi_fd_type::STDIN:
@@ -368,7 +369,7 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_prestat_get(wasi_t *wasi, u32 fd,
 
         case wasi_fd_type::FS:
             WASM_SET(u32, result, 0);
-            WASM_SET(u32, result + 4, wasi->fdtable[fd].dir_handle()->length());
+            WASM_SET(u32, result + 4, wasi->fdtable[fd].dir_handle()->path.length());
             return WASI_ESUCCESS;
 
         case wasi_fd_type::STDIN:
@@ -457,13 +458,13 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, u32 fd, usi
                     .result = result,
                 };
                 bool success = PHYSFS_enumerate(
-                    wasi->fdtable[fd].dir_handle()->c_str(),
+                    wasi->fdtable[fd].dir_handle()->path.c_str(),
                     [](void *data, const char *path, const char *filename) {
                         struct fs_enumerate_data *edata = (struct fs_enumerate_data *)data;
                         wasi_t *wasi = edata->wasi;
 
                         PHYSFS_Stat stat;
-                        if (!PHYSFS_stat(edata->wasi->fdtable[edata->fd].dir_handle()->c_str(), &stat)) {
+                        if (!PHYSFS_stat(edata->wasi->fdtable[edata->fd].dir_handle()->path.c_str(), &stat)) {
                             return PHYSFS_ENUM_OK;
                         }
                         if (stat.filetype != PHYSFS_FILETYPE_DIRECTORY && stat.filetype != PHYSFS_FILETYPE_REGULAR) {
@@ -650,7 +651,22 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_write(wasi_t *wasi, u32 fd, usize
             return WASI_EINVAL;
 
         case wasi_fd_type::FSFILE:
-            return WASI_EROFS;
+            {
+                if (!wasi->fdtable[fd].file_handle()->is_write_open()) {
+                    return WASI_EROFS;
+                }
+                u32 size = 0;
+                while (iovs_len > 0) {
+                    PHYSFS_sint64 n = PHYSFS_writeBytes(wasi->fdtable[fd].file_handle()->get_write(), WASM_MEM(WASM_GET(u32, iovs)), WASM_GET(u32, iovs + 4));
+                    if (n >= 0) {
+                        size += n;
+                    }
+                    iovs += 8;
+                    --iovs_len;
+                }
+                WASM_SET(u32, result, size);
+                return WASI_ESUCCESS;
+            }
     }
 
     return WASI_EBADF;
@@ -682,11 +698,11 @@ extern "C" u32 w2c_wasi__snapshot__preview1_path_filestat_get(wasi_t *wasi, u32 
         case wasi_fd_type::FSDIR:
             {
                 PHYSFS_Stat stat;
-                std::string new_path(*wasi->fdtable[fd].dir_handle());
+                std::string new_path(wasi->fdtable[fd].dir_handle()->path);
                 new_path.push_back('/');
                 new_path.append((const char *)WASM_MEM(path), strlen_safe((const char *)WASM_MEM(path), path_len));
                 new_path = mkxp_retro::fs->normalize(new_path.c_str(), false, true);
-                if (std::strncmp(new_path.c_str(), wasi->fdtable[fd].dir_handle()->c_str(), wasi->fdtable[fd].dir_handle()->length()) != 0) {
+                if (std::strncmp(new_path.c_str(), wasi->fdtable[fd].dir_handle()->path.c_str(), wasi->fdtable[fd].dir_handle()->path.length()) != 0) {
                     return WASI_EPERM;
                 }
 
@@ -743,26 +759,80 @@ extern "C" u32 w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, u32 fd, u32 
         case wasi_fd_type::FSDIR:
             {
                 PHYSFS_Stat stat;
-                std::string new_path(*wasi->fdtable[fd].dir_handle());
+                std::string new_path(wasi->fdtable[fd].dir_handle()->path);
                 new_path.push_back('/');
                 new_path.append((const char *)WASM_MEM(path), strlen_safe((const char *)WASM_MEM(path), path_len));
                 new_path = mkxp_retro::fs->normalize(new_path.c_str(), false, true);
-                if (std::strncmp(new_path.c_str(), wasi->fdtable[fd].dir_handle()->c_str(), wasi->fdtable[fd].dir_handle()->length()) != 0) {
+
+                // Verify that the path we're opening is a descendant of the directory corresponding to `fd`
+                if (std::strncmp(new_path.c_str(), wasi->fdtable[fd].dir_handle()->path.c_str(), wasi->fdtable[fd].dir_handle()->path.length()) != 0) {
                     return WASI_EPERM;
                 }
 
-                if (!PHYSFS_stat(new_path.c_str(), &stat)) {
+                bool exists = PHYSFS_stat(new_path.c_str(), &stat);
+
+                // Fail if bit 0 of oflags isn't set and the path doesn't exist
+                if (!exists && !(oflags & (1 << 0))) {
                     return WASI_ENOENT;
                 }
-                if (stat.filetype != PHYSFS_FILETYPE_DIRECTORY && stat.filetype != PHYSFS_FILETYPE_REGULAR) {
+
+                // Fail if bit 1 of oflags is set and the path exists and isn't a directory
+                if (exists && oflags & (1 << 1) && stat.filetype != PHYSFS_FILETYPE_DIRECTORY) {
+                    return WASI_ENOTDIR;
+                }
+
+                // Fail if bit 2 of oflags is set and the path exists
+                if (exists && oflags & (1 << 2)) {
+                    return WASI_EEXIST;
+                }
+
+                // Fail if the path exists and isn't a regular file or directory (e.g. a device file, named pipe, socket or symbolic link)
+                if (exists && (stat.filetype != PHYSFS_FILETYPE_DIRECTORY && stat.filetype != PHYSFS_FILETYPE_REGULAR)) {
                     return WASI_EIO;
                 }
 
-                if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
-                    std::string *handle = new std::string(new_path);
+                bool truncate = oflags & (1 << 3);
+                bool needs_write = !exists || truncate;
+                bool writable = wasi->fdtable[fd].dir_handle()->writable;
+
+                // Fail if we need to create a new file or truncate a file in a read-only file system
+                if (needs_write && !writable && oflags & (1 << 0)) {
+                    return WASI_EROFS;
+                }
+
+                if (exists && stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
+                    struct fs_dir *root = wasi->fdtable[fd].dir_handle()->root != nullptr ? wasi->fdtable[fd].dir_handle()->root : wasi->fdtable[fd].dir_handle();
+                    struct fs_dir *handle = new fs_dir {.root = root, .path = new_path, .writable = writable};
                     WASM_SET(u32, result, wasi->allocate_file_descriptor(wasi_fd_type::FSDIR, handle));
                 } else {
-                    struct FileSystem::File *handle = new FileSystem::File(*mkxp_retro::fs, new_path.c_str(), FileSystem::OpenMode::Read);
+                    const char *write_path_prefix;
+                    if (writable) {
+                        struct fs_dir *root = wasi->fdtable[fd].dir_handle()->root != nullptr ? wasi->fdtable[fd].dir_handle()->root : wasi->fdtable[fd].dir_handle();
+                        write_path_prefix = root->path.c_str();
+                    } else {
+                        write_path_prefix = nullptr;
+                    }
+
+                    struct FileSystem::File *handle = new FileSystem::File(*mkxp_retro::fs, new_path.c_str(), write_path_prefix, truncate, !exists);
+
+                    // Check for errors opening the read handle and/or write handle
+                    if (!handle->is_open() || (needs_write && writable && !handle->is_write_open())) {
+                        PHYSFS_ErrorCode error = handle->get_read_error();
+                        if (error == handle->get_read_error()) {
+                            error = handle->get_write_error();
+                        }
+                        delete handle;
+                        switch (error) {
+                            case PHYSFS_ERR_READ_ONLY:
+                            case PHYSFS_ERR_NO_WRITE_DIR:
+                                return WASI_EROFS;
+                            case PHYSFS_ERR_PERMISSION:
+                                return WASI_EPERM;
+                            default:
+                                return WASI_EIO;
+                        }
+                    }
+
                     WASM_SET(u32, result, wasi->allocate_file_descriptor(wasi_fd_type::FSFILE, handle));
                 }
 
@@ -780,7 +850,67 @@ extern "C" u32 w2c_wasi__snapshot__preview1_path_readlink(wasi_t *wasi, u32 fd, 
 
 extern "C" u32 w2c_wasi__snapshot__preview1_path_remove_directory(wasi_t *wasi, u32 fd, usize path, u32 path_len) {
     WASI_DEBUG("path_remove_directory(%u, \"%.*s\")\n", fd, path_len, (char *)WASM_MEM(path));
-    return WASI_ENOSYS;
+
+    if (fd >= wasi->fdtable.size()) {
+        return WASI_EBADF;
+    }
+
+    switch (wasi->fdtable[fd].type) {
+        case wasi_fd_type::VACANT:
+            return WASI_EBADF;
+
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+        case wasi_fd_type::FSFILE:
+            return WASI_EINVAL;
+
+        case wasi_fd_type::FS:
+        case wasi_fd_type::FSDIR:
+            {
+                if (!wasi->fdtable[fd].dir_handle()->writable) {
+                    return WASI_EROFS;
+                }
+
+                PHYSFS_Stat stat;
+                std::string new_path(wasi->fdtable[fd].dir_handle()->path);
+                new_path.push_back('/');
+                new_path.append((const char *)WASM_MEM(path), strlen_safe((const char *)WASM_MEM(path), path_len));
+                new_path = mkxp_retro::fs->normalize(new_path.c_str(), false, true);
+
+                // Verify that the path we're opening is a descendant of the directory corresponding to `fd`
+                if (std::strncmp(new_path.c_str(), wasi->fdtable[fd].dir_handle()->path.c_str(), wasi->fdtable[fd].dir_handle()->path.length()) != 0) {
+                    return WASI_EPERM;
+                }
+
+                if (!PHYSFS_stat(wasi->fdtable[fd].dir_handle()->path.c_str(), &stat)) {
+                    return WASI_ENOENT;
+                }
+
+                if (stat.filetype != PHYSFS_FILETYPE_DIRECTORY) {
+                    return WASI_ENOTDIR;
+                }
+
+                struct fs_dir *root = wasi->fdtable[fd].dir_handle()->root != nullptr ? wasi->fdtable[fd].dir_handle()->root : wasi->fdtable[fd].dir_handle();
+                if (!PHYSFS_delete(new_path.c_str() + root->path.length())) {
+                    switch (PHYSFS_getLastErrorCode()) {
+                        case PHYSFS_ERR_DIR_NOT_EMPTY:
+                            return WASI_ENOTEMPTY;
+                        case PHYSFS_ERR_READ_ONLY:
+                        case PHYSFS_ERR_NO_WRITE_DIR:
+                            return WASI_EROFS;
+                        case PHYSFS_ERR_PERMISSION:
+                            return WASI_EPERM;
+                        default:
+                            return WASI_EIO;
+                    }
+                }
+
+                return WASI_ESUCCESS;
+            }
+    }
+
+    return WASI_EBADF;
 }
 
 extern "C" u32 w2c_wasi__snapshot__preview1_path_rename(wasi_t *wasi, u32 fd, usize old_path, u32 old_path_len, u32 new_fd, usize new_path, u32 new_path_len) {
@@ -795,7 +925,67 @@ extern "C" u32 w2c_wasi__snapshot__preview1_path_symlink(wasi_t *wasi, usize old
 
 extern "C" u32 w2c_wasi__snapshot__preview1_path_unlink_file(wasi_t *wasi, u32 fd, usize path, u32 path_len) {
     WASI_DEBUG("path_unlink_file(%u, \"%.*s\")\n", fd, path_len, (char *)WASM_MEM(path));
-    return WASI_ENOSYS;
+
+    if (fd >= wasi->fdtable.size()) {
+        return WASI_EBADF;
+    }
+
+    switch (wasi->fdtable[fd].type) {
+        case wasi_fd_type::VACANT:
+            return WASI_EBADF;
+
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+        case wasi_fd_type::FSFILE:
+            return WASI_EINVAL;
+
+        case wasi_fd_type::FS:
+        case wasi_fd_type::FSDIR:
+            {
+                if (!wasi->fdtable[fd].dir_handle()->writable) {
+                    return WASI_EROFS;
+                }
+
+                PHYSFS_Stat stat;
+                std::string new_path(wasi->fdtable[fd].dir_handle()->path);
+                new_path.push_back('/');
+                new_path.append((const char *)WASM_MEM(path), strlen_safe((const char *)WASM_MEM(path), path_len));
+                new_path = mkxp_retro::fs->normalize(new_path.c_str(), false, true);
+
+                // Verify that the path we're opening is a descendant of the directory corresponding to `fd`
+                if (std::strncmp(new_path.c_str(), wasi->fdtable[fd].dir_handle()->path.c_str(), wasi->fdtable[fd].dir_handle()->path.length()) != 0) {
+                    return WASI_EPERM;
+                }
+
+                if (!PHYSFS_stat(wasi->fdtable[fd].dir_handle()->path.c_str(), &stat)) {
+                    return WASI_ENOENT;
+                }
+
+                if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
+                    return WASI_EISDIR;
+                } else if (stat.filetype != PHYSFS_FILETYPE_REGULAR) {
+                    return WASI_EIO;
+                }
+
+                struct fs_dir *root = wasi->fdtable[fd].dir_handle()->root != nullptr ? wasi->fdtable[fd].dir_handle()->root : wasi->fdtable[fd].dir_handle();
+                if (!PHYSFS_delete(new_path.c_str() + root->path.length())) {
+                    switch (PHYSFS_getLastErrorCode()) {
+                        case PHYSFS_ERR_READ_ONLY:
+                        case PHYSFS_ERR_NO_WRITE_DIR:
+                            return WASI_EROFS;
+                        case PHYSFS_ERR_PERMISSION:
+                            return WASI_EPERM;
+                        default:
+                            return WASI_EIO;
+                    }
+                }
+
+                return WASI_ESUCCESS;
+            }
+    }
+
+    return WASI_EBADF;
 }
 
 extern "C" u32 w2c_wasi__snapshot__preview1_poll_oneoff(wasi_t *wasi, usize in, usize out, u32 nsubscriptions, usize result) {

@@ -158,6 +158,26 @@ template <> struct atomic<uint64_t> {
 };
 #endif // !defined(MKXPZ_NO_THREADED_AUDIO) && defined(MKXPZ_NO_STD_ATOMIC_UINT64_T)
 
+int mkxp_physfs_allow_duplicates = false;
+
+struct physfs_allow_duplicates_guard {
+    physfs_allow_duplicates_guard() {
+        mkxp_physfs_allow_duplicates = true;
+    }
+
+    physfs_allow_duplicates_guard(const struct physfs_allow_duplicates_guard &guard) = delete;
+
+    physfs_allow_duplicates_guard(struct physfs_allow_duplicates_guard &&guard) noexcept = delete;
+
+    struct physfs_allow_duplicates_guard &operator=(const struct physfs_allow_duplicates_guard &guard) = delete;
+
+    struct physfs_allow_duplicates_guard &operator=(struct physfs_allow_duplicates_guard &&guard) noexcept = delete;
+
+    ~physfs_allow_duplicates_guard() {
+        mkxp_physfs_allow_duplicates = false;
+    }
+};
+
 static uint64_t frame_count;
 static struct atomic<uint64_t> frame_time;
 static uint64_t frame_time_remainder;
@@ -314,6 +334,8 @@ static void deinit_sandbox() {
         sound_buf = NULL;
     }
     mkxp_retro::sandbox.reset();
+    thread_data.reset();
+    input.reset();
     audio.reset();
     if (al_context != NULL) {
         alcDestroyContext(al_context);
@@ -327,16 +349,12 @@ static void deinit_sandbox() {
         PHYSFS_close(rgssad);
         rgssad = NULL;
     }
-    thread_data.reset();
     conf.reset();
     fs.reset();
-    input.reset();
 }
 
 static bool init_sandbox() {
     deinit_sandbox();
-
-    input.emplace();
 
     fs.emplace((const char *)NULL, false);
 
@@ -371,33 +389,89 @@ static bool init_sandbox() {
         thread_data.emplace((EventThread *)NULL, (const char *)NULL, (SDL_Window *)NULL, (ALCdevice *)NULL, 60, 1, *conf);
 
         if ((rgssad = PHYSFS_openRead(("/game/" + conf->execName + ".rgssad").c_str())) != NULL) {
-            PHYSFS_mountHandle(rgssad, (conf->execName + ".rgssad").c_str(), "/game", 1);
+            PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgssad").c_str(), "/game", 1);
         } else if ((rgssad = PHYSFS_openRead(("/game/" + conf->execName + ".rgss2a").c_str())) != NULL) {
-            PHYSFS_mountHandle(rgssad, (conf->execName + ".rgss2a").c_str(), "/game", 1);
+            PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgss2a").c_str(), "/game", 1);
         } else if ((rgssad = PHYSFS_openRead(("/game/" + conf->execName + ".rgss3a").c_str())) != NULL) {
-            PHYSFS_mountHandle(rgssad, (conf->execName + ".rgss3a").c_str(), "/game", 1);
+            PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgss3a").c_str(), "/game", 1);
         }
 
-        PHYSFS_mountMemory(dist_zip, dist_zip_len, NULL, "dist.zip", "/dist", 1);
+        PHYSFS_mountMemory(dist_zip, dist_zip_len, NULL, "/dist.zip", "/dist", 1);
     }
 
     fs->createPathCache();
 
+    {
+        const char *save_path;
+        if (environment(RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY, &save_path)) {
+            // Save to the subdirectory of the save directory corresponding to the game's name set in Game.ini
+            std::string save_path_subdir(save_path);
+#ifdef _WIN32
+            save_path_subdir.push_back('\\');
+#else
+            save_path_subdir.push_back('/');
+#endif // _WIN32
+            if (!conf->windowTitle.empty()) {
+                save_path_subdir.append(conf->windowTitle);
+            } else if (!conf->game.title.empty()) {
+                save_path_subdir.append(conf->game.title);
+            } else {
+                save_path_subdir.append("Game");
+            }
+
+            // Sanitize forbidden characters in the game name
+            for (size_t i = std::strlen(save_path) + 1; i < save_path_subdir.length(); ++i) {
+                if (save_path_subdir[i] < 32 || save_path_subdir[i] == '/' || save_path_subdir[i] == '\\' || save_path_subdir[i] == '*' || save_path_subdir[i] == '?' || save_path_subdir[i] == '|' || ((save_path_subdir[i] == ' ' || save_path_subdir[i] == '.') && i + 1 == save_path_subdir.length())) {
+                    save_path_subdir[i] = '_';
+                } else if (save_path_subdir[i] == '"') {
+                    save_path_subdir[i] = '\"';
+                } else if (save_path_subdir[i] == ':') {
+                    save_path_subdir[i] = ';';
+                } else if (save_path_subdir[i] == '<') {
+                    save_path_subdir[i] = '(';
+                } else if (save_path_subdir[i] == '>') {
+                    save_path_subdir[i] = ')';
+                }
+            }
+
+            // Create the subdirectory if needed
+            PHYSFS_setWriteDir(save_path);
+            if (!PHYSFS_mkdir(save_path_subdir.c_str() + std::strlen(save_path) + 1)) {
+                mkxp_retro::log_printf(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", save_path_subdir.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+                deinit_sandbox();
+                return false;
+            }
+
+            // Mount the subdirectory
+            PHYSFS_setWriteDir(save_path_subdir.c_str());
+            fs->addPath(save_path_subdir.c_str(), "/save");
+            {
+                // PhysFS won't normally allow us to mount the save directory in two locations at once,
+                // so we temporarily disable the duplicate detection here
+                struct physfs_allow_duplicates_guard guard;
+                fs->addPath(save_path_subdir.c_str(), "/game");
+            }
+        }
+    }
+
     alcLoopbackOpenDeviceSOFT = (LPALCLOOPBACKOPENDEVICESOFT)alcGetProcAddress(NULL, "alcLoopbackOpenDeviceSOFT");
     if (alcLoopbackOpenDeviceSOFT == NULL) {
         log_printf(RETRO_LOG_ERROR, "OpenAL implementation does not support `alcLoopbackOpenDeviceSOFT`\n");
+        deinit_sandbox();
         return false;
     }
 
     alcRenderSamplesSOFT = (LPALCRENDERSAMPLESSOFT)alcGetProcAddress(NULL, "alcRenderSamplesSOFT");
     if (alcRenderSamplesSOFT == NULL) {
         log_printf(RETRO_LOG_ERROR, "OpenAL implementation does not support `alcRenderSamplesSOFT`\n");
+        deinit_sandbox();
         return false;
     }
 
     al_device = alcLoopbackOpenDeviceSOFT(NULL);
     if (al_device == NULL) {
         log_printf(RETRO_LOG_ERROR, "Failed to initialize OpenAL loopback device\n");
+        deinit_sandbox();
         return false;
     }
 
@@ -413,6 +487,7 @@ static bool init_sandbox() {
     al_context = alcCreateContext(al_device, al_attrs);
     if (al_context == NULL || alcMakeContextCurrent(al_context) == AL_FALSE) {
         log_printf(RETRO_LOG_ERROR, "Failed to create OpenAL context\n");
+        deinit_sandbox();
         return false;
     }
 
@@ -423,6 +498,8 @@ static bool init_sandbox() {
     fluid_set_log_function(FLUID_DBG, fluid_log, NULL);
 
     audio.emplace(*thread_data);
+
+    input.emplace();
 
     mkxp_retro::sandbox.emplace();
 

@@ -42,54 +42,55 @@ class SharedFontState;
 class FileSystem
 {
 public:
-	enum OpenMode
-	{
-		Read,
-		Write,
-		Append,
-	};
-
 	struct File
 	{
 		friend class FileSystem;
 
 	private:
-		PHYSFS_File *inner;
 		std::string _path;
+		PHYSFS_File *read_handle;
+		PHYSFS_File *write_handle;
+		PHYSFS_ErrorCode read_error;
+		PHYSFS_ErrorCode write_error;
 
 	public:
+		// Opens a file using PhysFS. If the file doesn't already exist, it will be created.
+		// read_path: Path to open the read handle for the file from.
+		// write_path_prefix: Null to skip opening a write handle for the file, otherwise the write handle will be opened from the path corresponding to read_path with write_path_prefix removed from the beginning.
+		// truncate: Whether or not to delete the contents of the file. Does nothing unless write_path_prefix is non-null.
+		// mkdir: Whether or not to create the parent directories of the file if they don't exist. Does nothing unless write_path_prefix is non-null.
+		File(FileSystem &fs, const char *read_path, const char *write_path_prefix = nullptr, bool truncate = false, bool mkdir = false);
 		File(const struct File &) = delete;
-		inline File(FileSystem &fs, const char *filename, OpenMode mode) {
-			_path = fs.normalize(filename, false, true);
-			switch (mode) {
-				case OpenMode::Read:
-					inner = PHYSFS_openRead(_path.c_str());
-					break;
-				case OpenMode::Write:
-					inner = PHYSFS_openWrite(_path.c_str());
-					break;
-				case OpenMode::Append:
-					inner = PHYSFS_openAppend(_path.c_str());
-					break;
-			}
-		}
-		inline ~File() {
-			PHYSFS_close(inner);
-		}
-		inline const char *path() {
+		File(struct File &&) noexcept = delete;
+		struct File operator=(const struct File &) = delete;
+		struct File operator=(struct File &&) noexcept = delete;
+		~File();
+		inline const char *path() const noexcept {
 			return _path.c_str();
 		}
-		inline PHYSFS_File *get() {
-			return inner;
+		inline PHYSFS_File *get() const noexcept {
+			return read_handle;
 		}
-		inline PHYSFS_File *operator->() {
+		inline PHYSFS_File *get_write() const noexcept {
+			return write_handle;
+		}
+		inline PHYSFS_File *operator->() const noexcept {
 			return get();
 		}
-		inline PHYSFS_File &operator*() {
+		inline PHYSFS_File &operator*() const noexcept {
 			return *get();
 		}
-		inline bool is_open() {
-			return inner != NULL;
+		inline bool is_open() const noexcept {
+			return read_handle != nullptr;
+		}
+		inline bool is_write_open() const noexcept {
+			return write_handle != nullptr;
+		}
+		inline PHYSFS_ErrorCode get_read_error() const noexcept {
+			return read_error;
+		}
+		inline PHYSFS_ErrorCode get_write_error() const noexcept {
+			return write_error;
 		}
 	};
 

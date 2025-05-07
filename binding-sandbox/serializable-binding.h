@@ -48,7 +48,7 @@ namespace mkxp_sandbox {
         return sb()->bind<struct coro>()()(klass, src);
     }
 
-    template <class C> VALUE serializable_dump(VALUE self) {
+    template <class C> VALUE serializable_dump(VALUE self, VALUE depth) {
         struct coro : boost::asio::coroutine {
         private:
             VALUE obj;
@@ -76,7 +76,7 @@ namespace mkxp_sandbox {
         void operator()(VALUE klass) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT(rb_define_singleton_method, klass, "_load", (VALUE (*)(ANYARGS))serializable_load<C>, 1);
-                SANDBOX_AWAIT(rb_define_method, klass, "_dump", (VALUE (*)(ANYARGS))serializable_dump<C>, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "_dump", (VALUE (*)(ANYARGS))serializable_dump<C>, 1);
             }
         }
     };

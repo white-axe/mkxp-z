@@ -423,7 +423,7 @@ static PHYSFS_EnumerateCallbackResult cacheEnumCB(void *d, const char *origdir,
 #endif // MKXPZ_RETRO
 
   CacheEnumData &data = *static_cast<CacheEnumData *>(d);
-  char fullPath[2048];
+  char fullPath[4096];
 
   if (!*origdir)
 #ifdef MKXPZ_RETRO
@@ -624,7 +624,7 @@ openReadEnumCB(void *d, const char *dirpath, const char *filename) {
     fullPath = (*data.pathTrans)[fullPath].c_str();
 
 #ifdef MKXPZ_RETRO
-  data.ops.emplace(new FileSystem::File(*mkxp_retro::fs, fullPath, FileSystem::OpenMode::Read));
+  data.ops.emplace(new FileSystem::File(*mkxp_retro::fs, fullPath));
 #else
   PHYSFS_File *phys = PHYSFS_openRead(fullPath);
 
@@ -718,73 +718,126 @@ void FileSystem::openReadRaw(SDL_RWops &ops, const char *filename,
 #endif // MKXPZ_RETRO
 
 #ifdef MKXPZ_RETRO
+FileSystem::File::File(FileSystem &fs, const char *read_path, const char *write_path_prefix, bool truncate, bool mkdir) {
+  _path = fs.normalize(read_path, false, true);
+
+  if (write_path_prefix != nullptr) {
+    size_t prefix_length = strlen(write_path_prefix);
+
+    if (_path.length() >= prefix_length && !strncmp(_path.c_str(), write_path_prefix, prefix_length)) {
+      const char *suffix = _path.c_str() + prefix_length;
+
+      if (mkdir) {
+        std::string suffix_parent(suffix);
+        size_t last_slash_index = suffix_parent.find_last_of('/');
+        if (last_slash_index != std::string::npos) {
+          suffix_parent = suffix_parent.substr(0, last_slash_index);
+          PHYSFS_mkdir(suffix_parent.c_str());
+        }
+      }
+
+      if (truncate) {
+        write_handle = PHYSFS_openWrite(suffix);
+      } else {
+        write_handle = PHYSFS_openAppend(suffix);
+      }
+
+      if (write_handle == nullptr) {
+        write_error = PHYSFS_getLastErrorCode();
+      } else {
+        write_error = PHYSFS_ERR_OK;
+      }
+    } else {
+      write_error = PHYSFS_ERR_READ_ONLY;
+    }
+  } else {
+    write_error = PHYSFS_ERR_READ_ONLY;
+  }
+
+  if ((read_handle = PHYSFS_openRead(_path.c_str())) == nullptr) {
+    read_error = PHYSFS_getLastErrorCode();
+  } else {
+    read_error = PHYSFS_ERR_OK;
+  }
+}
+
+FileSystem::File::~File() {
+  if (read_handle != nullptr) {
+    PHYSFS_close(read_handle);
+  }
+
+  if (write_handle != nullptr) {
+    PHYSFS_close(write_handle);
+  }
+}
+
 static std::string normalizePath(const char *path, bool absolute) {
-    // Replace backslashes with forward slashes
-    std::string path_str(path);
-    for (size_t i = 0; i < path_str.length(); ++i) {
-        if (path_str[i] == '\\') {
-            path_str[i] = '/';
-        }
+  // Replace backslashes with forward slashes
+  std::string path_str(path);
+  for (size_t i = 0; i < path_str.length(); ++i) {
+    if (path_str[i] == '\\') {
+      path_str[i] = '/';
     }
+  }
 
-    // If path doesn't start with a forward slash, prepend the current working directory before normalizing
-    if (path_str.empty()) {
-        path_str = mkxp_retro::sandbox.has_value() ? mkxp_retro::sandbox->getcwd() : "/game";
-    } else if (path_str.front() != '/') {
-        path_str = std::string(mkxp_retro::sandbox.has_value() ? mkxp_retro::sandbox->getcwd() : "/game") + '/' + path_str;
-    }
+  // If path doesn't start with a forward slash, prepend the current working directory before normalizing
+  if (path_str.empty()) {
+    path_str = mkxp_retro::sandbox.has_value() ? mkxp_retro::sandbox->getcwd() : "/game";
+  } else if (path_str.front() != '/') {
+    path_str = std::string(mkxp_retro::sandbox.has_value() ? mkxp_retro::sandbox->getcwd() : "/game") + '/' + path_str;
+  }
 
-    // Lexically normalize the path
-    std::list<std::string> list;
-    std::string component;
-    std::istringstream stream(path_str);
-    while (std::getline(stream, component, '/')) {
-        list.push_front(component);
+  // Lexically normalize the path
+  std::list<std::string> list;
+  std::string component;
+  std::istringstream stream(path_str);
+  while (std::getline(stream, component, '/')) {
+    list.push_front(component);
+  }
+  for (auto it = list.begin(); it != list.end();) {
+    if (it->empty() || *it == ".") {
+      list.erase(it++);
+    } else {
+      ++it;
     }
-    for (auto it = list.begin(); it != list.end();) {
-        if (it->empty() || *it == ".") {
-            list.erase(it++);
-        } else {
-            ++it;
-        }
-    }
-    for (auto it = list.begin(); it != list.end();) {
-        if (*it == "..") {
-            while (std::next(it) != list.end() && *std::next(it) == "..") {
-                ++it;
-            }
-            while (*it == "..") {
-                if (std::next(it) != list.end()) {
-                    list.erase(std::next(it));
-                }
-                if (it == list.begin()) {
-                    list.erase(it);
-                    it = list.begin();
-                    break;
-                } else {
-                    list.erase(it--);
-                }
-            }
-        } else {
-            ++it;
-        }
-    }
-
-    // Convert the normalized path back into a string
-    list.reverse();
-    std::string normalized_path;
-    if (absolute) {
-        normalized_path.push_back('/');
-    }
-    for (auto it = list.begin(); it != list.end();) {
-        normalized_path.append(*it);
+  }
+  for (auto it = list.begin(); it != list.end();) {
+    if (*it == "..") {
+      while (std::next(it) != list.end() && *std::next(it) == "..") {
+        ++it;
+      }
+      while (*it == "..") {
         if (std::next(it) != list.end()) {
-            normalized_path.push_back('/');
+          list.erase(std::next(it));
         }
-        list.erase(it++);
+        if (it == list.begin()) {
+          list.erase(it);
+          it = list.begin();
+          break;
+        } else {
+          list.erase(it--);
+        }
+      }
+    } else {
+      ++it;
     }
+  }
 
-    return normalized_path;
+  // Convert the normalized path back into a string
+  list.reverse();
+  std::string normalized_path;
+  if (absolute) {
+    normalized_path.push_back('/');
+  }
+  for (auto it = list.begin(); it != list.end();) {
+    normalized_path.append(*it);
+    if (std::next(it) != list.end()) {
+      normalized_path.push_back('/');
+    }
+    list.erase(it++);
+  }
+
+  return normalized_path;
 }
 #endif // MKXPZ_RETRO
 
