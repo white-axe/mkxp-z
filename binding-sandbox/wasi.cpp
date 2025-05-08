@@ -813,7 +813,7 @@ extern "C" u32 w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, u32 fd, u32 
                         write_path_prefix = nullptr;
                     }
 
-                    struct FileSystem::File *handle = new FileSystem::File(*mkxp_retro::fs, new_path.c_str(), write_path_prefix, truncate, !exists);
+                    struct FileSystem::File *handle = new FileSystem::File(*mkxp_retro::fs, new_path.c_str(), write_path_prefix, truncate, exists);
 
                     // Check for errors opening the read handle and/or write handle
                     if (!handle->is_open() || (needs_write && writable && !handle->is_write_open())) {

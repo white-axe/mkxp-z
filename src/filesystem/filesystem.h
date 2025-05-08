@@ -54,12 +54,12 @@ public:
 		PHYSFS_ErrorCode write_error;
 
 	public:
-		// Opens a file using PhysFS. If the file doesn't already exist, it will be created.
+		// Opens a file using PhysFS. If the file doesn't already exist and write_path_prefix is non-null, it will be created.
 		// read_path: Path to open the read handle for the file from.
 		// write_path_prefix: Null to skip opening a write handle for the file, otherwise the write handle will be opened from the path corresponding to read_path with write_path_prefix removed from the beginning.
-		// truncate: Whether or not to delete the contents of the file. Does nothing unless write_path_prefix is non-null.
-		// mkdir: Whether or not to create the parent directories of the file if they don't exist. Does nothing unless write_path_prefix is non-null.
-		File(FileSystem &fs, const char *read_path, const char *write_path_prefix = nullptr, bool truncate = false, bool mkdir = false);
+		// truncate: Whether or not to delete the contents of the file after opening it. Does nothing unless write_path_prefix is non-null.
+		// exists: If you already know whether or not the file you're opening exists, you can set this to 1 if it exists or 0 if it doesn't exist to reduce the amount of file system calls needed. Any values other than 1 or 0 mean you don't know.
+		File(FileSystem &fs, const char *read_path, const char *write_path_prefix = nullptr, bool truncate = false, unsigned char exists = -1);
 		File(const struct File &) = delete;
 		File(struct File &&) noexcept = delete;
 		struct File operator=(const struct File &) = delete;

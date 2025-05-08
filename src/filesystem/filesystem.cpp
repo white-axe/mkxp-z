@@ -718,7 +718,17 @@ void FileSystem::openReadRaw(SDL_RWops &ops, const char *filename,
 #endif // MKXPZ_RETRO
 
 #ifdef MKXPZ_RETRO
-FileSystem::File::File(FileSystem &fs, const char *read_path, const char *write_path_prefix, bool truncate, bool mkdir) {
+static std::string pop_last_path_element(const char *path) {
+  std::string parent(path);
+  size_t last_slash_index = parent.find_last_of('/');
+  if (last_slash_index == std::string::npos) {
+    last_slash_index = 0;
+  }
+  parent = parent.substr(0, last_slash_index);
+  return parent;
+}
+
+FileSystem::File::File(FileSystem &fs, const char *read_path, const char *write_path_prefix, bool truncate, unsigned char exists) {
   _path = fs.normalize(read_path, false, true);
 
   if (write_path_prefix != nullptr) {
@@ -727,11 +737,15 @@ FileSystem::File::File(FileSystem &fs, const char *read_path, const char *write_
     if (_path.length() >= prefix_length && !strncmp(_path.c_str(), write_path_prefix, prefix_length)) {
       const char *suffix = _path.c_str() + prefix_length;
 
-      if (mkdir) {
-        std::string suffix_parent(suffix);
-        size_t last_slash_index = suffix_parent.find_last_of('/');
-        if (last_slash_index != std::string::npos) {
-          suffix_parent = suffix_parent.substr(0, last_slash_index);
+      // If the path doesn't exist but its parent does,
+      // create the parent directory in the PhysFS write directory
+      // since it might only exist in PhysFS's read-only search path
+      if (exists == 0 || (exists != 1 && !PHYSFS_exists(read_path))) {
+        std::string suffix_parent = pop_last_path_element(suffix);
+        if (suffix_parent.empty() || suffix_parent.front() != '/') {
+          suffix_parent = '/' + suffix_parent;
+        }
+        if (suffix_parent != "/" && PHYSFS_exists((write_path_prefix + suffix_parent).c_str())) {
           PHYSFS_mkdir(suffix_parent.c_str());
         }
       }
