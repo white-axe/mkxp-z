@@ -863,7 +863,7 @@ jobs:
       - name: Set up Emscripten SDK
         uses: mymindstorm/setup-emsdk@v14
         with:
-          version: 4.0.6
+          version: 4.0.8
 
       - id: short-sha
         name: Get Git commit hash
