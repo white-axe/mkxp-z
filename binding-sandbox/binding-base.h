@@ -31,6 +31,7 @@
 #include <utility>
 #include <vector>
 #include <boost/core/enable_if.hpp>
+#include <boost/type_traits/is_detected.hpp>
 #include <boost/container_hash/hash.hpp>
 #include <boost/asio/coroutine.hpp>
 #include <mkxp-sandbox-ruby.h>
@@ -50,25 +51,128 @@
 #  define SERIALIZE_VALUE(value) SERIALIZE_32(value)
 #endif
 
+#define SLOT_TYPE_ASSERT(T) static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "slots must have numeric types")
+
 // LLVM uses a stack alignment of 16 on WebAssembly targets
 #define WASMSTACKALIGN 16
 
 // Rounds a number up to the nearest multiple of the WebAssembly stack alignment
-#define CEIL_WASMSTACKALIGN(x) (((x) + (size_t)(WASMSTACKALIGN - 1)) & ~(size_t)(WASMSTACKALIGN - 1))
-
-// Same as `sizeof(T)`, but rounds the result up to the nearest multiple of the WebAssembly stack alignment
-#define SIZEOF_WASMSTACKALIGN(T) CEIL_WASMSTACKALIGN(sizeof(T))
+#define CEIL_WASMSTACKALIGN(x) (((wasm_size_t)(x) + (wasm_size_t)(WASMSTACKALIGN - 1)) & ~(wasm_size_t)(WASMSTACKALIGN - 1))
 
 namespace mkxp_sandbox {
+    template <typename...> struct decl_slots {};
+
+    template <typename> struct get_num_slots;
+    template <> struct get_num_slots<struct decl_slots<>> {
+        static constexpr wasm_size_t value = 0;
+    };
+    template <typename Head, typename... Tail> struct get_num_slots<struct decl_slots<Head, Tail...>> {
+        static constexpr wasm_size_t value = 1 + get_num_slots<struct decl_slots<Tail...>>::value;
+    };
+
+    // typename concat_slots<decl_slots<x1, x2, ... xn>, decl_slots<y1, y2, ..., ym>>::type -> decl_slots<x1, x2, ..., xn, y1, y2, ..., ym>
+    template <typename, typename> struct concat_slots;
+    template <typename... Head, typename... Tail> struct concat_slots<struct decl_slots<Head...>, struct decl_slots<Tail...>> {
+        using type = decl_slots<Head..., Tail...>;
+    };
+
+    // typename get_last_slot<decl_slots<x1, x2, ..., xn>>::type -> xn
+    template <typename> struct get_last_slot;
+    template <typename Tail> struct get_last_slot<struct decl_slots<Tail>> {
+        using type = Tail;
+    };
+    template <typename Head, typename... Tail> struct get_last_slot<struct decl_slots<Head, Tail...>> {
+        using type = typename get_last_slot<decl_slots<Tail...>>::type;
+    };
+
+    // typename pop_last_slot<decl_slots<x1, x2, ..., xn-1, xn>>::type -> decl_slots<x1, x2, ..., xn-1>
+    template <typename> struct pop_last_slot;
+    template <typename Tail> struct pop_last_slot<struct decl_slots<Tail>> {
+        using type = decl_slots<>;
+    };
+    template <typename Head, typename... Tail> struct pop_last_slot<struct decl_slots<Head, Tail...>> {
+        using type = typename concat_slots<struct decl_slots<Head>, typename pop_last_slot<struct decl_slots<Tail...>>::type>::type;
+    };
+
+    // `slot_type<i, slots>::type` is the type of the `i`th slot.
+    // For example:
+    //     typedef decl_slots<uint64_t, uint32_t, uint16_t, uint8_t> slots;
+    //     slot_type<0, slots>::type var0; // this variable should be of type `uint64_t`
+    //     slot_type<1, slots>::type var1; // this variable should be of type `uint32_t`
+    //     slot_type<2, slots>::type var2; // this variable should be of type `uint16_t`
+    //     slot_type<3, slots>::type var3; // this variable should be of type `uint8_t`
+    template <wasm_size_t Index, typename Slots> struct slot_type;
+    template <wasm_size_t Index> struct slot_type<Index, struct decl_slots<>> {
+	static_assert(false, "index out of range");
+    };
+    template <typename Head, typename... Tail> struct slot_type<0, struct decl_slots<Head, Tail...>> {
+	static_assert(std::is_integral<Head>::value || std::is_floating_point<Head>::value, "slots must have numeric types");
+        typedef Head type;
+    };
+    template <wasm_size_t Index, typename Head, typename... Tail> struct slot_type<Index, struct decl_slots<Head, Tail...>> : slot_type<Index - 1, struct decl_slots<Tail...>> {};
+
+    // `slots_size<slots>::value` is the total number of bytes required to store all the slots, including padding bytes between the slots but not including padding bytes after the last slot.
+    // For example:
+    //     typedef decl_slots<uint64_t, uint32_t, uint16_t, uint8_t> slots;
+    //     constexpr wasm_size_t size = slots_size<slots>::value; // should be 15
+    template <typename Slots> struct slots_size;
+    template <> struct slots_size<struct decl_slots<>> {
+        static constexpr wasm_size_t value = 0;
+    };
+    template <typename Head, typename... Tail> struct slots_size<struct decl_slots<Head, Tail...>> {
+	static_assert(std::is_integral<typename get_last_slot<struct decl_slots<Head, Tail...>>::type>::value || std::is_floating_point<typename get_last_slot<struct decl_slots<Head, Tail...>>::type>::value, "slots must have numeric types");
+    private:
+        static constexpr wasm_size_t last_size = sizeof(typename get_last_slot<struct decl_slots<Head, Tail...>>::type);
+        static constexpr wasm_size_t rest_size = slots_size<typename pop_last_slot<struct decl_slots<Head, Tail...>>::type>::value;
+        static constexpr wasm_size_t rest_size_aligned_to_last_size = (rest_size - 1 + last_size) / last_size * last_size;
+    public:
+        static constexpr wasm_size_t value = rest_size_aligned_to_last_size + last_size;
+    };
+
+    template <wasm_size_t Index, typename> struct slot_offset_nothrow;
+    template <wasm_size_t Index> struct slot_offset_nothrow<Index, struct decl_slots<>> {
+        static constexpr wasm_size_t value = 0;
+    };
+    template <wasm_size_t Index, typename Head, typename... Tail> struct slot_offset_nothrow<Index, struct decl_slots<Head, Tail...>> {
+        static constexpr wasm_size_t value = get_num_slots<struct decl_slots<Head, Tail...>>::value <= Index
+            ? slots_size<struct decl_slots<Head, Tail...>>::value
+            : slot_offset_nothrow<Index, typename pop_last_slot<struct decl_slots<Head, Tail...>>::type>::value;
+    };
+
+    // `slot_offset<i, slots>::value` is the byte offset of the `i`th slot.
+    // For example:
+    //     typedef decl_slots<uint64_t, uint32_t, uint16_t, uint8_t> slots;
+    //     constexpr wasm_size_t slot0_offset = slot_offset<0, slots>::value; // should be 0
+    //     constexpr wasm_size_t slot1_offset = slot_offset<1, slots>::value; // should be 8
+    //     constexpr wasm_size_t slot2_offset = slot_offset<2, slots>::value; // should be 12
+    //     constexpr wasm_size_t slot3_offset = slot_offset<3, slots>::value; // should be 14
+    template <wasm_size_t Index, typename Slots> struct slot_offset;
+    template <wasm_size_t Index, typename Head, typename... Tail> struct slot_offset<Index, struct decl_slots<Head, Tail...>> {
+	static_assert(Index < get_num_slots<struct decl_slots<Head, Tail...>>::value, "index out of range");
+	static constexpr wasm_size_t value = slot_offset_nothrow<Index, struct decl_slots<Head, Tail...>>::value;
+    };
+
+    // If the type `T::slots` exists,
+    // then `declared_slots_size<T>::value` is equal to `slots_size<typename T::slots>::value` (i.e. the total size of the slots used by `T`).
+    // Otherwise, it's equal to 0.
+    template <typename T, typename _Dummy = void> struct declared_slots_size;
+    template <typename T> using slots_declaration = typename T::slots;
+    template <typename T> struct declared_slots_size<T, typename boost::enable_if<boost::is_detected<slots_declaration, T>>::type> {
+        static constexpr wasm_size_t value = slots_size<typename T::slots>::value;
+    };
+    template <typename T> struct declared_slots_size<T, typename boost::disable_if<boost::is_detected<slots_declaration, T>>::type> {
+        static constexpr wasm_size_t value = 0;
+    };
+
     struct binding_base {
     private:
         typedef std::tuple<wasm_ptr_t, wasm_ptr_t, wasm_ptr_t> key_t;
 
         struct stack_frame {
-            struct binding_base *bind;
-            void (*destructor)(void *ptr);
-            wasm_ptr_t ptr;
-            stack_frame(struct binding_base &bind, void (*destructor)(void *ptr), wasm_ptr_t ptr);
+            void *coroutine;
+            void (*destructor)(void *coroutine);
+            wasm_ptr_t stack_ptr;
+            stack_frame(void *coroutine, void (*destructor)(void *coroutine), wasm_ptr_t stack_ptr);
             stack_frame(const struct stack_frame &frame) = delete;
             stack_frame(struct stack_frame &&frame) noexcept;
             struct stack_frame &operator=(const struct stack_frame &frame) = delete;
@@ -79,12 +183,13 @@ namespace mkxp_sandbox {
         struct fiber {
             key_t key;
             std::vector<struct stack_frame> stack;
-            size_t stack_ptr;
+            size_t stack_index;
         };
 
-        wasm_ptr_t next_func_ptr;
         std::shared_ptr<struct w2c_ruby> _instance;
         std::unordered_map<key_t, struct fiber, boost::hash<key_t>> fibers;
+        wasm_ptr_t next_func_ptr;
+        wasm_ptr_t stack_ptr;
 
     public:
         binding_base(std::shared_ptr<struct w2c_ruby> m);
@@ -101,15 +206,16 @@ namespace mkxp_sandbox {
         void rtypeddata_dcompact(wasm_ptr_t data, wasm_ptr_t ptr);
 
         template <typename T> struct stack_frame_guard {
+            static_assert(std::is_base_of<boost::asio::coroutine, T>::value, "`T` must be a subclass of `boost::asio::coroutine`");
             friend struct binding_base;
 
         private:
+            T *coroutine;
             struct binding_base *bind;
             struct fiber *fiber;
-            wasm_ptr_t ptr;
 
-            static void stack_frame_destructor(void *ptr) {
-                ((T *)ptr)->~T();
+            static void coroutine_destructor(void *coroutine) {
+                ((T *)coroutine)->~T();
             }
 
             static struct fiber &init_fiber(struct binding_base &bind) {
@@ -124,61 +230,64 @@ namespace mkxp_sandbox {
                 return bind.fibers[key];
             }
 
-            template <typename U> static typename boost::enable_if<std::is_constructible<U, struct binding_base &>, void>::type construct_frame_at(void *ptr, struct binding_base &bind) {
-                new(ptr) U(bind);
+            template <typename U> static typename boost::enable_if<std::is_constructible<U, struct binding_base &>, U *>::type construct_frame(struct binding_base &bind) {
+                return new U(bind);
             }
 
-            template <typename U> static typename boost::disable_if<std::is_constructible<U, struct binding_base &>, void>::type construct_frame_at(void *ptr, struct binding_base &bind) {
-                new(ptr) U;
+            template <typename U> static typename boost::disable_if<std::is_constructible<U, struct binding_base &>, U *>::type construct_frame(struct binding_base &bind) {
+                return new U;
             }
 
-            static wasm_ptr_t init_frame(struct binding_base &bind, struct fiber &fiber) {
-                uint32_t state = w2c_ruby_asyncify_get_state(&bind.instance());
+            stack_frame_guard(struct binding_base &b) : bind(&b), fiber(&init_fiber(b)) {
+                uint32_t state = w2c_ruby_asyncify_get_state(&b.instance());
 
-                if (fiber.stack_ptr > fiber.stack.size()) {
+                if (fiber->stack_index > fiber->stack.size()) {
                     std::abort();
                 }
 
                 // If Asyncify is rewinding, restore the stack frame from before Asyncify started unwinding
                 if (state == 2) {
-                    if (fiber.stack_ptr == fiber.stack.size()) {
+                    if (fiber->stack_index == fiber->stack.size()) {
                         std::abort();
                     }
-                    return fiber.stack[fiber.stack_ptr++].ptr;
+                    struct stack_frame &frame = fiber->stack[fiber->stack_index++];
+                    b.stack_ptr = frame.stack_ptr;
+                    coroutine = (T *)frame.coroutine;
+                    return;
                 }
 
                 // Otherwise, create a new stack frame
                 assert(state == 0);
-                while (fiber.stack.size() > fiber.stack_ptr) {
-                    fiber.stack.pop_back();
+                while (fiber->stack.size() > fiber->stack_index) {
+                    bind->stack_ptr = fiber->stack.back().stack_ptr;
+                    fiber->stack.pop_back();
                 }
-                ++fiber.stack_ptr;
-                wasm_ptr_t sp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance()) - SIZEOF_WASMSTACKALIGN(T);
-                fiber.stack.emplace_back(
-                    bind,
-                    stack_frame_destructor,
-                    sp
+                ++fiber->stack_index;
+                b.stack_ptr = w2c_ruby_rb_wasm_get_stack_pointer(&b.instance()) - CEIL_WASMSTACKALIGN(declared_slots_size<T>::value);
+                assert(b.stack_ptr % sizeof(VALUE) == 0);
+                assert(b.stack_ptr % WASMSTACKALIGN == 0);
+                if (declared_slots_size<T>::value != 0) {
+                    w2c_ruby_rb_wasm_set_stack_pointer(&b.instance(), b.stack_ptr);
+                }
+                coroutine = construct_frame<T>(b);
+                fiber->stack.emplace_back(
+                    coroutine,
+                    coroutine_destructor,
+                    b.stack_ptr
                 );
-                assert(sp % sizeof(VALUE) == 0);
-                assert(sp % WASMSTACKALIGN == 0);
-                construct_frame_at<T>(*bind + sp, bind);
-                w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), sp);
-                return sp;
             }
-
-            stack_frame_guard(struct binding_base &b) : bind(&b), fiber(&init_fiber(b)), ptr(init_frame(b, *fiber)) {}
 
         public:
             stack_frame_guard(const stack_frame_guard &frame) = delete;
 
-            stack_frame_guard(stack_frame_guard &&frame) noexcept : bind(std::exchange(frame.bind, nullptr)), fiber(std::exchange(frame.fiber, nullptr)), ptr(std::exchange(frame.ptr, 0)) {}
+            stack_frame_guard(stack_frame_guard &&frame) noexcept : coroutine(std::exchange(frame.coroutine, nullptr)), bind(std::exchange(frame.bind, nullptr)), fiber(std::exchange(frame.fiber, nullptr)) {}
 
             struct stack_frame_guard &operator=(const stack_frame_guard &frame) = delete;
 
             struct stack_frame_guard &operator=(stack_frame_guard &&frame) noexcept {
+                coroutine = std::exchange(frame.coroutine, nullptr);
                 bind = std::exchange(frame.bind, nullptr);
                 fiber = std::exchange(frame.fiber, nullptr);
-                ptr = std::exchange(frame.ptr, 0);
                 return *this;
             }
 
@@ -187,18 +296,25 @@ namespace mkxp_sandbox {
                     return;
                 }
 
+                assert(fiber->stack_index > 0);
+                assert(fiber->stack_index - 1 < fiber->stack.size());
+
                 if (get()->is_complete()) {
-                    while (fiber->stack.size() > fiber->stack_ptr) {
+                    while (fiber->stack.size() > fiber->stack_index) {
+                        bind->stack_ptr = fiber->stack.back().stack_ptr;
                         fiber->stack.pop_back();
                     }
 
-                    assert(fiber->stack.size() == fiber->stack_ptr);
+                    assert(fiber->stack.size() == fiber->stack_index);
 
-                    w2c_ruby_rb_wasm_set_stack_pointer(&bind->instance(), fiber->stack.back().ptr + SIZEOF_WASMSTACKALIGN(T));
+                    w2c_ruby_rb_wasm_set_stack_pointer(&bind->instance(), fiber->stack.back().stack_ptr + CEIL_WASMSTACKALIGN(declared_slots_size<T>::value));
+                    bind->stack_ptr = fiber->stack.back().stack_ptr;
                     fiber->stack.pop_back();
                 }
 
-                --fiber->stack_ptr;
+                if (--fiber->stack_index > 0) {
+                    bind->stack_ptr = fiber->stack[fiber->stack_index - 1].stack_ptr;
+                }
 
                 if (fiber->stack.empty()) {
                     bind->fibers.erase(fiber->key);
@@ -206,7 +322,7 @@ namespace mkxp_sandbox {
             }
 
             inline T *get() const noexcept {
-                return (T *)(**bind + ptr);
+                return coroutine;
             }
 
             inline T &operator()() const noexcept {
@@ -216,6 +332,10 @@ namespace mkxp_sandbox {
 
         template <typename T> struct stack_frame_guard<T> bind() {
             return *this;
+        }
+
+        wasm_ptr_t stack_pointer() const noexcept {
+            return stack_ptr;
         }
     };
 }

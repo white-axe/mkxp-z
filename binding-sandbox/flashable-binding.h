@@ -30,12 +30,12 @@ namespace mkxp_sandbox {
     private:
         static VALUE flash(VALUE self, VALUE obj, VALUE value) {
             struct coro : boost::asio::coroutine {
-                int32_t duration;
+                typedef decl_slots<int32_t> slots;
 
                 VALUE operator()(VALUE self, VALUE obj, VALUE value) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_AND_SET(duration, rb_num2int, value);
-                        get_private_data<C>(self)->flash(obj == SANDBOX_NIL ? nullptr : &get_private_data<Color>(obj)->norm, duration);
+                        SANDBOX_AWAIT_S(0, rb_num2int, value);
+                        get_private_data<C>(self)->flash(obj == SANDBOX_NIL ? nullptr : &get_private_data<Color>(obj)->norm, SANDBOX_SLOT(0));
                     }
 
                     return SANDBOX_NIL;

@@ -301,7 +301,6 @@ static VALUE rescue(VALUE arg, VALUE exception) {
     struct coro : boost::asio::coroutine {
         VALUE operator()(VALUE exception) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT(rb_p, exception);
                 SANDBOX_AWAIT(log_backtrace, exception);
             }
 
@@ -313,12 +312,12 @@ static VALUE rescue(VALUE arg, VALUE exception) {
 }
 
 struct main : boost::asio::coroutine {
-    VALUE success;
+    typedef decl_slots<VALUE> slots;
 
     void operator()() {
         BOOST_ASIO_CORO_REENTER (this) {
-            SANDBOX_AWAIT_AND_SET(success, rb_rescue2, func, SANDBOX_NIL, rescue, SANDBOX_NIL, sb()->rb_eException(), 0);
-            if (SANDBOX_VALUE_TO_BOOL(success)) {
+            SANDBOX_AWAIT_S(0, rb_rescue2, func, SANDBOX_NIL, rescue, SANDBOX_NIL, sb()->rb_eException(), 0);
+            if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(0))) {
                 log_printf(RETRO_LOG_INFO, "Game exited; terminating\n");
             } else {
                 log_printf(RETRO_LOG_ERROR, "Game threw an exception; terminating\n");

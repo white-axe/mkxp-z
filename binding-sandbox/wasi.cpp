@@ -35,7 +35,7 @@
 
 static inline size_t strlen_safe(const char *str, size_t max_length) {
     const char *ptr = (const char *)std::memchr(str, 0, max_length);
-    return ptr == NULL ? max_length : ptr - str;
+    return ptr == nullptr ? max_length : ptr - str;
 }
 
 struct fs_dir *wasi_file_entry::dir_handle() {
@@ -87,7 +87,7 @@ u32 wasi_t::allocate_file_descriptor(enum wasi_fd_type type, void *handle) {
 }
 
 void wasi_t::deallocate_file_descriptor(u32 fd) {
-    if (fdtable[fd].handle != NULL) {
+    if (fdtable[fd].handle != nullptr) {
         switch (fdtable[fd].type) {
             case wasi_fd_type::FS:
             case wasi_fd_type::FSDIR:
@@ -104,7 +104,7 @@ void wasi_t::deallocate_file_descriptor(u32 fd) {
     if (!fdtable.empty() && fd == fdtable.size() - 1) {
         fdtable.pop_back();
     } else {
-        fdtable[fd] = {.type = wasi_fd_type::VACANT, .handle = NULL};
+        fdtable[fd] = {.type = wasi_fd_type::VACANT, .handle = nullptr};
         vacant_fds.push_back(fd);
     }
 }
@@ -566,7 +566,7 @@ extern "C" u32 w2c_wasi__snapshot__preview1_fd_renumber(wasi_t *wasi, u32 fd, u3
             if (!wasi->fdtable.empty() && fd == wasi->fdtable.size() - 1) {
                 wasi->fdtable.pop_back();
             } else {
-                wasi->fdtable[fd] = {.type = wasi_fd_type::VACANT, .handle = NULL};
+                wasi->fdtable[fd] = {.type = wasi_fd_type::VACANT, .handle = nullptr};
                 wasi->vacant_fds.push_back(fd);
             }
             return WASI_ESUCCESS;

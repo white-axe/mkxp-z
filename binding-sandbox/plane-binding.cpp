@@ -35,12 +35,6 @@ SANDBOX_DEF_ALLOC(plane_type);
 
 static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        int32_t x;
-        int32_t y;
-        int32_t w;
-        int32_t h;
-        VALUE ary;
-
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 GFX_LOCK;
@@ -69,8 +63,8 @@ SANDBOX_DEF_GFX_PROP_I(Plane, BlendType, blend_type);
 
 void plane_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        plane_type = sb()->rb_data_type("Plane", NULL, dfree<Plane>, NULL, NULL, 0, 0, 0);
-        SANDBOX_AWAIT_AND_SET(plane_class, rb_define_class, "Plane", sb()->rb_cObject());
+        plane_type = sb()->rb_data_type("Plane", nullptr, dfree<Plane>, nullptr, nullptr, 0, 0, 0);
+        SANDBOX_AWAIT_R(plane_class, rb_define_class, "Plane", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, plane_class, alloc);
         SANDBOX_AWAIT(rb_define_method, plane_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
         SANDBOX_AWAIT(disposable_binding_init<Plane>, plane_class);

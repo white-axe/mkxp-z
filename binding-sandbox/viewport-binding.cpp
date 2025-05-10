@@ -35,11 +35,7 @@ SANDBOX_DEF_ALLOC(viewport_type);
 
 static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        int32_t x;
-        int32_t y;
-        int32_t w;
-        int32_t h;
-        VALUE obj;
+        typedef decl_slots<int32_t, int32_t, int32_t, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
@@ -53,12 +49,12 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                         GFX_LOCK;
                         viewport = new Viewport(get_private_data<Rect>(((VALUE *)(**sb() + argv))[0]));
                     } else {
-                        SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
-                        SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
-                        SANDBOX_AWAIT_AND_SET(w, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
-                        SANDBOX_AWAIT_AND_SET(h, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
+                        SANDBOX_AWAIT_S(0, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                        SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                        SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                        SANDBOX_AWAIT_S(3, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
                         GFX_LOCK;
-                        viewport = new Viewport(x, y, w, h);
+                        viewport = new Viewport(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3));
                     }
 
                     set_private_data(self, viewport);
@@ -88,8 +84,8 @@ SANDBOX_DEF_GFX_PROP_OBJ_VAL(Viewport, Tone, Tone, tone);
 
 void viewport_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        viewport_type = sb()->rb_data_type("Viewport", NULL, dfree<Viewport>, NULL, NULL, 0, 0, 0);
-        SANDBOX_AWAIT_AND_SET(viewport_class, rb_define_class, "Viewport", sb()->rb_cObject());
+        viewport_type = sb()->rb_data_type("Viewport", nullptr, dfree<Viewport>, nullptr, nullptr, 0, 0, 0);
+        SANDBOX_AWAIT_R(viewport_class, rb_define_class, "Viewport", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, viewport_class, alloc);
         SANDBOX_AWAIT(rb_define_method, viewport_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
         SANDBOX_AWAIT(disposable_binding_init<Viewport>, viewport_class);

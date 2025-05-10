@@ -28,39 +28,34 @@ VALUE mkxp_sandbox::audio_module;
 
 static VALUE bgm_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        wasm_ptr_t filename;
-        int32_t volume;
-        int32_t pitch;
-        double pos;
-        int32_t track;
-        bool have_track;
+        typedef decl_slots<double, wasm_ptr_t, int32_t, int32_t, int32_t, uint8_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                volume = 100;
-                pitch = 100;
-                pos = 0.0;
-                have_track = false;
+                SANDBOX_SLOT(0) = 0.0;
+                SANDBOX_SLOT(2) = 100;
+                SANDBOX_SLOT(3) = 100;
+                SANDBOX_SLOT(5) = false;
 
-                SANDBOX_AWAIT_AND_SET(filename, rb_string_value_cstr, (VALUE *)(**sb() + argv));
+                SANDBOX_AWAIT_S(1, rb_string_value_cstr, (VALUE *)(**sb() + argv));
                 if (argc >= 2) {
-                    SANDBOX_AWAIT_AND_SET(volume, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
                     if (argc >= 3) {
-                        SANDBOX_AWAIT_AND_SET(pitch, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                        SANDBOX_AWAIT_S(3, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
                         if (argc >= 4) {
-                            SANDBOX_AWAIT_AND_SET(pos, rb_num2dbl, ((VALUE *)(**sb() + argv))[3]);
+                            SANDBOX_AWAIT_S(0, rb_num2dbl, ((VALUE *)(**sb() + argv))[3]);
                             if (argc >= 5) {
-                                SANDBOX_AWAIT_AND_SET(track, rb_num2int, ((VALUE *)(**sb() + argv))[4]);
-                                have_track = true;
+                                SANDBOX_AWAIT_S(4, rb_num2int, ((VALUE *)(**sb() + argv))[4]);
+                                SANDBOX_SLOT(5) = true;
                             }
                         }
                     }
                 }
 
-                if (have_track) {
-                    mkxp_retro::audio->bgmPlay((const char *)(**sb() + filename), volume, pitch, pos, track);
+                if (SANDBOX_SLOT(5)) {
+                    mkxp_retro::audio->bgmPlay((const char *)(**sb() + SANDBOX_SLOT(1)), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(0), SANDBOX_SLOT(4));
                 } else {
-                    mkxp_retro::audio->bgmPlay((const char *)(**sb() + filename), volume, pitch, pos);
+                    mkxp_retro::audio->bgmPlay((const char *)(**sb() + SANDBOX_SLOT(1)), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(0));
                 }
             }
 
@@ -78,17 +73,16 @@ static VALUE bgm_stop(VALUE self) {
 
 static VALUE bgm_fade(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        int32_t time;
-        int32_t track;
+        typedef decl_slots<int32_t, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                track = -127;
-                SANDBOX_AWAIT_AND_SET(time, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                SANDBOX_SLOT(1) = -127;
+                SANDBOX_AWAIT_S(0, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
                 if (argc >= 2) {
-                    SANDBOX_AWAIT_AND_SET(track, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
                 }
-                mkxp_retro::audio->bgmFade(time, track);
+                mkxp_retro::audio->bgmFade(SANDBOX_SLOT(0), SANDBOX_SLOT(1));
             }
 
             return SANDBOX_NIL;
@@ -100,21 +94,19 @@ static VALUE bgm_fade(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
 static VALUE bgm_pos(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        int32_t track;
-        double pos;
-        VALUE value;
+        typedef decl_slots<double, VALUE, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                track = -127;
+                SANDBOX_SLOT(2) = -127;
                 if (argc >= 1) {
-                    SANDBOX_AWAIT_AND_SET(track, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                    SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
                 }
-                pos = mkxp_retro::audio->bgmPos(track);
-                SANDBOX_AWAIT_AND_SET(value, rb_float_new, pos);
+                SANDBOX_SLOT(0) = mkxp_retro::audio->bgmPos(SANDBOX_SLOT(2));
+                SANDBOX_AWAIT_S(1, rb_float_new, SANDBOX_SLOT(0));
             }
 
-            return value;
+            return SANDBOX_SLOT(1);
         }
     };
 
@@ -123,21 +115,19 @@ static VALUE bgm_pos(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
 static VALUE bgm_volume(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        int32_t track;
-        int32_t volume;
-        VALUE value;
+        typedef decl_slots<VALUE, int32_t, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                track = -127;
+                SANDBOX_SLOT(1) = -127;
                 if (argc >= 1) {
-                    SANDBOX_AWAIT_AND_SET(track, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
                 }
-                volume = mkxp_retro::audio->bgmGetVolume(track);
-                SANDBOX_AWAIT_AND_SET(value, rb_ll2inum, volume);
+                SANDBOX_SLOT(2) = mkxp_retro::audio->bgmGetVolume(SANDBOX_SLOT(1));
+                SANDBOX_AWAIT_S(0, rb_ll2inum, SANDBOX_SLOT(2));
             }
 
-            return value;
+            return SANDBOX_SLOT(0);
         }
     };
 
@@ -146,17 +136,16 @@ static VALUE bgm_volume(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
 static VALUE bgm_set_volume(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        int32_t volume;
-        int32_t track;
+        typedef decl_slots<int32_t, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                track = -127;
-                SANDBOX_AWAIT_AND_SET(volume, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                SANDBOX_SLOT(1) = -127;
+                SANDBOX_AWAIT_S(0, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
                 if (argc >= 2) {
-                    SANDBOX_AWAIT_AND_SET(track, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
                 }
-                mkxp_retro::audio->bgmSetVolume(volume, track);
+                mkxp_retro::audio->bgmSetVolume(SANDBOX_SLOT(0), SANDBOX_SLOT(1));
             }
 
             return SANDBOX_NIL;
@@ -168,29 +157,26 @@ static VALUE bgm_set_volume(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
 static VALUE bgs_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        wasm_ptr_t filename;
-        int32_t volume;
-        int32_t pitch;
-        double pos;
+        typedef decl_slots<double, wasm_ptr_t, int32_t, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                volume = 100;
-                pitch = 100;
-                pos = 0.0;
+                SANDBOX_SLOT(0) = 0.0;
+                SANDBOX_SLOT(2) = 100;
+                SANDBOX_SLOT(3) = 100;
 
-                SANDBOX_AWAIT_AND_SET(filename, rb_string_value_cstr, (VALUE *)(**sb() + argv));
+                SANDBOX_AWAIT_S(1, rb_string_value_cstr, (VALUE *)(**sb() + argv));
                 if (argc >= 2) {
-                    SANDBOX_AWAIT_AND_SET(volume, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
                     if (argc >= 3) {
-                        SANDBOX_AWAIT_AND_SET(pitch, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                        SANDBOX_AWAIT_S(3, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
                         if (argc >= 4) {
-                            SANDBOX_AWAIT_AND_SET(pos, rb_num2dbl, ((VALUE *)(**sb() + argv))[3]);
+                            SANDBOX_AWAIT_S(0, rb_num2dbl, ((VALUE *)(**sb() + argv))[3]);
                         }
                     }
                 }
 
-                mkxp_retro::audio->bgsPlay((const char *)(**sb() + filename), volume, pitch, pos);
+                mkxp_retro::audio->bgsPlay((const char *)(**sb() + SANDBOX_SLOT(1)), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(0));
             }
 
             return SANDBOX_NIL;
@@ -207,12 +193,12 @@ static VALUE bgs_stop(VALUE self) {
 
 static VALUE bgs_fade(VALUE self, VALUE value) {
     struct coro : boost::asio::coroutine {
-        int32_t time;
+        typedef decl_slots<int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(time, rb_num2int, value);
-                mkxp_retro::audio->bgsFade(time);
+                SANDBOX_AWAIT_S(0, rb_num2int, value);
+                mkxp_retro::audio->bgsFade(SANDBOX_SLOT(0));
             }
 
             return SANDBOX_NIL;
@@ -224,16 +210,15 @@ static VALUE bgs_fade(VALUE self, VALUE value) {
 
 static VALUE bgs_pos(VALUE self) {
     struct coro : boost::asio::coroutine {
-        double pos;
-        VALUE value;
+        typedef decl_slots<double, VALUE> slots;
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                pos = mkxp_retro::audio->bgsPos();
-                SANDBOX_AWAIT_AND_SET(value, rb_float_new, pos);
+                SANDBOX_SLOT(0) = mkxp_retro::audio->bgsPos();
+                SANDBOX_AWAIT_S(1, rb_float_new, SANDBOX_SLOT(0));
             }
 
-            return value;
+            return SANDBOX_SLOT(1);
         }
     };
 
@@ -242,24 +227,22 @@ static VALUE bgs_pos(VALUE self) {
 
 static VALUE me_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        wasm_ptr_t filename;
-        int32_t volume;
-        int32_t pitch;
+        typedef decl_slots<wasm_ptr_t, int32_t, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                volume = 100;
-                pitch = 100;
+                SANDBOX_SLOT(1) = 100;
+                SANDBOX_SLOT(2) = 100;
 
-                SANDBOX_AWAIT_AND_SET(filename, rb_string_value_cstr, (VALUE *)(**sb() + argv));
+                SANDBOX_AWAIT_S(0, rb_string_value_cstr, (VALUE *)(**sb() + argv));
                 if (argc >= 2) {
-                    SANDBOX_AWAIT_AND_SET(volume, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
                     if (argc >= 3) {
-                        SANDBOX_AWAIT_AND_SET(pitch, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                        SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
                     }
                 }
 
-                mkxp_retro::audio->mePlay((const char *)(**sb() + filename), volume, pitch);
+                mkxp_retro::audio->mePlay((const char *)(**sb() + SANDBOX_SLOT(0)), SANDBOX_SLOT(1), SANDBOX_SLOT(2));
             }
 
             return SANDBOX_NIL;
@@ -276,12 +259,12 @@ static VALUE me_stop(VALUE self) {
 
 static VALUE me_fade(VALUE self, VALUE value) {
     struct coro : boost::asio::coroutine {
-        int32_t time;
+        typedef decl_slots<int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(time, rb_num2int, value);
-                mkxp_retro::audio->meFade(time);
+                SANDBOX_AWAIT_S(0, rb_num2int, value);
+                mkxp_retro::audio->meFade(SANDBOX_SLOT(0));
             }
 
             return SANDBOX_NIL;
@@ -293,24 +276,22 @@ static VALUE me_fade(VALUE self, VALUE value) {
 
 static VALUE se_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        wasm_ptr_t filename;
-        int32_t volume;
-        int32_t pitch;
+        typedef decl_slots<wasm_ptr_t, int32_t, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                volume = 100;
-                pitch = 100;
+                SANDBOX_SLOT(1) = 100;
+                SANDBOX_SLOT(2) = 100;
 
-                SANDBOX_AWAIT_AND_SET(filename, rb_string_value_cstr, (VALUE *)(**sb() + argv));
+                SANDBOX_AWAIT_S(0, rb_string_value_cstr, (VALUE *)(**sb() + argv));
                 if (argc >= 2) {
-                    SANDBOX_AWAIT_AND_SET(volume, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
                     if (argc >= 3) {
-                        SANDBOX_AWAIT_AND_SET(pitch, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                        SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
                     }
                 }
 
-                mkxp_retro::audio->sePlay((const char *)(**sb() + filename), volume, pitch);
+                mkxp_retro::audio->sePlay((const char *)(**sb() + SANDBOX_SLOT(0)), SANDBOX_SLOT(1), SANDBOX_SLOT(2));
             }
 
             return SANDBOX_NIL;
@@ -337,7 +318,7 @@ static VALUE reset(VALUE self) {
 
 void audio_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        SANDBOX_AWAIT_AND_SET(audio_module, rb_define_module, "Audio");
+        SANDBOX_AWAIT_R(audio_module, rb_define_module, "Audio");
         SANDBOX_AWAIT(rb_define_module_function, audio_module, "bgm_play", (VALUE (*)(ANYARGS))bgm_play, -1);
         SANDBOX_AWAIT(rb_define_module_function, audio_module, "bgm_stop", (VALUE (*)(ANYARGS))bgm_stop, 0);
         SANDBOX_AWAIT(rb_define_module_function, audio_module, "bgm_fade", (VALUE (*)(ANYARGS))bgm_fade, -1);

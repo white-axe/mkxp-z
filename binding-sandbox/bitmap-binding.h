@@ -28,11 +28,8 @@ namespace mkxp_sandbox {
     extern VALUE bitmap_class;
 
     struct bitmap_init_props : boost::asio::coroutine {
+        typedef decl_slots<VALUE, VALUE, VALUE> slots;
         void operator()(VALUE self);
-    private:
-        VALUE font;
-        VALUE hires;
-        VALUE hires_font;
     };
 
     struct bitmap_binding_init : boost::asio::coroutine {

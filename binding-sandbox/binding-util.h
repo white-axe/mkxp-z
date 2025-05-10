@@ -22,21 +22,64 @@
 #ifndef MKXPZ_SANDBOX_BINDING_UTIL_H
 #define MKXPZ_SANDBOX_BINDING_UTIL_H
 
+#include <type_traits>
+#include <boost/optional.hpp>
 #include "core.h"
 #include "sandbox.h"
 
 #define GFX_GUARD_EXC(exp) exp
 
+#define SANDBOX_SLOT(slot_index) (*(typename slot_type<(slot_index), slots>::type *)(**::mkxp_sandbox::sb() + ::mkxp_sandbox::sb()->stack_pointer() + slot_offset<(slot_index), slots>::value))
+
+#define SANDBOX_AWAIT(coroutine, ...) \
+    do { \
+        { \
+            using namespace ::mkxp_sandbox; \
+            if (_sandbox_await<struct coroutine>(__VA_ARGS__)) { \
+                break; \
+            } \
+        } \
+        BOOST_ASIO_CORO_YIELD; \
+    } while (1)
+
+#define SANDBOX_AWAIT_R(reference, coroutine, ...) \
+    do { \
+        { \
+            using namespace ::mkxp_sandbox; \
+            typedef std::remove_reference<decltype(reference)>::type _sandbox_await_output_t; \
+            boost::optional<_sandbox_await_output_t> _sandbox_await_output = _sandbox_await_r<struct coroutine, _sandbox_await_output_t>(__VA_ARGS__); \
+            if (_sandbox_await_output.has_value()) { \
+                (reference) = *_sandbox_await_output; \
+                break; \
+            } \
+        } \
+        BOOST_ASIO_CORO_YIELD; \
+    } while (1)
+
+#define SANDBOX_AWAIT_S(slot_index, coroutine, ...) SANDBOX_AWAIT_R(SANDBOX_SLOT(slot_index), coroutine, __VA_ARGS__)
+
+#define SANDBOX_YIELD \
+    do { \
+        using namespace ::mkxp_sandbox; \
+        sb()._begin_yield(); \
+        BOOST_ASIO_CORO_YIELD; \
+        sb()._end_yield(); \
+    } while (0)
+
+#define SANDBOX_VALUE_TO_BOOL(value) ((value) != SANDBOX_FALSE && (value) != SANDBOX_NIL)
+
+#define SANDBOX_BOOL_TO_VALUE(boolean) ((boolean) ? SANDBOX_TRUE : SANDBOX_FALSE)
+
 #define SANDBOX_DEF_ALLOC(rbtype) \
     static VALUE alloc(VALUE _klass) { \
         using namespace ::mkxp_sandbox; \
         struct coro : boost::asio::coroutine { \
-            VALUE _obj; \
+            typedef decl_slots<VALUE> slots; \
             VALUE operator()(VALUE _klass) { \
                 BOOST_ASIO_CORO_REENTER (this) { \
-                    SANDBOX_AWAIT_AND_SET(_obj, rb_data_typed_object_wrap, _klass, 0, rbtype); \
+                    SANDBOX_AWAIT_S(0, rb_data_typed_object_wrap, _klass, 0, rbtype); \
                 } \
-                return _obj; \
+                return SANDBOX_SLOT(0); \
             } \
         }; \
         return sb()->bind<struct coro>()()(_klass); \
@@ -46,13 +89,13 @@
     static VALUE alloc(VALUE _klass) { \
         using namespace ::mkxp_sandbox; \
         struct coro : boost::asio::coroutine { \
-            VALUE _obj; \
+            typedef decl_slots<VALUE> slots; \
             VALUE operator()(VALUE _klass) { \
                 BOOST_ASIO_CORO_REENTER (this) { \
-                    SANDBOX_AWAIT_AND_SET(_obj, rb_data_typed_object_wrap, _klass, 0, rbtype); \
-                    set_private_data(_obj, initializer); /* TODO: free when sandbox is deallocated */ \
+                    SANDBOX_AWAIT_S(0, rb_data_typed_object_wrap, _klass, 0, rbtype); \
+                    set_private_data(SANDBOX_SLOT(0), initializer); /* TODO: free when sandbox is deallocated */ \
                 } \
-                return _obj; \
+                return SANDBOX_SLOT(0); \
             } \
         }; \
         return sb()->bind<struct coro>()()(_klass); \
@@ -86,10 +129,10 @@ namespace mkxp_sandbox {
         using namespace ::mkxp_sandbox; \
         struct coro : boost::asio::coroutine { \
             VALUE operator()(VALUE self, VALUE value) { \
-                V v; \
+                typedef decl_slots<V> slots; \
                 BOOST_ASIO_CORO_REENTER (this) { \
-                    SANDBOX_AWAIT_AND_SET(v, val2num, value); \
-                    S::set##prop(v); \
+                    SANDBOX_AWAIT_S(0, val2num, value); \
+                    S::set##prop(SANDBOX_SLOT(0)); \
                 } \
                 return value; \
             } \
@@ -158,11 +201,11 @@ namespace mkxp_sandbox {
         using namespace ::mkxp_sandbox; \
         struct coro : boost::asio::coroutine { \
             VALUE operator()(VALUE self, VALUE value) { \
-                V v; \
+                typedef decl_slots<V> slots; \
                 BOOST_ASIO_CORO_REENTER (this) { \
-                    SANDBOX_AWAIT_AND_SET(v, val2num, value); \
+                    SANDBOX_AWAIT_S(0, val2num, value); \
                     S *s = get_private_data<S>(self); \
-                    s->set##prop(v); \
+                    s->set##prop(SANDBOX_SLOT(0)); \
                 } \
                 return value; \
             } \
@@ -233,11 +276,11 @@ namespace mkxp_sandbox {
         using namespace ::mkxp_sandbox; \
         struct coro : boost::asio::coroutine { \
             VALUE operator()(VALUE self, VALUE value) { \
-                V v; \
+                typedef decl_slots<V> slots; \
                 BOOST_ASIO_CORO_REENTER (this) { \
-                    SANDBOX_AWAIT_AND_SET(v, val2num, value); \
+                    SANDBOX_AWAIT_S(0, val2num, value); \
                     S *s = get_private_data<S>(self); \
-                    GFX_GUARD_EXC(s->set##prop(v);); \
+                    GFX_GUARD_EXC(s->set##prop(SANDBOX_SLOT(0));); \
                 } \
                 return value; \
             } \
@@ -308,11 +351,11 @@ namespace mkxp_sandbox {
         using namespace ::mkxp_sandbox; \
         struct coro : boost::asio::coroutine { \
             VALUE operator()(VALUE self, VALUE value) { \
-                V v; \
+                typedef decl_slots<V> slots; \
                 BOOST_ASIO_CORO_REENTER (this) { \
-                    SANDBOX_AWAIT_AND_SET(v, val2num, value); \
+                    SANDBOX_AWAIT_S(0, val2num, value); \
                     GFX_LOCK; \
-                    shState->graphics().set##prop(v); \
+                    shState->graphics().set##prop(SANDBOX_SLOT(0)); \
                     GFX_UNLOCK; \
                 } \
                 return value; \
@@ -373,6 +416,24 @@ namespace mkxp_sandbox {
 #define SANDBOX_INIT_MODULE_PROP_BIND(module, name) SANDBOX_INIT_FUNC_PROP_BIND(rb_define_module_function, module, name)
 
 namespace mkxp_sandbox {
+    // We need these helper functions so that the arguments to `SANDBOX_AWAIT`/`SANDBOX_AWAIT_R`/`SANDBOX_AWAIT_S` are evaluated before `sb()->bind` is called instead of after.
+    // The reverse happening can lead to incorrect behaviour if one or more of the arguments is using `SANDBOX_SLOT` or other macros that need the state of the sandbox.
+    template <typename Coroutine, typename... Args> bool _sandbox_await(Args... args) {
+        struct bindings::stack_frame_guard<Coroutine> frame_guard = sb()->bind<Coroutine>();
+        frame_guard()(args...);
+        return frame_guard().is_complete();
+    }
+
+    template <typename Coroutine, typename Output, typename... Args> boost::optional<Output> _sandbox_await_r(Args... args) {
+        struct bindings::stack_frame_guard<Coroutine> frame_guard = sb()->bind<Coroutine>();
+        Output output = frame_guard()(args...);
+        if (frame_guard().is_complete()) {
+            return output;
+        } else {
+            return boost::none;
+        }
+    }
+
     // Given Ruby typed data `obj`, stores `ptr` into the private data field of `obj`.
     void set_private_data(VALUE obj, void *ptr);
 
@@ -383,36 +444,25 @@ namespace mkxp_sandbox {
 
     // Gets the length of a Ruby object.
     struct get_length : boost::asio::coroutine {
+        typedef decl_slots<ID, VALUE, wasm_size_t> slots;
         wasm_size_t operator()(VALUE obj);
-    private:
-        ID id;
-        VALUE length_value;
-        wasm_size_t result;
     };
 
     // Gets the bytesize of a Ruby object.
     struct get_bytesize : boost::asio::coroutine {
+        typedef decl_slots<ID, VALUE, wasm_size_t> slots;
         wasm_size_t operator()(VALUE obj);
-    private:
-        ID id;
-        VALUE length_value;
-        wasm_size_t result;
     };
 
     struct wrap_property : boost::asio::coroutine {
+        typedef decl_slots<VALUE> slots;
         VALUE operator()(VALUE self, void *ptr, const char *iv, VALUE klass);
-    private:
-        VALUE obj;
     };
 
     // Prints the backtrace of a Ruby exception to the log.
     struct log_backtrace : boost::asio::coroutine {
+        typedef decl_slots<ID, VALUE, VALUE, wasm_ptr_t> slots;
         void operator()(VALUE exception);
-    private:
-        ID id;
-        VALUE backtrace;
-        VALUE separator;
-        wasm_ptr_t backtrace_str;
     };
 }
 

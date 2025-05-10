@@ -73,8 +73,9 @@ extern "C" void wasm_rt_allocate_memory(wasm_rt_memory_t *memory, uint32_t initi
     if ((memory->size = (uint64_t)initial_pages * WASM_PAGE_SIZE) > SIZE_MAX) {
         throw std::bad_alloc();
     }
+    memory->capacity = (uint64_t)WASM_MIN_PAGES * (uint64_t)WASM_PAGE_SIZE;
     memory->private_data = (uint8_t *)std::malloc(std::max((size_t)memory->size, (size_t)WASM_MIN_PAGES * (size_t)WASM_PAGE_SIZE));
-    if (memory->private_data == NULL) {
+    if (memory->private_data == nullptr) {
         throw std::bad_alloc();
     }
 #ifdef MKXPZ_BIG_ENDIAN
@@ -99,13 +100,30 @@ extern "C" uint32_t wasm_rt_grow_memory(wasm_rt_memory_t *memory, uint32_t pages
 
     mkxp_retro::log_printf(RETRO_LOG_INFO, "VM memory grown to %u pages\n", new_pages);
 
-    if (new_pages > WASM_MIN_PAGES) {
-        mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox memory growth is not implemented yet\n");
-        std::abort();
+    if (new_size > memory->capacity) {
+        // Increase capacity by 12.5%
+        size_t new_capacity = memory->capacity;
+        if (new_capacity < memory->capacity) { // Unsigned integer overflow
+            return -1;
+        }
+        new_capacity += memory->capacity >> 3;
+        if (new_capacity < memory->capacity) { // Unsigned integer overflow
+            return -1;
+        }
+        uint8_t *new_private_data = (uint8_t *)std::realloc(memory->private_data, new_capacity);
+        if (new_private_data == nullptr) {
+            return -1;
+        }
+#ifdef MKXPZ_BIG_ENDIAN
+        uint8_t *old_data = new_private_data + ((size_t)memory->capacity - (size_t)memory->size);
+        std::memmove(old_data + ((size_t)new_capacity - (size_t)memory->capacity), old_data, memory->size);
+#endif // MKXPZ_BIG_ENDIAN
+        memory->capacity = new_capacity;
+        memory->private_data = new_private_data;
     }
 
 #ifdef MKXPZ_BIG_ENDIAN
-    memory->data = memory->private_data + std::max((size_t)new_size, (size_t)WASM_MIN_PAGES * (size_t)WASM_PAGE_SIZE) - (size_t)new_size;
+    memory->data = memory->private_data + ((size_t)memory->capacity - (size_t)new_size);
     std::memset(memory->data, 0, new_size - memory->size);
 #else
     memory->data = memory->private_data;

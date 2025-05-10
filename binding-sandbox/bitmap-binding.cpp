@@ -34,44 +34,42 @@ SANDBOX_DEF_ALLOC(bitmap_type);
 
 void bitmap_init_props::operator()(VALUE self) {
     BOOST_ASIO_CORO_REENTER (this) {
-        SANDBOX_AWAIT_AND_SET(font, rb_class_new_instance, 0, NULL, font_class);
-        SANDBOX_AWAIT(rb_iv_set, self, "font", font);
+        SANDBOX_AWAIT_S(0, rb_class_new_instance, 0, nullptr, font_class);
+        SANDBOX_AWAIT(rb_iv_set, self, "font", SANDBOX_SLOT(0));
 
         // Leave property as default nil if hasHires() is false.
         if (get_private_data<Bitmap>(self)->hasHires()) {
             get_private_data<Bitmap>(self)->assumeRubyGC();
-            SANDBOX_AWAIT_AND_SET(hires, wrap_property, self, get_private_data<Bitmap>(self)->getHires(), "hires", bitmap_class);
+            SANDBOX_AWAIT_S(1, wrap_property, self, get_private_data<Bitmap>(self)->getHires(), "hires", bitmap_class);
 
-            SANDBOX_AWAIT_AND_SET(hires_font, rb_class_new_instance, 0, NULL, font_class);
-            SANDBOX_AWAIT(rb_iv_set, hires, "font", hires_font);
-            get_private_data<Bitmap>(self)->getHires()->setInitFont(get_private_data<Font>(hires_font));
+            SANDBOX_AWAIT_S(2, rb_class_new_instance, 0, nullptr, font_class);
+            SANDBOX_AWAIT(rb_iv_set, SANDBOX_SLOT(1), "font", SANDBOX_SLOT(2));
+            get_private_data<Bitmap>(self)->getHires()->setInitFont(get_private_data<Font>(SANDBOX_SLOT(2)));
         }
 
-        get_private_data<Bitmap>(self)->setInitFont(get_private_data<Font>(font));
+        get_private_data<Bitmap>(self)->setInitFont(get_private_data<Font>(SANDBOX_SLOT(0)));
     }
 }
 
 static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        wasm_ptr_t filename;
-        wasm_size_t width;
-        wasm_size_t height;
+        typedef decl_slots<wasm_ptr_t, wasm_size_t, wasm_size_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 if (argc == 1) {
-                    SANDBOX_AWAIT_AND_SET(filename, rb_string_value_cstr, (VALUE *)(**sb() + argv));
+                    SANDBOX_AWAIT_S(0, rb_string_value_cstr, (VALUE *)(**sb() + argv));
                 } else {
-                    SANDBOX_AWAIT_AND_SET(width, rb_num2ulong, ((VALUE *)(**sb() + argv))[0]);
-                    SANDBOX_AWAIT_AND_SET(height, rb_num2ulong, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(1, rb_num2ulong, ((VALUE *)(**sb() + argv))[0]);
+                    SANDBOX_AWAIT_S(2, rb_num2ulong, ((VALUE *)(**sb() + argv))[1]);
                 }
 
                 {
                     Bitmap *bitmap;
                     if (argc == 1) {
-                        GFX_GUARD_EXC(bitmap = new Bitmap((const char *)(**sb() + filename));)
+                        GFX_GUARD_EXC(bitmap = new Bitmap((const char *)(**sb() + SANDBOX_SLOT(0)));)
                     } else {
-                        GFX_GUARD_EXC(bitmap = new Bitmap(width, height);)
+                        GFX_GUARD_EXC(bitmap = new Bitmap(SANDBOX_SLOT(1), SANDBOX_SLOT(2));)
                     }
                     set_private_data(self, bitmap);
                 }
@@ -125,15 +123,15 @@ SANDBOX_DEF_GFX_PROP_OBJ_REF(Bitmap, Bitmap, Hires, hires);
 
 static VALUE rect(VALUE self) {
     struct coro : boost::asio::coroutine {
-        VALUE obj;
+        typedef decl_slots<VALUE> slots;
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, rect_class);
-                set_private_data(obj, new Rect(get_private_data<Bitmap>(self)->rect()));
+                SANDBOX_AWAIT_S(0, rb_obj_alloc, rect_class);
+                set_private_data(SANDBOX_SLOT(0), new Rect(get_private_data<Bitmap>(self)->rect()));
             }
 
-            return obj;
+            return SANDBOX_SLOT(0);
         }
     };
 
@@ -142,29 +140,26 @@ static VALUE rect(VALUE self) {
 
 static VALUE blt(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        int x;
-        int y;
-        VALUE srcObj;
-        VALUE srcRectObj;
-        int opacity;
+        typedef decl_slots<VALUE, VALUE, int32_t, int32_t, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
-                SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
-                srcObj = ((VALUE *)(**sb() + argv))[2];
-                srcRectObj = ((VALUE *)(**sb() + argv))[3];
+                // TODO: require at least 4 arguments
+                SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                SANDBOX_AWAIT_S(3, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                SANDBOX_SLOT(0) = ((VALUE *)(**sb() + argv))[2];
+                SANDBOX_SLOT(1) = ((VALUE *)(**sb() + argv))[3];
                 if (argc > 4) {
-                    SANDBOX_AWAIT_AND_SET(opacity, rb_num2int, ((VALUE *)(**sb() + argv))[4]);
+                    SANDBOX_AWAIT_S(4, rb_num2int, ((VALUE *)(**sb() + argv))[4]);
                 }
 
-                Bitmap *src = get_private_data<Bitmap>(srcObj);
-                if (src != NULL) {
-                    Rect *srcRect = get_private_data<Rect>(srcRectObj);
+                Bitmap *src = get_private_data<Bitmap>(SANDBOX_SLOT(0));
+                if (src != nullptr) {
+                    Rect *srcRect = get_private_data<Rect>(SANDBOX_SLOT(1));
                     if (argc > 4) {
-                        GFX_GUARD_EXC(get_private_data<Bitmap>(self)->blt(x, y, *src, srcRect->toIntRect(), opacity););
+                        GFX_GUARD_EXC(get_private_data<Bitmap>(self)->blt(SANDBOX_SLOT(2), SANDBOX_SLOT(3), *src, srcRect->toIntRect(), SANDBOX_SLOT(4)););
                     } else {
-                        GFX_GUARD_EXC(get_private_data<Bitmap>(self)->blt(x, y, *src, srcRect->toIntRect()););
+                        GFX_GUARD_EXC(get_private_data<Bitmap>(self)->blt(SANDBOX_SLOT(2), SANDBOX_SLOT(3), *src, srcRect->toIntRect()););
                     }
                 }
             }
@@ -178,26 +173,23 @@ static VALUE blt(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
 static VALUE stretch_blt(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        VALUE destRectObj;
-        VALUE srcObj;
-        VALUE srcRectObj;
-        int opacity;
+        typedef decl_slots<VALUE, VALUE, VALUE, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                destRectObj = ((VALUE *)(**sb() + argv))[0];
-                srcObj = ((VALUE *)(**sb() + argv))[1];
-                srcRectObj = ((VALUE *)(**sb() + argv))[2];
+                SANDBOX_SLOT(0) = ((VALUE *)(**sb() + argv))[0];
+                SANDBOX_SLOT(1) = ((VALUE *)(**sb() + argv))[1];
+                SANDBOX_SLOT(2) = ((VALUE *)(**sb() + argv))[2];
                 if (argc > 3) {
-                    SANDBOX_AWAIT_AND_SET(opacity, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
+                    SANDBOX_AWAIT_S(3, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
                 }
 
-                Bitmap *src = get_private_data<Bitmap>(srcObj);
-                if (src != NULL) {
-                    Rect *destRect = get_private_data<Rect>(destRectObj);
-                    Rect *srcRect = get_private_data<Rect>(srcRectObj);
+                Bitmap *src = get_private_data<Bitmap>(SANDBOX_SLOT(1));
+                if (src != nullptr) {
+                    Rect *destRect = get_private_data<Rect>(SANDBOX_SLOT(0));
+                    Rect *srcRect = get_private_data<Rect>(SANDBOX_SLOT(2));
                     if (argc > 4) {
-                        GFX_GUARD_EXC(get_private_data<Bitmap>(self)->stretchBlt(destRect->toIntRect(), *src, srcRect->toIntRect(), opacity););
+                        GFX_GUARD_EXC(get_private_data<Bitmap>(self)->stretchBlt(destRect->toIntRect(), *src, srcRect->toIntRect(), SANDBOX_SLOT(3)););
                     } else {
                         GFX_GUARD_EXC(get_private_data<Bitmap>(self)->stretchBlt(destRect->toIntRect(), *src, srcRect->toIntRect()););
                     }
@@ -213,10 +205,7 @@ static VALUE stretch_blt(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
 static VALUE fill_rect(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        int x;
-        int y;
-        int width;
-        int height;
+        typedef decl_slots<int32_t, int32_t, int32_t, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
@@ -224,12 +213,12 @@ static VALUE fill_rect(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     Bitmap *bitmap = get_private_data<Bitmap>(self);
                     GFX_GUARD_EXC(bitmap->fillRect(get_private_data<Rect>(((VALUE *)(**sb() + argv))[0])->toIntRect(), get_private_data<Color>(((VALUE *)(**sb() + argv))[1])->norm);)
                 } else {
-                    SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
-                    SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
-                    SANDBOX_AWAIT_AND_SET(width, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
-                    SANDBOX_AWAIT_AND_SET(height, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
+                    SANDBOX_AWAIT_S(0, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                    SANDBOX_AWAIT_S(3, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
                     Bitmap *bitmap = get_private_data<Bitmap>(self);
-                    GFX_GUARD_EXC(bitmap->fillRect(x, y, width, height, get_private_data<Color>(((VALUE *)(**sb() + argv))[4])->norm);)
+                    GFX_GUARD_EXC(bitmap->fillRect(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3), get_private_data<Color>(((VALUE *)(**sb() + argv))[4])->norm);)
                 }
             }
 
@@ -245,56 +234,52 @@ static VALUE clear(VALUE self) {
     return SANDBOX_NIL;
 }
 
-static VALUE get_pixel(VALUE self, VALUE xval, VALUE yval) {
+static VALUE get_pixel(VALUE self, VALUE x, VALUE y) {
     struct coro : boost::asio::coroutine {
-        int x;
-        int y;
-        VALUE obj;
+        typedef decl_slots<VALUE, int32_t, int32_t> slots;
 
-        VALUE operator()(VALUE self, VALUE xval, VALUE yval) {
+        VALUE operator()(VALUE self, VALUE x, VALUE y) {
             BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(1, rb_num2int, x);
+                SANDBOX_AWAIT_S(2, rb_num2int, y);
 
-                SANDBOX_AWAIT_AND_SET(x, rb_num2int, xval);
-                SANDBOX_AWAIT_AND_SET(y, rb_num2int, yval);
-
-                SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, color_class);
+                SANDBOX_AWAIT_S(0, rb_obj_alloc, color_class);
 
                 {
                     Color value;
                     Color *color;
                     Bitmap *bitmap = get_private_data<Bitmap>(self);
-                    if (bitmap->surface() != NULL || bitmap->megaSurface() != NULL) {
-                        value = bitmap->getPixel(x, y);
+                    if (bitmap->surface() != nullptr || bitmap->megaSurface() != nullptr) {
+                        value = bitmap->getPixel(SANDBOX_SLOT(1), SANDBOX_SLOT(2));
                     } else {
-                        GFX_GUARD_EXC(value = bitmap->getPixel(x, y););
+                        GFX_GUARD_EXC(value = bitmap->getPixel(SANDBOX_SLOT(1), SANDBOX_SLOT(2)););
                     }
                     color = new Color(value);
-                    set_private_data(obj, color);
+                    set_private_data(SANDBOX_SLOT(0), color);
                 }
             }
 
-            return obj;
+            return SANDBOX_SLOT(0);
         }
     };
 
-    return sb()->bind<struct coro>()()(self, xval, yval);
+    return sb()->bind<struct coro>()()(self, x, y);
 }
 
-static VALUE set_pixel(VALUE self, VALUE xval, VALUE yval, VALUE colorObj) {
+static VALUE set_pixel(VALUE self, VALUE x, VALUE y, VALUE colorObj) {
     struct coro : boost::asio::coroutine {
-        int x;
-        int y;
+        typedef decl_slots<int32_t, int32_t> slots;
 
-        VALUE operator()(VALUE self, VALUE xval, VALUE yval, VALUE colorObj) {
+        VALUE operator()(VALUE self, VALUE x, VALUE y, VALUE colorObj) {
             BOOST_ASIO_CORO_REENTER (this) {
 
-                SANDBOX_AWAIT_AND_SET(x, rb_num2int, xval);
-                SANDBOX_AWAIT_AND_SET(y, rb_num2int, yval);
+                SANDBOX_AWAIT_S(0, rb_num2int, x);
+                SANDBOX_AWAIT_S(1, rb_num2int, y);
 
                 {
                     Color *color = get_private_data<Color>(colorObj);
                     Bitmap *bitmap = get_private_data<Bitmap>(self);
-                    GFX_GUARD_EXC(bitmap->setPixel(x, y, *color););
+                    GFX_GUARD_EXC(bitmap->setPixel(SANDBOX_SLOT(0), SANDBOX_SLOT(1), *color););
                 }
             }
 
@@ -302,20 +287,20 @@ static VALUE set_pixel(VALUE self, VALUE xval, VALUE yval, VALUE colorObj) {
         }
     };
 
-    return sb()->bind<struct coro>()()(self, xval, yval, colorObj);
+    return sb()->bind<struct coro>()()(self, x, y, colorObj);
 }
 
 static VALUE hue_change(VALUE self, VALUE hueval) {
     struct coro : boost::asio::coroutine {
-        int hue;
+        typedef decl_slots<int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE hueval) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(hue, rb_num2int, hueval);
+                SANDBOX_AWAIT_S(0, rb_num2int, hueval);
 
                 {
                     Bitmap *bitmap = get_private_data<Bitmap>(self);
-                    GFX_GUARD_EXC(bitmap->hueChange(hue););
+                    GFX_GUARD_EXC(bitmap->hueChange(SANDBOX_SLOT(0)););
                 }
             }
 
@@ -328,45 +313,39 @@ static VALUE hue_change(VALUE self, VALUE hueval) {
 
 static VALUE draw_text(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        wasm_ptr_t str;
-        VALUE obj;
-        int align;
-        int x;
-        int y;
-        int width;
-        int height;
+        typedef decl_slots<wasm_ptr_t, VALUE, int32_t, int32_t, int32_t, int32_t, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 if (argc == 2 || argc == 3) {
                     if (rgssVer >= 2) {
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_as_string, ((VALUE *)(**sb() + argv))[1]);
-                        SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &obj);
+                        SANDBOX_AWAIT_S(1, rb_obj_as_string, ((VALUE *)(**sb() + argv))[1]);
+                        SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(1));
                     } else {
-                        SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, (VALUE *)(**sb() + argv) + 1);
+                        SANDBOX_AWAIT_S(0, rb_string_value_cstr, (VALUE *)(**sb() + argv) + 1);
                     }
                     if (argc == 2) {
-                        GFX_GUARD_EXC(get_private_data<Bitmap>(self)->drawText(get_private_data<Rect>(((VALUE *)(**sb() + argv))[0])->toIntRect(), (const char *)(**sb() + str));)
+                        GFX_GUARD_EXC(get_private_data<Bitmap>(self)->drawText(get_private_data<Rect>(((VALUE *)(**sb() + argv))[0])->toIntRect(), (const char *)(**sb() + SANDBOX_SLOT(0))););
                     } else {
-                        SANDBOX_AWAIT_AND_SET(align, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
-                        GFX_GUARD_EXC(get_private_data<Bitmap>(self)->drawText(get_private_data<Rect>(((VALUE *)(**sb() + argv))[0])->toIntRect(), (const char *)(**sb() + str), align);)
+                        SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                        GFX_GUARD_EXC(get_private_data<Bitmap>(self)->drawText(get_private_data<Rect>(((VALUE *)(**sb() + argv))[0])->toIntRect(), (const char *)(**sb() + SANDBOX_SLOT(0)), SANDBOX_SLOT(2)););
                     }
                 } else {
-                    SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
-                    SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
-                    SANDBOX_AWAIT_AND_SET(width, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
-                    SANDBOX_AWAIT_AND_SET(height, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
+                    SANDBOX_AWAIT_S(3, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                    SANDBOX_AWAIT_S(4, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(5, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                    SANDBOX_AWAIT_S(6, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
                     if (rgssVer >= 2) {
-                        SANDBOX_AWAIT_AND_SET(obj, rb_obj_as_string, ((VALUE *)(**sb() + argv))[4]);
-                        SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &obj);
+                        SANDBOX_AWAIT_S(1, rb_obj_as_string, ((VALUE *)(**sb() + argv))[4]);
+                        SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(1));
                     } else {
-                        SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, (VALUE *)(**sb() + argv) + 4);
+                        SANDBOX_AWAIT_S(0, rb_string_value_cstr, (VALUE *)(**sb() + argv) + 4);
                     }
                     if (argc < 6) {
-                        GFX_GUARD_EXC(get_private_data<Bitmap>(self)->drawText(x, y, width, height, (const char *)(**sb() + str));)
+                        GFX_GUARD_EXC(get_private_data<Bitmap>(self)->drawText(SANDBOX_SLOT(3), SANDBOX_SLOT(4), SANDBOX_SLOT(5), SANDBOX_SLOT(6), (const char *)(**sb() + SANDBOX_SLOT(0))););
                     } else {
-                        SANDBOX_AWAIT_AND_SET(align, rb_num2int, ((VALUE *)(**sb() + argv))[5]);
-                        GFX_GUARD_EXC(get_private_data<Bitmap>(self)->drawText(x, y, width, height, (const char *)(**sb() + str), align);)
+                        SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[5]);
+                        GFX_GUARD_EXC(get_private_data<Bitmap>(self)->drawText(SANDBOX_SLOT(3), SANDBOX_SLOT(4), SANDBOX_SLOT(5), SANDBOX_SLOT(6), (const char *)(**sb() + SANDBOX_SLOT(0)), SANDBOX_SLOT(2)););
                     }
                 }
             }
@@ -380,22 +359,21 @@ static VALUE draw_text(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
 static VALUE text_size(VALUE self, VALUE text) {
     struct coro : boost::asio::coroutine {
-        wasm_ptr_t str;
-        VALUE obj;
+        typedef decl_slots<wasm_ptr_t, VALUE> slots;
 
         VALUE operator()(VALUE self, VALUE text) {
             BOOST_ASIO_CORO_REENTER (this) {
                 if (rgssVer >= 2) {
-                    SANDBOX_AWAIT_AND_SET(obj, rb_obj_as_string, text);
-                    SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &obj);
+                    SANDBOX_AWAIT_S(1, rb_obj_as_string, text);
+                    SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(1));
                 } else {
-                    SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &text);
+                    SANDBOX_AWAIT_S(0, rb_string_value_cstr, &text);
                 }
-                SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, rect_class);
-                set_private_data(obj, new Rect(get_private_data<Bitmap>(self)->textSize((const char *)(**sb() + str))));
+                SANDBOX_AWAIT_S(1, rb_obj_alloc, rect_class);
+                set_private_data(SANDBOX_SLOT(1), new Rect(get_private_data<Bitmap>(self)->textSize((const char *)(**sb() + SANDBOX_SLOT(0)))));
             }
 
-            return obj;
+            return SANDBOX_SLOT(1);
         }
     };
 
@@ -404,21 +382,20 @@ static VALUE text_size(VALUE self, VALUE text) {
 
 static VALUE get_raw_data(VALUE self) {
     struct coro : boost::asio::coroutine {
-        VALUE value;
-        wasm_ptr_t str;
+        typedef decl_slots<wasm_ptr_t, VALUE> slots;
 
         VALUE operator()(VALUE self) {
             Bitmap *bitmap = get_private_data<Bitmap>(self);
             int size = bitmap->width() * bitmap->height() * 4;
 
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(value, rb_str_new_cstr, "");
-                SANDBOX_AWAIT(rb_str_resize, value, size);
-                SANDBOX_AWAIT_AND_SET(str, rb_string_value_ptr, &value);
-                GFX_GUARD_EXC(bitmap->getRaw(**sb() + str, size););
+                SANDBOX_AWAIT_S(1, rb_str_new_cstr, "");
+                SANDBOX_AWAIT(rb_str_resize, SANDBOX_SLOT(1), size);
+                SANDBOX_AWAIT_S(0, rb_string_value_ptr, &SANDBOX_SLOT(1));
+                GFX_GUARD_EXC(bitmap->getRaw(**sb() + SANDBOX_SLOT(0), size););
             }
 
-            return value;
+            return SANDBOX_SLOT(1);
         }
     };
 
@@ -427,15 +404,14 @@ static VALUE get_raw_data(VALUE self) {
 
 static VALUE set_raw_data(VALUE self, VALUE value) {
     struct coro : boost::asio::coroutine {
-        wasm_ptr_t str;
-        wasm_size_t size;
+        typedef decl_slots<wasm_ptr_t, wasm_size_t> slots;
 
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(str, rb_string_value_ptr, &value);
-                SANDBOX_AWAIT_AND_SET(size, get_bytesize, value);
+                SANDBOX_AWAIT_S(0, rb_string_value_ptr, &value);
+                SANDBOX_AWAIT_S(1, get_bytesize, value);
                 Bitmap *bitmap = get_private_data<Bitmap>(self);
-                GFX_GUARD_EXC(bitmap->replaceRaw(**sb() + str, size););
+                GFX_GUARD_EXC(bitmap->replaceRaw(**sb() + SANDBOX_SLOT(0), SANDBOX_SLOT(1)););
             }
 
             return self;
@@ -447,13 +423,13 @@ static VALUE set_raw_data(VALUE self, VALUE value) {
 
 static VALUE to_file(VALUE self, VALUE value) {
     struct coro : boost::asio::coroutine {
-        wasm_ptr_t str;
+        typedef decl_slots<wasm_ptr_t> slots;
 
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &value);
+                SANDBOX_AWAIT_S(0, rb_string_value_cstr, &value);
                 Bitmap *bitmap = get_private_data<Bitmap>(self);
-                GFX_GUARD_EXC(bitmap->saveToFile((const char *)(**sb() + str)););
+                GFX_GUARD_EXC(bitmap->saveToFile((const char *)(**sb() + SANDBOX_SLOT(0))););
             }
 
             return SANDBOX_NIL;
@@ -465,29 +441,29 @@ static VALUE to_file(VALUE self, VALUE value) {
 
 static VALUE snap_to_bitmap(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        VALUE obj;
-        int32_t pos;
+        typedef decl_slots<VALUE, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
+                // TODO: require at least 1 argument
                 if (argc < 1) {
-                    pos = -1;
+                    SANDBOX_SLOT(1) = -1;
                 } else {
-                    SANDBOX_AWAIT_AND_SET(pos, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
                 }
 
-                SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, bitmap_class);
+                SANDBOX_AWAIT_S(0, rb_obj_alloc, bitmap_class);
 
                 {
                     Bitmap *bitmap;
-                    GFX_GUARD_EXC(bitmap = new Bitmap(*get_private_data<Bitmap>(self), pos););
-                    set_private_data(obj, bitmap);
+                    GFX_GUARD_EXC(bitmap = new Bitmap(*get_private_data<Bitmap>(self), SANDBOX_SLOT(1)););
+                    set_private_data(SANDBOX_SLOT(0), bitmap);
                 }
 
-                SANDBOX_AWAIT(bitmap_init_props, obj);
+                SANDBOX_AWAIT(bitmap_init_props, SANDBOX_SLOT(0));
             }
 
-            return obj;
+            return SANDBOX_SLOT(0);
         }
     };
 
@@ -496,32 +472,28 @@ static VALUE snap_to_bitmap(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
 static VALUE gradient_fill_rect(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        int32_t x;
-        int32_t y;
-        int32_t w;
-        int32_t h;
-        bool vertical;
+        typedef decl_slots<int32_t, int32_t, int32_t, int32_t, uint8_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 if (argc == 3 || argc == 4) {
                     if (argc == 4) {
-                        vertical = SANDBOX_VALUE_TO_BOOL(((VALUE *)(**sb() + argv))[3]);
+                        SANDBOX_SLOT(4) = SANDBOX_VALUE_TO_BOOL(((VALUE *)(**sb() + argv))[3]);
                     } else {
-                        vertical = false;
+                        SANDBOX_SLOT(4) = false;
                     }
-                    GFX_GUARD_EXC(get_private_data<Bitmap>(self)->gradientFillRect(get_private_data<Rect>(((VALUE *)(**sb() + argv))[0])->toIntRect(), get_private_data<Color>(((VALUE *)(**sb() + argv))[1])->norm, get_private_data<Color>(((VALUE *)(**sb() + argv))[2])->norm, vertical););
+                    GFX_GUARD_EXC(get_private_data<Bitmap>(self)->gradientFillRect(get_private_data<Rect>(((VALUE *)(**sb() + argv))[0])->toIntRect(), get_private_data<Color>(((VALUE *)(**sb() + argv))[1])->norm, get_private_data<Color>(((VALUE *)(**sb() + argv))[2])->norm, SANDBOX_SLOT(4)););
                 } else {
-                    SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
-                    SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
-                    SANDBOX_AWAIT_AND_SET(w, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
-                    SANDBOX_AWAIT_AND_SET(h, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
+                    SANDBOX_AWAIT_S(0, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                    SANDBOX_AWAIT_S(3, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
                     if (argc >= 7) {
-                        vertical = SANDBOX_VALUE_TO_BOOL(((VALUE *)(**sb() + argv))[6]);
+                        SANDBOX_SLOT(4) = SANDBOX_VALUE_TO_BOOL(((VALUE *)(**sb() + argv))[6]);
                     } else {
-                        vertical = false;
+                        SANDBOX_SLOT(4) = false;
                     }
-                    GFX_GUARD_EXC(get_private_data<Bitmap>(self)->gradientFillRect(x, y, w, h, get_private_data<Color>(((VALUE *)(**sb() + argv))[4])->norm, get_private_data<Color>(((VALUE *)(**sb() + argv))[5])->norm, vertical););
+                    GFX_GUARD_EXC(get_private_data<Bitmap>(self)->gradientFillRect(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3), get_private_data<Color>(((VALUE *)(**sb() + argv))[4])->norm, get_private_data<Color>(((VALUE *)(**sb() + argv))[5])->norm, SANDBOX_SLOT(4)););
                 }
             }
 
@@ -534,21 +506,18 @@ static VALUE gradient_fill_rect(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
 static VALUE clear_rect(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        int32_t x;
-        int32_t y;
-        int32_t w;
-        int32_t h;
+        typedef decl_slots<int32_t, int32_t, int32_t, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 if (argc == 1) {
                     GFX_GUARD_EXC(get_private_data<Bitmap>(self)->clearRect(get_private_data<Rect>(((VALUE *)(**sb() + argv))[0])->toIntRect()););
                 } else {
-                    SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
-                    SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
-                    SANDBOX_AWAIT_AND_SET(w, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
-                    SANDBOX_AWAIT_AND_SET(h, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
-                    GFX_GUARD_EXC(get_private_data<Bitmap>(self)->clearRect(x, y, w, h););
+                    SANDBOX_AWAIT_S(0, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                    SANDBOX_AWAIT_S(3, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
+                    GFX_GUARD_EXC(get_private_data<Bitmap>(self)->clearRect(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3)););
                 }
             }
 
@@ -566,14 +535,13 @@ static VALUE blur(VALUE self) {
 
 static VALUE radial_blur(VALUE self, VALUE angle, VALUE divisions) {
     struct coro : boost::asio::coroutine {
-        int32_t a;
-        int32_t d;
+        typedef decl_slots<int32_t, int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE angle, VALUE divisions) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(a, rb_num2int, angle);
-                SANDBOX_AWAIT_AND_SET(d, rb_num2int, divisions);
-                get_private_data<Bitmap>(self)->radialBlur(a, d);
+                SANDBOX_AWAIT_S(0, rb_num2int, angle);
+                SANDBOX_AWAIT_S(1, rb_num2int, divisions);
+                get_private_data<Bitmap>(self)->radialBlur(SANDBOX_SLOT(0), SANDBOX_SLOT(1));
             }
 
             return SANDBOX_NIL;
@@ -617,13 +585,13 @@ static VALUE stop(VALUE self) {
 
 static VALUE goto_and_play(VALUE self, VALUE value) {
     struct coro : boost::asio::coroutine {
-        int32_t frame;
+        typedef decl_slots<int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(frame, rb_num2int, value);
+                SANDBOX_AWAIT_S(0, rb_num2int, value);
                 Bitmap *bitmap = get_private_data<Bitmap>(self);
-                GFX_GUARD_EXC(bitmap->gotoAndPlay(frame););
+                GFX_GUARD_EXC(bitmap->gotoAndPlay(SANDBOX_SLOT(0)););
             }
 
             return SANDBOX_NIL;
@@ -635,13 +603,13 @@ static VALUE goto_and_play(VALUE self, VALUE value) {
 
 static VALUE goto_and_stop(VALUE self, VALUE value) {
     struct coro : boost::asio::coroutine {
-        int32_t frame;
+        typedef decl_slots<int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(frame, rb_num2int, value);
+                SANDBOX_AWAIT_S(0, rb_num2int, value);
                 Bitmap *bitmap = get_private_data<Bitmap>(self);
-                GFX_GUARD_EXC(bitmap->gotoAndStop(frame););
+                GFX_GUARD_EXC(bitmap->gotoAndStop(SANDBOX_SLOT(0)););
             }
 
             return SANDBOX_NIL;
@@ -661,29 +629,28 @@ static VALUE current_frame(VALUE self) {
 
 static VALUE add_frame(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        VALUE value;
-        int32_t pos;
+        typedef decl_slots<VALUE, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 // TODO: require at least 1 argument
                 if (argc < 2) {
-                    pos = -1;
+                    SANDBOX_SLOT(1) = -1;
                 } else {
-                    SANDBOX_AWAIT_AND_SET(pos, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
-                    if (pos < 0) {
-                        pos = 0;
+                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    if (SANDBOX_SLOT(1) < 0) {
+                        SANDBOX_SLOT(1) = 0;
                     }
                 }
                 if (argc >= 1) {
                     Bitmap *src = get_private_data<Bitmap>(((VALUE *)(**sb() + argv))[0]);
                     Bitmap *b = get_private_data<Bitmap>(self);
-                    GFX_GUARD_EXC(pos = b->addFrame(*src, pos););
+                    GFX_GUARD_EXC(SANDBOX_SLOT(1) = b->addFrame(*src, SANDBOX_SLOT(1)););
                 }
-                SANDBOX_AWAIT_AND_SET(value, rb_ll2inum, pos);
+                SANDBOX_AWAIT_S(0, rb_ll2inum, SANDBOX_SLOT(1));
             }
 
-            return value;
+            return SANDBOX_SLOT(0);
         }
     };
 
@@ -692,20 +659,20 @@ static VALUE add_frame(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
 static VALUE remove_frame(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        int32_t pos;
+        typedef decl_slots<int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 if (argc < 2) {
-                    pos = -1;
+                    SANDBOX_SLOT(0) = -1;
                 } else {
-                    SANDBOX_AWAIT_AND_SET(pos, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
-                    if (pos < 0) {
-                        pos = 0;
+                    SANDBOX_AWAIT_S(0, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                    if (SANDBOX_SLOT(0) < 0) {
+                        SANDBOX_SLOT(0) = 0;
                     }
                 }
                 Bitmap *b = get_private_data<Bitmap>(self);
-                GFX_GUARD_EXC(b->removeFrame(pos););
+                GFX_GUARD_EXC(b->removeFrame(SANDBOX_SLOT(0)););
             }
 
             return SANDBOX_NIL;
@@ -736,34 +703,33 @@ static VALUE get_font(VALUE self) {
 
 static VALUE set_font(VALUE self, VALUE value) {
     struct coro : boost::asio::coroutine {
-        VALUE f;
-        VALUE prop;
+        typedef decl_slots<VALUE, VALUE> slots;
 
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
                 Font *font;
                 font = get_private_data<Font>(value);
-                if (font != NULL) {
+                if (font != nullptr) {
                     GFX_GUARD_EXC(get_private_data<Bitmap>(self)->setFont(*font);)
 
-                    SANDBOX_AWAIT_AND_SET(f, rb_iv_get, self, "font");
-                    SANDBOX_AWAIT_AND_SET(prop, rb_iv_get, value, "name");
-                    SANDBOX_AWAIT(rb_iv_set, f, "name", prop);
-                    SANDBOX_AWAIT_AND_SET(prop, rb_iv_get, value, "size");
-                    SANDBOX_AWAIT(rb_iv_set, f, "size", prop);
-                    SANDBOX_AWAIT_AND_SET(prop, rb_iv_get, value, "bold");
-                    SANDBOX_AWAIT(rb_iv_set, f, "bold", prop);
-                    SANDBOX_AWAIT_AND_SET(prop, rb_iv_get, value, "italic");
-                    SANDBOX_AWAIT(rb_iv_set, f, "italic", prop);
+                    SANDBOX_AWAIT_S(0, rb_iv_get, self, "font");
+                    SANDBOX_AWAIT_S(1, rb_iv_get, value, "name");
+                    SANDBOX_AWAIT(rb_iv_set, SANDBOX_SLOT(0), "name", SANDBOX_SLOT(1));
+                    SANDBOX_AWAIT_S(1, rb_iv_get, value, "size");
+                    SANDBOX_AWAIT(rb_iv_set, SANDBOX_SLOT(0), "size", SANDBOX_SLOT(1));
+                    SANDBOX_AWAIT_S(1, rb_iv_get, value, "bold");
+                    SANDBOX_AWAIT(rb_iv_set, SANDBOX_SLOT(0), "bold", SANDBOX_SLOT(1));
+                    SANDBOX_AWAIT_S(1, rb_iv_get, value, "italic");
+                    SANDBOX_AWAIT(rb_iv_set, SANDBOX_SLOT(0), "italic", SANDBOX_SLOT(1));
 
                     if (rgssVer >= 2) {
-                        SANDBOX_AWAIT_AND_SET(prop, rb_iv_get, value, "shadow");
-                        SANDBOX_AWAIT(rb_iv_set, f, "shadow", prop);
+                        SANDBOX_AWAIT_S(1, rb_iv_get, value, "shadow");
+                        SANDBOX_AWAIT(rb_iv_set, SANDBOX_SLOT(0), "shadow", SANDBOX_SLOT(1));
                     }
 
                     if (rgssVer >= 3) {
-                        SANDBOX_AWAIT_AND_SET(prop, rb_iv_get, value, "outline");
-                        SANDBOX_AWAIT(rb_iv_set, f, "outline", prop);
+                        SANDBOX_AWAIT_S(1, rb_iv_get, value, "outline");
+                        SANDBOX_AWAIT(rb_iv_set, SANDBOX_SLOT(0), "outline", SANDBOX_SLOT(1));
                     }
                 }
             }
@@ -777,8 +743,8 @@ static VALUE set_font(VALUE self, VALUE value) {
 
 void bitmap_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        bitmap_type = sb()->rb_data_type("Bitmap", NULL, dfree<Bitmap>, NULL, NULL, 0, 0, 0);
-        SANDBOX_AWAIT_AND_SET(bitmap_class, rb_define_class, "Bitmap", sb()->rb_cObject());
+        bitmap_type = sb()->rb_data_type("Bitmap", nullptr, dfree<Bitmap>, nullptr, nullptr, 0, 0, 0);
+        SANDBOX_AWAIT_R(bitmap_class, rb_define_class, "Bitmap", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, bitmap_class, alloc);
         SANDBOX_AWAIT(rb_define_method, bitmap_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
         SANDBOX_AWAIT(rb_define_method, bitmap_class, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);

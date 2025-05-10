@@ -227,7 +227,7 @@ typedef struct w2c_wasi__snapshot__preview1 {
 
     w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby);
     ~w2c_wasi__snapshot__preview1();
-    u32 allocate_file_descriptor(enum wasi_fd_type type, void *handle = NULL);
+    u32 allocate_file_descriptor(enum wasi_fd_type type, void *handle = nullptr);
     void deallocate_file_descriptor(u32 fd);
 } wasi_t;
 

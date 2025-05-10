@@ -32,31 +32,29 @@ SANDBOX_DEF_ALLOC_WITH_INIT(table_type, new Table(0, 0, 0))
 
 static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        int32_t x;
-        int32_t y;
-        int32_t z;
+        typedef decl_slots<int32_t, int32_t, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                y = z = 1;
+                SANDBOX_SLOT(1) = SANDBOX_SLOT(2) = 1;
 
                 // TODO: throw error if too many or too few arguments
-                SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
-                x = std::max(x, (int32_t)0);
+                SANDBOX_AWAIT_S(0, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                SANDBOX_SLOT(0) = std::max(SANDBOX_SLOT(0), (int32_t)0);
                 if (argc >= 2) {
-                    SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
-                    y = std::max(y, (int32_t)0);
+                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_SLOT(1) = std::max(SANDBOX_SLOT(1), (int32_t)0);
                     if (argc >= 3) {
-                        SANDBOX_AWAIT_AND_SET(z, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
-                        z = std::max(z, (int32_t)0);
+                        SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                        SANDBOX_SLOT(2) = std::max(SANDBOX_SLOT(2), (int32_t)0);
                     }
                 }
 
                 Table *table = get_private_data<Table>(self);
-                if (table != NULL) {
-                    table->resize(x, y, z);
+                if (table != nullptr) {
+                    table->resize(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2));
                 } else {
-                    table = new Table(x, y, z);
+                    table = new Table(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2));
                     set_private_data(self, table);
                 }
             }
@@ -87,28 +85,25 @@ static VALUE initialize_copy(VALUE self, VALUE value) {
 
 static VALUE resize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        Table *table;
-        int32_t x;
-        int32_t y;
-        int32_t z;
+        typedef decl_slots<int32_t, int32_t, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                y = z = 1;
+                SANDBOX_SLOT(1) = SANDBOX_SLOT(2) = 1;
 
                 // TODO: throw error if too many or too few arguments
-                SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
-                x = std::max(x, (int32_t)0);
+                SANDBOX_AWAIT_S(0, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                SANDBOX_SLOT(0) = std::max(SANDBOX_SLOT(0), (int32_t)0);
                 if (argc >= 2) {
-                    SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
-                    y = std::max(y, (int32_t)0);
+                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_SLOT(1) = std::max(SANDBOX_SLOT(1), (int32_t)0);
                     if (argc >= 3) {
-                        SANDBOX_AWAIT_AND_SET(z, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
-                        z = std::max(z, (int32_t)0);
+                        SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                        SANDBOX_SLOT(2) = std::max(SANDBOX_SLOT(2), (int32_t)0);
                     }
                 }
 
-                get_private_data<Table>(self)->resize(x, y, z);
+                get_private_data<Table>(self)->resize(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2));
             }
 
             return SANDBOX_NIL;
@@ -132,34 +127,29 @@ static VALUE zsize(VALUE self) {
 
 static VALUE get(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        Table *table;
-        VALUE value;
-        int32_t x;
-        int32_t y;
-        int32_t z;
+        typedef decl_slots<VALUE, int32_t, int32_t, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                table = get_private_data<Table>(self);
-                y = z = 0;
+                SANDBOX_SLOT(2) = SANDBOX_SLOT(3) = 0;
 
-                SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
                 if (argc >= 2) {
-                    SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
                     if (argc >= 3) {
-                        SANDBOX_AWAIT_AND_SET(z, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                        SANDBOX_AWAIT_S(3, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
                         // TODO: throw error if too many arguments
                     }
                 }
 
-                if (x < 0 || x >= table->xSize() || y < 0 || y >= table->ySize() || z < 0 || z >= table->zSize()) {
-                    value = SANDBOX_NIL;
+                if (SANDBOX_SLOT(1) < 0 || SANDBOX_SLOT(1) >= get_private_data<Table>(self)->xSize() || SANDBOX_SLOT(2) < 0 || SANDBOX_SLOT(2) >= get_private_data<Table>(self)->ySize() || SANDBOX_SLOT(3) < 0 || SANDBOX_SLOT(3) >= get_private_data<Table>(self)->zSize()) {
+                    SANDBOX_SLOT(0) = SANDBOX_NIL;
                 } else {
-                    SANDBOX_AWAIT_AND_SET(value, rb_ll2inum, table->get(x, y, z));
+                    SANDBOX_AWAIT_S(0, rb_ll2inum, get_private_data<Table>(self)->get(SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3)));
                 }
             }
 
-            return value;
+            return SANDBOX_SLOT(0);
         }
     };
 
@@ -168,29 +158,24 @@ static VALUE get(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
 static VALUE set(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        Table *table;
-        int32_t x;
-        int32_t y;
-        int32_t z;
-        int16_t v;
+        typedef decl_slots<int32_t, int32_t, int32_t, int16_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                table = get_private_data<Table>(self);
-                y = z = 0;
+                SANDBOX_SLOT(1) = SANDBOX_SLOT(2) = 0;
 
                 // TODO: throw error if too few arguments
 
-                SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                SANDBOX_AWAIT_S(0, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
                 if (argc >= 3) {
-                    SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
                     if (argc >= 4) {
-                        SANDBOX_AWAIT_AND_SET(z, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                        SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
                     }
                 }
 
-                SANDBOX_AWAIT_AND_SET(v, rb_num2int, ((VALUE *)(**sb() + argv))[std::min(argc, (int32_t)4) - 1]);
-                table->set(v, x, y, z);
+                SANDBOX_AWAIT_S(3, rb_num2int, ((VALUE *)(**sb() + argv))[std::min(argc, (int32_t)4) - 1]);
+                get_private_data<Table>(self)->set(SANDBOX_SLOT(3), SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2));
 
                 return ((VALUE *)(**sb() + argv))[std::min(argc, (int32_t)4) - 1];
             }
@@ -204,8 +189,8 @@ static VALUE set(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
 void table_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        table_type = sb()->rb_data_type("Table", NULL, dfree<Table>, NULL, NULL, 0, 0, 0);
-        SANDBOX_AWAIT_AND_SET(table_class, rb_define_class, "Table", sb()->rb_cObject());
+        table_type = sb()->rb_data_type("Table", nullptr, dfree<Table>, nullptr, nullptr, 0, 0, 0);
+        SANDBOX_AWAIT_R(table_class, rb_define_class, "Table", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, table_class, alloc);
         SANDBOX_AWAIT(rb_define_method, table_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
         SANDBOX_AWAIT(rb_define_method, table_class, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);

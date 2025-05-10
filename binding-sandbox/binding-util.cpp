@@ -48,43 +48,43 @@ void mkxp_sandbox::set_private_data(VALUE obj, void *ptr) {
 
 wasm_size_t get_length::operator()(VALUE obj) {
     BOOST_ASIO_CORO_REENTER (this) {
-        SANDBOX_AWAIT_AND_SET(id, rb_intern, "length");
-        SANDBOX_AWAIT_AND_SET(length_value, rb_funcall, obj, id, 0);
-        SANDBOX_AWAIT_AND_SET(result, rb_num2ulong, length_value);
+        SANDBOX_AWAIT_S(0, rb_intern, "length");
+        SANDBOX_AWAIT_S(1, rb_funcall, obj, SANDBOX_SLOT(0), 0);
+        SANDBOX_AWAIT_S(2, rb_num2ulong, SANDBOX_SLOT(1));
     }
 
-    return result;
+    return SANDBOX_SLOT(2);
 }
 
 wasm_size_t get_bytesize::operator()(VALUE obj) {
     BOOST_ASIO_CORO_REENTER (this) {
-        SANDBOX_AWAIT_AND_SET(id, rb_intern, "bytesize");
-        SANDBOX_AWAIT_AND_SET(length_value, rb_funcall, obj, id, 0);
-        SANDBOX_AWAIT_AND_SET(result, rb_num2ulong, length_value);
+        SANDBOX_AWAIT_S(0, rb_intern, "bytesize");
+        SANDBOX_AWAIT_S(1, rb_funcall, obj, SANDBOX_SLOT(0), 0);
+        SANDBOX_AWAIT_S(2, rb_num2ulong, SANDBOX_SLOT(1));
     }
 
-    return result;
+    return SANDBOX_SLOT(2);
 }
 
 VALUE wrap_property::operator()(VALUE self, void *ptr, const char *iv, VALUE klass) {
     BOOST_ASIO_CORO_REENTER (this) {
-        SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-        set_private_data(obj, ptr);
-        SANDBOX_AWAIT(rb_iv_set, self, iv, obj);
+        SANDBOX_AWAIT_S(0, rb_obj_alloc, klass);
+        set_private_data(SANDBOX_SLOT(0), ptr);
+        SANDBOX_AWAIT(rb_iv_set, self, iv, SANDBOX_SLOT(0));
     }
 
-    return obj;
+    return SANDBOX_SLOT(0);
 }
 
 void log_backtrace::operator()(VALUE exception) {
     BOOST_ASIO_CORO_REENTER (this) {
         SANDBOX_AWAIT(rb_p, exception);
-        SANDBOX_AWAIT_AND_SET(id, rb_intern, "backtrace");
-        SANDBOX_AWAIT_AND_SET(backtrace, rb_funcall, exception, id, 0);
-        SANDBOX_AWAIT_AND_SET(id, rb_intern, "join");
-        SANDBOX_AWAIT_AND_SET(separator, rb_str_new_cstr, "\n\t");
-        SANDBOX_AWAIT_AND_SET(backtrace, rb_funcall, backtrace, id, 1, separator);
-        SANDBOX_AWAIT_AND_SET(backtrace_str, rb_string_value_cstr, &backtrace);
-        mkxp_retro::log_printf(RETRO_LOG_ERROR, "%s\n", **sb() + backtrace_str);
+        SANDBOX_AWAIT_S(0, rb_intern, "backtrace");
+        SANDBOX_AWAIT_S(1, rb_funcall, exception, SANDBOX_SLOT(0), 0);
+        SANDBOX_AWAIT_S(0, rb_intern, "join");
+        SANDBOX_AWAIT_S(2, rb_str_new_cstr, "\n\t");
+        SANDBOX_AWAIT_S(1, rb_funcall, SANDBOX_SLOT(1), SANDBOX_SLOT(0), 1, SANDBOX_SLOT(2));
+        SANDBOX_AWAIT_S(3, rb_string_value_cstr, &SANDBOX_SLOT(1));
+        mkxp_retro::log_printf(RETRO_LOG_ERROR, "%s\n", **sb() + SANDBOX_SLOT(3));
     }
 }

@@ -27,21 +27,17 @@
 namespace mkxp_sandbox {
     template <class C> VALUE serializable_load(VALUE klass, VALUE src) {
         struct coro : boost::asio::coroutine {
-        private:
-            VALUE obj;
-            wasm_ptr_t ptr;
-            wasm_size_t len;
+            typedef decl_slots<wasm_ptr_t, wasm_size_t, VALUE> slots;
 
-        public:
             VALUE operator()(VALUE klass, VALUE src) {
                 BOOST_ASIO_CORO_REENTER (this) {
-                    SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, klass);
-                    SANDBOX_AWAIT_AND_SET(ptr, rb_string_value_ptr, &src);
-                    SANDBOX_AWAIT_AND_SET(len, get_bytesize, src);
-                    set_private_data(obj, C::deserialize((const char *)(**sb() + ptr), len)); /* TODO: free when sandbox is deallocated */
+                    SANDBOX_AWAIT_S(2, rb_obj_alloc, klass);
+                    SANDBOX_AWAIT_S(0, rb_string_value_ptr, &src);
+                    SANDBOX_AWAIT_S(1, get_bytesize, src);
+                    set_private_data(SANDBOX_SLOT(2), C::deserialize((const char *)(**sb() + SANDBOX_SLOT(0)), SANDBOX_SLOT(1))); /* TODO: free when sandbox is deallocated */
                 }
 
-                return obj;
+                return SANDBOX_SLOT(2);
             }
         };
 
@@ -50,22 +46,18 @@ namespace mkxp_sandbox {
 
     template <class C> VALUE serializable_dump(VALUE self, VALUE depth) {
         struct coro : boost::asio::coroutine {
-        private:
-            VALUE obj;
-            wasm_ptr_t ptr;
-            wasm_size_t len;
+            typedef decl_slots<wasm_ptr_t, wasm_size_t, VALUE> slots;
 
-        public:
             VALUE operator()(VALUE self) {
                 BOOST_ASIO_CORO_REENTER (this) {
-                    len = get_private_data<C>(self)->serialSize();
-                    SANDBOX_AWAIT_AND_SET(obj, rb_str_new_cstr, "");
-                    SANDBOX_AWAIT(rb_str_resize, obj, len);
-                    SANDBOX_AWAIT_AND_SET(ptr, rb_string_value_ptr, &obj);
-                    get_private_data<C>(self)->serialize((char *)(**sb() + ptr));
+                    SANDBOX_SLOT(1) = get_private_data<C>(self)->serialSize();
+                    SANDBOX_AWAIT_S(2, rb_str_new_cstr, "");
+                    SANDBOX_AWAIT(rb_str_resize, SANDBOX_SLOT(2), SANDBOX_SLOT(1));
+                    SANDBOX_AWAIT_S(0, rb_string_value_ptr, &SANDBOX_SLOT(2));
+                    get_private_data<C>(self)->serialize((char *)(**sb() + SANDBOX_SLOT(0)));
                 }
 
-                return obj;
+                return SANDBOX_SLOT(2);
             }
         };
 

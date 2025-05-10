@@ -29,12 +29,8 @@ namespace mkxp_sandbox {
     extern VALUE input_controller_module;
 
     struct input_binding_init : boost::asio::coroutine {
+        typedef decl_slots<wasm_size_t, VALUE, VALUE, ID> slots;
         void operator()();
-    private:
-        VALUE button_val;
-        VALUE id_val;
-        size_t i;
-        ID id;
     };
 }
 

@@ -37,20 +37,20 @@
 
 using namespace mkxp_sandbox;
 
-binding_base::stack_frame::stack_frame(struct binding_base &bind, void (*destructor)(void *ptr), wasm_ptr_t ptr) : bind(&bind), destructor(destructor), ptr(ptr) {}
+binding_base::stack_frame::stack_frame(void *coroutine, void (*destructor)(void *coroutine), wasm_ptr_t stack_ptr) : coroutine(coroutine), destructor(destructor), stack_ptr(stack_ptr) {}
 
-binding_base::stack_frame::stack_frame(struct binding_base::stack_frame &&frame) noexcept : bind(std::exchange(frame.bind, nullptr)), destructor(std::exchange(frame.destructor, nullptr)), ptr(std::exchange(frame.ptr, 0)) {}
+binding_base::stack_frame::stack_frame(struct binding_base::stack_frame &&frame) noexcept : coroutine(std::exchange(frame.coroutine, nullptr)), destructor(std::exchange(frame.destructor, nullptr)), stack_ptr(std::exchange(frame.stack_ptr, 0)) {}
 
 struct binding_base::stack_frame &binding_base::stack_frame::operator=(struct binding_base::stack_frame &&frame) noexcept {
-    bind = std::exchange(frame.bind, nullptr);
+    coroutine = std::exchange(frame.coroutine, nullptr);
     destructor = std::exchange(frame.destructor, nullptr);
-    ptr = std::exchange(frame.ptr, 0);
+    stack_ptr = std::exchange(frame.stack_ptr, 0);
     return *this;
 }
 
 binding_base::stack_frame::~stack_frame() {
     if (destructor != nullptr) {
-        destructor(**bind + ptr);
+        destructor(coroutine);
     }
 }
 
@@ -61,6 +61,7 @@ binding_base::~binding_base() {
     // If we let the compiler use its default destructor, the stack frames may not be deallocated in a particular order, which can lead to hard-to-detect bugs if somehow a bug depends on the order in which the stack frames are deallocated
     for (auto &it : fibers) {
         while (!it.second.stack.empty()) {
+            stack_ptr = it.second.stack.back().stack_ptr;
             it.second.stack.pop_back();
         }
     }

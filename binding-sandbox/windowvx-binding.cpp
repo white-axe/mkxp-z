@@ -36,25 +36,21 @@ SANDBOX_DEF_ALLOC(windowvx_type);
 
 static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        VALUE obj;
-        int32_t x;
-        int32_t y;
-        int32_t w;
-        int32_t h;
+        typedef decl_slots<VALUE, int32_t, int32_t, int32_t, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                x = y = w = h = 0;
+                SANDBOX_SLOT(1) = SANDBOX_SLOT(2) = SANDBOX_SLOT(3) = SANDBOX_SLOT(4) = 0;
 
                 GFX_LOCK;
                 if (rgssVer >= 3) {
                     if (argc == 4) {
-                        SANDBOX_AWAIT_AND_SET(x, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
-                        SANDBOX_AWAIT_AND_SET(y, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
-                        SANDBOX_AWAIT_AND_SET(w, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
-                        SANDBOX_AWAIT_AND_SET(h, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
+                        SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                        SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                        SANDBOX_AWAIT_S(3, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                        SANDBOX_AWAIT_S(4, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
                     }
-                    WindowVX *window = new WindowVX(x, y, w, h);
+                    WindowVX *window = new WindowVX(SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(4));
                     set_private_data(self, window);
                     window->initDynAttribs();
                 } else {
@@ -67,10 +63,10 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     SANDBOX_AWAIT(wrap_property, self, &get_private_data<WindowVX>(self)->getTone(), "tone", tone_class);
                 }
 
-                SANDBOX_AWAIT_AND_SET(obj, rb_obj_alloc, bitmap_class);
-                set_private_data(obj, new Bitmap(1, 1));
-                SANDBOX_AWAIT(bitmap_init_props, obj);
-                SANDBOX_AWAIT(rb_iv_set, self, "contents", obj);
+                SANDBOX_AWAIT_S(0, rb_obj_alloc, bitmap_class);
+                set_private_data(SANDBOX_SLOT(0), new Bitmap(1, 1));
+                SANDBOX_AWAIT(bitmap_init_props, SANDBOX_SLOT(0));
+                SANDBOX_AWAIT(rb_iv_set, self, "contents", SANDBOX_SLOT(0));
                 GFX_UNLOCK;
             }
 
@@ -102,21 +98,18 @@ SANDBOX_DEF_GFX_PROP_I(WindowVX, BackOpacity, back_opacity);
 SANDBOX_DEF_GFX_PROP_I(WindowVX, ContentsOpacity, contents_opacity);
 SANDBOX_DEF_GFX_PROP_I(WindowVX, Openness, openness);
 
-static VALUE move(VALUE self, VALUE xv, VALUE yv, VALUE wv, VALUE hv) {
+static VALUE move(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h) {
     struct coro : boost::asio::coroutine {
-        int32_t x;
-        int32_t y;
-        int32_t w;
-        int32_t h;
+        typedef decl_slots<int32_t, int32_t, int32_t, int32_t> slots;
 
-        VALUE operator()(VALUE self, VALUE xv, VALUE yv, VALUE wv, VALUE hv) {
+        VALUE operator()(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(x, rb_num2int, xv);
-                SANDBOX_AWAIT_AND_SET(y, rb_num2int, yv);
-                SANDBOX_AWAIT_AND_SET(w, rb_num2int, wv);
-                SANDBOX_AWAIT_AND_SET(h, rb_num2int, hv);
+                SANDBOX_AWAIT_S(0, rb_num2int, x);
+                SANDBOX_AWAIT_S(1, rb_num2int, y);
+                SANDBOX_AWAIT_S(2, rb_num2int, w);
+                SANDBOX_AWAIT_S(3, rb_num2int, h);
                 GFX_LOCK;
-                get_private_data<WindowVX>(self)->move(x, y, w, h);
+                get_private_data<WindowVX>(self)->move(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3));
                 GFX_UNLOCK;
             }
 
@@ -124,7 +117,7 @@ static VALUE move(VALUE self, VALUE xv, VALUE yv, VALUE wv, VALUE hv) {
         }
     };
 
-    return sb()->bind<struct coro>()()(self, xv, yv, wv, hv);
+    return sb()->bind<struct coro>()()(self, x, y, w, h);
 }
 
 static VALUE is_open(VALUE self) {
@@ -142,8 +135,8 @@ SANDBOX_DEF_GFX_PROP_OBJ_VAL(WindowVX, Tone, Tone, tone);
 
 void windowvx_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        windowvx_type = sb()->rb_data_type("Window", NULL, dfree<WindowVX>, NULL, NULL, 0, 0, 0);
-        SANDBOX_AWAIT_AND_SET(windowvx_class, rb_define_class, "Window", sb()->rb_cObject());
+        windowvx_type = sb()->rb_data_type("Window", nullptr, dfree<WindowVX>, nullptr, nullptr, 0, 0, 0);
+        SANDBOX_AWAIT_R(windowvx_class, rb_define_class, "Window", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, windowvx_class, alloc);
         SANDBOX_AWAIT(rb_define_method, windowvx_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
         SANDBOX_AWAIT(disposable_binding_init<WindowVX>, windowvx_class);

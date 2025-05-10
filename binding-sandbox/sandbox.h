@@ -24,48 +24,12 @@
 
 #include <atomic>
 #include <memory>
+#include <vector>
 #include <boost/optional.hpp>
 #include <mkxp-sandbox-bindgen.h>
 #include "types.h"
 #include "audio.h"
 #include "graphics.h"
-
-#define SANDBOX_AWAIT(coroutine, ...) \
-    do { \
-        { \
-            using namespace ::mkxp_sandbox; \
-            struct bindings::stack_frame_guard<struct coroutine> _frame = sb()->bind<struct coroutine>(); \
-            _frame()(__VA_ARGS__); \
-            if (_frame().is_complete()) break; \
-        } \
-        BOOST_ASIO_CORO_YIELD; \
-    } while (1)
-
-#define SANDBOX_AWAIT_AND_SET(variable, coroutine, ...) \
-    do { \
-        { \
-            using namespace ::mkxp_sandbox; \
-            struct bindings::stack_frame_guard<struct coroutine> _frame = sb()->bind<struct coroutine>(); \
-            auto ret = _frame()(__VA_ARGS__); \
-            if (_frame().is_complete()) { \
-                variable = ret; \
-                break; \
-            } \
-        } \
-        BOOST_ASIO_CORO_YIELD; \
-    } while (1)
-
-#define SANDBOX_YIELD \
-    do { \
-        using namespace ::mkxp_sandbox; \
-        sb()._begin_yield(); \
-        BOOST_ASIO_CORO_YIELD; \
-        sb()._end_yield(); \
-    } while (0)
-
-#define SANDBOX_VALUE_TO_BOOL(value) ((value) != SANDBOX_FALSE && (value) != SANDBOX_NIL)
-
-#define SANDBOX_BOOL_TO_VALUE(boolean) ((boolean) ? SANDBOX_TRUE : SANDBOX_FALSE)
 
 namespace mkxp_sandbox {
     struct sandbox;
@@ -87,6 +51,9 @@ namespace mkxp_sandbox {
         void sandbox_free(usize ptr);
 
         public:
+        std::vector<uint8_t> script_decode_buffer;
+        std::vector<std::string> font_names_buffer;
+        Bitmap *trans_map;
         AudioMutex movie_mutex;
         bool transitioning;
         inline struct mkxp_sandbox::bindings &operator*() noexcept { return *bindings; }

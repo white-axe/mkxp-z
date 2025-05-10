@@ -268,6 +268,8 @@ PRELUDE = <<~HEREDOC
 
   static_assert(alignof(VALUE) % sizeof(VALUE) == 0, "Alignment of `VALUE` must be divisible by size of `VALUE` for Ruby garbage collection to work. If you compiled Ruby for wasm64, try compiling it for wasm32 instead.");
 
+  #define SLOT(slot_index) (*(typename slot_type<(slot_index), slots>::type *)(*bind + bind.stack_pointer() + slot_offset<(slot_index), slots>::value))
+
   #if WABT_BIG_ENDIAN
   #  define SERIALIZE_32(value) __builtin_bswap32(value)
   #  define SERIALIZE_64(value) __builtin_bswap64(value)
@@ -437,7 +439,7 @@ File.readlines('tags', chomp: true).each do |line|
   coroutine_initializer = ''
   destructor = []
   transformed_args = Set[]
-  buffers = []
+  num_slots = 0
   i = 0
   args.each_with_index do |arg, i|
     next if arg == '...'
@@ -449,7 +451,7 @@ File.readlines('tags', chomp: true).each do |line|
         coroutine_initializer += <<~HEREDOC
           switch (a#{args.length - 1}) {
               case -1:
-                  f#{i} = wasm_rt_push_funcref(&bind.instance().w2c_T0, wasm_rt_funcref_t {
+                  SLOT(#{num_slots}) = wasm_rt_push_funcref(&bind.instance().w2c_T0, wasm_rt_funcref_t {
                       .func_type = wasm2c_#{MODULE_NAME}_get_func_type(3, 1, #{FUNC_TYPE_TABLE[:s32]}, #{FUNC_TYPE_TABLE[:ptr]}, #{FUNC_TYPE_TABLE[:value]}, #{FUNC_TYPE_TABLE[:value]}),
                       .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:value, [:s32, :ptr, :value]])},
                       .func_tailcallee = {.fn = NULL},
@@ -457,7 +459,7 @@ File.readlines('tags', chomp: true).each do |line|
                   });
                   break;
               case -2:
-                  f#{i} = wasm_rt_push_funcref(&bind.instance().w2c_T0, wasm_rt_funcref_t {
+                  SLOT(#{num_slots}) = wasm_rt_push_funcref(&bind.instance().w2c_T0, wasm_rt_funcref_t {
                       .func_type = wasm2c_#{MODULE_NAME}_get_func_type(2, 1, #{FUNC_TYPE_TABLE[:value]}, #{FUNC_TYPE_TABLE[:value]}, #{FUNC_TYPE_TABLE[:value]}),
                       .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:value, [:value, :value]])},
                       .func_tailcallee = {.fn = NULL},
@@ -468,7 +470,7 @@ File.readlines('tags', chomp: true).each do |line|
         for j in 0..16
           case_str = <<~HEREDOC
             case #{j}:
-                f#{i} = wasm_rt_push_funcref(&bind.instance().w2c_T0, wasm_rt_funcref_t {
+                SLOT(#{num_slots}) = wasm_rt_push_funcref(&bind.instance().w2c_T0, wasm_rt_funcref_t {
                     .func_type = wasm2c_#{MODULE_NAME}_get_func_type(#{j + 1}, 1, #{([FUNC_TYPE_TABLE[:value]] * (j + 2)).join(', ')}),
                     .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([:value, [:value] * (j + 1)])},
                     .func_tailcallee = {.fn = NULL},
@@ -485,7 +487,7 @@ File.readlines('tags', chomp: true).each do |line|
         HEREDOC
       else
         coroutine_initializer += <<~HEREDOC
-          f#{i} = wasm_rt_push_funcref(&bind.instance().w2c_T0, wasm_rt_funcref_t {
+          SLOT(#{num_slots}) = wasm_rt_push_funcref(&bind.instance().w2c_T0, wasm_rt_funcref_t {
               .func_type = wasm2c_#{MODULE_NAME}_get_func_type(#{handler[:func_ptr_args].length}, #{handler[:func_ptr_rets].length}#{handler[:func_ptr_args].empty? && handler[:func_ptr_rets].empty? ? '' : ', ' + (handler[:func_ptr_args] + handler[:func_ptr_rets]).map { |type| FUNC_TYPE_TABLE[type] }.join(', ')}),
               .func = (wasm_rt_function_ptr_t)_sbindgen_call_#{call_type_hash([handler[:func_ptr_rets].empty? ? :void : handler[:func_ptr_rets][0], handler[:func_ptr_args]])},
               .func_tailcallee = {.fn = NULL},
@@ -495,15 +497,16 @@ File.readlines('tags', chomp: true).each do |line|
       end
       coroutine_initializer += "\n"
       transformed_args.add(i)
+      num_slots += 1
     elsif !handler[:buf_size].nil?
       coroutine_initializer += <<~HEREDOC
-        f#{i} = bind.sandbox_malloc(#{handler[:buf_size].gsub('PREV_ARG', "a#{i - 1}").gsub('ARG', "a#{i}")});
-        if (f#{i} == 0) throw std::bad_alloc();
+        SLOT(#{num_slots}) = bind.sandbox_malloc(#{handler[:buf_size].gsub('PREV_ARG', "a#{i - 1}").gsub('ARG', "a#{i}")});
+        if (SLOT(#{num_slots}) == 0) throw std::bad_alloc();
       HEREDOC
-      coroutine_initializer += handler[:serialize].gsub('PREV_ARG', "a#{i - 1}").gsub('ARG', "a#{i}").gsub('BUF', "f#{i}")
+      coroutine_initializer += handler[:serialize].gsub('PREV_ARG', "a#{i - 1}").gsub('ARG', "a#{i}").gsub('BUF', "SLOT(#{num_slots})")
       coroutine_initializer += "\n"
       transformed_args.add(i)
-      buffers.append("f#{i}")
+      num_slots += 1
     end
 
     i += 1
@@ -511,33 +514,30 @@ File.readlines('tags', chomp: true).each do |line|
 
   coroutine_vars = []
 
-  fields = (0...args.length).filter_map do |i|
-    transformed_args.include?(i) && "wasm_ptr_t f#{i}"
-  end
-
   # If this is a varargs function, manually generate bindings for getting the varargs based on the function name
   if !args.empty? && args[-1] == '...'
     case func_name
     when 'rb_funcall'
       coroutine_initializer += <<~HEREDOC
-        fp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance());
-        sp = fp - CEIL_WASMSTACKALIGN(a#{args.length - 2} * sizeof(VALUE));
-        if (sp > fp) {
-            throw std::bad_alloc();
+        {
+            wasm_ptr_t fp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance());
+            wasm_ptr_t sp = fp - CEIL_WASMSTACKALIGN(a#{args.length - 2} * sizeof(VALUE));
+            if (sp > fp) {
+                throw std::bad_alloc();
+            }
+            SLOT(#{num_slots}) = sp;
+            SLOT(#{num_slots + 1}) = fp;
+            w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), sp);
+            std::va_list a;
+            va_start(a, a#{args.length - 2});
+            for (long i = 0; i < a#{args.length - 2}; ++i) {
+                ((VALUE *)(*bind + sp))[i] = va_arg(a, VALUE);
+            }
+            va_end(a);
         }
-        w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), sp);
-        std::va_list a;
-        va_start(a, a#{args.length - 2});
-        for (long i = 0; i < a#{args.length - 2}; ++i) {
-            ((VALUE *)(*bind + sp))[i] = va_arg(a, VALUE);
-        }
-        va_end(a);
       HEREDOC
       coroutine_initializer += "\n"
-      fields.append('wasm_ptr_t fp')
-      fields.append('wasm_ptr_t sp')
-      buffers.append('fp')
-      buffers.append('sp')
+      num_slots += 2
     when 'rb_rescue2'
       coroutine_initializer += <<~HEREDOC
         {
@@ -547,11 +547,13 @@ File.readlines('tags', chomp: true).each do |line|
             wasm_size_t n = 0;
             do ++n; while (va_arg(b, VALUE));
             va_end(b);
-            fp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance());
-            sp = fp - CEIL_WASMSTACKALIGN(n * sizeof(VALUE));
+            wasm_ptr_t fp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance());
+            wasm_ptr_t sp = fp - CEIL_WASMSTACKALIGN(n * sizeof(VALUE));
             if (sp > fp) {
                 throw std::bad_alloc();
             }
+            SLOT(#{num_slots}) = sp;
+            SLOT(#{num_slots + 1}) = fp;
             w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), sp);
             for (wasm_size_t i = 0; i < n; ++i) {
                 ((VALUE *)(*bind + sp))[i] = va_arg(a, VALUE);
@@ -560,14 +562,32 @@ File.readlines('tags', chomp: true).each do |line|
         }
       HEREDOC
       coroutine_initializer += "\n"
-      fields.append('wasm_ptr_t fp')
-      fields.append('wasm_ptr_t sp')
-      buffers.append('fp')
-      buffers.append('sp')
+      num_slots += 2
     else
       next
     end
   end
+
+  old_num_slots = num_slots
+  num_slots = 0
+  coroutine_initializer = (
+      (0...args.length).map do |i|
+      arg = args[i]
+      if arg == '...'
+        num_slots += 2
+        "SLOT(#{num_slots - 2}) = 0;\nSLOT(#{num_slots - 1}) = 0;"
+      elsif transformed_args.include?(i)
+        num_slots += 1
+        "SLOT(#{num_slots - 1}) = 0;"
+      else
+        nil
+      end
+    end
+      .filter { |line| line != nil }
+      .join("\n") + "\n\n"
+  )
+    .lstrip + coroutine_initializer
+  num_slots = old_num_slots
 
   handler = RET_HANDLERS[ret]
 
@@ -589,22 +609,45 @@ File.readlines('tags', chomp: true).each do |line|
       : "#{args[i]}"
   end
 
+  j = 0
   coroutine_inner = <<~HEREDOC
-    #{handler[:primitive] == :void ? '' : 'r = '}w2c_#{MODULE_NAME}_#{func_name}(#{(['&bind.instance()'] + (0...args.length).map { |i| args[i] == '...' ? 'sp' : transformed_args.include?(i) ? "f#{i}" : args[i] == 'VALUE' ? "SERIALIZE_VALUE(a#{i})" : args[i] == 'const rb_data_type_t *' ? "a#{i}.get()" : "a#{i}" }).join(', ')});
+    #{handler[:primitive] == :void ? '' : 'r = '}w2c_#{MODULE_NAME}_#{func_name}(#{(['&bind.instance()'] + (0...args.length).map do |i|
+      if args[i] == '...' || transformed_args.include?(i)
+        j += 1
+        "SLOT(#{j - 1})"
+      else
+        args[i] == 'VALUE' ? "SERIALIZE_VALUE(a#{i})" : args[i] == 'const rb_data_type_t *' ? "a#{i}.get()" : "a#{i}"
+      end
+    end).join(', ')});
     if (w2c_#{MODULE_NAME}_asyncify_get_state(&bind.instance()) != 1) break;
     BOOST_ASIO_CORO_YIELD;
   HEREDOC
 
-  coroutine_destructor = buffers.empty? ? '' : <<~HEREDOC
+  old_num_slots = num_slots
+  coroutine_destructor = <<~HEREDOC
     #{func_name}::~#{func_name}() {
-    #{(0...buffers.length)
-      .filter { |i| buffers[buffers.length - 1 - i] != 'sp' }
-      .map { |i| "    if (#{buffers[buffers.length - 1 - i]} != 0) #{buffers[buffers.length - 1 - i] == 'fp' ? "w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), #{buffers[buffers.length - 1 - i]})" : "bind.sandbox_free(#{buffers[buffers.length - 1 - i]})"};" }.join("\n")}
+    #{(0...args.length)
+      .map do |i|
+        i = args.length - 1 - i
+        arg = args[i]
+        if arg == '...'
+          num_slots -= 2
+          "    if (SLOT(#{num_slots + 1}) != 0) w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), SLOT(#{num_slots + 1}));"
+        elsif transformed_args.include?(i)
+          num_slots -= 1
+          "    if (SLOT(#{num_slots}) != 0) bind.sandbox_free(SLOT(#{num_slots}));"
+        else
+          nil
+        end
+      end
+      .filter { |line| line != nil }
+      .join("\n")}
     }
   HEREDOC
+  num_slots = old_num_slots
 
   coroutine_definition = <<~HEREDOC
-    #{func_name}::#{func_name}(struct binding_base &b) : #{(['bind(b)'] + buffers.map { |buffer| "#{buffer}(0)" }).join(', ')} {}
+    #{func_name}::#{func_name}(struct binding_base &b) : bind(b) {}
     #{coroutine_ret} #{func_name}::operator()(#{coroutine_args.join(', ')}) {#{coroutine_vars.empty? ? '' : (coroutine_vars.map { |var| "\n    #{var} = 0;" }.join + "\n")}
         BOOST_ASIO_CORO_REENTER (this) {
     #{coroutine_initializer.empty? ? '' : (coroutine_initializer.split("\n").map { |line| "        #{line}".rstrip }.join("\n") + "\n\n")}        for (;;) {
@@ -616,11 +659,12 @@ File.readlines('tags', chomp: true).each do |line|
 
   coroutine_declaration = <<~HEREDOC
     struct #{func_name} : boost::asio::coroutine {
+        typedef decl_slots<#{(['wasm_ptr_t'] * num_slots).join(', ')}> slots;
         #{coroutine_ret} operator()(#{declaration_args.join(', ')});
         #{func_name}(struct binding_base &b);
         #{coroutine_destructor.empty? ? '' : "~#{func_name}();\n    "}private:
         struct binding_base &bind;
-    #{fields.empty? ? '' : fields.map { |field| "    #{field};\n" }.join}};
+    };
   HEREDOC
 
   func_names.append(func_name)

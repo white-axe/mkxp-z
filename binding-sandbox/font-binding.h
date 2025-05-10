@@ -28,11 +28,8 @@ namespace mkxp_sandbox {
     extern VALUE font_class;
 
     struct font_binding_init : boost::asio::coroutine {
+        typedef decl_slots<wasm_size_t, VALUE, VALUE> slots;
         void operator()();
-    private:
-        VALUE default_names;
-        VALUE default_name;
-        wasm_size_t default_name_index;
     };
 }
 

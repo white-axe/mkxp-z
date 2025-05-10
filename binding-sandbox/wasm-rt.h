@@ -108,6 +108,7 @@ typedef struct {
     uint8_t *data;
     uint64_t pages;
     uint64_t size;
+    uint64_t capacity;
 } wasm_rt_memory_t;
 
 typedef struct {

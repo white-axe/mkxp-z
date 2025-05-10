@@ -72,8 +72,8 @@ SANDBOX_DEF_GFX_PROP_I(Window, ContentsOpacity, contents_opacity);
 
 void window_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        window_type = sb()->rb_data_type("Window", NULL, dfree<Window>, NULL, NULL, 0, 0, 0);
-        SANDBOX_AWAIT_AND_SET(window_class, rb_define_class, "Window", sb()->rb_cObject());
+        window_type = sb()->rb_data_type("Window", nullptr, dfree<Window>, nullptr, nullptr, 0, 0, 0);
+        SANDBOX_AWAIT_R(window_class, rb_define_class, "Window", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, window_class, alloc);
         SANDBOX_AWAIT(rb_define_method, window_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
         SANDBOX_AWAIT(disposable_binding_init<Window>, window_class);

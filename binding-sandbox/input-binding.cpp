@@ -61,29 +61,28 @@ struct {
 };
 
 struct get_button_arg : boost::asio::coroutine {
-    VALUE value;
-    int32_t button;
+    typedef decl_slots<VALUE, int32_t> slots;
 
     int32_t operator()(VALUE arg) {
         BOOST_ASIO_CORO_REENTER (this) {
-            SANDBOX_AWAIT_AND_SET(value, rb_obj_is_kind_of, arg, sb()->rb_cInteger());
-            if (SANDBOX_VALUE_TO_BOOL(value)) {
-                SANDBOX_AWAIT_AND_SET(button, rb_num2int, arg);
+            SANDBOX_AWAIT_S(0, rb_obj_is_kind_of, arg, sb()->rb_cInteger());
+            if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(0))) {
+                SANDBOX_AWAIT_S(1, rb_num2int, arg);
             } else {
-                SANDBOX_AWAIT_AND_SET(value, rb_obj_is_kind_of, arg, sb()->rb_cSymbol());
-                if (SANDBOX_VALUE_TO_BOOL(value) && rgssVer >= 3) {
-                    SANDBOX_AWAIT_AND_SET(value, rb_ll2inum, Input::None);
-                    SANDBOX_AWAIT_AND_SET(value, rb_hash_lookup2, symhash, arg, value);
-                    SANDBOX_AWAIT_AND_SET(button, rb_num2int, value);
+                SANDBOX_AWAIT_S(0, rb_obj_is_kind_of, arg, sb()->rb_cSymbol());
+                if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(0)) && rgssVer >= 3) {
+                    SANDBOX_AWAIT_S(0, rb_ll2inum, Input::None);
+                    SANDBOX_AWAIT_S(0, rb_hash_lookup2, symhash, arg, SANDBOX_SLOT(0));
+                    SANDBOX_AWAIT_S(1, rb_num2int, SANDBOX_SLOT(0));
                 } else {
                     // FIXME: RMXP allows only few more types that
                     // don't make sense (symbols in pre 3, floats)
-                    button = 0;
+                    SANDBOX_SLOT(1) = 0;
                 }
             }
         }
 
-        return button;
+        return SANDBOX_SLOT(1);
     }
 };
 
@@ -98,12 +97,12 @@ static VALUE update(VALUE self) {
 
 static VALUE press(VALUE self, VALUE code) {
     struct coro : boost::asio::coroutine {
-        int32_t button;
+        typedef decl_slots<int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE code) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
-                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isPressed(button));
+                SANDBOX_AWAIT_S(0, get_button_arg, code);
+                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isPressed(SANDBOX_SLOT(0)));
             }
 
             return SANDBOX_UNDEF;
@@ -115,12 +114,12 @@ static VALUE press(VALUE self, VALUE code) {
 
 static VALUE trigger(VALUE self, VALUE code) {
     struct coro : boost::asio::coroutine {
-        int32_t button;
+        typedef decl_slots<int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE code) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
-                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isTriggered(button));
+                SANDBOX_AWAIT_S(0, get_button_arg, code);
+                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isTriggered(SANDBOX_SLOT(0)));
             }
 
             return SANDBOX_UNDEF;
@@ -132,12 +131,12 @@ static VALUE trigger(VALUE self, VALUE code) {
 
 static VALUE repeat(VALUE self, VALUE code) {
     struct coro : boost::asio::coroutine {
-        int32_t button;
+        typedef decl_slots<int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE code) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
-                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isRepeated(button));
+                SANDBOX_AWAIT_S(0, get_button_arg, code);
+                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isRepeated(SANDBOX_SLOT(0)));
             }
 
             return SANDBOX_UNDEF;
@@ -149,12 +148,12 @@ static VALUE repeat(VALUE self, VALUE code) {
 
 static VALUE release(VALUE self, VALUE code) {
     struct coro : boost::asio::coroutine {
-        int32_t button;
+        typedef decl_slots<int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE code) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
-                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isReleased(button));
+                SANDBOX_AWAIT_S(0, get_button_arg, code);
+                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isReleased(SANDBOX_SLOT(0)));
             }
 
             return SANDBOX_UNDEF;
@@ -166,18 +165,16 @@ static VALUE release(VALUE self, VALUE code) {
 
 static VALUE count(VALUE self, VALUE code) {
     struct coro : boost::asio::coroutine {
-        int32_t button;
-        int32_t count;
-        VALUE value;
+        typedef decl_slots<VALUE, int32_t, int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE code) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
-                count = mkxp_retro::input->count(button);
-                SANDBOX_AWAIT_AND_SET(value, rb_ll2inum, count);
+                SANDBOX_AWAIT_S(1, get_button_arg, code);
+                SANDBOX_SLOT(2) = mkxp_retro::input->count(SANDBOX_SLOT(1));
+                SANDBOX_AWAIT_S(0, rb_ll2inum, SANDBOX_SLOT(2));
             }
 
-            return value;
+            return SANDBOX_SLOT(0);
         }
     };
 
@@ -186,18 +183,16 @@ static VALUE count(VALUE self, VALUE code) {
 
 static VALUE time_(VALUE self, VALUE code) {
     struct coro : boost::asio::coroutine {
-        int32_t button;
-        double time;
-        VALUE value;
+        typedef decl_slots<double, VALUE, int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE code) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
-                time = mkxp_retro::input->repeatTime(button);
-                SANDBOX_AWAIT_AND_SET(value, rb_float_new, time);
+                SANDBOX_AWAIT_S(2, get_button_arg, code);
+                SANDBOX_SLOT(0) = mkxp_retro::input->repeatTime(SANDBOX_SLOT(2));
+                SANDBOX_AWAIT_S(1, rb_float_new, SANDBOX_SLOT(0));
             }
 
-            return value;
+            return SANDBOX_SLOT(1);
         }
     };
 
@@ -206,12 +201,12 @@ static VALUE time_(VALUE self, VALUE code) {
 
 static VALUE pressex(VALUE self, VALUE code) {
     struct coro : boost::asio::coroutine {
-        int32_t button;
+        typedef decl_slots<int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE code) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
-                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isPressedEx(button, false));
+                SANDBOX_AWAIT_S(0, get_button_arg, code);
+                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isPressedEx(SANDBOX_SLOT(0), false));
             }
 
             return SANDBOX_UNDEF;
@@ -223,12 +218,12 @@ static VALUE pressex(VALUE self, VALUE code) {
 
 static VALUE triggerex(VALUE self, VALUE code) {
     struct coro : boost::asio::coroutine {
-        int32_t button;
+        typedef decl_slots<int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE code) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
-                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isTriggeredEx(button, false));
+                SANDBOX_AWAIT_S(0, get_button_arg, code);
+                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isTriggeredEx(SANDBOX_SLOT(0), false));
             }
 
             return SANDBOX_UNDEF;
@@ -240,12 +235,12 @@ static VALUE triggerex(VALUE self, VALUE code) {
 
 static VALUE repeatex(VALUE self, VALUE code) {
     struct coro : boost::asio::coroutine {
-        int32_t button;
+        typedef decl_slots<int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE code) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
-                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isRepeatedEx(button, false));
+                SANDBOX_AWAIT_S(0, get_button_arg, code);
+                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isRepeatedEx(SANDBOX_SLOT(0), false));
             }
 
             return SANDBOX_UNDEF;
@@ -257,12 +252,12 @@ static VALUE repeatex(VALUE self, VALUE code) {
 
 static VALUE releaseex(VALUE self, VALUE code) {
     struct coro : boost::asio::coroutine {
-        int32_t button;
+        typedef decl_slots<int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE code) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
-                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isReleasedEx(button, false));
+                SANDBOX_AWAIT_S(0, get_button_arg, code);
+                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->isReleasedEx(SANDBOX_SLOT(0), false));
             }
 
             return SANDBOX_UNDEF;
@@ -274,18 +269,16 @@ static VALUE releaseex(VALUE self, VALUE code) {
 
 static VALUE repeatcount(VALUE self, VALUE code) {
     struct coro : boost::asio::coroutine {
-        int32_t button;
-        int32_t count;
-        VALUE value;
+        typedef decl_slots<VALUE, int32_t, int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE code) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
-                count = mkxp_retro::input->repeatcount(button, false);
-                SANDBOX_AWAIT_AND_SET(value, rb_ll2inum, count);
+                SANDBOX_AWAIT_S(1, get_button_arg, code);
+                SANDBOX_SLOT(2) = mkxp_retro::input->repeatcount(SANDBOX_SLOT(1), false);
+                SANDBOX_AWAIT_S(0, rb_ll2inum, SANDBOX_SLOT(2));
             }
 
-            return value;
+            return SANDBOX_SLOT(0);
         }
     };
 
@@ -294,18 +287,16 @@ static VALUE repeatcount(VALUE self, VALUE code) {
 
 static VALUE timeex(VALUE self, VALUE code) {
     struct coro : boost::asio::coroutine {
-        int32_t button;
-        double time;
-        VALUE value;
+        typedef decl_slots<double, VALUE, int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE code) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
-                time = mkxp_retro::input->repeatTimeEx(button, false);
-                SANDBOX_AWAIT_AND_SET(value, rb_float_new, time);
+                SANDBOX_AWAIT_S(2, get_button_arg, code);
+                SANDBOX_SLOT(0) = mkxp_retro::input->repeatTimeEx(SANDBOX_SLOT(2), false);
+                SANDBOX_AWAIT_S(1, rb_float_new, SANDBOX_SLOT(0));
             }
 
-            return value;
+            return SANDBOX_SLOT(1);
         }
     };
 
@@ -338,20 +329,18 @@ static VALUE mouse_in_window(VALUE self) {
 
 static VALUE raw_key_states(VALUE self) {
     struct coro : boost::asio::coroutine {
-        VALUE ary;
-        uint32_t i;
-        uint32_t len;
+        typedef decl_slots<VALUE, uint32_t, uint32_t> slots;
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                len = mkxp_retro::input->rawKeyStatesLength();
-                SANDBOX_AWAIT_AND_SET(ary, rb_ary_new_capa, len);
-                for (i = 0; i < len; ++i) {
-                    SANDBOX_AWAIT(rb_ary_push, ary, SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->rawKeyStates()[i]));
+                SANDBOX_SLOT(2) = mkxp_retro::input->rawKeyStatesLength();
+                SANDBOX_AWAIT_S(0, rb_ary_new_capa, SANDBOX_SLOT(2));
+                for (SANDBOX_SLOT(1) = 0; SANDBOX_SLOT(1) < SANDBOX_SLOT(2); ++SANDBOX_SLOT(1)) {
+                    SANDBOX_AWAIT(rb_ary_push, SANDBOX_SLOT(0), SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->rawKeyStates()[SANDBOX_SLOT(1)]));
                 }
             }
 
-            return ary;
+            return SANDBOX_SLOT(0);
         }
     };
 
@@ -367,31 +356,29 @@ static VALUE controller_name(VALUE self) {
 }
 
 #define POWERCASE(power) \
-    if (level == (int32_t)SDL_JOYSTICK_POWER_##power) { \
-        SANDBOX_AWAIT_AND_SET(id, rb_intern, #power); \
-        SANDBOX_AWAIT_AND_SET(value, rb_id2sym, id); \
-        return value; \
+    if (SANDBOX_SLOT(2) == (int32_t)SDL_JOYSTICK_POWER_##power) { \
+        SANDBOX_AWAIT_S(1, rb_intern, #power); \
+        SANDBOX_AWAIT_S(0, rb_id2sym, SANDBOX_SLOT(1)); \
+        return SANDBOX_SLOT(0); \
     }
 
 static VALUE controller_power_level(VALUE self) {
     struct coro : boost::asio::coroutine {
-        VALUE value;
-        ID id;
-        int32_t level;
+        typedef decl_slots<VALUE, ID, int32_t> slots;
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                level = mkxp_retro::input->getControllerPowerLevel();
+                SANDBOX_SLOT(2) = mkxp_retro::input->getControllerPowerLevel();
                 POWERCASE(UNKNOWN);
                 POWERCASE(EMPTY);
                 POWERCASE(LOW);
                 POWERCASE(MEDIUM);
                 POWERCASE(FULL);
                 POWERCASE(WIRED);
-                value = SANDBOX_NIL;
+                SANDBOX_SLOT(0) = SANDBOX_NIL;
             }
 
-            return value;
+            return SANDBOX_SLOT(0);
         }
     };
 
@@ -401,17 +388,16 @@ static VALUE controller_power_level(VALUE self) {
 #define DEF_AXES(enum1, enum2, name) \
     static VALUE controller_axes_##name(VALUE self) { \
         struct coro : boost::asio::coroutine { \
-            VALUE ary; \
-            VALUE value; \
+            typedef decl_slots<VALUE, VALUE> slots; \
             VALUE operator()(VALUE self) { \
                 BOOST_ASIO_CORO_REENTER (this) { \
-                    SANDBOX_AWAIT_AND_SET(ary, rb_ary_new_capa, 2); \
-                    SANDBOX_AWAIT_AND_SET(value, rb_ll2inum, mkxp_retro::input->getControllerAxisValue(SDL_CONTROLLER_AXIS_##enum1)); \
-                    SANDBOX_AWAIT(rb_ary_push, ary, value); \
-                    SANDBOX_AWAIT_AND_SET(value, rb_ll2inum, mkxp_retro::input->getControllerAxisValue(SDL_CONTROLLER_AXIS_##enum2)); \
-                    SANDBOX_AWAIT(rb_ary_push, ary, value); \
+                    SANDBOX_AWAIT_S(0, rb_ary_new_capa, 2); \
+                    SANDBOX_AWAIT_S(1, rb_ll2inum, mkxp_retro::input->getControllerAxisValue(SDL_CONTROLLER_AXIS_##enum1)); \
+                    SANDBOX_AWAIT(rb_ary_push, SANDBOX_SLOT(0), SANDBOX_SLOT(1)); \
+                    SANDBOX_AWAIT_S(1, rb_ll2inum, mkxp_retro::input->getControllerAxisValue(SDL_CONTROLLER_AXIS_##enum2)); \
+                    SANDBOX_AWAIT(rb_ary_push, SANDBOX_SLOT(0), SANDBOX_SLOT(1)); \
                 } \
-                return ary; \
+                return SANDBOX_SLOT(0); \
             } \
         }; \
         return sb()->bind<struct coro>()()(self); \
@@ -423,20 +409,18 @@ DEF_AXES(TRIGGERLEFT, TRIGGERRIGHT, trigger);
 
 static VALUE controller_raw_button_states(VALUE self) {
     struct coro : boost::asio::coroutine {
-        VALUE ary;
-        uint32_t i;
-        uint32_t len;
+        typedef decl_slots<VALUE, uint32_t, uint32_t> slots;
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                len = mkxp_retro::input->rawButtonStatesLength();
-                SANDBOX_AWAIT_AND_SET(ary, rb_ary_new_capa, len);
-                for (i = 0; i < len; ++i) {
-                    SANDBOX_AWAIT(rb_ary_push, ary, SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->rawButtonStates()[i]));
+                SANDBOX_SLOT(2) = mkxp_retro::input->rawButtonStatesLength();
+                SANDBOX_AWAIT_S(0, rb_ary_new_capa, SANDBOX_SLOT(2));
+                for (SANDBOX_SLOT(1) = 0; SANDBOX_SLOT(1) < SANDBOX_SLOT(2); ++SANDBOX_SLOT(1)) {
+                    SANDBOX_AWAIT(rb_ary_push, SANDBOX_SLOT(0), SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->rawButtonStates()[SANDBOX_SLOT(1)]));
                 }
             }
 
-            return ary;
+            return SANDBOX_SLOT(0);
         }
     };
 
@@ -445,22 +429,19 @@ static VALUE controller_raw_button_states(VALUE self) {
 
 static VALUE controller_raw_axes(VALUE self) {
     struct coro : boost::asio::coroutine {
-        VALUE ary;
-        VALUE value;
-        uint32_t i;
-        uint32_t len;
+        typedef decl_slots<VALUE, VALUE, uint32_t, uint32_t> slots;
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                len = mkxp_retro::input->rawAxesLength();
-                SANDBOX_AWAIT_AND_SET(ary, rb_ary_new_capa, len);
-                for (i = 0; i < len; ++i) {
-                    SANDBOX_AWAIT_AND_SET(value, rb_float_new, mkxp_retro::input->rawAxes()[i] / 32767.0);
-                    SANDBOX_AWAIT(rb_ary_push, ary, value);
+                SANDBOX_SLOT(3) = mkxp_retro::input->rawAxesLength();
+                SANDBOX_AWAIT_S(0, rb_ary_new_capa, SANDBOX_SLOT(3));
+                for (SANDBOX_SLOT(2) = 0; SANDBOX_SLOT(2) < SANDBOX_SLOT(3); ++SANDBOX_SLOT(2)) {
+                    SANDBOX_AWAIT_S(1, rb_float_new, mkxp_retro::input->rawAxes()[SANDBOX_SLOT(2)] / 32767.0);
+                    SANDBOX_AWAIT(rb_ary_push, SANDBOX_SLOT(0), SANDBOX_SLOT(1));
                 }
             }
 
-            return ary;
+            return SANDBOX_SLOT(0);
         }
     };
 
@@ -469,12 +450,12 @@ static VALUE controller_raw_axes(VALUE self) {
 
 static VALUE controller_pressex(VALUE self, VALUE code) {
     struct coro : boost::asio::coroutine {
-        int32_t button;
+        typedef decl_slots<int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE code) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
-                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->controllerIsPressedEx(button));
+                SANDBOX_AWAIT_S(0, get_button_arg, code);
+                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->controllerIsPressedEx(SANDBOX_SLOT(0)));
             }
 
             return SANDBOX_UNDEF;
@@ -486,12 +467,12 @@ static VALUE controller_pressex(VALUE self, VALUE code) {
 
 static VALUE controller_triggerex(VALUE self, VALUE code) {
     struct coro : boost::asio::coroutine {
-        int32_t button;
+        typedef decl_slots<int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE code) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
-                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->controllerIsTriggeredEx(button));
+                SANDBOX_AWAIT_S(0, get_button_arg, code);
+                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->controllerIsTriggeredEx(SANDBOX_SLOT(0)));
             }
 
             return SANDBOX_UNDEF;
@@ -503,12 +484,12 @@ static VALUE controller_triggerex(VALUE self, VALUE code) {
 
 static VALUE controller_repeatex(VALUE self, VALUE code) {
     struct coro : boost::asio::coroutine {
-        int32_t button;
+        typedef decl_slots<int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE code) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
-                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->controllerIsRepeatedEx(button));
+                SANDBOX_AWAIT_S(0, get_button_arg, code);
+                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->controllerIsRepeatedEx(SANDBOX_SLOT(0)));
             }
 
             return SANDBOX_UNDEF;
@@ -520,12 +501,12 @@ static VALUE controller_repeatex(VALUE self, VALUE code) {
 
 static VALUE controller_releaseex(VALUE self, VALUE code) {
     struct coro : boost::asio::coroutine {
-        int32_t button;
+        typedef decl_slots<int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE code) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
-                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->controllerIsReleasedEx(button));
+                SANDBOX_AWAIT_S(0, get_button_arg, code);
+                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::input->controllerIsReleasedEx(SANDBOX_SLOT(0)));
             }
 
             return SANDBOX_UNDEF;
@@ -537,18 +518,16 @@ static VALUE controller_releaseex(VALUE self, VALUE code) {
 
 static VALUE controller_repeatcount(VALUE self, VALUE code) {
     struct coro : boost::asio::coroutine {
-        int32_t button;
-        int32_t count;
-        VALUE value;
+        typedef decl_slots<VALUE, int32_t, int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE code) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
-                count = mkxp_retro::input->controllerRepeatcount(button);
-                SANDBOX_AWAIT_AND_SET(value, rb_ll2inum, count);
+                SANDBOX_AWAIT_S(1, get_button_arg, code);
+                SANDBOX_SLOT(2) = mkxp_retro::input->controllerRepeatcount(SANDBOX_SLOT(1));
+                SANDBOX_AWAIT_S(0, rb_ll2inum, SANDBOX_SLOT(2));
             }
 
-            return value;
+            return SANDBOX_SLOT(0);
         }
     };
 
@@ -557,18 +536,16 @@ static VALUE controller_repeatcount(VALUE self, VALUE code) {
 
 static VALUE controller_timeex(VALUE self, VALUE code) {
     struct coro : boost::asio::coroutine {
-        int32_t button;
-        double time;
-        VALUE value;
+        typedef decl_slots<double, VALUE, int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE code) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(button, get_button_arg, code);
-                time = mkxp_retro::input->controllerRepeatTimeEx(button);
-                SANDBOX_AWAIT_AND_SET(value, rb_float_new, time);
+                SANDBOX_AWAIT_S(2, get_button_arg, code);
+                SANDBOX_SLOT(0) = mkxp_retro::input->controllerRepeatTimeEx(SANDBOX_SLOT(2));
+                SANDBOX_AWAIT_S(1, rb_float_new, SANDBOX_SLOT(0));
             }
 
-            return value;
+            return SANDBOX_SLOT(1);
         }
     };
 
@@ -586,15 +563,15 @@ static VALUE set_text_input(VALUE self, VALUE value) {
 
 static VALUE gets_(VALUE self) {
     struct coro : boost::asio::coroutine {
-        VALUE value;
+        typedef decl_slots<VALUE> slots;
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(value, rb_str_new_cstr, mkxp_retro::input->getText());
+                SANDBOX_AWAIT_S(0, rb_str_new_cstr, mkxp_retro::input->getText());
                 mkxp_retro::input->clearText();
             }
 
-            return value;
+            return SANDBOX_SLOT(0);
         }
     };
 
@@ -607,12 +584,12 @@ static VALUE get_clipboard(VALUE self) {
 
 static VALUE set_clipboard(VALUE self, VALUE value) {
     struct coro : boost::asio::coroutine {
-        wasm_ptr_t ptr;
+        typedef decl_slots<wasm_ptr_t> slots;
 
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(ptr, rb_string_value_cstr, &value);
-                mkxp_retro::input->setClipboardText((const char *)(**sb() + ptr));
+                SANDBOX_AWAIT_S(0, rb_string_value_cstr, &value);
+                mkxp_retro::input->setClipboardText((const char *)(**sb() + SANDBOX_SLOT(0)));
             }
 
             return value;
@@ -624,7 +601,7 @@ static VALUE set_clipboard(VALUE self, VALUE value) {
 
 void input_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        SANDBOX_AWAIT_AND_SET(input_module, rb_define_module, "Input");
+        SANDBOX_AWAIT_R(input_module, rb_define_module, "Input");
 
         SANDBOX_AWAIT(rb_define_module_function, input_module, "delta", (VALUE (*)(ANYARGS))delta, 0);
         SANDBOX_AWAIT(rb_define_module_function, input_module, "update", (VALUE (*)(ANYARGS))update, 0);
@@ -651,7 +628,7 @@ void input_binding_init::operator()() {
 
         SANDBOX_AWAIT(rb_define_module_function, input_module, "raw_key_states", (VALUE (*)(ANYARGS))raw_key_states, 0);
 
-        SANDBOX_AWAIT_AND_SET(input_controller_module, rb_define_module_under, input_module, "Controller");
+        SANDBOX_AWAIT_R(input_controller_module, rb_define_module_under, input_module, "Controller");
         SANDBOX_AWAIT(rb_define_module_function, input_controller_module, "connected?", (VALUE (*)(ANYARGS))controller_connected, 0);
         SANDBOX_AWAIT(rb_define_module_function, input_controller_module, "name", (VALUE (*)(ANYARGS))controller_name, 0);
         SANDBOX_AWAIT(rb_define_module_function, input_controller_module, "power_level", (VALUE (*)(ANYARGS))controller_power_level, 0);
@@ -673,25 +650,25 @@ void input_binding_init::operator()() {
         SANDBOX_INIT_MODULE_PROP_BIND(input_module, clipboard);
 
         if (rgssVer >= 3) {
-            SANDBOX_AWAIT_AND_SET(symhash, rb_hash_new);
+            SANDBOX_AWAIT_R(symhash, rb_hash_new);
 
-            for (i = 0; i < sizeof(codes) / sizeof(*codes); ++i) {
-                SANDBOX_AWAIT_AND_SET(id, rb_intern, codes[i].str);
-                SANDBOX_AWAIT_AND_SET(button_val, rb_ll2inum, codes[i].val);
+            for (SANDBOX_SLOT(0) = 0; SANDBOX_SLOT(0) < sizeof(codes) / sizeof(*codes); ++SANDBOX_SLOT(0)) {
+                SANDBOX_AWAIT_S(3, rb_intern, codes[SANDBOX_SLOT(0)].str);
+                SANDBOX_AWAIT_S(1, rb_ll2inum, codes[SANDBOX_SLOT(0)].val);
 
                 /* In RGSS3 all Input::XYZ constants are equal to :XYZ symbols,
                  * to be compatible with the previous convention */
-                SANDBOX_AWAIT_AND_SET(id_val, rb_id2sym, id);
-                SANDBOX_AWAIT(rb_const_set, input_module, id, id_val);
-                SANDBOX_AWAIT(rb_hash_aset, symhash, id_val, button_val);
+                SANDBOX_AWAIT_S(2, rb_id2sym, SANDBOX_SLOT(3));
+                SANDBOX_AWAIT(rb_const_set, input_module, SANDBOX_SLOT(3), SANDBOX_SLOT(2));
+                SANDBOX_AWAIT(rb_hash_aset, symhash, SANDBOX_SLOT(2), SANDBOX_SLOT(1));
             }
 
             SANDBOX_AWAIT(rb_iv_set, input_module, "buttoncodes", symhash);
         } else {
-            for (i = 0; i < sizeof(codes) / sizeof(*codes); ++i) {
-                SANDBOX_AWAIT_AND_SET(id, rb_intern, codes[i].str);
-                SANDBOX_AWAIT_AND_SET(button_val, rb_ll2inum, codes[i].val);
-                SANDBOX_AWAIT(rb_const_set, input_module, id, button_val);
+            for (SANDBOX_SLOT(0) = 0; SANDBOX_SLOT(0) < sizeof(codes) / sizeof(*codes); ++SANDBOX_SLOT(0)) {
+                SANDBOX_AWAIT_S(3, rb_intern, codes[SANDBOX_SLOT(0)].str);
+                SANDBOX_AWAIT_S(1, rb_ll2inum, codes[SANDBOX_SLOT(0)].val);
+                SANDBOX_AWAIT(rb_const_set, input_module, SANDBOX_SLOT(3), SANDBOX_SLOT(1));
             }
         }
     }

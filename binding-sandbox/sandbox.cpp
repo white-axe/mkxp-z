@@ -29,7 +29,7 @@
 #include "sandbox.h"
 
 #define RB (ruby.get())
-#define WASM_NULL 0
+#define WASM_nullptr 0
 #define WASM_MEM(address) ((void *)&ruby->w2c_memory.data[address])
 #define AWAIT(statement) do statement; while (w2c_ruby_mkxp_sandbox_yield(RB))
 
@@ -40,7 +40,7 @@ usize sandbox::sandbox_malloc(usize size) {
 
     // Verify that the returned pointer is non-null and the entire allocated buffer is in valid memory
     usize buf_end;
-    if (buf == WASM_NULL || (buf_end = buf + size) < buf || buf_end >= ruby->w2c_memory.size) {
+    if (buf == WASM_nullptr || (buf_end = buf + size) < buf || buf_end >= ruby->w2c_memory.size) {
         throw std::bad_alloc();
     }
 
@@ -51,7 +51,7 @@ void sandbox::sandbox_free(usize ptr) {
     w2c_ruby_mkxp_sandbox_free(RB, ptr);
 }
 
-sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings(ruby), movie(nullptr), yielding(false), transitioning(false) {
+sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings(ruby), movie(nullptr), yielding(false), trans_map(nullptr), transitioning(false) {
     // Initialize the sandbox
     wasm2c_ruby_instantiate(RB, wasi.get());
     w2c_ruby_mkxp_sandbox_init(

@@ -32,30 +32,26 @@ static struct bindings::rb_data_type font_type;
 SANDBOX_DEF_ALLOC(font_type);
 
 struct collect_strings : boost::asio::coroutine {
-    VALUE value;
-    VALUE entry;
-    wasm_ptr_t str;
-    wasm_size_t i;
-    wasm_size_t length;
+    typedef decl_slots<wasm_ptr_t, wasm_size_t, wasm_size_t, VALUE, VALUE> slots;
 
     void operator()(VALUE obj, std::vector<std::string> &out) {
         BOOST_ASIO_CORO_REENTER (this) {
-            SANDBOX_AWAIT_AND_SET(value, rb_obj_is_kind_of, obj, sb()->rb_cString());
-            if (SANDBOX_VALUE_TO_BOOL(value)) {
-                SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &obj);
-                out.push_back((const char *)(**sb() + str));
+            SANDBOX_AWAIT_S(3, rb_obj_is_kind_of, obj, sb()->rb_cString());
+            if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(3))) {
+                SANDBOX_AWAIT_S(0, rb_string_value_cstr, &obj);
+                out.push_back((const char *)(**sb() + SANDBOX_SLOT(0)));
             } else {
-                SANDBOX_AWAIT_AND_SET(value, rb_obj_is_kind_of, obj, sb()->rb_cArray());
-                if (SANDBOX_VALUE_TO_BOOL(value)) {
-                    SANDBOX_AWAIT_AND_SET(value, get_length, obj);
-                    SANDBOX_AWAIT_AND_SET(length, rb_num2ulong, value);
-                    for (i = 0; i < length; ++i) {
-                        SANDBOX_AWAIT_AND_SET(entry, rb_ary_entry, obj, i);
+                SANDBOX_AWAIT_S(3, rb_obj_is_kind_of, obj, sb()->rb_cArray());
+                if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(3))) {
+                    SANDBOX_AWAIT_S(3, get_length, obj);
+                    SANDBOX_AWAIT_S(2, rb_num2ulong, SANDBOX_SLOT(3));
+                    for (SANDBOX_SLOT(1) = 0; SANDBOX_SLOT(1) < SANDBOX_SLOT(2); ++SANDBOX_SLOT(1)) {
+                        SANDBOX_AWAIT_S(4, rb_ary_entry, obj, SANDBOX_SLOT(1));
                         /* Non-string objects are tolerated (ignored) */
-                        SANDBOX_AWAIT_AND_SET(value, rb_obj_is_kind_of, entry, sb()->rb_cString());
-                        if (SANDBOX_VALUE_TO_BOOL(value)) {
-                            SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &entry);
-                            out.push_back((const char *)(**sb() + str));
+                        SANDBOX_AWAIT_S(3, rb_obj_is_kind_of, SANDBOX_SLOT(4), sb()->rb_cString());
+                        if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(3))) {
+                            SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(4));
+                            out.push_back((const char *)(**sb() + SANDBOX_SLOT(0)));
                         }
                     }
                 }
@@ -66,41 +62,36 @@ struct collect_strings : boost::asio::coroutine {
 
 static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        Font *font;
-        std::vector<std::string> *names;
-        VALUE names_obj;
-        int32_t size;
+        typedef decl_slots<VALUE, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                names = new std::vector<std::string>;
-
                 if (argc == 0) {
-                    SANDBOX_AWAIT_AND_SET(names_obj, rb_iv_get, font_class, "default_name");
-                    font = new Font();
+                    SANDBOX_AWAIT_S(0, rb_iv_get, font_class, "default_name");
+                    set_private_data(self, new Font);
                 } else if (argc == 1) {
-                    names_obj = ((VALUE *)(**sb() + argv))[0];
-                    SANDBOX_AWAIT(collect_strings, names_obj, *names);
-                    font = new Font(names);
+                    SANDBOX_SLOT(0) = ((VALUE *)(**sb() + argv))[0];
+                    SANDBOX_AWAIT(collect_strings, SANDBOX_SLOT(0), sb().font_names_buffer);
+                    set_private_data(self, new Font(&sb().font_names_buffer));
                 } else {
-                    names_obj = ((VALUE *)(**sb() + argv))[0];
-                    SANDBOX_AWAIT(collect_strings, names_obj, *names);
-                    font = new Font(names, size);
+                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_SLOT(0) = ((VALUE *)(**sb() + argv))[0];
+                    SANDBOX_AWAIT(collect_strings, SANDBOX_SLOT(0), sb().font_names_buffer);
+                    set_private_data(self, new Font(&sb().font_names_buffer, SANDBOX_SLOT(1)));
                 }
+                sb().font_names_buffer.clear();
 
-                set_private_data(self, font);
-
-                font->initDynAttribs();
+                get_private_data<Font>(self)->initDynAttribs();
 
                 /* This is semantically wrong; the new Font object should take
                  * a dup'ed object here in case of an array. Ditto for the setters.
                  * However the same bug/behavior exists in all RM versions. */
-                SANDBOX_AWAIT(rb_iv_set, self, "name", names_obj);
+                SANDBOX_AWAIT(rb_iv_set, self, "name", SANDBOX_SLOT(0));
 
-                SANDBOX_AWAIT(wrap_property, self, &font->getColor(), "color", color_class);
+                SANDBOX_AWAIT(wrap_property, self, &get_private_data<Font>(self)->getColor(), "color", color_class);
 
                 if (rgssVer >= 3) {
-                    SANDBOX_AWAIT(wrap_property, self, &font->getOutColor(), "out_color", color_class);
+                    SANDBOX_AWAIT(wrap_property, self, &get_private_data<Font>(self)->getOutColor(), "out_color", color_class);
                 }
             }
 
@@ -108,7 +99,7 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
         }
 
         ~coro() {
-            delete names;
+            sb().font_names_buffer.clear();
         }
     };
 
@@ -117,8 +108,6 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
 static VALUE initialize_copy(VALUE self, VALUE value) {
     struct coro : boost::asio::coroutine {
-        Font *font;
-
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
                 if (self != value) {
@@ -126,15 +115,14 @@ static VALUE initialize_copy(VALUE self, VALUE value) {
                 }
 
                 SANDBOX_AWAIT(rb_obj_init_copy, self, value);
-                font = new Font(*get_private_data<Font>(value));
-                set_private_data(self, font);
+                set_private_data(self, new Font(*get_private_data<Font>(value)));
 
-                font->initDynAttribs();
+                get_private_data<Font>(self)->initDynAttribs();
 
-                SANDBOX_AWAIT(wrap_property, self, &font->getColor(), "color", color_class);
+                SANDBOX_AWAIT(wrap_property, self, &get_private_data<Font>(self)->getColor(), "color", color_class);
 
                 if (rgssVer >= 3) {
-                    SANDBOX_AWAIT(wrap_property, self, &font->getOutColor(), "out_color", color_class);
+                    SANDBOX_AWAIT(wrap_property, self, &get_private_data<Font>(self)->getOutColor(), "out_color", color_class);
                 }
             }
 
@@ -217,17 +205,16 @@ SANDBOX_DEF_CLASS_PROP_OBJ_VAL(Font, Color, DefaultOutColor, default_out_color);
 
 static VALUE exist(VALUE self, VALUE value) {
     struct coro : boost::asio::coroutine {
-        wasm_ptr_t str;
-        VALUE is_string;
+        typedef decl_slots<wasm_ptr_t, VALUE> slots;
 
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_AND_SET(is_string, rb_obj_is_kind_of, value, sb()->rb_cString());
-                if (SANDBOX_VALUE_TO_BOOL(is_string)) {
-                    SANDBOX_AWAIT_AND_SET(str, rb_string_value_cstr, &value);
-                    return SANDBOX_BOOL_TO_VALUE(Font::doesExist((const char *)(**sb() + str)));
+                SANDBOX_AWAIT_S(1, rb_obj_is_kind_of, value, sb()->rb_cString());
+                if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(1))) {
+                    SANDBOX_AWAIT_S(0, rb_string_value_cstr, &value);
+                    return SANDBOX_BOOL_TO_VALUE(Font::doesExist((const char *)(**sb() + SANDBOX_SLOT(0))));
                 } else {
-                    return SANDBOX_BOOL_TO_VALUE(Font::doesExist(NULL));
+                    return SANDBOX_BOOL_TO_VALUE(Font::doesExist(nullptr));
                 }
             }
 
@@ -240,8 +227,8 @@ static VALUE exist(VALUE self, VALUE value) {
 
 void font_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        font_type = sb()->rb_data_type("Font", NULL, dfree<Font>, NULL, NULL, 0, 0, 0);
-        SANDBOX_AWAIT_AND_SET(font_class, rb_define_class, "Font", sb()->rb_cObject());
+        font_type = sb()->rb_data_type("Font", nullptr, dfree<Font>, nullptr, nullptr, 0, 0, 0);
+        SANDBOX_AWAIT_R(font_class, rb_define_class, "Font", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, font_class, alloc);
 
         Font::initDefaultDynAttribs();
@@ -253,15 +240,15 @@ void font_binding_init::operator()() {
         }
 
         if (Font::getInitialDefaultNames().size() == 1) {
-            SANDBOX_AWAIT_AND_SET(default_names, rb_utf8_str_new_cstr, Font::getInitialDefaultNames()[0].c_str());
+            SANDBOX_AWAIT_S(1, rb_utf8_str_new_cstr, Font::getInitialDefaultNames()[0].c_str());
         } else {
-            SANDBOX_AWAIT_AND_SET(default_names, rb_ary_new_capa, Font::getInitialDefaultNames().size());
-            for (default_name_index = 0; default_name_index < Font::getInitialDefaultNames().size(); ++default_name_index) {
-                SANDBOX_AWAIT_AND_SET(default_name, rb_utf8_str_new_cstr, Font::getInitialDefaultNames()[default_name_index].c_str());
-                SANDBOX_AWAIT(rb_ary_push, default_names, default_name);
+            SANDBOX_AWAIT_S(1, rb_ary_new_capa, Font::getInitialDefaultNames().size());
+            for (SANDBOX_SLOT(0) = 0; SANDBOX_SLOT(0) < Font::getInitialDefaultNames().size(); ++SANDBOX_SLOT(0)) {
+                SANDBOX_AWAIT_S(2, rb_utf8_str_new_cstr, Font::getInitialDefaultNames()[SANDBOX_SLOT(0)].c_str());
+                SANDBOX_AWAIT(rb_ary_push, SANDBOX_SLOT(1), SANDBOX_SLOT(2));
             }
         }
-        SANDBOX_AWAIT(rb_iv_set, font_class, "default_name", default_names);
+        SANDBOX_AWAIT(rb_iv_set, font_class, "default_name", SANDBOX_SLOT(1));
 
         SANDBOX_AWAIT(rb_define_method, font_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
         SANDBOX_AWAIT(rb_define_method, font_class, "initialize_copy", (VALUE (*)(ANYARGS))initialize_copy, 1);

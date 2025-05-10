@@ -28,20 +28,18 @@
 
 namespace mkxp_sandbox {
     template <class C> struct viewportelement_initialize : boost::asio::coroutine {
-    private:
-        VALUE viewport_obj;
+        typedef decl_slots<VALUE> slots;
 
-    public:
         void operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                viewport_obj = SANDBOX_NIL;
+                SANDBOX_SLOT(0) = SANDBOX_NIL;
 
                 {
                     Viewport *viewport = nullptr;
                     if (argc > 0) {
-                        viewport_obj = *(VALUE *)(**sb() + argv);
-                        if (viewport_obj != SANDBOX_NIL) {
-                            viewport = get_private_data<Viewport>(viewport_obj);
+                        SANDBOX_SLOT(0) = *(VALUE *)(**sb() + argv);
+                        if (SANDBOX_SLOT(0) != SANDBOX_NIL) {
+                            viewport = get_private_data<Viewport>(SANDBOX_SLOT(0));
                         }
                     }
 
@@ -54,7 +52,7 @@ namespace mkxp_sandbox {
                 }
 
                 /* Set property objects */
-                SANDBOX_AWAIT(rb_iv_set, self, "viewport", viewport_obj);
+                SANDBOX_AWAIT(rb_iv_set, self, "viewport", SANDBOX_SLOT(0));
             }
         }
     };
