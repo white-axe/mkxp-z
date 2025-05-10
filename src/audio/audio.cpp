@@ -122,9 +122,13 @@ struct AudioPrivate
 				if (me.stream.queryState() == ALStream::Playing)
 				{
 					/* ME playing detected. -> FadeOutBGM */
-                    for (auto track : bgmTracks)
-                        track->extPaused = true;
-                    
+					for (auto track : bgmTracks)
+					{
+						track->lockStream();
+						track->extPaused = true;
+						track->unlockStream();
+					}
+
 					meWatch.state = BgmFadingOut;
 				}
 
@@ -140,18 +144,26 @@ struct AudioPrivate
 				if (me.stream.queryState() != ALStream::Playing)
 				{
 					/* ME has ended while fading OUT BGM. -> FadeInBGM */
-					me.unlockStream();
+					for (auto track : bgmTracks)
+					{
+						track->lockStream();
+						track->extPaused = false;
+						track->unlockStream();
+					}
+
 					meWatch.state = BgmFadingIn;
+					me.unlockStream();
 
 					break;
 				}
                 
                 bool shouldBreak = false;
                 
+                for (auto track : bgmTracks)
+                    track->lockStream();
+                
                 for (int i = 0; i < (int)(bgmTracks.size()); i++) {
                     AudioStream *track = bgmTracks[i];
-                    
-                    track->lockStream();
                     
                     float vol = track->getVolume(AudioStream::External);
                     vol -= fadeOutStep;
@@ -160,7 +172,6 @@ struct AudioPrivate
                         /* Either BGM has fully faded out, or stopped midway. -> MePlaying */
                         track->setVolume(AudioStream::External, 0);
                         track->stream.pause();
-                        track->unlockStream();
                         
                         // check to see if there are any tracks still playing,
                         // and if the last one was ended this round, this branch should exit
@@ -175,9 +186,12 @@ struct AudioPrivate
                     }
                     
                     track->setVolume(AudioStream::External, vol);
-                    track->unlockStream();
                     
                 }
+                
+                for (auto track : bgmTracks)
+                    track->unlockStream();
+                
                 if (shouldBreak) {
                     meWatch.state = MePlaying;
                     me.unlockStream();
