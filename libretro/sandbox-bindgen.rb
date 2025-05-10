@@ -269,6 +269,16 @@ PRELUDE = <<~HEREDOC
 
   bindings::bindings(std::shared_ptr<struct w2c_#{MODULE_NAME}> m) : binding_base(m) {}
 
+  static wasm_ptr_t _sbindgen_stack_push(wasm_ptr_t frame_pointer, wasm_size_t num_bytes) {
+      return frame_pointer
+  #ifdef MKXPZ_BIG_ENDIAN
+          +
+  #else
+          -
+  #endif // MKXPZ_BIG_ENDIAN
+          num_bytes;
+  }
+
   static void _sbindgen_strcpy(char *dst, const char *src) {
   #ifdef MKXPZ_BIG_ENDIAN
       do {
@@ -512,7 +522,7 @@ File.readlines('tags', chomp: true).each do |line|
       coroutine_initializer += <<~HEREDOC
         {
             wasm_ptr_t fp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance());
-            wasm_ptr_t sp = fp - CEIL_WASMSTACKALIGN(a#{args.length - 2} * sizeof(VALUE));
+            wasm_ptr_t sp = _sbindgen_stack_push(fp, CEIL_WASMSTACKALIGN(a#{args.length - 2} * sizeof(VALUE)));
             if (sp > fp) {
                 throw std::bad_alloc();
             }
@@ -539,7 +549,7 @@ File.readlines('tags', chomp: true).each do |line|
             do ++n; while (va_arg(b, VALUE));
             va_end(b);
             wasm_ptr_t fp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance());
-            wasm_ptr_t sp = fp - CEIL_WASMSTACKALIGN(n * sizeof(VALUE));
+            wasm_ptr_t sp = _sbindgen_stack_push(fp, CEIL_WASMSTACKALIGN(n * sizeof(VALUE)));
             if (sp > fp) {
                 throw std::bad_alloc();
             }
