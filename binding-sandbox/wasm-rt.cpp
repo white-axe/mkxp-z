@@ -74,6 +74,7 @@ extern "C" void wasm_rt_allocate_memory(wasm_rt_memory_t *memory, uint32_t initi
         throw std::bad_alloc();
     }
     memory->capacity = (uint64_t)WASM_MIN_PAGES * (uint64_t)WASM_PAGE_SIZE;
+    mkxp_retro::log_printf(RETRO_LOG_DEBUG, "VM memory initialized with capacity %llu bytes (%u pages)\n", memory->capacity, WASM_MIN_PAGES);
     memory->private_data = (uint8_t *)std::malloc(std::max((size_t)memory->size, (size_t)WASM_MIN_PAGES * (size_t)WASM_PAGE_SIZE));
     if (memory->private_data == nullptr) {
         throw std::bad_alloc();
@@ -98,18 +99,21 @@ extern "C" uint32_t wasm_rt_grow_memory(wasm_rt_memory_t *memory, uint32_t pages
         return -1;
     }
 
-    mkxp_retro::log_printf(RETRO_LOG_INFO, "VM memory grown to %u pages\n", new_pages);
+    mkxp_retro::log_printf(RETRO_LOG_DEBUG, "VM memory grown to %llu bytes (%u pages)\n", new_size, new_pages);
 
     if (new_size > memory->capacity) {
-        // Increase capacity by 12.5%
         size_t new_capacity = memory->capacity;
         if (new_capacity < memory->capacity) { // Unsigned integer overflow
             return -1;
         }
-        new_capacity += memory->capacity >> 3;
-        if (new_capacity < memory->capacity) { // Unsigned integer overflow
-            return -1;
+        while (new_size > new_capacity) {
+            // Increase capacity by 12.5%
+            new_capacity += new_capacity >> 3;
+            if (new_capacity < memory->capacity) { // Unsigned integer overflow
+                return -1;
+            }
         }
+        mkxp_retro::log_printf(RETRO_LOG_DEBUG, "VM memory reallocation changed memory capacity from %llu bytes to %llu bytes\n", memory->capacity, (uint64_t)new_capacity);
         uint8_t *new_private_data = (uint8_t *)std::realloc(memory->private_data, new_capacity);
         if (new_private_data == nullptr) {
             return -1;
