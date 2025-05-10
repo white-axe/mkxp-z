@@ -104,6 +104,37 @@ AudioMutexGuard::~AudioMutexGuard()
 	if (mutex != nullptr) mutex->unlock();
 }
 
+struct BgmTracksGuard
+{
+	BgmTracksGuard(std::vector<AudioStream*> &bgmTracks) : bgmTracks(&bgmTracks)
+	{
+		for (auto track : bgmTracks)
+			track->mutex.lock();
+	}
+
+	BgmTracksGuard(const BgmTracksGuard &guard) = delete;
+
+	BgmTracksGuard(BgmTracksGuard &&guard) noexcept : bgmTracks(std::exchange(guard.bgmTracks, nullptr)) {}
+
+	BgmTracksGuard &operator=(const BgmTracksGuard &guard) = delete;
+
+	BgmTracksGuard &operator=(BgmTracksGuard &&guard) noexcept
+	{
+		bgmTracks = std::exchange(guard.bgmTracks, nullptr);
+		return *this;
+	}
+
+	~BgmTracksGuard()
+	{
+		if (bgmTracks != nullptr)
+			for (auto track : *bgmTracks)
+				track->mutex.unlock();
+	}
+
+private:
+	std::vector<AudioStream*> *bgmTracks;
+};
+
 struct AudioPrivate
 {
     
@@ -260,33 +291,32 @@ struct AudioPrivate
 
 				bool shouldBreak = false;
 
-				std::vector<AudioMutexGuard> trackGuards;
-				trackGuards.reserve(bgmTracks.size());
-				for (auto track : bgmTracks)
-					trackGuards.emplace_back(track->mutex);
+				{
+					BgmTracksGuard tracksGuard(bgmTracks);
 
-				for (auto track : bgmTracks) {
-					float vol = track->getVolume(AudioStream::External);
-					vol -= fadeOutStep;
+					for (auto track : bgmTracks) {
+						float vol = track->getVolume(AudioStream::External);
+						vol -= fadeOutStep;
 
-					if (vol < 0 || track->stream.queryState() != ALStream::Playing) {
-						/* Either BGM has fully faded out, or stopped midway. -> MePlaying */
-						track->setVolume(AudioStream::External, 0);
-						track->stream.pause();
+						if (vol < 0 || track->stream.queryState() != ALStream::Playing) {
+							/* Either BGM has fully faded out, or stopped midway. -> MePlaying */
+							track->setVolume(AudioStream::External, 0);
+							track->stream.pause();
 
-						// check to see if there are any tracks still playing,
-						// and if the last one was ended this round, this branch should exit
-						std::vector<AudioStream*> playingTracks;
-						for (auto t : bgmTracks)
-							if (t->stream.queryState() == ALStream::Playing)
-								playingTracks.push_back(t);
+							// check to see if there are any tracks still playing,
+							// and if the last one was ended this round, this branch should exit
+							std::vector<AudioStream*> playingTracks;
+							for (auto t : bgmTracks)
+								if (t->stream.queryState() == ALStream::Playing)
+									playingTracks.push_back(t);
 
 
-						if (playingTracks.size() <= 0 && !shouldBreak) shouldBreak = true;
-						continue;
+							if (playingTracks.size() <= 0 && !shouldBreak) shouldBreak = true;
+							continue;
+						}
+
+						track->setVolume(AudioStream::External, vol);
 					}
-
-					track->setVolume(AudioStream::External, vol);
 				}
 
 				if (shouldBreak) {
@@ -332,10 +362,7 @@ struct AudioPrivate
 
 			case BgmFadingIn :
 			{
-				std::vector<AudioMutexGuard> trackGuards;
-				trackGuards.reserve(bgmTracks.size());
-				for (auto track : bgmTracks)
-					trackGuards.emplace_back(track->mutex);
+				BgmTracksGuard tracksGuard(bgmTracks);
 
 				if (bgmTracks[0]->stream.queryState() == ALStream::Stopped)
 				{
