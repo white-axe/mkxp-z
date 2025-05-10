@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
         return 3;
     }
 
-    outputf << "#include <stddef.h>\n#include <stdint.h>\nextern const uint8_t " << arrayname << "[] = {";
+    outputf << "#ifndef MKXPZ_EMBEDTOOL_" << arrayname << "\n#define MKXPZ_EMBEDTOOL_" << arrayname << "\n#include <stddef.h>\n#include <stdint.h>\n#ifdef __cplusplus\nextern\n#endif /* __cplusplus */\nconst uint8_t " << arrayname << "[] = {";
 
     uint64_t len = 0;
     for (;;) {
@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
         ++len;
     }
 
-    outputf << "};\nextern const size_t " << arrayname << "_len = " << len << "ULL;";
+    outputf << "};\n#ifdef __cplusplus\nextern\n#endif /* __cplusplus */\nconst size_t " << arrayname << "_len = " << len << "ULL;\n#endif /* MKXPZ_EMBEDTOOL_" << arrayname << " */\n";
 
     return 0;
 }

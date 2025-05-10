@@ -32,6 +32,7 @@
 #include <SDL_mouse.h>
 #include <SDL_clipboard.h>
 
+#include <string>
 #include <vector>
 #include <cmath>
 #include <unordered_map>
@@ -676,6 +677,8 @@ struct InputPrivate
     
     /* Collective binding array */
     std::vector<Binding*> bindings;
+    
+    std::string clipboardText;
     
     ButtonState stateArray[BUTTON_CODE_COUNT*2];
     
@@ -1493,11 +1496,10 @@ void Input::clearText()
 
 const char *Input::getClipboardText()
 {
-    // FIXME: this doesn't appear to be freed anywhere
     const char *tx = SDL_GetClipboardText();
-    if (!tx)
-        throw Exception(Exception::SDLError, "Failed to get clipboard text: %s", SDL_GetError());
-    return tx;
+    p->clipboardText = tx;
+    SDL_free((void *)tx);
+    return p->clipboardText.c_str();
 }
 
 void Input::setClipboardText(const char *text)
