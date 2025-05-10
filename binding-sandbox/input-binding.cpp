@@ -589,7 +589,7 @@ static VALUE set_clipboard(VALUE self, VALUE value) {
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_S(0, rb_string_value_cstr, &value);
-                mkxp_retro::input->setClipboardText((const char *)(**sb() + SANDBOX_SLOT(0)));
+                mkxp_retro::input->setClipboardText(sb()->str(SANDBOX_SLOT(0)));
             }
 
             return value;

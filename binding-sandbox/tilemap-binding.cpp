@@ -102,7 +102,7 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     SANDBOX_SLOT(0) = SANDBOX_NIL;
                     Viewport *viewport = nullptr;
                     if (argc > 0) {
-                        SANDBOX_SLOT(0) = *(VALUE *)(**sb() + argv);
+                        SANDBOX_SLOT(0) = sb()->ref<VALUE>(argv, 0);
                         if (SANDBOX_SLOT(0) != SANDBOX_NIL) {
                             viewport = get_private_data<Viewport>(SANDBOX_SLOT(0));
                         }

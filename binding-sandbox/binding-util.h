@@ -29,7 +29,7 @@
 
 #define GFX_GUARD_EXC(exp) exp
 
-#define SANDBOX_SLOT(slot_index) (*(typename ::mkxp_sandbox::slot_type<(slot_index), slots>::type *)(**::mkxp_sandbox::sb() + ::mkxp_sandbox::sb()->stack_pointer() + ::mkxp_sandbox::slot_offset<(slot_index), slots>::value))
+#define SANDBOX_SLOT(slot_index) (::mkxp_sandbox::sb()->ref<typename ::mkxp_sandbox::slot_type<(slot_index), slots>::type>(::mkxp_sandbox::sb()->stack_pointer() + ::mkxp_sandbox::slot_offset<(slot_index), slots>::value))
 
 #define SANDBOX_AWAIT(coroutine, ...) \
     do { \
@@ -103,7 +103,7 @@
 
 namespace mkxp_sandbox {
     template <class T> void dfree(wasm_ptr_t buf) {
-        delete *(T **)(**sb() + buf);
+        delete sb()->ref<T *>(buf);
         sb()->sandbox_free(buf);
     }
 }
@@ -439,7 +439,7 @@ namespace mkxp_sandbox {
 
     // Given Ruby typed data `obj`, retrieves the private data field of `obj`.
     template <typename T> inline T *get_private_data(VALUE obj) {
-        return *(T **)(**sb() + *(wasm_ptr_t *)(**sb() + sb()->rtypeddata_data(obj)));
+        return sb()->ref<T *>(sb()->ref<wasm_ptr_t>(sb()->rtypeddata_data(obj)));
     }
 
     // Gets the length of a Ruby object.

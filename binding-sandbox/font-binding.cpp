@@ -39,7 +39,7 @@ struct collect_strings : boost::asio::coroutine {
             SANDBOX_AWAIT_S(3, rb_obj_is_kind_of, obj, sb()->rb_cString());
             if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(3))) {
                 SANDBOX_AWAIT_S(0, rb_string_value_cstr, &obj);
-                out.push_back((const char *)(**sb() + SANDBOX_SLOT(0)));
+                out.push_back(sb()->str(SANDBOX_SLOT(0)));
             } else {
                 SANDBOX_AWAIT_S(3, rb_obj_is_kind_of, obj, sb()->rb_cArray());
                 if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(3))) {
@@ -51,7 +51,7 @@ struct collect_strings : boost::asio::coroutine {
                         SANDBOX_AWAIT_S(3, rb_obj_is_kind_of, SANDBOX_SLOT(4), sb()->rb_cString());
                         if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(3))) {
                             SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(4));
-                            out.push_back((const char *)(**sb() + SANDBOX_SLOT(0)));
+                            out.push_back(sb()->str(SANDBOX_SLOT(0)));
                         }
                     }
                 }
@@ -70,12 +70,12 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     SANDBOX_AWAIT_S(0, rb_iv_get, font_class, "default_name");
                     set_private_data(self, new Font);
                 } else if (argc == 1) {
-                    SANDBOX_SLOT(0) = ((VALUE *)(**sb() + argv))[0];
+                    SANDBOX_SLOT(0) = sb()->ref<VALUE>(argv, 0);
                     SANDBOX_AWAIT(collect_strings, SANDBOX_SLOT(0), sb().font_names_buffer);
                     set_private_data(self, new Font(&sb().font_names_buffer));
                 } else {
-                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
-                    SANDBOX_SLOT(0) = ((VALUE *)(**sb() + argv))[0];
+                    SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
+                    SANDBOX_SLOT(0) = sb()->ref<VALUE>(argv, 0);
                     SANDBOX_AWAIT(collect_strings, SANDBOX_SLOT(0), sb().font_names_buffer);
                     set_private_data(self, new Font(&sb().font_names_buffer, SANDBOX_SLOT(1)));
                 }
@@ -212,7 +212,7 @@ static VALUE exist(VALUE self, VALUE value) {
                 SANDBOX_AWAIT_S(1, rb_obj_is_kind_of, value, sb()->rb_cString());
                 if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(1))) {
                     SANDBOX_AWAIT_S(0, rb_string_value_cstr, &value);
-                    return SANDBOX_BOOL_TO_VALUE(Font::doesExist((const char *)(**sb() + SANDBOX_SLOT(0))));
+                    return SANDBOX_BOOL_TO_VALUE(Font::doesExist(sb()->str(SANDBOX_SLOT(0))));
                 } else {
                     return SANDBOX_BOOL_TO_VALUE(Font::doesExist(nullptr));
                 }

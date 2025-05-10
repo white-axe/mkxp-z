@@ -31,10 +31,15 @@ readInt32(const char **dataP)
 {
 	int32_t result;
 
+#if defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
+	*dataP -= 4;
+	memcpy(&result, *dataP, 4);
+#else
 	memcpy(&result, *dataP, 4);
 	*dataP += 4;
+#endif
 
-#ifdef MKXPZ_BIG_ENDIAN
+#if !defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
 #  ifdef _MSC_VER
 	static_assert(sizeof(unsigned long) == sizeof(int32_t), "unsigned long should be 32 bits");
 	result = (int32_t)_byteswap_ulong((unsigned long)result);
@@ -49,7 +54,7 @@ readInt32(const char **dataP)
 static inline double
 readDouble(const char **dataP)
 {
-#ifdef MKXPZ_BIG_ENDIAN
+#if !defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
 	uint64_t result;
 
 	memcpy(&result, *dataP, 8);
@@ -65,8 +70,13 @@ readDouble(const char **dataP)
 #else
 	double result;
 
+#  if defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
+	*dataP -= 8;
+	memcpy(&result, *dataP, 8);
+#  else
 	memcpy(&result, *dataP, 8);
 	*dataP += 8;
+#  endif
 
 	return result;
 #endif
@@ -75,7 +85,7 @@ readDouble(const char **dataP)
 static inline void
 writeInt32(char **dataP, int32_t value)
 {
-#ifdef MKXPZ_BIG_ENDIAN
+#if !defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
 #  ifdef _MSC_VER
 	static_assert(sizeof(unsigned long) == sizeof(int32_t), "unsigned long should be 32 bits");
 	value = (int32_t)_byteswap_ulong((unsigned long)value);
@@ -84,14 +94,19 @@ writeInt32(char **dataP, int32_t value)
 #  endif
 #endif
 
+#if defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
+	*dataP -= 4;
+	memcpy(*dataP, &value, 4);
+#else
 	memcpy(*dataP, &value, 4);
 	*dataP += 4;
+#endif
 }
 
 static inline void
 writeDouble(char **dataP, double value)
 {
-#ifdef MKXPZ_BIG_ENDIAN
+#if !defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
 	uint64_t valueUint = *(uint64_t *)&value;
 
 #  ifdef _MSC_VER
@@ -101,10 +116,14 @@ writeDouble(char **dataP, double value)
 #  endif
 
 	memcpy(*dataP, &valueUint, 8);
+	*dataP += 8;
+#elif defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
+	*dataP -= 8;
+	memcpy(*dataP, &value, 8);
 #else
 	memcpy(*dataP, &value, 8);
-#endif
 	*dataP += 8;
+#endif
 }
 
 #endif // SERIALUTIL_H

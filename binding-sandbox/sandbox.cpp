@@ -152,7 +152,7 @@ void sandbox::set_movie(Movie *new_movie) {
 
 const char *sandbox::getcwd() {
     if (w2c_ruby_mkxp_sandbox_getcwd(ruby.get())) {
-        return (const char *)(**bindings + ruby->w2c_mkxp_sandbox_cwd);
+        return bindings->str(ruby->w2c_mkxp_sandbox_cwd);
     } else {
         return "/game";
     }

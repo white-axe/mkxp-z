@@ -115,7 +115,12 @@ void Table::serialize(char *buffer) const
 	writeInt32(&buffer, zs);
 	writeInt32(&buffer, size);
 
+#if defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
+	for (const int16_t datum : data)
+		*(int16_t *)(buffer -= sizeof(int16_t)) = datum;
+#else
 	memcpy(buffer, dataPtr(data), sizeof(int16_t)*size);
+#endif
 }
 
 
@@ -137,7 +142,13 @@ Table *Table::deserialize(const char *data, int len)
 		throw Exception(Exception::RGSSError, "Marshal: Table: bad file format");
 
 	Table *t = new Table(x, y, z);
+
+#if defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
+	for (int16_t &datum : t->data)
+		datum = *(int16_t *)(data -= sizeof(int16_t));
+#else
 	memcpy(dataPtr(t->data), data, sizeof(int16_t)*size);
+#endif
 
 	return t;
 }

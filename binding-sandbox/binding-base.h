@@ -37,20 +37,6 @@
 #include <mkxp-sandbox-ruby.h>
 #include "types.h"
 
-#ifdef MKXPZ_BIG_ENDIAN
-#  define SERIALIZE_32(value) __builtin_bswap32(value)
-#  define SERIALIZE_64(value) __builtin_bswap64(value)
-#else
-#  define SERIALIZE_32(value) (value)
-#  define SERIALIZE_64(value) (value)
-#endif
-
-#ifdef MKXPZ_RETRO_MEMORY64
-#  define SERIALIZE_VALUE(value) SERIALIZE_64(value)
-#else
-#  define SERIALIZE_VALUE(value) SERIALIZE_32(value)
-#endif
-
 // LLVM uses a stack alignment of 16 on WebAssembly targets
 #define WASMSTACKALIGN 16
 
@@ -190,8 +176,6 @@ namespace mkxp_sandbox {
         binding_base(std::shared_ptr<struct w2c_ruby> m);
         ~binding_base();
         struct w2c_ruby &instance() const noexcept;
-        uint8_t *get() const noexcept;
-        uint8_t *operator*() const noexcept;
         wasm_ptr_t sandbox_malloc(wasm_size_t);
         void sandbox_free(wasm_ptr_t ptr);
         wasm_ptr_t rtypeddata_data(VALUE obj) const noexcept;
@@ -199,6 +183,53 @@ namespace mkxp_sandbox {
         void rtypeddata_dfree(wasm_ptr_t data, wasm_ptr_t ptr);
         wasm_size_t rtypeddata_dsize(wasm_ptr_t data, wasm_ptr_t ptr);
         void rtypeddata_dcompact(wasm_ptr_t data, wasm_ptr_t ptr);
+
+        // Gets a pointer to the given address in sandbox memory.
+        void *ptr(wasm_ptr_t address) const noexcept {
+#ifdef MKXPZ_BIG_ENDIAN
+            return instance().w2c_memory.data + instance().w2c_memory.size - address;
+#else
+            return instance().w2c_memory.data + address;
+#endif // MKXPZ_BIG_ENDIAN
+        }
+
+        // Gets a reference to the value stored at a given address in sandbox memory.
+        template <typename T> T &ref(wasm_ptr_t address) const noexcept {
+            // TODO: require T to be numeric
+#ifdef MKXPZ_BIG_ENDIAN
+            return *(T *)(ptr(address) - sizeof(T));
+#else
+            return *(T *)ptr(address);
+#endif // MKXPZ_BIG_ENDIAN
+        }
+
+        // Gets a reference to the value stored at the given index in the array at a given address in sandbox memory.
+        template <typename T> T &ref(wasm_ptr_t array_address, wasm_size_t array_index) const noexcept {
+            return ref<T>(array_address + array_index * sizeof(T));
+        }
+
+        // Gets a string stored at a given address in sandbox memory.
+        // The returned string doesn't need to be freed but only lives until the next call to this function,
+        // so you need to store the returned string in a buffer somewhere if you need to get more than one.
+        const char *str(wasm_ptr_t address) {
+#ifdef MKXPZ_BIG_ENDIAN
+            static std::string buf;
+            buf.clear();
+            const char *s = (const char *)ptr(address);
+            const char *t = s;
+            wasm_size_t n = -1;
+            while (*--s) {
+                ++n;
+            }
+            buf.reserve(n);
+            while (*--t) {
+                buf.push_back(*t);
+            }
+            return buf.c_str();
+#else
+            return (const char *)ptr(address);
+#endif // MKXPZ_BIG_ENDIAN
+        }
 
         template <typename T> struct stack_frame_guard {
             static_assert(std::is_base_of<boost::asio::coroutine, T>::value, "`T` must be a subclass of `boost::asio::coroutine`");
@@ -215,9 +246,9 @@ namespace mkxp_sandbox {
 
             static struct fiber &init_fiber(struct binding_base &bind) {
                 key_t key = {
-                    *(wasm_ptr_t *)(*bind + bind.instance().w2c_mkxp_sandbox_fiber_entry_point),
-                    *(wasm_ptr_t *)(*bind + bind.instance().w2c_mkxp_sandbox_fiber_arg0),
-                    *(wasm_ptr_t *)(*bind + bind.instance().w2c_mkxp_sandbox_fiber_arg1),
+                    bind.ref<wasm_ptr_t>(bind.instance().w2c_mkxp_sandbox_fiber_entry_point),
+                    bind.ref<wasm_ptr_t>(bind.instance().w2c_mkxp_sandbox_fiber_arg0),
+                    bind.ref<wasm_ptr_t>(bind.instance().w2c_mkxp_sandbox_fiber_arg1),
                 };
                 if (bind.fibers.count(key) == 0) {
                     bind.fibers[key] = (struct fiber){.key = key};
@@ -334,9 +365,5 @@ namespace mkxp_sandbox {
         }
     };
 }
-
-#undef SERIALIZE_32
-#undef SERIALIZE_64
-#undef SERIALIZE_VALUE
 
 #endif // MKXPZ_SANDBOX_BINDING_BASE

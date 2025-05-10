@@ -1941,6 +1941,10 @@ bool Bitmap::getRaw(void *output, int output_size)
         Debug() << "GAME BUG: Game is calling getRaw on low-res Bitmap; you may want to patch the game to improve graphics quality.";
     }
 
+#if defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
+    output -= output_size;
+#endif
+
     if (!p->animation.enabled && (p->surface || p->megaSurface)) {
         void *src = (p->megaSurface) ? p->megaSurface->pixels : p->surface->pixels;
         memcpy(output, src, output_size);
@@ -1949,6 +1953,11 @@ bool Bitmap::getRaw(void *output, int output_size)
         FBO::bind(getGLTypes().fbo);
         gl.ReadPixels(0,0,width(),height(),GL_RGBA,GL_UNSIGNED_BYTE,output);
     }
+
+#if defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
+    std::reverse((uint8_t *)output, (uint8_t *)output + output_size);
+#endif
+
     return true;
 }
 
@@ -1969,8 +1978,17 @@ void Bitmap::replaceRaw(void *pixel_data, int size)
     if (size != w*h*4)
         throw Exception(Exception::MKXPError, "Replacement bitmap data is not large enough (given %i bytes, need %i)", size, requiredsize);
     
+#if defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
+    output -= output_size;
+    std::reverse((uint8_t *)pixel_data, (uint8_t *)pixel_data + size);
+#endif
+
     TEX::bind(getGLTypes().tex);
     TEX::uploadImage(w, h, pixel_data, GL_RGBA);
+
+#if defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
+    std::reverse((uint8_t *)pixel_data, (uint8_t *)pixel_data + size);
+#endif
     
     taintArea(IntRect(0,0,w,h));
     p->onModified();

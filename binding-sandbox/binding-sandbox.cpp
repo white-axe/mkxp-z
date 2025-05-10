@@ -104,7 +104,7 @@ struct run_rmxp_scripts : boost::asio::coroutine {
                         zlib_result = uncompress(
                             sb().script_decode_buffer.data(),
                             &buffer_len,
-                            (unsigned char *)(**sb() + SANDBOX_SLOT(6)),
+                            (const unsigned char *)sb()->str(SANDBOX_SLOT(6)),
                             SANDBOX_SLOT(7)
                         );
                         sb().script_decode_buffer[buffer_len] = 0;
@@ -121,7 +121,7 @@ struct run_rmxp_scripts : boost::asio::coroutine {
                     }
 
                     if (zlib_result != Z_OK) {
-                        mkxp_retro::log_printf(RETRO_LOG_ERROR, "Error decoding script %zu: '%s'\n", SANDBOX_SLOT(3), **sb() + SANDBOX_SLOT(5));
+                        mkxp_retro::log_printf(RETRO_LOG_ERROR, "Error decoding script %zu: '%s'\n", SANDBOX_SLOT(3), sb()->str(SANDBOX_SLOT(5)));
                         break;
                     }
                 }
@@ -164,7 +164,7 @@ static VALUE load_data(VALUE self, VALUE path) {
         VALUE operator()(VALUE path) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_S(0, rb_string_value_cstr, &path);
-                SANDBOX_AWAIT_S(1, rb_file_open, (const char *)(**sb() + SANDBOX_SLOT(0)), "rb");
+                SANDBOX_AWAIT_S(1, rb_file_open, sb()->str(SANDBOX_SLOT(0)), "rb");
                 SANDBOX_AWAIT_S(2, rb_marshal_load, SANDBOX_SLOT(1));
                 SANDBOX_AWAIT(rb_io_close, SANDBOX_SLOT(1));
             }

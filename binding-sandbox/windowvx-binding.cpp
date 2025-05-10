@@ -45,10 +45,10 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 GFX_LOCK;
                 if (rgssVer >= 3) {
                     if (argc == 4) {
-                        SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
-                        SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
-                        SANDBOX_AWAIT_S(3, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
-                        SANDBOX_AWAIT_S(4, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
+                        SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 0));
+                        SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 1));
+                        SANDBOX_AWAIT_S(3, rb_num2int, sb()->ref<VALUE>(argv, 2));
+                        SANDBOX_AWAIT_S(4, rb_num2int, sb()->ref<VALUE>(argv, 3));
                     }
                     WindowVX *window = new WindowVX(SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(4));
                     set_private_data(self, window);

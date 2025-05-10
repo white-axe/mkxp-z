@@ -827,7 +827,7 @@ extern "C" u32 w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, u32 fd, u32 
                             case PHYSFS_ERR_NO_WRITE_DIR:
                                 return WASI_EROFS;
                             case PHYSFS_ERR_PERMISSION:
-                                return WASI_EPERM;
+                                return WASI_EACCES;
                             default:
                                 return WASI_EIO;
                         }
@@ -900,7 +900,7 @@ extern "C" u32 w2c_wasi__snapshot__preview1_path_remove_directory(wasi_t *wasi, 
                         case PHYSFS_ERR_NO_WRITE_DIR:
                             return WASI_EROFS;
                         case PHYSFS_ERR_PERMISSION:
-                            return WASI_EPERM;
+                            return WASI_EACCES;
                         default:
                             return WASI_EIO;
                     }
@@ -975,7 +975,7 @@ extern "C" u32 w2c_wasi__snapshot__preview1_path_unlink_file(wasi_t *wasi, u32 f
                         case PHYSFS_ERR_NO_WRITE_DIR:
                             return WASI_EROFS;
                         case PHYSFS_ERR_PERMISSION:
-                            return WASI_EPERM;
+                            return WASI_EACCES;
                         default:
                             return WASI_EIO;
                     }

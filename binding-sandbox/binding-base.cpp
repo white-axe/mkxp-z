@@ -71,14 +71,6 @@ struct w2c_ruby &binding_base::instance() const noexcept {
     return *_instance;
 }
 
-uint8_t *binding_base::get() const noexcept {
-    return instance().w2c_memory.data;
-}
-
-uint8_t *binding_base::operator*() const noexcept {
-    return get();
-}
-
 wasm_ptr_t binding_base::sandbox_malloc(wasm_size_t size) {
     wasm_ptr_t buf = w2c_ruby_mkxp_sandbox_malloc(&instance(), size);
 

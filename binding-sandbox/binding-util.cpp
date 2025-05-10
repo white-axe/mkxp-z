@@ -34,15 +34,15 @@ void mkxp_sandbox::set_private_data(VALUE obj, void *ptr) {
     wasm_ptr_t data = sb()->rtypeddata_data(obj);
 
     // Free the old value if it already exists (initialize called twice?)
-    if (*(wasm_ptr_t *)(**sb() + data) != 0 && *(void **)(**sb() + *(wasm_ptr_t *)(**sb() + data)) != ptr) {
-        sb()->rtypeddata_dfree(obj, *(wasm_ptr_t *)(**sb() + data));
-        *(wasm_ptr_t *)(**sb() + data) = 0;
+    if (sb()->ref<wasm_ptr_t>(data) != 0 && sb()->ref<void *>(sb()->ref<wasm_ptr_t>(data)) != ptr) {
+        sb()->rtypeddata_dfree(obj, sb()->ref<wasm_ptr_t>(data));
+        sb()->ref<wasm_ptr_t>(data) = 0;
     }
 
-    if (*(wasm_ptr_t *)(**sb() + data) == 0) {
+    if (sb()->ref<wasm_ptr_t>(data) == 0) {
         wasm_ptr_t buf = sb()->sandbox_malloc(sizeof(void *));
-        *(void **)(**sb() + buf) = ptr;
-        *(wasm_ptr_t *)(**sb() + data) = buf;
+        sb()->ref<void *>(buf) = ptr;
+        sb()->ref<wasm_ptr_t>(data) = buf;
     }
 }
 
@@ -85,6 +85,6 @@ void log_backtrace::operator()(VALUE exception) {
         SANDBOX_AWAIT_S(2, rb_str_new_cstr, "\n\t");
         SANDBOX_AWAIT_S(1, rb_funcall, SANDBOX_SLOT(1), SANDBOX_SLOT(0), 1, SANDBOX_SLOT(2));
         SANDBOX_AWAIT_S(3, rb_string_value_cstr, &SANDBOX_SLOT(1));
-        mkxp_retro::log_printf(RETRO_LOG_ERROR, "%s\n", **sb() + SANDBOX_SLOT(3));
+        mkxp_retro::log_printf(RETRO_LOG_ERROR, "%s\n", sb()->str(SANDBOX_SLOT(3)));
     }
 }

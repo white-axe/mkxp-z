@@ -37,15 +37,15 @@ static VALUE bgm_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 SANDBOX_SLOT(3) = 100;
                 SANDBOX_SLOT(5) = false;
 
-                SANDBOX_AWAIT_S(1, rb_string_value_cstr, (VALUE *)(**sb() + argv));
+                SANDBOX_AWAIT_S(1, rb_string_value_cstr, &sb()->ref<VALUE>(argv, 0));
                 if (argc >= 2) {
-                    SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 1));
                     if (argc >= 3) {
-                        SANDBOX_AWAIT_S(3, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                        SANDBOX_AWAIT_S(3, rb_num2int, sb()->ref<VALUE>(argv, 2));
                         if (argc >= 4) {
-                            SANDBOX_AWAIT_S(0, rb_num2dbl, ((VALUE *)(**sb() + argv))[3]);
+                            SANDBOX_AWAIT_S(0, rb_num2dbl, sb()->ref<VALUE>(argv, 3));
                             if (argc >= 5) {
-                                SANDBOX_AWAIT_S(4, rb_num2int, ((VALUE *)(**sb() + argv))[4]);
+                                SANDBOX_AWAIT_S(4, rb_num2int, sb()->ref<VALUE>(argv, 4));
                                 SANDBOX_SLOT(5) = true;
                             }
                         }
@@ -53,9 +53,9 @@ static VALUE bgm_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 }
 
                 if (SANDBOX_SLOT(5)) {
-                    mkxp_retro::audio->bgmPlay((const char *)(**sb() + SANDBOX_SLOT(1)), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(0), SANDBOX_SLOT(4));
+                    mkxp_retro::audio->bgmPlay(sb()->str(SANDBOX_SLOT(1)), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(0), SANDBOX_SLOT(4));
                 } else {
-                    mkxp_retro::audio->bgmPlay((const char *)(**sb() + SANDBOX_SLOT(1)), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(0));
+                    mkxp_retro::audio->bgmPlay(sb()->str(SANDBOX_SLOT(1)), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(0));
                 }
             }
 
@@ -78,9 +78,9 @@ static VALUE bgm_fade(int32_t argc, wasm_ptr_t argv, VALUE self) {
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_SLOT(1) = -127;
-                SANDBOX_AWAIT_S(0, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
                 if (argc >= 2) {
-                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
                 }
                 mkxp_retro::audio->bgmFade(SANDBOX_SLOT(0), SANDBOX_SLOT(1));
             }
@@ -100,7 +100,7 @@ static VALUE bgm_pos(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_SLOT(2) = -127;
                 if (argc >= 1) {
-                    SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                    SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 0));
                 }
                 SANDBOX_SLOT(0) = mkxp_retro::audio->bgmPos(SANDBOX_SLOT(2));
                 SANDBOX_AWAIT_S(1, rb_float_new, SANDBOX_SLOT(0));
@@ -121,7 +121,7 @@ static VALUE bgm_volume(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_SLOT(1) = -127;
                 if (argc >= 1) {
-                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                    SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 0));
                 }
                 SANDBOX_SLOT(2) = mkxp_retro::audio->bgmGetVolume(SANDBOX_SLOT(1));
                 SANDBOX_AWAIT_S(0, rb_ll2inum, SANDBOX_SLOT(2));
@@ -141,9 +141,9 @@ static VALUE bgm_set_volume(int32_t argc, wasm_ptr_t argv, VALUE self) {
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_SLOT(1) = -127;
-                SANDBOX_AWAIT_S(0, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
                 if (argc >= 2) {
-                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
                 }
                 mkxp_retro::audio->bgmSetVolume(SANDBOX_SLOT(0), SANDBOX_SLOT(1));
             }
@@ -165,18 +165,18 @@ static VALUE bgs_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 SANDBOX_SLOT(2) = 100;
                 SANDBOX_SLOT(3) = 100;
 
-                SANDBOX_AWAIT_S(1, rb_string_value_cstr, (VALUE *)(**sb() + argv));
+                SANDBOX_AWAIT_S(1, rb_string_value_cstr, &sb()->ref<VALUE>(argv, 0));
                 if (argc >= 2) {
-                    SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 1));
                     if (argc >= 3) {
-                        SANDBOX_AWAIT_S(3, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                        SANDBOX_AWAIT_S(3, rb_num2int, sb()->ref<VALUE>(argv, 2));
                         if (argc >= 4) {
-                            SANDBOX_AWAIT_S(0, rb_num2dbl, ((VALUE *)(**sb() + argv))[3]);
+                            SANDBOX_AWAIT_S(0, rb_num2dbl, sb()->ref<VALUE>(argv, 3));
                         }
                     }
                 }
 
-                mkxp_retro::audio->bgsPlay((const char *)(**sb() + SANDBOX_SLOT(1)), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(0));
+                mkxp_retro::audio->bgsPlay(sb()->str(SANDBOX_SLOT(1)), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(0));
             }
 
             return SANDBOX_NIL;
@@ -234,15 +234,15 @@ static VALUE me_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 SANDBOX_SLOT(1) = 100;
                 SANDBOX_SLOT(2) = 100;
 
-                SANDBOX_AWAIT_S(0, rb_string_value_cstr, (VALUE *)(**sb() + argv));
+                SANDBOX_AWAIT_S(0, rb_string_value_cstr, &sb()->ref<VALUE>(argv, 0));
                 if (argc >= 2) {
-                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
                     if (argc >= 3) {
-                        SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                        SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 2));
                     }
                 }
 
-                mkxp_retro::audio->mePlay((const char *)(**sb() + SANDBOX_SLOT(0)), SANDBOX_SLOT(1), SANDBOX_SLOT(2));
+                mkxp_retro::audio->mePlay(sb()->str(SANDBOX_SLOT(0)), SANDBOX_SLOT(1), SANDBOX_SLOT(2));
             }
 
             return SANDBOX_NIL;
@@ -283,15 +283,15 @@ static VALUE se_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 SANDBOX_SLOT(1) = 100;
                 SANDBOX_SLOT(2) = 100;
 
-                SANDBOX_AWAIT_S(0, rb_string_value_cstr, (VALUE *)(**sb() + argv));
+                SANDBOX_AWAIT_S(0, rb_string_value_cstr, &sb()->ref<VALUE>(argv, 0));
                 if (argc >= 2) {
-                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
                     if (argc >= 3) {
-                        SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                        SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 2));
                     }
                 }
 
-                mkxp_retro::audio->sePlay((const char *)(**sb() + SANDBOX_SLOT(0)), SANDBOX_SLOT(1), SANDBOX_SLOT(2));
+                mkxp_retro::audio->sePlay(sb()->str(SANDBOX_SLOT(0)), SANDBOX_SLOT(1), SANDBOX_SLOT(2));
             }
 
             return SANDBOX_NIL;

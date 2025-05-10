@@ -84,14 +84,14 @@ static VALUE transition(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 }
 
                 if (argc >= 1) {
-                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
+                    SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 0));
                     if (argc >= 2) {
-                        SANDBOX_AWAIT_S(0, rb_string_value_cstr, &((VALUE *)(**sb() + argv))[1]);
-                        if (*(const char *)(**sb() + SANDBOX_SLOT(0))) {
-                            sb().trans_map = new Bitmap((const char *)(**sb() + SANDBOX_SLOT(0)));
+                        SANDBOX_AWAIT_S(0, rb_string_value_cstr, &sb()->ref<VALUE>(argv, 1));
+                        if (*sb()->str(SANDBOX_SLOT(0))) {
+                            sb().trans_map = new Bitmap(sb()->str(SANDBOX_SLOT(0)));
                         }
                         if (argc >= 3) {
-                            SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
+                            SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 2));
                         }
                     }
                 }
@@ -135,7 +135,7 @@ static VALUE screenshot(VALUE self, VALUE value) {
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_S(0, rb_string_value_cstr, &value);
-                GFX_GUARD_EXC(shState->graphics().screenshot((const char *)(**sb() + SANDBOX_SLOT(0))););
+                GFX_GUARD_EXC(shState->graphics().screenshot(sb()->str(SANDBOX_SLOT(0))););
             }
 
             return SANDBOX_NIL;
@@ -287,11 +287,11 @@ static VALUE resize_window(int32_t argc, wasm_ptr_t argv, VALUE self) {
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 // TODO: require at least 2 arguments
-                SANDBOX_AWAIT_S(0, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
-                SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
+                SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
                 GFX_LOCK;
                 if (argc >= 3) {
-                    shState->graphics().resizeWindow(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_VALUE_TO_BOOL(((VALUE *)(**sb() + argv))[2]));
+                    shState->graphics().resizeWindow(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_VALUE_TO_BOOL(sb()->ref<VALUE>(argv, 2)));
                 } else {
                     shState->graphics().resizeWindow(SANDBOX_SLOT(0), SANDBOX_SLOT(1));
                 }
@@ -319,15 +319,15 @@ static VALUE play_movie(int32_t argc, wasm_ptr_t argv, VALUE self) {
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 // TODO: require at least 1 argument
-                SANDBOX_AWAIT_S(0, rb_string_value_cstr, &((VALUE *)(**sb() + argv))[0]);
+                SANDBOX_AWAIT_S(0, rb_string_value_cstr, &sb()->ref<VALUE>(argv, 0));
                 if (argc >= 2) {
-                    SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
+                    SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
                 } else {
                     SANDBOX_SLOT(1) = 100;
                 }
-                SANDBOX_SLOT(2) = argc >= 3 ? SANDBOX_VALUE_TO_BOOL(((VALUE *)(**sb() + argv))[2]) : false;
+                SANDBOX_SLOT(2) = argc >= 3 ? SANDBOX_VALUE_TO_BOOL(sb()->ref<VALUE>(argv, 2)) : false;
 
-                GFX_GUARD_EXC(sb().set_movie(shState->graphics().playMovie((const char *)(**sb() + SANDBOX_SLOT(0)), SANDBOX_SLOT(1), SANDBOX_SLOT(2))););
+                GFX_GUARD_EXC(sb().set_movie(shState->graphics().playMovie(sb()->str(SANDBOX_SLOT(0)), SANDBOX_SLOT(1), SANDBOX_SLOT(2))););
                 while (sb().get_movie_from_main_thread() != nullptr) {
                     SANDBOX_YIELD;
                     GFX_GUARD_EXC(sb().set_movie(shState->graphics().playMovie(sb().get_movie_from_main_thread())););

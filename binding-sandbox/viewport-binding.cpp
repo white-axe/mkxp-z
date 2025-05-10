@@ -47,12 +47,12 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                         viewport = new Viewport;
                     } else if (argc == 1) {
                         GFX_LOCK;
-                        viewport = new Viewport(get_private_data<Rect>(((VALUE *)(**sb() + argv))[0]));
+                        viewport = new Viewport(get_private_data<Rect>(sb()->ref<VALUE>(argv, 0)));
                     } else {
-                        SANDBOX_AWAIT_S(0, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
-                        SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
-                        SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
-                        SANDBOX_AWAIT_S(3, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
+                        SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
+                        SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
+                        SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 2));
+                        SANDBOX_AWAIT_S(3, rb_num2int, sb()->ref<VALUE>(argv, 3));
                         GFX_LOCK;
                         viewport = new Viewport(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3));
                     }

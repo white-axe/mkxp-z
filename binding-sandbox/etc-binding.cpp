@@ -47,13 +47,13 @@ struct color_binding_init : boost::asio::coroutine {
                         set_private_data(self, new Color);
                     } else {
                         // TODO: make these optional
-                        SANDBOX_AWAIT_S(0, rb_num2dbl, ((VALUE *)(**sb() + argv))[0]);
-                        SANDBOX_AWAIT_S(1, rb_num2dbl, ((VALUE *)(**sb() + argv))[1]);
-                        SANDBOX_AWAIT_S(2, rb_num2dbl, ((VALUE *)(**sb() + argv))[2]);
+                        SANDBOX_AWAIT_S(0, rb_num2dbl, sb()->ref<VALUE>(argv, 0));
+                        SANDBOX_AWAIT_S(1, rb_num2dbl, sb()->ref<VALUE>(argv, 1));
+                        SANDBOX_AWAIT_S(2, rb_num2dbl, sb()->ref<VALUE>(argv, 2));
                         if (argc <= 3) {
                             set_private_data(self, new Color(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2)));
                         } else {
-                            SANDBOX_AWAIT_S(3, rb_num2dbl, ((VALUE *)(**sb() + argv))[3]);
+                            SANDBOX_AWAIT_S(3, rb_num2dbl, sb()->ref<VALUE>(argv, 3));
                             set_private_data(self, new Color(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3)));
                         }
                     }
@@ -90,16 +90,16 @@ struct color_binding_init : boost::asio::coroutine {
             VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 BOOST_ASIO_CORO_REENTER (this) {
                     if (argc == 1) {
-                        *get_private_data<Color>(self) = *get_private_data<Color>(((VALUE *)(**sb() + argv))[0]);
+                        *get_private_data<Color>(self) = *get_private_data<Color>(sb()->ref<VALUE>(argv, 0));
                     } else {
                         // TODO: make these optional
-                        SANDBOX_AWAIT_S(0, rb_num2dbl, ((VALUE *)(**sb() + argv))[0]);
-                        SANDBOX_AWAIT_S(1, rb_num2dbl, ((VALUE *)(**sb() + argv))[1]);
-                        SANDBOX_AWAIT_S(2, rb_num2dbl, ((VALUE *)(**sb() + argv))[2]);
+                        SANDBOX_AWAIT_S(0, rb_num2dbl, sb()->ref<VALUE>(argv, 0));
+                        SANDBOX_AWAIT_S(1, rb_num2dbl, sb()->ref<VALUE>(argv, 1));
+                        SANDBOX_AWAIT_S(2, rb_num2dbl, sb()->ref<VALUE>(argv, 2));
                         if (argc <= 3) {
                             SANDBOX_SLOT(3) = 255;
                         } else {
-                            SANDBOX_AWAIT_S(3, rb_num2dbl, ((VALUE *)(**sb() + argv))[3]);
+                            SANDBOX_AWAIT_S(3, rb_num2dbl, sb()->ref<VALUE>(argv, 3));
                         }
                         get_private_data<Color>(self)->set(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3));
                     }
@@ -180,13 +180,13 @@ struct tone_binding_init : boost::asio::coroutine {
                         set_private_data(self, new Tone);
                     } else {
                         // TODO: make these optional
-                        SANDBOX_AWAIT_S(0, rb_num2dbl, ((VALUE *)(**sb() + argv))[0]);
-                        SANDBOX_AWAIT_S(1, rb_num2dbl, ((VALUE *)(**sb() + argv))[1]);
-                        SANDBOX_AWAIT_S(2, rb_num2dbl, ((VALUE *)(**sb() + argv))[2]);
+                        SANDBOX_AWAIT_S(0, rb_num2dbl, sb()->ref<VALUE>(argv, 0));
+                        SANDBOX_AWAIT_S(1, rb_num2dbl, sb()->ref<VALUE>(argv, 1));
+                        SANDBOX_AWAIT_S(2, rb_num2dbl, sb()->ref<VALUE>(argv, 2));
                         if (argc <= 3) {
                             set_private_data(self, new Tone(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2)));
                         } else {
-                            SANDBOX_AWAIT_S(3, rb_num2dbl, ((VALUE *)(**sb() + argv))[3]);
+                            SANDBOX_AWAIT_S(3, rb_num2dbl, sb()->ref<VALUE>(argv, 3));
                             set_private_data(self, new Tone(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3)));
                         }
                     }
@@ -223,16 +223,16 @@ struct tone_binding_init : boost::asio::coroutine {
             VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 BOOST_ASIO_CORO_REENTER (this) {
                     if (argc == 1) {
-                        *get_private_data<Tone>(self) = *get_private_data<Tone>(((VALUE *)(**sb() + argv))[0]);
+                        *get_private_data<Tone>(self) = *get_private_data<Tone>(sb()->ref<VALUE>(argv, 0));
                     } else {
                         // TODO: make these optional
-                        SANDBOX_AWAIT_S(0, rb_num2dbl, ((VALUE *)(**sb() + argv))[0]);
-                        SANDBOX_AWAIT_S(1, rb_num2dbl, ((VALUE *)(**sb() + argv))[1]);
-                        SANDBOX_AWAIT_S(2, rb_num2dbl, ((VALUE *)(**sb() + argv))[2]);
+                        SANDBOX_AWAIT_S(0, rb_num2dbl, sb()->ref<VALUE>(argv, 0));
+                        SANDBOX_AWAIT_S(1, rb_num2dbl, sb()->ref<VALUE>(argv, 1));
+                        SANDBOX_AWAIT_S(2, rb_num2dbl, sb()->ref<VALUE>(argv, 2));
                         if (argc <= 3) {
                             SANDBOX_SLOT(3) = 0;
                         } else {
-                            SANDBOX_AWAIT_S(3, rb_num2dbl, ((VALUE *)(**sb() + argv))[3]);
+                            SANDBOX_AWAIT_S(3, rb_num2dbl, sb()->ref<VALUE>(argv, 3));
                         }
                         get_private_data<Tone>(self)->set(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3));
                     }
@@ -313,10 +313,10 @@ struct rect_binding_init : boost::asio::coroutine {
                         set_private_data(self, new Rect);
                     } else {
                         // TODO: make these optional
-                        SANDBOX_AWAIT_S(0, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
-                        SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
-                        SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
-                        SANDBOX_AWAIT_S(3, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
+                        SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
+                        SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
+                        SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 2));
+                        SANDBOX_AWAIT_S(3, rb_num2int, sb()->ref<VALUE>(argv, 3));
                         set_private_data(self, new Rect(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3)));
                     }
                 }
@@ -352,13 +352,13 @@ struct rect_binding_init : boost::asio::coroutine {
             VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 BOOST_ASIO_CORO_REENTER (this) {
                     if (argc == 1) {
-                        *get_private_data<Rect>(self) = *get_private_data<Rect>(((VALUE *)(**sb() + argv))[0]);
+                        *get_private_data<Rect>(self) = *get_private_data<Rect>(sb()->ref<VALUE>(argv, 0));
                     } else {
                         // TODO: make these optional
-                        SANDBOX_AWAIT_S(0, rb_num2int, ((VALUE *)(**sb() + argv))[0]);
-                        SANDBOX_AWAIT_S(1, rb_num2int, ((VALUE *)(**sb() + argv))[1]);
-                        SANDBOX_AWAIT_S(2, rb_num2int, ((VALUE *)(**sb() + argv))[2]);
-                        SANDBOX_AWAIT_S(3, rb_num2int, ((VALUE *)(**sb() + argv))[3]);
+                        SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
+                        SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
+                        SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 2));
+                        SANDBOX_AWAIT_S(3, rb_num2int, sb()->ref<VALUE>(argv, 3));
                         get_private_data<Rect>(self)->set(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3));
                     }
                 }
