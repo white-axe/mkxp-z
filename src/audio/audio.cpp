@@ -230,7 +230,10 @@ struct AudioPrivate
 				{
 					/* ME playing detected. -> FadeOutBGM */
 					for (auto track : bgmTracks)
+					{
+						AudioMutexGuard trackGuard(track->mutex);
 						track->extPaused = true;
+					}
 
 					meWatch.state = BgmFadingOut;
 				}
@@ -245,6 +248,11 @@ struct AudioPrivate
 				if (me.stream.queryState() != ALStream::Playing)
 				{
 					/* ME has ended while fading OUT BGM. -> FadeInBGM */
+					for (auto track : bgmTracks)
+					{
+						AudioMutexGuard trackGuard(track->mutex);
+						track->extPaused = false;
+					}
 					meWatch.state = BgmFadingIn;
 
 					break;
@@ -252,25 +260,20 @@ struct AudioPrivate
 
 				bool shouldBreak = false;
 
+				std::vector<AudioMutexGuard> trackGuards;
+				trackGuards.reserve(bgmTracks.size());
+				for (auto track : bgmTracks)
+					trackGuards.emplace_back(track->mutex);
+
 				for (auto track : bgmTracks) {
-					bool shouldPause;
+					float vol = track->getVolume(AudioStream::External);
+					vol -= fadeOutStep;
 
-					{
-						AudioMutexGuard trackGuard(track->mutex);
+					if (vol < 0 || track->stream.queryState() != ALStream::Playing) {
+						/* Either BGM has fully faded out, or stopped midway. -> MePlaying */
+						track->setVolume(AudioStream::External, 0);
+						track->stream.pause();
 
-						float vol = track->getVolume(AudioStream::External);
-						vol -= fadeOutStep;
-
-						if ((shouldPause = vol < 0 || track->stream.queryState() != ALStream::Playing)) {
-							/* Either BGM has fully faded out, or stopped midway. -> MePlaying */
-							track->setVolume(AudioStream::External, 0);
-							track->stream.pause();
-						} else {
-							track->setVolume(AudioStream::External, vol);
-						}
-					}
-
-					if (shouldPause) {
 						// check to see if there are any tracks still playing,
 						// and if the last one was ended this round, this branch should exit
 						std::vector<AudioStream*> playingTracks;
@@ -282,6 +285,8 @@ struct AudioPrivate
 						if (playingTracks.size() <= 0 && !shouldBreak) shouldBreak = true;
 						continue;
 					}
+
+					track->setVolume(AudioStream::External, vol);
 				}
 
 				if (shouldBreak) {
