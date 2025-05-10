@@ -29,7 +29,7 @@
 
 #define GFX_GUARD_EXC(exp) exp
 
-#define SANDBOX_SLOT(slot_index) (*(typename slot_type<(slot_index), slots>::type *)(**::mkxp_sandbox::sb() + ::mkxp_sandbox::sb()->stack_pointer() + slot_offset<(slot_index), slots>::value))
+#define SANDBOX_SLOT(slot_index) (*(typename ::mkxp_sandbox::slot_type<(slot_index), slots>::type *)(**::mkxp_sandbox::sb() + ::mkxp_sandbox::sb()->stack_pointer() + ::mkxp_sandbox::slot_offset<(slot_index), slots>::value))
 
 #define SANDBOX_AWAIT(coroutine, ...) \
     do { \

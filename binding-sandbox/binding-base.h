@@ -51,8 +51,6 @@
 #  define SERIALIZE_VALUE(value) SERIALIZE_32(value)
 #endif
 
-#define SLOT_TYPE_ASSERT(T) static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "slots must have numeric types")
-
 // LLVM uses a stack alignment of 16 on WebAssembly targets
 #define WASMSTACKALIGN 16
 
@@ -152,7 +150,7 @@ namespace mkxp_sandbox {
     // If the type `T::slots` exists,
     // then `declared_slots_size<T>::value` is equal to `slots_size<typename T::slots>::value` (i.e. the total size of the slots used by `T`).
     // Otherwise, it's equal to 0.
-    template <typename T, typename _Dummy = void> struct declared_slots_size;
+    template <typename T, typename Dummy = void> struct declared_slots_size;
     template <typename T> using slots_declaration = typename T::slots;
     template <typename T> struct declared_slots_size<T, typename boost::enable_if<boost::is_detected<slots_declaration, T>>::type> {
         static constexpr wasm_size_t value = slots_size<typename T::slots>::value;
