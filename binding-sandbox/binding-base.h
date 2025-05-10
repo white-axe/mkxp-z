@@ -102,9 +102,6 @@ namespace mkxp_sandbox {
     //     slot_type<2, slots>::type var2; // this variable should be of type `uint16_t`
     //     slot_type<3, slots>::type var3; // this variable should be of type `uint8_t`
     template <wasm_size_t Index, typename Slots> struct slot_type;
-    template <wasm_size_t Index> struct slot_type<Index, struct decl_slots<>> {
-	static_assert(false, "index out of range");
-    };
     template <typename Head, typename... Tail> struct slot_type<0, struct decl_slots<Head, Tail...>> {
 	static_assert(std::is_integral<Head>::value || std::is_floating_point<Head>::value, "slots must have numeric types");
         typedef Head type;
