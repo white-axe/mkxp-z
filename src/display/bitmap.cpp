@@ -1942,7 +1942,7 @@ bool Bitmap::getRaw(void *output, int output_size)
     }
 
 #if defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
-    output -= output_size;
+    output = (uint8_t *)output - output_size;
 #endif
 
     if (!p->animation.enabled && (p->surface || p->megaSurface)) {
@@ -1979,7 +1979,7 @@ void Bitmap::replaceRaw(void *pixel_data, int size)
         throw Exception(Exception::MKXPError, "Replacement bitmap data is not large enough (given %i bytes, need %i)", size, requiredsize);
     
 #if defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
-    pixel_data -= size;
+    pixel_data = (uint8_t *)pixel_data - size;
     std::reverse((uint8_t *)pixel_data, (uint8_t *)pixel_data + size);
 #endif
 
