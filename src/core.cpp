@@ -21,13 +21,15 @@
 
 #include <atomic>
 #include <cstdarg>
+#include <cstring>
+#include <string>
 
 #include <boost/optional.hpp>
 #include <alc.h>
 #include <alext.h>
 #include <fluidsynth.h>
 
-#include "mkxp-polyfill.h" // std::mutex
+#include "mkxp-polyfill.h" // std::mutex, std::strtoul
 #include "git-hash.h"
 
 #include "core.h"
@@ -42,6 +44,258 @@
 #include "graphics.h"
 #include "sharedmidistate.h"
 #include "sharedstate.h"
+
+static const struct retro_core_option_v2_category core_option_categories[] = {
+    {
+        .key = "runtime",
+        .desc = "Runtime",
+        .info = nullptr,
+    },
+    {
+        .key = "video",
+        .desc = "Video",
+        .info = nullptr,
+    },
+    {
+        .key = "audio",
+        .desc = "Audio",
+        .info = nullptr,
+    },
+    {
+        .key = nullptr,
+        .desc = nullptr,
+        .info = nullptr,
+    },
+};
+
+static const struct retro_core_option_v2_definition core_option_definitions[] = {
+    {
+        .key = "mkxp-z_rgssVersion",
+        .desc = "RGSS Version",
+        .desc_categorized = nullptr,
+        .info = (
+            "Specify the RGSS version to run under."
+            " By default, mkxp will try to guess the required version"
+            " based on the game files."
+            " If this fails, the version defaults to 1."
+        ),
+        .info_categorized = nullptr,
+        .category_key = "runtime",
+        .values = {
+            {"inherit", "Inherit from mkxp.json"},
+            {"default", "Default"},
+            {"1", "1 (RPG Maker XP)"},
+            {"2", "2 (RPG Maker VX)"},
+            {"3", "3 (RPG Maker VX Ace)"},
+            {nullptr, nullptr},
+        },
+        .default_value = "inherit",
+    },
+    {
+        .key = "mkxp-z_frameSkip",
+        .desc = "Frame Skip",
+        .desc_categorized = nullptr,
+        .info = (
+            "Skip (don't draw) frames when behind."
+        ),
+        .info_categorized = nullptr,
+        .category_key = "video",
+        .values = {
+            {"inherit", "Inherit from mkxp.json"},
+            {"enabled", "Enabled"},
+            {"disabled", "Disabled"},
+            {nullptr, nullptr},
+        },
+        .default_value = "disabled",
+    },
+    {
+        .key = "mkxp-z_subImageFix",
+        .desc = "Subimage Fix",
+        .desc_categorized = nullptr,
+        .info = (
+            "Work around buggy graphics drivers which don't"
+            " properly synchronize texture access, most"
+            " apparent when text doesn't show up or the map"
+            " tileset doesn't render at all."
+            " (default: enabled for systems using OpenGL ES, disabled on other systems)"
+        ),
+        .info_categorized = nullptr,
+        .category_key = "video",
+        .values = {
+            {"inherit", "Inherit from mkxp.json"},
+            {"default", "Default"},
+            {"enabled", "Enabled"},
+            {"disabled", "Disabled"},
+            {nullptr, nullptr},
+        },
+        .default_value = "default",
+    },
+    {
+        .key = "mkxp-z_enableBlitting",
+        .desc = "Framebuffer Blitting",
+        .desc_categorized = nullptr,
+        .info = (
+            "Enable framebuffer blitting if the driver is"
+            " capable of it. Some drivers carry buggy"
+            " implementations of this functionality, so"
+            " disabling it can be used as a workaround."
+            " (default: disabled on Windows, enabled on other systems)"
+        ),
+        .info_categorized = nullptr,
+        .category_key = "video",
+        .values = {
+            {"inherit", "Inherit from mkxp.json"},
+            {"default", "Default"},
+            {"enabled", "Enabled"},
+            {"disabled", "Disabled"},
+            {nullptr, nullptr},
+        },
+        .default_value = "default",
+    },
+    {
+        .key = "mkxp-z_threadedAudio",
+        .desc = "Threaded Audio",
+        .desc_categorized = nullptr,
+        .info = (
+            "Use a worker thread for rendering the audio instead of"
+            " rendering in the main thread, if possible. Reduces audio"
+            " crackling, especially on systems with slow file system"
+            " access speed. Changes to this setting will not take effect"
+            " until the game is closed."
+        ),
+        .info_categorized = nullptr,
+        .category_key = "audio",
+        .values = {
+            {"enabled", "Enabled"},
+            {"disabled", "Disabled"},
+            {nullptr, nullptr},
+        },
+        .default_value = "enabled",
+    },
+    {
+        .key = "mkxp-z_midiChorus",
+        .desc = "MIDI Chorus",
+        .desc_categorized = nullptr,
+        .info = (
+            "Activate \"chorus\" effect for midi playback."
+        ),
+        .info_categorized = nullptr,
+        .category_key = "audio",
+        .values = {
+            {"inherit", "Inherit from mkxp.json"},
+            {"enabled", "Enabled"},
+            {"disabled", "Disabled"},
+            {nullptr, nullptr},
+        },
+        .default_value = "inherit",
+    },
+    {
+        .key = "mkxp-z_midiReverb",
+        .desc = "MIDI Reverb",
+        .desc_categorized = nullptr,
+        .info = (
+            "Activate \"reverb\" effect for midi playback."
+        ),
+        .info_categorized = nullptr,
+        .category_key = "audio",
+        .values = {
+            {"inherit", "Inherit from mkxp.json"},
+            {"enabled", "Enabled"},
+            {"disabled", "Disabled"},
+            {nullptr, nullptr},
+        },
+        .default_value = "inherit",
+    },
+    {
+        .key = "mkxp-z_SESourceCount",
+        .desc = "SE Source Count",
+        .desc_categorized = nullptr,
+        .info = (
+            "Number of OpenAL sources to allocate for SE playback."
+            " If there are a lot of sounds playing at the same time"
+            " and audibly cutting each other off, try increasing"
+            " this number."
+            " (if this value is also set in the game's mkxp.json,"
+            " the maximum of the value set here and the value in"
+            " mkxp.json will be used)"
+        ),
+        .info_categorized = nullptr,
+        .category_key = "audio",
+        .values = {
+            {"6", "6"},
+            {"7", "7"},
+            {"8", "8"},
+            {"9", "9"},
+            {"10", "10"},
+            {"11", "11"},
+            {"12", "12"},
+            {"13", "13"},
+            {"14", "14"},
+            {"15", "15"},
+            {"16", "16"},
+            {"17", "17"},
+            {"18", "18"},
+            {"19", "19"},
+            {"20", "20"},
+            {"21", "21"},
+            {"22", "22"},
+            {"23", "23"},
+            {"24", "24"},
+            {"25", "25"},
+            {"26", "26"},
+            {"27", "27"},
+            {"28", "28"},
+            {"29", "29"},
+            {"30", "30"},
+            {"31", "31"},
+            {"32", "32"},
+            {"33", "33"},
+            {"34", "34"},
+            {"35", "35"},
+            {"36", "36"},
+            {"37", "37"},
+            {"38", "38"},
+            {"39", "39"},
+            {"40", "40"},
+            {"41", "41"},
+            {"42", "42"},
+            {"43", "43"},
+            {"44", "44"},
+            {"45", "45"},
+            {"46", "46"},
+            {"47", "47"},
+            {"48", "48"},
+            {"49", "49"},
+            {"50", "50"},
+            {"51", "51"},
+            {"52", "52"},
+            {"53", "53"},
+            {"54", "54"},
+            {"55", "55"},
+            {"56", "56"},
+            {"57", "57"},
+            {"58", "58"},
+            {"59", "59"},
+            {"60", "60"},
+            {"61", "61"},
+            {"62", "62"},
+            {"63", "63"},
+            {"64", "64"},
+            {nullptr, nullptr},
+        },
+        .default_value = "6",
+    },
+    {
+        .key = nullptr,
+        .desc = nullptr,
+        .desc_categorized = nullptr,
+        .info = nullptr,
+        .info_categorized = nullptr,
+        .category_key = nullptr,
+        .values = {{nullptr, nullptr}},
+        .default_value = nullptr,
+    },
+};
 
 #define THREADED_AUDIO_SAMPLES (((size_t)SYNTH_SAMPLERATE * (size_t)AUDIO_SLEEP) / (size_t)1000)
 
@@ -283,6 +537,14 @@ static void audio_render(size_t samples) {
     }
 }
 
+static const char *get_core_option(const char *key) {
+    struct retro_variable variable = {
+        .key = key,
+        .value = "",
+    };
+    return environment(RETRO_ENVIRONMENT_GET_VARIABLE, &variable) ? variable.value : "";
+}
+
 static VALUE func(VALUE arg) {
     struct coro : boost::asio::coroutine {
         VALUE operator()() {
@@ -385,7 +647,80 @@ static bool init_sandbox() {
         fs->addPath(parsed_game_path.c_str(), "/game");
 
         conf.emplace();
-        conf->read(0, NULL);
+        {
+            const char *value = get_core_option("mkxp-z_rgssVersion");
+            if (!std::strcmp(value, "default")) {
+                conf->read(0, NULL, 0);
+            } else {
+                unsigned long value_num = std::strtoul(value, nullptr, 10);
+                if (value_num == 1 || value_num == 2 || value_num == 3) {
+                    conf->read(0, NULL, value_num);
+                } else {
+                    conf->read(0, NULL);
+                }
+            }
+        }
+
+        {
+            const char *value = get_core_option("mkxp-z_frameSkip");
+            if (!std::strcmp(value, "enabled")) {
+                conf->frameSkip = true;
+            } else if (!std::strcmp(value, "disabled")) {
+                conf->frameSkip = false;
+            }
+        }
+
+        {
+            const char *value = get_core_option("mkxp-z_subImageFix");
+            if (!std::strcmp(value, "default")) {
+                conf->subImageFix = hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES2 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES3 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES_VERSION;
+            } else if (!std::strcmp(value, "enabled")) {
+                conf->subImageFix = true;
+            } else if (!std::strcmp(value, "disabled")) {
+                conf->subImageFix = false;
+            }
+        }
+
+        {
+            const char *value = get_core_option("mkxp-z_enableBlitting");
+            if (!std::strcmp(value, "default")) {
+#ifdef _WIN32
+                conf->enableBlitting = false;
+#else
+                conf->enableBlitting = true;
+#endif // _WIN32
+            } else if (!std::strcmp(value, "enabled")) {
+                conf->enableBlitting = true;
+            } else if (!std::strcmp(value, "disabled")) {
+                conf->enableBlitting = false;
+            }
+        }
+
+        {
+            const char *value = get_core_option("mkxp-z_midiChorus");
+            if (!std::strcmp(value, "enabled")) {
+                conf->midi.chorus = true;
+            } else if (!std::strcmp(value, "disabled")) {
+                conf->midi.chorus = false;
+            }
+        }
+
+        {
+            const char *value = get_core_option("mkxp-z_midiReverb");
+            if (!std::strcmp(value, "enabled")) {
+                conf->midi.reverb = true;
+            } else if (!std::strcmp(value, "disabled")) {
+                conf->midi.reverb = false;
+            }
+        }
+
+        {
+            unsigned long value_num = std::strtoul(get_core_option("mkxp-z_SESourceCount"), nullptr, 10);
+            if (value_num >= 6 && value_num <= 64) {
+                conf->SE.sourceCount = std::max(conf->SE.sourceCount, (int)value_num);
+            }
+        }
+
         SharedState::rgssVersion = conf->rgssVersion;
         thread_data.emplace((EventThread *)NULL, (const char *)NULL, (SDL_Window *)NULL, (ALCdevice *)NULL, 60, 1, *conf);
 
@@ -572,6 +907,77 @@ extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
         .perf_log = nullptr,
     };
     cb(RETRO_ENVIRONMENT_GET_PERF_INTERFACE, &perf);
+
+    unsigned int core_options_version;
+    if (!cb(RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION, &core_options_version)) {
+        core_options_version = 0;
+    }
+    switch (core_options_version) {
+        default:
+            {
+                const struct retro_core_options_v2 core_options = {
+                    .categories = (struct retro_core_option_v2_category *)core_option_categories,
+                    .definitions = (struct retro_core_option_v2_definition *)core_option_definitions,
+                };
+                if (cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2, (void *)&core_options)) {
+                    break;
+                }
+            }
+
+        case 1:
+            {
+                struct retro_core_option_definition core_options[sizeof core_option_definitions / sizeof *core_option_definitions];
+                for (size_t i = 0; i < sizeof core_options / sizeof *core_options; ++i) {
+                    core_options[i].key = core_option_definitions[i].key;
+                    core_options[i].desc = core_option_definitions[i].desc;
+                    core_options[i].info = core_option_definitions[i].info;
+                    size_t num_values = 0;
+                    for (const struct retro_core_option_value *value = core_option_definitions[i].values; value->value != nullptr; ++value) {
+                        ++num_values;
+                    }
+                    std::memcpy(core_options[i].values, core_option_definitions[i].values, (1 + num_values) * sizeof *core_option_definitions[i].values);
+                    core_options[i].default_value = core_option_definitions[i].default_value;
+                }
+                if (cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS, (void *)&core_options)) {
+                    break;
+                }
+            }
+
+        case 0:
+            {
+                struct retro_variable core_options[sizeof core_option_definitions / sizeof *core_option_definitions];
+                std::string values[sizeof core_options / sizeof *core_options];
+                size_t i;
+                for (i = 0; i < sizeof core_options / sizeof *core_options - 1; ++i) {
+                    core_options[i].key = core_option_definitions[i].key;
+                    size_t values_length = 0;
+                    for (const struct retro_core_option_value *value = core_option_definitions[i].values; value->value != nullptr; ++value) {
+                        values_length += 1 + std::strlen(value->value);
+                    }
+                    values[i].reserve(std::strlen(core_option_definitions[i].desc) + 1 + values_length);
+                    values[i] = core_option_definitions[i].desc;
+                    values[i].append("; ");
+                    for (const struct retro_core_option_value *value = core_option_definitions[i].values; value->value != nullptr; ++value) {
+                        if (std::strcmp(value->value, core_option_definitions[i].default_value)) {
+                            continue;
+                        }
+                        values[i].append(value->value);
+                        break;
+                    }
+                    for (const struct retro_core_option_value *value = core_option_definitions[i].values; value->value != nullptr; ++value) {
+                        if (!std::strcmp(value->value, core_option_definitions[i].default_value)) {
+                            continue;
+                        }
+                        values[i].push_back('|');
+                        values[i].append(value->value);
+                    }
+                    core_options[i].value = values[i].c_str();
+                }
+                core_options[i].key = nullptr;
+                core_options[i].value = nullptr;
+                cb(RETRO_ENVIRONMENT_SET_VARIABLES, (void *)&core_options);
+            }
+    }
 }
 
 extern "C" RETRO_API void retro_set_video_refresh(retro_video_refresh_t cb) {
@@ -804,8 +1210,22 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
         audio_render(THREADED_AUDIO_SAMPLES);
     };
     audio_callback.set_state = nullptr;
-    threaded_audio_enabled = environment(RETRO_ENVIRONMENT_SET_AUDIO_CALLBACK, &audio_callback);
-    log_printf(RETRO_LOG_INFO, threaded_audio_enabled ? "Using threaded audio driver\n" : "Not using threaded audio driver because the frontend does not support it\n");
+    bool threaded_audio_allowed;
+    {
+        const char *value = get_core_option("mkxp-z_threadedAudio");
+        if (!std::strcmp(value, "disabled")) {
+            threaded_audio_allowed = false;
+        } else {
+            threaded_audio_allowed = true;
+        }
+    }
+    if (threaded_audio_allowed) {
+        threaded_audio_enabled = environment(RETRO_ENVIRONMENT_SET_AUDIO_CALLBACK, &audio_callback);
+        log_printf(RETRO_LOG_INFO, threaded_audio_enabled ? "Using threaded audio driver\n" : "Not using threaded audio driver because the frontend does not support it\n");
+    } else {
+        threaded_audio_enabled = false;
+        log_printf(RETRO_LOG_INFO, "Not using threaded audio driver because threaded audio is disabled in the core options\n");
+    }
 #else
     log_printf(RETRO_LOG_INFO, "Not using threaded audio driver because multithreading is not supported on this platform\n");
 #endif // MKXPZ_NO_THREADED_AUDIO

@@ -177,7 +177,7 @@ struct Config {
     
     bool fontIsSolid(const char *fontName) const;
     
-    void read(int argc, char *argv[]);
+    void read(int argc, char *argv[], int forceRgssVersion = -1);
     void readGameINI();
 };
 

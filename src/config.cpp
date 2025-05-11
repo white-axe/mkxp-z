@@ -156,7 +156,7 @@ static json::value readConfFile(const char *path) {
 
 Config::Config() {}
 
-void Config::read(int argc, char *argv[]) {
+void Config::read(int argc, char *argv[], int forceRgssVersion) {
     auto optsJ = json::object({
         {"rgssVersion", 0},
         {"debugMode", false},
@@ -196,7 +196,7 @@ void Config::read(int argc, char *argv[]) {
 #else
         {"subImageFix", false},
 #endif // MKXPZ_RETRO
-#ifdef __WIN32__
+#ifdef __WIN32
         {"enableBlitting", false},
 #else
         {"enableBlitting", true},
@@ -296,6 +296,9 @@ try { exp } catch (...) {}
     }
 #endif // MKXPZ_RETRO
     
+    if (forceRgssVersion >= 0) {
+        rgssVersion = forceRgssVersion;
+    }
     readGameINI();
     
 #ifndef MKXPZ_RETRO
