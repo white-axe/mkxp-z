@@ -45,6 +45,11 @@ namespace mkxp_retro {
     extern bool keyboard_state[RETROK_LAST];
     extern bool input_polled;
 
+    extern uint8_t sub_image_fix_override;
+    extern uint8_t enable_blitting_override;
+    extern uint8_t midi_chorus_override;
+    extern uint8_t midi_reverb_override;
+
     uint64_t get_ticks_ms() noexcept;
     uint64_t get_ticks_us() noexcept;
     double get_refresh_rate() noexcept;

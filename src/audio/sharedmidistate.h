@@ -26,6 +26,10 @@
 #include "debugwriter.h"
 #include "fluid-fun.h"
 
+#ifdef MKXPZ_RETRO
+#  include "core.h"
+#endif // MKXPZ_RETRO
+
 #include <assert.h>
 #include <vector>
 #include <string>
@@ -93,8 +97,8 @@ struct SharedMidiState
 		flSettings = fluid.new_settings();
 		fluid.settings_setnum(flSettings, "synth.gain", 1.0f);
 		fluid.settings_setnum(flSettings, "synth.sample-rate", SYNTH_SAMPLERATE);
-		fluid.settings_setint(flSettings, "synth.chorus.active", conf.midi.chorus);
-		fluid.settings_setint(flSettings, "synth.reverb.active", conf.midi.reverb);
+		fluid.settings_setint(flSettings, "synth.chorus.active", mkxp_retro::midi_chorus_override == 1 || (mkxp_retro::midi_chorus_override != 0 && conf.midi.chorus));
+		fluid.settings_setint(flSettings, "synth.reverb.active", mkxp_retro::midi_reverb_override == 1 || (mkxp_retro::midi_reverb_override != 0 && conf.midi.reverb));
 
 		extern const uint8_t mkxp_gmgsx_sf2[];
 		extern const size_t mkxp_gmgsx_sf2_len;
