@@ -197,7 +197,7 @@ namespace mkxp_sandbox {
         template <typename T> T &ref(wasm_ptr_t address) const noexcept {
             // TODO: require T to be numeric
 #ifdef MKXPZ_BIG_ENDIAN
-            return *(T *)(ptr(address) - sizeof(T));
+            return *(T *)((uint8_t *)ptr(address) - sizeof(T));
 #else
             return *(T *)ptr(address);
 #endif // MKXPZ_BIG_ENDIAN
