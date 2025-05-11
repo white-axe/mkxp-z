@@ -289,13 +289,7 @@ namespace mkxp_sandbox {
                     fiber->stack.pop_back();
                 }
                 ++fiber->stack_index;
-                b.stack_ptr = w2c_ruby_rb_wasm_get_stack_pointer(&b.instance())
-#ifdef MKXPZ_BIG_ENDIAN
-                    +
-#else
-                    -
-#endif // MKXPZ_BIG_ENDIAN
-                    CEIL_WASMSTACKALIGN(declared_slots_size<T>::value);
+                b.stack_ptr = w2c_ruby_rb_wasm_get_stack_pointer(&b.instance()) - CEIL_WASMSTACKALIGN(declared_slots_size<T>::value);
                 assert(b.stack_ptr % sizeof(VALUE) == 0);
                 assert(b.stack_ptr % WASMSTACKALIGN == 0);
                 if (declared_slots_size<T>::value != 0) {
@@ -339,16 +333,7 @@ namespace mkxp_sandbox {
 
                     assert(fiber->stack.size() == fiber->stack_index);
 
-                    w2c_ruby_rb_wasm_set_stack_pointer(
-                        &bind->instance(),
-                        fiber->stack.back().stack_ptr
-#ifdef MKXPZ_BIG_ENDIAN
-                            -
-#else
-                            +
-#endif // MKXPZ_BIG_ENDIAN
-                            CEIL_WASMSTACKALIGN(declared_slots_size<T>::value)
-                    );
+                    w2c_ruby_rb_wasm_set_stack_pointer(&bind->instance(), fiber->stack.back().stack_ptr + CEIL_WASMSTACKALIGN(declared_slots_size<T>::value));
                     bind->stack_ptr = fiber->stack.back().stack_ptr;
                     fiber->stack.pop_back();
                 }
