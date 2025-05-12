@@ -31,9 +31,6 @@
 
 using namespace mkxp_sandbox;
 
-//#define WASI_DEBUG(...) mkxp_retro::log_printf(RETRO_LOG_INFO, __VA_ARGS__)
-#define WASI_DEBUG(...)
-
 static inline size_t strlen_safe(const char *str, size_t max_length) {
     const char *ptr = (const char *)std::memchr(str, 0, max_length);
     return ptr == nullptr ? max_length : ptr - str;
@@ -131,49 +128,40 @@ const char *wasi_t::str(wasm_ptr_t address) const noexcept {
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_args_get(wasi_t *wasi, wasm_ptr_t argv, wasm_ptr_t argv_buf) {
-    WASI_DEBUG("args_get()\n");
     return WASI_ESUCCESS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_args_sizes_get(wasi_t *wasi, wasm_ptr_t argc, wasm_ptr_t argv_buf_size) {
-    WASI_DEBUG("args_sizes_get(0x%08x, 0x%08x)\n", argc, argv_buf_size);
     wasi->ref<uint32_t>(argc) = 0;
     wasi->ref<uint32_t>(argv_buf_size) = 0;
     return WASI_ESUCCESS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_clock_res_get(wasi_t *wasi, uint32_t id, wasm_ptr_t result) {
-    WASI_DEBUG("clock_res_get(%u)\n", id);
     wasi->ref<uint64_t>(result) = 1000;
     return WASI_ESUCCESS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_clock_time_get(wasi_t *wasi, uint32_t id, uint64_t precision, wasm_ptr_t result) {
-    WASI_DEBUG("clock_time_get(%u, %lu)\n", id, precision);
     wasi->ref<uint64_t>(result) = mkxp_retro::perf.get_time_usec != nullptr ? mkxp_retro::perf.get_time_usec() * 1000L : 0;
     return WASI_ESUCCESS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_environ_get(wasi_t *wasi, wasm_ptr_t env, wasm_ptr_t env_buf) {
-    WASI_DEBUG("environ_get(0x%08x, 0x%08x)\n", env, env_buf);
     return WASI_ESUCCESS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_environ_sizes_get(wasi_t *wasi, wasm_ptr_t env_size, wasm_ptr_t env_buf_size) {
-    WASI_DEBUG("environ_sizes_get()\n");
     wasi->ref<uint32_t>(env_size) = 0;
     wasi->ref<uint32_t>(env_buf_size) = 0;
     return WASI_ESUCCESS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_advise(wasi_t *wasi, uint32_t fd, uint64_t offset, uint64_t len, uint32_t advice) {
-    WASI_DEBUG("fd_advise(%u, %lu, %lu, 0x%08x)\n", fd, offset, len, advice);
     return WASI_ENOSYS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_close(wasi_t *wasi, uint32_t fd) {
-    WASI_DEBUG("fd_close(%u)\n", fd);
-
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
     }
@@ -197,13 +185,10 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_close(wasi_t *wasi, uint32_t
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_datasync(wasi_t *wasi, uint32_t fd) {
-    WASI_DEBUG("fd_datasync(%u)\n", fd);
     return WASI_ENOSYS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_fdstat_get(wasi_t *wasi, uint32_t fd, wasm_ptr_t result) {
-    WASI_DEBUG("fd_fdstat_get(%u)\n", fd);
-
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
     }
@@ -235,8 +220,6 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_fdstat_get(wasi_t *wasi, uin
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_fdstat_set_flags(wasi_t *wasi, uint32_t fd, uint32_t flags) {
-    WASI_DEBUG("fd_fdstat_set_flags(%u, %u)\n", fd, flags);
-
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
     }
@@ -258,8 +241,6 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_fdstat_set_flags(wasi_t *was
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_filestat_get(wasi_t *wasi, uint32_t fd, wasm_ptr_t result) {
-    WASI_DEBUG("fd_filestat_get(%u)\n", fd);
-
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
     }
@@ -327,8 +308,6 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_filestat_get(wasi_t *wasi, u
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_filestat_set_size(wasi_t *wasi, uint32_t fd, uint64_t size) {
-    WASI_DEBUG("fd_filestat_set_size(%u, %lu)\n", fd, size);
-
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
     }
@@ -347,13 +326,10 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_filestat_set_size(wasi_t *wa
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_pread(wasi_t *wasi, uint32_t fd, wasm_ptr_t iovs, uint32_t iovs_len, uint64_t offset, wasm_ptr_t result) {
-    WASI_DEBUG("fd_pread(%u, 0x%08x (%u), %lu)\n", fd, iovs, iovs_len, offset);
     return WASI_ENOSYS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_prestat_dir_name(wasi_t *wasi, uint32_t fd, wasm_ptr_t path, uint32_t path_len) {
-    WASI_DEBUG("fd_prestat_dir_name(%u, 0x%x (%u))\n", fd, path, path_len);
-
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
     }
@@ -378,8 +354,6 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_prestat_dir_name(wasi_t *was
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_prestat_get(wasi_t *wasi, uint32_t fd, wasm_ptr_t result) {
-    WASI_DEBUG("fd_prestat_get(%u)\n", fd);
-
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
     }
@@ -405,13 +379,10 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_prestat_get(wasi_t *wasi, ui
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_pwrite(wasi_t *wasi, uint32_t fd, wasm_ptr_t iovs, uint32_t iovs_len, uint64_t offset, wasm_ptr_t result) {
-    WASI_DEBUG("fd_pwrite(%u, 0x%08x (%u), %lu)\n", fd, iovs, iovs_len, offset);
     return WASI_ENOSYS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_read(wasi_t *wasi, uint32_t fd, wasm_ptr_t iovs, uint32_t iovs_len, wasm_ptr_t result) {
-    WASI_DEBUG("fd_read(%u, 0x%08x (%u))\n", fd, iovs, iovs_len);
-
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
     }
@@ -457,8 +428,6 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_read(wasi_t *wasi, uint32_t 
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, uint32_t fd, wasm_ptr_t buf, uint32_t buf_len, uint64_t cookie, wasm_ptr_t result) {
-    WASI_DEBUG("fd_readdir(%u, 0x%08x (%u), %lu)\n", fd, buf, buf_len, cookie);
-
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
     }
@@ -547,8 +516,6 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, uint32
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_renumber(wasi_t *wasi, uint32_t fd, uint32_t to) {
-    WASI_DEBUG("fd_renumber(%u, %u)\n", fd, to);
-
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
     }
@@ -605,18 +572,14 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_renumber(wasi_t *wasi, uint3
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_seek(wasi_t *wasi, uint32_t fd, uint64_t offset, uint32_t whence, wasm_ptr_t result) {
-    WASI_DEBUG("fd_seek(%u, %lu, %u)\n", fd, offset, whence);
     return WASI_ENOSYS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_sync(wasi_t *wasi, uint32_t fd) {
-    WASI_DEBUG("fd_sync(%u)\n", fd);
     return WASI_ENOSYS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_tell(wasi_t *wasi, uint32_t fd, wasm_ptr_t result) {
-    WASI_DEBUG("fd_tell(%u)\n", fd);
-
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
     }
@@ -641,8 +604,6 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_tell(wasi_t *wasi, uint32_t 
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_write(wasi_t *wasi, uint32_t fd, wasm_ptr_t iovs, uint32_t iovs_len, wasm_ptr_t result) {
-    WASI_DEBUG("fd_write(%u, 0x%08x (%u))\n", fd, iovs, iovs_len);
-
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
     }
@@ -712,13 +673,10 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_write(wasi_t *wasi, uint32_t
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_create_directory(wasi_t *wasi, uint32_t fd, wasm_ptr_t path, uint32_t path_len) {
-    WASI_DEBUG("path_create_directory(%u, \"%.*s\")\n", fd, path_len, wasi->str(path));
     return WASI_ENOSYS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_filestat_get(wasi_t *wasi, uint32_t fd, uint32_t flags, wasm_ptr_t path, uint32_t path_len, wasm_ptr_t result) {
-    WASI_DEBUG("path_filestat_get(%u, %u, \"%.*s\")\n", fd, flags, path_len, wasi->str(path));
-
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
     }
@@ -769,18 +727,14 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_filestat_get(wasi_t *wasi,
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_filestat_set_times(wasi_t *wasi, uint32_t fd, uint32_t flags, wasm_ptr_t path, uint32_t path_len, uint64_t atim, uint64_t ntim, uint32_t fst_flags) {
-    WASI_DEBUG("path_filestat_set_times(%u, %u, \"%.*s\", %lu, %lu, %u)\n", fd, flags, path_len, wasi->str(path), atim, ntim, fst_flags);
     return WASI_ENOSYS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_link(wasi_t *wasi, uint32_t old_fd, uint32_t old_flags, wasm_ptr_t old_path, uint32_t old_path_len, uint32_t new_fd, wasm_ptr_t new_path, uint32_t new_path_len) {
-    WASI_DEBUG("path_link(%u, %u, \"%.*s\", %u, \"%.*s\")\n", old_fd, old_flags, old_path_len, std::string(wasi->str(old_path)).c_str(), new_fd, new_path_len, std::string(wasi->str(new_path)).c_str());
     return WASI_ENOSYS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, uint32_t fd, uint32_t dirflags, wasm_ptr_t path, uint32_t path_len, uint32_t oflags, uint64_t fs_base_rights, uint64_t fs_rights_inheriting, uint32_t fdflags, wasm_ptr_t result) {
-    WASI_DEBUG("path_open(%u, %u, \"%.*s\", %u, %lu, %lu, %u)\n", fd, dirflags, path_len, wasi->str(path), oflags, fs_base_rights, fs_rights_inheriting, fdflags);
-
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
     }
@@ -885,13 +839,10 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, uint32_
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_readlink(wasi_t *wasi, uint32_t fd, wasm_ptr_t path, uint32_t path_len, wasm_ptr_t buf, uint32_t buf_len, wasm_ptr_t result) {
-    WASI_DEBUG("path_readlink(%u, \"%.*s\", 0x%08x (%u))\n", fd, path_len, wasi->str(path), buf, buf_len);
     return WASI_ENOSYS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_remove_directory(wasi_t *wasi, uint32_t fd, wasm_ptr_t path, uint32_t path_len) {
-    WASI_DEBUG("path_remove_directory(%u, \"%.*s\")\n", fd, path_len, wasi->str(path));
-
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
     }
@@ -956,18 +907,14 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_remove_directory(wasi_t *w
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_rename(wasi_t *wasi, uint32_t fd, wasm_ptr_t old_path, uint32_t old_path_len, uint32_t new_fd, wasm_ptr_t new_path, uint32_t new_path_len) {
-    WASI_DEBUG("path_rename(%u, \"%.*s\", %u, \"%.*s\")\n", fd, old_path_len, std::string(wasi->str(old_path)).c_str(), new_fd, new_path_len, std::string(wasi->str(new_path)).c_str());
     return WASI_ENOSYS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_symlink(wasi_t *wasi, wasm_ptr_t old_path, uint32_t old_path_len, uint32_t fd, wasm_ptr_t new_path, uint32_t new_path_len) {
-    WASI_DEBUG("path_symlink(\"%.*s\", %u, \"%.*s\")\n", old_path_len, std::string(wasi->str(old_path)).c_str(), fd, new_path_len, std::string(wasi->str(new_path)).c_str());
     return WASI_ENOSYS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_unlink_file(wasi_t *wasi, uint32_t fd, wasm_ptr_t path, uint32_t path_len) {
-    WASI_DEBUG("path_unlink_file(%u, \"%.*s\")\n", fd, path_len, wasi->str(path));
-
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
     }
@@ -1032,18 +979,14 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_unlink_file(wasi_t *wasi, 
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_poll_oneoff(wasi_t *wasi, wasm_ptr_t in, wasm_ptr_t out, uint32_t nsubscriptions, wasm_ptr_t result) {
-    WASI_DEBUG("poll_oneoff(0x%08x, 0x%08x, %u)\n", in, out, nsubscriptions);
     return WASI_ENOSYS;
 }
 
 extern "C" void w2c_wasi__snapshot__preview1_proc_exit(wasi_t *wasi, uint32_t rval) {
-    WASI_DEBUG("proc_exit(%u)\n", rval);
     std::abort();
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_random_get(wasi_t *wasi, wasm_ptr_t buf, uint32_t buf_len) {
-    WASI_DEBUG("random_get(0x%08x (%u))\n", buf, buf_len);
-
     static std::random_device dev;
     static std::mt19937 rng(dev());
 
