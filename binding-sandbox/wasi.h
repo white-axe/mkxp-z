@@ -26,39 +26,8 @@
 #include <string>
 #include <vector>
 #include "filesystem.h"
-#include "types.h"
-
-// Internal utility macros
-#define _WASM_CAT(x, y) x##y
-#define WASM_CAT(x, y) _WASM_CAT(x, y)
-#ifdef MKXPZ_BIG_ENDIAN
-    #define WASM_ORDER_u8(value) (value)
-    #define WASM_ORDER_s8(value) (value)
-    #define WASM_ORDER_u16(value) __builtin_bswap16(value)
-    #define WASM_ORDER_s16(value) __builtin_bswap16(value)
-    #define WASM_ORDER_u32(value) __builtin_bswap32(value)
-    #define WASM_ORDER_s32(value) __builtin_bswap32(value)
-    #define WASM_ORDER_u64(value) __builtin_bswap64(value)
-    #define WASM_ORDER_s64(value) __builtin_bswap64(value)
-    #define WASM_ORDER_f32(value) __builtin_bswap32(value)
-    #define WASM_ORDER_f64(value) __builtin_bswap64(value)
-#else
-    #define WASM_ORDER_u8(value) (value)
-    #define WASM_ORDER_s8(value) (value)
-    #define WASM_ORDER_u16(value) (value)
-    #define WASM_ORDER_s16(value) (value)
-    #define WASM_ORDER_u32(value) (value)
-    #define WASM_ORDER_s32(value) (value)
-    #define WASM_ORDER_u64(value) (value)
-    #define WASM_ORDER_s64(value) (value)
-    #define WASM_ORDER_f32(value) (value)
-    #define WASM_ORDER_f64(value) (value)
-#endif // MKXPZ_BIG_ENDIAN
-#define WASM_ORDER_usize(value) WASM_CAT(WASM_ORDER_, usize)(value)
-
-// Memory manipulation macros
-#define WASM_GET(type, address) WASM_ORDER_##type(*(type *)WASM_MEM(address)) // Returns the value at the given memory address (address should be `usize`), cast to the given type
-#define WASM_SET(type, address, value) do *(type *)WASM_MEM(address) = WASM_ORDER_##type(value); while (0) // Sets the value of the given type to the given value at the given memory address (address should be `usize`)
+#include "wasm-types.h"
+#include "binding-base.h"
 
 // WASI error numbers
 #define WASI_ESUCCESS 0 // No error occurred. System call completed successfully.
@@ -229,6 +198,38 @@ typedef struct w2c_wasi__snapshot__preview1 {
     ~w2c_wasi__snapshot__preview1();
     u32 allocate_file_descriptor(enum wasi_fd_type type, void *handle = nullptr);
     void deallocate_file_descriptor(u32 fd);
+
+    // Gets a pointer to the given address in sandbox memory.
+    void *ptr(mkxp_sandbox::wasm_ptr_t address) const noexcept;
+
+    // Gets a reference to the value stored at a given address in sandbox memory.
+    template <typename T> T &ref(mkxp_sandbox::wasm_ptr_t address) const noexcept {
+        return mkxp_sandbox::sandbox_ref<T>(*ruby, address);
+    }
+
+    // Gets a reference to the value stored at the given index in the array at a given address in sandbox memory.
+    template <typename T> T &ref(mkxp_sandbox::wasm_ptr_t array_address, mkxp_sandbox::wasm_size_t array_index) const noexcept {
+        return ref<T>(array_address + array_index * sizeof(T));
+    }
+
+    // Gets a string stored at a given address in sandbox memory.
+    // The returned string doesn't need to be freed but only lives until the next call to this function,
+    // so you need to store the returned string in a buffer somewhere if you need to get more than one.
+    const char *str(mkxp_sandbox::wasm_ptr_t address) const noexcept;
+
+    // Gets the length of a string stored at a given address in sandbox memory.
+    mkxp_sandbox::wasm_size_t strlen(mkxp_sandbox::wasm_ptr_t address) const noexcept;
+
+    // Copies a string into a sandbox memory address.
+    void strcpy(mkxp_sandbox::wasm_ptr_t dst_address, const char *src) const noexcept;
+
+    // Copies a string into a sandbox memory address.
+    void strncpy(mkxp_sandbox::wasm_ptr_t dst_address, const char *src, mkxp_sandbox::wasm_size_t max_size) const noexcept;
+
+    // Copies an array of length `num_elements` into a sandbox memory address.
+    template <typename T> void arycpy(mkxp_sandbox::wasm_ptr_t dst_address, const T *src, mkxp_sandbox::wasm_size_t num_elements) const noexcept {
+        mkxp_sandbox::sandbox_arycpy(*ruby, dst_address, src, num_elements);
+    }
 } wasi_t;
 
 #endif /* MKXPZ_SANDBOX_WASI_H */

@@ -1,5 +1,5 @@
 /*
-** types.h
+** wasm-types.h
 **
 ** This file is part of mkxp.
 **
@@ -19,38 +19,24 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MKXPZ_SANDBOX_TYPES_H
-#define MKXPZ_SANDBOX_TYPES_H
+#ifndef MKXPZ_SANDBOX_WASM_TYPES_H
+#define MKXPZ_SANDBOX_WASM_TYPES_H
 
 #include <cstdint>
 
+namespace mkxp_sandbox {
 #ifdef MKXPZ_RETRO_MEMORY64
-#define usize u64
-typedef int64_t wasm_ssize_t;
-typedef uint64_t wasm_size_t;
+    typedef int64_t wasm_ssize_t;
+    typedef uint64_t wasm_size_t;
 #else
-#define usize u32
-typedef int32_t wasm_ssize_t;
-typedef uint32_t wasm_size_t;
+    typedef int32_t wasm_ssize_t;
+    typedef uint32_t wasm_size_t;
 #endif
 
 #define ANYARGS ...
-typedef wasm_size_t wasm_ptr_t;
-typedef wasm_size_t VALUE;
-typedef wasm_size_t ID;
+    typedef wasm_size_t wasm_ptr_t;
+    typedef wasm_ptr_t VALUE;
+    typedef wasm_ptr_t ID;
+}
 
-#ifndef WASM_RT_CORE_TYPES_DEFINED
-#define WASM_RT_CORE_TYPES_DEFINED
-typedef uint8_t u8;
-typedef int8_t s8;
-typedef uint16_t u16;
-typedef int16_t s16;
-typedef uint32_t u32;
-typedef int32_t s32;
-typedef uint64_t u64;
-typedef int64_t s64;
-typedef float f32;
-typedef double f64;
-#endif // WASM_RT_CORE_TYPES_DEFINED
-
-#endif // MKXPZ_SANDBOX_TYPES_H
+#endif // MKXPZ_SANDBOX_WASM_TYPES_H

@@ -29,25 +29,23 @@
 #include "sandbox.h"
 
 #define RB (ruby.get())
-#define WASM_nullptr 0
-#define WASM_MEM(address) ((void *)&ruby->w2c_memory.data[address])
 #define AWAIT(statement) do statement; while (w2c_ruby_mkxp_sandbox_yield(RB))
 
 using namespace mkxp_sandbox;
 
-usize sandbox::sandbox_malloc(usize size) {
-    usize buf = w2c_ruby_mkxp_sandbox_malloc(RB, size);
+wasm_ptr_t sandbox::sandbox_malloc(wasm_size_t size) {
+    wasm_ptr_t buf = w2c_ruby_mkxp_sandbox_malloc(RB, size);
 
     // Verify that the returned pointer is non-null and the entire allocated buffer is in valid memory
-    usize buf_end;
-    if (buf == WASM_nullptr || (buf_end = buf + size) < buf || buf_end >= ruby->w2c_memory.size) {
+    wasm_ptr_t buf_end;
+    if (buf == 0 || (buf_end = buf + size) < buf || buf_end >= ruby->w2c_memory.size) {
         throw std::bad_alloc();
     }
 
     return buf;
 }
 
-void sandbox::sandbox_free(usize ptr) {
+void sandbox::sandbox_free(wasm_ptr_t ptr) {
     w2c_ruby_mkxp_sandbox_free(RB, ptr);
 }
 
@@ -73,8 +71,8 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
     );
 
     // Change the current working directory to the game directory
-    usize chdir_buf = sandbox_malloc(sizeof("/game"));
-    std::strcpy((char *)WASM_MEM(chdir_buf), "/game");
+    wasm_ptr_t chdir_buf = sandbox_malloc(sizeof("/game"));
+    wasi->strcpy(chdir_buf, "/game");
     w2c_ruby_mkxp_sandbox_chdir(RB, chdir_buf);
     sandbox_free(chdir_buf);
 
@@ -83,23 +81,23 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
     args.push_back("/dist/bin/mkxp-z");
 
     // Copy all the command-line arguments into the sandbox (sandboxed code can't access memory that's outside the sandbox!)
-    usize argv_buf = sandbox_malloc(args.size() * sizeof(usize));
-    for (usize i = 0; i < args.size(); ++i) {
-        usize arg_buf = sandbox_malloc(args[i].length() + 1);
-        std::strcpy((char *)WASM_MEM(arg_buf), args[i].c_str());
-        WASM_SET(usize, argv_buf + i * sizeof(usize), arg_buf);
+    wasm_ptr_t argv_buf = sandbox_malloc(args.size() * sizeof(wasm_ptr_t));
+    for (wasm_size_t i = 0; i < args.size(); ++i) {
+        wasm_ptr_t arg_buf = sandbox_malloc(args[i].length() + 1);
+        wasi->strcpy(arg_buf, args[i].c_str());
+        wasi->ref<wasm_ptr_t>(argv_buf, i) = arg_buf;
     }
 
     // Pass the command-line arguments to Ruby
     AWAIT(w2c_ruby_ruby_init_stack(RB, w2c_ruby_rb_wasm_get_stack_pointer(RB)));
     AWAIT(w2c_ruby_ruby_init(RB));
-    usize node;
+    wasm_ptr_t node;
     AWAIT(node = w2c_ruby_ruby_options(RB, args.size(), argv_buf));
 
     // Start up Ruby executable node
     bool valid;
     u32 state;
-    usize state_buf = sandbox_malloc(sizeof(usize));
+    wasm_ptr_t state_buf = sandbox_malloc(sizeof(wasm_ptr_t));
     AWAIT(valid = w2c_ruby_ruby_executable_node(RB, node, state_buf));
     if (valid) {
         AWAIT(state = w2c_ruby_ruby_exec_node(RB, node));
@@ -110,9 +108,9 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
     sandbox_free(state_buf);
 
     // Set the default encoding to UTF-8
-    usize encoding;
+    VALUE encoding;
     AWAIT(encoding = w2c_ruby_rb_utf8_encoding(RB));
-    usize enc;
+    VALUE enc;
     AWAIT(enc = w2c_ruby_rb_enc_from_encoding(RB, encoding));
     AWAIT(w2c_ruby_rb_enc_set_default_internal(RB, enc));
     AWAIT(w2c_ruby_rb_enc_set_default_external(RB, enc));

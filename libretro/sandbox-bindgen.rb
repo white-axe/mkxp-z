@@ -49,14 +49,14 @@ ARG_HANDLERS = {
   'const char *' => {
     keep: true,
     buf_size: 'std::strlen(ARG) + 1',
-    serialize: "_sbindgen_strcpy((char *)bind.ptr(BUF), ARG);\n",
+    serialize: "bind.strcpy(BUF, ARG);\n",
   },
   'const VALUE *' => {
     keep: true,
     condition: lambda { |func_name, args, arg_index| arg_index > 0 && args[arg_index - 1] == 'int' }, # Only handle arguments of type `const VALUE *` if the previous argument is of type `int`
     buf_size: 'PREV_ARG * sizeof(VALUE)',
     serialize: <<~HEREDOC
-      _sbindgen_value_array_copy((VALUE *)bind.ptr(BUF), ARG, PREV_ARG);
+      bind.arycpy(BUF, ARG, PREV_ARG);
     HEREDOC
   },
   'volatile VALUE *' => {
@@ -269,27 +269,6 @@ PRELUDE = <<~HEREDOC
 
   bindings::bindings(std::shared_ptr<struct w2c_#{MODULE_NAME}> m) : binding_base(m) {}
 
-  static void _sbindgen_strcpy(char *dst, const char *src) {
-  #ifdef MKXPZ_BIG_ENDIAN
-      do {
-          *--dst = *src;
-      } while (*src++);
-  #else
-      std::strcpy(dst, src);
-  #endif
-  }
-
-  static void _sbindgen_value_array_copy(VALUE *dst, const VALUE *src, wasm_size_t num_values) {
-  #ifdef MKXPZ_BIG_ENDIAN
-      while (num_values > 0) {
-          *--dst = *src++;
-          --num_values;
-      };
-  #else
-      std::memcpy(dst, src, num_values * sizeof(VALUE));
-  #endif
-  }
-
 
   //////////////////////////////////////////////////////////////////////////////
 HEREDOC
@@ -310,7 +289,7 @@ POSTSCRIPT = <<~HEREDOC
           throw std::bad_alloc();
       }
 
-      _sbindgen_strcpy((char *)ptr(str), wrap_struct_name);
+      this->strcpy(str, wrap_struct_name);
       ref<wasm_ptr_t>(buf, 0) = str;
 
       ref<wasm_ptr_t>(buf, 1) = dmark == NULL ? 0 : wasm_rt_push_funcref(&instance().w2c_T0, wasm_rt_funcref_t {

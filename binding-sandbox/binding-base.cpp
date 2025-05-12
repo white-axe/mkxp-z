@@ -21,20 +21,6 @@
 
 #include "binding-base.h"
 
-#ifdef MKXPZ_BIG_ENDIAN
-#  define SERIALIZE_32(value) __builtin_bswap32(value)
-#  define SERIALIZE_64(value) __builtin_bswap64(value)
-#else
-#  define SERIALIZE_32(value) (value)
-#  define SERIALIZE_64(value) (value)
-#endif
-
-#ifdef MKXPZ_RETRO_MEMORY64
-#  define SERIALIZE_VALUE(value) SERIALIZE_64(value)
-#else
-#  define SERIALIZE_VALUE(value) SERIALIZE_32(value)
-#endif
-
 using namespace mkxp_sandbox;
 
 binding_base::stack_frame::stack_frame(void *coroutine, void (*destructor)(void *coroutine), wasm_ptr_t stack_ptr) : coroutine(coroutine), destructor(destructor), stack_ptr(stack_ptr) {}
@@ -88,7 +74,7 @@ void binding_base::sandbox_free(wasm_ptr_t ptr) {
 }
 
 wasm_ptr_t binding_base::rtypeddata_data(VALUE obj) const noexcept {
-    return SERIALIZE_VALUE(obj) + *(wasm_size_t *)(instance().w2c_memory.data + instance().w2c_mkxp_sandbox_rtypeddata_data_offset);
+    return obj + ref<wasm_size_t>(instance().w2c_mkxp_sandbox_rtypeddata_data_offset);
 }
 
 void binding_base::rtypeddata_dmark(wasm_ptr_t data, wasm_ptr_t ptr) {
@@ -105,4 +91,108 @@ wasm_size_t binding_base::rtypeddata_dsize(wasm_ptr_t data, wasm_ptr_t ptr) {
 
 void binding_base::rtypeddata_dcompact(wasm_ptr_t data, wasm_ptr_t ptr) {
     w2c_ruby_mkxp_sandbox_rtypeddata_dcompact(&instance(), data, ptr);
+}
+
+void *mkxp_sandbox::sandbox_ptr(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {
+    if (address >= instance.w2c_memory.size) {
+        std::abort();
+    }
+#ifdef MKXPZ_BIG_ENDIAN
+    return instance.w2c_memory.data + instance.w2c_memory.size - address;
+#else
+    return instance.w2c_memory.data + address;
+#endif // MKXPZ_BIG_ENDIAN
+}
+
+wasm_size_t mkxp_sandbox::sandbox_strlen(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {
+    const char *ptr = (char *)sandbox_ptr(instance, address);
+#ifdef MKXPZ_BIG_ENDIAN
+    wasm_size_t size = 0;
+    while ((uint8_t *)ptr != instance.w2c_memory.data && *--ptr) {
+        ++size;
+    }
+    return size;
+#else
+    const char *end = (const char *)std::memchr(ptr, 0, instance.w2c_memory.size - address);
+    return ptr == nullptr ? instance.w2c_memory.size - address : end - ptr;
+#endif
+}
+
+const char *mkxp_sandbox::sandbox_str(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {
+#ifdef MKXPZ_BIG_ENDIAN
+    static std::string buf;
+    buf.clear();
+    buf.reserve(sandbox_strlen(instance, address));
+    const char *ptr = (const char *)sandbox_ptr(instance, address);
+    while ((uint8_t *)ptr != instance.w2c_memory.data && *--ptr) {
+        buf.push_back(*ptr);
+    }
+    return buf.c_str();
+#else
+    if (instance.w2c_memory.size - address <= sandbox_strlen(instance, address)) {
+        std::abort();
+    }
+    return (const char *)sandbox_ptr(instance, address);
+#endif // MKXPZ_BIG_ENDIAN
+}
+
+void mkxp_sandbox::sandbox_strcpy(struct w2c_ruby &instance, wasm_ptr_t dst_address, const char *src) noexcept {
+#ifdef MKXPZ_BIG_ENDIAN
+    char *dst = (char *)sandbox_ptr(instance, dst_address);
+    while (*src) {
+        if ((uint8_t *)dst == instance.w2c_memory.data) {
+            std::abort();
+        }
+        *--dst = *src++;
+    }
+    *dst = 0;
+#else
+    if (instance.w2c_memory.size - dst_address <= std::strlen(src)) {
+        std::abort();
+    }
+    char *dst = (char *)sandbox_ptr(instance, dst_address);
+    std::strcpy(dst, src);
+#endif
+}
+
+void mkxp_sandbox::sandbox_strncpy(struct w2c_ruby &instance, wasm_ptr_t dst_address, const char *src, wasm_size_t max_size) noexcept {
+#ifdef MKXPZ_BIG_ENDIAN
+    char *dst = (char *)sandbox_ptr(instance, dst_address);
+    while (max_size && *src) {
+        if ((uint8_t *)dst == instance.w2c_memory.data) {
+            std::abort();
+        }
+        *--dst = *src++;
+        --max_size;
+    }
+    if (max_size) {
+        *dst = 0;
+    }
+#else
+    if (instance.w2c_memory.size - dst_address <= std::strlen(src)) {
+        std::abort();
+    }
+    char *dst = (char *)sandbox_ptr(instance, dst_address);
+    std::strncpy(dst, src, max_size);
+#endif
+}
+
+void *binding_base::ptr(wasm_ptr_t address) const noexcept {
+    return sandbox_ptr(instance(), address);
+}
+
+wasm_size_t binding_base::strlen(wasm_ptr_t address) const noexcept {
+    return sandbox_strlen(instance(), address);
+}
+
+const char *binding_base::str(wasm_ptr_t address) const noexcept {
+    return sandbox_str(instance(), address);
+}
+
+void binding_base::strcpy(wasm_ptr_t dst_address, const char *src) const noexcept {
+    sandbox_strcpy(instance(), dst_address, src);
+}
+
+void binding_base::strncpy(wasm_ptr_t dst_address, const char *src, wasm_size_t max_size) const noexcept {
+    sandbox_strncpy(instance(), dst_address, src, max_size);
 }

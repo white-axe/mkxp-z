@@ -27,7 +27,7 @@
 #include <vector>
 #include <boost/optional.hpp>
 #include <mkxp-sandbox-bindgen.h>
-#include "types.h"
+#include "wasm-types.h"
 #include "audio.h"
 #include "graphics.h"
 
@@ -47,8 +47,8 @@ namespace mkxp_sandbox {
         boost::optional<struct mkxp_sandbox::bindings> bindings;
         std::atomic<Movie *> movie;
         bool yielding;
-        usize sandbox_malloc(usize size);
-        void sandbox_free(usize ptr);
+        wasm_ptr_t sandbox_malloc(wasm_size_t size);
+        void sandbox_free(wasm_ptr_t ptr);
 
         public:
         std::vector<uint8_t> script_decode_buffer;

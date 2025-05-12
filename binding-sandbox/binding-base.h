@@ -35,7 +35,7 @@
 #include <boost/container_hash/hash.hpp>
 #include <boost/asio/coroutine.hpp>
 #include <mkxp-sandbox-ruby.h>
-#include "types.h"
+#include "wasm-types.h"
 
 // LLVM uses a stack alignment of 16 on WebAssembly targets
 #define WASMSTACKALIGN 16
@@ -145,6 +145,58 @@ namespace mkxp_sandbox {
         static constexpr wasm_size_t value = 0;
     };
 
+    // Gets a pointer to the given address in sandbox memory.
+    void *sandbox_ptr(struct w2c_ruby &instance, wasm_ptr_t address) noexcept;
+
+    // Gets a reference to the value stored at a given address in sandbox memory.
+    template <typename T> T &sandbox_ref(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {
+        // TODO: require T to be numeric
+#ifdef MKXPZ_BIG_ENDIAN
+        return *(T *)((uint8_t *)sandbox_ptr(instance, address) - sizeof(T));
+#else
+        return *(T *)sandbox_ptr(instance, address);
+#endif // MKXPZ_BIG_ENDIAN
+    }
+
+    // Gets a reference to the value stored at the given index in the array at a given address in sandbox memory.
+    template <typename T> T &sandbox_ref(struct w2c_ruby &instance, wasm_ptr_t array_address, wasm_size_t array_index) noexcept {
+        return sandbox_ref<T>(array_address + array_index * sizeof(T));
+    }
+
+    // Gets the length of a string stored at a given address in sandbox memory.
+    wasm_size_t sandbox_strlen(struct w2c_ruby &instance, wasm_ptr_t address) noexcept;
+
+    // Gets a string stored at a given address in sandbox memory.
+    // The returned string doesn't need to be freed but only lives until the next call to this function,
+    // so you need to store the returned string in a buffer somewhere if you need to get more than one.
+    const char *sandbox_str(struct w2c_ruby &instance, wasm_ptr_t address) noexcept;
+
+    // Copies a string into a sandbox memory address.
+    void sandbox_strcpy(struct w2c_ruby &instance, wasm_ptr_t dst_address, const char *src) noexcept;
+
+    // Copies a string into a sandbox memory address.
+    void sandbox_strncpy(struct w2c_ruby &instance, wasm_ptr_t dst_address, const char *src, wasm_size_t max_size) noexcept;
+
+    // Copies an array of length `num_elements` into a sandbox memory address.
+    template <typename T> void sandbox_arycpy(struct w2c_ruby &instance, wasm_ptr_t dst_address, const T *src, wasm_size_t num_elements) noexcept {
+#ifdef MKXPZ_BIG_ENDIAN
+        T *dst = (T *)sandbox_ptr(instance, dst_address);
+        while (num_elements > 0) {
+            if ((uint8_t *)dst - instance.w2c_memory.data < sizeof(T)) {
+                std::abort();
+            }
+            *--dst = *src++;
+            --num_elements;
+        }
+#else
+        if (instance.w2c_memory.size - dst_address < num_elements * sizeof(T)) {
+            std::abort();
+        }
+        T *dst = (T *)sandbox_ptr(instance, dst_address);
+        std::memcpy(dst, src, num_elements * sizeof(T));
+#endif
+    }
+
     struct binding_base {
     private:
         typedef std::tuple<wasm_ptr_t, wasm_ptr_t, wasm_ptr_t> key_t;
@@ -185,22 +237,11 @@ namespace mkxp_sandbox {
         void rtypeddata_dcompact(wasm_ptr_t data, wasm_ptr_t ptr);
 
         // Gets a pointer to the given address in sandbox memory.
-        void *ptr(wasm_ptr_t address) const noexcept {
-#ifdef MKXPZ_BIG_ENDIAN
-            return instance().w2c_memory.data + instance().w2c_memory.size - address;
-#else
-            return instance().w2c_memory.data + address;
-#endif // MKXPZ_BIG_ENDIAN
-        }
+        void *ptr(wasm_ptr_t address) const noexcept;
 
         // Gets a reference to the value stored at a given address in sandbox memory.
         template <typename T> T &ref(wasm_ptr_t address) const noexcept {
-            // TODO: require T to be numeric
-#ifdef MKXPZ_BIG_ENDIAN
-            return *(T *)((uint8_t *)ptr(address) - sizeof(T));
-#else
-            return *(T *)ptr(address);
-#endif // MKXPZ_BIG_ENDIAN
+            return sandbox_ref<T>(instance(), address);
         }
 
         // Gets a reference to the value stored at the given index in the array at a given address in sandbox memory.
@@ -208,27 +249,23 @@ namespace mkxp_sandbox {
             return ref<T>(array_address + array_index * sizeof(T));
         }
 
+        // Gets the length of a string stored at a given address in sandbox memory.
+        wasm_size_t strlen(wasm_ptr_t address) const noexcept;
+
         // Gets a string stored at a given address in sandbox memory.
         // The returned string doesn't need to be freed but only lives until the next call to this function,
         // so you need to store the returned string in a buffer somewhere if you need to get more than one.
-        const char *str(wasm_ptr_t address) {
-#ifdef MKXPZ_BIG_ENDIAN
-            static std::string buf;
-            buf.clear();
-            const char *s = (const char *)ptr(address);
-            const char *t = s;
-            wasm_size_t n = -1;
-            while (*--s) {
-                ++n;
-            }
-            buf.reserve(n);
-            while (*--t) {
-                buf.push_back(*t);
-            }
-            return buf.c_str();
-#else
-            return (const char *)ptr(address);
-#endif // MKXPZ_BIG_ENDIAN
+        const char *str(wasm_ptr_t address) const noexcept;
+
+        // Copies a string into a sandbox memory address.
+        void strcpy(wasm_ptr_t dst_address, const char *src) const noexcept;
+
+        // Copies a string into a sandbox memory address.
+        void strncpy(wasm_ptr_t dst_address, const char *src, wasm_size_t max_size) const noexcept;
+
+        // Copies an array of length `num_elements` into a sandbox memory address.
+        template <typename T> void arycpy(wasm_ptr_t dst_address, const T *src, wasm_size_t num_elements) const noexcept {
+            return sandbox_arycpy(instance(), dst_address, src, num_elements);
         }
 
         template <typename T> struct stack_frame_guard {
