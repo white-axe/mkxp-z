@@ -775,7 +775,50 @@ static bool init_sandbox() {
 
             PHYSFS_mount(system_root_path.c_str(), "/system", true);
 
-            // Mount each RTP needed by the game to the game directory
+            // Mount each RTP declared in mkxp.json to the game directory
+            for (const std::string &rtp : conf->rtps) {
+                std::string path("/system" + fs->normalize(rtp.c_str(), false, true, "/RTP"));
+
+                std::string rtp_path(system_root_path.c_str());
+#ifdef _WIN32
+                rtp_path.push_back('\\');
+#else
+                rtp_path.push_back('/');
+#endif // _WIN32
+                rtp_path.append(path.c_str() + sizeof "/system/" - 1);
+
+                // Check if this is a file or directory
+                PHYSFS_Stat stat;
+                if (!PHYSFS_stat(path.c_str(), &stat) || (stat.filetype != PHYSFS_FILETYPE_DIRECTORY && stat.filetype != PHYSFS_FILETYPE_REGULAR)) {
+                    goto fail;
+                }
+
+                if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
+                    // If it's a directory, just mount the path directly
+                    if (!PHYSFS_mount(rtp_path.c_str(), "/game", true)) {
+                        goto fail;
+                    }
+                } else {
+                    // If it's a file, try to open it as an archive and then mount it
+                    PHYSFS_File *file = PHYSFS_openRead(path.c_str());
+                    if (file == nullptr) {
+                        goto fail;
+                    }
+                    if (!PHYSFS_mountHandle(file, path.c_str(), "/game", true)) {
+                        PHYSFS_close(file);
+                        goto fail;
+                    }
+                }
+
+                log_printf(RETRO_LOG_INFO, "Mounted RTP \"%s\" from \"%s\"\n", rtp.c_str(), rtp_path.c_str());
+                continue;
+
+            fail:
+                log_printf(RETRO_LOG_ERROR, "Failed to mount RTP \"%s\" because \"%s\" was not found\n", rtp.c_str(), rtp_path.c_str());
+                continue;
+            }
+
+            // Mount each RTP declared in Game.ini to the game directory
             for (const std::string &rtp : conf->game.rtps) {
                 struct data {
                     std::string rtp_root_path;

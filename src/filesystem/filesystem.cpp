@@ -789,7 +789,7 @@ FileSystem::File::~File() {
   }
 }
 
-static std::string normalizePath(const char *path, bool absolute) {
+static std::string normalizePath(const char *path, bool absolute, const char *current_working_directory = nullptr) {
   // Replace backslashes with forward slashes
   std::string path_str(path);
   for (size_t i = 0; i < path_str.length(); ++i) {
@@ -800,9 +800,9 @@ static std::string normalizePath(const char *path, bool absolute) {
 
   // If path doesn't start with a forward slash, prepend the current working directory before normalizing
   if (path_str.empty()) {
-    path_str = mkxp_retro::sandbox.has_value() ? mkxp_retro::sandbox->getcwd() : "/game";
+    path_str = current_working_directory != nullptr ? current_working_directory : mkxp_retro::sandbox.has_value() ? mkxp_retro::sandbox->getcwd() : "/game";
   } else if (path_str.front() != '/') {
-    path_str = std::string(mkxp_retro::sandbox.has_value() ? mkxp_retro::sandbox->getcwd() : "/game") + '/' + path_str;
+    path_str = std::string(current_working_directory != nullptr ? current_working_directory : mkxp_retro::sandbox.has_value() ? mkxp_retro::sandbox->getcwd() : "/game") + '/' + path_str;
   }
 
   // Lexically normalize the path
@@ -860,9 +860,9 @@ static std::string normalizePath(const char *path, bool absolute) {
 #endif // MKXPZ_RETRO
 
 std::string FileSystem::normalize(const char *pathname, bool preferred,
-                            bool absolute) {
+                            bool absolute, const char *current_working_directory) {
 #ifdef MKXPZ_RETRO
-  return normalizePath(pathname, absolute);
+  return normalizePath(pathname, absolute, current_working_directory);
 #else
   return filesystemImpl::normalizePath(pathname, preferred, absolute);
 #endif // MKXPZ_RETRO

@@ -140,7 +140,7 @@ public:
 	                 bool freeOnClose = false);
 #endif // MKXPZ_RETRO
 
-	std::string normalize(const char *pathname, bool preferred, bool absolute);
+	std::string normalize(const char *pathname, bool preferred, bool absolute, const char *current_working_directory = nullptr);
 
 	/* Does not perform extension supplementing */
 	bool exists(const char *filename);
