@@ -657,13 +657,13 @@ static bool init_sandbox() {
         {
             const char *value = get_core_option("mkxp-z_rgssVersion");
             if (!std::strcmp(value, "default")) {
-                conf->read(0, NULL, 0);
+                conf->read(0, nullptr, 0);
             } else {
                 unsigned long value_num = std::strtoul(value, nullptr, 10);
                 if (value_num == 1 || value_num == 2 || value_num == 3) {
-                    conf->read(0, NULL, value_num);
+                    conf->read(0, nullptr, value_num);
                 } else {
-                    conf->read(0, NULL);
+                    conf->read(0, nullptr);
                 }
             }
         }
@@ -749,6 +749,82 @@ static bool init_sandbox() {
         }
 
         PHYSFS_mountMemory(dist_zip, dist_zip_len, NULL, "/dist.zip", "/dist", 1);
+    }
+
+    {
+        const char *system_path;
+        if (environment(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &system_path) && system_path != nullptr) {
+            std::string rtp_root_path(system_path);
+#ifdef _WIN32
+            rtp_root_path.append("\\mkxp-z\\RTP");
+#else
+            rtp_root_path.append("/mkxp-z/RTP");
+#endif // _WIN32
+
+            // Create the subdirectory if needed
+            PHYSFS_setWriteDir(system_path);
+            if (!PHYSFS_mkdir(rtp_root_path.c_str() + std::strlen(system_path) + 1)) {
+                mkxp_retro::log_printf(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", rtp_root_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+                deinit_sandbox();
+                return false;
+            }
+
+            // Mount each RTP needed by the game to the game directory
+            PHYSFS_mount(rtp_root_path.c_str(), "/rtp", true);
+            for (const std::string &rtp : conf->game.rtps) {
+                struct data {
+                    std::string rtp;
+                    std::string desensitized_rtp;
+                } data;
+                data.rtp = rtp;
+                for (char &c : data.rtp) {
+                    c = std::tolower(c);
+                }
+
+                PHYSFS_enumerate("/rtp", [](void *data, const char *origdir, const char *fname) {
+                    struct data *data_ = (struct data *)data;
+                    std::string rtp(fname);
+                    for (char &c : rtp) {
+                        c = std::tolower(c);
+                    }
+                    if (data_->rtp == rtp) {
+                        data_->desensitized_rtp = fname;
+                        return PHYSFS_ENUM_STOP;
+                    } else {
+                        return PHYSFS_ENUM_OK;
+                    }
+                }, &data);
+
+                if (!data.desensitized_rtp.empty()) {
+                    std::string rtp_path(rtp_root_path);
+#ifdef _WIN32
+                    rtp_path.push_back('\\');
+#else
+                    rtp_path.push_back('/');
+#endif // _WIN32
+                    rtp_path.append(data.desensitized_rtp);
+                    log_printf(RETRO_LOG_INFO, "Mounted RTP \"%s\" from \"%s\"\n", rtp.c_str(), rtp_path.c_str());
+                    PHYSFS_mount(rtp_path.c_str(), "/game", true);
+                } else {
+                    log_printf(
+                        RETRO_LOG_ERROR,
+                        (
+                            "Failed to mount RTP \"%s\" because \"%s"
+#ifdef _WIN32
+                            "\\"
+#else
+                            "/"
+#endif // _WIN32
+                            "%s\" was not found\n"
+                        ),
+                        rtp.c_str(),
+                        rtp_root_path.c_str(),
+                        rtp.c_str()
+                    );
+                }
+            }
+            PHYSFS_unmount("/rtp");
+        }
     }
 
     fs->createPathCache();

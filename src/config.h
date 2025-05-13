@@ -135,6 +135,7 @@ struct Config {
     struct {
         std::string scripts;
         std::string title;
+        std::vector<std::string> rtps;
     } game;
     
     // MJIT Options

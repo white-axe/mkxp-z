@@ -466,6 +466,27 @@ void Config::readGameINI() {
             
             if (game.scripts.empty())
                 Debug() << iniFileName + ": Could not find Game.Scripts";
+
+            std::string rtp;
+            GUARD(rtp = ic.getStringProperty("Game", "RTP"););
+            if (!rtp.empty()) {
+                game.rtps.push_back(rtp);
+            }
+            rtp.clear();
+            GUARD(rtp = ic.getStringProperty("Game", "RTP1"););
+            if (!rtp.empty()) {
+                game.rtps.push_back(rtp);
+            }
+            rtp.clear();
+            GUARD(rtp = ic.getStringProperty("Game", "RTP2"););
+            if (!rtp.empty()) {
+                game.rtps.push_back(rtp);
+            }
+            rtp.clear();
+            GUARD(rtp = ic.getStringProperty("Game", "RTP3"););
+            if (!rtp.empty()) {
+                game.rtps.push_back(rtp);
+            }
         }
     }
     else
