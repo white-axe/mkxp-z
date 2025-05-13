@@ -71,14 +71,14 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
     );
 
     // Change the current working directory to the game directory
-    wasm_ptr_t chdir_buf = sandbox_malloc(sizeof("/game"));
-    wasi->strcpy(chdir_buf, "/game");
+    wasm_ptr_t chdir_buf = sandbox_malloc(sizeof("/Game"));
+    wasi->strcpy(chdir_buf, "/Game");
     w2c_ruby_mkxp_sandbox_chdir(RB, chdir_buf);
     sandbox_free(chdir_buf);
 
     // Determine Ruby command-line arguments
     std::vector<std::string> args{"mkxp-z"};
-    args.push_back("/dist/bin/mkxp-z");
+    args.push_back("/Dist/bin/mkxp-z");
 
     // Copy all the command-line arguments into the sandbox (sandboxed code can't access memory that's outside the sandbox!)
     wasm_ptr_t argv_buf = sandbox_malloc(args.size() * sizeof(wasm_ptr_t));
@@ -152,6 +152,6 @@ const char *sandbox::getcwd() {
     if (w2c_ruby_mkxp_sandbox_getcwd(ruby.get())) {
         return bindings->str(ruby->w2c_mkxp_sandbox_cwd);
     } else {
-        return "/game";
+        return "/Game";
     }
 }

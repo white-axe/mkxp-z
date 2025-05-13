@@ -65,9 +65,9 @@ clean-ruby-bindings:
 
 # Cross Ruby (targets WASI)
 
-$(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby_0.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_1.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_2.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_3.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_4.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_5.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_6.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_7.c &: $(WASM2C) $(LIBDIR)/dist/bin/ruby
+$(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby_0.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_1.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_2.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_3.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_4.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_5.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_6.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_7.c &: $(WASM2C) $(LIBDIR)/Dist/bin/ruby
 	mkdir -p $(OUTDIR)/ruby
-	$(WASM2C) $(LIBDIR)/dist/bin/ruby -n ruby --num-outputs=8 -o $(OUTDIR)/ruby/mkxp-sandbox-ruby.c
+	$(WASM2C) $(LIBDIR)/Dist/bin/ruby -n ruby --num-outputs=8 -o $(OUTDIR)/ruby/mkxp-sandbox-ruby.c
 	# Find all the function types declared using `FUNC_TYPE_DECL_EXTERN_T` and redeclare them as macros to fix the "initializer element is not constant" compilation error that occurs when using GCC versions earlier than 8.1.0
 	rm -f $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h
 	for func_type in $$($(GREP) -r 'FUNC_TYPE_DECL_EXTERN_T *([^()]*)' $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h | $(GREP) -v '# *define' | $(SED) -e 's/FUNC_TYPE_DECL_EXTERN_T *( *\(.*\) *).*/\1/'); do \
@@ -79,26 +79,26 @@ $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUT
 	$(SED) -i 's/__has_builtin *([^()]*)/0/g' $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h
 	$(SED) -i 's/#error "Missing implementation of __builtin_add_overflow or _addcarry_u64"/return __builtin_add_overflow(a, b, resptr);/g' $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h
 
-$(OUTDIR)/dist.zip: $(LIBDIR)/dist/bin/ruby $(RUBY) $(DOWNLOADS)/crossruby/BSDL $(DOWNLOADS)/crossruby/COPYING $(DOWNLOADS)/crossruby/COPYING.ja
-	rm -rf $(LIBDIR)/_dist
-	cp -r $(LIBDIR)/dist $(LIBDIR)/_dist
-	rm $(LIBDIR)/_dist/bin/ruby
-	rm $(LIBDIR)/_dist/lib/libruby-static.a
-	rm -r $(LIBDIR)/_dist/include
-	rm -r $(LIBDIR)/_dist/share
-	rm -r $(LIBDIR)/_dist/lib/ruby/gems
-	rm -r $(LIBDIR)/_dist/lib/ruby/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/bundler
-	rm -r $(LIBDIR)/_dist/lib/ruby/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/rdoc
-	rm -r $(LIBDIR)/_dist/lib/ruby/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/rubygems
-	echo '# This is a Ruby script that does nothing. We make Ruby load this file on startup just because Ruby needs to load a script on startup for some reason.' > $(LIBDIR)/_dist/bin/mkxp-z
-	cp $(DOWNLOADS)/crossruby/BSDL $(LIBDIR)/_dist/lib/ruby
-	cp $(DOWNLOADS)/crossruby/COPYING $(LIBDIR)/_dist/lib/ruby
-	cp $(DOWNLOADS)/crossruby/COPYING.ja $(LIBDIR)/_dist/lib/ruby
+$(OUTDIR)/dist.zip: $(LIBDIR)/Dist/bin/ruby $(RUBY) $(DOWNLOADS)/crossruby/BSDL $(DOWNLOADS)/crossruby/COPYING $(DOWNLOADS)/crossruby/COPYING.ja
+	rm -rf $(LIBDIR)/_Dist
+	cp -r $(LIBDIR)/Dist $(LIBDIR)/_Dist
+	rm $(LIBDIR)/_Dist/bin/ruby
+	rm $(LIBDIR)/_Dist/lib/libruby-static.a
+	rm -r $(LIBDIR)/_Dist/include
+	rm -r $(LIBDIR)/_Dist/share
+	rm -r $(LIBDIR)/_Dist/lib/ruby/gems
+	rm -r $(LIBDIR)/_Dist/lib/ruby/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/bundler
+	rm -r $(LIBDIR)/_Dist/lib/ruby/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/rdoc
+	rm -r $(LIBDIR)/_Dist/lib/ruby/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/rubygems
+	echo '# This is a Ruby script that does nothing. We make Ruby load this file on startup just because Ruby needs to load a script on startup for some reason.' > $(LIBDIR)/_Dist/bin/mkxp-z
+	cp $(DOWNLOADS)/crossruby/BSDL $(LIBDIR)/_Dist/lib/ruby
+	cp $(DOWNLOADS)/crossruby/COPYING $(LIBDIR)/_Dist/lib/ruby
+	cp $(DOWNLOADS)/crossruby/COPYING.ja $(LIBDIR)/_Dist/lib/ruby
 	rm -f $(OUTDIR)/dist.zip
-	cd $(LIBDIR)/_dist && $(ZIP) -r $(OUTDIR)/dist.zip *
-	rm -r $(LIBDIR)/_dist
+	cd $(LIBDIR)/_Dist && $(ZIP) -r $(OUTDIR)/dist.zip *
+	rm -r $(LIBDIR)/_Dist
 
-$(LIBDIR)/dist/bin/ruby: $(DOWNLOADS)/crossruby/Makefile ruby-bindings.h
+$(LIBDIR)/Dist/bin/ruby: $(DOWNLOADS)/crossruby/Makefile ruby-bindings.h
 	cd $(DOWNLOADS)/crossruby && $(MAKE) install DESTDIR=$(LIBDIR)
 
 $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.h &: sandbox-bindgen.rb $(LIBDIR)/tags $(RUBY)
@@ -116,7 +116,7 @@ $(LIBDIR)/tags.c: $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h
 
 $(DOWNLOADS)/crossruby/Makefile $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h $(DOWNLOADS)/crossruby/BSDL $(DOWNLOADS)/crossruby/COPYING $(DOWNLOADS)/crossruby/COPYING.ja &: $(DOWNLOADS)/crossruby/configure $(RUBY) $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a
 	cd $(DOWNLOADS)/crossruby && ./configure \
-		--prefix=/dist \
+		--prefix=/Dist \
 		--host $(TARGET) \
 		--build $(shell $(RUBY) -e 'puts(RbConfig::CONFIG["host"])') \
 		--with-static-linked-ext \

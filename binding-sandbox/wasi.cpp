@@ -49,9 +49,10 @@ wasi_t::w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby) : ru
     fdtable.push_back({.type = wasi_fd_type::STDIN});
     fdtable.push_back({.type = wasi_fd_type::STDOUT});
     fdtable.push_back({.type = wasi_fd_type::STDERR});
-    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new fs_dir {.root = nullptr, .path = std::string("/game"), .writable = true}});
-    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new fs_dir {.root = nullptr, .path = std::string("/save"), .writable = true}});
-    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new fs_dir {.root = nullptr, .path = std::string("/dist"), .writable = false}});
+    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new fs_dir {.root = nullptr, .path = std::string("/Game"), .writable = true}});
+    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new fs_dir {.root = nullptr, .path = std::string("/Save"), .writable = true}});
+    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new fs_dir {.root = nullptr, .path = std::string("/System"), .writable = false}});
+    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new fs_dir {.root = nullptr, .path = std::string("/Dist"), .writable = false}});
 }
 
 wasi_t::~w2c_wasi__snapshot__preview1() {

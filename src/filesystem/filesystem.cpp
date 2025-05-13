@@ -421,8 +421,8 @@ static PHYSFS_EnumerateCallbackResult cacheEnumCB(void *d, const char *origdir,
     throw Exception(Exception::MKXPError, "Game close requested. Aborting path cache enumeration.");
 
 #ifdef MKXPZ_RETRO
-  // Don't cache the /dist or /system directories because the game doesn't need to access them
-  if (!*origdir && (!strcmp(fname, "dist") || !strcmp(fname, "system")))
+  // Don't cache the /Dist or /System directories because the game doesn't need to access them
+  if (!*origdir && (!strcmp(fname, "Dist") || !strcmp(fname, "System")))
     return PHYSFS_ENUM_OK;
 #endif // MKXPZ_RETRO
 
@@ -800,9 +800,9 @@ static std::string normalizePath(const char *path, bool absolute, const char *cu
 
   // If path doesn't start with a forward slash, prepend the current working directory before normalizing
   if (path_str.empty()) {
-    path_str = current_working_directory != nullptr ? current_working_directory : mkxp_retro::sandbox.has_value() ? mkxp_retro::sandbox->getcwd() : "/game";
+    path_str = current_working_directory != nullptr ? current_working_directory : mkxp_retro::sandbox.has_value() ? mkxp_retro::sandbox->getcwd() : "/Game";
   } else if (path_str.front() != '/') {
-    path_str = std::string(current_working_directory != nullptr ? current_working_directory : mkxp_retro::sandbox.has_value() ? mkxp_retro::sandbox->getcwd() : "/game") + '/' + path_str;
+    path_str = std::string(current_working_directory != nullptr ? current_working_directory : mkxp_retro::sandbox.has_value() ? mkxp_retro::sandbox->getcwd() : "/Game") + '/' + path_str;
   }
 
   // Lexically normalize the path

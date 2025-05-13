@@ -647,7 +647,7 @@ static bool init_sandbox() {
             parsed_game_path = parsed_game_path.substr(0, last_slash_index);
         }
 
-        fs->addPath(parsed_game_path.c_str(), "/game");
+        fs->addPath(parsed_game_path.c_str(), "/Game");
 
         conf.emplace();
         {
@@ -737,15 +737,15 @@ static bool init_sandbox() {
         thread_data.emplace(nullptr, nullptr, nullptr, nullptr, 60, 1, *conf);
 
         PHYSFS_File *rgssad;
-        if ((rgssad = PHYSFS_openRead(("/game/" + conf->execName + ".rgssad").c_str())) != nullptr) {
-            PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgssad").c_str(), "/game", 1);
-        } else if ((rgssad = PHYSFS_openRead(("/game/" + conf->execName + ".rgss2a").c_str())) != nullptr) {
-            PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgss2a").c_str(), "/game", 1);
-        } else if ((rgssad = PHYSFS_openRead(("/game/" + conf->execName + ".rgss3a").c_str())) != nullptr) {
-            PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgss3a").c_str(), "/game", 1);
+        if ((rgssad = PHYSFS_openRead(("/Game/" + conf->execName + ".rgssad").c_str())) != nullptr) {
+            PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgssad").c_str(), "/Game", 1);
+        } else if ((rgssad = PHYSFS_openRead(("/Game/" + conf->execName + ".rgss2a").c_str())) != nullptr) {
+            PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgss2a").c_str(), "/Game", 1);
+        } else if ((rgssad = PHYSFS_openRead(("/Game/" + conf->execName + ".rgss3a").c_str())) != nullptr) {
+            PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgss3a").c_str(), "/Game", 1);
         }
 
-        PHYSFS_mountMemory(dist_zip, dist_zip_len, nullptr, "/dist.zip", "/dist", 1);
+        PHYSFS_mountMemory(dist_zip, dist_zip_len, nullptr, "/dist.zip", "/Dist", 1);
     }
 
     {
@@ -773,11 +773,11 @@ static bool init_sandbox() {
                 return false;
             }
 
-            PHYSFS_mount(system_root_path.c_str(), "/system", true);
+            PHYSFS_mount(system_root_path.c_str(), "/System", true);
 
             // Mount each RTP declared in mkxp.json to the game directory
             for (const std::string &rtp : conf->rtps) {
-                std::string path("/system" + fs->normalize(rtp.c_str(), false, true, "/RTP"));
+                std::string path("/System" + fs->normalize(rtp.c_str(), false, true, "/RTP"));
 
                 std::string rtp_path(system_root_path.c_str());
 #ifdef _WIN32
@@ -785,7 +785,7 @@ static bool init_sandbox() {
 #else
                 rtp_path.push_back('/');
 #endif // _WIN32
-                rtp_path.append(path.c_str() + sizeof "/system/" - 1);
+                rtp_path.append(path.c_str() + sizeof "/System/" - 1);
 
                 // Check if this is a file or directory
                 PHYSFS_Stat stat;
@@ -795,7 +795,7 @@ static bool init_sandbox() {
 
                 if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
                     // If it's a directory, just mount the path directly
-                    if (!PHYSFS_mount(rtp_path.c_str(), "/game", true)) {
+                    if (!PHYSFS_mount(rtp_path.c_str(), "/Game", true)) {
                         goto fail;
                     }
                 } else {
@@ -804,7 +804,7 @@ static bool init_sandbox() {
                     if (file == nullptr) {
                         goto fail;
                     }
-                    if (!PHYSFS_mountHandle(file, path.c_str(), "/game", true)) {
+                    if (!PHYSFS_mountHandle(file, path.c_str(), "/Game", true)) {
                         PHYSFS_close(file);
                         goto fail;
                     }
@@ -835,7 +835,7 @@ static bool init_sandbox() {
                     c = std::tolower(c);
                 }
 
-                PHYSFS_enumerate("/system/RTP", [](void *data_, const char *origdir, const char *fname) {
+                PHYSFS_enumerate("/System/RTP", [](void *data_, const char *origdir, const char *fname) {
                     struct data &data = *(struct data *)data_;
                     std::string rtp(fname);
                     for (char &c : rtp) {
@@ -866,7 +866,7 @@ static bool init_sandbox() {
 
                     if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
                         // If it's a directory, just mount the path directly
-                        if (!PHYSFS_mount(rtp_path.c_str(), "/game", true)) {
+                        if (!PHYSFS_mount(rtp_path.c_str(), "/Game", true)) {
                             return PHYSFS_ENUM_OK;
                         }
                     } else {
@@ -878,7 +878,7 @@ static bool init_sandbox() {
                         if (file == nullptr) {
                             return PHYSFS_ENUM_OK;
                         }
-                        if (!PHYSFS_mountHandle(file, path.c_str(), "/game", true)) {
+                        if (!PHYSFS_mountHandle(file, path.c_str(), "/Game", true)) {
                             PHYSFS_close(file);
                             return PHYSFS_ENUM_OK;
                         }
@@ -955,12 +955,12 @@ static bool init_sandbox() {
 
             // Mount the subdirectory
             PHYSFS_setWriteDir(save_path_subdir.c_str());
-            fs->addPath(save_path_subdir.c_str(), "/save");
+            fs->addPath(save_path_subdir.c_str(), "/Save");
             {
                 // PhysFS won't normally allow us to mount the save directory in two locations at once,
                 // so we temporarily disable the duplicate detection here
                 struct physfs_allow_duplicates_guard guard;
-                fs->addPath(save_path_subdir.c_str(), "/game");
+                fs->addPath(save_path_subdir.c_str(), "/Game");
             }
         }
     }
