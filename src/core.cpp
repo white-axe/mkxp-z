@@ -20,6 +20,7 @@
 */
 
 #include <atomic>
+#include <cctype>
 #include <cstdarg>
 #include <cstring>
 #include <string>
@@ -444,14 +445,13 @@ extern const uint8_t dist_zip[];
 extern const size_t dist_zip_len;
 
 static bool initialized = false;
-static ALCdevice *al_device = NULL;
-static ALCcontext *al_context = NULL;
-static LPALCRENDERSAMPLESSOFT alcRenderSamplesSOFT = NULL;
-static LPALCLOOPBACKOPENDEVICESOFT alcLoopbackOpenDeviceSOFT = NULL;
-static int16_t *sound_buf = NULL;
+static ALCdevice *al_device = nullptr;
+static ALCcontext *al_context = nullptr;
+static LPALCRENDERSAMPLESSOFT alcRenderSamplesSOFT = nullptr;
+static LPALCLOOPBACKOPENDEVICESOFT alcLoopbackOpenDeviceSOFT = nullptr;
+static int16_t *sound_buf = nullptr;
 static bool retro_framebuffer_supported;
 static bool dupe_supported;
-static PHYSFS_File *rgssad = NULL;
 static retro_system_av_info av_info;
 static struct retro_audio_callback audio_callback;
 static struct retro_frame_time_callback frame_time_callback = {
@@ -599,25 +599,21 @@ static void deinit_sandbox() {
     shared_state_initialized = false;
     struct lock_guard guard(threaded_audio_mutex);
 
-    if (sound_buf != NULL) {
+    if (sound_buf != nullptr) {
         mkxp_aligned_free(sound_buf);
-        sound_buf = NULL;
+        sound_buf = nullptr;
     }
     mkxp_retro::sandbox.reset();
     thread_data.reset();
     input.reset();
     audio.reset();
-    if (al_context != NULL) {
+    if (al_context != nullptr) {
         alcDestroyContext(al_context);
-        al_context = NULL;
+        al_context = nullptr;
     }
-    if (al_device != NULL) {
+    if (al_device != nullptr) {
         alcCloseDevice(al_device);
-        al_device = NULL;
-    }
-    if (rgssad != NULL) {
-        PHYSFS_close(rgssad);
-        rgssad = NULL;
+        al_device = nullptr;
     }
     conf.reset();
     fs.reset();
@@ -626,7 +622,7 @@ static void deinit_sandbox() {
 static bool init_sandbox() {
     deinit_sandbox();
 
-    fs.emplace((const char *)NULL, false);
+    fs.emplace(nullptr, false);
 
     {
         std::string parsed_game_path(game_path);
@@ -738,30 +734,38 @@ static bool init_sandbox() {
         }
 
         SharedState::rgssVersion = conf->rgssVersion;
-        thread_data.emplace((EventThread *)NULL, (const char *)NULL, (SDL_Window *)NULL, (ALCdevice *)NULL, 60, 1, *conf);
+        thread_data.emplace(nullptr, nullptr, nullptr, nullptr, 60, 1, *conf);
 
-        if ((rgssad = PHYSFS_openRead(("/game/" + conf->execName + ".rgssad").c_str())) != NULL) {
+        PHYSFS_File *rgssad;
+        if ((rgssad = PHYSFS_openRead(("/game/" + conf->execName + ".rgssad").c_str())) != nullptr) {
             PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgssad").c_str(), "/game", 1);
-        } else if ((rgssad = PHYSFS_openRead(("/game/" + conf->execName + ".rgss2a").c_str())) != NULL) {
+        } else if ((rgssad = PHYSFS_openRead(("/game/" + conf->execName + ".rgss2a").c_str())) != nullptr) {
             PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgss2a").c_str(), "/game", 1);
-        } else if ((rgssad = PHYSFS_openRead(("/game/" + conf->execName + ".rgss3a").c_str())) != NULL) {
+        } else if ((rgssad = PHYSFS_openRead(("/game/" + conf->execName + ".rgss3a").c_str())) != nullptr) {
             PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgss3a").c_str(), "/game", 1);
         }
 
-        PHYSFS_mountMemory(dist_zip, dist_zip_len, NULL, "/dist.zip", "/dist", 1);
+        PHYSFS_mountMemory(dist_zip, dist_zip_len, nullptr, "/dist.zip", "/dist", 1);
     }
 
     {
         const char *system_path;
         if (environment(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &system_path) && system_path != nullptr) {
-            std::string rtp_root_path(system_path);
+            std::string system_root_path(system_path);
 #ifdef _WIN32
-            rtp_root_path.append("\\mkxp-z\\RTP");
+            system_root_path.append("\\mkxp-z");
 #else
-            rtp_root_path.append("/mkxp-z/RTP");
+            system_root_path.append("/mkxp-z");
 #endif // _WIN32
 
-            // Create the subdirectory if needed
+            std::string rtp_root_path(system_root_path);
+#ifdef _WIN32
+            rtp_root_path.append("\\RTP");
+#else
+            rtp_root_path.append("/RTP");
+#endif // _WIN32
+
+            // Create the RTP root directory if needed
             PHYSFS_setWriteDir(system_path);
             if (!PHYSFS_mkdir(rtp_root_path.c_str() + std::strlen(system_path) + 1)) {
                 mkxp_retro::log_printf(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", rtp_root_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
@@ -769,43 +773,80 @@ static bool init_sandbox() {
                 return false;
             }
 
+            PHYSFS_mount(system_root_path.c_str(), "/system", true);
+
             // Mount each RTP needed by the game to the game directory
-            PHYSFS_mount(rtp_root_path.c_str(), "/rtp", true);
             for (const std::string &rtp : conf->game.rtps) {
                 struct data {
+                    std::string rtp_root_path;
                     std::string rtp;
-                    std::string desensitized_rtp;
-                } data;
-                data.rtp = rtp;
-                for (char &c : data.rtp) {
+                    std::string rtp_lowercase;
+                    bool found;
+                } data = {
+                    .rtp_root_path = rtp_root_path,
+                    .rtp = rtp,
+                    .rtp_lowercase = rtp,
+                    .found = false,
+                };
+                for (char &c : data.rtp_lowercase) {
                     c = std::tolower(c);
                 }
 
-                PHYSFS_enumerate("/rtp", [](void *data, const char *origdir, const char *fname) {
-                    struct data *data_ = (struct data *)data;
+                PHYSFS_enumerate("/system/RTP", [](void *data_, const char *origdir, const char *fname) {
+                    struct data &data = *(struct data *)data_;
                     std::string rtp(fname);
                     for (char &c : rtp) {
                         c = std::tolower(c);
                     }
-                    if (data_->rtp == rtp) {
-                        data_->desensitized_rtp = fname;
-                        return PHYSFS_ENUM_STOP;
-                    } else {
+
+                    // Make sure this file/directory has a filename that matches the one we're looking for (case-insensitive)
+                    if (std::strncmp(rtp.c_str(), data.rtp_lowercase.c_str(), data.rtp_lowercase.length()) || (rtp[data.rtp_lowercase.length()] != '.' && rtp[data.rtp_lowercase.length()] != 0)) {
                         return PHYSFS_ENUM_OK;
                     }
-                }, &data);
 
-                if (!data.desensitized_rtp.empty()) {
-                    std::string rtp_path(rtp_root_path);
+                    // Check if this is a file or directory
+                    std::string fullpath(origdir);
+                    fullpath.push_back('/');
+                    fullpath.append(fname);
+                    PHYSFS_Stat stat;
+                    if (!PHYSFS_stat(fullpath.c_str(), &stat) || (stat.filetype != PHYSFS_FILETYPE_DIRECTORY && stat.filetype != PHYSFS_FILETYPE_REGULAR)) {
+                        return PHYSFS_ENUM_OK;
+                    }
+
+                    std::string rtp_path(data.rtp_root_path);
 #ifdef _WIN32
                     rtp_path.push_back('\\');
 #else
                     rtp_path.push_back('/');
 #endif // _WIN32
-                    rtp_path.append(data.desensitized_rtp);
-                    log_printf(RETRO_LOG_INFO, "Mounted RTP \"%s\" from \"%s\"\n", rtp.c_str(), rtp_path.c_str());
-                    PHYSFS_mount(rtp_path.c_str(), "/game", true);
-                } else {
+                    rtp_path.append(fname);
+
+                    if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
+                        // If it's a directory, just mount the path directly
+                        if (!PHYSFS_mount(rtp_path.c_str(), "/game", true)) {
+                            return PHYSFS_ENUM_OK;
+                        }
+                    } else {
+                        // If it's a file, try to open it as an archive and then mount it
+                        std::string path(origdir);
+                        path.push_back('/');
+                        path.append(fname);
+                        PHYSFS_File *file = PHYSFS_openRead(path.c_str());
+                        if (file == nullptr) {
+                            return PHYSFS_ENUM_OK;
+                        }
+                        if (!PHYSFS_mountHandle(file, path.c_str(), "/game", true)) {
+                            PHYSFS_close(file);
+                            return PHYSFS_ENUM_OK;
+                        }
+                    }
+
+                    data.found = true;
+                    log_printf(RETRO_LOG_INFO, "Mounted RTP \"%s\" from \"%s\"\n", data.rtp.c_str(), rtp_path.c_str());
+                    return PHYSFS_ENUM_STOP;
+                }, &data);
+
+                if (!data.found) {
                     log_printf(
                         RETRO_LOG_ERROR,
                         (
@@ -823,7 +864,6 @@ static bool init_sandbox() {
                     );
                 }
             }
-            PHYSFS_unmount("/rtp");
         }
     }
 
@@ -882,22 +922,22 @@ static bool init_sandbox() {
         }
     }
 
-    alcLoopbackOpenDeviceSOFT = (LPALCLOOPBACKOPENDEVICESOFT)alcGetProcAddress(NULL, "alcLoopbackOpenDeviceSOFT");
-    if (alcLoopbackOpenDeviceSOFT == NULL) {
+    alcLoopbackOpenDeviceSOFT = (LPALCLOOPBACKOPENDEVICESOFT)alcGetProcAddress(nullptr, "alcLoopbackOpenDeviceSOFT");
+    if (alcLoopbackOpenDeviceSOFT == nullptr) {
         log_printf(RETRO_LOG_ERROR, "OpenAL implementation does not support `alcLoopbackOpenDeviceSOFT`\n");
         deinit_sandbox();
         return false;
     }
 
-    alcRenderSamplesSOFT = (LPALCRENDERSAMPLESSOFT)alcGetProcAddress(NULL, "alcRenderSamplesSOFT");
-    if (alcRenderSamplesSOFT == NULL) {
+    alcRenderSamplesSOFT = (LPALCRENDERSAMPLESSOFT)alcGetProcAddress(nullptr, "alcRenderSamplesSOFT");
+    if (alcRenderSamplesSOFT == nullptr) {
         log_printf(RETRO_LOG_ERROR, "OpenAL implementation does not support `alcRenderSamplesSOFT`\n");
         deinit_sandbox();
         return false;
     }
 
-    al_device = alcLoopbackOpenDeviceSOFT(NULL);
-    if (al_device == NULL) {
+    al_device = alcLoopbackOpenDeviceSOFT(nullptr);
+    if (al_device == nullptr) {
         log_printf(RETRO_LOG_ERROR, "Failed to initialize OpenAL loopback device\n");
         deinit_sandbox();
         return false;
@@ -913,17 +953,17 @@ static bool init_sandbox() {
         0,
     };
     al_context = alcCreateContext(al_device, al_attrs);
-    if (al_context == NULL || alcMakeContextCurrent(al_context) == AL_FALSE) {
+    if (al_context == nullptr || alcMakeContextCurrent(al_context) == AL_FALSE) {
         log_printf(RETRO_LOG_ERROR, "Failed to create OpenAL context\n");
         deinit_sandbox();
         return false;
     }
 
-    fluid_set_log_function(FLUID_PANIC, fluid_log, NULL);
-    fluid_set_log_function(FLUID_ERR, fluid_log, NULL);
-    fluid_set_log_function(FLUID_WARN, fluid_log, NULL);
-    fluid_set_log_function(FLUID_INFO, fluid_log, NULL);
-    fluid_set_log_function(FLUID_DBG, fluid_log, NULL);
+    fluid_set_log_function(FLUID_PANIC, fluid_log, nullptr);
+    fluid_set_log_function(FLUID_ERR, fluid_log, nullptr);
+    fluid_set_log_function(FLUID_WARN, fluid_log, nullptr);
+    fluid_set_log_function(FLUID_INFO, fluid_log, nullptr);
+    fluid_set_log_function(FLUID_DBG, fluid_log, nullptr);
 
     audio.emplace(*thread_data);
 
@@ -950,7 +990,7 @@ static bool init_sandbox() {
     frame_time_callback_enabled = environment(RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK, &frame_time_callback);
 
     sound_buf = (int16_t *)mkxp_aligned_malloc(16, (threaded_audio_enabled ? THREADED_AUDIO_SAMPLES : (size_t)std::ceil((double)SYNTH_SAMPLERATE / av_info.timing.fps)) * 2 * sizeof(int16_t));
-    if (sound_buf == NULL) {
+    if (sound_buf == nullptr) {
         throw std::bad_alloc();
     }
 
@@ -1247,7 +1287,7 @@ extern "C" RETRO_API void retro_run() {
         gl.UseProgram(0);
         gl.ActiveTexture(GL_TEXTURE0);
         gl.BindTexture(GL_TEXTURE_2D, 0);
-        if (gl.BindVertexArray != NULL) {
+        if (gl.BindVertexArray != nullptr) {
             gl.BindVertexArray(0);
         }
         gl.BindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1308,7 +1348,7 @@ extern "C" RETRO_API void retro_cheat_set(unsigned int index, bool enabled, cons
 }
 
 extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
-    if (info == NULL || info->path == NULL) {
+    if (info == nullptr || info->path == nullptr) {
         log_printf(RETRO_LOG_ERROR, "This core cannot start without a game\n");
         return false;
     }
@@ -1322,7 +1362,7 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
 
     std::memset(&hw_render, 0, sizeof hw_render);
     hw_render.context_reset = initGLFunctions;
-    hw_render.context_destroy = NULL;
+    hw_render.context_destroy = nullptr;
     hw_render.cache_context = true;
     hw_render.bottom_left_origin = true;
     if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 6, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
@@ -1422,7 +1462,7 @@ extern "C" RETRO_API unsigned int retro_get_region() {
 }
 
 extern "C" RETRO_API void *retro_get_memory_data(unsigned int id) {
-    return NULL;
+    return nullptr;
 }
 
 extern "C" RETRO_API size_t retro_get_memory_size(unsigned int id) {

@@ -417,9 +417,13 @@ struct CacheEnumData {
 
 static PHYSFS_EnumerateCallbackResult cacheEnumCB(void *d, const char *origdir,
                                                   const char *fname) {
-#ifndef MKXPZ_RETRO
   if (shState && shState->rtData().rqTerm)
     throw Exception(Exception::MKXPError, "Game close requested. Aborting path cache enumeration.");
+
+#ifdef MKXPZ_RETRO
+  // Don't cache the /dist or /system directories because the game doesn't need to access them
+  if (!*origdir && (!strcmp(fname, "dist") || !strcmp(fname, "system")))
+    return PHYSFS_ENUM_OK;
 #endif // MKXPZ_RETRO
 
   CacheEnumData &data = *static_cast<CacheEnumData *>(d);
