@@ -622,7 +622,11 @@ static void deinit_sandbox() {
 static bool init_sandbox() {
     deinit_sandbox();
 
+    log_printf(RETRO_LOG_INFO, "Initializing FS\n");
+
     fs.emplace(nullptr, false);
+
+    log_printf(RETRO_LOG_INFO, "Initializing config\n");
 
     {
         std::string parsed_game_path(game_path);
@@ -747,6 +751,8 @@ static bool init_sandbox() {
 
         PHYSFS_mountMemory(dist_zip, dist_zip_len, nullptr, "/dist.zip", "/Dist", 1);
     }
+
+    log_printf(RETRO_LOG_INFO, "Initializing system directory\n");
 
     {
         const char *system_path;
@@ -910,7 +916,11 @@ static bool init_sandbox() {
         }
     }
 
+    log_printf(RETRO_LOG_INFO, "Loading path cache\n");
+
     fs->createPathCache();
+
+    log_printf(RETRO_LOG_INFO, "Initializing save directory\n");
 
     {
         const char *save_path;
