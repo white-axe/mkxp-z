@@ -777,7 +777,12 @@ static bool init_sandbox() {
 
             // Mount each RTP declared in mkxp.json to the game directory
             for (const std::string &rtp : conf->rtps) {
-                std::string path("/System" + fs->normalize(rtp.c_str(), false, true, "/RTP"));
+                std::string path(fs->normalize(rtp.c_str(), false, true, "/System/RTP"));
+
+                if (path != "/System" && std::strncmp(path.c_str(), "/System/", sizeof "/System/" - 1)) {
+                    log_printf(RETRO_LOG_ERROR, "Failed to mount RTP \"%s\" because mounting RTPs from outside of the libretro system directory is not supported\n", rtp.c_str());
+                    continue;
+                }
 
                 std::string rtp_path(system_root_path.c_str());
 #ifdef _WIN32
