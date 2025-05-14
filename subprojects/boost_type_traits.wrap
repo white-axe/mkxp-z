@@ -2,3 +2,4 @@
 url = https://github.com/boostorg/type_traits
 revision = boost-1.87.0
 depth = 1
+patch_directory = boost_type_traits

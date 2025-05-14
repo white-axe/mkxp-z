@@ -29,26 +29,12 @@ if is_libretro
     }
     global_dependencies += subproject('libiconv', default_options: libiconv_options).get_variable('libiconv')
 
-    boost_options = cmake.subproject_options()
-    boost_options.add_cmake_defines({
-        'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
-        'CMAKE_C_FLAGS': ' '.join(global_args),
-        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
-        'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
-        'BUILD_TESTING': false,
-    })
     global_dependencies += [
-        cmake.subproject('boost_asio', options: boost_options).dependency('boost_asio'),
-        cmake.subproject('boost_mp11', options: boost_options).dependency('boost_mp11'),
-        cmake.subproject('boost_describe', options: boost_options).dependency('boost_describe'),
-        cmake.subproject('boost_config', options: boost_options).dependency('boost_config'),
-        cmake.subproject('boost_assert', options: boost_options).dependency('boost_assert'),
-        cmake.subproject('boost_static_assert', options: boost_options).dependency('boost_static_assert'),
-        cmake.subproject('boost_throw_exception', options: boost_options).dependency('boost_throw_exception'),
-        cmake.subproject('boost_core', options: boost_options).dependency('boost_core'),
-        cmake.subproject('boost_container_hash', options: boost_options).dependency('boost_container_hash'),
-        cmake.subproject('boost_type_traits', options: boost_options).dependency('boost_type_traits'),
-        cmake.subproject('boost_optional', options: boost_options).dependency('boost_optional'),
+        subproject('boost_asio').get_variable('boost_asio'),
+        subproject('boost_core').get_variable('boost_core'),
+        subproject('boost_container_hash').get_variable('boost_container_hash'),
+        subproject('boost_optional').get_variable('boost_optional'),
+        subproject('boost_type_traits').get_variable('boost_type_traits'),
     ]
 
     zlib_options = cmake.subproject_options()

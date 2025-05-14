@@ -2,4 +2,5 @@
 url = https://github.com/boostorg/asio
 revision = boost-1.87.0
 depth = 1
+patch_directory = boost_asio
 diff_files = boost_asio-counter.patch
