@@ -626,7 +626,7 @@ static bool init_sandbox() {
 
     fs.emplace(nullptr, false);
 
-    log_printf(RETRO_LOG_INFO, "Initializing config\n");
+    log_printf(RETRO_LOG_INFO, "Parsing game path\n");
 
     {
         std::string parsed_game_path(game_path);
@@ -651,9 +651,13 @@ static bool init_sandbox() {
             parsed_game_path = parsed_game_path.substr(0, last_slash_index);
         }
 
+        log_printf(RETRO_LOG_INFO, "Adding game path %s\n", parsed_game_path.c_str());
+
         fs->addPath(parsed_game_path.c_str(), "/Game");
 
+        log_printf(RETRO_LOG_INFO, "Initializing config\n");
         conf.emplace();
+        log_printf(RETRO_LOG_INFO, "Reading config\n");
         {
             const char *value = get_core_option("mkxp-z_rgssVersion");
             if (!std::strcmp(value, "default")) {
@@ -668,6 +672,7 @@ static bool init_sandbox() {
             }
         }
 
+        log_printf(RETRO_LOG_INFO, "Getting core option mkxp-z_frameSkip\n");
         {
             const char *value = get_core_option("mkxp-z_frameSkip");
             previous_frame_skip_value = value;
@@ -678,6 +683,7 @@ static bool init_sandbox() {
             }
         }
 
+        log_printf(RETRO_LOG_INFO, "Getting core option mkxp-z_subImageFix\n");
         {
             const char *value = get_core_option("mkxp-z_subImageFix");
             if (!std::strcmp(value, "default")) {
@@ -691,6 +697,7 @@ static bool init_sandbox() {
             }
         }
 
+        log_printf(RETRO_LOG_INFO, "Getting core option mkxp-z_enableBlitting\n");
         {
             const char *value = get_core_option("mkxp-z_enableBlitting");
             if (!std::strcmp(value, "default")) {
@@ -708,6 +715,7 @@ static bool init_sandbox() {
             }
         }
 
+        log_printf(RETRO_LOG_INFO, "Getting core option mkxp-z_midiChorus\n");
         {
             const char *value = get_core_option("mkxp-z_midiChorus");
             if (!std::strcmp(value, "enabled")) {
@@ -719,6 +727,7 @@ static bool init_sandbox() {
             }
         }
 
+        log_printf(RETRO_LOG_INFO, "Getting core option mkxp-z_midiReverb\n");
         {
             const char *value = get_core_option("mkxp-z_midiReverb");
             if (!std::strcmp(value, "enabled")) {
@@ -730,6 +739,7 @@ static bool init_sandbox() {
             }
         }
 
+        log_printf(RETRO_LOG_INFO, "Getting core option mkxp-z_SESourceCount\n");
         {
             unsigned long value_num = std::strtoul(get_core_option("mkxp-z_SESourceCount"), nullptr, 10);
             if (value_num >= 6 && value_num <= 64) {
@@ -737,9 +747,11 @@ static bool init_sandbox() {
             }
         }
 
+        log_printf(RETRO_LOG_INFO, "Initializing thread data\n");
         SharedState::rgssVersion = conf->rgssVersion;
         thread_data.emplace(nullptr, nullptr, nullptr, nullptr, 60, 1, *conf);
 
+        log_printf(RETRO_LOG_INFO, "Mounting game archive\n");
         PHYSFS_File *rgssad;
         if ((rgssad = PHYSFS_openRead(("/Game/" + conf->execName + ".rgssad").c_str())) != nullptr) {
             PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgssad").c_str(), "/Game", 1);
@@ -749,6 +761,7 @@ static bool init_sandbox() {
             PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgss3a").c_str(), "/Game", 1);
         }
 
+        log_printf(RETRO_LOG_INFO, "Mounting dist\n");
         PHYSFS_mountMemory(dist_zip, dist_zip_len, nullptr, "/dist.zip", "/Dist", 1);
     }
 
@@ -757,6 +770,7 @@ static bool init_sandbox() {
     {
         const char *system_path;
         if (environment(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &system_path) && system_path != nullptr) {
+            log_printf(RETRO_LOG_INFO, "System path: %s\n", system_path);
             std::string system_root_path(system_path);
 #ifdef _WIN32
             system_root_path.append("\\mkxp-z");
