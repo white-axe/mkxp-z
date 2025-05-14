@@ -430,51 +430,91 @@ jobs:
         include:
           - arch_mkxpz: armv6
             arch_debian: armhf
-            arch_gcc: arm-linux-gnueabihf
+            arch_llvm: arm-linux-gnueabihf
+            cpu_family: arm
+            cpu: generic-armv6zk+vfpv2
+            endian: little
           - arch_mkxpz: armv7
             arch_debian: armhf
-            arch_gcc: arm-linux-gnueabihf
+            arch_llvm: arm-linux-gnueabihf
+            cpu_family: arm
+            cpu: generic-armv7-a+vfpv3-d16
+            endian: little
           - arch_mkxpz: armv7-neon
             arch_debian: armhf
-            arch_gcc: arm-linux-gnueabihf
+            arch_llvm: arm-linux-gnueabihf
+            cpu_family: arm
+            cpu: generic-armv7-a+neon
+            endian: little
           - arch_mkxpz: arm64
             arch_debian: arm64
-            arch_gcc: aarch64-linux-gnu
+            arch_llvm: aarch64-linux-gnu
+            cpu_family: aarch64
+            cpu: generic-armv8-a
+            endian: little
           - arch_mkxpz: power8le
             arch_debian: ppc64el
-            arch_gcc: powerpc64le-linux-gnu
+            arch_llvm: powerpc64le-linux-gnu
+            cpu_family: ppc64
+            cpu: power8
+            endian: little
           - arch_mkxpz: power9le
             arch_debian: ppc64el
-            arch_gcc: powerpc64le-linux-gnu
-          - arch_mkxpz: riscv64
-            arch_debian: riscv64
-            arch_gcc: riscv64-linux-gnu
+            arch_llvm: powerpc64le-linux-gnu
+            cpu_family: ppc64
+            cpu: power9
+            endian: little
           - arch_mkxpz: s390x
             arch_debian: s390x
-            arch_gcc: s390x-linux-gnu
+            arch_llvm: s390x-linux-gnu
+            cpu_family: s390x
+            cpu: z196
+            endian: big
+          - arch_mkxpz: x86
+            arch_debian: i386
+            arch_llvm: i386-linux-gnu
+            cpu_family: x86
+            cpu: i386
+            endian: little
           - arch_mkxpz: x86_64
             arch_debian: amd64
-            arch_gcc: x86_64-linux-gnu
+            arch_llvm: x86_64-linux-gnu
+            cpu_family: x86_64
+            cpu: x86_64
+            endian: little
     steps:
       - name: Install dependencies
         run: |
-          if [ '${{ matrix.arch_mkxpz }}' != 'x86_64' ]
-          then
-            codename=$(grep VERSION_CODENAME /etc/os-release | cut -f 2 -d '=')
-            sudo sed -i 's/^Types: deb$/Types: deb\nArchitectures: amd64/g' /etc/apt/sources.list.d/ubuntu.sources
-            sudo dpkg --add-architecture ${{ matrix.arch_debian }}
-            echo 'Types: deb' | sudo tee -a /etc/apt/sources.list.d/ubuntu.sources
-            echo "Architectures: ${{ matrix.arch_debian }}" | sudo tee -a /etc/apt/sources.list.d/ubuntu.sources
-            echo 'URIs: http://ports.ubuntu.com/' | sudo tee -a /etc/apt/sources.list.d/ubuntu.sources
-            echo "Suites: $codename $codename-updates" | sudo tee -a /etc/apt/sources.list.d/ubuntu.sources
-            echo 'Components: main universe' | sudo tee -a /etc/apt/sources.list.d/ubuntu.sources
-          fi
           sudo apt update
-          sudo apt install -y git build-essential meson cmake
-          if [ '${{ matrix.arch_mkxpz }}' != 'x86_64' ]
-          then
-            sudo apt install -y gcc-${{ matrix.arch_gcc }} g++-${{ matrix.arch_gcc }}
-          fi
+          sudo apt install -y qemu-user-static binfmt-support git build-essential clang llvm meson cmake
+
+      - name: Set up sysroot
+        run: |
+          cd ${{ runner.temp }}
+          mkdir sysroot
+          curl -Lo sysroot.tar.xz https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz
+          tar -xJf sysroot.tar.xz -C sysroot --exclude 'dev/*'
+
+          touch sysroot/dev/full
+          touch sysroot/dev/null
+          touch sysroot/dev/random
+          touch sysroot/dev/urandom
+          touch sysroot/dev/zero
+          sudo mount --bind /dev/full sysroot/dev/full
+          sudo mount --bind /dev/null sysroot/dev/null
+          sudo mount --bind /dev/random sysroot/dev/random
+          sudo mount --bind /dev/urandom sysroot/dev/urandom
+          sudo mount --bind /dev/zero sysroot/dev/zero
+          chmod 777 sysroot/tmp/
+          rm -f sysroot/etc/resolv.conf
+          cp /etc/resolv.conf sysroot/etc/
+
+          PATH=/usr/sbin:/usr/bin:/sbin:/bin sudo chroot sysroot /bin/bash -c '
+            add-apt-repository -y ppa:ubuntu-toolchain-r/test
+            apt update
+            apt install -y gcc-9 g++-9
+            cp /usr/lib/${{ matrix.arch_llvm }}/libm.so /usr/lib/${{ matrix.arch_llvm }}/libm.a
+          '
 
       - id: short-sha
         name: Get Git commit hash
@@ -493,25 +533,41 @@ jobs:
 
       - name: Configure core
         run: |
-          if [ '${{ matrix.arch_mkxpz }}' != 'x86_64' ]
+          echo "[binaries]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "c = ['clang', '--target=${{ matrix.arch_llvm }}', '--sysroot=${{ runner.temp }}/sysroot']" | tee -a ${{ runner.temp }}/cross.ini
+          echo "c_ld = 'lld'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpp = ['clang++', '--target=${{ matrix.arch_llvm }}', '--sysroot=${{ runner.temp }}/sysroot']" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpp_ld = 'lld'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "ar = 'llvm-ar'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "strip = 'llvm-strip'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "system = 'linux'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpu_family = '${{ matrix.cpu_family }}'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpu = '${{ matrix.cpu }}'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "endian = '${{ matrix.endian }}'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "[properties]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "sys_root = '${{ runner.temp }}/sysroot'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "[cmake]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "CMAKE_EXE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "CMAKE_MODULE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "CMAKE_SHARED_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "CMAKE_STATIC_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ${{ runner.temp }}/cross.ini
+          echo '--------------------------------------------------------------------------------'
+          # If architecture is s390x and Clang version is older than 19.1.0, disable LTO due to https://github.com/llvm/llvm-project/issues/61101
+          if [ '${{ matrix.arch_mkxpz }}' = 's390x' ] && (echo "$(clang --version | head -n 1 | sed -e 's/.*clang version * \([0-9.]*\).*/\1/')\n19.1.0" | sort -CV)
           then
-            cross_arg='--cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt'
+            lto=false
           else
-            cross_arg=
+            lto=true
           fi
-          CLICOLOR_FORCE=1 meson setup build $cross_arg --buildtype release -Db_lto=true -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=$lto -Dlibretro=true
 
       - name: Build core
         run: |
           mkdir ${{ runner.temp }}/dist
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          if [ '${{ matrix.arch_mkxpz }}' != 'x86_64' ]
-          then
-            ${{ matrix.arch_gcc }}-strip mkxp-z_libretro.so
-          else
-            strip mkxp-z_libretro.so
-          fi
+          llvm-strip mkxp-z_libretro.so
           mv mkxp-z_libretro.so ${{ runner.temp }}/dist
 
       - name: Upload artifact
