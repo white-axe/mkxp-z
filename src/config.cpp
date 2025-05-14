@@ -455,8 +455,8 @@ void Config::readGameINI() {
         if (ic.load(iniFile.stream()))
 #endif // MKXPZ_RETRO
         {
-            GUARD(game.title = ic.getStringProperty("Game", "Title"););
-            GUARD(game.scripts = ic.getStringProperty("Game", "Scripts"););
+            game.title = ic.getStringProperty("Game", "Title");
+            game.scripts = ic.getStringProperty("Game", "Scripts");
             
             strReplace(game.scripts, '\\', '/');
             
@@ -468,22 +468,19 @@ void Config::readGameINI() {
                 Debug() << iniFileName + ": Could not find Game.Scripts";
 
             std::string rtp;
-            GUARD(rtp = ic.getStringProperty("Game", "RTP"););
+            rtp = ic.getStringProperty("Game", "RTP");
             if (!rtp.empty()) {
                 game.rtps.push_back(rtp);
             }
-            rtp.clear();
-            GUARD(rtp = ic.getStringProperty("Game", "RTP1"););
+            rtp = ic.getStringProperty("Game", "RTP1");
             if (!rtp.empty()) {
                 game.rtps.push_back(rtp);
             }
-            rtp.clear();
-            GUARD(rtp = ic.getStringProperty("Game", "RTP2"););
+            rtp = ic.getStringProperty("Game", "RTP2");
             if (!rtp.empty()) {
                 game.rtps.push_back(rtp);
             }
-            rtp.clear();
-            GUARD(rtp = ic.getStringProperty("Game", "RTP3"););
+            rtp = ic.getStringProperty("Game", "RTP3");
             if (!rtp.empty()) {
                 game.rtps.push_back(rtp);
             }
