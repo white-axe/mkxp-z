@@ -40,7 +40,7 @@ binding_base::stack_frame::~stack_frame() {
     }
 }
 
-binding_base::binding_base(std::shared_ptr<struct w2c_ruby> m) : next_func_ptr(-1), _instance(m) {}
+binding_base::binding_base(std::shared_ptr<struct w2c_ruby> m) : _instance(m) {}
 
 binding_base::~binding_base() {
     // Destroy all stack frames in order from top to bottom to enforce a portable, compiler-independent ordering of stack frame destruction

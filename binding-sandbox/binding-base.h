@@ -221,7 +221,6 @@ namespace mkxp_sandbox {
 
         std::shared_ptr<struct w2c_ruby> _instance;
         std::unordered_map<key_t, struct fiber, boost::hash<key_t>> fibers;
-        wasm_ptr_t next_func_ptr;
         wasm_ptr_t stack_ptr;
 
     public:
