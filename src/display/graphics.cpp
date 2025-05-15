@@ -1770,14 +1770,14 @@ Movie *Graphics::playMovie(const char *filename, int volume_, bool skippable) {
         Debug() << "BUG: High-res Graphics playMovie not implemented";
     }
 
-    Movie *movie = new Movie(volume_, skippable);
+    float volume = volume_ * 0.01f;
+    Movie *movie = new Movie(volume, skippable);
     MovieOpenHandler handler(movie->srcOps);
 #ifdef MKXPZ_RETRO // TODO: move into shState
     mkxp_retro::fs->openRead(handler, filename);
 #else
     shState->fileSystem().openRead(handler, filename);
 #endif // MKXPZ_RETRO
-    float volume = volume_ * 0.01f;
     
     if (movie->preparePlayback()) {        
         movie->movieSprite = new Sprite;
