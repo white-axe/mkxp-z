@@ -638,6 +638,12 @@ jobs:
             cpu_family: s390x
             cpu: z196
             endian: big
+          - arch_mkxpz: x86
+            arch_alpine: x86
+            arch_llvm: i586-alpine-linux-musl
+            cpu_family: x86
+            cpu: i586
+            endian: little
           - arch_mkxpz: x86_64
             arch_alpine: x86_64
             arch_llvm: x86_64-alpine-linux-musl
