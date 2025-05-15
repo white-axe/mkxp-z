@@ -249,45 +249,37 @@
  #include <optional>
  #include <string_view>
  
---- a/common/alassert.cpp
-+++ b/common/alassert.cpp
-@@ -2,7 +2,7 @@
- #include "alassert.h"
- 
- #include <stdexcept>
--#include <string>
-+#include "../../src/mkxp-polyfill.h"
- 
- namespace {
- 
 --- a/common/alsem.cpp
 +++ b/common/alsem.cpp
-@@ -55,8 +55,6 @@ void semaphore::post()
+@@ -55,8 +55,8 @@ void semaphore::post()
  void semaphore::wait() noexcept
  { WaitForSingleObject(static_cast<HANDLE>(mSem), INFINITE); }
  
 -bool semaphore::try_wait() noexcept
 -{ return WaitForSingleObject(static_cast<HANDLE>(mSem), 0) == WAIT_OBJECT_0; }
++
++
  
  } // namespace al
  
-@@ -83,8 +81,6 @@ void semaphore::post()
+@@ -83,8 +83,8 @@ void semaphore::post()
  void semaphore::wait() noexcept
  { dispatch_semaphore_wait(mSem, DISPATCH_TIME_FOREVER); }
  
 -bool semaphore::try_wait() noexcept
 -{ return dispatch_semaphore_wait(mSem, DISPATCH_TIME_NOW) == 0; }
++
++
  
  } // namespace al
  
-@@ -96,27 +92,25 @@ namespace al {
+@@ -96,27 +96,27 @@ namespace al {
  
  semaphore::semaphore(unsigned int initial)
  {
 -    if(sem_init(&mSem, 0, initial) != 0)
--        throw std::system_error(std::make_error_code(std::errc::resource_unavailable_try_again));
 +    if(mkxp_sem_init(&mSem, initial) != 0)
-+        abort();
+         MKXPZ_THROW(std::system_error(std::make_error_code(std::errc::resource_unavailable_try_again)));
  }
  
  semaphore::~semaphore()
@@ -297,20 +289,21 @@
  void semaphore::post()
  {
 -    if(sem_post(&mSem) != 0)
--        throw std::system_error(std::make_error_code(std::errc::value_too_large));
 +    if(mkxp_sem_post(&mSem) != 0)
-+        abort();
+         MKXPZ_THROW(std::system_error(std::make_error_code(std::errc::value_too_large)));
  }
  
  void semaphore::wait() noexcept
  {
 -    while(sem_wait(&mSem) == -1 && errno == EINTR) {
-+    while(mkxp_sem_wait(&mSem) == -1 && errno == EINTR) {
++    while(mkxp_sem_wait(&mSem) == -1) {
      }
  }
  
 -bool semaphore::try_wait() noexcept
 -{ return sem_trywait(&mSem) == 0; }
++
++
  
  } // namespace al
  
@@ -321,7 +314,7 @@
  #endif
  #elif !defined(_WIN32)
 -#include <semaphore.h>
-+#include "../../src/mkxp-polyfill.h"
++
  #endif
  
  namespace al {
@@ -334,11 +327,12 @@
  #endif
      native_type mSem{};
  
-@@ -35,7 +35,6 @@ public:
+@@ -35,7 +35,7 @@ public:
  
      void post();
      void wait() noexcept;
 -    bool try_wait() noexcept;
++
  };
  
  } // namespace al
@@ -405,7 +399,7 @@
 @@ -5,7 +5,7 @@
  #include <stdexcept>
  #include <type_traits>
- 
+ #include "../../src/mkxp-polyfill.h"
 -#ifdef _WIN32
 +#if false
  #define WIN32_LEAN_AND_MEAN
@@ -443,16 +437,15 @@
      tss()
      {
 -        if(int res{tss_create(&mTss, nullptr)}; res != thrd_success)
-+        if ((mTss = static_cast<void **>(std::malloc(sizeof *mTss))) == nullptr)
-             throw std::runtime_error{"al::tss::tss()"};
++        if((mTss = static_cast<void **>(std::malloc(sizeof *mTss))) == nullptr)
+             MKXPZ_THROW(std::runtime_error{"al::tss::tss()"});
 +        *mTss = nullptr;
      }
      explicit tss(const T &init) : tss{}
      {
 -        if(int res{tss_set(mTss, to_ptr(init))}; res != thrd_success)
--            throw std::runtime_error{"al::tss::tss(T)"};
-+        if ((mTss = static_cast<void **>(std::malloc(sizeof *mTss))) == nullptr)
-+            throw std::runtime_error{"al::tss::tss()"};
++        if((mTss = static_cast<void **>(std::malloc(sizeof *mTss))) == nullptr)
+             MKXPZ_THROW(std::runtime_error{"al::tss::tss(T)"});
 +        *mTss = to_ptr(init);
      }
 -    ~tss() { tss_delete(mTss); }
@@ -461,7 +454,7 @@
      void set(const T &value) const
      {
 -        if(int res{tss_set(mTss, to_ptr(value))}; res != thrd_success)
--            throw std::runtime_error{"al::tss::set(T)"};
+-            MKXPZ_THROW(std::runtime_error{"al::tss::set(T)"});
 +        *mTss = to_ptr(value);
      }
  

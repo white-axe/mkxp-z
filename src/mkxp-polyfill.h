@@ -27,6 +27,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #if !defined(MKXPZ_NO_PTHREAD_H_MUTEX) || !defined(MKXPZ_NO_PTHREAD_H_THREAD)
@@ -35,6 +36,18 @@
 
 #ifndef MKXPZ_NO_SEMAPHORE_H
 #  include <semaphore.h>
+#endif
+
+#if !defined(__cplusplus) || defined(MKXPZ_NO_EXCEPTIONS)
+#  define MKXPZ_THROW(...) do { fprintf(stderr, "Exception thrown: %s\n", (__VA_ARGS__).what()); fflush(stderr); abort(); } while (0)
+#  define MKXPZ_RETHROW do { } while (0)
+#  define MKXPZ_TRY if (1)
+#  define MKXPZ_CATCH(...) if (0)
+#else
+#  define MKXPZ_THROW(...) throw __VA_ARGS__
+#  define MKXPZ_RETHROW throw
+#  define MKXPZ_TRY try
+#  define MKXPZ_CATCH(...) catch (__VA_ARGS__)
 #endif
 
 #ifndef MKXPZ_NO_STD_MUTEX

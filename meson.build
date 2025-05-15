@@ -34,6 +34,10 @@ global_cpp_args = []
 global_link_args = []
 libretro_ruby_args = []
 
+if is_libretro
+    global_cpp_args += '-fno-rtti'
+endif
+
 sizeof = {'void*': compilers['cpp'].sizeof('void*'),
           'long': compilers['cpp'].sizeof('long')
          }

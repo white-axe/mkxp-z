@@ -6,16 +6,15 @@
  
  void StartEventThrd(ALCcontext *ctx)
  {
--    try {
+-    MKXPZ_TRY {
 -        ctx->mEventThread = std::thread{EventThread, ctx};
 -    }
--    catch(std::exception& e) {
--        ERR("Failed to start event thread: {}", e.what());
+-    MKXPZ_CATCH(std::exception& e) {
+ 
 -    }
--    catch(...) {
+-    MKXPZ_CATCH(...) {
 -        ERR("Failed to start event thread! Expect problems.");
 -    }
-+
 +
 +
 +
