@@ -832,15 +832,20 @@ struct WindowVXPrivate
 	}
 };
 
+static void disposePtr(void *ptr)
+{
+	((WindowVX *)ptr)->dispose();
+}
+
 WindowVX::WindowVX(Viewport *viewport)
-    : ViewportElement(viewport, DEF_Z, DEF_SPRITE_Y)
+    : ViewportElement(disposePtr, viewport, DEF_Z, DEF_SPRITE_Y)
 {
 	p = new WindowVXPrivate(0, 0, 0, 0);
 	onGeometryChange(scene->getGeometry());
 }
 
 WindowVX::WindowVX(int x, int y, int width, int height)
-    : ViewportElement(0, DEF_Z, DEF_SPRITE_Y)
+    : ViewportElement(disposePtr, 0, DEF_Z, DEF_SPRITE_Y)
 {
 	p = new WindowVXPrivate(x, y, width, height);
 	onGeometryChange(scene->getGeometry());

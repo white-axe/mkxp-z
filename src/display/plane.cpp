@@ -161,8 +161,13 @@ struct PlanePrivate
 	}
 };
 
+static void disposePtr(void *ptr)
+{
+	((Plane *)ptr)->dispose();
+}
+
 Plane::Plane(Viewport *viewport)
-    : ViewportElement(viewport)
+    : ViewportElement(disposePtr, viewport)
 {
 	p = new PlanePrivate();
 

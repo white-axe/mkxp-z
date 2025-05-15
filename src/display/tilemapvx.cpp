@@ -103,7 +103,7 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
 		TilemapVXPrivate *p;
 
 		AboveLayer(TilemapVXPrivate *p, Viewport *viewport)
-		    : ViewportElement(viewport, 200),
+		    : ViewportElement(nullptr, viewport, 200),
 		      p(p)
 		{}
 
@@ -119,7 +119,7 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
 	AboveLayer above;
 
 	TilemapVXPrivate(Viewport *viewport)
-	    : ViewportElement(viewport),
+	    : ViewportElement(nullptr, viewport),
 	      mapData(0),
 	      flags(0),
 	      allocQuads(0),

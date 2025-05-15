@@ -212,7 +212,7 @@ struct WindowPrivate
 
 		WindowControls(WindowPrivate *p,
 		               Viewport *viewport = 0)
-		    : ViewportElement(viewport),
+		    : ViewportElement(nullptr, viewport),
 		      p(p)
 		{
 			setZ(2);
@@ -695,8 +695,13 @@ struct WindowPrivate
 	}
 };
 
+static void disposePtr(void *ptr)
+{
+	((Window *)ptr)->dispose();
+}
+
 Window::Window(Viewport *viewport)
-	: ViewportElement(viewport)
+	: ViewportElement(disposePtr, viewport)
 {
 	p = new WindowPrivate(viewport);
 	onGeometryChange(scene->getGeometry());

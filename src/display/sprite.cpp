@@ -342,8 +342,13 @@ struct SpritePrivate
     }
 };
 
+static void disposePtr(void *ptr)
+{
+    ((Sprite *)ptr)->dispose();
+}
+
 Sprite::Sprite(Viewport *viewport)
-: ViewportElement(viewport)
+: ViewportElement(disposePtr, viewport)
 {
     p = new SpritePrivate;
     onGeometryChange(scene->getGeometry());

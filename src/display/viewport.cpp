@@ -223,9 +223,9 @@ void Viewport::releaseResources()
 }
 
 
-ViewportElement::ViewportElement(Viewport *viewport, int z, int spriteY)
+ViewportElement::ViewportElement(void (*dispose)(void *), Viewport *viewport, int z, int spriteY)
     : SceneElement(viewport ? *viewport : *shState->screen(), z, spriteY),
-      m_viewport(viewport)
+      m_dispose(dispose), m_viewport(viewport)
 {
 	if (rgssVer == 1 && viewport)
 		viewportDispCon = viewport->wasDisposed.connect(&ViewportElement::viewportElementDisposal, this);
@@ -252,9 +252,8 @@ void ViewportElement::setViewport(Viewport *viewport)
 void ViewportElement::viewportElementDisposal()
 {
 	viewportDispCon.disconnect();
-	Disposable *self = dynamic_cast<Disposable*>(this);
-	if(self != nullptr)
-		self->dispose();
+	if(m_dispose != nullptr)
+		m_dispose(this);
 }
 
 ViewportElement::~ViewportElement()

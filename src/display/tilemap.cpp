@@ -1076,7 +1076,7 @@ struct TilemapPrivate
 };
 
 GroundLayer::GroundLayer(TilemapPrivate *p, Viewport *viewport)
-    : ViewportElement(viewport, 0),
+    : ViewportElement(nullptr, viewport, 0),
       vboCount(0),
       p(p)
 {
@@ -1126,7 +1126,7 @@ void GroundLayer::onGeometryChange(const Scene::Geometry &geo)
 }
 
 ZLayer::ZLayer(TilemapPrivate *p, Viewport *viewport)
-    : ViewportElement(viewport, 0),
+    : ViewportElement(nullptr, viewport, 0),
       index(0),
       vboOffset(0),
       vboCount(0),

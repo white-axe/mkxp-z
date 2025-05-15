@@ -70,7 +70,7 @@ private:
 class ViewportElement : public SceneElement
 {
 public:
-	ViewportElement(Viewport *viewport = 0, int z = 0, int spriteY = 0);
+	ViewportElement(void (*dispose)(void *), Viewport *viewport = 0, int z = 0, int spriteY = 0);
 	~ViewportElement();
 
 	DECL_ATTR( Viewport,  Viewport* )
@@ -79,6 +79,7 @@ protected:
 	virtual void onViewportChange() {}
 
 private:
+	void (*m_dispose)(void *);
 	Viewport *m_viewport;
 	sigslot::connection viewportDispCon;
 	sigslot::connection viewportElementDispCon;
