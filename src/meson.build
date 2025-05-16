@@ -31,7 +31,6 @@ if is_libretro
 
     global_dependencies += [
         subproject('boost_asio').get_variable('boost_asio'),
-        subproject('boost_core').get_variable('boost_core'),
         subproject('boost_container_hash').get_variable('boost_container_hash'),
         subproject('boost_optional').get_variable('boost_optional'),
         subproject('boost_type_traits').get_variable('boost_type_traits'),

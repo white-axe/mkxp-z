@@ -30,7 +30,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include <boost/core/enable_if.hpp>
 #include <boost/type_traits/is_detected.hpp>
 #include <boost/container_hash/hash.hpp>
 #include <boost/asio/coroutine.hpp>
@@ -138,10 +137,10 @@ namespace mkxp_sandbox {
     // Otherwise, it's equal to 0.
     template <typename T, typename Dummy = void> struct declared_slots_size;
     template <typename T> using slots_declaration = typename T::slots;
-    template <typename T> struct declared_slots_size<T, typename boost::enable_if<boost::is_detected<slots_declaration, T>>::type> {
+    template <typename T> struct declared_slots_size<T, typename std::enable_if<boost::is_detected<slots_declaration, T>::value>::type> {
         static constexpr wasm_size_t value = slots_size<typename T::slots>::value;
     };
-    template <typename T> struct declared_slots_size<T, typename boost::disable_if<boost::is_detected<slots_declaration, T>>::type> {
+    template <typename T> struct declared_slots_size<T, typename std::enable_if<!boost::is_detected<slots_declaration, T>::value>::type> {
         static constexpr wasm_size_t value = 0;
     };
 
@@ -292,11 +291,11 @@ namespace mkxp_sandbox {
                 return bind.fibers[key];
             }
 
-            template <typename U> static typename boost::enable_if<std::is_constructible<U, struct binding_base &>, U *>::type construct_frame(struct binding_base &bind) {
+            template <typename U> static typename std::enable_if<std::is_constructible<U, struct binding_base &>::value, U *>::type construct_frame(struct binding_base &bind) {
                 return new U(bind);
             }
 
-            template <typename U> static typename boost::disable_if<std::is_constructible<U, struct binding_base &>, U *>::type construct_frame(struct binding_base &bind) {
+            template <typename U> static typename std::enable_if<!std::is_constructible<U, struct binding_base &>::value, U *>::type construct_frame(struct binding_base &bind) {
                 return new U;
             }
 
