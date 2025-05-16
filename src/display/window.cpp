@@ -36,6 +36,9 @@
 
 #include "sigslot/signal.hpp"
 
+#define GUARD_V(value, expression) do { expression; if (exception.is_error()) return value; } while (0)
+#define GUARD(expression) GUARD_V(, expression)
+
 template<typename T>
 struct Sides
 {
@@ -215,10 +218,12 @@ struct WindowPrivate
 		    : ViewportElement(nullptr, viewport),
 		      p(p)
 		{
-			setZ(2);
+			// Ignore errors
+			Exception e;
+			setZ(e, 2);
 		}
 
-		void draw()
+		void draw(Exception &exception)
 		{
 			p->drawControls();
 		}
@@ -404,7 +409,7 @@ struct WindowPrivate
 		baseTexDirty = true;
 	}
 
-	void ensureBaseTexReady()
+	void ensureBaseTexReady(Exception &exception)
 	{
 		/* Make sure texture is big enough */
 		int newW = baseTex.width;
@@ -426,7 +431,7 @@ struct WindowPrivate
 			return;
 
 		shState->texPool().release(baseTex);
-		baseTex = shState->texPool().request(newW, newH);
+		GUARD(baseTex = shState->texPool().request(exception, newW, newH));
 
 		baseTexDirty = true;
 	}
@@ -556,7 +561,10 @@ struct WindowPrivate
 
 		if (useBaseTex)
 		{
-			ensureBaseTexReady();
+			Exception e;
+			ensureBaseTexReady(e);
+			if (e.is_error())
+				return;
 
 			if (baseTexDirty)
 			{
@@ -712,9 +720,9 @@ Window::~Window()
 	dispose();
 }
 
-void Window::update()
+void Window::update(Exception &exception)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	p->updateControls();
 	p->stepAnimations();
@@ -737,9 +745,9 @@ DEF_ATTR_RD_SIMPLE(Window, Opacity,         int,     p->opacity)
 DEF_ATTR_RD_SIMPLE(Window, BackOpacity,     int,     p->backOpacity)
 DEF_ATTR_RD_SIMPLE(Window, ContentsOpacity, int,     p->contentsOpacity)
 
-void Window::setWindowskin(Bitmap *value)
+void Window::setWindowskin(Exception &exception, Bitmap *value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	p->windowskin = value;
 
@@ -751,14 +759,14 @@ void Window::setWindowskin(Bitmap *value)
 		return;
 	}
 
-	value->ensureNonMega();
+	GUARD(value->ensureNonMega(exception));
 	
 	p->windowskinDispCon = value->wasDisposed.connect(&WindowPrivate::windowskinDisposal, p);
 }
 
-void Window::setContents(Bitmap *value)
+void Window::setContents(Exception &exception, Bitmap *value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->contents == value)
 		return;
@@ -776,14 +784,14 @@ void Window::setContents(Bitmap *value)
 
 	p->contentsDispCon = value->wasDisposed.connect(&WindowPrivate::contentsDisposal, p);
 
-	value->ensureNonMega();
+	GUARD(value->ensureNonMega(exception));
 
 	p->contentsQuad.setTexPosRect(value->rect(), value->rect());
 }
 
-void Window::setStretch(bool value)
+void Window::setStretch(Exception &exception, bool value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (value == p->bgStretch)
 		return;
@@ -792,9 +800,9 @@ void Window::setStretch(bool value)
 	p->baseVertDirty = true;
 }
 
-void Window::setActive(bool value)
+void Window::setActive(Exception &exception, bool value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->active == value)
 		return;
@@ -803,9 +811,9 @@ void Window::setActive(bool value)
 	p->cursorAniAlphaIdx = 0;
 }
 
-void Window::setPause(bool value)
+void Window::setPause(Exception &exception, bool value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->pause == value)
 		return;
@@ -816,9 +824,9 @@ void Window::setPause(bool value)
 	p->controlsVertDirty = true;
 }
 
-void Window::setWidth(int value)
+void Window::setWidth(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->size.x == value)
 		return;
@@ -827,9 +835,9 @@ void Window::setWidth(int value)
 	p->baseVertDirty = true;
 }
 
-void Window::setHeight(int value)
+void Window::setHeight(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->size.y == value)
 		return;
@@ -838,9 +846,9 @@ void Window::setHeight(int value)
 	p->baseVertDirty = true;
 }
 
-void Window::setOX(int value)
+void Window::setOX(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->contentsOffset.x == value)
 		return;
@@ -849,9 +857,9 @@ void Window::setOX(int value)
 	p->controlsVertDirty = true;
 }
 
-void Window::setOY(int value)
+void Window::setOY(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->contentsOffset.y == value)
 		return;
@@ -860,9 +868,9 @@ void Window::setOY(int value)
 	p->controlsVertDirty = true;
 }
 
-void Window::setOpacity(int value)
+void Window::setOpacity(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->opacity == value)
 		return;
@@ -871,9 +879,9 @@ void Window::setOpacity(int value)
 	p->opacityDirty = true;
 }
 
-void Window::setBackOpacity(int value)
+void Window::setBackOpacity(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->backOpacity == value)
 		return;
@@ -882,9 +890,9 @@ void Window::setBackOpacity(int value)
 	p->opacityDirty = true;
 }
 
-void Window::setContentsOpacity(int value)
+void Window::setContentsOpacity(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->contentsOpacity == value)
 		return;
@@ -900,7 +908,7 @@ void Window::initDynAttribs()
 	p->refreshCursorRectCon();
 }
 
-void Window::draw()
+void Window::draw(Exception &exception)
 {
 	p->drawBase();
 }
@@ -910,18 +918,18 @@ void Window::onGeometryChange(const Scene::Geometry &geo)
 	p->sceneOffset = geo.offset();
 }
 
-void Window::setZ(int value)
+void Window::setZ(Exception &exception, int value)
 {
-	ViewportElement::setZ(value);
+	GUARD(ViewportElement::setZ(exception, value));
 
-	p->controlsElement.setZ(value + 2);
+	GUARD(p->controlsElement.setZ(exception, value + 2));
 }
 
-void Window::setVisible(bool value)
+void Window::setVisible(Exception &exception, bool value)
 {
-	ViewportElement::setVisible(value);
+	GUARD(ViewportElement::setVisible(exception, value));
 
-	p->controlsElement.setVisible(value);
+	GUARD(p->controlsElement.setVisible(exception, value));
 }
 
 void Window::onViewportChange()

@@ -90,7 +90,8 @@ AudioStream::~AudioStream()
 	stream.close();
 }
 
-void AudioStream::play(const std::string &filename,
+void AudioStream::play(Exception &exception,
+	               const std::string &filename,
                        int volume,
                        int pitch,
                        double offset)
@@ -130,16 +131,9 @@ void AudioStream::play(const std::string &filename,
 
 	if (diffFile || sState == ALStream::Closed)
 	{
-		try
-		{
-			/* This will throw on errors while
-			 * opening the data source */
-			stream.open(filename);
-		}
-		catch (const Exception &e)
-		{
-			throw e;
-		}
+		stream.open(exception, filename);
+		if (exception.type != Exception::Ok)
+			return;
 	} else {
 		switch (sState)
 		{

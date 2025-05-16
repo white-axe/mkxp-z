@@ -54,7 +54,7 @@ public:
 	Scene();
 	virtual ~Scene();
 
-	virtual void composite();
+	virtual void composite(Exception &exception);
 	virtual void requestViewportRender(const Vec4& /* color */,
 	                                   const Vec4& /* flash */,
 	                                   const Vec4& /* tone */) {}
@@ -89,7 +89,7 @@ public:
 	DECL_ATTR_VIRT( Z,       int  )
 	DECL_ATTR_VIRT( Visible, bool )
 
-	virtual void aboutToAccess() const = 0;
+	virtual void aboutToAccess(Exception &exception) const = 0;
 
 protected:
 	/* A bit about OpenGL state:
@@ -110,7 +110,7 @@ protected:
 	 * Bitmaps), use the 'prepareDraw' signal in SharedState that
 	 * will fire immediately before each frame draw.
 	 */
-	virtual void draw() = 0;
+	virtual void draw(Exception &exception) = 0;
 
 	// FIXME: This should be a signal
 	virtual void onGeometryChange(const Scene::Geometry &) {}
@@ -147,9 +147,9 @@ private:
 };
 
 #define ABOUT_TO_ACCESS_NOOP \
-	void aboutToAccess() const {}
+	void aboutToAccess(Exception &exception) const {}
 
 #define ABOUT_TO_ACCESS_DISP \
-	void aboutToAccess() const { guardDisposed(); }
+	void aboutToAccess(Exception &exception) const { guardDisposed(exception); }
 
 #endif // SCENE_H

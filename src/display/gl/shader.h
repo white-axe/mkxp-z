@@ -45,11 +45,13 @@ protected:
 	Shader();
 	~Shader();
 
-    void init(const unsigned char *vert, int vertSize,
-              const unsigned char *frag, int fragSize,
+	void init(Exception &exception,
+	          const unsigned char *vert, int vertSize,
+	          const unsigned char *frag, int fragSize,
 	          const char *vertName, const char *fragName,
 	          const char *programName);
-	void initFromFile(const char *vertFile, const char *fragFile,
+	void initFromFile(Exception &exception,
+	                  const char *vertFile, const char *fragFile,
 	                  const char *programName);
 
 	static void setVec4Uniform(GLint location, const Vec4 &vec);
@@ -99,7 +101,7 @@ protected:
 class FlatColorShader : public ShaderBase
 {
 public:
-	FlatColorShader();
+	FlatColorShader(Exception &exception);
 
 	void setColor(const Vec4 &value);
 
@@ -110,7 +112,7 @@ private:
 class SimpleShader : public ShaderBase
 {
 public:
-	SimpleShader();
+	SimpleShader(Exception &exception);
 
 	void setTexOffsetX(int value);
 
@@ -121,19 +123,19 @@ protected:
 class SimpleColorShader : public ShaderBase
 {
 public:
-	SimpleColorShader();
+	SimpleColorShader(Exception &exception);
 };
 
 class SimpleAlphaShader : public ShaderBase
 {
 public:
-	SimpleAlphaShader();
+	SimpleAlphaShader(Exception &exception);
 };
 
 class SimpleSpriteShader : public ShaderBase
 {
 public:
-	SimpleSpriteShader();
+	SimpleSpriteShader(Exception &exception);
 
 	void setSpriteMat(const float value[16]);
 
@@ -144,7 +146,7 @@ protected:
 class AlphaSpriteShader : public ShaderBase
 {
 public:
-	AlphaSpriteShader();
+	AlphaSpriteShader(Exception &exception);
 
 	void setSpriteMat(const float value[16]);
 	void setAlpha(float value);
@@ -156,7 +158,7 @@ private:
 class TransShader : public ShaderBase
 {
 public:
-	TransShader();
+	TransShader(Exception &exception);
 
 	void setCurrentScene(TEX::ID tex);
 	void setFrozenScene(TEX::ID tex);
@@ -171,7 +173,7 @@ private:
 class SimpleTransShader : public ShaderBase
 {
 public:
-	SimpleTransShader();
+	SimpleTransShader(Exception &exception);
 
 	void setCurrentScene(TEX::ID tex);
 	void setFrozenScene(TEX::ID tex);
@@ -184,7 +186,7 @@ private:
 class SpriteShader : public ShaderBase
 {
 public:
-	SpriteShader();
+	SpriteShader(Exception &exception);
 
 	void setSpriteMat(const float value[16]);
 	void setTone(const Vec4 &value);
@@ -209,7 +211,7 @@ private:
 class PlaneShader : public ShaderBase
 {
 public:
-	PlaneShader();
+	PlaneShader(Exception &exception);
 
 	void setTone(const Vec4 &value);
 	void setColor(const Vec4 &value);
@@ -223,7 +225,7 @@ private:
 class GrayShader : public ShaderBase
 {
 public:
-	GrayShader();
+	GrayShader(Exception &exception);
 
 	void setGray(float value);
 
@@ -237,7 +239,7 @@ private:
 class TilemapShader : public ShaderBase
 {
 public:
-	TilemapShader();
+	TilemapShader(Exception &exception);
 
 	void setAniIndex(int value);
 
@@ -254,7 +256,7 @@ private:
 class FlashMapShader : public ShaderBase
 {
 public:
-	FlashMapShader();
+	FlashMapShader(Exception &exception);
 
 	void setAlpha(float value);
 
@@ -265,7 +267,7 @@ private:
 class HueShader : public ShaderBase
 {
 public:
-	HueShader();
+	HueShader(Exception &exception);
 
 	void setHueAdjust(float value);
 
@@ -276,7 +278,7 @@ private:
 class SimpleMatrixShader : public ShaderBase
 {
 public:
-	SimpleMatrixShader();
+	SimpleMatrixShader(Exception &exception);
 
 	void setMatrix(const float value[16]);
 
@@ -290,14 +292,16 @@ struct BlurShader
 	class HPass : public ShaderBase
 	{
 	public:
-		HPass();
+		HPass(Exception &exception);
 	};
 
 	class VPass : public ShaderBase
 	{
 	public:
-		VPass();
+		VPass(Exception &exception);
 	};
+
+	BlurShader(Exception &exception);
 
 	HPass pass1;
 	VPass pass2;
@@ -306,7 +310,7 @@ struct BlurShader
 class TilemapVXShader : public ShaderBase
 {
 public:
-	TilemapVXShader();
+	TilemapVXShader(Exception &exception);
 
 	void setAniOffset(const Vec2 &value);
 
@@ -318,7 +322,7 @@ private:
 class BltShader : public ShaderBase
 {
 public:
-	BltShader();
+	BltShader(Exception &exception);
 
 	void setSource();
 	void setDestination(const TEX::ID value);
@@ -333,7 +337,7 @@ private:
 class Lanczos3Shader : public SimpleShader
 {
 public:
-	Lanczos3Shader();
+	Lanczos3Shader(Exception &exception);
 
 	void setTexSize(const Vec2i &value);
 
@@ -344,7 +348,7 @@ protected:
 class BicubicShader : public Lanczos3Shader
 {
 public:
-	BicubicShader();
+	BicubicShader(Exception &exception);
 
 	void setSharpness(int sharpness);
 
@@ -356,7 +360,7 @@ protected:
 class XbrzShader : public Lanczos3Shader
 {
 public:
-	XbrzShader();
+	XbrzShader(Exception &exception);
 
 	void setTargetScale(const Vec2 &value);
 
@@ -368,7 +372,7 @@ protected:
 class Lanczos3SpriteShader : public SimpleSpriteShader
 {
 public:
-	Lanczos3SpriteShader();
+	Lanczos3SpriteShader(Exception &exception);
 
 	void setTexSize(const Vec2i &value);
 
@@ -379,7 +383,7 @@ protected:
 class BicubicSpriteShader : public Lanczos3SpriteShader
 {
 public:
-	BicubicSpriteShader();
+	BicubicSpriteShader(Exception &exception);
 
 	void setSharpness(int sharpness);
 
@@ -390,7 +394,7 @@ protected:
 class XbrzSpriteShader : public Lanczos3SpriteShader
 {
 public:
-	XbrzSpriteShader();
+	XbrzSpriteShader(Exception &exception);
 
 	void setTargetScale(const Vec2 &value);
 
@@ -429,6 +433,8 @@ struct ShaderSet
 #ifdef MKXPZ_SSL
 	XbrzSpriteShader xbrzSprite;
 #endif
+
+	ShaderSet(Exception &exception);
 };
 
 #endif // SHADER_H

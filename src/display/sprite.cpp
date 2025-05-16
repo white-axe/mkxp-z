@@ -43,6 +43,9 @@
 
 #include "sigslot/signal.hpp"
 
+#define GUARD_V(value, expression) do { expression; if (exception.is_error()) return value; } while (0)
+#define GUARD(expression) GUARD_V(, expression)
+
 struct SpritePrivate
 {
     Bitmap *bitmap;
@@ -172,7 +175,10 @@ struct SpritePrivate
             bmSize = Vec2i(bitmap->width(), bitmap->height());
             if (bitmap->hasHires())
             {
-                bmSizeHires = Vec2i(bitmap->getHires()->width(), bitmap->getHires()->height());
+                Exception e;
+                Bitmap *hires = bitmap->getHires(e);
+                if (e.is_ok())
+                    bmSizeHires = Vec2i(hires->width(), hires->height());
             }
         }
         
@@ -392,9 +398,9 @@ DEF_ATTR_SIMPLE(Sprite, PatternZoomX, float, p->patternZoom.x)
 DEF_ATTR_SIMPLE(Sprite, PatternZoomY, float, p->patternZoom.y)
 DEF_ATTR_SIMPLE(Sprite, Invert,      bool,    p->invert)
 
-void Sprite::setBitmap(Bitmap *bitmap)
+void Sprite::setBitmap(Exception &exception, Bitmap *bitmap)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
     if (p->bitmap == bitmap)
         return;
@@ -411,7 +417,7 @@ void Sprite::setBitmap(Bitmap *bitmap)
     
     p->bitmapDispCon = bitmap->wasDisposed.connect(&SpritePrivate::bitmapDisposal, p);
     
-    bitmap->ensureNonMega();
+    GUARD(bitmap->ensureNonMega(exception));
     
     *p->srcRect = bitmap->rect();
     p->onSrcRectChange();
@@ -420,24 +426,28 @@ void Sprite::setBitmap(Bitmap *bitmap)
     p->wave.dirty = true;
 }
 
-void Sprite::setX(int value)
+void Sprite::setX(Exception &exception, int value)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
     if (p->trans.getPosition().x == value)
         return;
     
-    p->trans.setPosition(Vec2(value, getY()));
+    int y;
+    GUARD(y = getY(exception));
+    p->trans.setPosition(Vec2(value, y));
 }
 
-void Sprite::setY(int value)
+void Sprite::setY(Exception &exception, int value)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
     if (p->trans.getPosition().y == value)
         return;
     
-    p->trans.setPosition(Vec2(getX(), value));
+    int x;
+    GUARD(x = getX(exception));
+    p->trans.setPosition(Vec2(x, value));
     
     if (rgssVer >= 2)
     {
@@ -446,53 +456,61 @@ void Sprite::setY(int value)
     }
 }
 
-void Sprite::setOX(int value)
+void Sprite::setOX(Exception &exception, int value)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
     if (p->trans.getOrigin().x == value)
         return;
     
-    p->trans.setOrigin(Vec2(value, getOY()));
+    int oy;
+    GUARD(oy = getOY(exception));
+    p->trans.setOrigin(Vec2(value, oy));
 }
 
-void Sprite::setOY(int value)
+void Sprite::setOY(Exception &exception, int value)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
     if (p->trans.getOrigin().y == value)
         return;
     
-    p->trans.setOrigin(Vec2(getOX(), value));
+    int ox;
+    GUARD(ox = getOX(exception));
+    p->trans.setOrigin(Vec2(ox, value));
 }
 
-void Sprite::setZoomX(float value)
+void Sprite::setZoomX(Exception &exception, float value)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
     if (p->trans.getScale().x == value)
         return;
     
-    p->trans.setScale(Vec2(value, getZoomY()));
+    float zoomY;
+    GUARD(zoomY = getZoomY(exception));
+    p->trans.setScale(Vec2(value, zoomY));
 }
 
-void Sprite::setZoomY(float value)
+void Sprite::setZoomY(Exception &exception, float value)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
     if (p->trans.getScale().y == value)
         return;
     
-    p->trans.setScale(Vec2(getZoomX(), value));
+    float zoomX;
+    GUARD(zoomX = getZoomX(exception));
+    p->trans.setScale(Vec2(zoomX, value));
     p->recomputeBushDepth();
     
     if (rgssVer >= 2)
         p->wave.dirty = true;
 }
 
-void Sprite::setAngle(float value)
+void Sprite::setAngle(Exception &exception, float value)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
     if (p->trans.getRotation() == value)
         return;
@@ -500,9 +518,9 @@ void Sprite::setAngle(float value)
     p->trans.setRotation(value);
 }
 
-void Sprite::setMirror(bool mirrored)
+void Sprite::setMirror(Exception &exception, bool mirrored)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
     if (p->mirrored == mirrored)
         return;
@@ -511,9 +529,9 @@ void Sprite::setMirror(bool mirrored)
     p->onSrcRectChange();
 }
 
-void Sprite::setBushDepth(int value)
+void Sprite::setBushDepth(Exception &exception, int value)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
     if (p->bushDepth == value)
         return;
@@ -522,9 +540,9 @@ void Sprite::setBushDepth(int value)
     p->recomputeBushDepth();
 }
 
-void Sprite::setBlendType(int type)
+void Sprite::setBlendType(Exception &exception, int type)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
     switch (type)
     {
@@ -541,9 +559,9 @@ void Sprite::setBlendType(int type)
     }
 }
 
-void Sprite::setPattern(Bitmap *value)
+void Sprite::setPattern(Exception &exception, Bitmap *value)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
     if (p->pattern == value)
         return;
@@ -551,12 +569,12 @@ void Sprite::setPattern(Bitmap *value)
     p->pattern = value;
     
     if (!nullOrDisposed(value))
-        value->ensureNonMega();
+        GUARD(value->ensureNonMega(exception));
 }
 
-void Sprite::setPatternBlendType(int type)
+void Sprite::setPatternBlendType(Exception &exception, int type)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
     switch (type)
     {
@@ -574,9 +592,9 @@ void Sprite::setPatternBlendType(int type)
 }
 
 #define DEF_WAVE_SETTER(Name, name, type) \
-void Sprite::setWave##Name(type value) \
+void Sprite::setWave##Name(Exception &exception, type value) \
 { \
-guardDisposed(); \
+GUARD(guardDisposed(exception)); \
 if (p->wave.name == value) \
 return; \
 p->wave.name = value; \
@@ -600,18 +618,18 @@ void Sprite::initDynAttribs()
 }
 
 /* Flashable */
-void Sprite::update()
+void Sprite::update(Exception &exception)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
-    Flashable::update();
+    GUARD(Flashable::update(exception));
     
     p->wave.phase += p->wave.speed / 180;
     p->wave.dirty = true;
 }
 
 /* SceneElement */
-void Sprite::draw()
+void Sprite::draw(Exception &exception)
 {
     if (!p->isVisible)
         return;
@@ -630,8 +648,10 @@ void Sprite::draw()
     
     int scalingMethod = NearestNeighbor;
 
-    int sourceWidthHires = p->bitmap->hasHires() ? p->bitmap->getHires()->width() : p->bitmap->width();
-    int sourceHeightHires = p->bitmap->hasHires() ? p->bitmap->getHires()->height() : p->bitmap->height();
+    Bitmap *hires;
+    GUARD(hires = p->bitmap->getHires(exception));
+    int sourceWidthHires = p->bitmap->hasHires() ? hires->width() : p->bitmap->width();
+    int sourceHeightHires = p->bitmap->hasHires() ? hires->height() : p->bitmap->height();
 
     double framebufferScalingFactor = shState->config().enableHires ? shState->config().framebufferScalingFactor : 1.0;
 

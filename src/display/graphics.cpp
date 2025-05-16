@@ -82,6 +82,9 @@
 #define MOVIE_AUDIO_BUFFER_SIZE 2048
 #define BUFFER_LEN_MS 200
 
+#define GUARD_V(value, expression) do { expression; if (exception.is_error()) return value; } while (0)
+#define GUARD(expression) GUARD_V(, expression)
+
 typedef struct AudioQueue
 {
     const THEORAPLAY_AudioPacket *audio;
@@ -276,7 +279,13 @@ struct Movie
         }
         // Create this Bitmap without a hires replacement, because we don't
         // support hires replacement for Movies yet.
-        videoBitmap = new Bitmap(video->width, video->height, true);
+        Exception exception;
+        videoBitmap = new Bitmap(exception, video->width, video->height, true);
+        if (exception.is_error()) {
+            delete videoBitmap;
+            videoBitmap = NULL;
+            return false;
+        }
         audioQueueHead = NULL;
         audioQueueTail = NULL;
         
@@ -485,8 +494,16 @@ struct Movie
                 }
 
                 // Got a video frame, now draw it
-                videoBitmap->replaceRaw(video->pixels, video->width * video->height * 4);
-                shState->graphics().update(false);
+                {
+                    // Ignore errors
+                    Exception e;
+                    videoBitmap->replaceRaw(e, video->pixels, video->width * video->height * 4);
+                }
+                {
+                    // Ignore errors
+                    Exception e;
+                    shState->graphics().update(e, false);
+                }
                 {
                     AudioMutexGuard guard(audioMutex);
                     currentTicks = video->playms;
@@ -638,7 +655,7 @@ public:
         brightnessQuad.setColor(Vec4());
     }
     
-    void composite() {
+    void composite(Exception &exception) {
         const int w = geometry.rect.w;
         const int h = geometry.rect.h;
         
@@ -650,7 +667,7 @@ public:
         
         FBO::clear();
         
-        Scene::composite();
+        GUARD(Scene::composite(exception));
         
         if (brightEffect) {
             SimpleColorShader &shader = shState->shaders().simpleColor;
@@ -1179,12 +1196,12 @@ struct GraphicsPrivate {
 #endif // MKXPZ_RETRO
     }
     
-    void compositeToBuffer(TEXFBO &buffer) {
-        compositeToBufferScaled(buffer, scRes.x, scRes.y);
+    void compositeToBuffer(Exception &exception, TEXFBO &buffer) {
+        GUARD(compositeToBufferScaled(exception, buffer, scRes.x, scRes.y));
     }
 
-    void compositeToBufferScaled(TEXFBO &buffer, int destWidth, int destHeight) {
-        screen.composite();
+    void compositeToBufferScaled(Exception &exception, TEXFBO &buffer, int destWidth, int destHeight) {
+        GUARD(screen.composite(exception));
         
         int scaleIsSpecial = GLMeta::blitScaleIsSpecial(buffer, false, IntRect(0, 0, destWidth, destHeight), screen.getPP().frontBuffer(), IntRect(0, 0, scRes.x, scRes.y));
 
@@ -1211,8 +1228,8 @@ struct GraphicsPrivate {
                               !forceNearestNeighbor && GLMeta::smoothScalingMethod(scaleIsSpecial) == Bilinear);
     }
     
-    void redrawScreen() {
-        screen.composite();
+    void redrawScreen(Exception &exception) {
+        GUARD(screen.composite(exception));
         
         // maybe unspaghetti this later
         if (integerScaleStepApplicable() && !integerLastMileScaling)
@@ -1369,7 +1386,7 @@ double Graphics::lastUpdate() {
     return p->last_update;
 }
 
-bool Graphics::update(bool checkForShutdown) {
+bool Graphics::update(Exception &exception, bool checkForShutdown) {
     p->threadData->rqWindowAdjust.wait();
     p->last_update = shState->runTime();
     
@@ -1417,26 +1434,26 @@ bool Graphics::update(bool checkForShutdown) {
 #endif // MKXPZ_RETRO
     
     p->checkResize();
-    p->redrawScreen();
+    GUARD_V(false, p->redrawScreen(exception));
 
     return true;
 }
 
-void Graphics::freeze() {
+void Graphics::freeze(Exception &exception) {
     p->frozen = true;
     
     p->checkShutDownReset();
     p->checkResize();
     
     /* Capture scene into frozen buffer */
-    p->compositeToBuffer(p->frozenScene);
+    GUARD(p->compositeToBuffer(exception, p->frozenScene));
 }
 
 bool Graphics::frozen() {
     return p->frozen;
 }
 
-void Graphics::transition(int duration, Bitmap *transMap, int vague, int start, int stop) {
+void Graphics::transition(Exception &exception, int duration, Bitmap *transMap, int vague, int start, int stop) {
     p->checkSyncLock();
     
     if (!p->frozen)
@@ -1449,7 +1466,7 @@ void Graphics::transition(int duration, Bitmap *transMap, int vague, int start, 
     }
     
     /* Capture new scene */
-    p->screen.composite();
+    GUARD(p->screen.composite(exception));
     
     /* The PP frontbuffer will hold the current scene after the
      * composition step. Since the backbuffer is unused during
@@ -1472,7 +1489,9 @@ void Graphics::transition(int duration, Bitmap *transMap, int vague, int start, 
         shader.applyViewportProj();
         shader.setFrozenScene(p->frozenScene.tex);
         shader.setCurrentScene(currentScene.tex);
-        if (transMap->hasHires()) {
+        Bitmap *hires;
+        GUARD(hires = transMap->getHires(exception));
+        if (hires) {
             Debug() << "BUG: High-res Graphics transMap not implemented";
         }
         shader.setTransMap(transMap->getGLTypes().tex);
@@ -1564,9 +1583,9 @@ void Graphics::frameReset() {
 
 static void guardDisposed() {}
 
-DEF_ATTR_RD_SIMPLE(Graphics, FrameRate, int, p->frameRate)
+DEF_ATTR_NOEXCEPT_RD_SIMPLE(Graphics, FrameRate, int, p->frameRate)
 
-DEF_ATTR_SIMPLE(Graphics, FrameCount, int, p->frameCount)
+DEF_ATTR_NOEXCEPT_SIMPLE(Graphics, FrameCount, int, p->frameCount)
 
 void Graphics::setFrameRate(int value) {
     p->frameRate = std::max(value, 1);
@@ -1587,14 +1606,14 @@ double Graphics::averageFrameRate() {
     return p->averageFPS();
 }
 
-void Graphics::wait(int duration, int start, int stop) {
+void Graphics::wait(Exception &exception, int duration, int start, int stop) {
     for (int i = start; i <= stop && i < duration; ++i) {
         p->checkShutDownReset();
-        p->redrawScreen();
+        GUARD(p->redrawScreen(exception));
     }
 }
 
-void Graphics::fadeout(int duration, int start, int stop, int brightness) {
+void Graphics::fadeout(Exception &exception, int duration, int start, int stop, int brightness) {
     FBO::unbind();
     
     float curr = brightness >= 0 && brightness <= 255 ? brightness : p->brightness;
@@ -1616,12 +1635,12 @@ void Graphics::fadeout(int duration, int start, int stop, int brightness) {
             
             p->swapGLBuffer();
         } else {
-            update();
+            GUARD(update(exception));
         }
     }
 }
 
-void Graphics::fadein(int duration, int start, int stop, int brightness) {
+void Graphics::fadein(Exception &exception, int duration, int start, int stop, int brightness) {
     FBO::unbind();
     
     float curr = brightness >= 0 && brightness <= 255 ? brightness : p->brightness;
@@ -1643,13 +1662,13 @@ void Graphics::fadein(int duration, int start, int stop, int brightness) {
             
             p->swapGLBuffer();
         } else {
-            update();
+            GUARD(update(exception));
         }
     }
 }
 
-Bitmap *Graphics::snapToBitmap() {
-    p->screen.composite();
+Bitmap *Graphics::snapToBitmap(Exception &exception) {
+    GUARD_V(nullptr, p->screen.composite(exception));
 
     if (shState->config().enableHires) {
         // TODO: Maybe don't reconstruct this struct every time?
@@ -1658,10 +1677,20 @@ Bitmap *Graphics::snapToBitmap() {
         tf.height = height();
         tf.selfHires = &p->screen.getPP().frontBuffer();
 
-        return new Bitmap(tf);
+        Bitmap *bitmap = new Bitmap(exception, tf);
+        if (exception.is_error()) {
+            delete bitmap;
+            return nullptr;
+        }
+        return bitmap;
     }
 
-    return new Bitmap(p->screen.getPP().frontBuffer());
+    Bitmap *bitmap = new Bitmap(exception, p->screen.getPP().frontBuffer());
+    if (exception.is_error()) {
+        delete bitmap;
+        return nullptr;
+    }
+    return bitmap;
 }
 
 int Graphics::width() const { return p->scResLores.x; }
@@ -1765,7 +1794,7 @@ bool Graphics::updateMovieInput(Movie *movie) {
     return  p->threadData->rqTerm || p->threadData->rqReset;
 }
 
-Movie *Graphics::playMovie(const char *filename, int volume_, bool skippable) {
+Movie *Graphics::playMovie(Exception &exception, const char *filename, int volume_, bool skippable) {
     if (shState->config().enableHires) {
         Debug() << "BUG: High-res Graphics playMovie not implemented";
     }
@@ -1778,25 +1807,70 @@ Movie *Graphics::playMovie(const char *filename, int volume_, bool skippable) {
 #else
     shState->fileSystem().openRead(handler, filename);
 #endif // MKXPZ_RETRO
+    if (handler.exception.is_error()) {
+        delete movie;
+        exception = handler.exception;
+        return nullptr;
+    }
     
     if (movie->preparePlayback()) {        
         movie->movieSprite = new Sprite;
         
         // Currently this stretches to fit the screen. VX Ace behavior is to center it and let the edges run off
-        movie->movieSprite->setBitmap(movie->videoBitmap);
+        movie->movieSprite->setBitmap(exception, movie->videoBitmap);
+        if (exception.is_error()) {
+            delete movie;
+            return nullptr;
+        }
         double ratio = std::min((double)width() / movie->video->width, (double)height() / movie->video->height);
-        movie->movieSprite->setZoomX(ratio);
-        movie->movieSprite->setZoomY(ratio);
-        movie->movieSprite->setX((width() / 2) - (movie->video->width * ratio / 2));
-        movie->movieSprite->setY((height() / 2) - (movie->video->height * ratio / 2));
+        movie->movieSprite->setZoomX(exception, ratio);
+        if (exception.is_error()) {
+            delete movie;
+            return nullptr;
+        }
+        movie->movieSprite->setZoomY(exception, ratio);
+        if (exception.is_error()) {
+            delete movie;
+            return nullptr;
+        }
+        movie->movieSprite->setX(exception, (width() / 2) - (movie->video->width * ratio / 2));
+        if (exception.is_error()) {
+            delete movie;
+            return nullptr;
+        }
+        movie->movieSprite->setY(exception, (height() / 2) - (movie->video->height * ratio / 2));
+        if (exception.is_error()) {
+            delete movie;
+            return nullptr;
+        }
         
         movie->letterboxSprite = new Sprite;
-        movie->letterbox = new Bitmap(width(), height());
-        movie->letterbox->fillRect(0, 0, width(), height(), Vec4(0,0,0,255));
-        movie->letterboxSprite->setBitmap(movie->letterbox);
+        movie->letterbox = new Bitmap(exception, width(), height());
+        if (exception.is_error()) {
+            delete movie;
+            return nullptr;
+        }
+        movie->letterbox->fillRect(exception, 0, 0, width(), height(), Vec4(0,0,0,255));
+        if (exception.is_error()) {
+            delete movie;
+            return nullptr;
+        }
+        movie->letterboxSprite->setBitmap(exception, movie->letterbox);
+        if (exception.is_error()) {
+            delete movie;
+            return nullptr;
+        }
         
-        movie->letterboxSprite->setZ(4999);
-        movie->movieSprite->setZ(5001);
+        movie->letterboxSprite->setZ(exception, 4999);
+        if (exception.is_error()) {
+            delete movie;
+            return nullptr;
+        }
+        movie->movieSprite->setZ(exception, 5001);
+        if (exception.is_error()) {
+            delete movie;
+            return nullptr;
+        }
         
         if (movie->play()) {
             return movie;
@@ -1834,17 +1908,25 @@ bool Graphics::streamMovieAudioProc(Movie *movie) {
     return movie->streamMovieAudioProc();
 }
 
-void Graphics::screenshot(const char *filename) {
+void Graphics::screenshot(Exception &exception, const char *filename) {
 #ifndef MKXPZ_RETRO
     p->threadData->rqWindowAdjust.wait();
 #endif // MKXPZ_RETRO
-    Bitmap *ss = snapToBitmap();
-    ss->saveToFile(filename);
+    Bitmap *ss = snapToBitmap(exception);
+    if (exception.is_error()) {
+        delete ss;
+        return;
+    }
+    ss->saveToFile(exception, filename);
+    if (exception.is_error()) {
+        delete ss;
+        return;
+    }
     ss->dispose();
     delete ss;
 }
 
-DEF_ATTR_RD_SIMPLE(Graphics, Brightness, int, p->brightness)
+DEF_ATTR_NOEXCEPT_RD_SIMPLE(Graphics, Brightness, int, p->brightness)
 
 void Graphics::setBrightness(int value) {
     value = clamp(value, 0, 255);
@@ -1856,7 +1938,7 @@ void Graphics::setBrightness(int value) {
     p->screen.setBrightness(value / 255.0);
 }
 
-void Graphics::reset() {
+void Graphics::reset(Exception &exception) {
     /* Dispose all live Disposables */
     IntruListLink<Disposable> *iter;
     
@@ -1881,7 +1963,7 @@ void Graphics::reset() {
     // Always update at least once to clear the screen
     if (p->threadData->rqResetFinish)
 #endif // MKXPZ_RETRO
-        update();
+        GUARD(update(exception));
 #ifndef MKXPZ_RETRO
     else
         repaintWait(p->threadData->rqResetFinish, false);

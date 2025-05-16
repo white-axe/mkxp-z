@@ -274,7 +274,17 @@ static void doBlit(Bitmap *bm, const IntRect &src, const Vec2i &dst)
 	/* Translate tile to pixel units */
 	IntRect _src(src.x*32, src.y*32, src.w*32, src.h*32);
 	Vec2i _dst(dst.x*32, dst.y*32);
-	IntRect bmr(0, 0, bm->width(), bm->height());
+	int w, h;
+	{
+		Exception e;
+		w = bm->getWidth(e);
+		if (e.is_error())
+			return;
+		h = bm->getHeight(e);
+		if (e.is_error())
+			return;
+	}
+	IntRect bmr(0, 0, w, h);
 
 	if (!SDL_IntersectRect(&_src, &bmr, &_src))
 		return;

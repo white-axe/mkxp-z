@@ -86,7 +86,7 @@ static void parseExtensionsCompat(_PFNGLGETSTRINGPROC GetString, BoostSet<std::s
 #define EXC(msg) \
 Exception(Exception::MKXPError, "%s", msg)
 
-void initGLFunctions()
+void initGLFunctions(Exception &exception)
 {
 #define EXT_SUFFIX ""
     GL_20_FUN;
@@ -111,8 +111,9 @@ void initGLFunctions()
     int glMajor = *ver - '0';
     
     if (glMajor < 2)
+    {
 #ifndef GLES2_HEADER
-        throw Exception(Exception::MKXPError,
+        exception = Exception(Exception::MKXPError,
                   "A graphics card that supports OpenGL 2.0 or later is required.\n\n"
                   "Driver information:\n"
                   "Vendor: %s\n"
@@ -124,8 +125,10 @@ void initGLFunctions()
 #else
         // on macOS, we're actually using either desktop GL or Metal due to ANGLE, but every Mac that supports Sierra
         // (officially or otherwise) should support ANGLE, so this should never be seen. Probably, anyway. Don't @ me
-        throw EXC("A graphics card that supports OpenGL ES 2.0 or later is required.");
+        exception = EXC("A graphics card that supports OpenGL ES 2.0 or later is required.");
 #endif
+        return;
+    }
     
     if (gles)
     {
@@ -166,7 +169,8 @@ void initGLFunctions()
     }
     else
     {
-        throw EXC("No FBO support available");
+        exception = EXC("No FBO support available");
+        return;
     }
     
     /* VAO entrypoints */

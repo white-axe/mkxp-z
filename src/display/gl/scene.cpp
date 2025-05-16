@@ -22,6 +22,9 @@
 #include "scene.h"
 #include "sharedstate.h"
 
+#define GUARD_V(value, expression) do { expression; if (exception.is_error()) return value; } while (0)
+#define GUARD(expression) GUARD_V(, expression)
+
 Scene::Scene()
 {}
 
@@ -88,7 +91,7 @@ void Scene::notifyGeometryChange()
 	}
 }
 
-void Scene::composite()
+void Scene::composite(Exception &exception)
 {
 	IntruListLink<SceneElement> *iter;
 
@@ -97,7 +100,7 @@ void Scene::composite()
 		SceneElement *e = iter->data;
 
 		if (e->visible)
-			e->draw();
+			GUARD(e->draw(exception));
 	}
 }
 
@@ -129,16 +132,16 @@ void SceneElement::setScene(Scene &scene)
 	onGeometryChange(scene.getGeometry());
 }
 
-int SceneElement::getZ() const
+int SceneElement::getZ(Exception &exception) const
 {
-	aboutToAccess();
+	GUARD_V(0, aboutToAccess(exception));
 
 	return z;
 }
 
-void SceneElement::setZ(int value)
+void SceneElement::setZ(Exception &exception, int value)
 {
-	aboutToAccess();
+	GUARD(aboutToAccess(exception));
 
 	if (z == value)
 		return;
@@ -147,16 +150,16 @@ void SceneElement::setZ(int value)
 	scene->reinsert(*this);
 }
 
-bool SceneElement::getVisible() const
+bool SceneElement::getVisible(Exception &exception) const
 {
-	aboutToAccess();
+	GUARD_V(false, aboutToAccess(exception));
 
 	return visible;
 }
 
-void SceneElement::setVisible(bool value)
+void SceneElement::setVisible(Exception &exception, bool value)
 {
-	aboutToAccess();
+	GUARD(aboutToAccess(exception));
 
 	visible = value;
 }

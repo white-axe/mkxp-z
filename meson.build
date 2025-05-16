@@ -96,7 +96,8 @@ if host_endian == 'big'
     global_args += '-DMKXPZ_BIG_ENDIAN'
 endif
 
-if is_emscripten or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'C++ exceptions support check')
+if is_emscripten or core_is_static or not compilers['cpp'].compiles('struct E {}; int main() { throw E(); }', name: 'C++ exceptions support check')
+    global_cpp_args += '-fno-exceptions'
     global_args += '-DMKXPZ_NO_EXCEPTIONS'
     global_args += '-DBOOST_NO_EXCEPTIONS'
 endif

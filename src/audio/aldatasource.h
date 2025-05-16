@@ -54,6 +54,7 @@ struct ALDataSource
 };
 
 ALDataSource *createSDLSource(
+				std::string &error,
 #ifdef MKXPZ_RETRO
 				std::shared_ptr<struct FileSystem::File> ops,
 #else
@@ -64,6 +65,7 @@ ALDataSource *createSDLSource(
 			                  bool looped);
 
 ALDataSource *createSndfileSource(
+				std::string &error,
 #ifdef MKXPZ_RETRO
 				std::shared_ptr<struct FileSystem::File> ops,
 #else
@@ -72,6 +74,7 @@ ALDataSource *createSndfileSource(
 				bool looped);
 
 ALDataSource *createVorbisSource(
+				std::string &error,
 #ifdef MKXPZ_RETRO
 				std::shared_ptr<struct FileSystem::File> ops,
 #else
@@ -80,6 +83,7 @@ ALDataSource *createVorbisSource(
                                  bool looped);
 
 ALDataSource *createMidiSource(
+				std::string &error,
 #ifdef MKXPZ_RETRO
 				std::shared_ptr<struct FileSystem::File> ops,
 #else

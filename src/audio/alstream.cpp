@@ -92,11 +92,12 @@ void ALStream::close()
 	}
 }
 
-void ALStream::open(const std::string &filename)
+void ALStream::open(Exception &exception, const std::string &filename)
 {
-	openSource(filename);
+	openSource(exception, filename);
 
-	state = Stopped;
+	if (exception.type == Exception::Ok)
+		state = Stopped;
 }
 
 void ALStream::stop()
@@ -221,62 +222,58 @@ struct ALStreamOpenHandler : FileSystem::OpenHandler
 		SDL_RWseek(&ops, 0, RW_SEEK_SET);
 #endif // MKXPZ_RETRO
 
-		try
+		if (!strcmp(sig, "OggS"))
 		{
-			if (!strcmp(sig, "OggS"))
-			{
-				source = createVorbisSource(ops, looped);
+			if ((source = createVorbisSource(errorMsg, ops, looped)) != nullptr)
 				return true;
-			}
-
-			if (!strcmp(sig, "MThd"))
-			{
-				shState->midiState().initIfNeeded(shState->config());
-
-				if (HAVE_FLUID)
-				{
-					source = createMidiSource(ops, looped);
-					return true;
-				}
-			}
 
 #ifdef MKXPZ_RETRO
-			source = createSndfileSource(ops, looped);
-#else
-			source = createSDLSource(ops, ext, STREAM_BUF_SIZE, looped);
+			else if ((source = createSndfileSource(errorMsg, ops, looped)) != nullptr)
+				return true;
 #endif // MKXPZ_RETRO
 		}
-		catch (const Exception &e)
+
+		else if (!strcmp(sig, "MThd"))
 		{
-			/* All source constructors will close the passed ops
-			 * before throwing errors */
-			errorMsg = e.msg;
-			return false;
+			shState->midiState().initIfNeeded(shState->config());
+
+			if (HAVE_FLUID)
+			{
+				if ((source = createMidiSource(errorMsg, ops, looped)) != nullptr)
+					return true;
+			}
 		}
 
-		return true;
+#ifdef MKXPZ_RETRO
+		else if ((source = createSndfileSource(errorMsg, ops, looped)) != nullptr)
+#else
+		else if ((source = createSDLSource(errorMsg, ops, ext, STREAM_BUF_SIZE, looped)) != nullptr)
+#endif // MKXPZ_RETRO
+			return true;
+
+		return false;
+
 	}
 };
 
-void ALStream::openSource(const std::string &filename)
+void ALStream::openSource(Exception &exception, const std::string &filename)
 {
 	ALStreamOpenHandler handler(looped);
-	try
-	{
 #ifdef MKXPZ_RETRO
-		mkxp_retro::fs->openRead(handler, filename.c_str()); // TODO: move into shState
+	mkxp_retro::fs->openRead(handler, filename.c_str()); // TODO: move into shState
 #else
-		shState->fileSystem().openRead(handler, filename.c_str());
+	shState->fileSystem().openRead(handler, filename.c_str());
 #endif // MKXPZ_RETRO
-	} catch (const Exception &e)
+	if (handler.exception.type != Exception::Ok)
 	{
 		/* If no file was found then we leave the stream open.
 		 * A PHYSFSError means we found a match but couldn't
 		 * open the file, so we'll close it in that case. */
-		if (e.type != Exception::NoFileError)
+		if (handler.exception.type != Exception::NoFileError)
 			close();
 		
-		throw e;
+		exception = handler.exception;
+		return;
 	}
 
 	close();

@@ -56,10 +56,10 @@ public:
 	Tilemap(Viewport *viewport = 0);
 	~Tilemap();
 
-	void update();
+	void update(Exception &exception);
 
-	Autotiles &getAutotiles();
-	Viewport *getViewport() const;
+	Autotiles &getAutotiles(Exception &exception);
+	Viewport *getViewport(Exception &exception) const;
 
 	DECL_ATTR( Tileset,    Bitmap*   )
 	DECL_ATTR( MapData,    Table*    )

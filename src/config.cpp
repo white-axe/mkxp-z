@@ -119,7 +119,7 @@ static json::value readConfFile(const char *path) {
         return json::object({});
     }
     
-    try {
+    MKXPZ_TRY {
 #ifdef MKXPZ_RETRO
         std::vector<uint8_t> buf(16);
         size_t size = 0;
@@ -137,14 +137,19 @@ static json::value readConfFile(const char *path) {
 #else
         std::string cfg = mkxp_fs::contentsOfFileAsString(path);
 #endif // MKXPZ_RETRO
+        if (!cfg.empty()) {
+            cfg = Encoding::convertString(cfg);
+            if (cfg.empty()) {
+                Debug() << "Failed to parse" << path << ":" << "Unknown encoding";
+            }
+        }
         ret = json::parse5(Encoding::convertString(cfg));
     }
+#ifndef MKXPZ_NO_EXCEPTIONS
     catch (const std::exception &e) {
         Debug() << "Failed to parse" << path << ":" << e.what();
     }
-    catch (const Exception &e) {
-        Debug() << "Failed to parse" << path << ":" << "Unknown encoding";
-    }
+#endif // MKXPZ_NO_EXCEPTIONS
     
     if (!ret.is_object())
         ret = json::object({});
@@ -247,9 +252,6 @@ void Config::read(int argc, char *argv[], int forceRgssVersion) {
     
     auto &opts = optsJ.as_object();
     
-#define GUARD(exp) \
-try { exp } catch (...) {}
-    
     editor.debug = false;
     editor.battleTest = false;
     
@@ -269,9 +271,9 @@ try { exp } catch (...) {}
     copyObject(optsJ, baseConf);
     copyObject(opts["bindingNames"], baseConf.as_object()["bindingNames"], "bindingNames .");
     
-#define SET_OPT_CUSTOMKEY(var, key, type) GUARD(var = opts[#key].as_##type();)
+#define SET_OPT_CUSTOMKEY(var, key, type) var = opts[#key].as_##type()
 #define SET_OPT(var, type) SET_OPT_CUSTOMKEY(var, var, type)
-#define SET_STRINGOPT(var, key) GUARD(var = std::string(opts[#key].as_string());)
+#define SET_STRINGOPT(var, key) var = std::string(opts[#key].as_string())
     
     SET_STRINGOPT(gameFolder, gameFolder);
     SET_STRINGOPT(dataPathOrg, dataPathOrg);
@@ -439,7 +441,7 @@ void Config::readGameINI() {
     SDLRWStream iniFile(iniFileName.c_str(), "r");
 #endif // MKXPZ_RETRO
     
-    bool convSuccess = false;
+    bool convSuccess = true;
 #ifdef MKXPZ_RETRO
     if (iniFile->is_open())
 #else
@@ -489,12 +491,11 @@ void Config::readGameINI() {
     else
         Debug() << "Could not read" << iniFileName;
     
-    try {
+    if (!game.title.empty()) {
         game.title = Encoding::convertString(game.title);
-        convSuccess = true;
-    }
-    catch (const Exception &e) {
-        Debug() << iniFileName + ": Could not determine encoding of Game.Title";
+        if (game.title.empty()) {
+            Debug() << iniFileName + ": Could not determine encoding of Game.Title";
+        }
     }
     
     if (game.title.empty() || !convSuccess)

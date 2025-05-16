@@ -41,6 +41,9 @@
 #define DEF_BACK_OPAC (rgssVer >= 3 ? 192 : 255)
 #define DEF_SPRITE_Y  (rgssVer >= 3 ? std::numeric_limits<int>::max() : 0) /* See scene.h */
 
+#define GUARD_V(value, expression) do { expression; if (exception.is_error()) return value; } while (0)
+#define GUARD(expression) GUARD_V(, expression)
+
 template<typename T>
 struct Sides
 {
@@ -322,7 +325,7 @@ struct WindowVXPrivate
 			(&WindowVXPrivate::invalidateBaseTex, this);
 	}
 
-	void updateBaseTexSize()
+	void updateBaseTexSize(Exception &exception)
 	{
 		if (base.tex.width >= geo.w && base.tex.height >= geo.h)
 			return;
@@ -339,7 +342,7 @@ struct WindowVXPrivate
 		if (geo.w == 0 || geo.h == 0)
 			return;
 
-		base.tex = shState->texPool().request(geo.w, geo.h);
+		GUARD(base.tex = shState->texPool().request(exception, geo.w, geo.h));
 		TEX::bind(base.tex.tex);
 		TEX::setSmooth(true);
 	}
@@ -696,7 +699,10 @@ struct WindowVXPrivate
 
 		if (base.texSizeDirty)
 		{
-			updateBaseTexSize();
+			Exception e;
+			updateBaseTexSize(e);
+			if (e.is_error())
+				return;
 			base.texSizeDirty = false;
 			base.texDirty = true;
 		}
@@ -856,9 +862,9 @@ WindowVX::~WindowVX()
 	dispose();
 }
 
-void WindowVX::update()
+void WindowVX::update(Exception &exception)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	p->stepAnimations();
 
@@ -866,9 +872,9 @@ void WindowVX::update()
 	p->updateCursorAlpha();
 }
 
-void WindowVX::move(int x, int y, int width, int height)
+void WindowVX::move(Exception &exception, int x, int y, int width, int height)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	p->width = width;
 	p->height = height;
@@ -887,16 +893,16 @@ void WindowVX::move(int x, int y, int width, int height)
 	p->updateBaseQuad();
 }
 
-bool WindowVX::isOpen() const
+bool WindowVX::isOpen(Exception &exception) const
 {
-	guardDisposed();
+	GUARD_V(false, guardDisposed(exception));
 
 	return p->openness == 255;
 }
 
-bool WindowVX::isClosed() const
+bool WindowVX::isClosed(Exception &exception) const
 {
-	guardDisposed();
+	GUARD_V(false, guardDisposed(exception));
 
 	return p->openness == 0;
 }
@@ -922,9 +928,9 @@ DEF_ATTR_RD_SIMPLE(WindowVX, BackOpacity,     int,     p->backOpacity)
 DEF_ATTR_RD_SIMPLE(WindowVX, ContentsOpacity, int,     p->contentsOpacity)
 DEF_ATTR_RD_SIMPLE(WindowVX, Openness,        int,     p->openness)
 
-void WindowVX::setWindowskin(Bitmap *value)
+void WindowVX::setWindowskin(Exception &exception, Bitmap *value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->windowskin == value)
 		return;
@@ -943,9 +949,9 @@ void WindowVX::setWindowskin(Bitmap *value)
 	p->windowskinDispCon = value->wasDisposed.connect(&WindowVXPrivate::windowskinDisposal, p);
 }
 
-void WindowVX::setContents(Bitmap *value)
+void WindowVX::setContents(Exception &exception, Bitmap *value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->contents == value)
 		return;
@@ -967,9 +973,9 @@ void WindowVX::setContents(Bitmap *value)
 	p->ctrlVertDirty = true;
 }
 
-void WindowVX::setActive(bool value)
+void WindowVX::setActive(Exception &exception, bool value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->active == value)
 		return;
@@ -979,9 +985,9 @@ void WindowVX::setActive(bool value)
 	p->updateCursorAlpha();
 }
 
-void WindowVX::setArrowsVisible(bool value)
+void WindowVX::setArrowsVisible(Exception &exception, bool value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->arrowsVisible == value)
 		return;
@@ -990,9 +996,9 @@ void WindowVX::setArrowsVisible(bool value)
 	p->ctrlVertDirty = true;
 }
 
-void WindowVX::setPause(bool value)
+void WindowVX::setPause(Exception &exception, bool value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->pause == value)
 		return;
@@ -1003,9 +1009,9 @@ void WindowVX::setPause(bool value)
 	p->ctrlVertDirty = true;
 }
 
-void WindowVX::setWidth(int value)
+void WindowVX::setWidth(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->width == value)
 		return;
@@ -1019,9 +1025,9 @@ void WindowVX::setWidth(int value)
 	p->updateBaseQuad();
 }
 
-void WindowVX::setHeight(int value)
+void WindowVX::setHeight(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->height == value)
 		return;
@@ -1035,9 +1041,9 @@ void WindowVX::setHeight(int value)
 	p->updateBaseQuad();
 }
 
-void WindowVX::setOX(int value)
+void WindowVX::setOX(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->contentsOff.x == value)
 		return;
@@ -1046,9 +1052,9 @@ void WindowVX::setOX(int value)
 	p->ctrlVertDirty = true;
 }
 
-void WindowVX::setOY(int value)
+void WindowVX::setOY(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->contentsOff.y == value)
 		return;
@@ -1057,9 +1063,9 @@ void WindowVX::setOY(int value)
 	p->ctrlVertDirty = true;
 }
 
-void WindowVX::setPadding(int value)
+void WindowVX::setPadding(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->padding == value)
 		return;
@@ -1069,9 +1075,9 @@ void WindowVX::setPadding(int value)
 	p->clipRectDirty = true;
 }
 
-void WindowVX::setPaddingBottom(int value)
+void WindowVX::setPaddingBottom(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->paddingBottom == value)
 		return;
@@ -1080,9 +1086,9 @@ void WindowVX::setPaddingBottom(int value)
 	p->clipRectDirty = true;
 }
 
-void WindowVX::setOpacity(int value)
+void WindowVX::setOpacity(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->opacity == value)
 		return;
@@ -1091,9 +1097,9 @@ void WindowVX::setOpacity(int value)
 	p->base.quad.setColor(Vec4(1, 1, 1, p->opacity.norm));
 }
 
-void WindowVX::setBackOpacity(int value)
+void WindowVX::setBackOpacity(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->backOpacity == value)
 		return;
@@ -1102,9 +1108,9 @@ void WindowVX::setBackOpacity(int value)
 	p->base.texDirty = true;
 }
 
-void WindowVX::setContentsOpacity(int value)
+void WindowVX::setContentsOpacity(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->contentsOpacity == value)
 		return;
@@ -1113,9 +1119,9 @@ void WindowVX::setContentsOpacity(int value)
 	p->contentsQuad.setColor(Vec4(1, 1, 1, p->contentsOpacity.norm));
 }
 
-void WindowVX::setOpenness(int value)
+void WindowVX::setOpenness(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->openness == value)
 		return;
@@ -1136,7 +1142,7 @@ void WindowVX::initDynAttribs()
 	}
 }
 
-void WindowVX::draw()
+void WindowVX::draw(Exception &exception)
 {
 	p->draw();
 }

@@ -363,7 +363,7 @@ public:
    */
   null_type as_null() const
   {
-    if (type != TYPE_NULL) { throw std::bad_cast(); }
+    if (type != TYPE_NULL) { return nullptr; }
     return nullptr;
   }
 
@@ -374,7 +374,7 @@ public:
    */
   boolean_type as_boolean() const
   {
-    if (type != TYPE_BOOLEAN) { throw std::bad_cast(); }
+    if (type != TYPE_BOOLEAN) { return false; }
     return content.boolean;
   }
 
@@ -388,7 +388,7 @@ public:
     if (type == TYPE_INTEGER) {
       return static_cast<number_type>(content.integer);
     } else if (type != TYPE_NUMBER) {
-      throw std::bad_cast();
+      return static_cast<number_type>(0);
     }
     return content.number;
   }
@@ -403,7 +403,7 @@ public:
     if (type == TYPE_NUMBER) {
       return static_cast<integer_type>(content.number);
     } else if (type != TYPE_INTEGER) {
-      throw std::bad_cast();
+      return static_cast<integer_type>(0);
     }
     return content.integer;
   }
@@ -415,7 +415,8 @@ public:
    */
   const string_type& as_string() const
   {
-    if (type != TYPE_STRING) { throw std::bad_cast(); }
+    static string_type empty;
+    if (type != TYPE_STRING) { return empty; }
     return content.string;
   }
 
@@ -426,7 +427,8 @@ public:
    */
   string_type& as_string()
   {
-    if (type != TYPE_STRING) { throw std::bad_cast(); }
+    static string_type empty;
+    if (type != TYPE_STRING) { return empty; }
     return content.string;
   }
 
@@ -437,7 +439,8 @@ public:
    */
   const array_type& as_array() const
   {
-    if (type != TYPE_ARRAY) { throw std::bad_cast(); }
+    static array_type empty;
+    if (type != TYPE_ARRAY) { return empty; }
     return content.array;
   }
 
@@ -448,7 +451,8 @@ public:
    */
   array_type& as_array()
   {
-    if (type != TYPE_ARRAY) { throw std::bad_cast(); }
+    static array_type empty;
+    if (type != TYPE_ARRAY) { return empty; }
     return content.array;
   }
 
@@ -459,7 +463,8 @@ public:
    */
   const object_type& as_object() const
   {
-    if (type != TYPE_OBJECT) { throw std::bad_cast(); }
+    static object_type empty;
+    if (type != TYPE_OBJECT) { return empty; }
     return content.object;
   }
 
@@ -470,7 +475,8 @@ public:
    */
   object_type& as_object()
   {
-    if (type != TYPE_OBJECT) { throw std::bad_cast(); }
+    static object_type empty;
+    if (type != TYPE_OBJECT) { return empty; }
     return content.object;
   }
 
@@ -897,7 +903,7 @@ private:
               ch = istream.get();
             reeval_asterisk:
               if (ch == std::char_traits<char>::eof()) {
-                throw syntax_error(ch, "comment");
+                break;
               }
               if (ch != '*') {
                 continue;
@@ -1006,7 +1012,7 @@ private:
     if (F & flags::finished) {
       int ch = skip_spaces();
       if (ch != std::char_traits<char>::eof()) {
-        throw syntax_error(ch, context);
+        return;
       }
     }
   }
@@ -1046,7 +1052,7 @@ private:
         // [number]?
         return parse_number(v, ch);
       }
-      throw syntax_error(ch, context);
+      return parse_null(v);
     }
   }
 
@@ -1057,13 +1063,12 @@ private:
    */
   void parse_null(value& v)
   {
-    static const char context[] = "null";
     int ch;
     if (equals(ch, 'u', 'l', 'l')) {
       v = nullptr;
       return;
     }
-    throw syntax_error(ch, context);
+    v = nullptr;
   }
 
   /**
@@ -1074,7 +1079,6 @@ private:
    */
   void parse_boolean(value& v, int ch)
   {
-    static const char context[] = "boolean";
     if (ch == 't') {
       if (equals(ch, 'r', 'u', 'e')) {
         v = true;
@@ -1086,7 +1090,7 @@ private:
         return;
       }
     }
-    throw syntax_error(ch, context);
+    v = false;
   }
 
   /**
@@ -1097,7 +1101,6 @@ private:
    */
   void parse_number(value& v, int ch)
   {
-    static const char context[] = "number";
     unsigned long long int_part = 0;
     unsigned long long frac_part = 0;
     int frac_divs = 0;
@@ -1131,7 +1134,8 @@ private:
             no_digit = false;
           }
           if (no_digit) {
-            throw syntax_error(ch, context);
+            v = 0.0;
+            return;
           }
           v = negative ? (double)(-(long long)int_part) : (double)int_part;
           return;
@@ -1163,7 +1167,8 @@ private:
           return;
         }
       }
-      throw syntax_error(ch, context);
+      v = 0.0;
+      return;
     }
     if (ch == '.') {
       // [frac]
@@ -1172,7 +1177,8 @@ private:
         frac_part += to_number(ch);
       }
       if ((!has_flag(flags::trailing_decimal_point)) && (frac_divs == 0)) {
-        throw syntax_error(ch, context);
+        v = 0.0;
+        return;
       }
     }
     if ((ch == 'e') || (ch == 'E')) {
@@ -1192,7 +1198,8 @@ private:
         exp_part += to_number(ch);
       }
       if (no_digit) {
-        throw syntax_error(ch, context);
+        v = 0.0;
+        return;
       }
     }
     istream.unget();
@@ -1231,7 +1238,8 @@ private:
   void parse_string(std::string& buffer, int quote, const char *context)
   {
     if (!((quote == '"') || (has_flag(flags::single_quote) && quote == '\''))) {
-      throw syntax_error(quote, context);
+      buffer.clear();
+      return;
     }
     buffer.clear();
     for (;;) {
@@ -1239,14 +1247,14 @@ private:
       if (ch == quote) {
         break;
       } else if (ch < ' ') {
-        throw syntax_error(ch, context);
+        return;
       } else if (ch == '\\') {
         // [escape]
         ch = istream.get();
         switch (ch) {
         case '\'':
           if (!has_flag(flags::single_quote)) {
-            throw syntax_error(ch, context);
+            return;
           }
           break;
         case '"':
@@ -1276,7 +1284,7 @@ private:
               ch = istream.get();
               int n = to_number_hex(ch);
               if (n < 0) {
-                throw syntax_error(ch, context);
+                return;
               }
               code = static_cast<char16_t>((code << 4) + n);
             }
@@ -1307,7 +1315,7 @@ private:
           }
           /* no-break */
         default:
-          throw syntax_error(ch, context);
+          return;
         }
       }
       buffer.append(1, (char)ch);
@@ -1345,7 +1353,7 @@ private:
       if (elements.empty()) {
         istream.unget();
       } else if (ch != ',') {
-        throw syntax_error(ch, context);
+        return;
       } else if (has_flag(trailing_comma)) {
         ch = skip_spaces();
         if (ch == ']') {
@@ -1379,7 +1387,7 @@ private:
           } else if (ch == ':') {
             break;
           } else {
-            throw syntax_error(ch, context);
+            return "";
           }
           buffer.append(1, (char)ch);
         }
@@ -1409,7 +1417,7 @@ private:
       if (elements.empty()) {
         istream.unget();
       } else if (ch != ',') {
-        throw syntax_error(ch, context);
+        return;
       } else if (has_flag(flags::trailing_comma)) {
         ch = skip_spaces();
         if (ch == '}') {
@@ -1422,7 +1430,7 @@ private:
       const std::string key = parse_key();
       ch = skip_spaces();
       if (ch != ':') {
-        throw syntax_error(ch, context);
+        return;
       }
       // [value]
       auto result = elements.emplace(key, nullptr);

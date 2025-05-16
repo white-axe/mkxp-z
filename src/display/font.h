@@ -64,6 +64,7 @@ public:
 	_TTF_Font *
 #endif // MKXPZ_RETRO
 	getFont(
+	                   Exception &exception,
 	                   std::string family,
 	                   int size);
 
@@ -100,22 +101,23 @@ public:
 	const Font &operator=(const Font &o);
 
 	int getSize() const;
-	void setSize(int value, bool checkIllegal=true);
+	void setSizeNoCheck(int value);
+	void setSizeCheck(Exception &exception, int value);
 
-	DECL_ATTR( Bold,     bool   )
-	DECL_ATTR( Italic,   bool   )
-	DECL_ATTR( Color,    Color& )
-	DECL_ATTR( Shadow,   bool   )
-	DECL_ATTR( Outline,  bool   )
-	DECL_ATTR( OutColor, Color& )
+	DECL_ATTR_NOEXCEPT( Bold,     bool   )
+	DECL_ATTR_NOEXCEPT( Italic,   bool   )
+	DECL_ATTR_NOEXCEPT( Color,    Color& )
+	DECL_ATTR_NOEXCEPT( Shadow,   bool   )
+	DECL_ATTR_NOEXCEPT( Outline,  bool   )
+	DECL_ATTR_NOEXCEPT( OutColor, Color& )
 
-	DECL_ATTR_STATIC( DefaultSize,     int    )
-	DECL_ATTR_STATIC( DefaultBold,     bool   )
-	DECL_ATTR_STATIC( DefaultItalic,   bool   )
-	DECL_ATTR_STATIC( DefaultColor,    Color& )
-	DECL_ATTR_STATIC( DefaultShadow,   bool   )
-	DECL_ATTR_STATIC( DefaultOutline,  bool   )
-	DECL_ATTR_STATIC( DefaultOutColor, Color& )
+	DECL_ATTR_NOEXCEPT_STATIC( DefaultSize,     int    )
+	DECL_ATTR_NOEXCEPT_STATIC( DefaultBold,     bool   )
+	DECL_ATTR_NOEXCEPT_STATIC( DefaultItalic,   bool   )
+	DECL_ATTR_NOEXCEPT_STATIC( DefaultColor,    Color& )
+	DECL_ATTR_NOEXCEPT_STATIC( DefaultShadow,   bool   )
+	DECL_ATTR_NOEXCEPT_STATIC( DefaultOutline,  bool   )
+	DECL_ATTR_NOEXCEPT_STATIC( DefaultOutColor, Color& )
 
 	/* There is no point in providing getters for these,
 	 * as the bindings will always return the stored native
@@ -144,7 +146,7 @@ public:
 #else
 	_TTF_Font *
 #endif // MKXPZ_RETRO
-	getSdlFont();
+	getSdlFont(Exception &exception);
 
 private:
 	FontPrivate *p;

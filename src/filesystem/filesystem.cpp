@@ -308,7 +308,7 @@ static void throwPhysfsError(const char *desc) {
         englishStr = PHYSFS_getErrorByCode(ec);
     }
 
-  throw Exception(Exception::PHYSFSError, "%s: %s", desc, englishStr);
+  MKXPZ_THROW(Exception(Exception::PHYSFSError, "%s: %s", desc, englishStr));
 }
 
 FileSystem::FileSystem(const char *argv0, bool allowSymlinks) {
@@ -340,7 +340,7 @@ FileSystem::~FileSystem() {
     Debug() << "PhyFS failed to deinit.";
 }
 
-void FileSystem::addPath(const char *path, const char *mountpoint, bool reload) {
+void FileSystem::addPath(Exception &exception, const char *path, const char *mountpoint, bool reload) {
   /* Try the normal mount first */
     int state = PHYSFS_mount(path, mountpoint, 1);
 
@@ -357,20 +357,23 @@ void FileSystem::addPath(const char *path, const char *mountpoint, bool reload) 
 
     if (!state) {
         PHYSFS_ErrorCode err = PHYSFS_getLastErrorCode();
-        throw Exception(Exception::PHYSFSError, "Failed to mount %s (%s)", path, PHYSFS_getErrorByCode(err));
+        exception = Exception(Exception::PHYSFSError, "Failed to mount %s (%s)", path, PHYSFS_getErrorByCode(err));
+        return;
     }
     
     if (reload) reloadPathCache();
+    exception = Exception(Exception::Ok, "");
 }
 
-void FileSystem::removePath(const char *path, bool reload) {
+void FileSystem::removePath(Exception &exception, const char *path, bool reload) {
     
     if (!PHYSFS_unmount(path)) {
         PHYSFS_ErrorCode err = PHYSFS_getLastErrorCode();
-        throw Exception(Exception::PHYSFSError, "Failed to unmount %s (%s)", path, PHYSFS_getErrorByCode(err));
+        exception = Exception(Exception::PHYSFSError, "Failed to unmount %s (%s)", path, PHYSFS_getErrorByCode(err));
     }
     
     if (reload) reloadPathCache();
+    exception = Exception(Exception::Ok, "");
 }
 
 struct CacheEnumData {
@@ -418,7 +421,7 @@ struct CacheEnumData {
 static PHYSFS_EnumerateCallbackResult cacheEnumCB(void *d, const char *origdir,
                                                   const char *fname) {
   if (shState && shState->rtData().rqTerm)
-    throw Exception(Exception::MKXPError, "Game close requested. Aborting path cache enumeration.");
+    return PHYSFS_ENUM_ERROR;
 
 #ifdef MKXPZ_RETRO
   // Don't cache the /Dist or /System directories because the game doesn't need to access them
@@ -700,10 +703,9 @@ void FileSystem::openRead(OpenHandler &handler, const char *filename) {
   }
 
   if (data.physfsError)
-    throw Exception(Exception::PHYSFSError, "PhysFS: %s", data.physfsError);
-
-  if (data.matchCount == 0)
-    throw Exception(Exception::NoFileError, "%s", filename);
+    handler.exception = Exception(Exception::PHYSFSError, "PhysFS: %s", data.physfsError);
+  else if (data.matchCount == 0)
+    handler.exception = Exception(Exception::NoFileError, "%s", filename);
 }
 
 #ifndef MKXPZ_RETRO

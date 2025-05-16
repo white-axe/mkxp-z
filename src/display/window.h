@@ -38,7 +38,7 @@ public:
 	Window(Viewport *viewport = 0);
 	~Window();
 
-	void update();
+	void update(Exception &exception);
 
 	DECL_ATTR( Windowskin,      Bitmap* )
 	DECL_ATTR( Contents,        Bitmap* )
@@ -58,13 +58,13 @@ public:
 
 	void initDynAttribs();
 
-	void setZ(int value);
-	void setVisible(bool value);
+	void setZ(Exception &exception, int value);
+	void setVisible(Exception &exception, bool value);
 
 private:
 	WindowPrivate *p;
 
-	void draw();
+	void draw(Exception &exception);
 	void onGeometryChange(const Scene::Geometry &);
 
 	void onViewportChange();

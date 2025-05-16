@@ -49,7 +49,7 @@ public:
 
 	int serialSize() const;
 	void serialize(char *buffer) const;
-	static Table *deserialize(const char *data, int len);
+	static Table *deserialize(Exception &exception, const char *data, int len);
 
 	/* <internal */
 	inline int16_t &at(int x, int y = 0, int z = 0)

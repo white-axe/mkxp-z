@@ -42,69 +42,86 @@ struct BitmapPrivate;
 // FIXME make this class use proper RGSS classes again
 class Bitmap : public Disposable
 {
+	friend struct BitmapPrivate;
+	friend struct PlanePrivate;
+	friend struct Sprite;
+	friend struct SpritePrivate;
+	friend struct TilemapPrivate;
+	friend struct TilemapVXPrivate;
+	friend struct Window;
+	friend struct WindowPrivate;
+	friend struct WindowVX;
+	friend struct WindowVXPrivate;
+
 public:
-	Bitmap(const char *filename);
-	Bitmap(int width, int height, bool isHires = false);
-	Bitmap(void *pixeldata, int width, int height);
-	Bitmap(TEXFBO &other);
-	Bitmap(SDL_Surface *imgSurf, SDL_Surface *imgSurfHires, bool forceMega = false);
+	Bitmap(Exception &exception, const char *filename);
+	Bitmap(Exception &exception, int width, int height, bool isHires = false);
+	Bitmap(Exception &exception, void *pixeldata, int width, int height);
+	Bitmap(Exception &exception, TEXFBO &other);
+	Bitmap(Exception &exception, SDL_Surface *imgSurf, SDL_Surface *imgSurfHires, bool forceMega = false);
 
 	/* Clone constructor */
     
     // frame is -2 for "any and all", -1 for "current", anything else for a specific frame
-	Bitmap(const Bitmap &other, int frame = -2);
+	Bitmap(Exception &exception, const Bitmap &other, int frame = -2);
 	~Bitmap();
 
-	void initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool forceMega = false);
+	void initFromSurface(Exception &exception, SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool forceMega = false);
 
-	int width()  const;
-	int height() const;
-	bool hasHires() const;
+	int getWidth(Exception &exception)  const;
+	int getHeight(Exception &exception) const;
+	bool getHasHires(Exception &exception) const;
 	DECL_ATTR(Hires, Bitmap*)
-	void setLores(Bitmap *lores);
-	bool isMega() const;
-    bool isAnimated() const;
+	void setLores(Exception &exception, Bitmap *lores);
+	bool getIsMega(Exception &exception) const;
+	bool getIsAnimated(Exception &exception) const;
+	IntRect getRect(Exception &exception) const;
 
-	IntRect rect() const;
-
-	void blt(int x, int y,
+	void blt(Exception &exception,
+	         int x, int y,
 	         const Bitmap &source, const IntRect &rect,
 	         int opacity = 255);
 
-	void stretchBlt(IntRect destRect,
+	void stretchBlt(Exception &exception,
+	                IntRect destRect,
 	                const Bitmap &source, IntRect sourceRect,
 	                int opacity = 255, bool smooth = false);
 
-	void fillRect(int x, int y,
+	void fillRect(Exception &exception,
+	              int x, int y,
 	              int width, int height,
 	              const Vec4 &color);
-	void fillRect(const IntRect &rect, const Vec4 &color);
+	void fillRect(Exception &exception, const IntRect &rect, const Vec4 &color);
 
-	void gradientFillRect(int x, int y,
+	void gradientFillRect(Exception &exception,
+	                      int x, int y,
 	                      int width, int height,
 	                      const Vec4 &color1, const Vec4 &color2,
 	                      bool vertical = false);
-	void gradientFillRect(const IntRect &rect,
+	void gradientFillRect(Exception &exception,
+	                      const IntRect &rect,
 	                      const Vec4 &color1, const Vec4 &color2,
 	                      bool vertical = false);
 
-	void clearRect(int x, int y,
+	void clearRect(Exception &exception,
+	               int x, int y,
 	               int width, int height);
-	void clearRect(const IntRect &rect);
+	void clearRect(Exception &exception,
+	               const IntRect &rect);
 
-	void blur();
-	void radialBlur(int angle, int divisions);
+	void blur(Exception &exception);
+	void radialBlur(Exception &exception, int angle, int divisions);
 
-	void clear();
+	void clear(Exception &exception);
 
-	Color getPixel(int x, int y) const;
-	void setPixel(int x, int y, const Color &color);
+	Color getPixel(Exception &exception, int x, int y) const;
+	void setPixel(Exception &exception, int x, int y, const Color &color);
     
-    bool getRaw(void *output, int output_size);
-    void replaceRaw(void *pixel_data, int size);
-    void saveToFile(const char *filename);
+    bool getRaw(Exception &exception, void *output, int output_size);
+    void replaceRaw(Exception &exception, void *pixel_data, int size);
+    void saveToFile(Exception &exception, const char *filename);
 
-	void hueChange(int hue);
+	void hueChange(Exception &exception, int hue);
 
 	enum TextAlign
 	{
@@ -113,14 +130,16 @@ public:
 		Right = 2
 	};
 
-	void drawText(int x, int y,
+	void drawText(Exception &exception,
+	              int x, int y,
 	              int width, int height,
 	              const char *str, int align = Left);
 
-	void drawText(const IntRect &rect,
+	void drawText(Exception &exception,
+	              const IntRect &rect,
 	              const char *str, int align = Left);
 
-	IntRect textSize(const char *str);
+	IntRect textSize(Exception &exception, const char *str);
 
 	DECL_ATTR(Font, Font&)
 
@@ -132,35 +151,35 @@ public:
 	TEXFBO &getGLTypes() const;
     SDL_Surface *surface() const;
 	SDL_Surface *megaSurface() const;
-	void ensureNonMega() const;
-    void ensureNonAnimated() const;
-    void ensureAnimated() const;
+	void ensureNonMega(Exception &exception) const;
+    void ensureNonAnimated(Exception &exception) const;
+    void ensureAnimated(Exception &exception) const;
     
     // Animation functions
-    void stop();
-    void play();
-    bool isPlaying() const;
-    bool getPlaying() const;
-    void setPlaying(bool playing);
-    void gotoAndStop(int frame);
-    void gotoAndPlay(int frame);
-    int numFrames() const;
-    int currentFrameI() const;
+    void stop(Exception &exception);
+    void play(Exception &exception);
+    bool isPlaying(Exception &exception) const;
+    bool getPlaying(Exception &exception) const;
+    void setPlaying(Exception &exception, bool playing);
+    void gotoAndStop(Exception &exception, int frame);
+    void gotoAndPlay(Exception &exception, int frame);
+    int numFrames(Exception &exception) const;
+    int currentFrameI(Exception &exception) const;
     
-    int addFrame(Bitmap &source, int position = -1);
-    void removeFrame(int position = -1);
+    int addFrame(Exception &exception, Bitmap &source, int position = -1);
+    void removeFrame(Exception &exception, int position = -1);
     
-    void nextFrame();
-    void previousFrame();
+    void nextFrame(Exception &exception);
+    void previousFrame(Exception &exception);
     std::vector<TEXFBO> &getFrames() const;
     
-    void setAnimationFPS(float FPS);
-    float getAnimationFPS() const;
+    void setAnimationFPS(Exception &exception, float FPS);
+    float getAnimationFPS(Exception &exception) const;
     
-    void setLooping(bool loop);
-    bool getLooping() const;
+    void setLooping(Exception &exception, bool loop);
+    bool getLooping(Exception &exception) const;
 
-    void ensureNotPlaying() const;
+    void ensureNotPlaying(Exception &exception) const;
     // ----------
     
 	/* Binds the backing texture and sets the correct
@@ -177,6 +196,15 @@ public:
     void assumeRubyGC();
 
 private:
+	int width()  const;
+	int height() const;
+	bool hasHires() const;
+	bool isMega() const;
+	bool isAnimated() const;
+	IntRect rect() const;
+	float animationFPS() const;
+	bool looping() const;
+
 	void releaseResources();
 	sigslot::connection loresDispCon;
 	const char *klassName() const { return "bitmap"; }
@@ -186,8 +214,8 @@ private:
 	void loresDisposal();
 
 #ifdef MKXPZ_RETRO
-	IntRect textRect(const char *str, bool solid);
-	SDL_Surface *drawTextInner(FT_Face font, const char *str, SDL_Color &c, size_t outline);
+	IntRect textRect(Exception &exception, const char *str, bool solid);
+	SDL_Surface *drawTextInner(Exception &exception, FT_Face font, const char *str, SDL_Color &c, size_t outline);
 #endif // MKXPZ_RETRO
 };
 

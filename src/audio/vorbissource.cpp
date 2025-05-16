@@ -112,6 +112,7 @@ struct VorbisSource : ALDataSource
 	std::vector<int16_t> sampleBuf;
 
 	VorbisSource(
+			std::string &error_,
 #ifdef MKXPZ_RETRO
 			std::shared_ptr<struct FileSystem::File> ops,
 #else
@@ -132,8 +133,8 @@ struct VorbisSource : ALDataSource
 #ifndef MKXPZ_RETRO
 			SDL_RWclose(&src);
 #endif // MKXPZ_RETRO
-			throw Exception(Exception::MKXPError,
-			                "Vorbisfile: Cannot read ogg file");
+			error_ = "Vorbisfile: Cannot read ogg file";
+			return;
 		}
 
 		/* Extract bitstream info */
@@ -146,8 +147,9 @@ struct VorbisSource : ALDataSource
 #ifndef MKXPZ_RETRO
 			SDL_RWclose(&src);
 #endif // MKXPZ_RETRO
-			throw Exception(Exception::MKXPError,
-			                "Cannot handle audio with more than 2 channels");
+			
+			error_ = "Cannot handle audio with more than 2 channels";
+			return;
 		}
 
 		info.alFormat = chooseALFormat(sizeof(int16_t), info.channels);
@@ -331,6 +333,7 @@ struct VorbisSource : ALDataSource
 };
 
 ALDataSource *createVorbisSource(
+				std::string &error,
 #ifdef MKXPZ_RETRO
 				std::shared_ptr<struct FileSystem::File> ops,
 #else
@@ -338,5 +341,10 @@ ALDataSource *createVorbisSource(
 #endif // MKXPZ_RETRO
                                  bool looped)
 {
-	return new VorbisSource(ops, looped);
+	error.clear();
+	VorbisSource *source = new VorbisSource(error, ops, looped);
+	if (error.empty())
+		return source;
+	delete source;
+	return nullptr;
 }

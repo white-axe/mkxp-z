@@ -23,6 +23,7 @@
 #define SHAREDSTATE_H
 
 #include "sigslot/signal.hpp"
+#include "exception.h"
 
 #define shState SharedState::instance
 #define glState shState->_glState()
@@ -118,11 +119,11 @@ struct SharedState
 
 	/* This function will throw an Exception instance
 	 * on initialization error */
-	static void initInstance(RGSSThreadData *threadData);
+	static void initInstance(Exception &exception, RGSSThreadData *threadData);
 	static void finiInstance();
 
 private:
-	SharedState(RGSSThreadData *threadData);
+	SharedState(Exception &exception, RGSSThreadData *threadData);
 	~SharedState();
 
 	SharedStatePrivate *p;

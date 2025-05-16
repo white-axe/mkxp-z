@@ -47,6 +47,9 @@
 #include <algorithm>
 #include <vector>
 
+#define GUARD_V(value, expression) do { expression; if (exception.is_error()) return value; } while (0)
+#define GUARD(expression) GUARD_V(, expression)
+
 extern const StaticRect autotileRects[];
 
 typedef std::vector<SVertex> SVVector;
@@ -192,7 +195,7 @@ struct GroundLayer : public ViewportElement
 
 	void updateVboCount();
 
-	void draw();
+	void draw(Exception &exception);
 	void drawInt();
 
 	void onGeometryChange(const Scene::Geometry &geo);
@@ -219,7 +222,7 @@ struct ZLayer : public ViewportElement
 
 	void setIndex(int value);
 
-	void draw();
+	void draw(Exception &exception);
 	void drawInt();
 
 	static int calculateZ(TilemapPrivate *p, int index);
@@ -420,7 +423,7 @@ struct TilemapPrivate
 		flashMap.setViewport(IntRect(viewpPos, Vec2i(viewpW, viewpH)));
 	}
 
-	void updateAtlasInfo()
+	void updateAtlasInfo(Exception &exception)
 	{
 		if (nullOrDisposed(tileset))
 		{
@@ -434,8 +437,11 @@ struct TilemapPrivate
 		atlas.size = TileAtlas::minSize(atlas.efTilesetH, glState.caps.maxTexSize);
 
 		if (atlas.size.x < 0)
-			throw Exception(Exception::MKXPError,
-		                    "Cannot allocate big enough texture for tileset atlas");
+		{
+			exception = Exception(Exception::MKXPError,
+			                      "Cannot allocate big enough texture for tileset atlas");
+			return;
+		}
 	}
 
 	void updateAutotileInfo()
@@ -523,9 +529,9 @@ struct TilemapPrivate
 	}
 
 	/* Allocates correctly sized TexFBO for atlas */
-	void allocateAtlas()
+	void allocateAtlas(Exception &exception)
 	{
-		updateAtlasInfo();
+		GUARD(updateAtlasInfo(exception));
 
 		/* Aquire atlas tex */
 		shState->releaseAtlasTex(atlas.gl);
@@ -535,10 +541,10 @@ struct TilemapPrivate
 	}
 
 	/* Assembles atlas from tileset and autotile bitmaps */
-	void buildAtlas()
+	void buildAtlas(Exception &exception)
 	{
-        updateAutotileInfo();
-        tileset->ensureNonAnimated();
+		updateAutotileInfo();
+		GUARD(tileset->ensureNonAnimated(exception));
 
 		TileAtlas::BlitVec blits = TileAtlas::calcBlits(atlas.efTilesetH, atlas.size);
 
@@ -559,7 +565,7 @@ struct TilemapPrivate
 		{
 			const uint8_t atInd = atlas.usableATs[i];
 			Bitmap *autotile = autotiles[atInd];
-            autotile->ensureNonAnimated();
+			GUARD(autotile->ensureNonAnimated(exception));
 
 			int atW = autotile->width();
 			int atH = autotile->height();
@@ -916,13 +922,21 @@ struct TilemapPrivate
 			if (i < zlayerInd.size())
 			{
 				int index = zlayerInd[i];
-				elem.zlayers[i]->setVisible(visible);
+				{
+					// Ignore errors
+					Exception e;
+					elem.zlayers[i]->setVisible(e, visible);
+				}
 				elem.zlayers[i]->setIndex(index);
 			}
 			else
 			{
 				/* Hide unused layers */
-				elem.zlayers[i]->setVisible(false);
+				{
+					// Ignore errors
+					Exception e;
+					elem.zlayers[i]->setVisible(e, false);
+				}
 			}
 		}
 	}
@@ -941,12 +955,12 @@ struct TilemapPrivate
 		zOrderDirty = false;
 	}
 
-	void hideElements()
+	void hideElements(Exception &exception)
 	{
-		elem.ground->setVisible(false);
+		GUARD(elem.ground->setVisible(exception, false));
 
 		for (size_t i = 0; i < zlayersMax; ++i)
-			elem.zlayers[i]->setVisible(false);
+			GUARD(elem.zlayers[i]->setVisible(exception, false));
 	}
 
 	void updateZOrder()
@@ -1029,7 +1043,12 @@ struct TilemapPrivate
 		if (!verifyResources())
 		{
 			if (tilemapReady)
-				hideElements();
+			{
+				Exception e;
+				hideElements(e);
+				if (e.is_error())
+					return;
+			}
 			tilemapReady = false;
 
 			return;
@@ -1037,13 +1056,19 @@ struct TilemapPrivate
 
 		if (atlasSizeDirty)
 		{
-			allocateAtlas();
+			Exception e;
+			allocateAtlas(e);
+			if (e.is_error())
+				return;
 			atlasSizeDirty = false;
 		}
 
 		if (atlasDirty)
 		{
-			buildAtlas();
+			Exception e;
+			buildAtlas(e);
+			if (e.is_error())
+				return;
 			atlasDirty = false;
 		}
 
@@ -1088,7 +1113,7 @@ void GroundLayer::updateVboCount()
 	vboCount = p->zlayerBases[0] * 6;
 }
 
-void GroundLayer::draw()
+void GroundLayer::draw(Exception &exception)
 {
 	if (p->groundVert.size() == 0)
 		return;
@@ -1145,7 +1170,7 @@ void ZLayer::setIndex(int value)
 	vboCount = p->zlayerSize(index) * 6;
 }
 
-void ZLayer::draw()
+void ZLayer::draw(Exception &exception)
 {
 	if (batchedFlag)
 		return;
@@ -1246,9 +1271,9 @@ Tilemap::~Tilemap()
 	dispose();
 }
 
-void Tilemap::update()
+void Tilemap::update(Exception &exception)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (!p->tilemapReady)
 		return;
@@ -1264,9 +1289,9 @@ void Tilemap::update()
 	++p->tiles.aniIdx;
 }
 
-Tilemap::Autotiles &Tilemap::getAutotiles()
+Tilemap::Autotiles &Tilemap::getAutotiles(Exception &exception)
 {
-	guardDisposed();
+	GUARD_V(atProxy, guardDisposed(exception));
 
 	return atProxy;
 }
@@ -1285,9 +1310,9 @@ DEF_ATTR_SIMPLE(Tilemap, Opacity,   int,     p->opacity)
 DEF_ATTR_SIMPLE(Tilemap, Color,     Color&, *p->color)
 DEF_ATTR_SIMPLE(Tilemap, Tone,      Tone&,  *p->tone)
 
-void Tilemap::setTileset(Bitmap *value)
+void Tilemap::setTileset(Exception &exception, Bitmap *value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->tileset == value)
 		return;
@@ -1311,12 +1336,12 @@ void Tilemap::setTileset(Bitmap *value)
 	p->tilesetDispCon = value->wasDisposed.connect
 	        (&TilemapPrivate::tilesetDisposal, p);
 
-	p->updateAtlasInfo();
+	GUARD(p->updateAtlasInfo(exception));
 }
 
-void Tilemap::setMapData(Table *value)
+void Tilemap::setMapData(Exception &exception, Table *value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->mapData == value)
 		return;
@@ -1332,16 +1357,16 @@ void Tilemap::setMapData(Table *value)
 	        (&TilemapPrivate::invalidateBuffers, p);
 }
 
-void Tilemap::setFlashData(Table *value)
+void Tilemap::setFlashData(Exception &exception, Table *value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	p->flashMap.setData(value);
 }
 
-void Tilemap::setPriorities(Table *value)
+void Tilemap::setPriorities(Exception &exception, Table *value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->priorities == value)
 		return;
@@ -1357,9 +1382,9 @@ void Tilemap::setPriorities(Table *value)
 	        (&TilemapPrivate::invalidateBuffers, p);
 }
 
-void Tilemap::setVisible(bool value)
+void Tilemap::setVisible(Exception &exception, bool value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->visible == value)
 		return;
@@ -1369,14 +1394,14 @@ void Tilemap::setVisible(bool value)
 	if (!p->tilemapReady)
 		return;
 
-	p->elem.ground->setVisible(value);
+	GUARD(p->elem.ground->setVisible(exception, value));
 	for (size_t i = 0; i < p->elem.activeLayers; ++i)
-		p->elem.zlayers[i]->setVisible(value);
+		GUARD(p->elem.zlayers[i]->setVisible(exception, value));
 }
 
-void Tilemap::setOX(int value)
+void Tilemap::setOX(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->origin.x == value)
 		return;
@@ -1385,9 +1410,9 @@ void Tilemap::setOX(int value)
 	p->mapViewportDirty = true;
 }
 
-void Tilemap::setOY(int value)
+void Tilemap::setOY(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->origin.y == value)
 		return;
@@ -1397,9 +1422,9 @@ void Tilemap::setOY(int value)
 	p->mapViewportDirty = true;
 }
 
-void Tilemap::setBlendType(int value)
+void Tilemap::setBlendType(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	switch (value)
 	{

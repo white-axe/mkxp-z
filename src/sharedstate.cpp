@@ -111,7 +111,7 @@ struct SharedStatePrivate
     
     std::chrono::time_point<std::chrono::steady_clock> startupTime;
 
-	SharedStatePrivate(RGSSThreadData *threadData)
+	SharedStatePrivate(Exception &exception, RGSSThreadData *threadData)
 	    : bindingData(0),
 #ifndef MKXPZ_RETRO
 	      sdlWindow(threadData->window),
@@ -131,6 +131,7 @@ struct SharedStatePrivate
 	      audio(*threadData),
 #endif // MKXPZ_RETRO
 	      _glState(threadData->config),
+	      shaders(exception),
 	      fontState(threadData->config),
 	      stampCounter(0)
 	{}
@@ -198,7 +199,7 @@ struct SharedStatePrivate
 	}
 };
 
-void SharedState::initInstance(RGSSThreadData *threadData)
+void SharedState::initInstance(Exception &exception, RGSSThreadData *threadData)
 {
 	/* This section is tricky because of dependencies:
 	 * SharedState depends on GlobalIBO existing,
@@ -212,19 +213,26 @@ void SharedState::initInstance(RGSSThreadData *threadData)
 	SharedState::instance = 0;
 	Font *defaultFont = 0;
 
-	try
+	SharedState::instance = new SharedState(exception, threadData);
+	if (exception.is_error())
 	{
-		SharedState::instance = new SharedState(threadData);
+		delete SharedState::instance;
+		delete _globalIBO;
+		return;
+	}
+
+	MKXPZ_TRY
+	{
 		Font::initDefaults(instance->p->fontState);
 		defaultFont = new Font();
 	}
-	catch (const Exception &exc)
+	MKXPZ_CATCH (const Exception &)
 	{
 		delete _globalIBO;
 		delete SharedState::instance;
 		delete defaultFont;
 
-		throw exc;
+		MKXPZ_RETHROW;
 	}
 
 	SharedState::instance->p->defaultFont = defaultFont;
@@ -414,16 +422,21 @@ unsigned int SharedState::genTimeStamp()
 	return p->stampCounter++;
 }
 
-SharedState::SharedState(RGSSThreadData *threadData)
+SharedState::SharedState(Exception &exception, RGSSThreadData *threadData)
 {
-	p = new SharedStatePrivate(threadData);
+	p = new SharedStatePrivate(exception, threadData);
+	if (exception.is_error())
+	{
+		delete p;
+		return;
+	}
 	SharedState::instance = this;
-	try
+	MKXPZ_TRY
 	{
 		p->init(threadData);
 		p->screen = p->graphics.getScreen();
 	}
-	catch (const Exception &exc)
+	MKXPZ_CATCH (const Exception &)
 	{
 #ifndef MKXPZ_RETRO
 		// If the "error" was the user quitting the game before the path cache finished building,
@@ -435,7 +448,7 @@ SharedState::SharedState(RGSSThreadData *threadData)
 		delete p;
 		SharedState::instance = 0;
 		
-		throw exc;
+		MKXPZ_RETHROW;
 	}
 }
 

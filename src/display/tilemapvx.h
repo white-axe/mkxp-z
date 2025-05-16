@@ -52,9 +52,9 @@ public:
 	TilemapVX(Viewport *viewport = 0);
 	~TilemapVX();
 
-	void update();
+	void update(Exception &exception);
 
-	BitmapArray &getBitmapArray();
+	BitmapArray &getBitmapArray(Exception &exception);
 
 	DECL_ATTR( Viewport,   Viewport* )
 	DECL_ATTR( MapData,    Table*    )

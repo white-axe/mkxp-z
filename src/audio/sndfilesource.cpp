@@ -112,6 +112,7 @@ struct SndfileSource : ALDataSource
 	std::vector<int16_t> sampleBuf;
 
 	SndfileSource(
+			std::string &error,
 #ifdef MKXPZ_RETRO
 			std::shared_ptr<struct FileSystem::File> ops,
 #else
@@ -132,7 +133,9 @@ struct SndfileSource : ALDataSource
 #ifndef MKXPZ_RETRO
 			SDL_RWclose(&src);
 #endif // MKXPZ_RETRO
-			throw Exception(Exception::MKXPError, sf_error_number(handle.error()));
+			error = "libsndfile: ";
+			error += sf_error_number(handle.error());
+			return;
 		}
 
 		/* Extract bitstream info */
@@ -144,7 +147,8 @@ struct SndfileSource : ALDataSource
 #ifndef MKXPZ_RETRO
 			SDL_RWclose(&src);
 #endif // MKXPZ_RETRO
-			throw Exception(Exception::MKXPError, "Cannot handle audio with more than 2 channels");
+			error = "Cannot handle audio with more than 2 channels";
+			return;
 		}
 
 		info.alFormat = chooseALFormat(sizeof(int16_t), info.channels);
@@ -280,6 +284,7 @@ struct SndfileSource : ALDataSource
 };
 
 ALDataSource *createSndfileSource(
+				std::string &error,
 #ifdef MKXPZ_RETRO
 				std::shared_ptr<struct FileSystem::File> ops,
 #else
@@ -287,5 +292,10 @@ ALDataSource *createSndfileSource(
 #endif // MKXPZ_RETRO
 				bool looped)
 {
-	return new SndfileSource(ops, looped);
+	error.clear();
+	SndfileSource *source = new SndfileSource(error, ops, looped);
+	if (error.empty())
+		return source;
+	delete source;
+	return nullptr;
 }

@@ -40,6 +40,9 @@
 #include <vector>
 #include "sigslot/signal.hpp"
 
+#define GUARD_V(value, expression) do { expression; if (exception.is_error()) return value; } while (0)
+#define GUARD(expression) GUARD_V(, expression)
+
 /* Flash tiles pulsing opacity */
 static const uint8_t flashAlpha[] =
 {
@@ -107,7 +110,7 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
 		      p(p)
 		{}
 
-		void draw()
+		void draw(Exception &exception)
 		{
 			p->drawAbove();
 			p->drawFlashLayer();
@@ -197,7 +200,7 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
 		buffersDirty = true;
 	}
 
-	void rebuildAtlas()
+	void rebuildAtlas(Exception &exception)
 	{
 		TileAtlasVX::build(atlas, bitmaps);
 
@@ -205,14 +208,18 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
 		{
 			Debug() << "Dumping tile atlas...";
 
-			Bitmap dump(atlas);
+			Bitmap dump(exception, atlas);
+			if (exception.is_error())
+				return;
 			if (dump.hasHires())
 			{
-				dump.getHires()->saveToFile("dumped_atlas_hires.png");
+				Bitmap *hires;
+				GUARD(hires = dump.getHires(exception));
+				GUARD(hires->saveToFile(exception, "dumped_atlas_hires.png"));
 			}
 			else
 			{
-				dump.saveToFile("dumped_atlas.png");
+				GUARD(dump.saveToFile(exception, "dumped_atlas.png"));
 			}
 
 			Debug() << "Tile atlas dump completed.";
@@ -289,7 +296,10 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
 
 		if (atlasDirty)
 		{
-			rebuildAtlas();
+			Exception e;
+			rebuildAtlas(e);
+			if (e.is_error())
+				return;
 			atlasDirty = false;
 		}
 
@@ -317,7 +327,7 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
 	}
 
 	/* SceneElement */
-	void draw()
+	void draw(Exception &exception)
 	{
 		drawGround();
 		drawFlashLayer();
@@ -468,9 +478,9 @@ TilemapVX::~TilemapVX()
 	dispose();
 }
 
-void TilemapVX::update()
+void TilemapVX::update(Exception &exception)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	/* Animate tiles */
 	if (++p->frameIdx >= 30*3*4)
@@ -491,9 +501,9 @@ void TilemapVX::update()
 		p->flashAlphaIdx = 0;
 }
 
-TilemapVX::BitmapArray &TilemapVX::getBitmapArray()
+TilemapVX::BitmapArray &TilemapVX::getBitmapArray(Exception &exception)
 {
-	guardDisposed();
+	GUARD_V(bmProxy, guardDisposed(exception));
 
 	return bmProxy;
 }
@@ -504,31 +514,33 @@ DEF_ATTR_RD_SIMPLE(TilemapVX, Flags, Table*, p->flags)
 DEF_ATTR_RD_SIMPLE(TilemapVX, OX, int, p->origin.x)
 DEF_ATTR_RD_SIMPLE(TilemapVX, OY, int, p->origin.y)
 
-Viewport *TilemapVX::getViewport() const
+Viewport *TilemapVX::getViewport(Exception &exception) const
 {
-	guardDisposed();
+	GUARD_V(nullptr, guardDisposed(exception));
 
 	return p->getViewport();
 }
 
-bool TilemapVX::getVisible() const
+bool TilemapVX::getVisible(Exception &exception) const
 {
-	guardDisposed();
+	GUARD_V(false, guardDisposed(exception));
 
-	return p->getVisible();
+	bool ret;
+	GUARD_V(false, ret = p->getVisible(exception));
+	return ret;
 }
 
-void TilemapVX::setViewport(Viewport *value)
+void TilemapVX::setViewport(Exception &exception, Viewport *value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	p->setViewport(value);
 	p->above.setViewport(value);
 }
 
-void TilemapVX::setMapData(Table *value)
+void TilemapVX::setMapData(Exception &exception, Table *value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->mapData == value)
 		return;
@@ -541,16 +553,16 @@ void TilemapVX::setMapData(Table *value)
 		(&TilemapVXPrivate::invalidateBuffers, p);
 }
 
-void TilemapVX::setFlashData(Table *value)
+void TilemapVX::setFlashData(Exception &exception, Table *value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	p->flashMap.setData(value);
 }
 
-void TilemapVX::setFlags(Table *value)
+void TilemapVX::setFlags(Exception &exception, Table *value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->flags == value)
 		return;
@@ -563,17 +575,17 @@ void TilemapVX::setFlags(Table *value)
 		(&TilemapVXPrivate::invalidateBuffers, p);
 }
 
-void TilemapVX::setVisible(bool value)
+void TilemapVX::setVisible(Exception &exception, bool value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
-	p->setVisible(value);
-	p->above.setVisible(value);
+	GUARD(p->setVisible(exception, value));
+	GUARD(p->above.setVisible(exception, value));
 }
 
-void TilemapVX::setOX(int value)
+void TilemapVX::setOX(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->origin.x == value)
 		return;
@@ -582,9 +594,9 @@ void TilemapVX::setOX(int value)
 	p->mapViewportDirty = true;
 }
 
-void TilemapVX::setOY(int value)
+void TilemapVX::setOY(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->origin.y == value)
 		return;

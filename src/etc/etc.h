@@ -78,7 +78,7 @@ struct Color : public Serializable
 	/* Serializable */
 	int serialSize() const;
 	void serialize(char *buffer) const;
-	static Color *deserialize(const char *data, int len);
+	static Color *deserialize(Exception &exception, const char *data, int len);
 
 	/* Internal */
 	void updateInternal();
@@ -130,7 +130,7 @@ struct Tone : public Serializable
 	/* Serializable */
 	int serialSize() const;
 	void serialize(char *buffer) const;
-	static Tone *deserialize(const char *data, int len);
+	static Tone *deserialize(Exception &exception, const char *data, int len);
 
 	/* Internal */
 	void updateInternal();
@@ -189,7 +189,7 @@ struct Rect : public Serializable
 	/* Serializable */
 	int serialSize() const;
 	void serialize(char *buffer) const;
-	static Rect *deserialize(const char *data, int len);
+	static Rect *deserialize(Exception &exception, const char *data, int len);
 
 	/* Internal */
 	FloatRect toFloatRect() const

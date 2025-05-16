@@ -36,6 +36,8 @@
 namespace mkxp_fs = filesystemImpl;
 #endif // MKXPZ_RETRO
 
+#include "exception.h"
+
 struct FileSystemPrivate;
 class SharedFontState;
 
@@ -98,8 +100,8 @@ public:
 	           bool allowSymlinks);
 	~FileSystem();
 
-	void addPath(const char *path, const char *mountpoint = 0, bool reload = false);
-    void removePath(const char *path, bool reload = false);
+	void addPath(Exception &exception, const char *path, const char *mountpoint = 0, bool reload = false);
+    void removePath(Exception &exception, const char *path, bool reload = false);
 
 	/* Call these after the last 'addPath()' */
 	void createPathCache();
@@ -112,6 +114,8 @@ public:
 
 	struct OpenHandler
 	{
+		Exception exception;
+
 		/* Try to read and interpret data provided from ops.
 		 * If data cannot be parsed, return false, otherwise true.
 		 * Can be called multiple times until a parseable file is found.
