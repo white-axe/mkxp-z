@@ -270,7 +270,7 @@ RB_METHOD_GUARD(graphicsSnapToBitmap)
     
     Bitmap *result = 0;
     
-    BINDING_GUARD_LF(delete result, result = shState->graphics().snapToBitmap(e));
+    BINDING_GUARD_L(result = shState->graphics().snapToBitmap(e));
     
     VALUE obj = wrapObject(result, BitmapType);
     bitmapInitProps(result, obj);
