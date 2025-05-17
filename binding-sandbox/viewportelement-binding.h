@@ -59,7 +59,7 @@ namespace mkxp_sandbox {
 
     template <class C> struct viewportelement_binding_init : boost::asio::coroutine {
     private:
-        SANDBOX_DEF_GFX_PROP_OBJ_REF(C, Viewport, Viewport, viewport);
+        SANDBOX_DEF_PROP_OBJ_REF(C, Viewport, Viewport, viewport);
 
     public:
         void operator()(VALUE klass) {

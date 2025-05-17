@@ -39,9 +39,9 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 GFX_LOCK;
                 SANDBOX_AWAIT(viewportelement_initialize<Sprite>, argc, argv, self);
-                SANDBOX_AWAIT(wrap_property, self, &get_private_data<Sprite>(self)->getSrcRect(), "src_rect", rect_class);
-                SANDBOX_AWAIT(wrap_property, self, &get_private_data<Sprite>(self)->getColor(), "color", color_class);
-                SANDBOX_AWAIT(wrap_property, self, &get_private_data<Sprite>(self)->getTone(), "tone", tone_class);
+                SANDBOX_GUARD(SANDBOX_AWAIT(wrap_property, self, &get_private_data<Sprite>(self)->getSrcRect(sb().e), "src_rect", rect_class));
+                SANDBOX_GUARD(SANDBOX_AWAIT(wrap_property, self, &get_private_data<Sprite>(self)->getColor(sb().e), "color", color_class));
+                SANDBOX_GUARD(SANDBOX_AWAIT(wrap_property, self, &get_private_data<Sprite>(self)->getTone(sb().e), "tone", tone_class));
                 GFX_UNLOCK;
             }
 
@@ -69,11 +69,35 @@ SANDBOX_DEF_GFX_PROP_OBJ_VAL(Sprite, Color, Color, color);
 SANDBOX_DEF_GFX_PROP_OBJ_VAL(Sprite, Tone, Tone, tone);
 
 static VALUE width(VALUE self) {
-    return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getWidth());
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE> slots;
+
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_GUARD(SANDBOX_AWAIT_S(0, rb_ull2inum, get_private_data<Sprite>(self)->getWidth(sb().e)));
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
 }
 
 static VALUE height(VALUE self) {
-    return sb()->bind<struct rb_ll2inum>()()(get_private_data<Sprite>(self)->getHeight());
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE> slots;
+
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_GUARD(SANDBOX_AWAIT_S(0, rb_ull2inum, get_private_data<Sprite>(self)->getHeight(sb().e)));
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
 }
 
 SANDBOX_DEF_GFX_PROP_I(Sprite, BushOpacity, bush_opacity);

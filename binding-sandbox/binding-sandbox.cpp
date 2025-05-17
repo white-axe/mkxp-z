@@ -114,7 +114,7 @@ struct run_rmxp_scripts : boost::asio::coroutine {
                         }
 
                         if (2UL * (unsigned long)sb().script_decode_buffer.size() <= (unsigned long)sb().script_decode_buffer.size()) {
-                            throw std::bad_alloc();
+                            MKXPZ_THROW(std::bad_alloc());
                         }
                         sb().script_decode_buffer.resize(2 * sb().script_decode_buffer.size());
                         buffer_len = sb().script_decode_buffer.size() - 1;

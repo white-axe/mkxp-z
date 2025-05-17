@@ -160,7 +160,26 @@ static VALUE set_name(VALUE self, VALUE value) {
     return sb()->bind<struct coro>()()(self, value);
 }
 
-SANDBOX_DEF_PROP_I(Font, Size, size);
+static VALUE get_size(VALUE self) {
+    return sb()->bind<struct rb_ll2inum>()()(get_private_data<Font>(self)->getSize());
+}
+
+static VALUE set_size(VALUE self, VALUE value) {
+    struct coro : boost::asio::coroutine {
+        VALUE operator()(VALUE self, VALUE value) {
+            typedef decl_slots<int32_t> slots;
+
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, rb_num2int, value);
+                SANDBOX_GUARD(get_private_data<Font>(self)->setSizeCheck(sb().e, SANDBOX_SLOT(0)));
+            }
+            return value;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self, value);
+}
+
 SANDBOX_DEF_PROP_B(Font, Bold, bold);
 SANDBOX_DEF_PROP_B(Font, Italic, italic);
 SANDBOX_DEF_PROP_OBJ_VAL(Font, Color, Color, color);

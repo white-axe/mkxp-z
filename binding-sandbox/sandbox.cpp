@@ -39,7 +39,7 @@ wasm_ptr_t sandbox::sandbox_malloc(wasm_size_t size) {
     // Verify that the returned pointer is non-null and the entire allocated buffer is in valid memory
     wasm_ptr_t buf_end;
     if (buf == 0 || (buf_end = buf + size) < buf || buf_end >= ruby->w2c_memory.size) {
-        throw std::bad_alloc();
+        MKXPZ_THROW(std::bad_alloc());
     }
 
     return buf;

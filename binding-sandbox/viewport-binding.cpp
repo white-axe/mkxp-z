@@ -62,9 +62,9 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     viewport->initDynAttribs();
                 }
 
-                SANDBOX_AWAIT(wrap_property, self, &get_private_data<Viewport>(self)->getRect(), "rect", rect_class);
-                SANDBOX_AWAIT(wrap_property, self, &get_private_data<Viewport>(self)->getColor(), "color", color_class);
-                SANDBOX_AWAIT(wrap_property, self, &get_private_data<Viewport>(self)->getTone(), "tone", tone_class);
+                SANDBOX_GUARD(SANDBOX_AWAIT(wrap_property, self, &get_private_data<Viewport>(self)->getRect(sb().e), "rect", rect_class));
+                SANDBOX_GUARD(SANDBOX_AWAIT(wrap_property, self, &get_private_data<Viewport>(self)->getColor(sb().e), "color", color_class));
+                SANDBOX_GUARD(SANDBOX_AWAIT(wrap_property, self, &get_private_data<Viewport>(self)->getTone(sb().e), "tone", tone_class));
 
                 GFX_UNLOCK
             }

@@ -39,8 +39,8 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 GFX_LOCK;
                 SANDBOX_AWAIT(viewportelement_initialize<Plane>, argc, argv, self);
-                SANDBOX_AWAIT(wrap_property, self, &get_private_data<Plane>(self)->getColor(), "color", color_class);
-                SANDBOX_AWAIT(wrap_property, self, &get_private_data<Plane>(self)->getTone(), "tone", tone_class);
+                SANDBOX_GUARD(SANDBOX_AWAIT(wrap_property, self, &get_private_data<Plane>(self)->getColor(sb().e), "color", color_class));
+                SANDBOX_GUARD(SANDBOX_AWAIT(wrap_property, self, &get_private_data<Plane>(self)->getTone(sb().e), "tone", tone_class));
                 GFX_UNLOCK;
             }
 

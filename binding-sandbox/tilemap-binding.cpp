@@ -123,10 +123,10 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     set_private_data(SANDBOX_SLOT(1), nullptr);
                 }
 
-                SANDBOX_AWAIT_S(1, wrap_property, self, &get_private_data<Tilemap>(self)->getAutotiles(), "autotiles", tilemap_autotiles_class);
+                SANDBOX_GUARD(SANDBOX_AWAIT_S(1, wrap_property, self, &get_private_data<Tilemap>(self)->getAutotiles(sb().e), "autotiles", tilemap_autotiles_class));
 
-                SANDBOX_AWAIT(wrap_property, self, &get_private_data<Tilemap>(self)->getColor(), "color", color_class);
-                SANDBOX_AWAIT(wrap_property, self, &get_private_data<Tilemap>(self)->getTone(), "tone", tone_class);
+                SANDBOX_GUARD(SANDBOX_AWAIT(wrap_property, self, &get_private_data<Tilemap>(self)->getColor(sb().e), "color", color_class));
+                SANDBOX_GUARD(SANDBOX_AWAIT(wrap_property, self, &get_private_data<Tilemap>(self)->getTone(sb().e), "tone", tone_class));
 
                 SANDBOX_AWAIT_S(2, rb_class_new_instance, 0, nullptr, sb()->rb_cArray());
                 for (SANDBOX_SLOT(3) = 0; SANDBOX_SLOT(3) < 7; ++SANDBOX_SLOT(3)) {
@@ -154,10 +154,19 @@ static VALUE autotiles(VALUE self) {
 }
 
 static VALUE update(VALUE self) {
-    GFX_LOCK;
-    get_private_data<Tilemap>(self)->update();
-    GFX_UNLOCK;
-    return SANDBOX_NIL;
+    struct coro : boost::asio::coroutine {
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                GFX_LOCK;
+                SANDBOX_GUARD_F(GFX_UNLOCK, get_private_data<Tilemap>(self)->update(sb().e));
+                GFX_UNLOCK;
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
 }
 
 static VALUE viewport(VALUE self) {

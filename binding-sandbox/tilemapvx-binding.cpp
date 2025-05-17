@@ -118,7 +118,7 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     set_private_data(SANDBOX_SLOT(1), nullptr);
                 }
 
-                SANDBOX_AWAIT_S(1, wrap_property, self, &get_private_data<TilemapVX>(self)->getBitmapArray(), "bitmap_array", bitmap_array_class);
+                SANDBOX_GUARD(SANDBOX_AWAIT_S(1, wrap_property, self, &get_private_data<TilemapVX>(self)->getBitmapArray(sb().e), "bitmap_array", bitmap_array_class));
 
                 SANDBOX_AWAIT_S(2, rb_class_new_instance, 0, nullptr, sb()->rb_cArray());
                 for (SANDBOX_SLOT(3) = 0; SANDBOX_SLOT(3) < 9; ++SANDBOX_SLOT(3)) {
@@ -146,10 +146,19 @@ static VALUE bitmaps(VALUE self) {
 }
 
 static VALUE update(VALUE self) {
-    GFX_LOCK;
-    get_private_data<TilemapVX>(self)->update();
-    GFX_UNLOCK;
-    return SANDBOX_NIL;
+    struct coro : boost::asio::coroutine {
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                GFX_LOCK;
+                SANDBOX_GUARD_F(GFX_UNLOCK, get_private_data<TilemapVX>(self)->update(sb().e));
+                GFX_UNLOCK;
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
 }
 
 SANDBOX_DEF_GFX_PROP_OBJ_REF(TilemapVX, Viewport, Viewport, viewport);

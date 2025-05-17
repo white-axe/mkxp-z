@@ -53,9 +53,9 @@ static VALUE bgm_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 }
 
                 if (SANDBOX_SLOT(5)) {
-                    mkxp_retro::audio->bgmPlay(sb()->str(SANDBOX_SLOT(1)), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(0), SANDBOX_SLOT(4));
+                    SANDBOX_GUARD(mkxp_retro::audio->bgmPlay(sb().e, sb()->str(SANDBOX_SLOT(1)), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(0), SANDBOX_SLOT(4)));
                 } else {
-                    mkxp_retro::audio->bgmPlay(sb()->str(SANDBOX_SLOT(1)), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(0));
+                    SANDBOX_GUARD(mkxp_retro::audio->bgmPlay(sb().e, sb()->str(SANDBOX_SLOT(1)), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(0)));
                 }
             }
 
@@ -67,8 +67,17 @@ static VALUE bgm_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
 }
 
 static VALUE bgm_stop(VALUE self) {
-    mkxp_retro::audio->bgmStop();
-    return SANDBOX_NIL;
+    struct coro : boost::asio::coroutine {
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_GUARD(mkxp_retro::audio->bgmStop(sb().e));
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
 }
 
 static VALUE bgm_fade(int32_t argc, wasm_ptr_t argv, VALUE self) {
@@ -82,7 +91,7 @@ static VALUE bgm_fade(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 if (argc >= 2) {
                     SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
                 }
-                mkxp_retro::audio->bgmFade(SANDBOX_SLOT(0), SANDBOX_SLOT(1));
+                SANDBOX_GUARD(mkxp_retro::audio->bgmFade(sb().e, SANDBOX_SLOT(0), SANDBOX_SLOT(1)));
             }
 
             return SANDBOX_NIL;
@@ -102,7 +111,7 @@ static VALUE bgm_pos(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 if (argc >= 1) {
                     SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 0));
                 }
-                SANDBOX_SLOT(0) = mkxp_retro::audio->bgmPos(SANDBOX_SLOT(2));
+                SANDBOX_GUARD(SANDBOX_SLOT(0) = mkxp_retro::audio->bgmPos(sb().e, SANDBOX_SLOT(2)));
                 SANDBOX_AWAIT_S(1, rb_float_new, SANDBOX_SLOT(0));
             }
 
@@ -123,7 +132,7 @@ static VALUE bgm_volume(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 if (argc >= 1) {
                     SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 0));
                 }
-                SANDBOX_SLOT(2) = mkxp_retro::audio->bgmGetVolume(SANDBOX_SLOT(1));
+                SANDBOX_GUARD(SANDBOX_SLOT(2) = mkxp_retro::audio->bgmGetVolume(sb().e, SANDBOX_SLOT(1)));
                 SANDBOX_AWAIT_S(0, rb_ll2inum, SANDBOX_SLOT(2));
             }
 
@@ -145,7 +154,7 @@ static VALUE bgm_set_volume(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 if (argc >= 2) {
                     SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
                 }
-                mkxp_retro::audio->bgmSetVolume(SANDBOX_SLOT(0), SANDBOX_SLOT(1));
+                SANDBOX_GUARD(mkxp_retro::audio->bgmSetVolume(sb().e, SANDBOX_SLOT(0), SANDBOX_SLOT(1)));
             }
 
             return SANDBOX_NIL;
@@ -176,7 +185,7 @@ static VALUE bgs_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     }
                 }
 
-                mkxp_retro::audio->bgsPlay(sb()->str(SANDBOX_SLOT(1)), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(0));
+                SANDBOX_GUARD(mkxp_retro::audio->bgsPlay(sb().e, sb()->str(SANDBOX_SLOT(1)), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(0)));
             }
 
             return SANDBOX_NIL;
@@ -242,7 +251,7 @@ static VALUE me_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     }
                 }
 
-                mkxp_retro::audio->mePlay(sb()->str(SANDBOX_SLOT(0)), SANDBOX_SLOT(1), SANDBOX_SLOT(2));
+                SANDBOX_GUARD(mkxp_retro::audio->mePlay(sb().e, sb()->str(SANDBOX_SLOT(0)), SANDBOX_SLOT(1), SANDBOX_SLOT(2)));
             }
 
             return SANDBOX_NIL;

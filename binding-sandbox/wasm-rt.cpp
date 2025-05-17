@@ -68,16 +68,16 @@ extern "C" WASM_RT_NO_RETURN void wasm_rt_trap(wasm_rt_trap_t error) {
 
 extern "C" void wasm_rt_allocate_memory(wasm_rt_memory_t *memory, uint32_t initial_pages, uint32_t max_pages, bool is64, uint32_t page_size) {
     if (page_size != WASM_PAGE_SIZE) {
-        throw std::bad_alloc();
+        MKXPZ_THROW(std::bad_alloc());
     }
     if ((memory->size = (uint64_t)initial_pages * WASM_PAGE_SIZE) > SIZE_MAX) {
-        throw std::bad_alloc();
+        MKXPZ_THROW(std::bad_alloc());
     }
     memory->capacity = (uint64_t)WASM_MIN_PAGES * (uint64_t)WASM_PAGE_SIZE;
     mkxp_retro::log_printf(RETRO_LOG_DEBUG, "VM memory initialized with capacity %llu bytes (%u pages)\n", memory->capacity, WASM_MIN_PAGES);
     memory->private_data = (uint8_t *)std::malloc(std::max((size_t)memory->size, (size_t)WASM_MIN_PAGES * (size_t)WASM_PAGE_SIZE));
     if (memory->private_data == nullptr) {
-        throw std::bad_alloc();
+        MKXPZ_THROW(std::bad_alloc());
     }
 #ifdef MKXPZ_BIG_ENDIAN
     memory->data = memory->private_data + std::max((size_t)memory->size, (size_t)WASM_MIN_PAGES * (size_t)WASM_PAGE_SIZE) - (size_t)memory->size;
@@ -156,7 +156,7 @@ extern "C" void wasm_rt_free_funcref_table(wasm_rt_funcref_table_t *table) {
 
 extern "C" uint32_t wasm_rt_push_funcref(wasm_rt_funcref_table_t *table, wasm_rt_funcref_t funcref) {
     if (table->size == (uint32_t)-1) {
-        throw std::bad_alloc();
+        MKXPZ_THROW(std::bad_alloc());
     }
     ((std::vector<wasm_rt_funcref_t> *)table->private_data)->push_back(funcref);
     table->data = ((std::vector<wasm_rt_funcref_t> *)table->private_data)->data();

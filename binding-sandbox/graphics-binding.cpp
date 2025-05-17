@@ -49,9 +49,12 @@ static VALUE delta(VALUE self) {
 
 static VALUE update(VALUE self) {
     struct coro : boost::asio::coroutine {
+        typedef decl_slots<uint8_t> slots;
+
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                if (shState->graphics().update()) {
+                SANDBOX_GUARD(SANDBOX_SLOT(0) = shState->graphics().update(sb().e));
+                if (SANDBOX_SLOT(0)) {
                     SANDBOX_YIELD;
                 }
             }
@@ -64,8 +67,17 @@ static VALUE update(VALUE self) {
 }
 
 static VALUE freeze(VALUE self) {
-    shState->graphics().freeze();
-    return SANDBOX_NIL;
+    struct coro : boost::asio::coroutine {
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_GUARD(shState->graphics().freeze(sb().e));
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
 }
 
 static VALUE transition(int32_t argc, wasm_ptr_t argv, VALUE self) {
@@ -88,7 +100,7 @@ static VALUE transition(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     if (argc >= 2) {
                         SANDBOX_AWAIT_S(0, rb_string_value_cstr, &sb()->ref<VALUE>(argv, 1));
                         if (*sb()->str(SANDBOX_SLOT(0))) {
-                            sb().trans_map = new Bitmap(sb()->str(SANDBOX_SLOT(0)));
+                            SANDBOX_GUARD(sb().trans_map = new Bitmap(sb().e, sb()->str(SANDBOX_SLOT(0))));
                         }
                         if (argc >= 3) {
                             SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 2));
@@ -97,10 +109,10 @@ static VALUE transition(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 }
 
                 if (SANDBOX_SLOT(1) <= 0) {
-                    shState->graphics().transition(SANDBOX_SLOT(1), sb().trans_map, SANDBOX_SLOT(2), 0, 0);
+                    SANDBOX_GUARD(shState->graphics().transition(sb().e, SANDBOX_SLOT(1), sb().trans_map, SANDBOX_SLOT(2), 0, 0));
                 } else {
                     for (SANDBOX_SLOT(3) = 0; SANDBOX_SLOT(3) < SANDBOX_SLOT(1); ++SANDBOX_SLOT(3)) {
-                        shState->graphics().transition(SANDBOX_SLOT(1), sb().trans_map, SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(3));
+                        SANDBOX_GUARD(shState->graphics().transition(sb().e, SANDBOX_SLOT(1), sb().trans_map, SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(3)));
                         SANDBOX_YIELD;
                     }
                 }
@@ -135,7 +147,7 @@ static VALUE screenshot(VALUE self, VALUE value) {
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_S(0, rb_string_value_cstr, &value);
-                GFX_GUARD_EXC(shState->graphics().screenshot(sb()->str(SANDBOX_SLOT(0))););
+                SANDBOX_GUARD(shState->graphics().screenshot(sb().e, sb()->str(SANDBOX_SLOT(0))));
             }
 
             return SANDBOX_NIL;
@@ -146,8 +158,17 @@ static VALUE screenshot(VALUE self, VALUE value) {
 }
 
 static VALUE reset(VALUE self) {
-    GFX_GUARD_EXC(shState->graphics().reset(););
-    return SANDBOX_NIL;
+    struct coro : boost::asio::coroutine {
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_GUARD(shState->graphics().reset(sb().e));
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
 }
 
 SANDBOX_DEF_GRA_PROP_I(FrameCount, frame_count);
@@ -182,7 +203,7 @@ static VALUE wait_(VALUE self, VALUE value) {
                 SANDBOX_AWAIT_S(0, rb_num2int, value);
 
                 for (SANDBOX_SLOT(1) = 0; SANDBOX_SLOT(1) < SANDBOX_SLOT(0); ++SANDBOX_SLOT(1)) {
-                    shState->graphics().wait(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(1));
+                    SANDBOX_GUARD(shState->graphics().wait(sb().e, SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(1)));
                     SANDBOX_YIELD;
                 }
             }
@@ -204,7 +225,7 @@ static VALUE fadeout(VALUE self, VALUE value) {
                 SANDBOX_SLOT(2) = shState->graphics().getBrightness();
 
                 for (SANDBOX_SLOT(1) = 0; SANDBOX_SLOT(1) < SANDBOX_SLOT(0); ++SANDBOX_SLOT(1)) {
-                    shState->graphics().fadeout(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(1), SANDBOX_SLOT(2));
+                    SANDBOX_GUARD(shState->graphics().fadeout(sb().e, SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(1), SANDBOX_SLOT(2)));
                     SANDBOX_YIELD;
                 }
             }
@@ -226,7 +247,7 @@ static VALUE fadein(VALUE self, VALUE value) {
                 SANDBOX_SLOT(2) = shState->graphics().getBrightness();
 
                 for (SANDBOX_SLOT(1) = 0; SANDBOX_SLOT(1) < SANDBOX_SLOT(0); ++SANDBOX_SLOT(1)) {
-                    shState->graphics().fadein(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(1), SANDBOX_SLOT(2));
+                    SANDBOX_GUARD(shState->graphics().fadein(sb().e, SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(1), SANDBOX_SLOT(2)));
                     SANDBOX_YIELD;
                 }
             }
@@ -245,11 +266,7 @@ static VALUE snap_to_bitmap(VALUE self) {
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_S(0, rb_obj_alloc, bitmap_class);
-                {
-                    Bitmap *bitmap;
-                    GFX_GUARD_EXC(bitmap = shState->graphics().snapToBitmap(););
-                    set_private_data(SANDBOX_SLOT(0), bitmap);
-                }
+                SANDBOX_GUARD(set_private_data(SANDBOX_SLOT(0), shState->graphics().snapToBitmap(sb().e)));
                 SANDBOX_AWAIT(bitmap_init_props, SANDBOX_SLOT(0));
             }
 
@@ -327,10 +344,10 @@ static VALUE play_movie(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 }
                 SANDBOX_SLOT(2) = argc >= 3 ? SANDBOX_VALUE_TO_BOOL(sb()->ref<VALUE>(argv, 2)) : false;
 
-                GFX_GUARD_EXC(sb().set_movie(shState->graphics().playMovie(sb()->str(SANDBOX_SLOT(0)), SANDBOX_SLOT(1), SANDBOX_SLOT(2))););
+                SANDBOX_GUARD(sb().set_movie(shState->graphics().playMovie(sb().e, sb()->str(SANDBOX_SLOT(0)), SANDBOX_SLOT(1), SANDBOX_SLOT(2))));
                 while (sb().get_movie_from_main_thread() != nullptr) {
                     SANDBOX_YIELD;
-                    GFX_GUARD_EXC(sb().set_movie(shState->graphics().playMovie(sb().get_movie_from_main_thread())););
+                    sb().set_movie(shState->graphics().playMovie(sb().get_movie_from_main_thread()));
                 }
             }
 
