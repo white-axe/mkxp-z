@@ -42,6 +42,19 @@
 #endif
 #define RAPI_FULL ((RAPI_MAJOR * 100) + (RAPI_MINOR * 10) + RAPI_TEENY)
 
+#define BINDING_GUARD_F(finalizer, ...) do { \
+    Exception e; \
+    __VA_ARGS__; \
+    if (e.is_error()) { \
+        finalizer; \
+        throw e; \
+    } \
+} while (0)
+
+#define BINDING_GUARD(...) BINDING_GUARD_F(, __VA_ARGS__)
+#define BINDING_GUARD_LF(finalizer, ...) do { GFX_LOCK; BINDING_GUARD_F(finalizer; GFX_UNLOCK, __VA_ARGS__); GFX_UNLOCK; } while (0)
+#define BINDING_GUARD_L(...) BINDING_GUARD_LF(, __VA_ARGS__)
+
 enum RbException {
     RGSS = 0,
     Reset,
@@ -362,18 +375,6 @@ static inline void _rb_define_module_function(VALUE module, const char *name,
     rb_define_module_function(module, name, RUBY_METHOD_FUNC(func), -1);
 }
 
-#define GFX_GUARD_EXC(exp)                                               \
-{                                                                        \
-GFX_LOCK;                                                                \
-try {                                                                    \
-exp                                                                      \
-} catch (const Exception &exc) {                                         \
-GFX_UNLOCK;                                                              \
-throw exc;                                                               \
-}                                                                        \
-GFX_UNLOCK;                                                              \
-}
-
 
 template <class C>
 static inline VALUE objectLoad(int argc, VALUE *argv, VALUE self) {
@@ -383,11 +384,7 @@ static inline VALUE objectLoad(int argc, VALUE *argv, VALUE self) {
     
     VALUE obj = rb_obj_alloc(self);
     
-    C *c = 0;
-    
-    c = C::deserialize(data, dataLen);
-    
-    setPrivateData(obj, c);
+    BINDING_GUARD(setPrivateData(obj, C::deserialize(e, data, dataLen)));
     
     return obj;
 }
@@ -489,8 +486,8 @@ static inline VALUE rb_file_open_str(VALUE filename, const char *mode) {
     try{                                        \
 
 #define RB_METHOD_GUARD_END                     \
-    } catch (const Exception &e) {              \
-        exc = new Exception(e);                 \
+    } catch (const Exception &_e) {             \
+        exc = new Exception(_e);                \
     }                                           \
     if (exc) {                                  \
         raiseRbExc(exc);                        \
@@ -657,7 +654,7 @@ if (NIL_P(propObj))                                                        \
 prop = 0;                                                                \
 else                                                                       \
 prop = getPrivateDataCheck<PropKlass>(propObj, PropKlass##Type);         \
-GFX_GUARD_EXC(k->set##PropName(prop);)                                         \
+BINDING_GUARD_L(k->set##PropName(e, prop));                                         \
 rb_iv_set(self, prop_iv, propObj);                                         \
 return propObj;                                                            \
 }                                                                          \
@@ -681,7 +678,7 @@ Klass *k = getPrivateData<Klass>(self);                                    \
 VALUE propObj = *argv;                                                     \
 PropKlass *prop;                                                           \
 prop = getPrivateDataCheck<PropKlass>(propObj, PropKlass##Type);           \
-GFX_GUARD_EXC(k->set##PropName(*prop);)                                        \
+BINDING_GUARD_L(k->set##PropName(e, *prop));                                        \
 return propObj;                                                            \
 }                                                                          \
 RB_METHOD_GUARD_END
@@ -695,7 +692,7 @@ RB_METHOD_GUARD(Klass##Get##PropName) {                                    \
 RB_UNUSED_PARAM;                                                           \
 Klass *k = getPrivateData<Klass>(self);                                    \
 type value = 0;                                                            \
-value = k->get##PropName();                                                \
+BINDING_GUARD(value = k->get##PropName(e));                                                \
 return value_fun(value);                                                   \
 }                                                                            \
 RB_METHOD_GUARD_END                                                        \
@@ -704,7 +701,7 @@ rb_check_argc(argc, 1);                                                    \
 Klass *k = getPrivateData<Klass>(self);                                    \
 type value;                                                                \
 rb_##arg_fun##_arg(*argv, &value);                                         \
-GFX_GUARD_EXC(k->set##PropName(value);)                                        \
+BINDING_GUARD_L(k->set##PropName(e, value));                                        \
 return *argv;                                                              \
 }                                                                          \
 RB_METHOD_GUARD_END

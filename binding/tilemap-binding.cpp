@@ -102,10 +102,10 @@ RB_METHOD(tilemapInitialize) {
     if (autotilesObj != Qnil)
         setPrivateData(autotilesObj, 0);
     
-    wrapProperty(self, &t->getAutotiles(), "autotiles", TilemapAutotilesType);
+    BINDING_GUARD_F(GFX_UNLOCK, wrapProperty(self, &t->getAutotiles(e), "autotiles", TilemapAutotilesType));
     
-    wrapProperty(self, &t->getColor(), "color", ColorType);
-    wrapProperty(self, &t->getTone(), "tone", ToneType);
+    BINDING_GUARD_F(GFX_UNLOCK, wrapProperty(self, &t->getColor(e), "color", ColorType));
+    BINDING_GUARD_F(GFX_UNLOCK, wrapProperty(self, &t->getTone(e), "tone", ToneType));
     
     autotilesObj = rb_iv_get(self, "autotiles");
     
@@ -134,9 +134,7 @@ RB_METHOD(tilemapUpdate) {
     
     Tilemap *t = getPrivateData<Tilemap>(self);
     
-    GFX_LOCK;
-    t->update();
-    GFX_UNLOCK;
+    BINDING_GUARD_L(t->update(e));
     
     return Qnil;
 }

@@ -567,7 +567,7 @@ RB_METHOD_GUARD(mkxpAddPath) {
     if (reload != Qnil)
         rb_bool_arg(reload, &rl);
     
-    shState->fileSystem().addPath(RSTRING_PTR(path), mp, rl);
+    BINDING_GUARD(shState->fileSystem().addPath(e, RSTRING_PTR(path), mp, rl));
     
     return path;
 }
@@ -584,7 +584,7 @@ RB_METHOD_GUARD(mkxpRemovePath) {
     if (reload != Qnil)
         rb_bool_arg(reload, &rl);
     
-    shState->fileSystem().removePath(RSTRING_PTR(path), rl);
+    BINDING_GUARD(shState->fileSystem().removePath(e, RSTRING_PTR(path), rl));
     
     return path;
 }
@@ -891,7 +891,7 @@ RB_METHOD_GUARD(mriRgssStop) {
     RB_UNUSED_PARAM;
     
     while (true)
-        shState->graphics().update();
+        BINDING_GUARD(shState->graphics().update(e));
     
     return Qnil;
 }

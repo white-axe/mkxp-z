@@ -64,8 +64,8 @@ RB_METHOD(tilemapVXInitialize) {
     if (autotilesObj != Qnil)
         setPrivateData(autotilesObj, 0);
     
-    wrapProperty(self, &t->getBitmapArray(), "bitmap_array", BitmapArrayType,
-                 rb_const_get(rb_cObject, rb_intern("Tilemap")));
+    BINDING_GUARD_F(GFX_UNLOCK, wrapProperty(self, &t->getBitmapArray(e), "bitmap_array", BitmapArrayType,
+                 rb_const_get(rb_cObject, rb_intern("Tilemap"))));
     
     autotilesObj = rb_iv_get(self, "bitmap_array");
     
@@ -94,7 +94,7 @@ RB_METHOD(tilemapVXUpdate) {
     
     TilemapVX *t = getPrivateData<TilemapVX>(self);
     
-    t->update();
+    BINDING_GUARD(t->update(e));
     
     return Qnil;
 }
