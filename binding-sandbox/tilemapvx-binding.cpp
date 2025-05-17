@@ -57,20 +57,24 @@ struct bitmap_array_binding_init : boost::asio::coroutine {
 
             VALUE operator()(VALUE self, VALUE i, VALUE obj) {
                 BOOST_ASIO_CORO_REENTER (this) {
+                    GFX_LOCK;
+
                     if (get_private_data<TilemapVX::BitmapArray>(self) == nullptr) {
                         return self;
                     }
 
                     SANDBOX_AWAIT_S(0, rb_num2ulong, i);
 
-                    GFX_LOCK;
                     get_private_data<TilemapVX::BitmapArray>(self)->set(SANDBOX_SLOT(0), get_private_data<Bitmap>(obj));
                     SANDBOX_AWAIT_S(1, rb_iv_get, self, "array");
                     SANDBOX_AWAIT(rb_ary_store, SANDBOX_SLOT(1), SANDBOX_SLOT(0), obj);
-                    GFX_UNLOCK;
                 }
 
                 return self;
+            }
+
+            ~coro() {
+                GFX_UNLOCK;
             }
         };
 
@@ -149,9 +153,7 @@ static VALUE update(VALUE self) {
     struct coro : boost::asio::coroutine {
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                GFX_LOCK;
-                SANDBOX_GUARD_F(GFX_UNLOCK, get_private_data<TilemapVX>(self)->update(sb().e));
-                GFX_UNLOCK;
+                SANDBOX_GUARD_L(get_private_data<TilemapVX>(self)->update(sb().e));
             }
 
             return SANDBOX_NIL;

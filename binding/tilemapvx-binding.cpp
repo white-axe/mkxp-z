@@ -94,7 +94,7 @@ RB_METHOD(tilemapVXUpdate) {
     
     TilemapVX *t = getPrivateData<TilemapVX>(self);
     
-    BINDING_GUARD(t->update(e));
+    BINDING_GUARD_L(t->update(e));
     
     return Qnil;
 }

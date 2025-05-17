@@ -53,7 +53,7 @@ static VALUE update(VALUE self) {
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_GUARD(SANDBOX_SLOT(0) = shState->graphics().update(sb().e));
+                SANDBOX_GUARD_L(SANDBOX_SLOT(0) = shState->graphics().update(sb().e));
                 if (SANDBOX_SLOT(0)) {
                     SANDBOX_YIELD;
                 }
@@ -70,7 +70,7 @@ static VALUE freeze(VALUE self) {
     struct coro : boost::asio::coroutine {
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_GUARD(shState->graphics().freeze(sb().e));
+                SANDBOX_GUARD_L(shState->graphics().freeze(sb().e));
             }
 
             return SANDBOX_NIL;
@@ -90,6 +90,8 @@ static VALUE transition(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 sb().transitioning = true;
                 SANDBOX_SLOT(1) = 8;
                 SANDBOX_SLOT(2) = 40;
+
+                GFX_LOCK;
 
                 if (!shState->graphics().frozen()) {
                     return SANDBOX_NIL;
@@ -122,6 +124,7 @@ static VALUE transition(int32_t argc, wasm_ptr_t argv, VALUE self) {
         }
 
         ~coro() {
+            GFX_UNLOCK;
             sb().transitioning = false;
             if (sb().trans_map != nullptr) {
                 delete sb().trans_map;
@@ -147,7 +150,7 @@ static VALUE screenshot(VALUE self, VALUE value) {
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_S(0, rb_string_value_cstr, &value);
-                SANDBOX_GUARD(shState->graphics().screenshot(sb().e, sb()->str(SANDBOX_SLOT(0))));
+                SANDBOX_GUARD_L(shState->graphics().screenshot(sb().e, sb()->str(SANDBOX_SLOT(0))));
             }
 
             return SANDBOX_NIL;
@@ -161,7 +164,7 @@ static VALUE reset(VALUE self) {
     struct coro : boost::asio::coroutine {
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_GUARD(shState->graphics().reset(sb().e));
+                SANDBOX_GUARD_L(shState->graphics().reset(sb().e));
             }
 
             return SANDBOX_NIL;
@@ -200,6 +203,8 @@ static VALUE wait_(VALUE self, VALUE value) {
 
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
+                GFX_LOCK;
+
                 SANDBOX_AWAIT_S(0, rb_num2int, value);
 
                 for (SANDBOX_SLOT(1) = 0; SANDBOX_SLOT(1) < SANDBOX_SLOT(0); ++SANDBOX_SLOT(1)) {
@@ -209,6 +214,10 @@ static VALUE wait_(VALUE self, VALUE value) {
             }
 
             return SANDBOX_NIL;
+        }
+
+        ~coro() {
+            GFX_UNLOCK;
         }
     };
 
@@ -221,6 +230,8 @@ static VALUE fadeout(VALUE self, VALUE value) {
 
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
+                GFX_LOCK;
+
                 SANDBOX_AWAIT_S(0, rb_num2int, value);
                 SANDBOX_SLOT(2) = shState->graphics().getBrightness();
 
@@ -231,6 +242,10 @@ static VALUE fadeout(VALUE self, VALUE value) {
             }
 
             return SANDBOX_NIL;
+        }
+
+        ~coro() {
+            GFX_UNLOCK;
         }
     };
 
@@ -243,6 +258,8 @@ static VALUE fadein(VALUE self, VALUE value) {
 
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
+                GFX_LOCK;
+
                 SANDBOX_AWAIT_S(0, rb_num2int, value);
                 SANDBOX_SLOT(2) = shState->graphics().getBrightness();
 
@@ -253,6 +270,10 @@ static VALUE fadein(VALUE self, VALUE value) {
             }
 
             return SANDBOX_NIL;
+        }
+
+        ~coro() {
+            GFX_UNLOCK;
         }
     };
 
@@ -266,7 +287,7 @@ static VALUE snap_to_bitmap(VALUE self) {
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_S(0, rb_obj_alloc, bitmap_class);
-                SANDBOX_GUARD(set_private_data(SANDBOX_SLOT(0), shState->graphics().snapToBitmap(sb().e)));
+                SANDBOX_GUARD_L(set_private_data(SANDBOX_SLOT(0), shState->graphics().snapToBitmap(sb().e)));
                 SANDBOX_AWAIT(bitmap_init_props, SANDBOX_SLOT(0));
             }
 
@@ -335,6 +356,8 @@ static VALUE play_movie(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
+                GFX_LOCK;
+
                 // TODO: require at least 1 argument
                 SANDBOX_AWAIT_S(0, rb_string_value_cstr, &sb()->ref<VALUE>(argv, 0));
                 if (argc >= 2) {
@@ -355,7 +378,8 @@ static VALUE play_movie(int32_t argc, wasm_ptr_t argv, VALUE self) {
         }
 
         ~coro() {
-            GFX_GUARD_EXC(sb().set_movie(nullptr););
+            sb().set_movie(nullptr);
+            GFX_UNLOCK;
         }
     };
 

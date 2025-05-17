@@ -40,9 +40,10 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
+                GFX_LOCK;
+
                 SANDBOX_SLOT(1) = SANDBOX_SLOT(2) = SANDBOX_SLOT(3) = SANDBOX_SLOT(4) = 0;
 
-                GFX_LOCK;
                 if (rgssVer >= 3) {
                     if (argc == 4) {
                         SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 0));
@@ -67,10 +68,13 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 SANDBOX_GUARD(set_private_data(SANDBOX_SLOT(0), new Bitmap(sb().e, 1, 1)));
                 SANDBOX_AWAIT(bitmap_init_props, SANDBOX_SLOT(0));
                 SANDBOX_AWAIT(rb_iv_set, self, "contents", SANDBOX_SLOT(0));
-                GFX_UNLOCK;
             }
 
             return SANDBOX_NIL;
+        }
+
+        ~coro() {
+            GFX_UNLOCK;
         }
     };
 
@@ -81,7 +85,7 @@ static VALUE update(VALUE self) {
     struct coro : boost::asio::coroutine {
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_GUARD(get_private_data<WindowVX>(self)->update(sb().e));
+                SANDBOX_GUARD_L(get_private_data<WindowVX>(self)->update(sb().e));
             }
 
             return SANDBOX_NIL;
@@ -117,9 +121,7 @@ static VALUE move(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h) {
                 SANDBOX_AWAIT_S(1, rb_num2int, y);
                 SANDBOX_AWAIT_S(2, rb_num2int, w);
                 SANDBOX_AWAIT_S(3, rb_num2int, h);
-                GFX_LOCK;
-                SANDBOX_GUARD_F(GFX_UNLOCK, get_private_data<WindowVX>(self)->move(sb().e, SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3)));
-                GFX_UNLOCK;
+                SANDBOX_GUARD_L(get_private_data<WindowVX>(self)->move(sb().e, SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3)));
             }
 
             return SANDBOX_NIL;

@@ -37,12 +37,16 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 GFX_LOCK;
+
                 SANDBOX_AWAIT(viewportelement_initialize<Window>, argc, argv, self);
                 SANDBOX_GUARD(SANDBOX_AWAIT(wrap_property, self, &get_private_data<Window>(self)->getCursorRect(sb().e), "cursor_rect", rect_class));
-                GFX_UNLOCK;
             }
 
             return SANDBOX_NIL;
+        }
+
+        ~coro() {
+            GFX_UNLOCK;
         }
     };
 
@@ -53,7 +57,7 @@ static VALUE update(VALUE self) {
     struct coro : boost::asio::coroutine {
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_GUARD(get_private_data<Window>(self)->update(sb().e));
+                SANDBOX_GUARD_L(get_private_data<Window>(self)->update(sb().e));
             }
 
             return SANDBOX_NIL;
