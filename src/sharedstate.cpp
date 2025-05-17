@@ -149,20 +149,38 @@ struct SharedStatePrivate
 		std::string archPath = config.execName + gameArchExt();
 
 		for (size_t i = 0; i < config.patches.size(); ++i)
-			fileSystem.addPath(config.patches[i].c_str());
+		{
+			Exception e;
+			fileSystem.addPath(e, config.patches[i].c_str());
+			if (e.is_error())
+				throw e;
+		}
 
 		/* Check if a game archive exists */
 		FILE *tmp = fopen(archPath.c_str(), "rb");
 		if (tmp)
 		{
-			fileSystem.addPath(archPath.c_str());
+			Exception e;
+			fileSystem.addPath(e, archPath.c_str());
 			fclose(tmp);
+			if (e.is_error())
+				throw e;
 		}
 
-		fileSystem.addPath(".");
+		{
+			Exception e;
+			fileSystem.addPath(e, ".");
+			if (e.is_error())
+				throw e;
+		}
 
 		for (size_t i = 0; i < config.rtps.size(); ++i)
-			fileSystem.addPath(config.rtps[i].c_str());
+		{
+			Exception e;
+			fileSystem.addPath(e, config.rtps[i].c_str());
+			if (e.is_error())
+				throw e;
+		}
 
 		if (config.pathCache)
 			fileSystem.createPathCache();

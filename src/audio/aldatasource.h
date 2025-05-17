@@ -23,6 +23,7 @@
 #define ALDATASOURCE_H
 
 #include "al-util.h"
+#include <string>
 
 struct ALDataSource
 {

@@ -612,14 +612,23 @@ Bitmap::Bitmap(Exception &exception, const char *filename)
     if (shState->config().enableHires && filenameStd.compare(0, hiresPrefix.size(), hiresPrefix) != 0) {
         // Look for a high-res version of the file.
         std::string hiresFilename = hiresPrefix + filenameStd;
-        try {
-            hiresBitmap = new Bitmap(hiresFilename.c_str());
-            hiresBitmap->setLores(this);
-        }
-        catch (const Exception &e)
+        Exception e;
+        hiresBitmap = new Bitmap(e, hiresFilename.c_str());
+        if (e.is_error())
         {
             Debug() << "No high-res Bitmap found at" << hiresFilename;
+            delete hiresBitmap;
             hiresBitmap = nullptr;
+        }
+        else
+        {
+            hiresBitmap->setLores(e, this);
+            if (e.is_error())
+            {
+                Debug() << "No high-res Bitmap found at" << hiresFilename;
+                delete hiresBitmap;
+                hiresBitmap = nullptr;
+            }
         }
     }
 #endif // MKXPZ_RETRO
@@ -2668,7 +2677,7 @@ void Bitmap::drawText(Exception &exception, const IntRect &rect, const char *str
     GUARD(font = p->font->getSdlFont(exception));
 #else
     TTF_Font *font;
-    GUARD(font = p->font->getSdlFont());
+    GUARD(font = p->font->getSdlFont(exception));
 #endif // MKXPZ_RETRO
     const Color &fontColor = p->font->getColor();
     const Color &outColor = p->font->getOutColor();
@@ -2863,7 +2872,8 @@ IntRect Bitmap::textSize(Exception &exception, const char *str)
     GUARD_V(IntRect(), rect = textRect(exception, str, p->font->isSolid()));
     return IntRect(0, 0, rect.w, rect.h);
 #else
-    TTF_Font *font = p->font->getSdlFont();
+    TTF_Font *font;
+    GUARD_V(IntRect(), font = p->font->getSdlFont(exception));
     
     int w, h;
     TTF_SizeUTF8(font, str, &w, &h);
@@ -2899,7 +2909,7 @@ void Bitmap::setInitFont(Font *value)
         if (hiresFont && hiresFont != &shState->defaultFont())
         {
             // Disable the illegal font size check when creating a high-res font.
-            hiresFont->setSize(hiresFont->getSize() * p->selfHires->width() / width(), false);
+            hiresFont->setSizeNoCheck(hiresFont->getSize() * p->selfHires->width() / width());
         }
     }
 #endif // MKXPZ_RETRO
