@@ -3,15 +3,128 @@
 
 --- a/al/auxeffectslot.cpp
 +++ b/al/auxeffectslot.cpp
-@@ -243,7 +243,7 @@ constexpr auto EffectSlotTypeFromEnum(ALenum type) noexcept -> EffectSlotType
-     case AL_EFFECT_DEDICATED_DIALOGUE: return EffectSlotType::Dedicated;
-     case AL_EFFECT_CONVOLUTION_SOFT: return EffectSlotType::Convolution;
+@@ -221,7 +221,7 @@ void RemoveActiveEffectSlots(const al::span<ALeffectslot*> auxslots, ALCcontext
+ 
+ 
+ [[nodiscard]]
+-constexpr auto EffectSlotTypeFromEnum(ALenum type) noexcept -> EffectSlotType
++auto EffectSlotTypeFromEnum(ALenum type) noexcept -> EffectSlotType
+ {
+     switch(type)
+     {
+--- a/al/buffer.cpp
++++ b/al/buffer.cpp
+@@ -81,7 +81,7 @@ constexpr auto AmbiLayoutFromEnum(ALenum layout) noexcept -> std::optional<AmbiL
      }
--    ERR("Unhandled effect enum: {:#04x}", as_unsigned(type));
-+
-     return EffectSlotType::None;
+     return std::nullopt;
+ }
+-constexpr auto EnumFromAmbiLayout(AmbiLayout layout) -> ALenum
++auto EnumFromAmbiLayout(AmbiLayout layout) -> ALenum
+ {
+     switch(layout)
+     {
+@@ -102,7 +102,7 @@ constexpr auto AmbiScalingFromEnum(ALenum scale) noexcept -> std::optional<AmbiS
+     }
+     return std::nullopt;
+ }
+-constexpr auto EnumFromAmbiScaling(AmbiScaling scale) -> ALenum
++auto EnumFromAmbiScaling(AmbiScaling scale) -> ALenum
+ {
+     switch(scale)
+     {
+--- a/al/debug.cpp
++++ b/al/debug.cpp
+@@ -100,7 +100,7 @@ constexpr auto GetDebugSeverity(ALenum severity) noexcept -> std::optional<Debug
  }
  
+ 
+-constexpr auto GetDebugSourceEnum(DebugSource source) -> ALenum
++auto GetDebugSourceEnum(DebugSource source) -> ALenum
+ {
+     switch(source)
+     {
+@@ -114,7 +114,7 @@ constexpr auto GetDebugSourceEnum(DebugSource source) -> ALenum
+         int{al::to_underlying(source)})});
+ }
+ 
+-constexpr auto GetDebugTypeEnum(DebugType type) -> ALenum
++auto GetDebugTypeEnum(DebugType type) -> ALenum
+ {
+     switch(type)
+     {
+@@ -132,7 +132,7 @@ constexpr auto GetDebugTypeEnum(DebugType type) -> ALenum
+         int{al::to_underlying(type)})});
+ }
+ 
+-constexpr auto GetDebugSeverityEnum(DebugSeverity severity) -> ALenum
++auto GetDebugSeverityEnum(DebugSeverity severity) -> ALenum
+ {
+     switch(severity)
+     {
+--- a/al/effects/chorus.cpp
++++ b/al/effects/chorus.cpp
+@@ -36,7 +36,7 @@ constexpr std::optional<ChorusWaveform> WaveformFromEnum(ALenum type) noexcept
+     }
+     return std::nullopt;
+ }
+-constexpr ALenum EnumFromWaveform(ChorusWaveform type)
++ALenum EnumFromWaveform(ChorusWaveform type)
+ {
+     switch(type)
+     {
+--- a/al/effects/fshifter.cpp
++++ b/al/effects/fshifter.cpp
+@@ -32,7 +32,7 @@ constexpr std::optional<FShifterDirection> DirectionFromEmum(ALenum value) noexc
+     }
+     return std::nullopt;
+ }
+-constexpr ALenum EnumFromDirection(FShifterDirection dir)
++ALenum EnumFromDirection(FShifterDirection dir)
+ {
+     switch(dir)
+     {
+--- a/al/effects/modulator.cpp
++++ b/al/effects/modulator.cpp
+@@ -32,7 +32,7 @@ constexpr std::optional<ModulatorWaveform> WaveformFromEmum(ALenum value) noexce
+     }
+     return std::nullopt;
+ }
+-constexpr ALenum EnumFromWaveform(ModulatorWaveform type)
++ALenum EnumFromWaveform(ModulatorWaveform type)
+ {
+     switch(type)
+     {
+--- a/al/effects/vmorpher.cpp
++++ b/al/effects/vmorpher.cpp
+@@ -61,7 +61,7 @@ constexpr std::optional<VMorpherPhenome> PhenomeFromEnum(ALenum val) noexcept
+     return std::nullopt;
+ #undef HANDLE_PHENOME
+ }
+-constexpr ALenum EnumFromPhenome(VMorpherPhenome phenome)
++ALenum EnumFromPhenome(VMorpherPhenome phenome)
+ {
+ #define HANDLE_PHENOME(x) case VMorpherPhenome::x: return AL_VOCAL_MORPHER_PHONEME_ ## x
+     switch(phenome)
+@@ -111,7 +111,7 @@ constexpr std::optional<VMorpherWaveform> WaveformFromEmum(ALenum value) noexcep
+     }
+     return std::nullopt;
+ }
+-constexpr ALenum EnumFromWaveform(VMorpherWaveform type)
++ALenum EnumFromWaveform(VMorpherWaveform type)
+ {
+     switch(type)
+     {
+--- a/al/state.cpp
++++ b/al/state.cpp
+@@ -129,7 +129,7 @@ constexpr auto DistanceModelFromALenum(ALenum model) noexcept -> std::optional<D
+     }
+     return std::nullopt;
+ }
+-constexpr auto ALenumFromDistanceModel(DistanceModel model) -> ALenum
++auto ALenumFromDistanceModel(DistanceModel model) -> ALenum
+ {
+     switch(model)
+     {
 --- a/common/alstring.h
 +++ b/common/alstring.h
 @@ -22,15 +22,15 @@ auto sizei(const std::basic_string<Ts...> &str) noexcept -> int
