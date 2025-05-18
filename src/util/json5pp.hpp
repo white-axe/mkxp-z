@@ -21,6 +21,20 @@
 #include <streambuf>
 #include <cstdint>
 
+#define MKXPZ_JSON5PP_BAIL_SYNTAX_ERROR(return_value) do { \
+  if (!::json5pp::failure) { \
+    ::json5pp::failure = syntax_error(ch, context); \
+  } \
+  return return_value; \
+} while (0)
+
+#define MKXPZ_JSON5PP_BAIL_BAD_CAST(return_value) do { \
+  if (!::json5pp::failure) { \
+    ::json5pp::failure = true; \
+  } \
+  return return_value; \
+} while (0)
+
 namespace json5pp {
 
 /*
@@ -53,6 +67,22 @@ public:
         "unexpected EOS") +
       " in " + context_name) {}
 };
+
+class failure_reason
+{
+  syntax_error _error;
+  bool _failed;
+  bool _bad_cast;
+
+public:
+  failure_reason(syntax_error error) : _error(error), _failed(true), _bad_cast(false) {}
+  failure_reason(bool bad_cast) : _error(0, ""), _failed(bad_cast), _bad_cast(bad_cast) {}
+  failure_reason() : _error(0, ""), _failed(false), _bad_cast(false) {}
+  constexpr operator bool() const noexcept { return _failed; }
+  constexpr const syntax_error *error() const noexcept { return _failed && !_bad_cast ? &_error : nullptr; }
+};
+
+static thread_local failure_reason failure;
 
 namespace impl {
 
@@ -359,36 +389,36 @@ public:
   /**
    * @brief Cast to null
    *
-   * @throws std::bad_cast if the value is not a null
+   * Sets failure to true if the value is not a null
    */
-  null_type as_null() const
+  null_type as_null(bool& failure) const
   {
-    if (type != TYPE_NULL) { return nullptr; }
+    if (type != TYPE_NULL) { failure = true; return nullptr; }
     return nullptr;
   }
 
   /**
    * @brief Cast to boolean
    *
-   * @throws std::bad_cast if the value is not a boolean
+   * Sets failure to true if the value is not a boolean
    */
-  boolean_type as_boolean() const
+  boolean_type as_boolean(bool& failure) const
   {
-    if (type != TYPE_BOOLEAN) { return false; }
+    if (type != TYPE_BOOLEAN) { failure = true; return false; }
     return content.boolean;
   }
 
   /**
    * @brief Cast to number
    *
-   * @throws std::bad_cast if the value is not a number nor integer
+   * Sets failure to true if the value is not a number nor integer
    */
-  number_type as_number() const
+  number_type as_number(bool& failure) const
   {
     if (type == TYPE_INTEGER) {
       return static_cast<number_type>(content.integer);
     } else if (type != TYPE_NUMBER) {
-      return static_cast<number_type>(0);
+      failure = true; return static_cast<number_type>(0);
     }
     return content.number;
   }
@@ -396,14 +426,14 @@ public:
   /**
    * @brief Cast to integer number
    *
-   * @throws std::bad_cast if the value is not a number nor integer
+   * Sets failure to true if the value is not a number nor integer
    */
-  integer_type as_integer() const
+  integer_type as_integer(bool& failure) const
   {
     if (type == TYPE_NUMBER) {
       return static_cast<integer_type>(content.number);
     } else if (type != TYPE_INTEGER) {
-      return static_cast<integer_type>(0);
+      failure = true; return static_cast<integer_type>(0);
     }
     return content.integer;
   }
@@ -411,72 +441,66 @@ public:
   /**
    * @brief Cast to string
    *
-   * @throws std::bad_cast if the value is not a string
+   * Sets failure to true if the value is not a string
    */
-  const string_type& as_string() const
+  const string_type& as_string(bool& failure) const
   {
-    static string_type empty;
-    if (type != TYPE_STRING) { return empty; }
+    if (type != TYPE_STRING) { failure = true; static const string_type dummy; return dummy; }
     return content.string;
   }
 
   /**
    * @brief Cast to string reference
    *
-   * @throws std::bad_cast if the value is not a string
+   * Sets failure to true if the value is not a string
    */
-  string_type& as_string()
+  string_type& as_string(bool& failure)
   {
-    static string_type empty;
-    if (type != TYPE_STRING) { return empty; }
+    if (type != TYPE_STRING) { failure = true; static string_type dummy; return dummy; }
     return content.string;
   }
 
   /**
    * @brief Cast to array
    *
-   * @throws std::bad_cast if the value is not a array
+   * Sets failure to true if the value is not a array
    */
-  const array_type& as_array() const
+  const array_type& as_array(bool& failure) const
   {
-    static array_type empty;
-    if (type != TYPE_ARRAY) { return empty; }
+    if (type != TYPE_ARRAY) { failure = true; static const array_type dummy; return dummy; }
     return content.array;
   }
 
   /**
    * @brief Cast to array reference
    *
-   * @throws std::bad_cast if the value is not a array
+   * Sets failure to true if the value is not a array
    */
-  array_type& as_array()
+  array_type& as_array(bool& failure)
   {
-    static array_type empty;
-    if (type != TYPE_ARRAY) { return empty; }
+    if (type != TYPE_ARRAY) { failure = true; static array_type dummy; return dummy; }
     return content.array;
   }
 
   /**
    * @brief Cast to object
    *
-   * @throws std::bad_cast if the value is not a object
+   * Sets failure to true if the value is not a object
    */
-  const object_type& as_object() const
+  const object_type& as_object(bool& failure) const
   {
-    static object_type empty;
-    if (type != TYPE_OBJECT) { return empty; }
+    if (type != TYPE_OBJECT) { failure = true; static const object_type dummy; return dummy; }
     return content.object;
   }
 
   /**
    * @brief Cast to object reference
    *
-   * @throws std::bad_cast if the value is not a object
+   * Sets failure to true if the value is not a object
    */
-  object_type& as_object()
+  object_type& as_object(bool& failure)
   {
-    static object_type empty;
-    if (type != TYPE_OBJECT) { return empty; }
+    if (type != TYPE_OBJECT) { failure = true; static object_type dummy; return dummy; }
     return content.object;
   }
 
@@ -903,7 +927,7 @@ private:
               ch = istream.get();
             reeval_asterisk:
               if (ch == std::char_traits<char>::eof()) {
-                break;
+                static const char *context = "comment"; MKXPZ_JSON5PP_BAIL_SYNTAX_ERROR(0);
               }
               if (ch != '*') {
                 continue;
@@ -1012,7 +1036,7 @@ private:
     if (F & flags::finished) {
       int ch = skip_spaces();
       if (ch != std::char_traits<char>::eof()) {
-        return;
+        MKXPZ_JSON5PP_BAIL_SYNTAX_ERROR();
       }
     }
   }
@@ -1052,7 +1076,7 @@ private:
         // [number]?
         return parse_number(v, ch);
       }
-      return parse_null(v);
+      MKXPZ_JSON5PP_BAIL_SYNTAX_ERROR();
     }
   }
 
@@ -1063,12 +1087,13 @@ private:
    */
   void parse_null(value& v)
   {
+    static const char context[] = "null";
     int ch;
     if (equals(ch, 'u', 'l', 'l')) {
       v = nullptr;
       return;
     }
-    v = nullptr;
+    MKXPZ_JSON5PP_BAIL_SYNTAX_ERROR();
   }
 
   /**
@@ -1079,6 +1104,7 @@ private:
    */
   void parse_boolean(value& v, int ch)
   {
+    static const char context[] = "boolean";
     if (ch == 't') {
       if (equals(ch, 'r', 'u', 'e')) {
         v = true;
@@ -1090,7 +1116,7 @@ private:
         return;
       }
     }
-    v = false;
+    MKXPZ_JSON5PP_BAIL_SYNTAX_ERROR();
   }
 
   /**
@@ -1101,6 +1127,7 @@ private:
    */
   void parse_number(value& v, int ch)
   {
+    static const char context[] = "number";
     unsigned long long int_part = 0;
     unsigned long long frac_part = 0;
     int frac_divs = 0;
@@ -1134,8 +1161,7 @@ private:
             no_digit = false;
           }
           if (no_digit) {
-            v = 0.0;
-            return;
+            MKXPZ_JSON5PP_BAIL_SYNTAX_ERROR();
           }
           v = negative ? (double)(-(long long)int_part) : (double)int_part;
           return;
@@ -1167,8 +1193,7 @@ private:
           return;
         }
       }
-      v = 0.0;
-      return;
+      MKXPZ_JSON5PP_BAIL_SYNTAX_ERROR();
     }
     if (ch == '.') {
       // [frac]
@@ -1177,8 +1202,7 @@ private:
         frac_part += to_number(ch);
       }
       if ((!has_flag(flags::trailing_decimal_point)) && (frac_divs == 0)) {
-        v = 0.0;
-        return;
+        MKXPZ_JSON5PP_BAIL_SYNTAX_ERROR();
       }
     }
     if ((ch == 'e') || (ch == 'E')) {
@@ -1198,8 +1222,7 @@ private:
         exp_part += to_number(ch);
       }
       if (no_digit) {
-        v = 0.0;
-        return;
+        MKXPZ_JSON5PP_BAIL_SYNTAX_ERROR();
       }
     }
     istream.unget();
@@ -1238,8 +1261,7 @@ private:
   void parse_string(std::string& buffer, int quote, const char *context)
   {
     if (!((quote == '"') || (has_flag(flags::single_quote) && quote == '\''))) {
-      buffer.clear();
-      return;
+      int ch = quote; MKXPZ_JSON5PP_BAIL_SYNTAX_ERROR();
     }
     buffer.clear();
     for (;;) {
@@ -1247,14 +1269,14 @@ private:
       if (ch == quote) {
         break;
       } else if (ch < ' ') {
-        return;
+        MKXPZ_JSON5PP_BAIL_SYNTAX_ERROR();
       } else if (ch == '\\') {
         // [escape]
         ch = istream.get();
         switch (ch) {
         case '\'':
           if (!has_flag(flags::single_quote)) {
-            return;
+            MKXPZ_JSON5PP_BAIL_SYNTAX_ERROR();
           }
           break;
         case '"':
@@ -1284,7 +1306,7 @@ private:
               ch = istream.get();
               int n = to_number_hex(ch);
               if (n < 0) {
-                return;
+                MKXPZ_JSON5PP_BAIL_SYNTAX_ERROR();
               }
               code = static_cast<char16_t>((code << 4) + n);
             }
@@ -1315,7 +1337,7 @@ private:
           }
           /* no-break */
         default:
-          return;
+          MKXPZ_JSON5PP_BAIL_SYNTAX_ERROR();
         }
       }
       buffer.append(1, (char)ch);
@@ -1332,7 +1354,12 @@ private:
   {
     static const char context[] = "string";
     v = "";
-    parse_string(v.as_string(), quote, context);
+    bool failure = false;
+    auto& s = v.as_string(failure);
+    if (failure) {
+      MKXPZ_JSON5PP_BAIL_BAD_CAST();
+    }
+    parse_string(s, quote, context);
   }
 
   /**
@@ -1344,7 +1371,11 @@ private:
   {
     static const char context[] = "array";
     v = array({});
-    auto& elements = v.as_array();
+    bool failure = false;
+    auto& elements = v.as_array(failure);
+    if (failure) {
+      MKXPZ_JSON5PP_BAIL_BAD_CAST();
+    }
     for (;;) {
       int ch = skip_spaces();
       if (ch == ']') {
@@ -1353,7 +1384,7 @@ private:
       if (elements.empty()) {
         istream.unget();
       } else if (ch != ',') {
-        return;
+        MKXPZ_JSON5PP_BAIL_SYNTAX_ERROR();
       } else if (has_flag(trailing_comma)) {
         ch = skip_spaces();
         if (ch == ']') {
@@ -1387,7 +1418,7 @@ private:
           } else if (ch == ':') {
             break;
           } else {
-            return "";
+            MKXPZ_JSON5PP_BAIL_SYNTAX_ERROR("");
           }
           buffer.append(1, (char)ch);
         }
@@ -1408,7 +1439,11 @@ private:
   {
     static const char context[] = "object";
     v = object({});
-    auto& elements = v.as_object();
+    bool failure = false;
+    auto& elements = v.as_object(failure);
+    if (failure) {
+      MKXPZ_JSON5PP_BAIL_BAD_CAST();
+    }
     for (;;) {
       int ch = skip_spaces();
       if (ch == '}') {
@@ -1417,7 +1452,7 @@ private:
       if (elements.empty()) {
         istream.unget();
       } else if (ch != ',') {
-        return;
+        MKXPZ_JSON5PP_BAIL_SYNTAX_ERROR();
       } else if (has_flag(flags::trailing_comma)) {
         ch = skip_spaces();
         if (ch == '}') {
@@ -1430,7 +1465,7 @@ private:
       const std::string key = parse_key();
       ch = skip_spaces();
       if (ch != ':') {
-        return;
+        MKXPZ_JSON5PP_BAIL_SYNTAX_ERROR();
       }
       // [value]
       auto result = elements.emplace(key, nullptr);
