@@ -236,6 +236,8 @@ static VALUE rgss_stop(VALUE self) {
 
 void sandbox_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
+        SANDBOX_AWAIT(exception_binding_init);
+
         SANDBOX_AWAIT(table_binding_init);
         SANDBOX_AWAIT(etc_binding_init);
         SANDBOX_AWAIT(font_binding_init);
