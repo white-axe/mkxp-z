@@ -1581,8 +1581,6 @@ void Graphics::frameReset() {
 #endif // MKXPZ_RETRO
 }
 
-static void guardDisposed() {}
-
 DEF_ATTR_NOEXCEPT_RD_SIMPLE(Graphics, FrameRate, int, p->frameRate)
 
 DEF_ATTR_NOEXCEPT_SIMPLE(Graphics, FrameCount, int, p->frameCount)

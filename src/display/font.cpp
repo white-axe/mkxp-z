@@ -586,8 +586,6 @@ void Font::setSizeCheck(Exception &exception, int value)
 	p->sdlFont = 0;
 }
 
-static void guardDisposed() {}
-
 DEF_ATTR_NOEXCEPT_RD_SIMPLE(Font, Size, int, p->size)
 
 DEF_ATTR_NOEXCEPT_SIMPLE(Font, Bold,     bool,    p->bold)

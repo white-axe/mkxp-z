@@ -163,7 +163,6 @@ inline C *dataPtr(std::vector<C> &v)
 #define DEF_ATTR_NOEXCEPT_RD_SIMPLE_DETAILED(klass, name, type, location, keyword1) \
 	type klass :: get##name() keyword1 \
 	{ \
-		guardDisposed(); \
 		return location; \
 	}
 
@@ -171,7 +170,6 @@ inline C *dataPtr(std::vector<C> &v)
 	DEF_ATTR_NOEXCEPT_RD_SIMPLE_DETAILED(klass, name, type, location, keyword1) \
 	void klass :: set##name(type value) \
 { \
-	guardDisposed(); \
 	location = value; \
 }
 
