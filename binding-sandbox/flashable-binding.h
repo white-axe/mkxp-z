@@ -46,8 +46,17 @@ namespace mkxp_sandbox {
         }
 
         static VALUE update(VALUE self) {
-            get_private_data<C>(self)->update();
-            return SANDBOX_NIL;
+            struct coro : boost::asio::coroutine {
+                VALUE operator()(VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_GUARD(get_private_data<C>(self)->update(sb().e));
+                    }
+
+                    return SANDBOX_NIL;
+                }
+            };
+
+            return sb()->bind<struct coro>()()(self);
         }
 
     public:

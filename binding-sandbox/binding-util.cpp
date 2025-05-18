@@ -21,6 +21,7 @@
 
 #include "binding-util.h"
 #include "filesystem.h"
+#include "sharedstate.h"
 
 using namespace mkxp_sandbox;
 
@@ -86,5 +87,62 @@ void log_backtrace::operator()(VALUE exception) {
         SANDBOX_AWAIT_S(1, rb_funcall, SANDBOX_SLOT(1), SANDBOX_SLOT(0), 1, SANDBOX_SLOT(2));
         SANDBOX_AWAIT_S(3, rb_string_value_cstr, &SANDBOX_SLOT(1));
         mkxp_retro::log_printf(RETRO_LOG_ERROR, "%s\n", sb()->str(SANDBOX_SLOT(3)));
+    }
+}
+
+VALUE mkxp_sandbox::mkxp_error_class;
+VALUE mkxp_sandbox::physfs_error_class;
+VALUE mkxp_sandbox::sdl_error_class;
+VALUE mkxp_sandbox::rgss_error_class;
+VALUE mkxp_sandbox::reset_class;
+VALUE mkxp_sandbox::enoent_class;
+
+void exception_binding_init::operator()() {
+    BOOST_ASIO_CORO_REENTER (this) {
+        SANDBOX_AWAIT_R(mkxp_error_class, rb_define_class, "MKXPError", sb()->rb_eException());
+        SANDBOX_AWAIT_R(physfs_error_class, rb_define_class, "PHYSFSError", sb()->rb_eException());
+        SANDBOX_AWAIT_R(sdl_error_class, rb_define_class, "SDLError", sb()->rb_eException());
+        SANDBOX_AWAIT_R(rgss_error_class, rb_define_class, "RGSSError", sb()->rb_eStandardError());
+        SANDBOX_AWAIT_R(reset_class, rb_define_class, rgssVer >= 3 ? "RGSSReset" : "Reset", sb()->rb_eStandardError());
+        SANDBOX_AWAIT_S(0, rb_intern, "Errno");
+        SANDBOX_AWAIT_R(enoent_class, rb_const_get, sb()->rb_cObject(), SANDBOX_SLOT(0));
+        SANDBOX_AWAIT_S(0, rb_intern, "ENOENT");
+        SANDBOX_AWAIT_R(enoent_class, rb_const_get, enoent_class, SANDBOX_SLOT(0));
+    }
+}
+
+void exception_raise::operator()(Exception &exception) {
+    BOOST_ASIO_CORO_REENTER (this) {
+        if (exception.type == Exception::Ok) {
+            return;
+        }
+
+        SANDBOX_AWAIT_S(0, rb_str_new_cstr, exception.msg.c_str());
+
+        if (exception.type == Exception::RGSSError) {
+            SANDBOX_AWAIT_S(0, rb_class_new_instance, 1, &SANDBOX_SLOT(0), rgss_error_class);
+        } else if (exception.type == Exception::Reset) {
+            SANDBOX_AWAIT_S(0, rb_class_new_instance, 1, &SANDBOX_SLOT(0), reset_class);
+        } else if (exception.type == Exception::NoFileError) {
+            SANDBOX_AWAIT_S(0, rb_class_new_instance, 1, &SANDBOX_SLOT(0), enoent_class);
+        } else if (exception.type == Exception::IOError) {
+            SANDBOX_AWAIT_S(0, rb_class_new_instance, 1, &SANDBOX_SLOT(0), sb()->rb_eIOError());
+        } else if (exception.type == Exception::TypeError) {
+            SANDBOX_AWAIT_S(0, rb_class_new_instance, 1, &SANDBOX_SLOT(0), sb()->rb_eTypeError());
+        } else if (exception.type == Exception::ArgumentError) {
+            SANDBOX_AWAIT_S(0, rb_class_new_instance, 1, &SANDBOX_SLOT(0), sb()->rb_eArgError());
+        } else if (exception.type == Exception::SystemExit) {
+            SANDBOX_AWAIT_S(0, rb_class_new_instance, 1, &SANDBOX_SLOT(0), sb()->rb_eSystemExit());
+        } else if (exception.type == Exception::RuntimeError) {
+            SANDBOX_AWAIT_S(0, rb_class_new_instance, 1, &SANDBOX_SLOT(0), sb()->rb_eRuntimeError());
+        } else if (exception.type == Exception::PHYSFSError) {
+            SANDBOX_AWAIT_S(0, rb_class_new_instance, 1, &SANDBOX_SLOT(0), physfs_error_class);
+        } else if (exception.type == Exception::SDLError) {
+            SANDBOX_AWAIT_S(0, rb_class_new_instance, 1, &SANDBOX_SLOT(0), sdl_error_class);
+        } else {
+            SANDBOX_AWAIT_S(0, rb_class_new_instance, 1, &SANDBOX_SLOT(0), mkxp_error_class);
+        }
+
+        SANDBOX_AWAIT(rb_exc_raise, SANDBOX_SLOT(0));
     }
 }

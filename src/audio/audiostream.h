@@ -136,7 +136,8 @@ struct AudioStream
 	            const std::string &threadId);
 	~AudioStream();
 
-	void play(const std::string &filename,
+	void play(Exception &exception,
+	          const std::string &filename,
 	          int volume,
 	          int pitch,
 	          double offset = 0);

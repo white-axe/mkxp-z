@@ -253,7 +253,8 @@ FT_Face
 #else
 _TTF_Font *
 #endif // MKXPZ_RETRO
-SharedFontState::getFont(std::string family,
+SharedFontState::getFont(Exception &exception,
+                                    std::string family,
                                     int size)
 {
 	std::transform(family.begin(), family.end(), family.begin(),
@@ -291,7 +292,10 @@ SharedFontState::getFont(std::string family,
 	if (family.empty())
 	{
 		if (FT_New_Memory_Face(p->library, BNDL_F_D(BUNDLED_FONT), BNDL_F_L(BUNDLED_FONT), 0, &font))
-			throw Exception(Exception::SDLError, "failed to load font");
+		{
+			exception = Exception(Exception::SDLError, "failed to load font");
+			return nullptr;
+		}
 	}
 	else
 	{
@@ -301,7 +305,10 @@ SharedFontState::getFont(std::string family,
 		                 ? req.regular.c_str() : req.other.c_str();
 
 		if (p->ftOpenFile(std::shared_ptr<struct FileSystem::File>(new struct FileSystem::File(*mkxp_retro::fs, path)), font))
-			throw Exception(Exception::SDLError, "failed to load font");
+		{
+			exception = Exception(Exception::SDLError, "failed to load font");
+			return nullptr;
+		}
 	}
 
 	// FIXME 0.9 is guesswork at this point
@@ -331,7 +338,10 @@ SharedFontState::getFont(std::string family,
 	font = TTF_OpenFontRW(ops, 1, size* 0.90f);
 
 	if (!font)
-		throw Exception(Exception::SDLError, "%s", SDL_GetError());
+	{
+		exception = Exception(Exception::SDLError, "%s", SDL_GetError());
+		return nullptr;
+	}
 #endif // MKXPZ_RETRO
 
 	p->pool.insert(key, font);
@@ -552,40 +562,46 @@ void Font::setName(const std::vector<std::string> &names)
 	p->sdlFont = 0;
 }
 
-void Font::setSize(int value, bool checkIllegal)
+void Font::setSizeNoCheck(int value)
+{
+	if (p->size == value)
+		return;
+
+	p->size = value;
+	p->sdlFont = 0;
+}
+
+void Font::setSizeCheck(Exception &exception, int value)
 {
 	if (p->size == value)
 		return;
 
 	/* Catch illegal values (according to RMXP) */
 	if (value < 6 || value > 96) {
-		if (checkIllegal) {
-			throw Exception(Exception::ArgumentError, "%s", "bad value for size");
-		}
+		exception = Exception(Exception::ArgumentError, "%s", "bad value for size");
+		return;
 	}
 
 	p->size = value;
 	p->sdlFont = 0;
 }
 
-static void guardDisposed() {}
+DEF_ATTR_NOEXCEPT_RD_SIMPLE(Font, Size, int, p->size)
 
-DEF_ATTR_RD_SIMPLE(Font, Size, int, p->size)
+DEF_ATTR_NOEXCEPT_SIMPLE(Font, Bold,     bool,    p->bold)
+DEF_ATTR_NOEXCEPT_SIMPLE(Font, Italic,   bool,    p->italic)
+DEF_ATTR_NOEXCEPT_SIMPLE(Font, Shadow,   bool,    p->shadow)
+DEF_ATTR_NOEXCEPT_SIMPLE(Font, Outline,  bool,    p->outline)
+DEF_ATTR_NOEXCEPT_SIMPLE(Font, Color,    Color&, *p->color)
+DEF_ATTR_NOEXCEPT_SIMPLE(Font, OutColor, Color&, *p->outColor)
 
-DEF_ATTR_SIMPLE(Font, Bold,     bool,    p->bold)
-DEF_ATTR_SIMPLE(Font, Italic,   bool,    p->italic)
-DEF_ATTR_SIMPLE(Font, Shadow,   bool,    p->shadow)
-DEF_ATTR_SIMPLE(Font, Outline,  bool,    p->outline)
-DEF_ATTR_SIMPLE(Font, Color,    Color&, *p->color)
-DEF_ATTR_SIMPLE(Font, OutColor, Color&, *p->outColor)
-
-DEF_ATTR_SIMPLE_STATIC(Font, DefaultSize,     int,     FontPrivate::defaultSize)
-DEF_ATTR_SIMPLE_STATIC(Font, DefaultBold,     bool,    FontPrivate::defaultBold)
-DEF_ATTR_SIMPLE_STATIC(Font, DefaultItalic,   bool,    FontPrivate::defaultItalic)
-DEF_ATTR_SIMPLE_STATIC(Font, DefaultShadow,   bool,    FontPrivate::defaultShadow)
-DEF_ATTR_SIMPLE_STATIC(Font, DefaultOutline,  bool,    FontPrivate::defaultOutline)
-DEF_ATTR_SIMPLE_STATIC(Font, DefaultColor,    Color&, *FontPrivate::defaultColor)
-DEF_ATTR_SIMPLE_STATIC(Font, DefaultOutColor, Color&, *FontPrivate::defaultOutColor)
+DEF_ATTR_NOEXCEPT_SIMPLE_STATIC(Font, DefaultSize,     int,     FontPrivate::defaultSize)
+DEF_ATTR_NOEXCEPT_SIMPLE_STATIC(Font, DefaultBold,     bool,    FontPrivate::defaultBold)
+DEF_ATTR_NOEXCEPT_SIMPLE_STATIC(Font, DefaultItalic,   bool,    FontPrivate::defaultItalic)
+DEF_ATTR_NOEXCEPT_SIMPLE_STATIC(Font, DefaultShadow,   bool,    FontPrivate::defaultShadow)
+DEF_ATTR_NOEXCEPT_SIMPLE_STATIC(Font, DefaultOutline,  bool,    FontPrivate::defaultOutline)
+DEF_ATTR_NOEXCEPT_SIMPLE_STATIC(Font, DefaultColor,    Color&, *FontPrivate::defaultColor)
+DEF_ATTR_NOEXCEPT_SIMPLE_STATIC(Font, DefaultOutColor, Color&, *FontPrivate::defaultOutColor)
 
 void Font::setDefaultName(const std::vector<std::string> &names,
                           const SharedFontState &sfs)
@@ -658,11 +674,14 @@ FT_Face
 #else
 _TTF_Font *
 #endif // MKXPZ_RETRO
-Font::getSdlFont()
+Font::getSdlFont(Exception &exception)
 {
 	if (!p->sdlFont)
-		p->sdlFont = shState->fontState().getFont(p->name.c_str(),
-		                                          p->size);
+	{
+		p->sdlFont = shState->fontState().getFont(exception, p->name.c_str(), p->size);
+		if (exception.is_error())
+			return nullptr;
+	}
 
 #ifndef MKXPZ_RETRO // TODO
 	int style = TTF_STYLE_NORMAL;

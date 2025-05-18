@@ -29,6 +29,7 @@
 #include <mkxp-sandbox-bindgen.h>
 #include "wasm-types.h"
 #include "audio.h"
+#include "etc.h"
 #include "graphics.h"
 
 namespace mkxp_sandbox {
@@ -51,9 +52,11 @@ namespace mkxp_sandbox {
         void sandbox_free(wasm_ptr_t ptr);
 
         public:
+        Exception e;
         std::vector<uint8_t> script_decode_buffer;
         std::vector<std::string> font_names_buffer;
         Bitmap *trans_map;
+        Color bitmap_pixel_buffer;
         AudioMutex movie_mutex;
         bool transitioning;
         inline struct mkxp_sandbox::bindings &operator*() noexcept { return *bindings; }

@@ -101,7 +101,7 @@ struct ALStream
 	~ALStream();
 
 	void close();
-	void open(const std::string &filename);
+	void open(Exception &exception, const std::string &filename);
 	void stop();
 	void play(double offset = 0);
 	void pause();
@@ -123,7 +123,7 @@ private:
 	void renderInit();
 
 	void closeSource();
-	void openSource(const std::string &filename);
+	void openSource(Exception &exception, const std::string &filename);
 
 	void stopStream();
 	void startStream(double offset);

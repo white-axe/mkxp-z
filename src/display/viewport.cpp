@@ -30,6 +30,9 @@
 
 #include "sigslot/signal.hpp"
 
+#define GUARD_V(value, expression) do { expression; if (exception.is_error()) return value; } while (0)
+#define GUARD(expression) GUARD_V(, expression)
+
 struct ViewportPrivate
 {
 	/* Needed for geometry changes */
@@ -131,11 +134,11 @@ Viewport::~Viewport()
 	dispose();
 }
 
-void Viewport::update()
+void Viewport::update(Exception &exception)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
-	Flashable::update();
+	GUARD(Flashable::update(exception));
 }
 
 DEF_ATTR_RD_SIMPLE(Viewport, OX,   int,   geometry.orig.x)
@@ -145,9 +148,9 @@ DEF_ATTR_SIMPLE(Viewport, Rect,  Rect&,  *p->rect)
 DEF_ATTR_SIMPLE(Viewport, Color, Color&, *p->color)
 DEF_ATTR_SIMPLE(Viewport, Tone,  Tone&,  *p->tone)
 
-void Viewport::setOX(int value)
+void Viewport::setOX(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (geometry.orig.x == value)
 		return;
@@ -156,9 +159,9 @@ void Viewport::setOX(int value)
 	notifyGeometryChange();
 }
 
-void Viewport::setOY(int value)
+void Viewport::setOY(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (geometry.orig.y == value)
 		return;
@@ -177,7 +180,7 @@ void Viewport::initDynAttribs()
 }
 
 /* Scene */
-void Viewport::composite()
+void Viewport::composite(Exception &exception)
 {
 	if (emptyFlashFlag)
 		return;
@@ -191,7 +194,7 @@ void Viewport::composite()
 	glState.scissorTest.pushSet(true);
 	glState.scissorBox.pushSet(p->rect->toIntRect());
 
-	Scene::composite();
+	GUARD(Scene::composite(exception));
 
 	/* If any effects are visible, request parent Scene to
 	 * render them. */
@@ -204,9 +207,9 @@ void Viewport::composite()
 }
 
 /* SceneElement */
-void Viewport::draw()
+void Viewport::draw(Exception &exception)
 {
-	composite();
+	GUARD(composite(exception));
 }
 
 void Viewport::onGeometryChange(const Geometry &geo)

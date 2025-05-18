@@ -132,15 +132,15 @@ struct MidiEvent
 
 struct MidiReadHandler
 {
-	virtual void onMidiHeader(uint16_t midiType, uint16_t trackCount, uint16_t division) = 0;
+	virtual void onMidiHeader(std::string &error, uint16_t midiType, uint16_t trackCount, uint16_t division) = 0;
 	virtual void onMidiTrackBegin() = 0;
 	virtual void onMidiEvent(const MidiEvent &e, uint32_t absDelta) = 0;
 };
 
 static void
-badMidiFormat()
+badMidiFormat(std::string &error)
 {
-	throw Exception(Exception::MKXPError, "Midi: Bad format");
+	error = "Midi: Bad format";
 }
 
 /* File-like interface to a read-only memory buffer */
@@ -154,37 +154,46 @@ struct MemChunk
 	      i(0)
 	{}
 
-	uint8_t readByte()
+	uint8_t readByte(std::string &error)
 	{
 		if (i >= data.size())
-			endOfFile();
+		{
+			endOfFile(error);
+			return 0;
+		}
 
 		return data[i++];
 	}
 
-	void readData(void *buf, size_t n)
+	void readData(std::string &error, void *buf, size_t n)
 	{
 		if (i + n > data.size())
-			endOfFile();
+		{
+			endOfFile(error);
+			return;
+		}
 
 		memcpy(buf, &data[i], n);
 		i += n;
 	}
 
-	void skipData(size_t n)
+	void skipData(std::string &error, size_t n)
 	{
 		if ((i += n) > data.size())
-			endOfFile();
+		{
+			endOfFile(error);
+			return;
+		}
 	}
 
-	void endOfFile()
+	void endOfFile(std::string &error)
 	{
-		throw Exception(Exception::MKXPError, "Midi: EOF");
+		error = "Midi: EOF";
 	}
 };
 
 static uint32_t
-readVarNum(MemChunk &chunk)
+readVarNum(std::string &error, MemChunk &chunk)
 {
 	uint32_t result = 0;
 	uint8_t byte;
@@ -194,9 +203,14 @@ readVarNum(MemChunk &chunk)
 	{
 		/* A variable length number can at most be made of 4 bytes */
 		if (++len > 4)
-			badMidiFormat();
+		{
+			badMidiFormat(error);
+			return 0;
+		}
 
-		byte = chunk.readByte();
+		byte = chunk.readByte(error);
+		if (!error.empty())
+			return 0;
 		result = (result << 0x7) | (byte & 0x7F);
 	}
 	while (byte & 0x80);
@@ -205,18 +219,18 @@ readVarNum(MemChunk &chunk)
 }
 
 template<typename T>
-static T readBigEndian(MemChunk &chunk)
+static T readBigEndian(std::string &error, MemChunk &chunk)
 {
 	T result = 0;
 
-	for (size_t i = 0; i < sizeof(T); ++i)
-		result = (result << 0x8) | chunk.readByte();
+	for (size_t i = 0; i < sizeof(T) && error.empty(); ++i)
+		result = (result << 0x8) | chunk.readByte(error);
 
 	return result;
 }
 
 static void
-readVoiceEvent(MidiEvent &e, MemChunk &chunk,
+readVoiceEvent(std::string &error, MidiEvent &e, MemChunk &chunk,
                uint8_t type, uint8_t data1, bool &handled)
 {
 	e.e.chan.chan = (type & 0x0F);
@@ -228,13 +242,13 @@ readVoiceEvent(MidiEvent &e, MemChunk &chunk,
 	case 0x8 :
 		e.type = NoteOff;
 		e.e.note.key = data1;
-		chunk.readByte(); /* We don't care about velocity */
+		chunk.readByte(error); /* We don't care about velocity */
 		break;
 
 	case 0x9 :
 		e.type = NoteOn;
 		e.e.note.key = data1;
-		e.e.note.vel = chunk.readByte();
+		e.e.note.vel = chunk.readByte(error);
 		break;
 
 	case 0xA :
@@ -245,7 +259,7 @@ readVoiceEvent(MidiEvent &e, MemChunk &chunk,
 	case 0xB :
 		e.type = CC;
 		e.e.cc.ctrl = data1;
-		e.e.cc.val = chunk.readByte();
+		e.e.cc.val = chunk.readByte(error);
 		break;
 
 	case 0xC :
@@ -260,7 +274,7 @@ readVoiceEvent(MidiEvent &e, MemChunk &chunk,
 
 	case 0xE :
 		e.type = PitchBend;
-		tmp = chunk.readByte();
+		tmp = chunk.readByte(error);
 		e.e.pitchBend.val = ((tmp & 0x7F) << 7) | (data1 & 0x7F);
 		break;
 
@@ -271,50 +285,73 @@ readVoiceEvent(MidiEvent &e, MemChunk &chunk,
 }
 
 static void
-readEvent(MidiReadHandler *handler, MemChunk &chunk,
+readEvent(std::string &error, MidiReadHandler *handler, MemChunk &chunk,
           uint8_t &prevType, uint32_t &deltaBase, uint32_t &deltaCarry,
           bool &endOfTrack)
 {
 	MidiEvent e;
 	bool handled = true;
 
-	e.delta = readVarNum(chunk);
+	e.delta = readVarNum(error, chunk);
+	if (!error.empty())
+		return;
 
-	uint8_t type = chunk.readByte();
+	uint8_t type = chunk.readByte(error);
+	if (!error.empty())
+		return;
 
 	/* Check for running status */
 	if (!(type & 0x80))
 	{
 		/* Running status for meta/system events is not allowed */
 		if (prevType == 0)
-			badMidiFormat();
+		{
+			badMidiFormat(error);
+			return;
+		}
 
 		/* Running status voice event: 'type' becomes
 		 * first data byte instead */
-		readVoiceEvent(e, chunk, prevType, type, handled);
+		readVoiceEvent(error, e, chunk, prevType, type, handled);
+		if (!error.empty())
+			return;
 		goto event_read;
 	}
 
 	if ((type >> 4) != 0xF)
 	{
 		/* Normal voice event */
-		readVoiceEvent(e, chunk, type, chunk.readByte(), handled);
+		uint8_t byte = chunk.readByte(error);
+		if (!error.empty())
+			return;
+		readVoiceEvent(error, e, chunk, type, byte, handled);
+		if (!error.empty())
+			return;
 		prevType = type;
 	}
 	else if (type == 0xFF)
 	{
 		/* Meta event */
-		uint8_t metaType = chunk.readByte();
-		uint32_t len = readVarNum(chunk);
+		uint8_t metaType = chunk.readByte(error);
+		if (!error.empty())
+			return;
+		uint32_t len = readVarNum(error, chunk);
+		if (!error.empty())
+			return;
 
 		if (metaType == 0x51)
 		{
 			/* Tempo event */
 			if (len != 3)
-				badMidiFormat();
+			{
+				badMidiFormat(error);
+				return;
+			}
 
 			uint8_t data[3];
-			chunk.readData(data, 3);
+			chunk.readData(error, data, 3);
+			if (!error.empty())
+				return;
 
 			uint32_t mpqn = (data[0] << 0x10)
 			              | (data[1] << 0x08)
@@ -327,7 +364,10 @@ readEvent(MidiReadHandler *handler, MemChunk &chunk,
 		{
 			/* End-of-track event */
 			if (len != 0)
-				badMidiFormat();
+			{
+				badMidiFormat(error);
+				return;
+			}
 
 			endOfTrack = true;
 			handled = false;
@@ -338,22 +378,31 @@ readEvent(MidiReadHandler *handler, MemChunk &chunk,
 		}
 
 		if (!handled)
-			chunk.skipData(len);
+		{
+			chunk.skipData(error, len);
+			if (!error.empty())
+				return;
+		}
 
 		prevType = 0;
 	}
 	else if (type == 0xF0 || type == 0xF7)
 	{
 		/* SysEx event */
-		uint32_t len = readVarNum(chunk);
+		uint32_t len = readVarNum(error, chunk);
+		if (!error.empty())
+			return;
 		handled = false;
-		chunk.skipData(len);
+		chunk.skipData(error, len);
+		if (!error.empty())
+			return;
 
 		prevType = 0;
 	}
 	else
 	{
-		badMidiFormat();
+		badMidiFormat(error);
+		return;
 	}
 
 event_read:
@@ -372,17 +421,24 @@ event_read:
 	}
 }
 
-void readMidiTrack(MidiReadHandler *handler, MemChunk &chunk)
+static void readMidiTrack(std::string &error, MidiReadHandler *handler, MemChunk &chunk)
 {
 	/* Track signature */
 	char sig[5] = { 0 };
-	chunk.readData(sig, 4);
+	chunk.readData(error, sig, 4);
+	if (!error.empty())
+		return;
 	if (strcmp(sig, "MTrk"))
-		badMidiFormat();
+	{
+		badMidiFormat(error);
+		return;
+	}
 
 	handler->onMidiTrackBegin();
 
-	uint32_t trackLen = readBigEndian<uint32_t>(chunk);
+	uint32_t trackLen = readBigEndian<uint32_t>(error, chunk);
+	if (!error.empty())
+		return;
 
 	/* The combined delta of all events on this track so far */
 	uint32_t deltaBase = 0;
@@ -402,48 +458,86 @@ void readMidiTrack(MidiReadHandler *handler, MemChunk &chunk)
 
 	/* Read all events */
 	while (!endOfTrack)
-		readEvent(handler, chunk, prevType, deltaBase, deltaCarry, endOfTrack);
+	{
+		readEvent(error, handler, chunk, prevType, deltaBase, deltaCarry, endOfTrack);
+		if (!error.empty())
+			return;
+	}
 
 	/* Check that the track byte length from the header
 	 * matches the amount we actually ended up reading */
 	if ((chunk.i - savedPos) != trackLen)
-		badMidiFormat();
+	{
+		badMidiFormat(error);
+		return;
+	}
 }
 
-void readMidi(MidiReadHandler *handler, const std::vector<uint8_t> &data)
+static void readMidi(std::string &error, MidiReadHandler *handler, const std::vector<uint8_t> &data)
 {
 	MemChunk chunk(data);
 
 	/* Midi signature */
 	char sig[5] = { 0 };
-	chunk.readData(sig, 4);
+	chunk.readData(error, sig, 4);
+	if (!error.empty())
+		return;
 	if (strcmp(sig, "MThd"))
-		badMidiFormat();
+	{
+		badMidiFormat(error);
+		return;
+	}
 
 	/* Header length must always be 6 */
-	uint32_t hdrLen = readBigEndian<uint32_t>(chunk);
+	uint32_t hdrLen = readBigEndian<uint32_t>(error, chunk);
+	if (!error.empty())
+		return;
 	if (hdrLen != 6)
-		badMidiFormat();
+	{
+		badMidiFormat(error);
+		return;
+	}
 
 	/* Only types 0, 1, 2 exist */
-	uint16_t type = readBigEndian<uint16_t>(chunk);
+	uint16_t type = readBigEndian<uint16_t>(error, chunk);
+	if (!error.empty())
+		return;
 	if (type > 2)
-		badMidiFormat();
+	{
+		badMidiFormat(error);
+		return;
+	}
 
 	/* Type 0 only contains one track */
-	uint16_t trackCount = readBigEndian<uint16_t>(chunk);
+	uint16_t trackCount = readBigEndian<uint16_t>(error, chunk);
+	if (!error.empty())
+		return;
 	if (trackCount == 0)
-		badMidiFormat();
+	{
+		badMidiFormat(error);
+		return;
+	}
 	if (type == 0 && trackCount > 1)
-		badMidiFormat();
+	{
+		badMidiFormat(error);
+		return;
+	}
 
-	uint16_t timeDiv = readBigEndian<uint16_t>(chunk);
+	uint16_t timeDiv = readBigEndian<uint16_t>(error, chunk);
+	if (!error.empty())
+		return;
 
-	handler->onMidiHeader(type, trackCount, timeDiv);
+	handler->onMidiHeader(error, type, trackCount, timeDiv);
+	if (!error.empty())
+		return;
 
 	/* Read tracks */
 	for (uint16_t i = 0; i < trackCount; ++i)
-		readMidiTrack(handler, chunk);
+	{
+		readMidiTrack(error, handler, chunk);
+		if (!error.empty())
+			return;
+	}
 }
 
 struct Track
@@ -615,6 +709,7 @@ struct MidiSource : ALDataSource, MidiReadHandler
 	int16_t curTrack;
 
 	MidiSource(
+		std::string &error,
 #ifdef MKXPZ_RETRO
 		std::shared_ptr<struct FileSystem::File> ops,
 #else
@@ -645,14 +740,17 @@ struct MidiSource : ALDataSource, MidiReadHandler
 #ifndef MKXPZ_RETRO
 			SDL_RWclose(&ops);
 #endif // MKXPZ_RETRO
-			throw Exception(Exception::MKXPError, "Reading midi data failed");
+			error = "Reading midi data failed";
+			return;
 		}
 
 #ifndef MKXPZ_RETRO
 		SDL_RWclose(&ops);
 #endif // MKXPZ_RETRO
 
-		readMidi(this, data);
+		readMidi(error, this, data);
+		if (!error.empty())
+			return;
 
 		synth = shState->midiState().allocateSynth();
 
@@ -768,16 +866,22 @@ struct MidiSource : ALDataSource, MidiReadHandler
 	}
 
 	/* MidiReadHandler */
-	void onMidiHeader(uint16_t midiType, uint16_t trackCount, uint16_t division)
+	void onMidiHeader(std::string &error, uint16_t midiType, uint16_t trackCount, uint16_t division)
 	{
 		if (midiType != 0 && midiType != 1)
-			throw Exception(Exception::MKXPError, "Midi: Type 2 not supported");
+		{
+			error = "Midi: Type 2 not supported";
+			return;
+		}
 
 		tracks.resize(trackCount);
 
 		// SMTP unhandled
 		if (division & 0x8000)
-			throw Exception(Exception::MKXPError, "Midi: SMTP parameters not supported");
+		{
+			error = "Midi: SMTP parameters not supported";
+			return;
+		}
 		else
 			dpb = division;
 	}
@@ -930,6 +1034,7 @@ struct MidiSource : ALDataSource, MidiReadHandler
 };
 
 ALDataSource *createMidiSource(
+			std::string &error,
 #ifdef MKXPZ_RETRO
 			std::shared_ptr<struct FileSystem::File> ops,
 #else
@@ -937,5 +1042,10 @@ ALDataSource *createMidiSource(
 #endif // MKXPZ_RETRO
                                bool looped)
 {
-	return new MidiSource(ops, looped);
+	error.clear();
+	MidiSource *source = new MidiSource(error, ops, looped);
+	if (error.empty())
+		return source;
+	delete source;
+	return nullptr;
 }

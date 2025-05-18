@@ -40,11 +40,11 @@ public:
 	WindowVX(int x, int y, int width, int height);
 	~WindowVX();
 
-	void update();
+	void update(Exception &exception);
 
-	void move(int x, int y, int width, int height);
-	bool isOpen() const;
-	bool isClosed() const;
+	void move(Exception &exception, int x, int y, int width, int height);
+	bool isOpen(Exception &exception) const;
+	bool isClosed(Exception &exception) const;
 
 	DECL_ATTR( Windowskin,      Bitmap* )
 	DECL_ATTR( Contents,        Bitmap* )
@@ -71,7 +71,7 @@ public:
 private:
 	WindowVXPrivate *p;
 
-	void draw();
+	void draw(Exception &exception);
 	void onGeometryChange(const Scene::Geometry &);
 
 	void releaseResources();

@@ -41,10 +41,10 @@ public:
 	Sprite(Viewport *viewport = 0);
 	~Sprite();
 
-	int getWidth()  const;
-	int getHeight() const;
+	int getWidth(Exception &exception)  const;
+	int getHeight(Exception &exception) const;
 
-	void update();
+	void update(Exception &exception);
 
 	DECL_ATTR( Bitmap,      Bitmap* )
 	DECL_ATTR( SrcRect,     Rect&   )
@@ -81,7 +81,7 @@ public:
 private:
 	SpritePrivate *p;
 
-	void draw();
+	void draw(Exception &exception);
 	void onGeometryChange(const Scene::Geometry &);
 
 	void releaseResources();

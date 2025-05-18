@@ -38,6 +38,9 @@
 
 #include "sigslot/signal.hpp"
 
+#define GUARD_V(value, expression) do { expression; if (exception.is_error()) return value; } while (0)
+#define GUARD(expression) GUARD_V(, expression)
+
 static float fwrap(float value, float range)
 {
 	float res = std::fmod(value, range);
@@ -190,9 +193,9 @@ Plane::~Plane()
 	dispose();
 }
 
-void Plane::setBitmap(Bitmap *value)
+void Plane::setBitmap(Exception &exception, Bitmap *value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	p->bitmap = value;
 
@@ -206,12 +209,12 @@ void Plane::setBitmap(Bitmap *value)
 
 	p->bitmapDispCon = value->wasDisposed.connect(&PlanePrivate::bitmapDisposal, p);
 
-	value->ensureNonMega();
+	GUARD(value->ensureNonMega(exception));
 }
 
-void Plane::setOX(int value)
+void Plane::setOX(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->ox == value)
 	        return;
@@ -220,9 +223,9 @@ void Plane::setOX(int value)
 	p->quadSourceDirty = true;
 }
 
-void Plane::setOY(int value)
+void Plane::setOY(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->oy == value)
 	        return;
@@ -231,9 +234,9 @@ void Plane::setOY(int value)
 	p->quadSourceDirty = true;
 }
 
-void Plane::setZoomX(float value)
+void Plane::setZoomX(Exception &exception, float value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->zoomX == value)
 	        return;
@@ -242,9 +245,9 @@ void Plane::setZoomX(float value)
 	p->quadSourceDirty = true;
 }
 
-void Plane::setZoomY(float value)
+void Plane::setZoomY(Exception &exception, float value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	if (p->zoomY == value)
 	        return;
@@ -253,9 +256,9 @@ void Plane::setZoomY(float value)
 	p->quadSourceDirty = true;
 }
 
-void Plane::setBlendType(int value)
+void Plane::setBlendType(Exception &exception, int value)
 {
-	guardDisposed();
+	GUARD(guardDisposed(exception));
 
 	switch (value)
 	{
@@ -278,7 +281,7 @@ void Plane::initDynAttribs()
 	p->tone = new Tone;
 }
 
-void Plane::draw()
+void Plane::draw(Exception &exception)
 {
 	if (nullOrDisposed(p->bitmap))
 		return;

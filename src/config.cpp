@@ -44,18 +44,21 @@ static std::string prefPath(const char *org, const char *app) {
 #endif // MKXPZ_RETRO
 
 static void fillStringVec(json::value &item, std::vector<std::string> &vector) {
+    bool failure = false;
     if (!item.is_array()) {
         if (item.is_string()) {
-            vector.push_back(item.as_string());
+            vector.push_back(item.as_string(failure));
+            assert(!failure);
         }
         return;
     }
-    auto &array = item.as_array();
+    auto &array = item.as_array(failure);
+    assert(!failure);
     for (size_t i = 0; i < array.size(); i++) {
         if (!array[i].is_string())
             continue;
-        
-        vector.push_back(array[i].as_string());
+        vector.push_back(array[i].as_string(failure));
+        assert(!failure);
     }
 }
 
@@ -67,8 +70,11 @@ static bool copyObject(json::value &dest, json::value &src, const char *objectNa
     if (!src.is_object())
         return false;
     
-    auto &srcVec = src.as_object();
-    auto &destVec = dest.as_object();
+    bool failure = false;
+    auto &srcVec = src.as_object(failure);
+    assert(!failure);
+    auto &destVec = dest.as_object(failure);
+    assert(!failure);
     
     for (auto it : srcVec) {
         // Specifically processs this object later.
@@ -119,31 +125,33 @@ static json::value readConfFile(const char *path) {
         return json::object({});
     }
     
-    try {
 #ifdef MKXPZ_RETRO
-        std::vector<uint8_t> buf(16);
-        size_t size = 0;
-        for (;;) {
-            PHYSFS_sint64 n = PHYSFS_readBytes(file.get(), buf.data() + size, buf.size() - size);
-            if (n <= 0) {
-                break;
-            }
-            size += n;
-            if (size >= buf.size()) {
-                buf.resize(buf.size() * 2);
-            }
+    std::vector<uint8_t> buf(16);
+    size_t size = 0;
+    for (;;) {
+        PHYSFS_sint64 n = PHYSFS_readBytes(file.get(), buf.data() + size, buf.size() - size);
+        if (n <= 0) {
+            break;
         }
-        std::string cfg(buf.begin(), buf.begin() + size);
+        size += n;
+        if (size >= buf.size()) {
+            buf.resize(buf.size() * 2);
+        }
+    }
+    std::string cfg(buf.begin(), buf.begin() + size);
 #else
-        std::string cfg = mkxp_fs::contentsOfFileAsString(path);
+    std::string cfg = mkxp_fs::contentsOfFileAsString(path);
 #endif // MKXPZ_RETRO
-        ret = json::parse5(Encoding::convertString(cfg));
+    if (!cfg.empty()) {
+        cfg = Encoding::convertString(cfg);
+        if (cfg.empty()) {
+            Debug() << "Failed to parse" << path << ":" << "Unknown encoding";
+        }
     }
-    catch (const std::exception &e) {
-        Debug() << "Failed to parse" << path << ":" << e.what();
-    }
-    catch (const Exception &e) {
-        Debug() << "Failed to parse" << path << ":" << "Unknown encoding";
+    json::failure = false;
+    ret = json::parse5(Encoding::convertString(cfg));
+    if (json::failure) {
+        Debug() << "Failed to parse" << path << ":" << (json::failure.error() == nullptr ? "bad cast" : json::failure.error()->what());
     }
     
     if (!ret.is_object())
@@ -245,10 +253,8 @@ void Config::read(int argc, char *argv[], int forceRgssVersion) {
         })}
     });
     
-    auto &opts = optsJ.as_object();
-    
-#define GUARD(exp) \
-try { exp } catch (...) {}
+    bool failure = false;
+    auto &opts = optsJ.as_object(failure);
     
     editor.debug = false;
     editor.battleTest = false;
@@ -267,11 +273,11 @@ try { exp } catch (...) {}
     
     json::value baseConf = readConfFile(CONF_FILE);
     copyObject(optsJ, baseConf);
-    copyObject(opts["bindingNames"], baseConf.as_object()["bindingNames"], "bindingNames .");
+    copyObject(opts["bindingNames"], baseConf.as_object(failure)["bindingNames"], "bindingNames .");
     
-#define SET_OPT_CUSTOMKEY(var, key, type) GUARD(var = opts[#key].as_##type();)
+#define SET_OPT_CUSTOMKEY(var, key, type) var = opts[#key].as_##type(failure)
 #define SET_OPT(var, type) SET_OPT_CUSTOMKEY(var, var, type)
-#define SET_STRINGOPT(var, key) GUARD(var = std::string(opts[#key].as_string());)
+#define SET_STRINGOPT(var, key) var = std::string(opts[#key].as_string(failure))
     
     SET_STRINGOPT(gameFolder, gameFolder);
     SET_STRINGOPT(dataPathOrg, dataPathOrg);
@@ -368,9 +374,9 @@ try { exp } catch (...) {}
             [](unsigned char c) { return std::tolower(c); });
     fillStringVec(opts["rubyLoadpath"], rubyLoadpaths);
     
-    auto &bnames = opts["bindingNames"].as_object();
+    auto &bnames = opts["bindingNames"].as_object(failure);
     
-#define BINDING_NAME(btn) kbActionNames.btn = bnames[#btn].as_string()
+#define BINDING_NAME(btn) kbActionNames.btn = bnames[#btn].as_string(failure)
     BINDING_NAME(a);
     BINDING_NAME(b);
     BINDING_NAME(c);
@@ -439,7 +445,7 @@ void Config::readGameINI() {
     SDLRWStream iniFile(iniFileName.c_str(), "r");
 #endif // MKXPZ_RETRO
     
-    bool convSuccess = false;
+    bool convSuccess = true;
 #ifdef MKXPZ_RETRO
     if (iniFile->is_open())
 #else
@@ -489,12 +495,11 @@ void Config::readGameINI() {
     else
         Debug() << "Could not read" << iniFileName;
     
-    try {
+    if (!game.title.empty()) {
         game.title = Encoding::convertString(game.title);
-        convSuccess = true;
-    }
-    catch (const Exception &e) {
-        Debug() << iniFileName + ": Could not determine encoding of Game.Title";
+        if (game.title.empty()) {
+            Debug() << iniFileName + ": Could not determine encoding of Game.Title";
+        }
     }
     
     if (game.title.empty() || !convSuccess)

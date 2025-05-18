@@ -25,9 +25,8 @@
 #include <type_traits>
 #include <boost/optional.hpp>
 #include "core.h"
+#include "exception.h"
 #include "sandbox.h"
-
-#define GFX_GUARD_EXC(exp) exp
 
 #define SANDBOX_SLOT(slot_index) (::mkxp_sandbox::sb()->ref<typename ::mkxp_sandbox::slot_type<(slot_index), slots>::type>(::mkxp_sandbox::sb()->stack_pointer() + ::mkxp_sandbox::slot_offset<(slot_index), slots>::value))
 
@@ -256,21 +255,43 @@ namespace mkxp_sandbox {
 #define SANDBOX_DEF_GFX_PROP_B(S, prop, name) \
     static VALUE get_##name(VALUE self) { \
         using namespace ::mkxp_sandbox; \
-        S *s = get_private_data<S>(self); \
-        return SANDBOX_BOOL_TO_VALUE(s->get##prop()); \
+        struct coro : boost::asio::coroutine { \
+            VALUE operator()(VALUE self) { \
+                typedef decl_slots<uint8_t> slots; \
+                BOOST_ASIO_CORO_REENTER (this) { \
+                    SANDBOX_GUARD(SANDBOX_SLOT(0) = get_private_data<S>(self)->get##prop(sb().e)); \
+                } \
+                return SANDBOX_BOOL_TO_VALUE(SANDBOX_SLOT(0)); \
+            } \
+        }; \
+        return sb()->bind<struct coro>()()(self); \
     } \
     static VALUE set_##name(VALUE self, VALUE value) { \
         using namespace ::mkxp_sandbox; \
-        S *s = get_private_data<S>(self); \
-        bool v = SANDBOX_VALUE_TO_BOOL(value); \
-        GFX_GUARD_EXC(s->set##prop(v);); \
-        return value; \
+        struct coro : boost::asio::coroutine { \
+            VALUE operator()(VALUE self, VALUE value) { \
+                BOOST_ASIO_CORO_REENTER (this) { \
+                    SANDBOX_GUARD_L(get_private_data<S>(self)->set##prop(sb().e, SANDBOX_VALUE_TO_BOOL(value))); \
+                } \
+                return value; \
+            } \
+        }; \
+        return sb()->bind<struct coro>()()(self, value); \
     }
 
 #define SANDBOX_DEF_GFX_PROP(V, num2val, val2num, S, prop, name) \
     static VALUE get_##name(VALUE self) { \
         using namespace ::mkxp_sandbox; \
-        return sb()->bind<struct num2val>()()(get_private_data<S>(self)->get##prop()); \
+        struct coro : boost::asio::coroutine { \
+            VALUE operator()(VALUE self) { \
+                typedef decl_slots<VALUE> slots; \
+                BOOST_ASIO_CORO_REENTER (this) { \
+                    SANDBOX_GUARD(SANDBOX_AWAIT_S(0, num2val, get_private_data<S>(self)->get##prop(sb().e))); \
+                } \
+                return SANDBOX_SLOT(0); \
+            } \
+        }; \
+        return sb()->bind<struct coro>()()(self); \
     } \
     static VALUE set_##name(VALUE self, VALUE value) { \
         using namespace ::mkxp_sandbox; \
@@ -279,8 +300,7 @@ namespace mkxp_sandbox {
                 typedef decl_slots<V> slots; \
                 BOOST_ASIO_CORO_REENTER (this) { \
                     SANDBOX_AWAIT_S(0, val2num, value); \
-                    S *s = get_private_data<S>(self); \
-                    GFX_GUARD_EXC(s->set##prop(SANDBOX_SLOT(0));); \
+                    SANDBOX_GUARD_L(get_private_data<S>(self)->set##prop(sb().e, SANDBOX_SLOT(0))); \
                 } \
                 return value; \
             } \
@@ -302,11 +322,7 @@ namespace mkxp_sandbox {
         struct coro : boost::asio::coroutine { \
             VALUE operator()(VALUE self, VALUE value) { \
                 BOOST_ASIO_CORO_REENTER (this) { \
-                    { \
-                        S *s = get_private_data<S>(self); \
-                        V *v = value == SANDBOX_NIL ? nullptr : get_private_data<V>(value); \
-                        GFX_GUARD_EXC(s->set##prop(v);); \
-                    } \
+                    SANDBOX_GUARD_L(get_private_data<S>(self)->set##prop(sb().e, value == SANDBOX_NIL ? nullptr : get_private_data<V>(value))); \
                     SANDBOX_AWAIT(rb_iv_set, self, #name, value); \
                 } \
                 return value; \
@@ -322,10 +338,15 @@ namespace mkxp_sandbox {
     } \
     static VALUE set_##name(VALUE self, VALUE value) { \
         using namespace ::mkxp_sandbox; \
-        S *s = get_private_data<S>(self); \
-        V *v = get_private_data<V>(value); \
-        GFX_GUARD_EXC(s->set##prop(*v);); \
-        return value; \
+        struct coro : boost::asio::coroutine { \
+            VALUE operator()(VALUE self, VALUE value) { \
+                BOOST_ASIO_CORO_REENTER (this) { \
+                    SANDBOX_GUARD_L(get_private_data<S>(self)->set##prop(sb().e, *get_private_data<V>(value))); \
+                } \
+                return value; \
+            } \
+        }; \
+        return sb()->bind<struct coro>()()(self, value); \
     }
 
 #define SANDBOX_DEF_GRA_PROP_B(prop, name) \
@@ -415,6 +436,20 @@ namespace mkxp_sandbox {
 #define SANDBOX_INIT_SINGLETON_PROP_BIND(klass, name) SANDBOX_INIT_FUNC_PROP_BIND(rb_define_singleton_method, klass, name)
 #define SANDBOX_INIT_MODULE_PROP_BIND(module, name) SANDBOX_INIT_FUNC_PROP_BIND(rb_define_module_function, module, name)
 
+#define SANDBOX_GUARD_F(finalizer, ...) do { \
+    using namespace ::mkxp_sandbox; \
+    sb().e = Exception(); \
+    __VA_ARGS__; \
+    if (sb().e.is_error()) { \
+        finalizer; \
+        SANDBOX_AWAIT(exception_raise, sb().e); \
+    } \
+} while (0)
+
+#define SANDBOX_GUARD(...) SANDBOX_GUARD_F(, __VA_ARGS__)
+#define SANDBOX_GUARD_LF(finalizer, ...) do { GFX_LOCK; SANDBOX_GUARD_F(finalizer; GFX_UNLOCK, __VA_ARGS__); GFX_UNLOCK; } while (0)
+#define SANDBOX_GUARD_L(...) SANDBOX_GUARD_LF(, __VA_ARGS__)
+
 namespace mkxp_sandbox {
     // We need these helper functions so that the arguments to `SANDBOX_AWAIT`/`SANDBOX_AWAIT_R`/`SANDBOX_AWAIT_S` are evaluated before `sb()->bind` is called instead of after.
     // The reverse happening can lead to incorrect behaviour if one or more of the arguments is using `SANDBOX_SLOT` or other macros that need the state of the sandbox.
@@ -463,6 +498,23 @@ namespace mkxp_sandbox {
     struct log_backtrace : boost::asio::coroutine {
         typedef decl_slots<ID, VALUE, VALUE, wasm_ptr_t> slots;
         void operator()(VALUE exception);
+    };
+
+    extern VALUE mkxp_error_class;
+    extern VALUE physfs_error_class;
+    extern VALUE sdl_error_class;
+    extern VALUE rgss_error_class;
+    extern VALUE reset_class;
+    extern VALUE enoent_class;
+
+    struct exception_binding_init : boost::asio::coroutine {
+        typedef decl_slots<ID> slots;
+        void operator()();
+    };
+
+    struct exception_raise : boost::asio::coroutine {
+        typedef decl_slots<VALUE> slots;
+        void operator()(Exception &exception);
     };
 }
 

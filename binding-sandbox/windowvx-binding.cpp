@@ -40,9 +40,10 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
+                GFX_LOCK;
+
                 SANDBOX_SLOT(1) = SANDBOX_SLOT(2) = SANDBOX_SLOT(3) = SANDBOX_SLOT(4) = 0;
 
-                GFX_LOCK;
                 if (rgssVer >= 3) {
                     if (argc == 4) {
                         SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 0));
@@ -57,20 +58,23 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     SANDBOX_AWAIT(viewportelement_initialize<WindowVX>, argc, argv, self);
                 }
 
-                SANDBOX_AWAIT(wrap_property, self, &get_private_data<WindowVX>(self)->getCursorRect(), "cursor_rect", rect_class);
+                SANDBOX_GUARD(SANDBOX_AWAIT(wrap_property, self, &get_private_data<WindowVX>(self)->getCursorRect(sb().e), "cursor_rect", rect_class));
 
                 if (rgssVer >= 3) {
-                    SANDBOX_AWAIT(wrap_property, self, &get_private_data<WindowVX>(self)->getTone(), "tone", tone_class);
+                    SANDBOX_GUARD(SANDBOX_AWAIT(wrap_property, self, &get_private_data<WindowVX>(self)->getTone(sb().e), "tone", tone_class));
                 }
 
                 SANDBOX_AWAIT_S(0, rb_obj_alloc, bitmap_class);
-                set_private_data(SANDBOX_SLOT(0), new Bitmap(1, 1));
+                SANDBOX_GUARD(set_private_data(SANDBOX_SLOT(0), new Bitmap(sb().e, 1, 1)));
                 SANDBOX_AWAIT(bitmap_init_props, SANDBOX_SLOT(0));
                 SANDBOX_AWAIT(rb_iv_set, self, "contents", SANDBOX_SLOT(0));
-                GFX_UNLOCK;
             }
 
             return SANDBOX_NIL;
+        }
+
+        ~coro() {
+            GFX_UNLOCK;
         }
     };
 
@@ -78,8 +82,17 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
 }
 
 static VALUE update(VALUE self) {
-    GFX_GUARD_EXC(get_private_data<WindowVX>(self)->update();)
-    return SANDBOX_NIL;
+    struct coro : boost::asio::coroutine {
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_GUARD_L(get_private_data<WindowVX>(self)->update(sb().e));
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
 }
 
 SANDBOX_DEF_GFX_PROP_OBJ_REF(WindowVX, Bitmap, Windowskin, windowskin);
@@ -108,9 +121,7 @@ static VALUE move(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h) {
                 SANDBOX_AWAIT_S(1, rb_num2int, y);
                 SANDBOX_AWAIT_S(2, rb_num2int, w);
                 SANDBOX_AWAIT_S(3, rb_num2int, h);
-                GFX_LOCK;
-                get_private_data<WindowVX>(self)->move(SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3));
-                GFX_UNLOCK;
+                SANDBOX_GUARD_L(get_private_data<WindowVX>(self)->move(sb().e, SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3)));
             }
 
             return SANDBOX_NIL;
@@ -121,11 +132,35 @@ static VALUE move(VALUE self, VALUE x, VALUE y, VALUE w, VALUE h) {
 }
 
 static VALUE is_open(VALUE self) {
-    return SANDBOX_BOOL_TO_VALUE(get_private_data<WindowVX>(self)->isOpen());
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<uint8_t> slots;
+
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_GUARD(SANDBOX_SLOT(0) = get_private_data<WindowVX>(self)->isOpen(sb().e));
+            }
+
+            return SANDBOX_BOOL_TO_VALUE(SANDBOX_SLOT(0));
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
 }
 
 static VALUE is_closed(VALUE self) {
-    return SANDBOX_BOOL_TO_VALUE(get_private_data<WindowVX>(self)->isClosed());
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<uint8_t> slots;
+
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_GUARD(SANDBOX_SLOT(0) = get_private_data<WindowVX>(self)->isClosed(sb().e));
+            }
+
+            return SANDBOX_BOOL_TO_VALUE(SANDBOX_SLOT(0));
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
 }
 
 SANDBOX_DEF_GFX_PROP_B(WindowVX, ArrowsVisible, arrows_visible);

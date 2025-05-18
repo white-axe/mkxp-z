@@ -26,7 +26,8 @@
 #include "sharedstate.h"
 #include "sharedmidistate.h"
 #include "eventthread.h"
-#include "exception.h"
+
+#include "mkxp-polyfill.h" // std::to_string
 
 #include <string>
 #include <utility>
@@ -209,10 +210,11 @@ struct AudioPrivate
             delete track;
 	}
     
-    AudioStream *getTrackByIndex(int index) {
+    AudioStream *getTrackByIndex(Exception &exception, int index) {
         if (index < 0) index = 0;
         if (index > (int)(bgmTracks.size()) - 1) {
-            throw Exception(Exception::MKXPError, "requested BGM track %d out of range (max: %d)", index, bgmTracks.size() - 1);
+	    exception = Exception(Exception::MKXPError, "requested BGM track %d out of range (max: %d)", index, bgmTracks.size() - 1);
+	    return nullptr;
         }
         return bgmTracks[index];
     }
@@ -437,7 +439,8 @@ void Audio::render() {
 }
 #endif // MKXPZ_RETRO
 
-void Audio::bgmPlay(const char *filename,
+void Audio::bgmPlay(Exception &exception,
+	            const char *filename,
                     int volume,
                     int pitch,
                     double pos,
@@ -453,10 +456,14 @@ void Audio::bgmPlay(const char *filename,
         
         track = 0;
     }
-	p->getTrackByIndex(track)->play(filename, volume, pitch, pos);
+
+	AudioStream *stream = p->getTrackByIndex(exception, track);
+	if (stream != nullptr) {
+		stream->play(exception, filename, volume, pitch, pos);
+	}
 }
 
-void Audio::bgmStop(int track)
+void Audio::bgmStop(Exception &exception, int track)
 {
     if (track == -127) {
         for (auto track : p->bgmTracks)
@@ -465,10 +472,13 @@ void Audio::bgmStop(int track)
         return;
     }
     
-    p->getTrackByIndex(track)->stop();
+    AudioStream *stream = p->getTrackByIndex(exception, track);
+    if (stream != nullptr) {
+        stream->stop();
+    }
 }
 
-void Audio::bgmFade(int time, int track)
+void Audio::bgmFade(Exception &exception, int time, int track)
 {
     if (track == -127) {
         for (auto track : p->bgmTracks)
@@ -477,18 +487,26 @@ void Audio::bgmFade(int time, int track)
         return;
     }
     
-    p->getTrackByIndex(track)->fadeOut(time);
+    AudioStream *stream = p->getTrackByIndex(exception, track);
+    if (stream != nullptr) {
+        stream->fadeOut(time);
+    }
 }
 
-int Audio::bgmGetVolume(int track)
+int Audio::bgmGetVolume(Exception &exception, int track)
 {
     if (track == -127)
         return p->bgmTracks[0]->getVolume(AudioStream::BaseRatio) * 100;
     
-    return p->getTrackByIndex(track)->getVolume(AudioStream::Base) * 100;
+    AudioStream *stream = p->getTrackByIndex(exception, track);
+    if (stream != nullptr) {
+	return stream->getVolume(AudioStream::Base) * 100;
+    } else {
+        return 0;
+    }
 }
 
-void Audio::bgmSetVolume(int volume, int track)
+void Audio::bgmSetVolume(Exception &exception, int volume, int track)
 {
     float vol = volume / 100.0;
     if (track == -127) {
@@ -497,16 +515,21 @@ void Audio::bgmSetVolume(int volume, int track)
         
         return;
     }
-    p->getTrackByIndex(track)->setVolume(AudioStream::Base, vol);
+
+    AudioStream *stream = p->getTrackByIndex(exception, track);
+    if (stream != nullptr) {
+        stream->setVolume(AudioStream::Base, vol);
+    }
 }
 
 
-void Audio::bgsPlay(const char *filename,
+void Audio::bgsPlay(Exception &exception,
+	            const char *filename,
                     int volume,
                     int pitch,
                     double pos)
 {
-	p->bgs.play(filename, volume, pitch, pos);
+	p->bgs.play(exception, filename, volume, pitch, pos);
 }
 
 void Audio::bgsStop()
@@ -520,11 +543,12 @@ void Audio::bgsFade(int time)
 }
 
 
-void Audio::mePlay(const char *filename,
+void Audio::mePlay(Exception &exception,
+	           const char *filename,
                    int volume,
                    int pitch)
 {
-	p->me.play(filename, volume, pitch);
+	p->me.play(exception, filename, volume, pitch);
 }
 
 void Audio::meStop()
@@ -555,9 +579,14 @@ void Audio::setupMidi()
 	shState->midiState().initIfNeeded(shState->config());
 }
 
-double Audio::bgmPos(int track)
+double Audio::bgmPos(Exception &exception, int track)
 {
-	return p->getTrackByIndex(track)->playingOffset();
+	AudioStream *stream = p->getTrackByIndex(exception, track);
+	if (stream != nullptr) {
+		return stream->playingOffset();
+	} else {
+		return 0.0;
+	}
 }
 
 double Audio::bgsPos()

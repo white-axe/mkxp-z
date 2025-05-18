@@ -55,13 +55,13 @@ public:
 			return;
 
 		GFX_LOCK;
-		try {
+		MKXPZ_TRY {
 			releaseResources();
 			disposed = true;
 			wasDisposed();
-		} catch (Exception &e) {
+		} MKXPZ_CATCH (Exception &) {
 			GFX_UNLOCK;
-			throw e;
+			MKXPZ_RETHROW;
 		}
 		GFX_UNLOCK;
 	}
@@ -74,10 +74,10 @@ public:
     sigslot::signal<> wasDisposed;
 
 protected:
-	void guardDisposed() const
+	void guardDisposed(Exception &exception) const
 	{
 		if (isDisposed())
-			throw Exception(Exception::RGSSError,
+			exception = Exception(Exception::RGSSError,
 		                    "disposed %s", klassName());
 	}
 

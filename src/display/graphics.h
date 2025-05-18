@@ -40,25 +40,26 @@ public:
     double getDelta();
     double lastUpdate();
     
-	bool update(bool checkForShutdown = true);
-	void freeze();
+	bool update(Exception &exception, bool checkForShutdown = true);
+	void freeze(Exception &exception);
 	bool frozen();
-	void transition(int duration = 8,
+	void transition(Exception &exception,
+	                int duration = 8,
 	                Bitmap *transMap = 0,
 	                int vague = 40,
 			int start = 0,
 			int stop = INT_MAX);
 	void frameReset();
 
-	DECL_ATTR( FrameRate,  int )
-	DECL_ATTR( FrameCount, int )
-	DECL_ATTR( Brightness, int )
+	DECL_ATTR_NOEXCEPT( FrameRate,  int )
+	DECL_ATTR_NOEXCEPT( FrameCount, int )
+	DECL_ATTR_NOEXCEPT( Brightness, int )
 
-	void wait(int duration, int start = 0, int stop = INT_MAX);
-	void fadeout(int duration, int start = 0, int stop = INT_MAX, int brightness = -1);
-	void fadein(int duration, int start = 0, int stop = INT_MAX, int brightness = -1);
+	void wait(Exception &exception, int duration, int start = 0, int stop = INT_MAX);
+	void fadeout(Exception &exception, int duration, int start = 0, int stop = INT_MAX, int brightness = -1);
+	void fadein(Exception &exception, int duration, int start = 0, int stop = INT_MAX, int brightness = -1);
 
-	Bitmap *snapToBitmap();
+	Bitmap *snapToBitmap(Exception &exception);
 
 	int width() const;
 	int height() const;
@@ -73,25 +74,25 @@ public:
     void resizeWindow(int width, int height, bool center=false);
 	void drawMovieFrame(const THEORAPLAY_VideoFrame* video, Bitmap *videoBitmap);
 	bool updateMovieInput(Movie *movie);
-	Movie *playMovie(const char *filename, int volume, bool skippable);
+	Movie *playMovie(Exception &exception, const char *filename, int volume, bool skippable);
 	Movie *playMovie(Movie *movie);
 	static void stopMovie(Movie *movie);
 	static bool streamMovieAudioProc(Movie *movie);
-	void screenshot(const char *filename);
+	void screenshot(Exception &exception, const char *filename);
 
-	void reset();
+	void reset(Exception &exception);
     void center();
 
     /* Non-standard extension */
-    DECL_ATTR( Fullscreen, bool )
-    DECL_ATTR( ShowCursor, bool )
-    DECL_ATTR( Scale,    double )
-    DECL_ATTR( Frameskip, bool )
-    DECL_ATTR( FixedAspectRatio, bool )
-    DECL_ATTR( SmoothScaling, int )
-    DECL_ATTR( IntegerScaling, bool )
-    DECL_ATTR( LastMileScaling, bool )
-    DECL_ATTR( Threadsafe, bool )
+    DECL_ATTR_NOEXCEPT( Fullscreen, bool )
+    DECL_ATTR_NOEXCEPT( ShowCursor, bool )
+    DECL_ATTR_NOEXCEPT( Scale,    double )
+    DECL_ATTR_NOEXCEPT( Frameskip, bool )
+    DECL_ATTR_NOEXCEPT( FixedAspectRatio, bool )
+    DECL_ATTR_NOEXCEPT( SmoothScaling, int )
+    DECL_ATTR_NOEXCEPT( IntegerScaling, bool )
+    DECL_ATTR_NOEXCEPT( LastMileScaling, bool )
+    DECL_ATTR_NOEXCEPT( Threadsafe, bool )
     double averageFrameRate();
 
 	/* <internal> */

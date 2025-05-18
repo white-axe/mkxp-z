@@ -138,9 +138,9 @@ int rgssThreadFun(void *userdata) {
 
   alcMakeContextCurrent(alcCtx);
 
-  try {
-    SharedState::initInstance(threadData);
-  } catch (const Exception &exc) {
+  Exception exc;
+  SharedState::initInstance(exc, threadData);
+  if (exc.is_error()) {
     rgssThreadError(threadData, exc.msg);
     alcDestroyContext(alcCtx);
 
@@ -521,9 +521,9 @@ static SDL_GLContext initGL(SDL_Window *win, Config &conf,
     return 0;
   }
 
-  try {
-    initGLFunctions();
-  } catch (const Exception &exc) {
+  Exception exc;
+  initGLFunctions(exc);
+  if (exc.is_error()) {
     GLINIT_SHOWERROR(exc.msg);
     SDL_GL_DeleteContext(glCtx);
 

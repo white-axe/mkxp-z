@@ -11,7 +11,6 @@
 #include <string>
 #include <string.h>
 
-#include "util/encoding.h"
 #include <iconv.h>
 #include <uchardet.h>
 #include <errno.h>
@@ -26,8 +25,6 @@ static std::string getCharset(std::string &str) {
     std::string ret(uchardet_get_charset(ud));
     uchardet_delete(ud);
     
-    if (ret.empty())
-        throw Exception(Exception::MKXPError, "Could not detect string encoding", str.c_str());
     return ret;
 }
 
@@ -58,7 +55,7 @@ static std::string convertString(std::string &str) {
         buf.resize(buf.size()-outLen);
     }
     else {
-        throw Exception(Exception::MKXPError, "Unable to convert string (Guessed encoding: %s)", charset.c_str());
+        buf.clear();
     }
     
     return buf;

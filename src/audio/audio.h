@@ -38,6 +38,8 @@
 #  include <SDL_mutex.h>
 #endif // MKXPZ_RETRO
 
+#include "exception.h"
+
 struct AudioPrivate;
 struct RGSSThreadData;
 
@@ -83,24 +85,27 @@ public:
 	void render();
 #endif // MKXPZ_RETRO
 
-	void bgmPlay(const char *filename,
+	void bgmPlay(Exception &exception,
+	             const char *filename,
 	             int volume = 100,
 	             int pitch = 100,
 	             double pos = 0,
                  int track = -127);
-	void bgmStop(int track = -127);
-	void bgmFade(int time, int track = -127);
-    int bgmGetVolume(int track = -127);
-    void bgmSetVolume(int volume = 100, int track = -127);
+	void bgmStop(Exception &exception, int track = -127);
+	void bgmFade(Exception &exception, int time, int track = -127);
+    int bgmGetVolume(Exception &exception, int track = -127);
+    void bgmSetVolume(Exception &exception, int volume = 100, int track = -127);
 
-	void bgsPlay(const char *filename,
+	void bgsPlay(Exception &exception,
+	             const char *filename,
 	             int volume = 100,
 	             int pitch = 100,
 	             double pos = 0);
 	void bgsStop();
 	void bgsFade(int time);
 
-	void mePlay(const char *filename,
+	void mePlay(Exception &exception,
+	            const char *filename,
 	            int volume = 100,
 	            int pitch = 100);
 	void meStop();
@@ -112,10 +117,12 @@ public:
 	void seStop();
 
 	void setupMidi();
-	double bgmPos(int track = 0);
+	double bgmPos(Exception &exception, int track = 0);
 	double bgsPos();
 
 	void reset();
+
+	std::string getLastError();
 
 #ifndef MKXPZ_RETRO
 private:

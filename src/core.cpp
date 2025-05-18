@@ -647,7 +647,13 @@ static bool init_sandbox() {
             parsed_game_path = parsed_game_path.substr(0, last_slash_index);
         }
 
-        fs->addPath(parsed_game_path.c_str(), "/Game");
+        Exception exception(Exception::Ok, "");
+        fs->addPath(exception, parsed_game_path.c_str(), "/Game");
+        if (exception.type != Exception::Ok) {
+            log_printf(RETRO_LOG_ERROR, "%s\n", exception.what());
+            deinit_sandbox();
+            return false;
+        }
 
         conf.emplace();
         {
@@ -960,12 +966,23 @@ static bool init_sandbox() {
 
             // Mount the subdirectory
             PHYSFS_setWriteDir(save_path_subdir.c_str());
-            fs->addPath(save_path_subdir.c_str(), "/Save");
+            Exception exception(Exception::Ok, "");
+            fs->addPath(exception, save_path_subdir.c_str(), "/Save");
+            if (exception.type != Exception::Ok) {
+                log_printf(RETRO_LOG_ERROR, "%s\n", exception.what());
+                deinit_sandbox();
+                return false;
+            }
             {
                 // PhysFS won't normally allow us to mount the save directory in two locations at once,
                 // so we temporarily disable the duplicate detection here
                 struct physfs_allow_duplicates_guard guard;
-                fs->addPath(save_path_subdir.c_str(), "/Game");
+                fs->addPath(exception, save_path_subdir.c_str(), "/Game");
+            }
+            if (exception.type != Exception::Ok) {
+                log_printf(RETRO_LOG_ERROR, "%s\n", exception.what());
+                deinit_sandbox();
+                return false;
             }
         }
     }
@@ -1039,7 +1056,7 @@ static bool init_sandbox() {
 
     sound_buf = (int16_t *)mkxp_aligned_malloc(16, (threaded_audio_enabled ? THREADED_AUDIO_SAMPLES : (size_t)std::ceil((double)SYNTH_SAMPLERATE / av_info.timing.fps)) * 2 * sizeof(int16_t));
     if (sound_buf == nullptr) {
-        throw std::bad_alloc();
+        MKXPZ_THROW(std::bad_alloc());
     }
 
     frame_count = 0;
@@ -1232,15 +1249,21 @@ extern "C" RETRO_API void retro_run() {
 
     // We deferred initializing the shared state since the OpenGL symbols aren't available until the first call to `retro_run()`
     if (mkxp_retro::sandbox.has_value() && !shared_state_initialized.load_relaxed()) {
-        SharedState::initInstance(&thread_data.get());
-        shared_state_initialized = true;
+        Exception e;
+        SharedState::initInstance(e, &thread_data.get());
+        if (e.is_error()) {
+            log_printf(RETRO_LOG_ERROR, "Error initializing shared state: %s\n", e.what());
+            deinit_sandbox();
+        } else {
+            shared_state_initialized = true;
+        }
     } else if (hw_render.context_type != RETRO_HW_CONTEXT_NONE && (should_render || (!dupe_supported && mkxp_retro::sandbox.has_value()))) {
         glState.reset();
     }
 
     {
         bool core_options_updated;
-        if (environment(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &core_options_updated) && core_options_updated) {
+        if (mkxp_retro::sandbox.has_value() && environment(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &core_options_updated) && core_options_updated) {
             {
                 const char *value = get_core_option("mkxp-z_frameSkip");
                 if (previous_frame_skip_value != value) {
@@ -1409,7 +1432,13 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
     }
 
     std::memset(&hw_render, 0, sizeof hw_render);
-    hw_render.context_reset = initGLFunctions;
+    hw_render.context_reset = []() {
+        Exception e;
+        initGLFunctions(e);
+        if (e.is_error()) {
+            log_printf(RETRO_LOG_ERROR, "%s\n", e.what());
+        }
+    };
     hw_render.context_destroy = nullptr;
     hw_render.cache_context = true;
     hw_render.bottom_left_origin = true;

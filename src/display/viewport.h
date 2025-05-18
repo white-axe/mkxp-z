@@ -37,7 +37,7 @@ public:
 	Viewport();
 	~Viewport();
 
-	void update();
+	void update(Exception &exception);
 
 	DECL_ATTR( Rect,  Rect&  )
 	DECL_ATTR( OX,    int    )
@@ -51,8 +51,8 @@ private:
 	void initViewport(int x, int y, int width, int height);
 	void geometryChanged();
 
-	void composite();
-	void draw();
+	void composite(Exception &exception);
+	void draw(Exception &exception);
 	void onGeometryChange(const Geometry &);
 	bool isEffectiveViewport(Rect *&, Color *&, Tone *&) const;
 
@@ -73,7 +73,7 @@ public:
 	ViewportElement(void (*dispose)(void *), Viewport *viewport = 0, int z = 0, int spriteY = 0);
 	~ViewportElement();
 
-	DECL_ATTR( Viewport,  Viewport* )
+	DECL_ATTR_NOEXCEPT( Viewport,  Viewport* )
 
 protected:
 	virtual void onViewportChange() {}

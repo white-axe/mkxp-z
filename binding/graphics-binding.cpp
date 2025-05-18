@@ -40,11 +40,11 @@ RB_METHOD_GUARD(graphicsUpdate)
     RB_UNUSED_PARAM;
 #if RAPI_MAJOR >= 2
     drop_gvl_guard([](void*) -> void* {
-        GFX_GUARD_EXC( shState->graphics().update(); );
+        BINDING_GUARD_L(shState->graphics().update(e));
         return 0;
     }, 0, 0, 0);
 #else
-    shState->graphics().update();
+    BINDING_GUARD(shState->graphics().update(e));
 #endif
     return Qnil;
 }
@@ -65,11 +65,11 @@ RB_METHOD_GUARD(graphicsFreeze)
     
 #if RAPI_MAJOR >= 2
     drop_gvl_guard([](void*) -> void* {
-        GFX_GUARD_EXC( shState->graphics().freeze(); );
+        BINDING_GUARD_L(shState->graphics().freeze(e));
         return 0;
     }, 0, 0, 0);
 #else
-    shState->graphics().freeze();
+    BINDING_GUARD(shState->graphics().freeze(e));
 #endif
     
     return Qnil;
@@ -92,19 +92,22 @@ RB_METHOD_GUARD(graphicsTransition)
     
     rb_get_args(argc, argv, "|izi", &duration, &filename, &vague RB_ARG_END);
     
-    TransitionArgs args = {duration, *filename ? new Bitmap(filename) : 0, vague};
+    Bitmap *transMap;
+    BINDING_GUARD_L(delete transMap, transMap = *filename ? new Bitmap(e, filename) : 0);
+    TransitionArgs args = {duration, transMap, vague};
     
 #if RAPI_MAJOR >= 2
     drop_gvl_guard([](void *args) -> void* {
         TransitionArgs &a = *((TransitionArgs*)args);
-        GFX_GUARD_EXC( shState->graphics().transition(a.duration,
-                                                      a.transMap,
-                                                      a.vague
-                                                     ); );
+        BINDING_GUARD_L(shState->graphics().transition(e,
+                                                       a.duration,
+                                                       a.transMap,
+                                                       a.vague
+                                                      ));
         return 0;
     }, &args, 0, 0);
 #else
-    GFX_GUARD_EXC( shState->graphics().transition(duration, transMap, vague); )
+    BINDING_GUARD_L(shState->graphics().transition(e, duration, transMap, vague));
 #endif
     
     return Qnil;
@@ -209,11 +212,11 @@ RB_METHOD_GUARD(graphicsWait)
     rb_get_args(argc, argv, "i", &duration RB_ARG_END);
 #if RAPI_MAJOR >= 2
     drop_gvl_guard([](void* d) -> void* {
-        GFX_GUARD_EXC( shState->graphics().wait(*(int*)d); );
+        BINDING_GUARD_L(shState->graphics().wait(e, *(int*)d));
         return 0;
     }, (int*)&duration, 0, 0);
 #else
-    shState->graphics().wait(duration);
+    BINDING_GUARD(shState->graphics().wait(e, duration));
 #endif
     return Qnil;
 }
@@ -228,11 +231,11 @@ RB_METHOD_GUARD(graphicsFadeout)
     
 #if RAPI_MAJOR >= 2
     drop_gvl_guard([](void* d) -> void* {
-        GFX_GUARD_EXC( shState->graphics().fadeout(*(int*)d); );
+        BINDING_GUARD_L(shState->graphics().fadeout(e, *(int*)d));
         return 0;
     }, (int*)&duration, 0, 0);
 #else
-    shState->graphics().fadeout(duration);
+    BINDING_GUARD(shState->graphics().fadeout(e, duration));
 #endif
     
     return Qnil;
@@ -248,11 +251,11 @@ RB_METHOD_GUARD(graphicsFadein)
     
 #if RAPI_MAJOR >= 2
     drop_gvl_guard([](void* d) -> void* {
-        GFX_GUARD_EXC( shState->graphics().fadein(*(int*)d); );
+        BINDING_GUARD_L(shState->graphics().fadein(e, *(int*)d));
         return 0;
     }, (int*)&duration, 0, 0);
 #else
-    shState->graphics().fadein(duration);
+    BINDING_GUARD(shState->graphics().fadein(e, duration));
 #endif
     
     return Qnil;
@@ -267,7 +270,7 @@ RB_METHOD_GUARD(graphicsSnapToBitmap)
     
     Bitmap *result = 0;
     
-    GFX_GUARD_EXC( result = shState->graphics().snapToBitmap(); );
+    BINDING_GUARD_L(result = shState->graphics().snapToBitmap(e));
     
     VALUE obj = wrapObject(result, BitmapType);
     bitmapInitProps(result, obj);
@@ -310,7 +313,7 @@ RB_METHOD_GUARD(graphicsReset)
 {
     RB_UNUSED_PARAM;
     
-    GFX_GUARD_EXC( shState->graphics().reset(); );
+    BINDING_GUARD_L(shState->graphics().reset(e));
     
     return Qnil;
 }
@@ -332,7 +335,7 @@ typedef struct {
 
 void *playMovieInternal(void *args) {
     PlayMovieArgs *a = (PlayMovieArgs*)args;
-    GFX_GUARD_EXC( shState->graphics().playMovie(a->filename, a->volume, a->skippable); );
+    BINDING_GUARD_L(shState->graphics().playMovie(e, a->filename, a->volume, a->skippable));
     
     // Signals for shutdown or reset only make playMovie quit early,
     // so check again
@@ -371,7 +374,7 @@ RB_METHOD_GUARD_END
 
 void graphicsScreenshotInternal(const char *filename)
 {
-    GFX_GUARD_EXC(shState->graphics().screenshot(filename););
+    BINDING_GUARD_L(shState->graphics().screenshot(e, filename));
 }
 
 RB_METHOD_GUARD(graphicsScreenshot)

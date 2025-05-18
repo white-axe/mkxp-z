@@ -52,7 +52,7 @@ public:
 private:
 	PlanePrivate *p;
 
-	void draw();
+	void draw(Exception &exception);
 	void onGeometryChange(const Scene::Geometry &);
 
 	void releaseResources();

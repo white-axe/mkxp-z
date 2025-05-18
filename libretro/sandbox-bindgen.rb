@@ -247,6 +247,7 @@ PRELUDE = <<~HEREDOC
 
   #include <cstdarg>
   #include "mkxp-sandbox-bindgen.h"
+  #include "mkxp-polyfill.h"
 
   #define _SBINDGEN_SLOT(slot_index) (bind.ref<typename slot_type<(slot_index), slots>::type>(bind.stack_pointer() + slot_offset<(slot_index), slots>::value))
 
@@ -281,12 +282,12 @@ POSTSCRIPT = <<~HEREDOC
 
       buf = sandbox_malloc(9 * sizeof(wasm_ptr_t));
       if (buf == 0) {
-          throw std::bad_alloc();
+          MKXPZ_THROW(std::bad_alloc());
       }
       str = sandbox_malloc(std::strlen(wrap_struct_name) + 1);
       if (str == 0) {
           sandbox_free(buf);
-          throw std::bad_alloc();
+          MKXPZ_THROW(std::bad_alloc());
       }
 
       this->strcpy(str, wrap_struct_name);
@@ -471,7 +472,7 @@ File.readlines('tags', chomp: true).each do |line|
     elsif !handler[:buf_size].nil?
       coroutine_initializer += <<~HEREDOC
         _SBINDGEN_SLOT(#{num_slots}) = bind.sandbox_malloc(#{handler[:buf_size].gsub('PREV_ARG', "a#{i - 1}").gsub('ARG', "a#{i}")});
-        if (_SBINDGEN_SLOT(#{num_slots}) == 0) throw std::bad_alloc();
+        if (_SBINDGEN_SLOT(#{num_slots}) == 0) MKXPZ_THROW(std::bad_alloc());
       HEREDOC
       coroutine_initializer += handler[:serialize].gsub('PREV_ARG', "a#{i - 1}").gsub('ARG', "a#{i}").gsub('BUF', "_SBINDGEN_SLOT(#{num_slots})")
       coroutine_initializer += "\n"
@@ -493,7 +494,7 @@ File.readlines('tags', chomp: true).each do |line|
             wasm_ptr_t fp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance());
             wasm_ptr_t sp = fp - CEIL_WASMSTACKALIGN(a#{args.length - 2} * sizeof(VALUE));
             if (sp > fp) {
-                throw std::bad_alloc();
+                MKXPZ_THROW(std::bad_alloc());
             }
             _SBINDGEN_SLOT(#{num_slots}) = sp;
             _SBINDGEN_SLOT(#{num_slots + 1}) = fp;
@@ -520,7 +521,7 @@ File.readlines('tags', chomp: true).each do |line|
             wasm_ptr_t fp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance());
             wasm_ptr_t sp = fp - CEIL_WASMSTACKALIGN(n * sizeof(VALUE));
             if (sp > fp) {
-                throw std::bad_alloc();
+                MKXPZ_THROW(std::bad_alloc());
             }
             _SBINDGEN_SLOT(#{num_slots}) = sp;
             _SBINDGEN_SLOT(#{num_slots + 1}) = fp;

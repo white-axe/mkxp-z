@@ -35,6 +35,8 @@
 #  endif // GLES2_HEADER
 #endif // MKXPZ_RETRO
 
+#include "exception.h"
+
 /* Etc */
 typedef GLenum (APIENTRYP _PFNGLGETERRORPROC) (void);
 typedef void (APIENTRYP _PFNGLCLEARCOLORPROC) (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
@@ -239,6 +241,6 @@ struct GLFunctions
 };
 
 extern GLFunctions gl;
-void initGLFunctions();
+void initGLFunctions(Exception &exception);
 
 #endif // GLFUN_H

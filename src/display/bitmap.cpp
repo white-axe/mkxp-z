@@ -69,26 +69,38 @@ extern "C" {
 #include "libnsgif/libnsgif.h"
 }
 
-#define GUARD_MEGA \
+#define GUARD_MEGA(...) \
 { \
 if (p->megaSurface) \
-throw Exception(Exception::MKXPError, \
+{ \
+exception = Exception(Exception::MKXPError, \
 "Operation not supported for mega surfaces"); \
+return __VA_ARGS__; \
+} \
 }
 
-#define GUARD_ANIMATED \
+#define GUARD_ANIMATED(...) \
 { \
 if (p->animation.enabled) \
-throw Exception(Exception::MKXPError, \
+{ \
+exception = Exception(Exception::MKXPError, \
 "Operation not supported for animated bitmaps"); \
+return __VA_ARGS__; \
+} \
 }
 
-#define GUARD_UNANIMATED \
+#define GUARD_UNANIMATED(...) \
 { \
 if (!p->animation.enabled) \
-throw Exception(Exception::MKXPError, \
+{ \
+exception = Exception(Exception::MKXPError, \
 "Operation not supported for static bitmaps"); \
+return __VA_ARGS__; \
+} \
 }
+
+#define GUARD_V(value, expression) do { expression; if (exception.is_error()) return value; } while (0)
+#define GUARD(expression) GUARD_V(, expression)
 
 #define OUTLINE_SIZE 1
 
@@ -309,12 +321,15 @@ struct BitmapPrivate
 #ifdef MKXPZ_RETRO
         surface = new SDL_Surface {.w = gl.width, .h = gl.height, .pixels = STBI_MALLOC(4 * gl.width * gl.height)};
         if (surface->pixels == nullptr) {
-            throw std::bad_alloc();
+            MKXPZ_THROW(std::bad_alloc());
         }
 #else
         surface = SDL_CreateRGBSurface(0, gl.width, gl.height, format->BitsPerPixel,
                                        format->Rmask, format->Gmask,
                                        format->Bmask, format->Amask);
+        if (surface == nullptr) {
+            MKXPZ_THROW(std::bad_alloc());
+        }
 #endif // MKXPZ_RETRO
     }
     
@@ -587,7 +602,7 @@ struct BitmapOpenHandler : FileSystem::OpenHandler
     }
 };
 
-Bitmap::Bitmap(const char *filename)
+Bitmap::Bitmap(Exception &exception, const char *filename)
 {
     std::string hiresPrefix = "Hires/";
     std::string filenameStd = filename;
@@ -597,53 +612,71 @@ Bitmap::Bitmap(const char *filename)
     if (shState->config().enableHires && filenameStd.compare(0, hiresPrefix.size(), hiresPrefix) != 0) {
         // Look for a high-res version of the file.
         std::string hiresFilename = hiresPrefix + filenameStd;
-        try {
-            hiresBitmap = new Bitmap(hiresFilename.c_str());
-            hiresBitmap->setLores(this);
-        }
-        catch (const Exception &e)
+        Exception e;
+        hiresBitmap = new Bitmap(e, hiresFilename.c_str());
+        if (e.is_error())
         {
             Debug() << "No high-res Bitmap found at" << hiresFilename;
+            delete hiresBitmap;
             hiresBitmap = nullptr;
+        }
+        else
+        {
+            hiresBitmap->setLores(e, this);
+            if (e.is_error())
+            {
+                Debug() << "No high-res Bitmap found at" << hiresFilename;
+                delete hiresBitmap;
+                hiresBitmap = nullptr;
+            }
         }
     }
 #endif // MKXPZ_RETRO
 
     BitmapOpenHandler handler;
-    try {
 #ifdef MKXPZ_RETRO
-        mkxp_retro::fs->openRead(handler, filename); // TODO: move into shState
+    mkxp_retro::fs->openRead(handler, filename); // TODO: move into shState
 #else
-        shState->fileSystem().openRead(handler, filename);
+    shState->fileSystem().openRead(handler, filename);
 #endif // MKXPZ_RETRO
 
-        if (!handler.error.empty()) {
-            // Not loaded with SDL, but I want it to be caught with the same exception type
-            throw Exception(Exception::SDLError, "Error loading image '%s': %s", filename, handler.error.c_str());
-        }
-#ifdef MKXPZ_RETRO
-        else if (!handler.gif && !handler.image) {
-            throw Exception(Exception::SDLError, "Error loading image '%s': %s", filename, stbi_failure_reason());
-        }
-#else
-        else if (!handler.gif && !handler.surface) {
-            throw Exception(Exception::SDLError, "Error loading image '%s': %s",
-                            filename, SDL_GetError());
-        }
-#endif // MKXPZ_RETRO
-    } catch (const Exception &e) {
+    if (handler.exception.is_error()) {
         if (hiresBitmap)
             delete hiresBitmap;
-        throw e;
+        exception = handler.exception;
+        return;
     }
+    else if (!handler.error.empty()) {
+        if (hiresBitmap)
+            delete hiresBitmap;
+        // Not loaded with SDL, but I want it to be caught with the same exception type
+        exception = Exception(Exception::SDLError, "Error loading image '%s': %s", filename, handler.error.c_str());
+        return;
+    }
+#ifdef MKXPZ_RETRO
+    else if (!handler.gif && !handler.image) {
+        if (hiresBitmap)
+            delete hiresBitmap;
+        exception = Exception(Exception::SDLError, "Error loading image '%s': %s", filename, stbi_failure_reason());
+        return;
+    }
+#else
+    else if (!handler.gif && !handler.surface) {
+        if (hiresBitmap)
+            delete hiresBitmap;
+        exception = Exception(Exception::SDLError, "Error loading image '%s': %s", filename, SDL_GetError());
+        return;
+    }
+#endif // MKXPZ_RETRO
     
     if (handler.gif) {
         if (handler.gif->width >= (uint32_t)glState.caps.maxTexSize || handler.gif->height > (uint32_t)glState.caps.maxTexSize)
         {
             if (hiresBitmap)
                 delete hiresBitmap;
-            throw new Exception(Exception::MKXPError, "Animation too large (%ix%i, max %ix%i)",
+            exception = Exception(Exception::MKXPError, "Animation too large (%ix%i, max %ix%i)",
                                 handler.gif->width, handler.gif->height, glState.caps.maxTexSize, glState.caps.maxTexSize);
+            return;
         }
         
         p = new BitmapPrivate(this);
@@ -651,11 +684,8 @@ Bitmap::Bitmap(const char *filename)
         p->selfHires = hiresBitmap;
         
         if (handler.gif->frame_count == 1) {
-            TEXFBO texfbo;
-            try {
-                texfbo = shState->texPool().request(handler.gif->width, handler.gif->height);
-            }
-            catch (const Exception &e)
+            TEXFBO texfbo = shState->texPool().request(exception, handler.gif->width, handler.gif->height);
+            if (exception.is_error())
             {
                 gif_finalise(handler.gif);
                 delete handler.gif;
@@ -665,7 +695,7 @@ Bitmap::Bitmap(const char *filename)
                 if (hiresBitmap)
                     delete hiresBitmap;
                 
-                throw e;
+                return;
             }
             
             TEX::bind(texfbo.tex);
@@ -708,16 +738,14 @@ Bitmap::Bitmap(const char *filename)
                     delete handler.gif;
                     delete handler.gif_data;
                     
-                    throw Exception(Exception::MKXPError, "Failed to decode GIF frame %i out of %i (Status %i)",
+                    exception = Exception(Exception::MKXPError, "Failed to decode GIF frame %i out of %i (Status %i)",
                                     i + 1, fcount_partial, status);
+                    return;
                 }
             }
             
-            TEXFBO texfbo;
-            try {
-                texfbo = shState->texPool().request(p->animation.width, p->animation.height);
-            }
-            catch (const Exception &e)
+            TEXFBO texfbo = shState->texPool().request(exception, p->animation.width, p->animation.height);
+            if (exception.is_error())
             {
                 releaseResources();
                 
@@ -725,7 +753,7 @@ Bitmap::Bitmap(const char *filename)
                 delete handler.gif;
                 delete handler.gif_data;
                 
-                throw e;
+                return;
             }
             
             TEX::bind(texfbo.tex);
@@ -748,34 +776,40 @@ Bitmap::Bitmap(const char *filename)
 #else
     SDL_Surface *imgSurf = handler.surface;
 #endif // MKXPZ_RETRO
-    initFromSurface(imgSurf, hiresBitmap, false);
+    GUARD(initFromSurface(exception, imgSurf, hiresBitmap, false));
 }
 
-Bitmap::Bitmap(int width, int height, bool isHires)
+Bitmap::Bitmap(Exception &exception, int width, int height, bool isHires)
 {
-    if (width <= 0 || height <= 0)
-        throw Exception(Exception::RGSSError, "failed to create bitmap");
+    if (width <= 0 || height <= 0) {
+        exception = Exception(Exception::RGSSError, "failed to create bitmap");
+        return;
+    }
     
     Bitmap *hiresBitmap = nullptr;
 
-#ifndef MKXPZ_RETRO
     if (shState->config().enableHires && !isHires) {
         // Create a high-res version as well.
         double scalingFactor = shState->config().textureScalingFactor;
         int hiresWidth = (int)lround(scalingFactor * width);
         int hiresHeight = (int)lround(scalingFactor * height);
-        hiresBitmap = new Bitmap(hiresWidth, hiresHeight, true);
-        hiresBitmap->setLores(this);
+        hiresBitmap = new Bitmap(exception, hiresWidth, hiresHeight, true);
+        if (exception.is_error()) {
+            delete hiresBitmap;
+            return;
+        }
+        hiresBitmap->setLores(exception, this);
+        if (exception.is_error()) {
+            delete hiresBitmap;
+            return;
+        }
     }
-#endif // MKXPZ_RETRO
 
-    TEXFBO tex;
-    try {
-        tex = shState->texPool().request(width, height);
-    } catch (const Exception &e) {
+    TEXFBO tex = shState->texPool().request(exception, width, height);
+    if (exception.is_error()) {
         if (hiresBitmap)
             delete hiresBitmap;
-        throw e;
+        return;
     }
     
     p = new BitmapPrivate(this);
@@ -785,17 +819,17 @@ Bitmap::Bitmap(int width, int height, bool isHires)
         p->gl.selfHires = &p->selfHires->getGLTypes();
     }
     
-    clear();
+    GUARD(clear(exception));
 }
 
-Bitmap::Bitmap(void *pixeldata, int width, int height)
+Bitmap::Bitmap(Exception &exception, void *pixeldata, int width, int height)
 {
 #ifdef MKXPZ_RETRO
     SDL_Surface *surface = new SDL_Surface;
 
     stbi_uc *image = (stbi_uc *)STBI_MALLOC((size_t)4 * (size_t)width * (size_t)height * sizeof(stbi_uc));
     if (image == nullptr)
-        throw std::bad_alloc();
+        MKXPZ_THROW(std::bad_alloc());
 
     surface->pixels = image;
     surface->w = width;
@@ -808,8 +842,7 @@ Bitmap::Bitmap(void *pixeldata, int width, int height)
                                                 p->format->Amask);
     
     if (!surface)
-        throw Exception(Exception::SDLError, "Error creating Bitmap: %s",
-                        SDL_GetError());
+        MKXPZ_THROW(std::bad_alloc());
     
     memcpy(surface->pixels, pixeldata, width*height*(p->format->BitsPerPixel/8));
 #endif // MKXPZ_RERTRO
@@ -824,13 +857,8 @@ Bitmap::Bitmap(void *pixeldata, int width, int height)
     }
     else
     {
-        TEXFBO tex;
-        
-        try
-        {
-            tex = shState->texPool().request(surface->w, surface->h);
-        }
-        catch (const Exception &e)
+        TEXFBO tex = shState->texPool().request(exception, surface->w, surface->h);
+        if (exception.is_error())
         {
 #ifdef MKXPZ_RETRO
             stbi_image_free(surface->pixels);
@@ -838,7 +866,7 @@ Bitmap::Bitmap(void *pixeldata, int width, int height)
 #else
             SDL_FreeSurface(surface);
 #endif // MKXPZ_RETRO
-            throw e;
+            return;
         }
         
         p = new BitmapPrivate(this);
@@ -859,11 +887,11 @@ Bitmap::Bitmap(void *pixeldata, int width, int height)
 }
 
 // frame is -2 for "any and all", -1 for "current", anything else for a specific frame
-Bitmap::Bitmap(const Bitmap &other, int frame)
+Bitmap::Bitmap(Exception &exception, const Bitmap &other, int frame)
 {
-    other.guardDisposed();
-    other.ensureNonMega();
-    if (frame > -2) other.ensureAnimated();
+    GUARD(other.guardDisposed(exception));
+    GUARD(other.ensureNonMega(exception));
+    if (frame > -2) GUARD(other.ensureAnimated(exception));
     
     if (other.hasHires()) {
         Debug() << "BUG: High-res Bitmap from animation not implemented";
@@ -873,11 +901,10 @@ Bitmap::Bitmap(const Bitmap &other, int frame)
     
     // TODO: Clean me up
     if (!other.isAnimated() || frame >= -1) {
-        try {
-            p->gl = shState->texPool().request(other.width(), other.height());
-        } catch (const Exception &e) {
+        p->gl = shState->texPool().request(exception, other.width(), other.height());
+        if (exception.is_error()) {
             delete p;
-            throw e;
+            return;
         }
         
         GLMeta::blitBegin(p->gl, false, SameScale);
@@ -894,21 +921,19 @@ Bitmap::Bitmap(const Bitmap &other, int frame)
     }
     else {
         p->animation.enabled = true;
-        p->animation.fps = other.getAnimationFPS();
+        p->animation.fps = other.animationFPS();
         p->animation.width = other.width();
         p->animation.height = other.height();
         p->animation.lastFrame = 0;
         p->animation.playTime = 0;
         p->animation.startTime = 0;
-        p->animation.loop = other.getLooping();
+        p->animation.loop = other.looping();
         
         for (TEXFBO &sourceframe : other.getFrames()) {
-            TEXFBO newframe;
-            try {
-                newframe = shState->texPool().request(p->animation.width, p->animation.height);
-            } catch(const Exception &e) {
+            TEXFBO newframe = shState->texPool().request(exception, p->animation.width, p->animation.height);
+            if (exception.is_error()) {
                 releaseResources();
-                throw e;
+                return;
             }
             
             GLMeta::blitBegin(newframe, false, SameScale);
@@ -923,24 +948,31 @@ Bitmap::Bitmap(const Bitmap &other, int frame)
     p->addTaintedArea(rect());
 }
 
-Bitmap::Bitmap(TEXFBO &other)
+Bitmap::Bitmap(Exception &exception, TEXFBO &other)
 {
     Bitmap *hiresBitmap = nullptr;
 
     if (other.selfHires != nullptr) {
         // Create a high-res version as well.
-        hiresBitmap = new Bitmap(*other.selfHires);
-        hiresBitmap->setLores(this);
+        hiresBitmap = new Bitmap(exception, *other.selfHires);
+        if (exception.is_error()) {
+            delete hiresBitmap;
+            return;
+        }
+        hiresBitmap->setLores(exception, this);
+        if (exception.is_error()) {
+            delete hiresBitmap;
+            return;
+        }
     }
 
     p = new BitmapPrivate(this);
     p->selfHires = hiresBitmap;
 
-    try {
-        p->gl = shState->texPool().request(other.width, other.height);
-    } catch (const Exception &e) {
+    p->gl = shState->texPool().request(exception, other.width, other.height);
+    if (exception.is_error()) {
         delete p;
-        throw e;
+        return;
     }
 
     if (p->selfHires != nullptr) {
@@ -958,17 +990,25 @@ Bitmap::Bitmap(TEXFBO &other)
     p->addTaintedArea(rect());
 }
 
-Bitmap::Bitmap(SDL_Surface *imgSurf, SDL_Surface *imgSurfHires, bool forceMega)
+Bitmap::Bitmap(Exception &exception, SDL_Surface *imgSurf, SDL_Surface *imgSurfHires, bool forceMega)
 {
     Bitmap *hiresBitmap = nullptr;
 
     if (imgSurfHires != nullptr) {
         // Create a high-res version as well.
-        hiresBitmap = new Bitmap(imgSurfHires, nullptr);
-        hiresBitmap->setLores(this);
+        hiresBitmap = new Bitmap(exception, imgSurfHires, nullptr);
+        if (exception.is_error()) {
+            delete hiresBitmap;
+            return;
+        }
+        hiresBitmap->setLores(exception, this);
+        if (exception.is_error()) {
+            delete hiresBitmap;
+            return;
+        }
     }
 
-    initFromSurface(imgSurf, hiresBitmap, forceMega);
+    GUARD(initFromSurface(exception, imgSurf, hiresBitmap, forceMega));
 }
 
 Bitmap::~Bitmap()
@@ -978,7 +1018,7 @@ Bitmap::~Bitmap()
     loresDispCon.disconnect();
 }
 
-void Bitmap::initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool forceMega)
+void Bitmap::initFromSurface(Exception &exception, SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool forceMega)
 {
 #ifndef MKXPZ_RETRO
     p->ensureFormat(imgSurf, SDL_PIXELFORMAT_ABGR8888);
@@ -998,13 +1038,8 @@ void Bitmap::initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool for
     else
     {
         /* Regular surface */
-        TEXFBO tex;
-        
-        try
-        {
-            tex = shState->texPool().request(imgSurf->w, imgSurf->h);
-        }
-        catch (const Exception &e)
+        TEXFBO tex = shState->texPool().request(exception, imgSurf->w, imgSurf->h);
+        if (exception.is_error())
         {
             if (hiresBitmap)
                 delete hiresBitmap;
@@ -1014,7 +1049,7 @@ void Bitmap::initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool for
 #else
             SDL_FreeSurface(imgSurf);
 #endif // MKXPZ_RETRO
-            throw e;
+            return;
         }
         
         p = new BitmapPrivate(this);
@@ -1040,8 +1075,6 @@ void Bitmap::initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool for
 
 int Bitmap::width() const
 {
-    guardDisposed();
-    
     if (p->megaSurface) {
         return p->megaSurface->w;
     }
@@ -1055,8 +1088,6 @@ int Bitmap::width() const
 
 int Bitmap::height() const
 {
-    guardDisposed();
-    
     if (p->megaSurface)
         return p->megaSurface->h;
     
@@ -1067,56 +1098,86 @@ int Bitmap::height() const
 }
 
 bool Bitmap::hasHires() const{
-    guardDisposed();
+    return p->selfHires;
+}
+
+Bitmap *Bitmap::getHires(Exception &exception) const {
+    GUARD_V(nullptr, guardDisposed(exception));
 
     return p->selfHires;
 }
 
-DEF_ATTR_RD_SIMPLE(Bitmap, Hires, Bitmap*, p->selfHires)
-
-void Bitmap::setHires(Bitmap *hires) {
-    guardDisposed();
+void Bitmap::setHires(Exception &exception, Bitmap *hires) {
+    GUARD(guardDisposed(exception));
 
     Debug() << "BUG: High-res Bitmap setHires not fully implemented, expect bugs";
-    hires->setLores(this);
+    GUARD(hires->setLores(exception, this));
     p->selfHires = hires;
 }
 
-void Bitmap::setLores(Bitmap *lores) {
-    guardDisposed();
+void Bitmap::setLores(Exception &exception, Bitmap *lores) {
+    GUARD(guardDisposed(exception));
 
     p->selfLores = lores;
     loresDispCon = lores->wasDisposed.connect(&Bitmap::loresDisposal, this);
 }
 
 bool Bitmap::isMega() const{
-    guardDisposed();
-    
     return p->megaSurface;
 }
 
 bool Bitmap::isAnimated() const {
-    guardDisposed();
-    
     return p->animation.enabled;
 }
 
 IntRect Bitmap::rect() const
 {
-    guardDisposed();
-    
     return IntRect(0, 0, width(), height());
 }
 
-void Bitmap::blt(int x, int y,
+int Bitmap::getWidth(Exception &exception) const
+{
+    GUARD_V(0, guardDisposed(exception));
+    return width();
+}
+
+int Bitmap::getHeight(Exception &exception) const
+{
+    GUARD_V(0, guardDisposed(exception));
+    return height();
+}
+
+bool Bitmap::getHasHires(Exception &exception) const{
+    GUARD_V(false, guardDisposed(exception));
+    return hasHires();
+}
+
+bool Bitmap::getIsMega(Exception &exception) const{
+    GUARD_V(false, guardDisposed(exception));
+    return isMega();
+}
+
+bool Bitmap::getIsAnimated(Exception &exception) const {
+    GUARD_V(false, guardDisposed(exception));
+    return isAnimated();
+}
+
+IntRect Bitmap::getRect(Exception &exception) const
+{
+    GUARD_V(IntRect(), guardDisposed(exception));
+    return rect();
+}
+
+void Bitmap::blt(Exception &exception,
+                 int x, int y,
                  const Bitmap &source, const IntRect &rect,
                  int opacity)
 {
     if (source.isDisposed())
         return;
     
-    stretchBlt(IntRect(x, y, abs(rect.w), abs(rect.h)),
-               source, rect, opacity);
+    GUARD(stretchBlt(exception, IntRect(x, y, abs(rect.w), abs(rect.h)),
+                     source, rect, opacity));
 }
 
 static bool shrinkRects(float &sourcePos, float &sourceLen, const int &sBitmapLen,
@@ -1195,11 +1256,12 @@ static bool shrinkRects(int &sourcePos, int &sourceLen, const int &sBitmapLen,
     return ret || sourceLen == 0 || destLen == 0;
 }
 
-void Bitmap::stretchBlt(IntRect destRect,
+void Bitmap::stretchBlt(Exception &exception,
+                        IntRect destRect,
                         const Bitmap &source, IntRect sourceRect,
                         int opacity, bool smooth)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
 
     // Don't need this, right? This function is fine with megasurfaces it seems
     //GUARD_MEGA;
@@ -1214,18 +1276,20 @@ void Bitmap::stretchBlt(IntRect destRect,
         destWidth = destRect.w * p->selfHires->width() / width();
         destHeight = destRect.h * p->selfHires->height() / height();
 
-        p->selfHires->stretchBlt(IntRect(destX, destY, destWidth, destHeight), source, sourceRect, opacity);
+        GUARD(p->selfHires->stretchBlt(exception, IntRect(destX, destY, destWidth, destHeight), source, sourceRect, opacity));
         return;
     }
 
     if (source.hasHires()) {
         int sourceX, sourceY, sourceWidth, sourceHeight;
-        sourceX = sourceRect.x * source.getHires()->width() / source.width();
-        sourceY = sourceRect.y * source.getHires()->height() / source.height();
-        sourceWidth = sourceRect.w * source.getHires()->width() / source.width();
-        sourceHeight = sourceRect.h * source.getHires()->height() / source.height();
+        Bitmap *hires;
+        GUARD(hires = source.getHires(exception));
+        sourceX = sourceRect.x * hires->width() / source.width();
+        sourceY = sourceRect.y * hires->height() / source.height();
+        sourceWidth = sourceRect.w * hires->width() / source.width();
+        sourceHeight = sourceRect.h * hires->height() / source.height();
 
-        stretchBlt(destRect, *source.getHires(), IntRect(sourceX, sourceY, sourceWidth, sourceHeight), opacity);
+        GUARD(stretchBlt(exception, destRect, *hires, IntRect(sourceX, sourceY, sourceWidth, sourceHeight), opacity));
         return;
     }
 
@@ -1290,8 +1354,7 @@ void Bitmap::stretchBlt(IntRect destRect,
                                              p->format->Rmask, p->format->Gmask,
                                              p->format->Bmask, p->format->Amask);
                     if (!blitTemp)
-                        throw Exception(Exception::SDLError, "Error creating temporary surface for blitting: %s",
-                                        SDL_GetError());
+                        MKXPZ_THROW(std::bad_alloc());
                     
                     if (smooth)
                     {
@@ -1313,8 +1376,7 @@ void Bitmap::stretchBlt(IntRect destRect,
                                              p->format->Rmask, p->format->Gmask,
                                              p->format->Bmask, p->format->Amask);
                     if (!blitTemp)
-                        throw Exception(Exception::SDLError, "Error creating temporary surface for blitting: %s",
-                                        SDL_GetError());
+                        MKXPZ_THROW(std::bad_alloc());
                     
                     SDL_Rect tmpRect = {0, 0, blitTemp->w, blitTemp->h};
                     error = SDL_LowerBlit(srcSurf, &srcRect, blitTemp, &tmpRect);
@@ -1323,7 +1385,8 @@ void Bitmap::stretchBlt(IntRect destRect,
                 if (error)
                 {
                     SDL_FreeSurface(blitTemp);
-                    throw Exception(Exception::SDLError, "Failed to blit surface: %s", SDL_GetError());
+                    exception = Exception(Exception::SDLError, "Failed to blit surface: %s", SDL_GetError());
+                    return;
                 }
                 
                 srcSurf = blitTemp;
@@ -1490,19 +1553,20 @@ void Bitmap::stretchBlt(IntRect destRect,
     p->onModified();
 }
 
-void Bitmap::fillRect(int x, int y,
+void Bitmap::fillRect(Exception &exception,
+                      int x, int y,
                       int width, int height,
                       const Vec4 &color)
 {
-    fillRect(IntRect(x, y, width, height), color);
+    GUARD(fillRect(exception, IntRect(x, y, width, height), color));
 }
 
-void Bitmap::fillRect(const IntRect &rect, const Vec4 &color)
+void Bitmap::fillRect(Exception &exception, const IntRect &rect, const Vec4 &color)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
-    GUARD_MEGA;
-    GUARD_ANIMATED;
+    GUARD_MEGA();
+    GUARD_ANIMATED();
     
     if (hasHires()) {
         int destX, destY, destWidth, destHeight;
@@ -1511,7 +1575,7 @@ void Bitmap::fillRect(const IntRect &rect, const Vec4 &color)
         destWidth = rect.w * p->selfHires->width() / width();
         destHeight = rect.h * p->selfHires->height() / height();
 
-        p->selfHires->fillRect(IntRect(destX, destY, destWidth, destHeight), color);
+        GUARD(p->selfHires->fillRect(exception, IntRect(destX, destY, destWidth, destHeight), color));
     }
 
     p->fillRect(rect, color);
@@ -1526,22 +1590,24 @@ void Bitmap::fillRect(const IntRect &rect, const Vec4 &color)
     p->onModified();
 }
 
-void Bitmap::gradientFillRect(int x, int y,
+void Bitmap::gradientFillRect(Exception &exception,
+                              int x, int y,
                               int width, int height,
                               const Vec4 &color1, const Vec4 &color2,
                               bool vertical)
 {
-    gradientFillRect(IntRect(x, y, width, height), color1, color2, vertical);
+    GUARD(gradientFillRect(exception, IntRect(x, y, width, height), color1, color2, vertical));
 }
 
-void Bitmap::gradientFillRect(const IntRect &rect,
+void Bitmap::gradientFillRect(Exception &exception,
+                              const IntRect &rect,
                               const Vec4 &color1, const Vec4 &color2,
                               bool vertical)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
-    GUARD_MEGA;
-    GUARD_ANIMATED;
+    GUARD_MEGA();
+    GUARD_ANIMATED();
     
     if (hasHires()) {
         int destX, destY, destWidth, destHeight;
@@ -1550,7 +1616,7 @@ void Bitmap::gradientFillRect(const IntRect &rect,
         destWidth = rect.w * p->selfHires->width() / width();
         destHeight = rect.h * p->selfHires->height() / height();
 
-        p->selfHires->gradientFillRect(IntRect(destX, destY, destWidth, destHeight), color1, color2, vertical);
+        GUARD(p->selfHires->gradientFillRect(exception, IntRect(destX, destY, destWidth, destHeight), color1, color2, vertical));
     }
 
     SimpleColorShader &shader = shState->shaders().simpleColor;
@@ -1588,17 +1654,17 @@ void Bitmap::gradientFillRect(const IntRect &rect,
     p->onModified();
 }
 
-void Bitmap::clearRect(int x, int y, int width, int height)
+void Bitmap::clearRect(Exception &exception, int x, int y, int width, int height)
 {
-    clearRect(IntRect(x, y, width, height));
+    GUARD(clearRect(exception, IntRect(x, y, width, height)));
 }
 
-void Bitmap::clearRect(const IntRect &rect)
+void Bitmap::clearRect(Exception &exception, const IntRect &rect)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
-    GUARD_MEGA;
-    GUARD_ANIMATED;
+    GUARD_MEGA();
+    GUARD_ANIMATED();
     
     if (hasHires()) {
         int destX, destY, destWidth, destHeight;
@@ -1607,7 +1673,7 @@ void Bitmap::clearRect(const IntRect &rect)
         destWidth = rect.w * p->selfHires->width() / width();
         destHeight = rect.h * p->selfHires->height() / height();
 
-        p->selfHires->clearRect(IntRect(destX, destY, destWidth, destHeight));
+        GUARD(p->selfHires->clearRect(exception, IntRect(destX, destY, destWidth, destHeight)));
     }
 
     p->fillRect(rect, Vec4());
@@ -1615,15 +1681,15 @@ void Bitmap::clearRect(const IntRect &rect)
     p->onModified();
 }
 
-void Bitmap::blur()
+void Bitmap::blur(Exception &exception)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
-    GUARD_MEGA;
-    GUARD_ANIMATED;
+    GUARD_MEGA();
+    GUARD_ANIMATED();
     
     if (hasHires()) {
-        p->selfHires->blur();
+        GUARD(p->selfHires->blur(exception));
     }
 
     // TODO: Is there some kind of blur radius that we need to handle for high-res mode?
@@ -1632,7 +1698,8 @@ void Bitmap::blur()
     FloatRect rect(0, 0, width(), height());
     quad.setTexPosRect(rect, rect);
     
-    TEXFBO auxTex = shState->texPool().request(width(), height());
+    TEXFBO auxTex;
+    GUARD(auxTex = shState->texPool().request(exception, width(), height()));
     
     BlurShader &shader = shState->shaders().blur;
     BlurShader::HPass &pass1 = shader.pass1;
@@ -1667,15 +1734,15 @@ void Bitmap::blur()
     p->onModified();
 }
 
-void Bitmap::radialBlur(int angle, int divisions)
+void Bitmap::radialBlur(Exception &exception, int angle, int divisions)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
-    GUARD_MEGA;
-    GUARD_ANIMATED;
+    GUARD_MEGA();
+    GUARD_ANIMATED();
     
     if (hasHires()) {
-        p->selfHires->radialBlur(angle, divisions);
+        GUARD(p->selfHires->radialBlur(exception, angle, divisions));
         return;
     }
 
@@ -1727,7 +1794,8 @@ void Bitmap::radialBlur(int angle, int divisions)
     
     qArray.commit();
     
-    TEXFBO newTex = shState->texPool().request(_width, _height);
+    TEXFBO newTex;
+    GUARD(newTex = shState->texPool().request(exception, _width, _height));
     
     FBO::bind(newTex.fbo);
     
@@ -1768,15 +1836,15 @@ void Bitmap::radialBlur(int angle, int divisions)
     p->onModified();
 }
 
-void Bitmap::clear()
+void Bitmap::clear(Exception &exception)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
-    GUARD_MEGA;
-    GUARD_ANIMATED;
+    GUARD_MEGA();
+    GUARD_ANIMATED();
     
     if (hasHires()) {
-        p->selfHires->clear();
+        GUARD(p->selfHires->clear(exception));
     }
 
     p->bindFBO();
@@ -1802,12 +1870,12 @@ static uint32_t &getPixelAt(SDL_Surface *surf, SDL_PixelFormat *form, int x, int
 }
 #endif // MKXPZ_RETRO
 
-Color Bitmap::getPixel(int x, int y) const
+Color Bitmap::getPixel(Exception &exception, int x, int y) const
 {
-    guardDisposed();
+    GUARD_V(Color(), guardDisposed(exception));
     
-    GUARD_MEGA;
-    GUARD_ANIMATED;
+    GUARD_MEGA(Color());
+    GUARD_ANIMATED(Color());
     
     if (hasHires()) {
         Debug() << "GAME BUG: Game is calling getPixel on low-res Bitmap; you may want to patch the game to improve graphics quality.";
@@ -1831,7 +1899,8 @@ Color Bitmap::getPixel(int x, int y) const
 
             for (int thisX = xHires; thisX < xHires+w && thisX < p->selfHires->width(); thisX++) {
                 for (int thisY = yHires; thisY < yHires+h && thisY < p->selfHires->height(); thisY++) {
-                    Color thisColor = p->selfHires->getPixel(thisX, thisY);
+                    Color thisColor;
+                    GUARD_V(Color(), thisColor = p->selfHires->getPixel(exception, thisX, thisY));
                     if (thisColor.getAlpha() >= 1.0) {
                         rSum += thisColor.getRed();
                         gSum += thisColor.getGreen();
@@ -1883,12 +1952,12 @@ Color Bitmap::getPixel(int x, int y) const
 #endif // MKXPZ_RETRO
 }
 
-void Bitmap::setPixel(int x, int y, const Color &color)
+void Bitmap::setPixel(Exception &exception, int x, int y, const Color &color)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
-    GUARD_MEGA;
-    GUARD_ANIMATED;
+    GUARD_MEGA();
+    GUARD_ANIMATED();
     
     if (hasHires()) {
         Debug() << "GAME BUG: Game is calling setPixel on low-res Bitmap; you may want to patch the game to improve graphics quality.";
@@ -1902,7 +1971,7 @@ void Bitmap::setPixel(int x, int y, const Color &color)
         if (w >= 1 && h >= 1) {
             for (int thisX = xHires; thisX < xHires+w && thisX < p->selfHires->width(); thisX++) {
                 for (int thisY = yHires; thisY < yHires+h && thisY < p->selfHires->height(); thisY++) {
-                    p->selfHires->setPixel(thisX, thisY, color);
+                    GUARD(p->selfHires->setPixel(exception, thisX, thisY, color));
                 }
             }
         }
@@ -1935,11 +2004,11 @@ void Bitmap::setPixel(int x, int y, const Color &color)
     p->onModified(false);
 }
 
-bool Bitmap::getRaw(void *output, int output_size)
+bool Bitmap::getRaw(Exception &exception, void *output, int output_size)
 {
     if (output_size != width()*height()*4) return false;
     
-    guardDisposed();
+    GUARD_V(false, guardDisposed(exception));
     
     if (hasHires()) {
         Debug() << "GAME BUG: Game is calling getRaw on low-res Bitmap; you may want to patch the game to improve graphics quality.";
@@ -1965,11 +2034,11 @@ bool Bitmap::getRaw(void *output, int output_size)
     return true;
 }
 
-void Bitmap::replaceRaw(void *pixel_data, int size)
+void Bitmap::replaceRaw(Exception &exception, void *pixel_data, int size)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
-    GUARD_MEGA;
+    GUARD_MEGA();
     
     if (hasHires()) {
         Debug() << "GAME BUG: Game is calling replaceRaw on low-res Bitmap; you may want to patch the game to improve graphics quality.";
@@ -1979,8 +2048,10 @@ void Bitmap::replaceRaw(void *pixel_data, int size)
     int h = height();
     int requiredsize = w*h*4;
     
-    if (size != w*h*4)
-        throw Exception(Exception::MKXPError, "Replacement bitmap data is not large enough (given %i bytes, need %i)", size, requiredsize);
+    if (size != w*h*4) {
+        exception = Exception(Exception::MKXPError, "Replacement bitmap data is not large enough (given %i bytes, need %i)", size, requiredsize);
+        return;
+    }
     
 #if defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
     pixel_data = (uint8_t *)pixel_data - size;
@@ -1998,9 +2069,9 @@ void Bitmap::replaceRaw(void *pixel_data, int size)
     p->onModified();
 }
 
-void Bitmap::saveToFile(const char *filename)
+void Bitmap::saveToFile(Exception &exception, const char *filename)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
     if (hasHires()) {
         Debug() << "GAME BUG: Game is calling saveToFile on low-res Bitmap; you may want to patch the game to improve graphics quality.";
@@ -2016,9 +2087,9 @@ void Bitmap::saveToFile(const char *filename)
         surf = SDL_CreateRGBSurface(0, width(), height(),p->format->BitsPerPixel, p->format->Rmask,p->format->Gmask,p->format->Bmask,p->format->Amask);
         
         if (!surf)
-            throw Exception(Exception::SDLError, "Failed to prepare bitmap for saving: %s", SDL_GetError());
+            MKXPZ_THROW(std::bad_alloc());
         
-        getRaw(surf->pixels, surf->w * surf->h * 4);
+        GUARD(getRaw(exception, surf->pixels, surf->w * surf->h * 4));
 #endif // MKXPZ_RETRO
     }
     
@@ -2058,26 +2129,30 @@ void Bitmap::saveToFile(const char *filename)
     if (!p->surface && !p->megaSurface)
         SDL_FreeSurface(surf);
     
-    if (rc) throw Exception(Exception::SDLError, "%s", SDL_GetError());
+    if (rc) {
+        exception = Exception(Exception::SDLError, "%s", SDL_GetError());
+        return;
+    }
 #endif // MKXPZ_RETRO
 }
 
-void Bitmap::hueChange(int hue)
+void Bitmap::hueChange(Exception &exception, int hue)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
-    GUARD_MEGA;
-    GUARD_ANIMATED;
+    GUARD_MEGA();
+    GUARD_ANIMATED();
     
     if (hasHires()) {
-        p->selfHires->hueChange(hue);
+        GUARD(p->selfHires->hueChange(exception, hue));
         return;
     }
 
     if ((hue % 360) == 0)
         return;
     
-    TEXFBO newTex = shState->texPool().request(width(), height());
+    TEXFBO newTex;
+    GUARD(newTex = shState->texPool().request(exception, width(), height()));
     
     FloatRect texRect(rect());
     
@@ -2106,11 +2181,12 @@ void Bitmap::hueChange(int hue)
     p->onModified();
 }
 
-void Bitmap::drawText(int x, int y,
+void Bitmap::drawText(Exception &exception,
+                      int x, int y,
                       int width, int height,
                       const char *str, int align)
 {
-    drawText(IntRect(x, y, width, height), str, align);
+    GUARD(drawText(exception, IntRect(x, y, width, height), str, align));
 }
 
 static std::string fixupString(const char *str)
@@ -2137,7 +2213,7 @@ static void applyShadow(SDL_Surface *&in, const SDL_PixelFormat &fm, const SDL_C
 #ifdef MKXPZ_RETRO
     SDL_Surface *out = new SDL_Surface {.w = in->w+1, .h = in->h+1, .pixels = STBI_MALLOC(4 * (in->w+1) * (in->h+1))};
     if (out->pixels == nullptr) {
-        throw std::bad_alloc();
+        MKXPZ_THROW(std::bad_alloc());
     }
     const int inPitch = in->w;
     const int outPitch = out->w;
@@ -2369,9 +2445,10 @@ private:
 };
 
 #ifdef MKXPZ_RETRO
-IntRect Bitmap::textRect(const char *str, bool solid)
+IntRect Bitmap::textRect(Exception &exception, const char *str, bool solid)
 {
-    FT_Face font = p->font->getSdlFont();
+    FT_Face font;
+    GUARD_V(IntRect(), font = p->font->getSdlFont(exception));
 
     // TODO: handle kerning
     int bitmap_left = 0;
@@ -2426,11 +2503,12 @@ IntRect Bitmap::textRect(const char *str, bool solid)
     return IntRect(bitmap_left, bitmap_top, bitmap_right - bitmap_left, bitmap_bottom - bitmap_top);
 }
 
-SDL_Surface *Bitmap::drawTextInner(FT_Face font, const char *str, SDL_Color &c, size_t outline)
+SDL_Surface *Bitmap::drawTextInner(Exception &exception, FT_Face font, const char *str, SDL_Color &c, size_t outline)
 {
     // TODO: handle kerning
     const bool solid = p->font->isSolid();
-    IntRect bitmapRect = textRect(str, solid);
+    IntRect bitmapRect;
+    GUARD_V(nullptr, bitmapRect = textRect(exception, str, solid));
     bitmapRect.x -= outline;
     bitmapRect.y -= outline;
     bitmapRect.w += 2 * outline;
@@ -2438,7 +2516,7 @@ SDL_Surface *Bitmap::drawTextInner(FT_Face font, const char *str, SDL_Color &c, 
 
     SDL_Surface *txtSurf = new SDL_Surface;
     if ((txtSurf->pixels = STBI_MALLOC(4 * bitmapRect.w * bitmapRect.h)) == nullptr)
-        throw std::bad_alloc();
+        MKXPZ_THROW(std::bad_alloc());
     txtSurf->w = bitmapRect.w;
     txtSurf->h = bitmapRect.h;
     std::memset(txtSurf->pixels, 0, 4 * bitmapRect.w * bitmapRect.h);
@@ -2553,18 +2631,21 @@ SDL_Surface *Bitmap::drawTextInner(FT_Face font, const char *str, SDL_Color &c, 
 }
 #endif // MKXPZ_RETRO
 
-void Bitmap::drawText(const IntRect &rect, const char *str, int align)
+void Bitmap::drawText(Exception &exception, const IntRect &rect, const char *str, int align)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
-    GUARD_MEGA;
-    GUARD_ANIMATED;
+    GUARD_MEGA();
+    GUARD_ANIMATED();
     
     if (hasHires()) {
-        Font &loresFont = getFont();
-        Font &hiresFont = p->selfHires->getFont();
+        Font *_loresFont, *_hiresFont;
+        GUARD(_loresFont = &getFont(exception));
+        GUARD(_hiresFont = &p->selfHires->getFont(exception));
+        Font &loresFont = *_loresFont;
+        Font &hiresFont = *_hiresFont;
         // Disable the illegal font size check when creating a high-res font.
-        hiresFont.setSize(loresFont.getSize() * p->selfHires->width() / width(), false);
+        hiresFont.setSizeNoCheck(loresFont.getSize() * p->selfHires->width() / width());
         hiresFont.setBold(loresFont.getBold());
         hiresFont.setColor(loresFont.getColor());
         hiresFont.setItalic(loresFont.getItalic());
@@ -2577,7 +2658,7 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
         int rectWidth = rect.w * p->selfHires->width() / width();
         int rectHeight = rect.h * p->selfHires->height() / height();
 
-        p->selfHires->drawText(IntRect(rectX, rectY, rectWidth, rectHeight), str, align);
+        GUARD(p->selfHires->drawText(exception, IntRect(rectX, rectY, rectWidth, rectHeight), str, align));
 
         return;
     }
@@ -2592,9 +2673,11 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
         return;
     
 #ifdef MKXPZ_RETRO
-    FT_Face font = p->font->getSdlFont();
+    FT_Face font;
+    GUARD(font = p->font->getSdlFont(exception));
 #else
-    TTF_Font *font = p->font->getSdlFont();
+    TTF_Font *font;
+    GUARD(font = p->font->getSdlFont(exception));
 #endif // MKXPZ_RETRO
     const Color &fontColor = p->font->getColor();
     const Color &outColor = p->font->getOutColor();
@@ -2605,7 +2688,7 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
     SDL_Surface *txtSurf;
     
 #ifdef MKXPZ_RETRO
-    txtSurf = drawTextInner(font, str, c, 0);
+    GUARD(txtSurf = drawTextInner(exception, font, str, c, 0));
 #else
     if (p->font->isSolid())
         txtSurf = TTF_RenderUTF8_Solid(font, str, c);
@@ -2637,7 +2720,13 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
             scaledOutlineSize = scaledOutlineSize * width() / p->selfLores->width();
         }
 #ifdef MKXPZ_RETRO
-        outline = drawTextInner(font, str, co, scaledOutlineSize);
+        outline = drawTextInner(exception, font, str, co, scaledOutlineSize);
+        if (exception.is_error())
+        {
+            stbi_image_free(txtSurf->pixels);
+            delete txtSurf;
+            return;
+        }
         for (size_t y = 0; y < txtSurf->h; ++y)
         {
             for (size_t x = 0; x < txtSurf->w; ++x)
@@ -2713,9 +2802,12 @@ void Bitmap::drawText(const IntRect &rect, const char *str, int align)
     sourceRect.w = destRect.w / squeeze;
     sourceRect.h = destRect.h;
     
-    Bitmap txtBitmap(txtSurf, nullptr, true);
+    Bitmap txtBitmap(exception, txtSurf, nullptr, true);
+    if (exception.is_error()) {
+        return;
+    }
     bool smooth = squeeze != 1.0f;
-    stretchBlt(destRect, txtBitmap, sourceRect, fontColor.alpha, smooth);
+    GUARD(stretchBlt(exception, destRect, txtBitmap, sourceRect, fontColor.alpha, smooth));
 }
 
 /* http://www.lemoda.net/c/utf8-to-ucs2/index.html */
@@ -2762,12 +2854,12 @@ static uint16_t utf8_to_ucs2(const char *_input,
     return -1;
 }
 
-IntRect Bitmap::textSize(const char *str)
+IntRect Bitmap::textSize(Exception &exception, const char *str)
 {
-    guardDisposed();
+    GUARD_V(IntRect(), guardDisposed(exception));
     
-    GUARD_MEGA;
-    GUARD_ANIMATED;
+    GUARD_MEGA(IntRect());
+    GUARD_ANIMATED(IntRect());
     
     // TODO: High-res Bitmap textSize not implemented, but I think it's the same as low-res?
     // Need to double-check this.
@@ -2776,10 +2868,12 @@ IntRect Bitmap::textSize(const char *str)
     str = fixed.c_str();
 
 #ifdef MKXPZ_RETRO
-    IntRect rect = textRect(str, p->font->isSolid());
+    IntRect rect;
+    GUARD_V(IntRect(), rect = textRect(exception, str, p->font->isSolid()));
     return IntRect(0, 0, rect.w, rect.h);
 #else
-    TTF_Font *font = p->font->getSdlFont();
+    TTF_Font *font;
+    GUARD_V(IntRect(), font = p->font->getSdlFont(exception));
     
     int w, h;
     TTF_SizeUTF8(font, str, &w, &h);
@@ -2799,8 +2893,10 @@ IntRect Bitmap::textSize(const char *str)
 
 DEF_ATTR_RD_SIMPLE(Bitmap, Font, Font&, *p->font)
 
-void Bitmap::setFont(Font &value)
+void Bitmap::setFont(Exception &exception, Font &value)
 {
+    GUARD(guardDisposed(exception));
+
     // High-res support handled in drawText, not here.
     *p->font = value;
 }
@@ -2813,7 +2909,7 @@ void Bitmap::setInitFont(Font *value)
         if (hiresFont && hiresFont != &shState->defaultFont())
         {
             // Disable the illegal font size check when creating a high-res font.
-            hiresFont->setSize(hiresFont->getSize() * p->selfHires->width() / width(), false);
+            hiresFont->setSizeNoCheck(hiresFont->getSize() * p->selfHires->width() / width());
         }
     }
 #endif // MKXPZ_RETRO
@@ -2849,35 +2945,35 @@ SDL_Surface *Bitmap::megaSurface() const
     return p->megaSurface;
 }
 
-void Bitmap::ensureNonMega() const
+void Bitmap::ensureNonMega(Exception &exception) const
 {
     if (isDisposed())
         return;
     
-    GUARD_MEGA;
+    GUARD_MEGA();
 }
 
-void Bitmap::ensureNonAnimated() const
+void Bitmap::ensureNonAnimated(Exception &exception) const
 {
     if (isDisposed())
         return;
     
-    GUARD_ANIMATED;
+    GUARD_ANIMATED();
 }
 
-void Bitmap::ensureAnimated() const
+void Bitmap::ensureAnimated(Exception &exception) const
 {
     if (isDisposed())
         return;
     
-    GUARD_UNANIMATED;
+    GUARD_UNANIMATED();
 }
 
-void Bitmap::stop()
+void Bitmap::stop(Exception &exception)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
-    GUARD_UNANIMATED;
+    GUARD_UNANIMATED();
     if (!p->animation.playing) return;
     
     if (hasHires()) {
@@ -2887,11 +2983,11 @@ void Bitmap::stop()
     p->animation.stop();
 }
 
-void Bitmap::play()
+void Bitmap::play(Exception &exception)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
-    GUARD_UNANIMATED;
+    GUARD_UNANIMATED();
     if (p->animation.playing) return;
 
     if (hasHires()) {
@@ -2901,9 +2997,9 @@ void Bitmap::play()
     p->animation.play();
 }
 
-bool Bitmap::isPlaying() const
+bool Bitmap::isPlaying(Exception &exception) const
 {
-    guardDisposed();
+    GUARD_V(false, guardDisposed(exception));
     
     if (hasHires()) {
         Debug() << "BUG: High-res Bitmap isPlaying not implemented";
@@ -2918,24 +3014,26 @@ bool Bitmap::isPlaying() const
     return p->animation.currentFrameIRaw() < p->animation.frames.size();
 }
 
-bool Bitmap::getPlaying() const
+bool Bitmap::getPlaying(Exception &exception) const
 {
-    return isPlaying();
+    bool ret;
+    GUARD_V(false, ret = isPlaying(exception));
+    return ret;
 }
 
-void Bitmap::setPlaying(bool playing)
+void Bitmap::setPlaying(Exception &exception, bool playing)
 {
     if (playing)
-        play();
+        GUARD(play(exception));
     else
-        stop();
+        GUARD(stop(exception));
 }
 
-void Bitmap::gotoAndStop(int frame)
+void Bitmap::gotoAndStop(Exception &exception, int frame)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
-    GUARD_UNANIMATED;
+    GUARD_UNANIMATED();
     
     if (hasHires()) {
         Debug() << "BUG: High-res Bitmap gotoAndStop not implemented";
@@ -2944,11 +3042,11 @@ void Bitmap::gotoAndStop(int frame)
     p->animation.stop();
     p->animation.seek(frame);
 }
-void Bitmap::gotoAndPlay(int frame)
+void Bitmap::gotoAndPlay(Exception &exception, int frame)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
-    GUARD_UNANIMATED;
+    GUARD_UNANIMATED();
     
     if (hasHires()) {
         Debug() << "BUG: High-res Bitmap gotoAndPlay not implemented";
@@ -2959,9 +3057,9 @@ void Bitmap::gotoAndPlay(int frame)
     p->animation.play();
 }
 
-int Bitmap::numFrames() const
+int Bitmap::numFrames(Exception &exception) const
 {
-    guardDisposed();
+    GUARD_V(0, guardDisposed(exception));
     
     if (hasHires()) {
         Debug() << "BUG: High-res Bitmap numFrames not implemented";
@@ -2971,9 +3069,9 @@ int Bitmap::numFrames() const
     return (int)p->animation.frames.size();
 }
 
-int Bitmap::currentFrameI() const
+int Bitmap::currentFrameI(Exception &exception) const
 {
-    guardDisposed();
+    GUARD_V(0, guardDisposed(exception));
     
     if (hasHires()) {
         Debug() << "BUG: High-res Bitmap currentFrameI not implemented";
@@ -2983,12 +3081,12 @@ int Bitmap::currentFrameI() const
     return p->animation.currentFrameI();
 }
 
-int Bitmap::addFrame(Bitmap &source, int position)
+int Bitmap::addFrame(Exception &exception, Bitmap &source, int position)
 {
-    guardDisposed();
-    source.guardDisposed();
+    GUARD_V(0, guardDisposed(exception));
+    GUARD_V(0, source.guardDisposed(exception));
     
-    GUARD_MEGA;
+    GUARD_MEGA(0);
     
     if (hasHires()) {
         Debug() << "BUG: High-res Bitmap addFrame dest not implemented";
@@ -2998,11 +3096,14 @@ int Bitmap::addFrame(Bitmap &source, int position)
         Debug() << "BUG: High-res Bitmap addFrame source not implemented";
     }
 
-    if (source.height() != height() || source.width() != width())
-        throw Exception(Exception::MKXPError, "Animations with varying dimensions are not supported (%ix%i vs %ix%i)",
-                        source.width(), source.height(), width(), height());
+    if (source.height() != height() || source.width() != width()) {
+        exception = Exception(Exception::MKXPError, "Animations with varying dimensions are not supported (%ix%i vs %ix%i)",
+                              source.width(), source.height(), width(), height());
+        return 0;
+    }
     
-    TEXFBO newframe = shState->texPool().request(source.width(), source.height());
+    TEXFBO newframe;
+    GUARD_V(0, newframe = shState->texPool().request(exception, source.width(), source.height()));
     
     // Convert the bitmap into an animated bitmap if it isn't already one
     if (!p->animation.enabled) {
@@ -3062,10 +3163,10 @@ int Bitmap::addFrame(Bitmap &source, int position)
     return ret;
 }
 
-void Bitmap::removeFrame(int position) {
-    guardDisposed();
+void Bitmap::removeFrame(Exception &exception, int position) {
+    GUARD(guardDisposed(exception));
     
-    GUARD_UNANIMATED;
+    GUARD_UNANIMATED();
     
     if (hasHires()) {
         Debug() << "BUG: High-res Bitmap removeFrame not implemented";
@@ -3092,17 +3193,17 @@ void Bitmap::removeFrame(int position) {
     }
 }
 
-void Bitmap::nextFrame()
+void Bitmap::nextFrame(Exception &exception)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
-    GUARD_UNANIMATED;
+    GUARD_UNANIMATED();
     
     if (hasHires()) {
         Debug() << "BUG: High-res Bitmap nextFrame not implemented";
     }
 
-    stop();
+    GUARD(stop(exception));
     if ((uint32_t)p->animation.lastFrame >= p->animation.frames.size() - 1)  {
         if (!p->animation.loop) return;
         p->animation.lastFrame = 0;
@@ -3112,17 +3213,17 @@ void Bitmap::nextFrame()
     p->animation.lastFrame++;
 }
 
-void Bitmap::previousFrame()
+void Bitmap::previousFrame(Exception &exception)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
-    GUARD_UNANIMATED;
+    GUARD_UNANIMATED();
     
     if (hasHires()) {
         Debug() << "BUG: High-res Bitmap previousFrame not implemented";
     }
 
-    stop();
+    GUARD(stop(exception));
     if (p->animation.lastFrame <= 0) {
         if (!p->animation.loop) {
             p->animation.lastFrame = 0;
@@ -3135,11 +3236,11 @@ void Bitmap::previousFrame()
     p->animation.lastFrame--;
 }
 
-void Bitmap::setAnimationFPS(float FPS)
+void Bitmap::setAnimationFPS(Exception &exception, float FPS)
 {
-    guardDisposed();
+    GUARD(guardDisposed(exception));
     
-    GUARD_MEGA;
+    GUARD_MEGA();
     
     if (hasHires()) {
         Debug() << "BUG: High-res Bitmap setAnimationFPS not implemented";
@@ -3160,12 +3261,8 @@ std::vector<TEXFBO> &Bitmap::getFrames() const
     return p->animation.frames;
 }
 
-float Bitmap::getAnimationFPS() const
+float Bitmap::animationFPS() const
 {
-    guardDisposed();
-    
-    GUARD_MEGA;
-    
     if (hasHires()) {
         Debug() << "BUG: High-res Bitmap getAnimationFPS not implemented";
     }
@@ -3173,11 +3270,20 @@ float Bitmap::getAnimationFPS() const
     return p->animation.fps;
 }
 
-void Bitmap::setLooping(bool loop)
+float Bitmap::getAnimationFPS(Exception &exception) const
 {
-    guardDisposed();
+    GUARD_V(0.0f, guardDisposed(exception));
     
-    GUARD_MEGA;
+    GUARD_MEGA(0.0f);
+    
+    return animationFPS();
+}
+
+void Bitmap::setLooping(Exception &exception, bool loop)
+{
+    GUARD(guardDisposed(exception));
+    
+    GUARD_MEGA();
     
     if (hasHires()) {
         Debug() << "BUG: High-res Bitmap setLooping not implemented";
@@ -3186,17 +3292,22 @@ void Bitmap::setLooping(bool loop)
     p->animation.loop = loop;
 }
 
-bool Bitmap::getLooping() const
+bool Bitmap::looping() const
 {
-    guardDisposed();
-    
-    GUARD_MEGA;
-    
     if (hasHires()) {
         Debug() << "BUG: High-res Bitmap getLooping not implemented";
     }
 
     return p->animation.loop;
+}
+
+bool Bitmap::getLooping(Exception &exception) const
+{
+    GUARD_V(false, guardDisposed(exception));
+    
+    GUARD_MEGA(false);
+    
+    return looping();
 }
 
 void Bitmap::bindTex(ShaderBase &shader, bool substituteLoresSize)
