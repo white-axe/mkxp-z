@@ -27,6 +27,10 @@
 namespace mkxp_sandbox {
     extern VALUE graphics_module;
 
+    struct graphics_reset : boost::asio::coroutine {
+        void operator()();
+    };
+
     struct graphics_binding_init : boost::asio::coroutine {
         void operator()();
     };

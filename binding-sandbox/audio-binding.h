@@ -27,6 +27,10 @@
 namespace mkxp_sandbox {
     extern VALUE audio_module;
 
+    struct audio_reset : boost::asio::coroutine {
+        void operator()();
+    };
+
     struct audio_binding_init : boost::asio::coroutine {
         void operator()();
     };

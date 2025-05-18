@@ -148,6 +148,16 @@ struct run_rmxp_scripts : boost::asio::coroutine {
                     SANDBOX_AWAIT_S(10, rb_ary_entry, SANDBOX_SLOT(4), 1);
                     SANDBOX_AWAIT(eval_script, SANDBOX_SLOT(9), SANDBOX_SLOT(10));
                 }
+
+                // Stop unless a reset was requested
+                SANDBOX_AWAIT_S(0, rb_gv_get, "$!");
+                SANDBOX_AWAIT_S(0, rb_obj_class, SANDBOX_SLOT(0));
+                if (SANDBOX_SLOT(0) != reset_class) {
+                    break;
+                }
+
+                SANDBOX_AWAIT(audio_reset);
+                SANDBOX_AWAIT(graphics_reset);
             }
         }
     }
@@ -203,11 +213,22 @@ static VALUE rgss_main(VALUE self) {
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, rb_block_proc);
-                SANDBOX_AWAIT_S(1, rb_rescue2, func, SANDBOX_SLOT(0), rescue, SANDBOX_NIL, sb()->rb_eException(), 0);
-                if (SANDBOX_SLOT(1) != SANDBOX_UNDEF) {
-                    // TODO: handle reset
-                    SANDBOX_AWAIT(rb_exc_raise, SANDBOX_SLOT(1));
+                while (true) {
+                    SANDBOX_AWAIT_S(0, rb_block_proc);
+                    SANDBOX_AWAIT_S(1, rb_rescue2, func, SANDBOX_SLOT(0), rescue, SANDBOX_NIL, sb()->rb_eException(), 0);
+
+                    if (SANDBOX_SLOT(1) == SANDBOX_UNDEF) {
+                        return SANDBOX_NIL;
+                    }
+
+                    SANDBOX_AWAIT_S(0, rb_gv_get, "$!");
+                    SANDBOX_AWAIT_S(0, rb_obj_class, SANDBOX_SLOT(0));
+                    if (SANDBOX_SLOT(0) == reset_class) {
+                        SANDBOX_AWAIT(audio_reset);
+                        SANDBOX_AWAIT(graphics_reset);
+                    } else {
+                        SANDBOX_AWAIT(rb_exc_raise, SANDBOX_SLOT(1));
+                    }
                 }
             }
 
@@ -220,10 +241,15 @@ static VALUE rgss_main(VALUE self) {
 
 static VALUE rgss_stop(VALUE self) {
     struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE> slots;
+
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 while (true) {
-                    SANDBOX_YIELD;
+                    SANDBOX_GUARD_L(SANDBOX_SLOT(0) = shState->graphics().update(sb().e));
+                    if (SANDBOX_SLOT(0)) {
+                        SANDBOX_YIELD;
+                    }
                 }
             }
 

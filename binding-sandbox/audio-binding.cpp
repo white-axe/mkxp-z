@@ -26,6 +26,12 @@ using namespace mkxp_sandbox;
 
 VALUE mkxp_sandbox::audio_module;
 
+void audio_reset::operator()() {
+    BOOST_ASIO_CORO_REENTER (this) {
+        mkxp_retro::audio->reset();
+    }
+}
+
 static VALUE bgm_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
         typedef decl_slots<double, wasm_ptr_t, int32_t, int32_t, int32_t, uint8_t> slots;
@@ -320,11 +326,6 @@ static VALUE setup_midi(VALUE self) {
     return SANDBOX_NIL;
 }
 
-static VALUE reset(VALUE self) {
-    mkxp_retro::audio->reset();
-    return SANDBOX_NIL;
-}
-
 void audio_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
         SANDBOX_AWAIT_R(audio_module, rb_define_module, "Audio");
@@ -344,6 +345,5 @@ void audio_binding_init::operator()() {
         SANDBOX_AWAIT(rb_define_module_function, audio_module, "se_play", (VALUE (*)(ANYARGS))se_play, -1);
         SANDBOX_AWAIT(rb_define_module_function, audio_module, "se_stop", (VALUE (*)(ANYARGS))se_stop, 0);
         SANDBOX_AWAIT(rb_define_module_function, audio_module, "setup_midi", (VALUE (*)(ANYARGS))setup_midi, 0);
-        SANDBOX_AWAIT(rb_define_module_function, audio_module, "__reset__", (VALUE (*)(ANYARGS))reset, 0);
     }
 }

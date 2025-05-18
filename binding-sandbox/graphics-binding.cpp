@@ -29,6 +29,12 @@ using namespace mkxp_sandbox;
 
 VALUE mkxp_sandbox::graphics_module;
 
+void graphics_reset::operator()() {
+    BOOST_ASIO_CORO_REENTER (this) {
+        SANDBOX_GUARD_L(shState->graphics().reset(sb().e));
+    }
+}
+
 static VALUE delta(VALUE self) {
     struct coro : boost::asio::coroutine {
         typedef decl_slots<VALUE> slots;
@@ -158,20 +164,6 @@ static VALUE screenshot(VALUE self, VALUE value) {
     };
 
     return sb()->bind<struct coro>()()(self, value);
-}
-
-static VALUE reset(VALUE self) {
-    struct coro : boost::asio::coroutine {
-        VALUE operator()(VALUE self) {
-            BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_GUARD_L(shState->graphics().reset(sb().e));
-            }
-
-            return SANDBOX_NIL;
-        }
-    };
-
-    return sb()->bind<struct coro>()()(self);
 }
 
 SANDBOX_DEF_GRA_PROP_I(FrameCount, frame_count);
@@ -405,8 +397,6 @@ void graphics_binding_init::operator()() {
         SANDBOX_AWAIT(rb_define_module_function, graphics_module, "transition", (VALUE (*)(ANYARGS))transition, -1);
         SANDBOX_AWAIT(rb_define_module_function, graphics_module, "frame_reset", (VALUE (*)(ANYARGS))frame_reset, 0);
         SANDBOX_AWAIT(rb_define_module_function, graphics_module, "screenshot", (VALUE (*)(ANYARGS))screenshot, 1);
-
-        SANDBOX_AWAIT(rb_define_module_function, graphics_module, "__reset__", (VALUE (*)(ANYARGS))reset, 0);
 
         SANDBOX_INIT_MODULE_PROP_BIND(graphics_module, frame_count);
         SANDBOX_INIT_MODULE_PROP_BIND(graphics_module, frame_rate);
