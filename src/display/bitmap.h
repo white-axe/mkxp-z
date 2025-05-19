@@ -44,13 +44,13 @@ class Bitmap : public Disposable
 {
 	friend struct BitmapPrivate;
 	friend struct PlanePrivate;
-	friend struct Sprite;
+	friend class Sprite;
 	friend struct SpritePrivate;
 	friend struct TilemapPrivate;
 	friend struct TilemapVXPrivate;
-	friend struct Window;
+	friend class Window;
 	friend struct WindowPrivate;
-	friend struct WindowVX;
+	friend class WindowVX;
 	friend struct WindowVXPrivate;
 
 public:
