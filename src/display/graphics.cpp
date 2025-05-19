@@ -397,6 +397,12 @@ struct Movie
     ~Movie()
     {
         if (hasAudio) {
+            audioThreadTermReq.set();
+            if(audioThread) {
+                SDL_WaitThread(audioThread, 0);
+                audioThread = 0;
+            }
+
             if (audioQueueTail) {
                 THEORAPLAY_freeAudio(audioQueueTail->audio);
             }
@@ -407,11 +413,6 @@ struct Movie
             }
             audioQueueHead = NULL;
             SDL_DestroyMutex(audioMutex);
-            audioThreadTermReq.set();
-            if(audioThread) {
-                SDL_WaitThread(audioThread, 0);
-                audioThread = 0;
-            }
             alSourceStop(audioSource);
             alDeleteSources(1, &audioSource);
             alDeleteBuffers(STREAM_BUFS, alBuffers);
