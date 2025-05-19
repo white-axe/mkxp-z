@@ -467,11 +467,11 @@ namespace mkxp_sandbox {
     _SANDBOX_DEF_TYPENUM(4, Plane);
     _SANDBOX_DEF_TYPENUM(5, Rect);
     _SANDBOX_DEF_TYPENUM(6, Sprite);
-    _SANDBOX_DEF_TYPENUM(7, Tilemap);
-    _SANDBOX_DEF_TYPENUM(8, Tilemap::Autotiles);
-    _SANDBOX_DEF_TYPENUM(9, TilemapVX);
-    _SANDBOX_DEF_TYPENUM(10, TilemapVX::BitmapArray);
-    _SANDBOX_DEF_TYPENUM(11, Table);
+    _SANDBOX_DEF_TYPENUM(7, Table);
+    _SANDBOX_DEF_TYPENUM(8, Tilemap);
+    _SANDBOX_DEF_TYPENUM(9, Tilemap::Autotiles);
+    _SANDBOX_DEF_TYPENUM(10, TilemapVX);
+    _SANDBOX_DEF_TYPENUM(11, TilemapVX::BitmapArray);
     _SANDBOX_DEF_TYPENUM(12, Tone);
     _SANDBOX_DEF_TYPENUM(13, Viewport);
     _SANDBOX_DEF_TYPENUM(14, Window);
