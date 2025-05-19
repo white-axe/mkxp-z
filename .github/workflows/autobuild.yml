@@ -412,7 +412,7 @@ jobs:
           cd build
           CLICOLOR_FORCE=1 ninja -v
           strip mkxp-z_libretro.dll
-          mv mkxp-z_libretro.dll "$runner_temp"/dist
+          mv mkxp-z_libretro.dll "$runner_temp"/dist/mkxp-z_libretro.dll
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -568,7 +568,7 @@ jobs:
           cd build
           CLICOLOR_FORCE=1 ninja -v
           llvm-strip mkxp-z_libretro.so
-          mv mkxp-z_libretro.so ${{ runner.temp }}/dist
+          mv mkxp-z_libretro.so ${{ runner.temp }}/dist/mkxp-z_libretro.so
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -716,7 +716,7 @@ jobs:
           cd build
           CLICOLOR_FORCE=1 ninja -v
           llvm-strip mkxp-z_libretro.so
-          mv mkxp-z_libretro.so ${{ runner.temp }}/dist
+          mv mkxp-z_libretro.so ${{ runner.temp }}/dist/mkxp-z_libretro.so
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -807,7 +807,7 @@ jobs:
           cd build
           CLICOLOR_FORCE=1 ninja -v
           llvm-strip mkxp-z_libretro.so
-          mv mkxp-z_libretro.so ${{ runner.temp }}/dist
+          mv mkxp-z_libretro.so ${{ runner.temp }}/dist/mkxp-z_libretro_android.so
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -826,6 +826,7 @@ jobs:
           - system_name: macOS
             system_mkxpz: macos
             sdk: macosx
+            suffix: ""
             arch_mkxpz: arm64
             arch_llvm: arm64
             cpu_family: aarch64
@@ -834,6 +835,7 @@ jobs:
           - system_name: macOS
             system_mkxpz: macos
             sdk: macosx
+            suffix: ""
             arch_mkxpz: x86_64
             arch_llvm: x86_64
             cpu_family: x86_64
@@ -842,6 +844,7 @@ jobs:
           - system_name: iOS
             system_mkxpz: ios
             sdk: iphoneos
+            suffix: _ios
             arch_mkxpz: arm64
             arch_llvm: arm64
             cpu_family: aarch64
@@ -850,6 +853,7 @@ jobs:
           - system_name: tvOS
             system_mkxpz: tvos
             sdk: appletvos
+            suffix: _tvos
             arch_mkxpz: arm64
             arch_llvm: arm64
             cpu_family: aarch64
@@ -898,7 +902,7 @@ jobs:
           cd build
           CLICOLOR_FORCE=1 ninja -v
           strip -x mkxp-z_libretro.dylib
-          mv mkxp-z_libretro.dylib ${{ runner.temp }}/dist
+          mv mkxp-z_libretro.dylib ${{ runner.temp }}/dist/mkxp-z_libretro${{ matrix.suffix }}.dylib
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -983,9 +987,8 @@ jobs:
             flags='HAVE_THREADS=0 PROXY_TO_PTHREAD=0 HAVE_AL=1 HAVE_AUDIOWORKLET=0 HAVE_WASMFS=0 HAVE_EXTRA_WASMFS=0'
           fi
           CLICOLOR_FORCE=1 emmake make -f Makefile.emscripten LIBRETRO=mkxp-z $flags
-          mv mkxp-z_libretro.wasm ${{ runner.temp }}/dist
-          mv mkxp-z_libretro.js ${{ runner.temp }}/dist
-          mv mkxp-z_libretro.worker.js ${{ runner.temp }}/dist || true
+          mv mkxp-z_libretro.wasm ${{ runner.temp }}/dist/mkxp-z_libretro.wasm
+          mv mkxp-z_libretro.js ${{ runner.temp }}/dist/mkxp-z_libretro.js
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -1057,7 +1060,7 @@ jobs:
           mv mkxp-z_libretro.a retroarch/libretro_psl1ght.a
           cd retroarch
           CLICOLOR_FORCE=1 make -f Makefile.psl1ght LIBRETRO=mkxp-z
-          mv retroarch_psl1ght.self ~/dist/mkxp-z_libretro.self
+          mv retroarch_psl1ght.self ~/dist/mkxp-z_libretro_psl1ght.self
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -1202,7 +1205,7 @@ jobs:
           mv mkxp-z_libretro.a retroarch/libretro_vita.a
           cd retroarch
           CLICOLOR_FORCE=1 make -f Makefile.vita LIBRETRO=mkxp-z
-          mv retroarch_vita.self ~/dist/mkxp-z_libretro.self
+          mv retroarch_vita.self ~/dist/mkxp-z_libretro_vita.self
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -1369,7 +1372,7 @@ jobs:
           mv mkxp-z_libretro.a retroarch/libretro_libnx.a
           cd retroarch
           CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z
-          mv retroarch_switch.nro ~/dist/mkxp-z_libretro.nro
+          mv retroarch_switch.nro ~/dist/mkxp-z_libretro_libnx.nro
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
