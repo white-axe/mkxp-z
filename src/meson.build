@@ -33,6 +33,7 @@ if is_libretro
         subproject('boost_asio').get_variable('boost_asio'),
         subproject('boost_container_hash').get_variable('boost_container_hash'),
         subproject('boost_optional').get_variable('boost_optional'),
+        subproject('boost_preprocessor').get_variable('boost_preprocessor'),
         subproject('boost_type_traits').get_variable('boost_type_traits'),
     ]
 

@@ -196,6 +196,13 @@ namespace mkxp_sandbox {
 #endif
     }
 
+    struct typenum_table_entry {
+        void (*destructor)(void *);
+    };
+
+    extern const struct typenum_table_entry typenum_table[];
+    extern const wasm_size_t typenum_table_size;
+
     struct binding_base {
     private:
         typedef std::tuple<wasm_ptr_t, wasm_ptr_t, wasm_ptr_t> key_t;
@@ -223,16 +230,13 @@ namespace mkxp_sandbox {
             // Otherwise, this is a number corresponding to the type of the object.
             wasm_size_t typenum;
             // If this is a free object, the `next` field is the key of the next free object, or 0 if this is the last free object.
-            // Otherwise, `inner.ptr` is a pointer to the actual object and `inner.destructor` is a pointer to its destructor.
+            // Otherwise, the `ptr` field is a pointer to the actual object.
             union inner {
-                struct {
-                    void *ptr;
-                    void (*destructor)(void *);
-                } inner;
                 wasm_size_t next;
+                void *ptr;
             } inner;
 
-            object(wasm_size_t typenum, void *ptr, void (*destructor)(void *));
+            object(wasm_size_t typenum, void *ptr);
             object(const struct object &object) = delete;
             object(struct object &&object) noexcept;
             struct object &operator=(const struct object &object) = delete;
@@ -291,7 +295,7 @@ namespace mkxp_sandbox {
         }
 
         // Creates a new object and returns its key.
-        wasm_objkey_t create_object(wasm_size_t typenum, void *ptr, void (*destructor)(void *));
+        wasm_objkey_t create_object(wasm_size_t typenum, void *ptr);
 
         // Gets the object with the given key.
         void *get_object(wasm_objkey_t key);

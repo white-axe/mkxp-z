@@ -24,6 +24,8 @@
 
 #include <type_traits>
 #include <boost/optional.hpp>
+#include <boost/preprocessor/seq/for_each.hpp>
+#include <boost/preprocessor/seq/size.hpp>
 #include "core.h"
 #include "exception.h"
 #include "sandbox.h"
@@ -455,27 +457,36 @@
 #define SANDBOX_GUARD_LF(finalizer, ...) do { GFX_LOCK; SANDBOX_GUARD_F(finalizer; GFX_UNLOCK, __VA_ARGS__); GFX_UNLOCK; } while (0)
 #define SANDBOX_GUARD_L(...) SANDBOX_GUARD_LF(, __VA_ARGS__)
 
-#define _SANDBOX_DEF_TYPENUM(num, T) \
-    static_assert(num != 0, "typenum cannot be 0"); \
-    template <> struct get_typenum<T> { static constexpr wasm_size_t value = num; };
+#define SANDBOX_TYPENUM_TYPES \
+    (Bitmap) \
+    (Color) \
+    (Font) \
+    (Plane) \
+    (Rect) \
+    (Sprite) \
+    (Table) \
+    (Tilemap) \
+    (Tilemap::Autotiles) \
+    (TilemapVX) \
+    (TilemapVX::BitmapArray) \
+    (Tone) \
+    (Viewport) \
+    (Window) \
+    (WindowVX) \
+
+#define SANDBOX_NUM_TYPENUMS BOOST_PP_SEQ_SIZE(SANDBOX_TYPENUM_TYPES)
+
+#define _SANDBOX_DEF_GET_TYPENUM_DETAIL(T, num) template <> struct get_typenum<T> { \
+    static_assert(num != 0, "typenum should not be 0"); \
+    static_assert(num <= SANDBOX_NUM_TYPENUMS, "typenum should not be greater than the number of typenums"); \
+    static constexpr wasm_size_t value = num; \
+};
+#define _SANDBOX_DEF_GET_TYPENUM(_r, _data, T) _SANDBOX_DEF_GET_TYPENUM_DETAIL(T, __COUNTER__ - _get_typenum_counter_start)
 
 namespace mkxp_sandbox {
     template <typename T> struct get_typenum;
-    _SANDBOX_DEF_TYPENUM(1, Bitmap);
-    _SANDBOX_DEF_TYPENUM(2, Color);
-    _SANDBOX_DEF_TYPENUM(3, Font);
-    _SANDBOX_DEF_TYPENUM(4, Plane);
-    _SANDBOX_DEF_TYPENUM(5, Rect);
-    _SANDBOX_DEF_TYPENUM(6, Sprite);
-    _SANDBOX_DEF_TYPENUM(7, Table);
-    _SANDBOX_DEF_TYPENUM(8, Tilemap);
-    _SANDBOX_DEF_TYPENUM(9, Tilemap::Autotiles);
-    _SANDBOX_DEF_TYPENUM(10, TilemapVX);
-    _SANDBOX_DEF_TYPENUM(11, TilemapVX::BitmapArray);
-    _SANDBOX_DEF_TYPENUM(12, Tone);
-    _SANDBOX_DEF_TYPENUM(13, Viewport);
-    _SANDBOX_DEF_TYPENUM(14, Window);
-    _SANDBOX_DEF_TYPENUM(15, WindowVX);
+    static constexpr size_t _get_typenum_counter_start = __COUNTER__;
+    BOOST_PP_SEQ_FOR_EACH(_SANDBOX_DEF_GET_TYPENUM, _, SANDBOX_TYPENUM_TYPES);
 
     // We need these helper functions so that the arguments to `SANDBOX_AWAIT`/`SANDBOX_AWAIT_R`/`SANDBOX_AWAIT_S` are evaluated before `sb()->bind` is called instead of after.
     // The reverse happening can lead to incorrect behaviour if one or more of the arguments is using `SANDBOX_SLOT` or other macros that need the state of the sandbox.
@@ -495,15 +506,6 @@ namespace mkxp_sandbox {
         }
     }
 
-    template <typename T> typename std::enable_if<std::is_destructible<T>::value>::type _set_private_data_destructor(void *ptr) {
-        static_assert(!(std::is_same<T, Tilemap::Autotiles>::value || std::is_same<T, TilemapVX::BitmapArray>::value), "this type should not have a public destructor");
-        delete (T *)ptr;
-    }
-
-    template <typename T> typename std::enable_if<!std::is_destructible<T>::value>::type _set_private_data_destructor(void *ptr) {
-        static_assert(std::is_same<T, Tilemap::Autotiles>::value || std::is_same<T, TilemapVX::BitmapArray>::value, "this type should have a public destructor");
-    }
-
     // Given a Ruby object `val`, stores the C++ object `ptr` into the private data field of `val`.
     // You can set `ptr` to `nullptr` if you just want to destroy the current object in the private data field,
     // but note that calling `get_private_data` while the private data field is set to `nullptr` will trigger an abort.
@@ -521,7 +523,7 @@ namespace mkxp_sandbox {
             sb()->destroy_object(key);
         }
 
-        key = ptr == nullptr ? 0 : sb()->create_object(get_typenum<T>::value, ptr, _set_private_data_destructor<T>);
+        key = ptr == nullptr ? 0 : sb()->create_object(get_typenum<T>::value, ptr);
     }
 
     // Given a Ruby object `val`, retrieves the C++ object in its private data field.
@@ -586,7 +588,5 @@ namespace mkxp_sandbox {
         void operator()(Exception &exception);
     };
 }
-
-#undef _SANDBOX_DEF_TYPENUM
 
 #endif // MKXPZ_SANDBOX_BINDING_UTIL_H

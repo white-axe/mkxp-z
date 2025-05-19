@@ -198,7 +198,7 @@ void binding_base::strncpy(wasm_ptr_t dst_address, const char *src, wasm_size_t 
     sandbox_strncpy(instance(), dst_address, src, max_size);
 }
 
-binding_base::object::object(wasm_size_t typenum, void *ptr, void (*destructor)(void *)) : typenum(typenum), inner {.inner = {.ptr = ptr, .destructor = destructor}} {}
+binding_base::object::object(wasm_size_t typenum, void *ptr) : typenum(typenum), inner {.ptr = ptr} {}
 
 binding_base::object::object(struct object &&object) noexcept : typenum(std::exchange(object.typenum, 0)), inner(std::exchange(object.inner, (union binding_base::object::inner){.next = 0})) {}
 
@@ -210,16 +210,16 @@ struct binding_base::object &binding_base::object::operator=(struct object &&obj
 
 binding_base::object::~object() {
     if (typenum != 0) {
-        inner.inner.destructor(inner.inner.ptr);
+        typenum_table[typenum - 1].destructor(inner.ptr);
     }
 }
 
-wasm_objkey_t binding_base::create_object(wasm_size_t typenum, void *ptr, void (*destructor)(void *)) {
-    if (typenum == 0 || ptr == nullptr || destructor == nullptr) {
+wasm_objkey_t binding_base::create_object(wasm_size_t typenum, void *ptr) {
+    if (ptr == nullptr || typenum == 0 || typenum > typenum_table_size) {
         std::abort();
     }
     if (next_free_objkey == 0) {
-        objects.emplace_back(typenum, ptr, destructor);
+        objects.emplace_back(typenum, ptr);
         if ((size_t)(wasm_objkey_t)objects.size() < objects.size()) {
             MKXPZ_THROW(std::bad_alloc());
         }
@@ -230,8 +230,7 @@ wasm_objkey_t binding_base::create_object(wasm_size_t typenum, void *ptr, void (
         assert(object.typenum == 0);
         next_free_objkey = object.inner.next;
         object.typenum = typenum;
-        object.inner.inner.ptr = ptr;
-        object.inner.inner.destructor = destructor;
+        object.inner.ptr = ptr;
         return key;
     }
 }
@@ -241,10 +240,10 @@ void *binding_base::get_object(wasm_objkey_t key) {
         std::abort();
     }
     struct object &object = objects[key - 1];
-    if (object.typenum == 0) {
+    if (object.typenum == 0 || object.typenum > typenum_table_size) {
         std::abort();
     }
-    return object.inner.inner.ptr;
+    return object.inner.ptr;
 }
 
 bool binding_base::check_object_type(wasm_objkey_t key, wasm_size_t typenum) {
@@ -252,7 +251,7 @@ bool binding_base::check_object_type(wasm_objkey_t key, wasm_size_t typenum) {
         std::abort();
     }
     struct object &object = objects[key - 1];
-    if (object.typenum == 0) {
+    if (object.typenum == 0 || object.typenum > typenum_table_size) {
         std::abort();
     }
     return object.typenum == typenum;
@@ -263,11 +262,11 @@ void binding_base::destroy_object(wasm_objkey_t key) {
         std::abort();
     }
     struct object &object = objects[key - 1];
-    if (object.typenum == 0) {
+    if (object.typenum == 0 || object.typenum > typenum_table_size) {
         std::abort();
     }
+    typenum_table[object.typenum - 1].destructor(object.inner.ptr);
     object.typenum = 0;
-    object.inner.inner.destructor(object.inner.inner.ptr);
     object.inner.next = next_free_objkey;
     next_free_objkey = key;
 }
