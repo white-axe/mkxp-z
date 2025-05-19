@@ -224,7 +224,7 @@ namespace mkxp_sandbox {
             wasm_size_t typenum;
             // If this is a free object, the `next` field is the key of the next free object, or 0 if this is the last free object.
             // Otherwise, `inner.ptr` is a pointer to the actual object and `inner.destructor` is a pointer to its destructor.
-            union {
+            union inner {
                 struct {
                     void *ptr;
                     void (*destructor)(void *);

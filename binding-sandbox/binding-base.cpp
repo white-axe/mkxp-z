@@ -200,11 +200,11 @@ void binding_base::strncpy(wasm_ptr_t dst_address, const char *src, wasm_size_t 
 
 binding_base::object::object(wasm_size_t typenum, void *ptr, void (*destructor)(void *)) : typenum(typenum), inner {.inner = {.ptr = ptr, .destructor = destructor}} {}
 
-binding_base::object::object(struct object &&object) noexcept : typenum(std::exchange(object.typenum, 0)), inner(std::exchange(object.inner, {.next = 0})) {}
+binding_base::object::object(struct object &&object) noexcept : typenum(std::exchange(object.typenum, 0)), inner(std::exchange(object.inner, (union binding_base::object::inner){.next = 0})) {}
 
 struct binding_base::object &binding_base::object::operator=(struct object &&object) noexcept {
     typenum = std::exchange(object.typenum, 0);
-    inner = std::exchange(object.inner, {.next = 0});
+    inner = std::exchange(object.inner, (union binding_base::object::inner){.next = 0});
     return *this;
 }
 
