@@ -67,7 +67,7 @@ SANDBOX_DEF_GFX_PROP_I(Plane, BlendType, blend_type);
 
 void plane_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        plane_type = sb()->rb_data_type("Plane", nullptr, dfree<Plane>, nullptr, nullptr, 0, 0, 0);
+        plane_type = sb()->rb_data_type("Plane", nullptr, dfree, nullptr, nullptr, 0, 0, 0);
         SANDBOX_AWAIT_R(plane_class, rb_define_class, "Plane", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, plane_class, alloc);
         SANDBOX_AWAIT(rb_define_method, plane_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);

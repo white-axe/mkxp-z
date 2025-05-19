@@ -20,31 +20,12 @@
 */
 
 #include "binding-util.h"
-#include "filesystem.h"
 #include "sharedstate.h"
 
 using namespace mkxp_sandbox;
 
-void mkxp_sandbox::set_private_data(VALUE obj, void *ptr) {
-    /* RGSS's behavior is to just leak memory if a disposable is reinitialized,
-     * with the original disposable being left permanently instantiated,
-     * but that's (1) bad, and (2) would currently cause memory access issues
-     * when things like a sprite's src_rect inevitably get GC'd, so we're not
-     * copying that. */
-
-    wasm_ptr_t data = sb()->rtypeddata_data(obj);
-
-    // Free the old value if it already exists (initialize called twice?)
-    if (sb()->ref<wasm_ptr_t>(data) != 0 && sb()->ref<void *>(sb()->ref<wasm_ptr_t>(data)) != ptr) {
-        sb()->rtypeddata_dfree(obj, sb()->ref<wasm_ptr_t>(data));
-        sb()->ref<wasm_ptr_t>(data) = 0;
-    }
-
-    if (sb()->ref<wasm_ptr_t>(data) == 0) {
-        wasm_ptr_t buf = sb()->sandbox_malloc(sizeof(void *));
-        sb()->ref<void *>(buf) = ptr;
-        sb()->ref<wasm_ptr_t>(data) = buf;
-    }
+void mkxp_sandbox::dfree(wasm_objkey_t key) {
+    sb()->destroy_object(key);
 }
 
 wasm_size_t get_length::operator()(VALUE obj) {
@@ -65,16 +46,6 @@ wasm_size_t get_bytesize::operator()(VALUE obj) {
     }
 
     return SANDBOX_SLOT(2);
-}
-
-VALUE wrap_property::operator()(VALUE self, void *ptr, const char *iv, VALUE klass) {
-    BOOST_ASIO_CORO_REENTER (this) {
-        SANDBOX_AWAIT_S(0, rb_obj_alloc, klass);
-        set_private_data(SANDBOX_SLOT(0), ptr);
-        SANDBOX_AWAIT(rb_iv_set, self, iv, SANDBOX_SLOT(0));
-    }
-
-    return SANDBOX_SLOT(0);
 }
 
 void log_backtrace::operator()(VALUE exception) {

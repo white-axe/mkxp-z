@@ -170,7 +170,7 @@ SANDBOX_DEF_GFX_PROP_OBJ_VAL(WindowVX, Tone, Tone, tone);
 
 void windowvx_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        windowvx_type = sb()->rb_data_type("Window", nullptr, dfree<WindowVX>, nullptr, nullptr, 0, 0, 0);
+        windowvx_type = sb()->rb_data_type("Window", nullptr, dfree, nullptr, nullptr, 0, 0, 0);
         SANDBOX_AWAIT_R(windowvx_class, rb_define_class, "Window", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, windowvx_class, alloc);
         SANDBOX_AWAIT(rb_define_method, windowvx_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);

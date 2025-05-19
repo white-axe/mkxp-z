@@ -35,6 +35,7 @@ namespace mkxp_sandbox {
 
 #define ANYARGS ...
     typedef wasm_size_t wasm_ptr_t;
+    typedef wasm_ptr_t wasm_objkey_t;
     typedef wasm_ptr_t VALUE;
     typedef wasm_ptr_t ID;
 }

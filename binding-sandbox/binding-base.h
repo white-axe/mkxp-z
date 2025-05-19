@@ -149,7 +149,7 @@ namespace mkxp_sandbox {
 
     // Gets a reference to the value stored at a given address in sandbox memory.
     template <typename T> T &sandbox_ref(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {
-        // TODO: require T to be numeric
+        static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "can only get references to numeric values in the sandbox");
 #ifdef MKXPZ_BIG_ENDIAN
         return *(T *)((uint8_t *)sandbox_ptr(instance, address) - sizeof(T));
 #else
@@ -218,8 +218,32 @@ namespace mkxp_sandbox {
             size_t stack_index;
         };
 
+        struct object {
+            // If this is a free object, this is 0.
+            // Otherwise, this is a number corresponding to the type of the object.
+            wasm_size_t typenum;
+            // If this is a free object, the `next` field is the key of the next free object, or 0 if this is the last free object.
+            // Otherwise, `inner.ptr` is a pointer to the actual object and `inner.destructor` is a pointer to its destructor.
+            union {
+                struct {
+                    void *ptr;
+                    void (*destructor)(void *);
+                } inner;
+                wasm_size_t next;
+            } inner;
+
+            object(wasm_size_t typenum, void *ptr, void (*destructor)(void *));
+            object(const struct object &object) = delete;
+            object(struct object &&object) noexcept;
+            struct object &operator=(const struct object &object) = delete;
+            struct object &operator=(struct object &&object) noexcept;
+            ~object();
+        };
+
         std::shared_ptr<struct w2c_ruby> _instance;
         std::unordered_map<key_t, struct fiber, boost::hash<key_t>> fibers;
+        std::vector<struct object> objects;
+        wasm_objkey_t next_free_objkey;
         wasm_ptr_t stack_ptr;
 
     public:
@@ -265,6 +289,18 @@ namespace mkxp_sandbox {
         template <typename T> void arycpy(wasm_ptr_t dst_address, const T *src, wasm_size_t num_elements) const noexcept {
             return sandbox_arycpy(instance(), dst_address, src, num_elements);
         }
+
+        // Creates a new object and returns its key.
+        wasm_objkey_t create_object(wasm_size_t typenum, void *ptr, void (*destructor)(void *));
+
+        // Gets the object with the given key.
+        void *get_object(wasm_objkey_t key);
+
+        // Returns true if the typenum of the object with the given key matches the given typenum, otherwise false.
+        bool check_object_type(wasm_objkey_t key, wasm_size_t typenum);
+
+        // Destroys the object with the given key, calling its destructor and freeing its key for use by future objects.
+        void destroy_object(wasm_objkey_t key);
 
         template <typename T> struct stack_frame_guard {
             static_assert(std::is_base_of<boost::asio::coroutine, T>::value, "`T` must be a subclass of `boost::asio::coroutine`");

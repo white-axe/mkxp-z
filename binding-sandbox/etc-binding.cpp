@@ -148,7 +148,7 @@ struct color_binding_init : boost::asio::coroutine {
 
     void operator()() {
         BOOST_ASIO_CORO_REENTER (this) {
-            color_type = sb()->rb_data_type("Color", nullptr, dfree<Color>, nullptr, nullptr, 0, 0, 0);
+            color_type = sb()->rb_data_type("Color", nullptr, dfree, nullptr, nullptr, 0, 0, 0);
             SANDBOX_AWAIT_R(color_class, rb_define_class, "Color", sb()->rb_cObject());
             SANDBOX_AWAIT(rb_define_alloc_func, color_class, alloc);
             SANDBOX_AWAIT(rb_define_method, color_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
@@ -281,7 +281,7 @@ struct tone_binding_init : boost::asio::coroutine {
 
     void operator()() {
         BOOST_ASIO_CORO_REENTER (this) {
-            tone_type = sb()->rb_data_type("Tone", nullptr, dfree<Tone>, nullptr, nullptr, 0, 0, 0);
+            tone_type = sb()->rb_data_type("Tone", nullptr, dfree, nullptr, nullptr, 0, 0, 0);
             SANDBOX_AWAIT_R(tone_class, rb_define_class, "Tone", sb()->rb_cObject());
             SANDBOX_AWAIT(rb_define_alloc_func, tone_class, alloc);
             SANDBOX_AWAIT(rb_define_method, tone_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);
@@ -411,7 +411,7 @@ struct rect_binding_init : boost::asio::coroutine {
 
     void operator()() {
         BOOST_ASIO_CORO_REENTER (this) {
-            rect_type = sb()->rb_data_type("Rect", nullptr, dfree<Rect>, nullptr, nullptr, 0, 0, 0);
+            rect_type = sb()->rb_data_type("Rect", nullptr, dfree, nullptr, nullptr, 0, 0, 0);
             SANDBOX_AWAIT_R(rect_class, rb_define_class, "Rect", sb()->rb_cObject());
             SANDBOX_AWAIT(rb_define_alloc_func, rect_class, alloc);
             SANDBOX_AWAIT(rb_define_method, rect_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);

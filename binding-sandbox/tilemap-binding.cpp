@@ -84,7 +84,7 @@ struct tilemap_autotiles_binding_init : boost::asio::coroutine {
 
     void operator()() {
         BOOST_ASIO_CORO_REENTER (this) {
-            tilemap_autotiles_type = sb()->rb_data_type("TilemapAutotiles", nullptr, nullptr, nullptr, nullptr, 0, 0, 0);
+            tilemap_autotiles_type = sb()->rb_data_type("TilemapAutotiles", nullptr, dfree, nullptr, nullptr, 0, 0, 0);
             SANDBOX_AWAIT_R(tilemap_autotiles_class, rb_define_class, "TilemapAutotiles", sb()->rb_cObject());
             SANDBOX_AWAIT(rb_define_alloc_func, tilemap_autotiles_class, alloc);
 
@@ -125,7 +125,7 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                  * See the comment in setPrivateData for more info. */
                 SANDBOX_AWAIT_S(1, rb_iv_get, self, "autotiles");
                 if (SANDBOX_SLOT(1) != SANDBOX_NIL) {
-                    set_private_data(SANDBOX_SLOT(1), nullptr);
+                    set_private_data(SANDBOX_SLOT(1), (Tilemap::Autotiles *)nullptr);
                 }
 
                 SANDBOX_GUARD(SANDBOX_AWAIT_S(1, wrap_property, self, &get_private_data<Tilemap>(self)->getAutotiles(sb().e), "autotiles", tilemap_autotiles_class));
@@ -195,7 +195,7 @@ void tilemap_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
         SANDBOX_AWAIT(tilemap_autotiles_binding_init);
 
-        tilemap_type = sb()->rb_data_type("Tilemap", nullptr, dfree<Tilemap>, nullptr, nullptr, 0, 0, 0);
+        tilemap_type = sb()->rb_data_type("Tilemap", nullptr, dfree, nullptr, nullptr, 0, 0, 0);
         SANDBOX_AWAIT_R(tilemap_class, rb_define_class, "Tilemap", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, tilemap_class, alloc);
         SANDBOX_AWAIT(rb_define_method, tilemap_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);

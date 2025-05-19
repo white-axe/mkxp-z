@@ -84,7 +84,7 @@ SANDBOX_DEF_GFX_PROP_OBJ_VAL(Viewport, Tone, Tone, tone);
 
 void viewport_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        viewport_type = sb()->rb_data_type("Viewport", nullptr, dfree<Viewport>, nullptr, nullptr, 0, 0, 0);
+        viewport_type = sb()->rb_data_type("Viewport", nullptr, dfree, nullptr, nullptr, 0, 0, 0);
         SANDBOX_AWAIT_R(viewport_class, rb_define_class, "Viewport", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, viewport_class, alloc);
         SANDBOX_AWAIT(rb_define_method, viewport_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);

@@ -122,7 +122,7 @@ SANDBOX_DEF_GFX_PROP_I(Sprite, WaveSpeed, wave_speed);
 
 void sprite_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        sprite_type = sb()->rb_data_type("Sprite", nullptr, dfree<Sprite>, nullptr, nullptr, 0, 0, 0);
+        sprite_type = sb()->rb_data_type("Sprite", nullptr, dfree, nullptr, nullptr, 0, 0, 0);
         SANDBOX_AWAIT_R(sprite_class, rb_define_class, "Sprite", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, sprite_class, alloc);
         SANDBOX_AWAIT(rb_define_method, sprite_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);

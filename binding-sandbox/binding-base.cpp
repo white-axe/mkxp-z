@@ -20,6 +20,7 @@
 */
 
 #include "binding-base.h"
+#include "mkxp-polyfill.h"
 
 using namespace mkxp_sandbox;
 
@@ -40,7 +41,7 @@ binding_base::stack_frame::~stack_frame() {
     }
 }
 
-binding_base::binding_base(std::shared_ptr<struct w2c_ruby> m) : _instance(m) {}
+binding_base::binding_base(std::shared_ptr<struct w2c_ruby> m) : next_free_objkey(0), _instance(m) {}
 
 binding_base::~binding_base() {
     // Destroy all stack frames in order from top to bottom to enforce a portable, compiler-independent ordering of stack frame destruction
@@ -195,4 +196,78 @@ void binding_base::strcpy(wasm_ptr_t dst_address, const char *src) const noexcep
 
 void binding_base::strncpy(wasm_ptr_t dst_address, const char *src, wasm_size_t max_size) const noexcept {
     sandbox_strncpy(instance(), dst_address, src, max_size);
+}
+
+binding_base::object::object(wasm_size_t typenum, void *ptr, void (*destructor)(void *)) : typenum(typenum), inner {.inner = {.ptr = ptr, .destructor = destructor}} {}
+
+binding_base::object::object(struct object &&object) noexcept : typenum(std::exchange(object.typenum, 0)), inner(std::exchange(object.inner, {.next = 0})) {}
+
+struct binding_base::object &binding_base::object::operator=(struct object &&object) noexcept {
+    typenum = std::exchange(object.typenum, 0);
+    inner = std::exchange(object.inner, {.next = 0});
+    return *this;
+}
+
+binding_base::object::~object() {
+    if (typenum != 0) {
+        inner.inner.destructor(inner.inner.ptr);
+    }
+}
+
+wasm_objkey_t binding_base::create_object(wasm_size_t typenum, void *ptr, void (*destructor)(void *)) {
+    if (typenum == 0 || ptr == nullptr || destructor == nullptr) {
+        std::abort();
+    }
+    if (next_free_objkey == 0) {
+        objects.emplace_back(typenum, ptr, destructor);
+        if ((size_t)(wasm_objkey_t)objects.size() < objects.size()) {
+            MKXPZ_THROW(std::bad_alloc());
+        }
+        return objects.size();
+    } else {
+        wasm_objkey_t key = next_free_objkey;
+        struct object &object = objects[next_free_objkey - 1];
+        assert(object.typenum == 0);
+        next_free_objkey = object.inner.next;
+        object.typenum = typenum;
+        object.inner.inner.ptr = ptr;
+        object.inner.inner.destructor = destructor;
+        return key;
+    }
+}
+
+void *binding_base::get_object(wasm_objkey_t key) {
+    if (key == 0 || key > objects.size()) {
+        std::abort();
+    }
+    struct object &object = objects[key - 1];
+    if (object.typenum == 0) {
+        std::abort();
+    }
+    return object.inner.inner.ptr;
+}
+
+bool binding_base::check_object_type(wasm_objkey_t key, wasm_size_t typenum) {
+    if (key == 0 || key > objects.size()) {
+        std::abort();
+    }
+    struct object &object = objects[key - 1];
+    if (object.typenum == 0) {
+        std::abort();
+    }
+    return object.typenum == typenum;
+}
+
+void binding_base::destroy_object(wasm_objkey_t key) {
+    if (key == 0 || key > objects.size()) {
+        std::abort();
+    }
+    struct object &object = objects[key - 1];
+    if (object.typenum == 0) {
+        std::abort();
+    }
+    object.typenum = 0;
+    object.inner.inner.destructor(object.inner.inner.ptr);
+    object.inner.next = next_free_objkey;
+    next_free_objkey = key;
 }

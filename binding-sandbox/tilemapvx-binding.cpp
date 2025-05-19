@@ -83,7 +83,7 @@ struct bitmap_array_binding_init : boost::asio::coroutine {
 
     void operator()() {
         BOOST_ASIO_CORO_REENTER (this) {
-            bitmap_array_type = sb()->rb_data_type("BitmapArray", nullptr, nullptr, nullptr, nullptr, 0, 0, 0);
+            bitmap_array_type = sb()->rb_data_type("BitmapArray", nullptr, dfree, nullptr, nullptr, 0, 0, 0);
             SANDBOX_AWAIT_R(bitmap_array_class, rb_define_class, "BitmapArray", sb()->rb_cObject());
             SANDBOX_AWAIT(rb_define_alloc_func, bitmap_array_class, alloc);
 
@@ -119,7 +119,7 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                  * See the comment in setPrivateData for more info. */
                 SANDBOX_AWAIT_S(1, rb_iv_get, self, "bitmap_array");
                 if (SANDBOX_SLOT(1) != SANDBOX_NIL) {
-                    set_private_data(SANDBOX_SLOT(1), nullptr);
+                    set_private_data(SANDBOX_SLOT(1), (TilemapVX::BitmapArray *)nullptr);
                 }
 
                 SANDBOX_GUARD(SANDBOX_AWAIT_S(1, wrap_property, self, &get_private_data<TilemapVX>(self)->getBitmapArray(sb().e), "bitmap_array", bitmap_array_class));
@@ -177,7 +177,7 @@ void tilemapvx_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
         SANDBOX_AWAIT(bitmap_array_binding_init);
 
-        tilemapvx_type = sb()->rb_data_type("Tilemap", nullptr, dfree<TilemapVX>, nullptr, nullptr, 0, 0, 0);
+        tilemapvx_type = sb()->rb_data_type("Tilemap", nullptr, dfree, nullptr, nullptr, 0, 0, 0);
         SANDBOX_AWAIT_R(tilemapvx_class, rb_define_class, "Tilemap", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, tilemapvx_class, alloc);
         SANDBOX_AWAIT(rb_define_method, tilemapvx_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);

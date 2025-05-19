@@ -34,7 +34,7 @@ namespace mkxp_sandbox {
                     SANDBOX_AWAIT_S(2, rb_obj_alloc, klass);
                     SANDBOX_AWAIT_S(0, rb_string_value_ptr, &src);
                     SANDBOX_AWAIT_S(1, get_bytesize, src);
-                    SANDBOX_GUARD(set_private_data(SANDBOX_SLOT(2), C::deserialize(sb().e, (const char *)sb()->ptr(SANDBOX_SLOT(0)), SANDBOX_SLOT(1)))); /* TODO: free when sandbox is deallocated */
+                    SANDBOX_GUARD(set_private_data(SANDBOX_SLOT(2), C::deserialize(sb().e, (const char *)sb()->ptr(SANDBOX_SLOT(0)), SANDBOX_SLOT(1))));
                 }
 
                 return SANDBOX_SLOT(2);

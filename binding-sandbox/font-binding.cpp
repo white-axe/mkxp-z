@@ -246,7 +246,7 @@ static VALUE exist(VALUE self, VALUE value) {
 
 void font_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        font_type = sb()->rb_data_type("Font", nullptr, dfree<Font>, nullptr, nullptr, 0, 0, 0);
+        font_type = sb()->rb_data_type("Font", nullptr, dfree, nullptr, nullptr, 0, 0, 0);
         SANDBOX_AWAIT_R(font_class, rb_define_class, "Font", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, font_class, alloc);
 

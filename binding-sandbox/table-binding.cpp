@@ -189,7 +189,7 @@ static VALUE set(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
 void table_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
-        table_type = sb()->rb_data_type("Table", nullptr, dfree<Table>, nullptr, nullptr, 0, 0, 0);
+        table_type = sb()->rb_data_type("Table", nullptr, dfree, nullptr, nullptr, 0, 0, 0);
         SANDBOX_AWAIT_R(table_class, rb_define_class, "Table", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, table_class, alloc);
         SANDBOX_AWAIT(rb_define_method, table_class, "initialize", (VALUE (*)(ANYARGS))initialize, -1);

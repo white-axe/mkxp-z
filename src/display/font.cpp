@@ -624,18 +624,8 @@ void Font::initDynAttribs()
 
 void Font::initDefaultDynAttribs()
 {
-	if (FontPrivate::defaultColor != &FontPrivate::defaultColorTmp)
-	{
-		delete FontPrivate::defaultColor;
-		FontPrivate::defaultColor = &FontPrivate::defaultColorTmp;
-	}
 	FontPrivate::defaultColor = new Color(FontPrivate::defaultColorTmp);
 
-	if (FontPrivate::defaultOutColor != &FontPrivate::defaultOutColorTmp)
-	{
-		delete FontPrivate::defaultOutColor;
-		FontPrivate::defaultOutColor = &FontPrivate::defaultOutColorTmp;
-	}
 	if (rgssVer >= 3)
 		FontPrivate::defaultOutColor = new Color(FontPrivate::defaultOutColorTmp);
 }
