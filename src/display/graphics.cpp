@@ -535,6 +535,18 @@ struct Movie
         if (letterboxSprite) delete letterboxSprite;
         if (movieSprite) delete movieSprite;
         if (hasAudio) {
+            audioThreadTermReq.set();
+#ifdef MKXPZ_RETRO
+            {
+                AudioMutexGuard guard(audioMutex);
+            }
+#else
+            if(audioThread) {
+                SDL_WaitThread(audioThread, 0);
+                audioThread = 0;
+            }
+#endif // MKXPZ_RETRO
+
             if (audioQueueTail) {
                 THEORAPLAY_freeAudio(audioQueueTail->audio);
             }
@@ -544,13 +556,6 @@ struct Movie
                 THEORAPLAY_freeAudio(audioQueueHead->audio);
             }
             audioQueueHead = NULL;
-            audioThreadTermReq.set();
-#ifndef MKXPZ_RETRO
-            if(audioThread) {
-                SDL_WaitThread(audioThread, 0);
-                audioThread = 0;
-            }
-#endif // MKXPZ_RETRO
             alSourceStop(audioSource);
             alDeleteSources(1, &audioSource);
             alDeleteBuffers(STREAM_BUFS, alBuffers);
