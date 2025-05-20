@@ -1576,9 +1576,9 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     ADVANCE(4);
 
     // Write 4-byte version: 1
-    RESERVE(4);
+    RESERVE(sizeof(uint32_t));
     *(uint32_t *)data = 1;
-    ADVANCE(4);
+    ADVANCE(sizeof(uint32_t));
 
     // Write the capacity of the VM memory
     RESERVE(sizeof(wasm_size_t));
@@ -1615,7 +1615,12 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         *(wasm_ptr_t *)data = std::get<2>(fiber.first);
         ADVANCE(sizeof(wasm_ptr_t));
 
-        // Write the number of frames in this fiber
+        // Write the stack index of the fiber
+        RESERVE(sizeof(wasm_size_t));
+        *(wasm_size_t *)data = fiber.second.stack_index;
+        ADVANCE(sizeof(wasm_size_t));
+
+        // Write the number of frames in the fiber
         RESERVE(sizeof(wasm_size_t));
         *(wasm_size_t *)data = fiber.second.get_stack().size();
         ADVANCE(sizeof(wasm_size_t));

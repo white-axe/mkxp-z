@@ -236,7 +236,9 @@ namespace mkxp_sandbox {
             }
         private:
             key_t key;
+        public:
             wasm_size_t stack_index;
+        private:
             std::vector<struct stack_frame> stack;
         };
 
