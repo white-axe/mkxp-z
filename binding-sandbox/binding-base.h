@@ -209,18 +209,32 @@ namespace mkxp_sandbox {
         typedef std::tuple<wasm_ptr_t, wasm_ptr_t, wasm_ptr_t> key_t;
 
         struct stack_frame {
-            void *coroutine;
-            void (*destructor)(void *coroutine);
-            wasm_ptr_t stack_ptr;
+            friend struct binding_base;
             stack_frame(void *coroutine, void (*destructor)(void *coroutine), wasm_ptr_t stack_ptr);
             stack_frame(const struct stack_frame &frame) = delete;
             stack_frame(struct stack_frame &&frame) noexcept;
             struct stack_frame &operator=(const struct stack_frame &frame) = delete;
             struct stack_frame &operator=(struct stack_frame &&frame) noexcept;
             ~stack_frame();
+            inline operator int32_t() const noexcept {
+                return (int32_t)(boost::asio::detail::coroutine_ref)(boost::asio::coroutine *)coroutine;
+            }
+            inline void operator=(int32_t value) noexcept {
+                (boost::asio::detail::coroutine_ref)(boost::asio::coroutine *)coroutine = (int)value;
+            }
+        private:
+            void *coroutine;
+            void (*destructor)(void *coroutine);
+            wasm_ptr_t stack_ptr;
         };
 
         struct fiber {
+            friend struct binding_base;
+            fiber(key_t key) : key(key), stack_index(0) {};
+            inline const std::vector<struct stack_frame> &get_stack() const noexcept {
+                return stack;
+            }
+        private:
             key_t key;
             wasm_size_t stack_index;
             std::vector<struct stack_frame> stack;
@@ -262,6 +276,11 @@ namespace mkxp_sandbox {
         void rtypeddata_dfree(wasm_ptr_t data, wasm_ptr_t ptr);
         wasm_size_t rtypeddata_dsize(wasm_ptr_t data, wasm_ptr_t ptr);
         void rtypeddata_dcompact(wasm_ptr_t data, wasm_ptr_t ptr);
+
+        // Serialization functions
+        wasm_size_t memory_capacity() const noexcept;
+        wasm_size_t memory_size() const noexcept;
+        void copy_memory_to(void *ptr) const noexcept;
 
         // Gets a pointer to the given address in sandbox memory.
         void *ptr(wasm_ptr_t address) const noexcept;
@@ -326,10 +345,12 @@ namespace mkxp_sandbox {
                     bind.ref<wasm_ptr_t>(bind.instance().w2c_mkxp_sandbox_fiber_arg0),
                     bind.ref<wasm_ptr_t>(bind.instance().w2c_mkxp_sandbox_fiber_arg1),
                 };
-                if (bind.fibers.count(key) == 0) {
-                    bind.fibers[key] = (struct fiber){.key = key, .stack_index = 0};
+                const auto it = bind.fibers.find(key);
+                if (it != bind.fibers.end()) {
+                    return it->second;
+                } else {
+                    return bind.fibers.emplace(key, key).first->second;
                 }
-                return bind.fibers[key];
             }
 
             template <typename U> static typename std::enable_if<std::is_constructible<U, struct binding_base &>::value, U *>::type construct_frame(struct binding_base &bind) {
@@ -441,8 +462,12 @@ namespace mkxp_sandbox {
             return *this;
         }
 
-        wasm_ptr_t stack_pointer() const noexcept {
+        inline wasm_ptr_t stack_pointer() const noexcept {
             return stack_ptr;
+        }
+
+        inline const std::unordered_map<key_t, struct fiber, boost::hash<key_t>> &get_fibers() const noexcept {
+            return fibers;
         }
     };
 }

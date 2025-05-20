@@ -24,6 +24,7 @@
 #include <cstdarg>
 #include <cstring>
 #include <string>
+#include <tuple>
 
 #include <boost/optional.hpp>
 #include <alc.h>
@@ -79,6 +80,7 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
             " By default, mkxp will try to guess the required version"
             " based on the game files."
             " If this fails, the version defaults to 1."
+            " Changes will take effect after the core is reset."
         ),
         .info_categorized = nullptr,
         .category_key = "runtime",
@@ -91,6 +93,149 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
             {nullptr, nullptr},
         },
         .default_value = "inherit",
+    },
+    {
+        .key = "mkxp-z_saveStateSize",
+        .desc = "Save State Size",
+        .desc_categorized = nullptr,
+        .info = (
+            "Maximum size of each save state, in mebibytes."
+            " If the game uses more than this much memory, save state creation will fail."
+            " Changes to this setting will not take effect until the core is unloaded."
+        ),
+        .info_categorized = nullptr,
+        .category_key = "runtime",
+        .values = {
+            {"64", "64"},
+            {"66", "66"},
+            {"68", "68"},
+            {"70", "70"},
+            {"72", "72"},
+            {"74", "74"},
+            {"76", "76"},
+            {"78", "78"},
+            {"80", "80"},
+            {"82", "82"},
+            {"84", "84"},
+            {"86", "86"},
+            {"88", "88"},
+            {"90", "90"},
+            {"92", "92"},
+            {"94", "94"},
+            {"96", "96"},
+            {"98", "98"},
+            {"100", "100"},
+            {"102", "102"},
+            {"104", "104"},
+            {"106", "106"},
+            {"108", "108"},
+            {"110", "110"},
+            {"112", "112"},
+            {"114", "114"},
+            {"116", "116"},
+            {"118", "118"},
+            {"120", "120"},
+            {"122", "122"},
+            {"124", "124"},
+            {"126", "126"},
+            {"128", "128"},
+            {"132", "132"},
+            {"136", "136"},
+            {"140", "140"},
+            {"144", "144"},
+            {"148", "148"},
+            {"152", "152"},
+            {"156", "156"},
+            {"160", "160"},
+            {"164", "164"},
+            {"168", "168"},
+            {"172", "172"},
+            {"176", "176"},
+            {"180", "180"},
+            {"184", "184"},
+            {"188", "188"},
+            {"192", "192"},
+            {"196", "196"},
+            {"200", "200"},
+            {"204", "204"},
+            {"208", "208"},
+            {"212", "212"},
+            {"216", "216"},
+            {"220", "220"},
+            {"224", "224"},
+            {"228", "228"},
+            {"232", "232"},
+            {"236", "236"},
+            {"240", "240"},
+            {"244", "244"},
+            {"248", "248"},
+            {"252", "252"},
+            {"256", "256"},
+            {"264", "264"},
+            {"272", "272"},
+            {"280", "280"},
+            {"288", "288"},
+            {"296", "296"},
+            {"304", "304"},
+            {"312", "312"},
+            {"320", "320"},
+            {"328", "328"},
+            {"336", "336"},
+            {"344", "344"},
+            {"352", "352"},
+            {"360", "360"},
+            {"368", "368"},
+            {"376", "376"},
+            {"384", "384"},
+            {"392", "392"},
+            {"400", "400"},
+            {"408", "408"},
+            {"416", "416"},
+            {"424", "424"},
+            {"432", "432"},
+            {"440", "440"},
+            {"448", "448"},
+            {"456", "456"},
+            {"464", "464"},
+            {"472", "472"},
+            {"480", "480"},
+            {"488", "488"},
+            {"496", "496"},
+            {"504", "504"},
+            {"512", "512"},
+            {"528", "528"},
+            {"544", "544"},
+            {"560", "560"},
+            {"576", "576"},
+            {"592", "592"},
+            {"608", "608"},
+            {"624", "624"},
+            {"640", "640"},
+            {"656", "656"},
+            {"672", "672"},
+            {"688", "688"},
+            {"704", "704"},
+            {"720", "720"},
+            {"736", "736"},
+            {"752", "752"},
+            {"768", "768"},
+            {"784", "784"},
+            {"800", "800"},
+            {"816", "816"},
+            {"832", "832"},
+            {"848", "848"},
+            {"864", "864"},
+            {"880", "880"},
+            {"896", "896"},
+            {"912", "912"},
+            {"928", "928"},
+            {"944", "944"},
+            {"960", "960"},
+            {"976", "976"},
+            {"992", "992"},
+            {nullptr, nullptr},
+        },
+        .default_value = "100",
     },
     {
         .key = "mkxp-z_frameSkip",
@@ -452,6 +597,7 @@ static LPALCLOOPBACKOPENDEVICESOFT alcLoopbackOpenDeviceSOFT = nullptr;
 static int16_t *sound_buf = nullptr;
 static bool retro_framebuffer_supported;
 static bool dupe_supported;
+static size_t save_state_size = 0;
 static retro_system_av_info av_info;
 static struct retro_audio_callback audio_callback;
 static struct retro_frame_time_callback frame_time_callback = {
@@ -1200,6 +1346,12 @@ extern "C" RETRO_API void retro_set_input_state(retro_input_state_t cb) {
 extern "C" RETRO_API void retro_init() {
     initialized = true;
     frame_buf = (uint32_t *)std::calloc(640 * 480, sizeof *frame_buf);
+
+    save_state_size = (size_t)std::strtoul(get_core_option("mkxp-z_saveStateSize"), nullptr, 10) * (size_t)0x100000;
+    if (save_state_size == 0) {
+        save_state_size = (size_t)(100 * 0x100000);
+    }
+    save_state_size = std::max(save_state_size, (size_t)(64 * 0x100000));
 }
 
 extern "C" RETRO_API void retro_deinit() {
@@ -1399,15 +1551,89 @@ extern "C" RETRO_API void retro_run() {
 }
 
 extern "C" RETRO_API size_t retro_serialize_size() {
-    return 0;
+    return save_state_size;
 }
 
+#define RESERVE(bytes) do { \
+    if (len < (bytes)) { \
+        return false; \
+    } \
+} while (0)
+
+#define ADVANCE(bytes) do { \
+    data = (uint8_t *)data + (bytes); \
+    len -= (bytes); \
+} while (0)
+
 extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
+    // Write 4-byte magic number: "MKXP" for big-endian platforms, "mkxp" for little-endian platforms
+    RESERVE(4);
+#ifdef MKXPZ_BIG_ENDIAN
+    std::memcpy(data, "MKXP", 4);
+#else
+    std::memcpy(data, "mkxp", 4);
+#endif // MKXPZ_BIG_ENDIAN
+    ADVANCE(4);
+
+    // Write 4-byte version: 1
+    RESERVE(4);
+    *(uint32_t *)data = 1;
+    ADVANCE(4);
+
+    // Write the capacity of the VM memory
+    RESERVE(sizeof(wasm_size_t));
+    *(wasm_size_t *)data = sb()->memory_capacity();
+    ADVANCE(sizeof(wasm_size_t));
+
+    {
+        // Write the size of the VM memory
+        RESERVE(sizeof(wasm_size_t));
+        wasm_size_t memory_size = sb()->memory_size();
+        *(wasm_size_t *)data = memory_size;
+        ADVANCE(sizeof(wasm_size_t));
+
+        // Write the VM memory itself
+        RESERVE(memory_size);
+        sb()->copy_memory_to(data);
+        ADVANCE(memory_size);
+    }
+
+    // Write the number of sandbox fibers
+    RESERVE(sizeof(wasm_size_t));
+    *(wasm_size_t *)data = sb()->get_fibers().size();
+    ADVANCE(sizeof(wasm_size_t));
+
+    for (const auto &fiber : sb()->get_fibers()) {
+        // Write the key of the fiber
+        RESERVE(sizeof(wasm_ptr_t));
+        *(wasm_ptr_t *)data = std::get<0>(fiber.first);
+        ADVANCE(sizeof(wasm_ptr_t));
+        RESERVE(sizeof(wasm_ptr_t));
+        *(wasm_ptr_t *)data = std::get<1>(fiber.first);
+        ADVANCE(sizeof(wasm_ptr_t));
+        RESERVE(sizeof(wasm_ptr_t));
+        *(wasm_ptr_t *)data = std::get<2>(fiber.first);
+        ADVANCE(sizeof(wasm_ptr_t));
+
+        // Write the number of frames in this fiber
+        RESERVE(sizeof(wasm_size_t));
+        *(wasm_size_t *)data = fiber.second.get_stack().size();
+        ADVANCE(sizeof(wasm_size_t));
+
+        // Write the state of each frame
+        for (const auto &frame : fiber.second.get_stack()) {
+            RESERVE(sizeof(int32_t));
+            *(int32_t *)data = (int32_t)frame;
+            ADVANCE(sizeof(int32_t));
+        }
+    }
+
+    std::memset(data, 0, len);
     return true;
 }
 
 extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
-    return true;
+    return false;
 }
 
 extern "C" RETRO_API void retro_cheat_reset() {

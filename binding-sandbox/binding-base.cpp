@@ -93,6 +93,18 @@ void binding_base::rtypeddata_dcompact(wasm_ptr_t data, wasm_ptr_t ptr) {
     w2c_ruby_mkxp_sandbox_rtypeddata_dcompact(&instance(), data, ptr);
 }
 
+wasm_size_t binding_base::memory_capacity() const noexcept {
+    return instance().w2c_memory.capacity;
+}
+
+wasm_size_t binding_base::memory_size() const noexcept {
+    return instance().w2c_memory.size;
+}
+
+void binding_base::copy_memory_to(void *ptr) const noexcept {
+    std::memcpy(ptr, instance().w2c_memory.data, memory_size());
+}
+
 void *mkxp_sandbox::sandbox_ptr(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {
     if (address >= instance.w2c_memory.size) {
         std::abort();
