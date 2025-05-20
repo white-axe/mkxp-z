@@ -210,6 +210,9 @@ struct binding_base::object &binding_base::object::operator=(struct object &&obj
 
 binding_base::object::~object() {
     if (typenum != 0) {
+        if (typenum > typenum_table_size) {
+            std::abort();
+        }
         typenum_table[typenum - 1].destructor(inner.ptr);
     }
 }
