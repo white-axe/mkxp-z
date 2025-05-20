@@ -65,7 +65,7 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 }
 
                 SANDBOX_AWAIT_S(0, rb_obj_alloc, bitmap_class);
-                SANDBOX_GUARD(set_private_data(SANDBOX_SLOT(0), new Bitmap(sb().e, 1, 1)));
+                SANDBOX_GUARD(set_private_data(sb().e, SANDBOX_SLOT(0), new Bitmap(sb().e, 1, 1)));
                 SANDBOX_AWAIT(bitmap_init_props, SANDBOX_SLOT(0));
                 SANDBOX_AWAIT(rb_iv_set, self, "contents", SANDBOX_SLOT(0));
             }

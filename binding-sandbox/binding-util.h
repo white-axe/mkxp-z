@@ -526,6 +526,17 @@ namespace mkxp_sandbox {
         key = ptr == nullptr ? 0 : sb()->create_object(get_typenum<T>::value, ptr);
     }
 
+    // Given a Ruby object `val`, stores the C++ object `ptr` into the private data field of `val`.
+    // You can set `ptr` to `nullptr` if you just want to destroy the current object in the private data field,
+    // but note that calling `get_private_data` while the private data field is set to `nullptr` will trigger an abort.
+    template <typename T> void set_private_data(Exception &e, VALUE val, T *ptr) {
+        if (e.is_ok()) {
+            set_private_data(val, ptr);
+        } else if (ptr != nullptr) {
+            delete ptr;
+        }
+    }
+
     // Given a Ruby object `val`, retrieves the C++ object in its private data field.
     // Aborts if the private data field hasn't ever been set, has been set to `nullptr` or has been set to an object of a different type,
     // so make sure it's been set properly using `set_private_data` beforehand.

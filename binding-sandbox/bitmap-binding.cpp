@@ -69,9 +69,9 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 }
 
                 if (argc == 1) {
-                    SANDBOX_GUARD_L(set_private_data(self, new Bitmap(sb().e, sb()->str(SANDBOX_SLOT(0)))));
+                    SANDBOX_GUARD_L(set_private_data(sb().e, self, new Bitmap(sb().e, sb()->str(SANDBOX_SLOT(0)))));
                 } else {
-                    SANDBOX_GUARD_L(set_private_data(self, new Bitmap(sb().e, SANDBOX_SLOT(1), SANDBOX_SLOT(2))));
+                    SANDBOX_GUARD_L(set_private_data(sb().e, self, new Bitmap(sb().e, SANDBOX_SLOT(1), SANDBOX_SLOT(2))));
                 }
 
                 SANDBOX_AWAIT(bitmap_init_props, self);
@@ -94,7 +94,7 @@ static VALUE initialize_copy(VALUE self, VALUE value) {
 
                 SANDBOX_AWAIT(rb_obj_init_copy, self, value);
 
-                SANDBOX_GUARD_L(set_private_data(self, new Bitmap(sb().e, *get_private_data<Bitmap>(value))));
+                SANDBOX_GUARD_L(set_private_data(sb().e, self, new Bitmap(sb().e, *get_private_data<Bitmap>(value))));
 
                 SANDBOX_AWAIT(bitmap_init_props, self);
                 Font *font;
@@ -150,7 +150,7 @@ static VALUE rect(VALUE self) {
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_S(0, rb_obj_alloc, rect_class);
-                SANDBOX_GUARD(set_private_data(SANDBOX_SLOT(0), new Rect(get_private_data<Bitmap>(self)->getRect(sb().e))));
+                SANDBOX_GUARD(set_private_data(sb().e, SANDBOX_SLOT(0), new Rect(get_private_data<Bitmap>(self)->getRect(sb().e))));
             }
 
             return SANDBOX_SLOT(0);
@@ -384,7 +384,7 @@ static VALUE text_size(VALUE self, VALUE text) {
                     SANDBOX_AWAIT_S(0, rb_string_value_cstr, &text);
                 }
                 SANDBOX_AWAIT_S(1, rb_obj_alloc, rect_class);
-                SANDBOX_GUARD(set_private_data(SANDBOX_SLOT(1), new Rect(get_private_data<Bitmap>(self)->textSize(sb().e, sb()->str(SANDBOX_SLOT(0))))));
+                SANDBOX_GUARD(set_private_data(sb().e, SANDBOX_SLOT(1), new Rect(get_private_data<Bitmap>(self)->textSize(sb().e, sb()->str(SANDBOX_SLOT(0))))));
             }
 
             return SANDBOX_SLOT(1);
@@ -466,7 +466,7 @@ static VALUE snap_to_bitmap(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
                 SANDBOX_AWAIT_S(0, rb_obj_alloc, bitmap_class);
 
-                SANDBOX_GUARD_L(set_private_data(SANDBOX_SLOT(0), new Bitmap(sb().e, *get_private_data<Bitmap>(self), SANDBOX_SLOT(1))));
+                SANDBOX_GUARD_L(set_private_data(sb().e, SANDBOX_SLOT(0), new Bitmap(sb().e, *get_private_data<Bitmap>(self), SANDBOX_SLOT(1))));
 
                 SANDBOX_AWAIT(bitmap_init_props, SANDBOX_SLOT(0));
             }

@@ -279,7 +279,7 @@ static VALUE snap_to_bitmap(VALUE self) {
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_S(0, rb_obj_alloc, bitmap_class);
-                SANDBOX_GUARD_L(set_private_data(SANDBOX_SLOT(0), shState->graphics().snapToBitmap(sb().e)));
+                SANDBOX_GUARD_L(set_private_data(sb().e, SANDBOX_SLOT(0), shState->graphics().snapToBitmap(sb().e)));
                 SANDBOX_AWAIT(bitmap_init_props, SANDBOX_SLOT(0));
             }
 

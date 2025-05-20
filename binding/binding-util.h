@@ -314,6 +314,14 @@ static inline void setPrivateData(VALUE self, void *p) {
 #endif
 }
 
+template <typename T> static inline void setPrivateData(Exception &e, VALUE self, T *p) {
+    if (e.is_ok()) {
+        setPrivateData(self, p);
+    } else if (p != nullptr) {
+        delete p;
+    }
+}
+
 inline VALUE
 #if RAPI_FULL > 187
 wrapObject(void *p, const rb_data_type_t &type, VALUE underKlass = rb_cObject)
@@ -384,7 +392,7 @@ static inline VALUE objectLoad(int argc, VALUE *argv, VALUE self) {
     
     VALUE obj = rb_obj_alloc(self);
     
-    BINDING_GUARD(setPrivateData(obj, C::deserialize(e, data, dataLen)));
+    BINDING_GUARD(setPrivateData(e, obj, C::deserialize(e, data, dataLen)));
     
     return obj;
 }
