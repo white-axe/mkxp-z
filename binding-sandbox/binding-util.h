@@ -518,12 +518,13 @@ namespace mkxp_sandbox {
 
         wasm_objkey_t &key = sb()->ref<wasm_objkey_t>(sb()->rtypeddata_data(val));
 
-        // Free the old value if it already exists (initialize called twice?)
-        if (key != 0 && sb()->get_object(key) != ptr) {
+        if (key == 0) {
+            key = ptr == nullptr ? 0 : sb()->create_object(get_typenum<T>::value, ptr);
+        } else if (sb()->get_object(key) != ptr) {
+            // Free the old value if it already exists (initialize called twice?)
             sb()->destroy_object(key);
+            key = ptr == nullptr ? 0 : sb()->create_object(get_typenum<T>::value, ptr);
         }
-
-        key = ptr == nullptr ? 0 : sb()->create_object(get_typenum<T>::value, ptr);
     }
 
     // Given a Ruby object `val`, stores the C++ object `ptr` into the private data field of `val`.
