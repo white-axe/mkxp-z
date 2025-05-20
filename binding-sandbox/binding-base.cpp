@@ -20,7 +20,6 @@
 */
 
 #include "binding-base.h"
-#include "mkxp-polyfill.h"
 
 using namespace mkxp_sandbox;
 

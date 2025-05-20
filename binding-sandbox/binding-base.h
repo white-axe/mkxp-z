@@ -35,6 +35,7 @@
 #include <boost/asio/coroutine.hpp>
 #include <mkxp-sandbox-ruby.h>
 #include "wasm-types.h"
+#include "mkxp-polyfill.h"
 
 // LLVM uses a stack alignment of 16 on WebAssembly targets
 #define WASMSTACKALIGN 16
@@ -221,8 +222,8 @@ namespace mkxp_sandbox {
 
         struct fiber {
             key_t key;
+            wasm_size_t stack_index;
             std::vector<struct stack_frame> stack;
-            size_t stack_index;
         };
 
         struct object {
@@ -326,7 +327,7 @@ namespace mkxp_sandbox {
                     bind.ref<wasm_ptr_t>(bind.instance().w2c_mkxp_sandbox_fiber_arg1),
                 };
                 if (bind.fibers.count(key) == 0) {
-                    bind.fibers[key] = (struct fiber){.key = key};
+                    bind.fibers[key] = (struct fiber){.key = key, .stack_index = 0};
                 }
                 return bind.fibers[key];
             }
@@ -352,6 +353,9 @@ namespace mkxp_sandbox {
                         std::abort();
                     }
                     struct stack_frame &frame = fiber->stack[fiber->stack_index++];
+                    if (fiber->stack_index == 0) {
+                        MKXPZ_THROW(std::bad_alloc());
+                    }
                     b.stack_ptr = frame.stack_ptr;
                     coroutine = (T *)frame.coroutine;
                     return;
@@ -363,7 +367,9 @@ namespace mkxp_sandbox {
                     bind->stack_ptr = fiber->stack.back().stack_ptr;
                     fiber->stack.pop_back();
                 }
-                ++fiber->stack_index;
+                if (++fiber->stack_index == 0) {
+                    MKXPZ_THROW(std::bad_alloc());
+                }
                 b.stack_ptr = w2c_ruby_rb_wasm_get_stack_pointer(&b.instance()) - CEIL_WASMSTACKALIGN(declared_slots_size<T>::value);
                 assert(b.stack_ptr % sizeof(VALUE) == 0);
                 assert(b.stack_ptr % WASMSTACKALIGN == 0);
