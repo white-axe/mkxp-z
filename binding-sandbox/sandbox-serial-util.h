@@ -92,7 +92,7 @@ namespace mkxp_sandbox {
                     extra_objects.emplace_back((const void *)ptr, typenum);
                     map.insert({ptr, (struct info){.key = (wasm_objkey_t)extra_objects.size(), .is_extra = true}});
 
-                    if (!mkxp_sandbox::sandbox_serialize(extra_objects.size(), data, max_size)) return false;
+                    if (!mkxp_sandbox::sandbox_serialize((wasm_objkey_t)extra_objects.size(), data, max_size)) return false;
                 }
             }
 
