@@ -198,7 +198,8 @@ namespace mkxp_sandbox {
     }
 
     struct typenum_table_entry {
-        void (*destructor)(void *);
+        void (*destructor)(void *self);
+        bool (*serialize)(const void *self, void *&data, wasm_size_t &max_size);
     };
 
     extern const struct typenum_table_entry typenum_table[];
@@ -243,15 +244,15 @@ namespace mkxp_sandbox {
         };
 
         struct object {
-            // If this is a free object, this is 0.
-            // Otherwise, this is a number corresponding to the type of the object.
-            wasm_size_t typenum;
             // If this is a free object, the `next` field is the key of the next free object, or 0 if this is the last free object.
             // Otherwise, the `ptr` field is a pointer to the actual object.
             union inner {
                 wasm_size_t next;
                 void *ptr;
             } inner;
+            // If this is a free object, this is 0.
+            // Otherwise, this is a number corresponding to the type of the object.
+            wasm_size_t typenum;
 
             object(wasm_size_t typenum, void *ptr);
             object(const struct object &object) = delete;
@@ -316,14 +317,17 @@ namespace mkxp_sandbox {
             return sandbox_arycpy(instance(), dst_address, src, num_elements);
         }
 
+        // Returns a reference to all currently existing objects.
+        const std::vector<struct object> &get_objects() const noexcept;
+
         // Creates a new object and returns its key.
         wasm_objkey_t create_object(wasm_size_t typenum, void *ptr);
 
         // Gets the object with the given key.
-        void *get_object(wasm_objkey_t key);
+        void *get_object(wasm_objkey_t key) const;
 
         // Returns true if the typenum of the object with the given key matches the given typenum, otherwise false.
-        bool check_object_type(wasm_objkey_t key, wasm_size_t typenum);
+        bool check_object_type(wasm_objkey_t key, wasm_size_t typenum) const;
 
         // Destroys the object with the given key, calling its destructor and freeing its key for use by future objects.
         void destroy_object(wasm_objkey_t key);

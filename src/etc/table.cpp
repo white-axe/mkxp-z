@@ -28,6 +28,10 @@
 #include "exception.h"
 #include "util.h"
 
+#ifdef MKXPZ_RETRO
+#  include "sandbox-serial-util.h"
+#endif // MKXPZ_RETRO
+
 /* Init normally */
 Table::Table(int x, int y /*= 1*/, int z /*= 1*/)
     : xs(x), ys(y), zs(z),
@@ -161,3 +165,18 @@ Table *Table::deserialize(Exception &exception, const char *data, int len)
 
 	return t;
 }
+
+#ifdef MKXPZ_RETRO
+bool Table::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
+{
+	if (!mkxp_sandbox::sandbox_serialize((int32_t)xs, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize((int32_t)ys, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize((int32_t)zs, data, max_size)) return false;
+	if (xs * ys * zs != this->data.size()) std::abort();
+	if (max_size < this->data.size() * sizeof(int16_t)) return false;
+	memcpy(data, this->data.data(), this->data.size() * sizeof(int16_t));
+	data = (uint8_t *)data + this->data.size() * sizeof(int16_t);
+	max_size -= this->data.size() * sizeof(int16_t);
+	return true;
+}
+#endif // MKXPZ_RETRO

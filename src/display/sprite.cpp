@@ -43,6 +43,10 @@
 
 #include "sigslot/signal.hpp"
 
+#ifdef MKXPZ_RETRO
+#  include "sandbox-serial-util.h"
+#endif // MKXPZ_RETRO
+
 #define GUARD_V(value, expression) do { expression; if (exception.is_error()) return value; } while (0)
 #define GUARD(expression) GUARD_V(, expression)
 
@@ -851,3 +855,45 @@ void Sprite::releaseResources()
     
     delete p;
 }
+
+#ifdef MKXPZ_RETRO
+bool Sprite::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
+{
+    if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
+    if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
+
+    if (!mkxp_sandbox::sandbox_serialize(p->quad, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->trans, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->mirrored, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize((int32_t)p->bushDepth, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->efBushDepth, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->bushOpacity, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->opacity, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->blendType, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->patternBlendType, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->patternTile, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->patternOpacity, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->patternScroll, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->patternZoom, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->invert, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->sceneRect, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->sceneOrig, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->isVisible, data, max_size)) return false;
+
+    if (!mkxp_sandbox::sandbox_serialize((int32_t)p->wave.amp, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize((int32_t)p->wave.length, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize((int32_t)p->wave.speed, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->wave.phase, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->wave.qArray, data, max_size)) return false;
+
+    if (!sandbox_serialize_viewport_element(data, max_size)) return false;
+
+    if (!mkxp_sandbox::sandbox_serialize(p->bitmap, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->pattern, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->srcRect, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->color, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->tone, data, max_size)) return false;
+
+    return true;
+}
+#endif // MKXPZ_RETRO

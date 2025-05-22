@@ -22,6 +22,10 @@
 #include "scene.h"
 #include "sharedstate.h"
 
+#ifdef MKXPZ_RETRO
+#  include "sandbox-serial-util.h"
+#endif // MKXPZ_RETRO
+
 #define GUARD_V(value, expression) do { expression; if (exception.is_error()) return value; } while (0)
 #define GUARD(expression) GUARD_V(, expression)
 
@@ -203,3 +207,14 @@ void SceneElement::unlink()
 	if (scene)
 		scene->elements.remove(link);
 }
+
+#ifdef MKXPZ_RETRO
+bool SceneElement::sandbox_serialize_scene_element(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
+{
+	if (!mkxp_sandbox::sandbox_serialize((uint64_t)creationStamp, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize((int32_t)z, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(visible, data, max_size)) return false;
+
+	return true;
+}
+#endif // MKXPZ_REROO

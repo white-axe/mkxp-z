@@ -485,7 +485,7 @@
 
 namespace mkxp_sandbox {
     template <typename T> struct get_typenum;
-    static constexpr size_t _get_typenum_counter_start = __COUNTER__;
+    static constexpr wasm_size_t _get_typenum_counter_start = __COUNTER__;
     BOOST_PP_SEQ_FOR_EACH(_SANDBOX_DEF_GET_TYPENUM, _, SANDBOX_TYPENUM_TYPES);
 
     // We need these helper functions so that the arguments to `SANDBOX_AWAIT`/`SANDBOX_AWAIT_R`/`SANDBOX_AWAIT_S` are evaluated before `sb()->bind` is called instead of after.

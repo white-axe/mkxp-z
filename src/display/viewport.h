@@ -27,6 +27,10 @@
 #include "disposable.h"
 #include "util.h"
 
+#ifdef MKXPZ_RETRO
+#  include "wasm-types.h"
+#endif // MKXPZ_RETRO
+
 struct ViewportPrivate;
 
 class Viewport : public Scene, public SceneElement, public Flashable, public Disposable
@@ -46,6 +50,10 @@ public:
 	DECL_ATTR( Tone,  Tone&  )
 
 	void initDynAttribs();
+
+#ifdef MKXPZ_RETRO
+	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
+#endif // MXKPZ_RETRO
 
 private:
 	void initViewport(int x, int y, int width, int height);
@@ -74,6 +82,10 @@ public:
 	~ViewportElement();
 
 	DECL_ATTR_NOEXCEPT( Viewport,  Viewport* )
+
+#ifdef MKXPZ_RETRO
+	bool sandbox_serialize_viewport_element(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
+#endif // MXKPZ_RETRO
 
 protected:
 	virtual void onViewportChange() {}

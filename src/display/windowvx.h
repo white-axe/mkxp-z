@@ -27,6 +27,10 @@
 
 #include "util.h"
 
+#ifdef MKXPZ_RETRO
+#  include "wasm-types.h"
+#endif // MKXPZ_RETRO
+
 class Bitmap;
 struct Rect;
 struct Tone;
@@ -67,6 +71,10 @@ public:
 	DECL_ATTR( Tone,            Tone&   )
 
 	void initDynAttribs();
+
+#ifdef MKXPZ_RETRO
+	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
+#endif // MKXPZ_RETRO
 
 private:
 	WindowVXPrivate *p;

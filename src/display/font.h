@@ -29,6 +29,7 @@
 #ifdef MKXPZ_RETRO
 #  include <ft2build.h>
 #  include FT_FREETYPE_H
+#  include "wasm-types.h"
 #endif // MKXPZ_RETRO
 
 #include <vector>
@@ -147,6 +148,10 @@ public:
 	_TTF_Font *
 #endif // MKXPZ_RETRO
 	getSdlFont(Exception &exception);
+
+#ifdef MKXPZ_RETRO
+	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
+#endif // MKXPZ_RETRO
 
 private:
 	FontPrivate *p;

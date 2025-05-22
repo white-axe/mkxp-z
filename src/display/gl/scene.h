@@ -27,6 +27,10 @@
 #include "etc.h"
 #include "etc-internal.h"
 
+#ifdef MKXPZ_RETRO
+#  include "wasm-types.h"
+#endif // MKXPZ_RETRO
+
 class SceneElement;
 class Viewport;
 class WindowVX;
@@ -90,6 +94,10 @@ public:
 	DECL_ATTR_VIRT( Visible, bool )
 
 	virtual void aboutToAccess(Exception &exception) const = 0;
+
+#ifdef MKXPZ_RETRO
+	bool sandbox_serialize_scene_element(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
+#endif // MKXPZ_REROO
 
 protected:
 	/* A bit about OpenGL state:

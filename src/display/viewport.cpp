@@ -30,6 +30,10 @@
 
 #include "sigslot/signal.hpp"
 
+#ifdef MKXPZ_RETRO
+#  include "sandbox-serial-util.h"
+#endif // MKXPZ_RETRO
+
 #define GUARD_V(value, expression) do { expression; if (exception.is_error()) return value; } while (0)
 #define GUARD(expression) GUARD_V(, expression)
 
@@ -45,7 +49,7 @@ struct ViewportPrivate
 	Tone *tone;
 
 	IntRect screenRect;
-	int isOnScreen;
+	bool isOnScreen;
 
 	EtcTemps tmp;
 
@@ -225,6 +229,23 @@ void Viewport::releaseResources()
 	delete p;
 }
 
+#ifdef MKXPZ_RETRO
+bool Viewport::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
+{
+	if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
+	if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
+
+	if (!mkxp_sandbox::sandbox_serialize(p->screenRect, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->isOnScreen, data, max_size)) return false;
+	if (!sandbox_serialize_scene_element(data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->rect, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->color, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->tone, data, max_size)) return false;
+
+	return true;
+}
+#endif // MXKPZ_RETRO
+
 
 ViewportElement::ViewportElement(void (*dispose)(void *), Viewport *viewport, int z, int spriteY)
     : SceneElement(viewport ? *viewport : *shState->screen(), z, spriteY),
@@ -263,3 +284,13 @@ ViewportElement::~ViewportElement()
 {
 	viewportDispCon.disconnect();
 }
+
+#ifdef MKXPZ_RETRO
+bool ViewportElement::sandbox_serialize_viewport_element(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
+{
+	if (!sandbox_serialize_scene_element(data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(m_viewport, data, max_size)) return false;
+
+	return true;
+}
+#endif // MXKPZ_RETRO

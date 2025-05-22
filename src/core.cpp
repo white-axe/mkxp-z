@@ -27,6 +27,7 @@
 #include <tuple>
 
 #include <boost/optional.hpp>
+#include <boost/preprocessor/seq/for_each.hpp>
 #include <alc.h>
 #include <alext.h>
 #include <fluidsynth.h>
@@ -36,6 +37,7 @@
 
 #include "core.h"
 #include "binding-sandbox.h"
+#include "sandbox-serial-util.h"
 
 #include "al-util.h"
 #include "audio.h"
@@ -1555,17 +1557,25 @@ extern "C" RETRO_API size_t retro_serialize_size() {
 }
 
 #define RESERVE(bytes) do { \
-    if (len < (bytes)) { \
+    if (max_size < (bytes)) { \
         return false; \
     } \
 } while (0)
 
 #define ADVANCE(bytes) do { \
     data = (uint8_t *)data + (bytes); \
-    len -= (bytes); \
+    max_size -= (bytes); \
 } while (0)
 
+#define OBJECTS_BEGIN_DETAIL(_r, _data, T) sandbox_ptr_map<T>::sandbox_serialize_begin();
+#define OBJECTS_BEGIN do { BOOST_PP_SEQ_FOR_EACH(OBJECTS_BEGIN_DETAIL, _, SANDBOX_TYPENUM_TYPES) } while (0)
+#define OBJECTS_END_DETAIL(_r, _data, T) sandbox_ptr_map<T>::sandbox_serialize_end();
+#define OBJECTS_END do { BOOST_PP_SEQ_FOR_EACH(OBJECTS_END_DETAIL, _, SANDBOX_TYPENUM_TYPES) } while (0)
+#define OBJECTS_END_FAIL do { OBJECTS_END; return false; } while (0)
+
 extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
+    wasm_size_t max_size = len;
+
     // Write 4-byte magic number: "MKXP" for big-endian platforms, "mkxp" for little-endian platforms
     RESERVE(4);
 #ifdef MKXPZ_BIG_ENDIAN
@@ -1576,21 +1586,16 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     ADVANCE(4);
 
     // Write 4-byte version: 1
-    RESERVE(sizeof(uint32_t));
-    *(uint32_t *)data = 1;
-    ADVANCE(sizeof(uint32_t));
+    if (!sandbox_serialize((uint32_t)1, data, max_size)) return false;
+
+    // TODO: write the three mutable sandbox globals
 
     // Write the capacity of the VM memory
-    RESERVE(sizeof(wasm_size_t));
-    *(wasm_size_t *)data = sb()->memory_capacity();
-    ADVANCE(sizeof(wasm_size_t));
+    if (!sandbox_serialize(sb()->memory_capacity(), data, max_size)) return false;
 
     {
         // Write the size of the VM memory
-        RESERVE(sizeof(wasm_size_t));
         wasm_size_t memory_size = sb()->memory_size();
-        *(wasm_size_t *)data = memory_size;
-        ADVANCE(sizeof(wasm_size_t));
 
         // Write the VM memory itself
         RESERVE(memory_size);
@@ -1599,41 +1604,75 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     }
 
     // Write the number of sandbox fibers
-    RESERVE(sizeof(wasm_size_t));
-    *(wasm_size_t *)data = sb()->get_fibers().size();
-    ADVANCE(sizeof(wasm_size_t));
+    if (!sandbox_serialize((wasm_size_t)sb()->get_fibers().size(), data, max_size)) return false;
 
     for (const auto &fiber : sb()->get_fibers()) {
         // Write the key of the fiber
-        RESERVE(sizeof(wasm_ptr_t));
-        *(wasm_ptr_t *)data = std::get<0>(fiber.first);
-        ADVANCE(sizeof(wasm_ptr_t));
-        RESERVE(sizeof(wasm_ptr_t));
-        *(wasm_ptr_t *)data = std::get<1>(fiber.first);
-        ADVANCE(sizeof(wasm_ptr_t));
-        RESERVE(sizeof(wasm_ptr_t));
-        *(wasm_ptr_t *)data = std::get<2>(fiber.first);
-        ADVANCE(sizeof(wasm_ptr_t));
+        if (!sandbox_serialize(std::get<0>(fiber.first), data, max_size)) return false;
+        if (!sandbox_serialize(std::get<1>(fiber.first), data, max_size)) return false;
+        if (!sandbox_serialize(std::get<2>(fiber.first), data, max_size)) return false;
 
         // Write the stack index of the fiber
-        RESERVE(sizeof(wasm_size_t));
-        *(wasm_size_t *)data = fiber.second.stack_index;
-        ADVANCE(sizeof(wasm_size_t));
+        if (!sandbox_serialize(fiber.second.stack_index, data, max_size)) return false;
 
         // Write the number of frames in the fiber
-        RESERVE(sizeof(wasm_size_t));
-        *(wasm_size_t *)data = fiber.second.get_stack().size();
-        ADVANCE(sizeof(wasm_size_t));
+        if (!sandbox_serialize((wasm_size_t)fiber.second.get_stack().size(), data, max_size)) return false;
 
         // Write the state of each frame
         for (const auto &frame : fiber.second.get_stack()) {
-            RESERVE(sizeof(int32_t));
-            *(int32_t *)data = (int32_t)frame;
-            ADVANCE(sizeof(int32_t));
+            if (!sandbox_serialize((int32_t)frame, data, max_size)) return false;
         }
     }
 
-    std::memset(data, 0, len);
+    // TODO: write the frame count, frame time, etc., and the state of the various shared values in the sandbox, such as `trans_map` and `bitmap_pixel_buffer`
+
+    // TODO: write the file descriptor table
+
+    // Write each object
+    OBJECTS_BEGIN;
+    wasm_size_t num_free_objects = 0;
+    for (const auto &object : sb()->get_objects()) {
+        if (object.typenum == 0) {
+            ++num_free_objects;
+        } else if (object.typenum > SANDBOX_NUM_TYPENUMS) {
+            std::abort();
+        } else {
+            if (num_free_objects > 0) {
+                if (!sandbox_serialize((wasm_size_t)0, data, max_size)) OBJECTS_END_FAIL;
+                if (!sandbox_serialize(num_free_objects, data, max_size)) OBJECTS_END_FAIL;
+                num_free_objects = 0;
+            }
+            if (!sandbox_serialize(object.typenum, data, max_size)) OBJECTS_END_FAIL;
+            if (!typenum_table[object.typenum - 1].serialize(object.inner.ptr, data, max_size)) OBJECTS_END_FAIL;
+        }
+    }
+    if (num_free_objects > 0) {
+        if (!sandbox_serialize((wasm_size_t)0, data, max_size)) OBJECTS_END_FAIL;
+        if (!sandbox_serialize(num_free_objects, data, max_size)) OBJECTS_END_FAIL;
+        num_free_objects = 0;
+    }
+
+    // Write each extra object that was found during serialization of the normal objects
+    for (size_t i = 0; i < extra_objects.size(); ++i) { // More items can be added to this vector during iteration
+        const void *ptr = std::get<0>(extra_objects[i]);
+        wasm_size_t typenum = std::get<1>(extra_objects[i]);
+        if (typenum == 0) {
+            std::abort();
+        } else if (typenum > SANDBOX_NUM_TYPENUMS) {
+            std::abort();
+        } else {
+            if (!sandbox_serialize(typenum, data, max_size)) OBJECTS_END_FAIL;
+            if (!typenum_table[typenum - 1].serialize(ptr, data, max_size)) OBJECTS_END_FAIL;
+        }
+    }
+    if (num_free_objects > 0) {
+        if (!sandbox_serialize((wasm_size_t)0, data, max_size)) OBJECTS_END_FAIL;
+        if (!sandbox_serialize(num_free_objects, data, max_size)) OBJECTS_END_FAIL;
+        num_free_objects = 0;
+    }
+
+    OBJECTS_END;
+    std::memset(data, 0, max_size);
     return true;
 }
 

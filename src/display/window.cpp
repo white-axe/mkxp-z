@@ -36,6 +36,10 @@
 
 #include "sigslot/signal.hpp"
 
+#ifdef MKXPZ_RETRO
+#  include "sandbox-serial-util.h"
+#endif // MKXPZ_RETRO
+
 #define GUARD_V(value, expression) do { expression; if (exception.is_error()) return value; } while (0)
 #define GUARD(expression) GUARD_V(, expression)
 
@@ -945,3 +949,37 @@ void Window::releaseResources()
 
 	delete p;
 }
+
+#ifdef MKXPZ_RETRO
+bool Window::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
+{
+	if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
+	if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
+
+	if (!mkxp_sandbox::sandbox_serialize(p->bgStretch, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->active, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->pause, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->sceneOffset, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->position, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->size, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->contentsOffset, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->opacity, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->backOpacity, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->contentsOpacity, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->baseQuadArray, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->useBaseTex, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->baseTexQuad, data, max_size)) return false;
+	if (!p->controlsElement.sandbox_serialize_viewport_element(data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->controlsQuadArray, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->contentsQuad, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->cursorAniAlphaIdx, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->pauseAniAlphaIdx, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->pauseAniQuadIdx, data, max_size)) return false;
+	if (!sandbox_serialize_viewport_element(data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->windowskin, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->contents, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->cursorRect, data, max_size)) return false;
+
+	return true;
+}
+#endif // MKXPZ_RETRO

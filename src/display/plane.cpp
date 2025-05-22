@@ -38,6 +38,10 @@
 
 #include "sigslot/signal.hpp"
 
+#ifdef MKXPZ_RETRO
+#  include "sandbox-serial-util.h"
+#endif // MKXPZ_RETRO
+
 #define GUARD_V(value, expression) do { expression; if (exception.is_error()) return value; } while (0)
 #define GUARD(expression) GUARD_V(, expression)
 
@@ -345,3 +349,27 @@ void Plane::releaseResources()
 
 	delete p;
 }
+
+#ifdef MKXPZ_RETRO
+bool Plane::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
+{
+	if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
+	if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
+
+	if (!mkxp_sandbox::sandbox_serialize(p->opacity, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->blendType, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize((int32_t)p->ox, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize((int32_t)p->oy, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->zoomX, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->zoomY, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->sceneGeo, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->quadSourceDirty, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->qArray, data, max_size)) return false;
+	if (!sandbox_serialize_viewport_element(data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->bitmap, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->color, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->tone, data, max_size)) return false;
+
+	return true;
+}
+#endif // MKXPZ_RETRO

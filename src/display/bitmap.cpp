@@ -27,6 +27,7 @@
 #  include <pixman-region/pixman-region.h>
 #  include FT_STROKER_H
 #  include "mkxp-polyfill.h" // std::lround
+#  include "sandbox-serial-util.h"
 #else
 #  include <SDL.h>
 #  include <SDL_image.h>
@@ -267,6 +268,10 @@ struct BitmapPrivate
     Bitmap *selfHires;
     Bitmap *selfLores;
     bool assumingRubyGC;
+
+#ifdef MKXPZ_RETRO
+    std::string path;
+#endif // MKXPZ_RETRO
     
     BitmapPrivate(Bitmap *self)
     : self(self),
@@ -284,6 +289,7 @@ struct BitmapPrivate
         animation.height = 0;
         animation.enabled = false;
         animation.playing = false;
+        animation.needsReset = false;
         animation.loop = true;
         animation.playTime = 0;
         animation.startTime = 0;
@@ -680,6 +686,9 @@ Bitmap::Bitmap(Exception &exception, const char *filename)
         }
         
         p = new BitmapPrivate(this);
+#ifdef MKXPZ_RETRO
+        p->path = filename;
+#endif // MKXPZ_RETRO
         
         p->selfHires = hiresBitmap;
         
@@ -777,6 +786,9 @@ Bitmap::Bitmap(Exception &exception, const char *filename)
     SDL_Surface *imgSurf = handler.surface;
 #endif // MKXPZ_RETRO
     GUARD(initFromSurface(exception, imgSurf, hiresBitmap, false));
+#ifdef MKXPZ_RETRO
+    p->path = filename;
+#endif // MKXPZ_RETRO
 }
 
 Bitmap::Bitmap(Exception &exception, int width, int height, bool isHires)
@@ -898,6 +910,9 @@ Bitmap::Bitmap(Exception &exception, const Bitmap &other, int frame)
     }
 
     p = new BitmapPrivate(this);
+#ifdef MKXPZ_RETRO
+    p->path = other.p->path;
+#endif // MKXPZ_RETRO
     
     // TODO: Clean me up
     if (!other.isAnimated() || frame >= -1) {
@@ -3373,3 +3388,45 @@ void Bitmap::loresDisposal()
     loresDispCon.disconnect();
     dispose();
 }
+
+#ifdef MKXPZ_RETRO
+bool Bitmap::_sandbox_serialize_inner(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
+{
+    if (!mkxp_sandbox::sandbox_serialize((int32_t)width(), data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize((int32_t)height(), data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->animation.enabled, data, max_size)) return false;
+
+    if (p->animation.enabled) {
+        if (!mkxp_sandbox::sandbox_serialize(p->animation.fps, data, max_size)) return false;
+        if (!mkxp_sandbox::sandbox_serialize(p->animation.playing, data, max_size)) return false;
+        if (!mkxp_sandbox::sandbox_serialize(p->animation.needsReset, data, max_size)) return false;
+        if (!mkxp_sandbox::sandbox_serialize(p->animation.loop, data, max_size)) return false;
+        if (!mkxp_sandbox::sandbox_serialize(p->animation.lastFrame, data, max_size)) return false;
+        if (!mkxp_sandbox::sandbox_serialize(p->animation.playTime, data, max_size)) return false;
+        if (!mkxp_sandbox::sandbox_serialize(p->animation.startTime, data, max_size)) return false;
+    }
+
+    if (!mkxp_sandbox::sandbox_serialize(p->path, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->font, data, max_size)) return false;
+
+    // TODO: serialize bitmap pixels
+
+    return true;
+}
+
+bool Bitmap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
+{
+    if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
+    if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
+
+    if (!mkxp_sandbox::sandbox_serialize(p->selfHires != nullptr, data, max_size)) return false;
+
+    if (p->selfHires != nullptr) {
+        if (!p->selfHires->_sandbox_serialize_inner(data, max_size)) return false;
+    }
+
+    if (!_sandbox_serialize_inner(data, max_size)) return false;
+
+    return true;
+}
+#endif // MKXPZ_RETRO

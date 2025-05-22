@@ -39,7 +39,9 @@
 #include "filesystem/filesystem.h"
 #endif
 
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+#  include "sandbox-serial-util.h"
+#else
 #  include <SDL_ttf.h>
 #endif // MKXPZ_RETRO
 
@@ -687,3 +689,19 @@ Font::getSdlFont(Exception &exception)
 
 	return p->sdlFont;
 }
+
+#ifdef MKXPZ_RETRO
+bool Font::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
+{
+	if (!mkxp_sandbox::sandbox_serialize((int32_t)p->size, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->bold, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->italic, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->outline, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->shadow, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->name, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->color, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->outColor, data, max_size)) return false;
+
+	return true;
+}
+#endif // MKXPZ_RETRO

@@ -40,6 +40,10 @@
 #include <vector>
 #include "sigslot/signal.hpp"
 
+#ifdef MKXPZ_RETRO
+#  include "sandbox-serial-util.h"
+#endif // MKXPZ_RETRO
+
 #define GUARD_V(value, expression) do { expression; if (exception.is_error()) return value; } while (0)
 #define GUARD(expression) GUARD_V(, expression)
 
@@ -610,3 +614,35 @@ void TilemapVX::releaseResources()
 	delete p;
 	bmProxy.p = 0;
 }
+
+#ifdef MKXPZ_RETRO
+bool TilemapVX::BitmapArray::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
+{
+	return true;
+}
+
+bool TilemapVX::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
+{
+	if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
+	if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
+
+	if (!mkxp_sandbox::sandbox_serialize(p->origin, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->dispPos, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->groundVert, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->aboveVert, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize((mkxp_sandbox::wasm_size_t)p->allocQuads, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize((mkxp_sandbox::wasm_size_t)p->groundQuads, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize((mkxp_sandbox::wasm_size_t)p->aboveQuads, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->frameIdx, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->aniOffset, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->flashAlphaIdx, data, max_size)) return false;
+	if (!p->above.sandbox_serialize_viewport_element(data, max_size)) return false;
+	if (!p->sandbox_serialize_viewport_element(data, max_size)) return false;
+	for (size_t i = 0; i < BM_COUNT; ++i)
+		if (!mkxp_sandbox::sandbox_serialize(p->bitmaps[i], data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->mapData, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->flashMap.getData(), data, max_size)) return false;
+
+	return true;
+}
+#endif // MKXPZ_RETRO

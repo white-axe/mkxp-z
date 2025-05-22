@@ -11,6 +11,7 @@ global_sources += files(
     'module_rpg.cpp',
     'plane-binding.cpp',
     'sandbox.cpp',
+    'sandbox-serial-util.cpp',
     'sprite-binding.cpp',
     'table-binding.cpp',
     'tilemap-binding.cpp',

@@ -26,6 +26,10 @@
 
 #include "util.h"
 
+#ifdef MKXPZ_RETRO
+#  include "wasm-types.h"
+#endif // MKXPZ_RETRO
+
 class Viewport;
 class Bitmap;
 class Table;
@@ -43,6 +47,10 @@ public:
 	public:
 		void set(int i, Bitmap *bitmap);
 		Bitmap *get(int i) const;
+
+#ifdef MKXPZ_RETRO
+		bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
+#endif // MKXPZ_RETRO
 
 	private:
 		Autotiles() {}
@@ -75,6 +83,10 @@ public:
 	DECL_ATTR( Tone,      Tone&   )
 
 	void initDynAttribs();
+
+#ifdef MKXPZ_RETRO
+	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
+#endif // MKXPZ_RETRO
 
 private:
 	TilemapPrivate *p;

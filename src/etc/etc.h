@@ -28,6 +28,7 @@
 #include "etc-internal.h"
 
 #ifdef MKXPZ_RETRO
+#  include "wasm-types.h"
 struct SDL_Color
 {
 	uint8_t r;
@@ -91,6 +92,10 @@ struct Color : public Serializable
 
 	SDL_Color toSDLColor() const;
 
+#ifdef MKXPZ_RETRO
+	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
+#endif // MKXPZ_RETRO
+
 	/* Range (0.0 ~ 255.0) */
 	double red;
 	double green;
@@ -142,6 +147,10 @@ struct Tone : public Serializable
 				(int)blue  != 0 ||
 				(int)gray  != 0);
 	}
+
+#ifdef MKXPZ_RETRO
+	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
+#endif // MKXPZ_RETRO
 
 	/* Range (-255.0 ~ 255.0) */
 	double red;
@@ -201,6 +210,10 @@ struct Rect : public Serializable
 	{
 		return IntRect(x, y, width, height);
 	}
+
+#ifdef MKXPZ_RETRO
+	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
+#endif // MKXPZ_RETRO
 
 	int x;
 	int y;

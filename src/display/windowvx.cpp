@@ -36,6 +36,10 @@
 #include <algorithm>
 #include "sigslot/signal.hpp"
 
+#ifdef MKXPZ_RETRO
+#  include "sandbox-serial-util.h"
+#endif // MKXPZ_RETRO
+
 #define DEF_Z         (rgssVer >= 3 ? 100 :   0)
 #define DEF_PADDING   (rgssVer >= 3 ?  12 :  16)
 #define DEF_BACK_OPAC (rgssVer >= 3 ? 192 : 255)
@@ -1158,3 +1162,46 @@ void WindowVX::releaseResources()
 
 	delete p;
 }
+
+#ifdef MKXPZ_RETRO
+bool WindowVX::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
+{
+	if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
+	if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
+
+	if (!mkxp_sandbox::sandbox_serialize(p->active, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->arrowsVisible, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->pause, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize((int32_t)p->width, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize((int32_t)p->height, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->geo, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->contentsOff, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize((int32_t)p->padding, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize((int32_t)p->paddingBottom, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->opacity, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->backOpacity, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->contentsOpacity, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->openness, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->ctrlVert, data, max_size)) return false;
+
+	if (!mkxp_sandbox::sandbox_serialize(p->pauseVert != nullptr, data, max_size)) return false;
+	if (p->pauseVert != nullptr)
+		if (!mkxp_sandbox::sandbox_serialize(*p->pauseVert, data, max_size)) return false;
+
+	if (!mkxp_sandbox::sandbox_serialize(p->contentsQuad, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->padRect, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->clipRect, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->cursorVert, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->pauseAlphaIdx, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->pauseQuadIdx, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->cursorAlphaIdx, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->sceneOffset, data, max_size)) return false;
+	if (!sandbox_serialize_viewport_element(data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->windowskin, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->contents, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->cursorRect, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->tone, data, max_size)) return false;
+
+	return true;
+}
+#endif // MKXPZ_RETRO
