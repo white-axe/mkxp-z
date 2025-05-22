@@ -3401,7 +3401,7 @@ bool Bitmap::_sandbox_serialize_inner(void *&data, mkxp_sandbox::wasm_size_t &ma
         if (!mkxp_sandbox::sandbox_serialize(p->animation.playing, data, max_size)) return false;
         if (!mkxp_sandbox::sandbox_serialize(p->animation.needsReset, data, max_size)) return false;
         if (!mkxp_sandbox::sandbox_serialize(p->animation.loop, data, max_size)) return false;
-        if (!mkxp_sandbox::sandbox_serialize(p->animation.lastFrame, data, max_size)) return false;
+        if (!mkxp_sandbox::sandbox_serialize((int32_t)p->animation.lastFrame, data, max_size)) return false;
         if (!mkxp_sandbox::sandbox_serialize(p->animation.playTime, data, max_size)) return false;
         if (!mkxp_sandbox::sandbox_serialize(p->animation.startTime, data, max_size)) return false;
     }
