@@ -79,14 +79,14 @@ namespace mkxp_sandbox {
             using namespace mkxp_sandbox;
 
             if (ptr == nullptr) {
-                if (!mkxp_sandbox::sandbox_serialize((uint32_t)2, data, max_size)) return false;
+                if (!mkxp_sandbox::sandbox_serialize((uint8_t)2, data, max_size)) return false;
             } else {
                 const auto &it = map.find(ptr);
                 if (it != map.end()) {
-                    if (!mkxp_sandbox::sandbox_serialize((uint32_t)(it->second.is_extra ? 1 : 0), data, max_size)) return false;
+                    if (!mkxp_sandbox::sandbox_serialize((uint8_t)(it->second.is_extra ? 1 : 0), data, max_size)) return false;
                     if (!mkxp_sandbox::sandbox_serialize(it->second.key, data, max_size)) return false;
                 } else {
-                    if (!mkxp_sandbox::sandbox_serialize((uint32_t)1, data, max_size)) return false;
+                    if (!mkxp_sandbox::sandbox_serialize((uint8_t)1, data, max_size)) return false;
 
                     constexpr wasm_size_t typenum = get_typenum<T>::value;
                     extra_objects.emplace_back((const void *)ptr, typenum);

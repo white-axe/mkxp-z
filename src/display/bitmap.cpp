@@ -3392,6 +3392,9 @@ void Bitmap::loresDisposal()
 #ifdef MKXPZ_RETRO
 bool Bitmap::_sandbox_serialize_inner(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
+    if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
+    if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
+
     if (!mkxp_sandbox::sandbox_serialize((int32_t)width(), data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize((int32_t)height(), data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->animation.enabled, data, max_size)) return false;
@@ -3416,9 +3419,6 @@ bool Bitmap::_sandbox_serialize_inner(void *&data, mkxp_sandbox::wasm_size_t &ma
 
 bool Bitmap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
-    if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
-    if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
-
     if (!mkxp_sandbox::sandbox_serialize(p->selfHires != nullptr, data, max_size)) return false;
 
     if (p->selfHires != nullptr) {
