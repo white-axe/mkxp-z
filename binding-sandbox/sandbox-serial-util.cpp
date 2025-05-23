@@ -118,6 +118,14 @@ template <> bool mkxp_sandbox::sandbox_serialize(double value, void *&data, wasm
     return true;
 }
 
+template <> bool mkxp_sandbox::sandbox_serialize(const char *value, void *&data, wasm_size_t &max_size) {
+    wasm_size_t size = std::strlen(value) + 1;
+    RESERVE(size);
+    std::memcpy(data, value, size);
+    ADVANCE(size);
+    return true;
+}
+
 template <> bool mkxp_sandbox::sandbox_serialize(const std::string &value, void *&data, wasm_size_t &max_size) {
     wasm_size_t size = value.length() + 1;
     RESERVE(size);

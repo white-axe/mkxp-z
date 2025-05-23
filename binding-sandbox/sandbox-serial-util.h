@@ -40,6 +40,7 @@ namespace mkxp_sandbox {
     template <typename T> typename std::enable_if<!std::is_same<T, bool>::value && !std::is_enum<T>::value && (std::is_integral<T>::value || std::is_floating_point<T>::value), bool>::type sandbox_serialize(T value, void *&data, wasm_size_t &max_size);
     template <typename T> bool sandbox_serialize(const std::vector<T> &value, void *&data, wasm_size_t &max_size);
     template <typename T> bool sandbox_serialize(const QuadArray<T> &value, void *&data, wasm_size_t &max_size);
+    template <typename T> typename std::enable_if<std::is_same<T, char>::value, bool>::type sandbox_serialize(const T *value, void *&data, wasm_size_t &max_size);
     template <typename T> typename std::enable_if<std::is_class<T>::value, bool>::type sandbox_serialize(const T *value, void *&data, wasm_size_t &max_size);
     template <typename T> typename std::enable_if<std::is_class<T>::value && boost::is_detected<sandbox_serialize_member_declaration, T>::value, bool>::type sandbox_serialize(const T &value, void *&data, wasm_size_t &max_size);
     template <typename T> typename std::enable_if<std::is_class<T>::value && !boost::is_detected<sandbox_serialize_member_declaration, T>::value, bool>::type sandbox_serialize(const T &value, void *&data, wasm_size_t &max_size);

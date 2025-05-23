@@ -575,6 +575,7 @@ struct Movie
         if (baseTicks != (uint64_t)-1) {
             if (!mkxp_sandbox::sandbox_serialize(baseTicks, data, max_size)) return false;
             if (!mkxp_sandbox::sandbox_serialize(currentTicks, data, max_size)) return false;
+            if (!mkxp_sandbox::sandbox_serialize(srcOps->path(), data, max_size)) return false;
         }
 
         return true;
