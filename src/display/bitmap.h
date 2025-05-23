@@ -197,7 +197,6 @@ public:
     void assumeRubyGC();
 
 #ifdef MKXPZ_RETRO
-	bool _sandbox_serialize_inner(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
 	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
 #endif // MKXPZ_RETRO
 

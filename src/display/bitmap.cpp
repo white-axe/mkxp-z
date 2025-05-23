@@ -3390,7 +3390,7 @@ void Bitmap::loresDisposal()
 }
 
 #ifdef MKXPZ_RETRO
-bool Bitmap::_sandbox_serialize_inner(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
+bool Bitmap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
     if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
     if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
@@ -3411,21 +3411,10 @@ bool Bitmap::_sandbox_serialize_inner(void *&data, mkxp_sandbox::wasm_size_t &ma
 
     if (!mkxp_sandbox::sandbox_serialize(p->path, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->font, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->selfHires, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->selfLores, data, max_size)) return false;
 
     // TODO: serialize bitmap pixels
-
-    return true;
-}
-
-bool Bitmap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
-{
-    if (!mkxp_sandbox::sandbox_serialize(p->selfHires != nullptr, data, max_size)) return false;
-
-    if (p->selfHires != nullptr) {
-        if (!p->selfHires->_sandbox_serialize_inner(data, max_size)) return false;
-    }
-
-    if (!_sandbox_serialize_inner(data, max_size)) return false;
 
     return true;
 }
