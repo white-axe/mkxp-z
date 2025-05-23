@@ -1624,7 +1624,15 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         }
     }
 
-    // TODO: write the frame count, frame time, etc., and the state of the various shared values in the sandbox, such as `trans_map` and `bitmap_pixel_buffer`
+    if (!sandbox_serialize(frame_count, data, max_size)) return false;
+    if (!sandbox_serialize(frame_time.load_relaxed(), data, max_size)) return false;
+    if (!sandbox_serialize(frame_time_remainder, data, max_size)) return false;
+    if (!sandbox_serialize(retro_run_count, data, max_size)) return false;
+    if (!sandbox_serialize(sb().transitioning, data, max_size)) return false;
+    if (!sandbox_serialize(sb().trans_map != nullptr, data, max_size)) return false;
+    if (sb().trans_map != nullptr) {
+        if (!sandbox_serialize(*sb().trans_map, data, max_size)) return false;
+    }
 
     // TODO: write the file descriptor table
 
