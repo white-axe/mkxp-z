@@ -1624,6 +1624,7 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         }
     }
 
+    // Write the sandbox state
     if (!sandbox_serialize(frame_count, data, max_size)) return false;
     if (!sandbox_serialize(frame_time.load_relaxed(), data, max_size)) return false;
     if (!sandbox_serialize(frame_time_remainder, data, max_size)) return false;
@@ -1632,6 +1633,10 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     if (!sandbox_serialize(sb().trans_map != nullptr, data, max_size)) return false;
     if (sb().trans_map != nullptr) {
         if (!sandbox_serialize(*sb().trans_map, data, max_size)) return false;
+    }
+    if (!sandbox_serialize(sb().get_movie_from_main_thread() != nullptr, data, max_size)) return false;
+    if (sb().get_movie_from_main_thread() != nullptr) {
+        if (!Graphics::sandbox_serialize_movie(sb().get_movie_from_main_thread(), data, max_size)) return false;
     }
 
     // TODO: write the file descriptor table

@@ -48,6 +48,7 @@
 #ifdef MKXPZ_RETRO
 #  include <memory>
 #  include "mkxp-polyfill.h"
+#  include "sandbox-serial-util.h"
 #else
 #  include <SDL.h>
 #  include <SDL_image.h>
@@ -565,6 +566,20 @@ struct Movie
         if (decoder) THEORAPLAY_stopDecode(decoder);
         delete videoBitmap;
     }
+
+#ifdef MKXPZ_RETRO
+    bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
+    {
+        if (!mkxp_sandbox::sandbox_serialize(baseTicks != (uint64_t)-1, data, max_size)) return false;
+
+        if (baseTicks != (uint64_t)-1) {
+            if (!mkxp_sandbox::sandbox_serialize(baseTicks, data, max_size)) return false;
+            if (!mkxp_sandbox::sandbox_serialize(currentTicks, data, max_size)) return false;
+        }
+
+        return true;
+    }
+#endif // MKXPZ_RETRO
 };
 
 struct MovieOpenHandler : FileSystem::OpenHandler
@@ -1910,6 +1925,15 @@ void Graphics::stopMovie(Movie *movie) {
 bool Graphics::streamMovieAudioProc(Movie *movie) {
     return movie->streamMovieAudioProc();
 }
+
+#ifdef MKXPZ_RETRO
+bool Graphics::sandbox_serialize_movie(const Movie *movie, void *&data, mkxp_sandbox::wasm_size_t &max_size) {
+    if (movie == nullptr) {
+        return false;
+    }
+    return movie->sandbox_serialize(data, max_size);
+}
+#endif // MKXPZ_RETRO
 
 void Graphics::screenshot(Exception &exception, const char *filename) {
 #ifndef MKXPZ_RETRO
