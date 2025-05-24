@@ -40,7 +40,7 @@ MKXP_SANDBOX_API struct __rb_wasm_asyncify_jmp_buf mkxp_sandbox_async_buf;
 MKXP_SANDBOX_API void (*mkxp_sandbox_fiber_entry_point)(void *, void *) = NULL;
 MKXP_SANDBOX_API void *mkxp_sandbox_fiber_arg0 = NULL;
 MKXP_SANDBOX_API void *mkxp_sandbox_fiber_arg1 = NULL;
-MKXP_SANDBOX_API char *mkxp_sandbox_cwd[PATH_MAX] = {0};
+MKXP_SANDBOX_API char mkxp_sandbox_cwd[PATH_MAX] = {0};
 
 /* This function should be called immediately after initializing the sandbox to perform initialization, before calling any other functions.
  * The arguments to this function are the Ruby GC parameters.
