@@ -219,7 +219,10 @@ namespace mkxp_sandbox {
             struct stack_frame &operator=(struct stack_frame &&frame) noexcept;
             ~stack_frame();
             inline operator int32_t() const noexcept {
-                return (int32_t)(boost::asio::detail::coroutine_ref)(boost::asio::coroutine *)coroutine;
+                boost::asio::detail::coroutine_ref ref = (boost::asio::coroutine *)coroutine;
+                int result = ref;
+                ref = result; // Prevents the destructor of `boost::asio::detail::coroutine_ref` from messing up the coroutine state
+                return (int32_t)result;
             }
             inline void operator=(int32_t value) noexcept {
                 (boost::asio::detail::coroutine_ref)(boost::asio::coroutine *)coroutine = (int)value;
