@@ -1588,8 +1588,6 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     // Write 4-byte version: 1
     if (!sandbox_serialize((uint32_t)1, data, max_size)) return false;
 
-    // TODO: write the three mutable sandbox globals
-
     // Write the capacity of the VM memory
     if (!sandbox_serialize(sb()->memory_capacity(), data, max_size)) return false;
 
@@ -1601,6 +1599,24 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         RESERVE(memory_size);
         sb()->copy_memory_to(data);
         ADVANCE(memory_size);
+    }
+
+    // Write the sandbox state
+    if (!sandbox_serialize(sb()->get_machine_stack_pointer(), data, max_size)) return false;
+    if (!sandbox_serialize(sb()->get_asyncify_state(), data, max_size)) return false;
+    if (!sandbox_serialize(sb()->get_asyncify_data(), data, max_size)) return false;
+    if (!sandbox_serialize(frame_count, data, max_size)) return false;
+    if (!sandbox_serialize(frame_time.load_relaxed(), data, max_size)) return false;
+    if (!sandbox_serialize(frame_time_remainder, data, max_size)) return false;
+    if (!sandbox_serialize(retro_run_count, data, max_size)) return false;
+    if (!sandbox_serialize(sb().transitioning, data, max_size)) return false;
+    if (!sandbox_serialize(sb().trans_map != nullptr, data, max_size)) return false;
+    if (sb().trans_map != nullptr) {
+        if (!sandbox_serialize(*sb().trans_map, data, max_size)) return false;
+    }
+    if (!sandbox_serialize(sb().get_movie_from_main_thread() != nullptr, data, max_size)) return false;
+    if (sb().get_movie_from_main_thread() != nullptr) {
+        if (!Graphics::sandbox_serialize_movie(sb().get_movie_from_main_thread(), data, max_size)) return false;
     }
 
     // Write the number of sandbox fibers
@@ -1622,21 +1638,6 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         for (const auto &frame : fiber.second.get_stack()) {
             if (!sandbox_serialize((int32_t)frame, data, max_size)) return false;
         }
-    }
-
-    // Write the sandbox state
-    if (!sandbox_serialize(frame_count, data, max_size)) return false;
-    if (!sandbox_serialize(frame_time.load_relaxed(), data, max_size)) return false;
-    if (!sandbox_serialize(frame_time_remainder, data, max_size)) return false;
-    if (!sandbox_serialize(retro_run_count, data, max_size)) return false;
-    if (!sandbox_serialize(sb().transitioning, data, max_size)) return false;
-    if (!sandbox_serialize(sb().trans_map != nullptr, data, max_size)) return false;
-    if (sb().trans_map != nullptr) {
-        if (!sandbox_serialize(*sb().trans_map, data, max_size)) return false;
-    }
-    if (!sandbox_serialize(sb().get_movie_from_main_thread() != nullptr, data, max_size)) return false;
-    if (sb().get_movie_from_main_thread() != nullptr) {
-        if (!Graphics::sandbox_serialize_movie(sb().get_movie_from_main_thread(), data, max_size)) return false;
     }
 
     // Write the open WASI file descriptors

@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <tuple>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
@@ -475,6 +476,13 @@ namespace mkxp_sandbox {
         inline const std::unordered_map<key_t, struct fiber, boost::hash<key_t>> &get_fibers() const noexcept {
             return fibers;
         }
+
+        wasm_ptr_t get_machine_stack_pointer() const noexcept;
+        void set_machine_stack_pointer(wasm_ptr_t) noexcept;
+        uint8_t get_asyncify_state() const noexcept;
+        void set_asyncify_state(uint8_t) noexcept;
+        wasm_ptr_t get_asyncify_data() const noexcept;
+        void set_asyncify_data(wasm_ptr_t) noexcept;
     };
 }
 

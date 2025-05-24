@@ -34,6 +34,7 @@ LIBDIR := $(BUILD_PREFIX)/lib
 DOWNLOADS := $(BUILD_PREFIX)/downloads
 RUBY := $(LIBDIR)/bin/ruby
 WASM2C := $(LIBDIR)/bin/wasm2c
+INDEXER := $(LIBDIR)/bin/indexer
 CLONE := $(GIT) clone -q --depth 1
 GITHUB := https://github.com
 WASI_CC := $(WASI_SDK)/bin/clang
@@ -46,7 +47,7 @@ WASI_TOOLCHAIN := CC=$(WASI_CC) CXX=$(WASI_CXX) LD=$(WASI_LD) AR=$(WASI_AR) RANL
 
 all default: ruby-dist ruby-bindings
 
-ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby_0.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_1.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_2.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_3.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_4.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_5.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_6.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_7.c
+ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h $(OUTDIR)/ruby/mkxp-sandbox-ruby_0.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_1.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_2.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_3.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_4.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_5.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_6.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_7.c
 
 ruby-bindings: $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.h
 
@@ -65,7 +66,7 @@ clean-ruby-bindings:
 
 # Cross Ruby (targets WASI)
 
-$(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby_0.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_1.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_2.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_3.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_4.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_5.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_6.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_7.c &: $(WASM2C) $(LIBDIR)/Dist/bin/ruby
+$(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby_0.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_1.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_2.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_3.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_4.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_5.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_6.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_7.c &: $(WASM2C) $(LIBDIR)/Dist/bin/ruby
 	mkdir -p $(OUTDIR)/ruby
 	$(WASM2C) $(LIBDIR)/Dist/bin/ruby -n ruby --num-outputs=8 -o $(OUTDIR)/ruby/mkxp-sandbox-ruby.c
 	# Find all the function types declared using `FUNC_TYPE_DECL_EXTERN_T` and redeclare them as macros to fix the "initializer element is not constant" compilation error that occurs when using GCC versions earlier than 8.1.0
@@ -78,6 +79,10 @@ $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUT
 	$(SED) -i 's/ *# *define * FUNC_TYPE_T *([^()]).*/#define FUNC_TYPE_T(x) static const char _mkxp_unused_##x[]/g' $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h
 	$(SED) -i 's/__has_builtin *([^()]*)/0/g' $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h
 	$(SED) -i 's/#error "Missing implementation of __builtin_add_overflow or _addcarry_u64"/return __builtin_add_overflow(a, b, resptr);/g' $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h
+
+$(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h: $(INDEXER) $(LIBDIR)/Dist/bin/ruby
+	mkdir -p $(OUTDIR)/ruby
+	$(INDEXER) $(LIBDIR)/Dist/bin/ruby > $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h
 
 $(OUTDIR)/dist.zip: $(LIBDIR)/Dist/bin/ruby $(RUBY) $(DOWNLOADS)/crossruby/BSDL $(DOWNLOADS)/crossruby/COPYING $(DOWNLOADS)/crossruby/COPYING.ja
 	rm -rf $(LIBDIR)/_Dist
@@ -164,9 +169,9 @@ $(DOWNLOADS)/baseruby/configure.ac:
 	mkdir -p $(DOWNLOADS)
 	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/baseruby -b $(RUBY_VERSION)
 
-# wasm2c
+# WABT
 
-WASM2C_SRC := \
+WABT_SRC := \
 	$(DOWNLOADS)/wabt/src/apply-names.cc \
 	$(DOWNLOADS)/wabt/src/binary-reader-ir.cc \
 	$(DOWNLOADS)/wabt/src/binary-reader-logging.cc \
@@ -216,9 +221,14 @@ WASM2C_SRC := \
 	$(DOWNLOADS)/wabt/src/interp/interp.cc \
 	$(DOWNLOADS)/wabt/src/interp/interp-util.cc \
 	$(DOWNLOADS)/wabt/src/interp/istream.cc \
-	$(DOWNLOADS)/wabt/src/tools/wasm2c.cc
+
+WASM2C_SRC := $(WABT_SRC) $(DOWNLOADS)/wabt/src/tools/wasm2c.cc
 
 $(WASM2C): $(addsuffix .o,$(WASM2C_SRC))
+	mkdir -p $(LIBDIR)/bin
+	$(CXX) $(LDFLAGS) -o $@ $^
+
+$(INDEXER): $(addsuffix .o,$(WABT_SRC)) $(DOWNLOADS)/wabt/src/indexer.o
 	mkdir -p $(LIBDIR)/bin
 	$(CXX) $(LDFLAGS) -o $@ $^
 
@@ -227,6 +237,9 @@ $(DOWNLOADS)/wabt/src/%.c.o: $(DOWNLOADS)/wabt/src/%.c $(DOWNLOADS)/wabt/include
 
 $(DOWNLOADS)/wabt/src/%.cc.o: $(DOWNLOADS)/wabt/src/%.cc $(DOWNLOADS)/wabt/include/wabt/config.h $(DOWNLOADS)/picosha2/picosha2.h
 	$(CXX) $(CXXFLAGS) -I$(DOWNLOADS)/wabt/include -I$(DOWNLOADS)/picosha2 -c -o $@ $<
+
+$(DOWNLOADS)/wabt/src/indexer.o: indexer.cpp $(DOWNLOADS)/wabt/include/wabt/config.h
+	$(CXX) $(CXXFLAGS) -I$(DOWNLOADS)/wabt/include -c -o $@ $<
 
 $(DOWNLOADS)/wabt/include/wabt/config.h: $(DOWNLOADS)/wabt/src/config.h.in
 	$(SED) \

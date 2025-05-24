@@ -20,6 +20,8 @@
 */
 
 #include "binding-base.h"
+#include "mkxp-sandbox-ruby-indices.h"
+#include <boost/preprocessor/cat.hpp>
 
 using namespace mkxp_sandbox;
 
@@ -287,4 +289,28 @@ void binding_base::destroy_object(wasm_objkey_t key) {
     object.typenum = 0;
     object.inner.next = next_free_objkey;
     next_free_objkey = key;
+}
+
+wasm_ptr_t binding_base::get_machine_stack_pointer() const noexcept {
+    return w2c_ruby_rb_wasm_get_stack_pointer(&instance());
+}
+
+void binding_base::set_machine_stack_pointer(wasm_ptr_t sp) noexcept {
+    w2c_ruby_rb_wasm_set_stack_pointer(&instance(), sp);
+}
+
+uint8_t binding_base::get_asyncify_state() const noexcept {
+    return (uint8_t)BOOST_PP_CAT(instance().w2c_g, MKXPZ_SANDBOX_ASYNCIFY_STATE_INDEX);
+}
+
+void binding_base::set_asyncify_state(uint8_t state) noexcept {
+    BOOST_PP_CAT(instance().w2c_g, MKXPZ_SANDBOX_ASYNCIFY_STATE_INDEX) = state;
+}
+
+wasm_ptr_t binding_base::get_asyncify_data() const noexcept {
+    return BOOST_PP_CAT(instance().w2c_g, MKXPZ_SANDBOX_ASYNCIFY_DATA_INDEX);
+}
+
+void binding_base::set_asyncify_data(wasm_ptr_t ptr) noexcept {
+    BOOST_PP_CAT(instance().w2c_g, MKXPZ_SANDBOX_ASYNCIFY_DATA_INDEX) = ptr;
 }
