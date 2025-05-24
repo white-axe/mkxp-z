@@ -71,7 +71,7 @@ namespace mkxp_sandbox {
             for (const auto &object : sb()->get_objects()) {
                 ++key;
                 if (object.typenum == get_typenum<T>::value) {
-                    map.insert({(T *)object.inner.ptr, (struct info){.key = key, .is_extra = false}});
+                    map.emplace((T *)object.inner.ptr, (struct info){.key = key, .is_extra = false});
                 }
             }
         }
@@ -91,7 +91,7 @@ namespace mkxp_sandbox {
 
                     constexpr wasm_size_t typenum = get_typenum<T>::value;
                     extra_objects.emplace_back((const void *)ptr, typenum);
-                    map.insert({ptr, (struct info){.key = (wasm_objkey_t)extra_objects.size(), .is_extra = true}});
+                    map.emplace(ptr, (struct info){.key = (wasm_objkey_t)extra_objects.size(), .is_extra = true});
 
                     if (!mkxp_sandbox::sandbox_serialize((wasm_objkey_t)extra_objects.size(), data, max_size)) return false;
                 }

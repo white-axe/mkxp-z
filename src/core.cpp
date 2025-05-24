@@ -1684,11 +1684,6 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
             if (!typenum_table[typenum - 1].serialize(ptr, data, max_size)) OBJECTS_END_FAIL;
         }
     }
-    if (num_free_objects > 0) {
-        if (!sandbox_serialize((wasm_size_t)0, data, max_size)) OBJECTS_END_FAIL;
-        if (!sandbox_serialize(num_free_objects, data, max_size)) OBJECTS_END_FAIL;
-        num_free_objects = 0;
-    }
     *num_extra_objects_ptr = (wasm_size_t)extra_objects.size();
 
     OBJECTS_END;
