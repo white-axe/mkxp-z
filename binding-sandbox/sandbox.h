@@ -63,6 +63,7 @@ namespace mkxp_sandbox {
         inline struct mkxp_sandbox::bindings *operator->() noexcept { return &*bindings; }
         sandbox();
         ~sandbox();
+        bool sandbox_serialize_fdtable(void *&data, wasm_size_t &max_size) const;
         Movie *get_movie_from_main_thread();
         Movie *get_movie_from_audio_thread();
         void set_movie(Movie *new_movie);

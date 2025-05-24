@@ -181,8 +181,8 @@ struct wasi_file_entry {
     // The file/directory handle that the file descriptor corresponds to. The exact type of this handle depends on the type of file descriptor.
     void *handle;
 
-    struct fs_dir *dir_handle();
-    struct FileSystem::File *file_handle();
+    struct fs_dir *dir_handle() const noexcept;
+    struct FileSystem::File *file_handle() const noexcept;
 };
 
 typedef struct w2c_wasi__snapshot__preview1 {
@@ -230,6 +230,8 @@ typedef struct w2c_wasi__snapshot__preview1 {
     template <typename T> void arycpy(mkxp_sandbox::wasm_ptr_t dst_address, const T *src, mkxp_sandbox::wasm_size_t num_elements) const noexcept {
         mkxp_sandbox::sandbox_arycpy(*ruby, dst_address, src, num_elements);
     }
+
+    bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
 } wasi_t;
 
 #endif /* MKXPZ_SANDBOX_WASI_H */

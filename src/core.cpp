@@ -1639,10 +1639,12 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         if (!Graphics::sandbox_serialize_movie(sb().get_movie_from_main_thread(), data, max_size)) return false;
     }
 
-    // TODO: write the file descriptor table
+    // Write the open WASI file descriptors
+    if (!sb().sandbox_serialize_fdtable(data, max_size)) return false;
 
-    // Write each object
+    // Write the number of objects, then each object
     OBJECTS_BEGIN;
+    if (!sandbox_serialize((wasm_size_t)sb()->get_objects().size(), data, max_size)) OBJECTS_END_FAIL;
     wasm_size_t num_free_objects = 0;
     for (const auto &object : sb()->get_objects()) {
         if (object.typenum == 0) {
@@ -1665,7 +1667,10 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         num_free_objects = 0;
     }
 
-    // Write each extra object that was found during serialization of the normal objects
+    // Write the number of extra objects that were found during serialization of the normal objects, then each such object
+    if (max_size < sizeof(wasm_size_t)) OBJECTS_END_FAIL;
+    wasm_size_t *num_extra_objects_ptr = (wasm_size_t *)data;
+    ADVANCE(sizeof(wasm_size_t));
     for (size_t i = 0; i < extra_objects.size(); ++i) { // More items can be added to this vector during iteration
         const void *ptr = std::get<0>(extra_objects[i]);
         wasm_size_t typenum = std::get<1>(extra_objects[i]);
@@ -1683,6 +1688,7 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         if (!sandbox_serialize(num_free_objects, data, max_size)) OBJECTS_END_FAIL;
         num_free_objects = 0;
     }
+    *num_extra_objects_ptr = (wasm_size_t)extra_objects.size();
 
     OBJECTS_END;
     std::memset(data, 0, max_size);

@@ -28,6 +28,7 @@
 #include "core.h"
 #include "wasi.h"
 #include "binding-base.h"
+#include "sandbox-serial-util.h"
 
 using namespace mkxp_sandbox;
 
@@ -36,11 +37,11 @@ static inline size_t strlen_safe(const char *str, size_t max_length) {
     return ptr == nullptr ? max_length : ptr - str;
 }
 
-struct fs_dir *wasi_file_entry::dir_handle() {
+struct fs_dir *wasi_file_entry::dir_handle() const noexcept {
     return (struct fs_dir *)handle;
 }
 
-struct FileSystem::File *wasi_file_entry::file_handle() {
+struct FileSystem::File *wasi_file_entry::file_handle() const noexcept {
     return (struct FileSystem::File *)handle;
 }
 
@@ -126,6 +127,42 @@ void wasi_t::strncpy(wasm_ptr_t dst_address, const char *src, wasm_size_t max_si
 
 const char *wasi_t::str(wasm_ptr_t address) const noexcept {
     return sandbox_str(*ruby, address);
+}
+
+bool wasi_t::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const {
+    if (!::sandbox_serialize((wasm_size_t)fdtable.size(), data, max_size)) return false;
+
+    wasm_size_t num_free_handles = 0;
+
+    for (const struct wasi_file_entry &entry : fdtable) {
+        if (entry.type == wasi_fd_type::FSDIR) {
+            if (num_free_handles > 0) {
+                if (!::sandbox_serialize((uint8_t)0, data, max_size)) return false;
+                if (!::sandbox_serialize(num_free_handles, data, max_size)) return false;
+                num_free_handles = 0;
+            }
+            if (!::sandbox_serialize((uint8_t)1, data, max_size)) return false;
+            if (!::sandbox_serialize(entry.dir_handle()->path, data, max_size)) return false;
+            if (!::sandbox_serialize(entry.dir_handle()->root->path, data, max_size)) return false;
+        } else if (entry.type == wasi_fd_type::FSFILE) {
+            if (num_free_handles > 0) {
+                if (!::sandbox_serialize((uint8_t)0, data, max_size)) return false;
+                if (!::sandbox_serialize(num_free_handles, data, max_size)) return false;
+                num_free_handles = 0;
+            }
+            if (!::sandbox_serialize((uint8_t)2, data, max_size)) return false;
+            if (!::sandbox_serialize(entry.file_handle()->path(), data, max_size)) return false;
+        } else {
+            ++num_free_handles;
+        }
+    }
+    if (num_free_handles > 0) {
+        if (!::sandbox_serialize((uint8_t)0, data, max_size)) return false;
+        if (!::sandbox_serialize(num_free_handles, data, max_size)) return false;
+        num_free_handles = 0;
+    }
+
+    return true;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_args_get(wasi_t *wasi, wasm_ptr_t argv, wasm_ptr_t argv_buf) {
