@@ -3395,6 +3395,8 @@ bool Bitmap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
     if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
     if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
 
+    if (!mkxp_sandbox::sandbox_serialize(p->path, data, max_size)) return false;
+
     if (!mkxp_sandbox::sandbox_serialize((int32_t)width(), data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize((int32_t)height(), data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->animation.enabled, data, max_size)) return false;
@@ -3409,12 +3411,52 @@ bool Bitmap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
         if (!mkxp_sandbox::sandbox_serialize(p->animation.startTime, data, max_size)) return false;
     }
 
-    if (!mkxp_sandbox::sandbox_serialize(p->path, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->font, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->selfHires, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->selfLores, data, max_size)) return false;
 
     // TODO: serialize bitmap pixels
+
+    return true;
+}
+
+bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
+{
+    {
+        bool active;
+        if (!mkxp_sandbox::sandbox_deserialize(active, data, max_size)) return false;
+        if (!active) {
+            dispose();
+            return true;
+        }
+        // TODO: undispose
+    }
+
+    if (!mkxp_sandbox::sandbox_deserialize(p->path, data, max_size)) return false;
+
+    if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->gl.width, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->gl.height, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->animation.enabled, data, max_size)) return false;
+
+    if (p->animation.enabled) {
+        p->animation.width = p->gl.width;
+        p->animation.height = p->gl.height;
+        if (!mkxp_sandbox::sandbox_deserialize(p->animation.fps, data, max_size)) return false;
+        if (!mkxp_sandbox::sandbox_deserialize(p->animation.playing, data, max_size)) return false;
+        if (!mkxp_sandbox::sandbox_deserialize(p->animation.needsReset, data, max_size)) return false;
+        if (!mkxp_sandbox::sandbox_deserialize(p->animation.loop, data, max_size)) return false;
+        if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->animation.lastFrame, data, max_size)) return false;
+        if (!mkxp_sandbox::sandbox_deserialize(p->animation.playTime, data, max_size)) return false;
+        if (!mkxp_sandbox::sandbox_deserialize(p->animation.startTime, data, max_size)) return false;
+    }
+
+    if (!mkxp_sandbox::sandbox_deserialize(p->font, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->selfHires, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->selfLores, data, max_size)) return false;
+
+    // TODO: deserialize bitmap pixels
+
+    // TODO: reload the bitmap
 
     return true;
 }

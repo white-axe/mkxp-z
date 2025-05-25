@@ -1621,9 +1621,9 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     }
 
     // Write the number of sandbox fibers
-    if (!sandbox_serialize((wasm_size_t)sb()->get_fibers().size(), data, max_size)) return false;
+    if (!sandbox_serialize((wasm_size_t)sb()->fibers.size(), data, max_size)) return false;
 
-    for (const auto &fiber : sb()->get_fibers()) {
+    for (const auto &fiber : sb()->fibers) {
         // Write the key of the fiber
         if (!sandbox_serialize(std::get<0>(fiber.first), data, max_size)) return false;
         if (!sandbox_serialize(std::get<1>(fiber.first), data, max_size)) return false;
@@ -1635,8 +1635,9 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         // Write the number of frames in the fiber
         if (!sandbox_serialize((wasm_size_t)fiber.second.get_stack().size(), data, max_size)) return false;
 
-        // Write the state of each frame
+        // Write the stack pointer and state of each frame
         for (const auto &frame : fiber.second.get_stack()) {
+            if (!sandbox_serialize(frame.get_stack_pointer(), data, max_size)) return false;
             if (!sandbox_serialize((int32_t)frame, data, max_size)) return false;
         }
     }
@@ -1693,7 +1694,123 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
 }
 
 extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
-    return false;
+    wasm_size_t max_size = len;
+
+    // TODO: allow deserializing save states of the opposite endianness
+    RESERVE(4);
+#ifdef MKXPZ_BIG_ENDIAN
+    if (std::memcmp(data, "MKXP", 4))
+#else
+    if (std::memcmp(data, "mkxp", 4))
+#endif // MKXPZ_BIG_ENDIAN
+        return false;
+    ADVANCE(4);
+
+    // Check version
+    {
+        uint32_t version;
+        if (!sandbox_deserialize(version, data, max_size)) return false;
+        if (version != 1) return false;
+    }
+
+    // Read the VM memory
+    {
+        wasm_size_t memory_capacity;
+        if (!sandbox_deserialize(memory_capacity, data, max_size)) return false;
+        wasm_size_t memory_size;
+        if (!sandbox_deserialize(memory_size, data, max_size)) return false;
+        RESERVE(memory_size);
+        sb()->copy_memory_from(data, memory_size, memory_capacity);
+        ADVANCE(memory_size);
+    }
+
+    // Read the sandbox state
+    {
+        wasm_ptr_t value;
+        if (!sandbox_deserialize(value, data, max_size)) return false;
+        sb()->set_machine_stack_pointer(value);
+    }
+    {
+        uint8_t value;
+        if (!sandbox_deserialize(value, data, max_size)) return false;
+        sb()->set_asyncify_state(value);
+    }
+    {
+        wasm_ptr_t value;
+        if (!sandbox_deserialize(value, data, max_size)) return false;
+        sb()->set_asyncify_data(value);
+    }
+    if (!sandbox_deserialize(frame_count, data, max_size)) return false;
+    {
+        uint64_t value;
+        if (!sandbox_deserialize(value, data, max_size)) return false;
+        frame_time = value;
+    }
+    if (!sandbox_deserialize(frame_time_remainder, data, max_size)) return false;
+    if (!sandbox_deserialize(retro_run_count, data, max_size)) return false;
+    if (!sandbox_deserialize(sb().transitioning, data, max_size)) return false;
+    {
+        bool have_trans_map;
+        if (!sandbox_deserialize(have_trans_map, data, max_size)) return false;
+        if (have_trans_map) {
+            if (sb().trans_map == nullptr) {
+                // TODO
+                return false;
+            }
+            if (!sandbox_deserialize(*sb().trans_map, data, max_size)) return false;
+        } else {
+            if (sb().trans_map != nullptr) {
+                delete sb().trans_map;
+            }
+            sb().trans_map = nullptr;
+        }
+    }
+    {
+        // TODO: movie
+        bool have_movie;
+        if (!sandbox_deserialize(have_movie, data, max_size)) return false;
+        if (have_movie) return false;
+    }
+
+    {
+        // Read sandbox fibers
+        wasm_size_t num_fibers;
+        if (!sandbox_deserialize(num_fibers, data, max_size)) return false;
+
+        sb()->fibers.clear();
+        sb()->fibers.reserve(num_fibers);
+
+        while (num_fibers > 0) {
+            // Read the key of the fiber
+            std::tuple<wasm_size_t, wasm_size_t, wasm_size_t> key;
+            if (!sandbox_deserialize(std::get<0>(key), data, max_size)) return false;
+            if (!sandbox_deserialize(std::get<1>(key), data, max_size)) return false;
+            if (!sandbox_deserialize(std::get<2>(key), data, max_size)) return false;
+
+            // Construct the fiber
+            auto &fiber = sb()->fibers.emplace(key, key).first->second;
+
+            // Read the stack index of the fiber
+            if (!sandbox_deserialize(fiber.stack_index, data, max_size)) return false;
+
+            // Read sandbox frames
+            wasm_size_t num_frames;
+            if (!sandbox_deserialize(num_frames, data, max_size)) return false;
+            fiber.deser_stack.reserve(num_frames);
+            while (num_frames > 0) {
+                wasm_ptr_t stack_pointer;
+                if (!sandbox_deserialize(stack_pointer, data, max_size)) return false;
+                int32_t state;
+                if (!sandbox_deserialize(state, data, max_size)) return false;
+                fiber.deser_stack.emplace_back(stack_pointer, state);
+                --num_frames;
+            }
+
+            --num_fibers;
+        }
+    }
+
+    return true;
 }
 
 extern "C" RETRO_API void retro_cheat_reset() {

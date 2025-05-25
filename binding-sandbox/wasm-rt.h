@@ -23,6 +23,7 @@
 #define MKXPZ_SANDBOX_WASM_RT_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #ifndef __GNUC__
 #  include <string.h>
@@ -134,6 +135,9 @@ WASM_RT_NO_RETURN void wasm_rt_trap(wasm_rt_trap_t error);
 
 #define wasm_rt_allocate_memory mkxp_wasm_rt_allocate_memory
 void wasm_rt_allocate_memory(wasm_rt_memory_t *memory, uint32_t initial_pages, uint32_t max_pages, bool is64, uint32_t page_size);
+
+#define wasm_rt_replace_memory mkxp_wasm_rt_replace_memory
+void wasm_rt_replace_memory(wasm_rt_memory_t *memory, size_t size, size_t capacity);
 
 #define wasm_rt_grow_memory mkxp_wasm_rt_grow_memory
 uint32_t wasm_rt_grow_memory(wasm_rt_memory_t *memory, uint32_t pages);

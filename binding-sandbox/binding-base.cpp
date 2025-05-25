@@ -20,10 +20,13 @@
 */
 
 #include "binding-base.h"
+#include "wasm-rt.h"
 #include "mkxp-sandbox-ruby-indices.h"
 #include <boost/preprocessor/cat.hpp>
 
 using namespace mkxp_sandbox;
+
+binding_base::deser_stack_frame::deser_stack_frame(wasm_ptr_t stack_ptr, int32_t state) : stack_ptr(stack_ptr), state(state) {}
 
 binding_base::stack_frame::stack_frame(void *coroutine, void (*destructor)(void *coroutine), wasm_ptr_t stack_ptr) : coroutine(coroutine), destructor(destructor), stack_ptr(stack_ptr) {}
 
@@ -105,6 +108,12 @@ wasm_size_t binding_base::memory_size() const noexcept {
 
 void binding_base::copy_memory_to(void *ptr) const noexcept {
     std::memcpy(ptr, instance().w2c_memory.data, memory_size());
+}
+
+void binding_base::copy_memory_from(const void *ptr, wasm_size_t size, wasm_size_t capacity) noexcept {
+    capacity = std::max(size, capacity);
+    wasm_rt_replace_memory(&instance().w2c_memory, size, capacity);
+    std::memcpy(instance().w2c_memory.data, ptr, memory_size());
 }
 
 void *mkxp_sandbox::sandbox_ptr(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {

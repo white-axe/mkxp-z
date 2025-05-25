@@ -210,6 +210,14 @@ namespace mkxp_sandbox {
     private:
         typedef std::tuple<wasm_ptr_t, wasm_ptr_t, wasm_ptr_t> key_t;
 
+        struct deser_stack_frame {
+            friend struct binding_base;
+            deser_stack_frame(wasm_ptr_t stack_ptr, int32_t state);
+        private:
+            wasm_ptr_t stack_ptr;
+            int32_t state;
+        };
+
         struct stack_frame {
             friend struct binding_base;
             stack_frame(void *coroutine, void (*destructor)(void *coroutine), wasm_ptr_t stack_ptr);
@@ -227,6 +235,9 @@ namespace mkxp_sandbox {
             inline void operator=(int32_t value) noexcept {
                 (boost::asio::detail::coroutine_ref)(boost::asio::coroutine *)coroutine = (int)value;
             }
+            inline wasm_ptr_t get_stack_pointer() const noexcept {
+                return stack_ptr;
+            }
         private:
             void *coroutine;
             void (*destructor)(void *coroutine);
@@ -243,6 +254,7 @@ namespace mkxp_sandbox {
             key_t key;
         public:
             wasm_size_t stack_index;
+            std::vector<struct deser_stack_frame> deser_stack;
         private:
             std::vector<struct stack_frame> stack;
         };
@@ -267,12 +279,13 @@ namespace mkxp_sandbox {
         };
 
         std::shared_ptr<struct w2c_ruby> _instance;
-        std::unordered_map<key_t, struct fiber, boost::hash<key_t>> fibers;
         std::vector<struct object> objects;
         wasm_objkey_t next_free_objkey;
         wasm_ptr_t stack_ptr;
 
     public:
+        std::unordered_map<key_t, struct fiber, boost::hash<key_t>> fibers;
+
         binding_base(std::shared_ptr<struct w2c_ruby> m);
         ~binding_base();
         struct w2c_ruby &instance() const noexcept;
@@ -288,6 +301,7 @@ namespace mkxp_sandbox {
         wasm_size_t memory_capacity() const noexcept;
         wasm_size_t memory_size() const noexcept;
         void copy_memory_to(void *ptr) const noexcept;
+        void copy_memory_from(const void *ptr, wasm_size_t size, wasm_size_t capacity) noexcept;
 
         // Gets a pointer to the given address in sandbox memory.
         void *ptr(wasm_ptr_t address) const noexcept;
@@ -374,15 +388,29 @@ namespace mkxp_sandbox {
             stack_frame_guard(struct binding_base &b) : bind(&b), fiber(&init_fiber(b)) {
                 uint32_t state = w2c_ruby_asyncify_get_state(&b.instance());
 
-                if (fiber->stack_index > fiber->stack.size()) {
+                if (fiber->stack_index > std::max(fiber->stack.size(), fiber->deser_stack.size())) {
                     std::abort();
                 }
 
                 // If Asyncify is rewinding, restore the stack frame from before Asyncify started unwinding
                 if (state == 2) {
+                    // Restore stack frame from the libretro save state if available
                     if (fiber->stack_index == fiber->stack.size()) {
-                        std::abort();
+                        if (fiber->stack_index == fiber->deser_stack.size()) {
+                            std::abort();
+                        }
+                        struct deser_stack_frame &deser_frame = fiber->deser_stack[fiber->stack_index++];
+                        b.stack_ptr = deser_frame.stack_ptr;
+                        coroutine = construct_frame<T>(b);
+                        fiber->stack.emplace_back(
+                            coroutine,
+                            coroutine_destructor,
+                            b.stack_ptr
+                        );
+                        fiber->stack.back() = deser_frame.state;
+                        return;
                     }
+
                     struct stack_frame &frame = fiber->stack[fiber->stack_index++];
                     if (fiber->stack_index == 0) {
                         MKXPZ_THROW(std::bad_alloc());
@@ -393,14 +421,22 @@ namespace mkxp_sandbox {
                 }
 
                 // Otherwise, create a new stack frame
-                assert(state == 0);
+                if (state != 0) {
+                    std::abort();
+                }
+
+                while (fiber->deser_stack.size() > fiber->stack_index) {
+                    fiber->deser_stack.pop_back();
+                }
                 while (fiber->stack.size() > fiber->stack_index) {
                     bind->stack_ptr = fiber->stack.back().stack_ptr;
                     fiber->stack.pop_back();
                 }
+
                 if (++fiber->stack_index == 0) {
                     MKXPZ_THROW(std::bad_alloc());
                 }
+
                 b.stack_ptr = w2c_ruby_rb_wasm_get_stack_pointer(&b.instance()) - CEIL_WASMSTACKALIGN(declared_slots_size<T>::value);
                 assert(b.stack_ptr % sizeof(VALUE) == 0);
                 assert(b.stack_ptr % WASMSTACKALIGN == 0);
@@ -438,6 +474,9 @@ namespace mkxp_sandbox {
                 assert(fiber->stack_index - 1 < fiber->stack.size());
 
                 if (get()->is_complete()) {
+                    while (fiber->deser_stack.size() > fiber->stack_index) {
+                        fiber->deser_stack.pop_back();
+                    }
                     while (fiber->stack.size() > fiber->stack_index) {
                         bind->stack_ptr = fiber->stack.back().stack_ptr;
                         fiber->stack.pop_back();
@@ -474,10 +513,6 @@ namespace mkxp_sandbox {
 
         inline wasm_ptr_t stack_pointer() const noexcept {
             return stack_ptr;
-        }
-
-        inline const std::unordered_map<key_t, struct fiber, boost::hash<key_t>> &get_fibers() const noexcept {
-            return fibers;
         }
 
         wasm_ptr_t get_machine_stack_pointer() const noexcept;
