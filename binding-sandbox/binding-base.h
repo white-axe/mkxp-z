@@ -88,7 +88,7 @@ namespace mkxp_sandbox {
     //     slot_type<3, slots>::type var3; // this variable should be of type `uint8_t`
     template <wasm_size_t Index, typename Slots> struct slot_type;
     template <typename Head, typename... Tail> struct slot_type<0, struct decl_slots<Head, Tail...>> {
-	static_assert(std::is_integral<Head>::value || std::is_floating_point<Head>::value, "slots must have numeric types");
+	static_assert(std::is_arithmetic<Head>::value, "slots must have numeric types");
         typedef Head type;
     };
     template <wasm_size_t Index, typename Head, typename... Tail> struct slot_type<Index, struct decl_slots<Head, Tail...>> : slot_type<Index - 1, struct decl_slots<Tail...>> {};
@@ -102,7 +102,7 @@ namespace mkxp_sandbox {
         static constexpr wasm_size_t value = 0;
     };
     template <typename Head, typename... Tail> struct slots_size<struct decl_slots<Head, Tail...>> {
-	static_assert(std::is_integral<typename get_last_slot<struct decl_slots<Head, Tail...>>::type>::value || std::is_floating_point<typename get_last_slot<struct decl_slots<Head, Tail...>>::type>::value, "slots must have numeric types");
+	static_assert(std::is_arithmetic<typename get_last_slot<struct decl_slots<Head, Tail...>>::type>::value, "slots must have numeric types");
     private:
         static constexpr wasm_size_t last_size = sizeof(typename get_last_slot<struct decl_slots<Head, Tail...>>::type);
         static constexpr wasm_size_t rest_size = slots_size<typename pop_last_slot<struct decl_slots<Head, Tail...>>::type>::value;
@@ -151,7 +151,7 @@ namespace mkxp_sandbox {
 
     // Gets a reference to the value stored at a given address in sandbox memory.
     template <typename T> T &sandbox_ref(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {
-        static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "can only get references to numeric values in the sandbox");
+        static_assert(std::is_arithmetic<T>::value, "can only get references to numeric values in the sandbox");
 #ifdef MKXPZ_BIG_ENDIAN
         return *(T *)((uint8_t *)sandbox_ptr(instance, address) - sizeof(T));
 #else
