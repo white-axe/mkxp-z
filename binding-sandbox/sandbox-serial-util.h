@@ -36,7 +36,7 @@ namespace mkxp_sandbox {
     extern std::unordered_map<wasm_size_t, void *> extra_objects_deser;
 
     template <typename T> using sandbox_serialize_member_declaration = decltype(std::declval<const T &>().sandbox_serialize(std::declval<void *&>(), std::declval<wasm_size_t &>()));
-    template <typename T> using sandbox_deserialize_member_declaration = decltype(std::declval<T &>().sandbox_deserialize(std::declval<void *&>(), std::declval<wasm_size_t &>()));
+    template <typename T> using sandbox_deserialize_member_declaration = decltype(std::declval<T &>().sandbox_deserialize(std::declval<const void *&>(), std::declval<wasm_size_t &>()));
 
     template <typename T> typename std::enable_if<std::is_same<T, bool>::value, bool>::type sandbox_serialize(T value, void *&data, wasm_size_t &max_size);
     template <typename T> typename std::enable_if<std::is_enum<T>::value, bool>::type sandbox_serialize(T value, void *&data, wasm_size_t &max_size);
