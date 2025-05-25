@@ -1594,6 +1594,7 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     {
         // Write the size of the VM memory
         wasm_size_t memory_size = sb()->memory_size();
+        if (!sandbox_serialize(memory_size, data, max_size)) return false;
 
         // Write the VM memory itself
         RESERVE(memory_size);
