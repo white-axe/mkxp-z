@@ -31,9 +31,62 @@
 #include "quadarray.h"
 
 namespace mkxp_sandbox {
+    struct sandbox_object_deser_info {
+        sandbox_object_deser_info();
+        template <typename T> sandbox_object_deser_info(T *ptr) : ptr(ptr), typenum(get_typenum<T>::value), ref_count(0), exists(true) {}
+        sandbox_object_deser_info(const struct sandbox_object_deser_info &) = delete;
+        sandbox_object_deser_info(struct sandbox_object_deser_info &&) noexcept;
+        struct sandbox_object_deser_info &operator=(const struct sandbox_object_deser_info &) = delete;
+        struct sandbox_object_deser_info &operator=(struct sandbox_object_deser_info &&) noexcept;
+        ~sandbox_object_deser_info();
+        wasm_size_t get_ref_count() const noexcept;
+        template <typename T> bool add_ref(T *&ref) {
+            if (typenum == 0) {
+                typenum = get_typenum<T>::value;
+            } else if (typenum != get_typenum<T>::value) {
+                return false;
+            }
+            if (exists) {
+                ref = (T *)ptr;
+            } else {
+                ((std::vector<void **> *)ptr)->push_back((void **)&ref);
+            }
+            ++ref_count;
+            return true;
+        }
+        template <typename T> bool set_ptr(T *ptr) {
+            if (typenum == 0) {
+                typenum = get_typenum<T>::value;
+            } else if (typenum != get_typenum<T>::value) {
+                return false;
+            }
+            if (exists && ptr != this->ptr) {
+                return false;
+            }
+            if (!exists) {
+                for (void **ref : *(std::vector<void **> *)this->ptr) {
+                    *(T **)ref = ptr;
+                }
+                delete (std::vector<void **> *)this->ptr;
+                exists = true;
+                this->ptr = ptr;
+            }
+        }
+
+    private:
+        // If `exists` is true, this is a pointer to the object. Otherwise, this is a `std::vector<void **>` of pointers that are waiting to point to the object.
+        void *ptr;
+        // The type of the object.
+        wasm_size_t typenum;
+        // The number of times this object is referenced by other objects.
+        wasm_size_t ref_count;
+        // True if the object has been deserialized, otherwise false.
+        bool exists;
+    };
+
     extern std::vector<std::tuple<const void *, wasm_size_t>> extra_objects;
-    extern std::unordered_map<wasm_size_t, void *> objects_deser;
-    extern std::unordered_map<wasm_size_t, void *> extra_objects_deser;
+    extern std::unordered_map<wasm_size_t, struct sandbox_object_deser_info> objects_deser;
+    extern std::unordered_map<wasm_size_t, struct sandbox_object_deser_info> extra_objects_deser;
 
     template <typename T> using sandbox_serialize_member_declaration = decltype(std::declval<const T &>().sandbox_serialize(std::declval<void *&>(), std::declval<wasm_size_t &>()));
     template <typename T> using sandbox_deserialize_member_declaration = decltype(std::declval<T &>().sandbox_deserialize(std::declval<const void *&>(), std::declval<wasm_size_t &>()));
@@ -147,7 +200,7 @@ namespace mkxp_sandbox {
             extra_objects_deser.clear();
         }
 
-        static bool sandbox_deserialize(T *&ptr, const void *&data, wasm_size_t &max_size) {
+        static bool sandbox_deserialize(T *&ref, const void *&data, wasm_size_t &max_size) {
             using namespace mkxp_sandbox;
 
             if (is_serializing) {
@@ -159,14 +212,19 @@ namespace mkxp_sandbox {
             if (type > 2) return false;
 
             if (type == 2) {
-                ptr = nullptr;
-            } else {
-                wasm_objkey_t key;
-                if (!mkxp_sandbox::sandbox_deserialize(key, data, max_size)) return false;
-                (type != 0 ? extra_objects_deser : objects_deser).emplace(key, ptr);
+                ref = nullptr;
+                return true;
             }
 
-            return true;
+            wasm_objkey_t key;
+            if (!mkxp_sandbox::sandbox_deserialize(key, data, max_size)) return false;
+            auto &deser_map = type != 0 ? extra_objects_deser : objects_deser;
+            const auto it = deser_map.find(key);
+            if (it == deser_map.end()) {
+                return deser_map.emplace(key, sandbox_object_deser_info()).first->second.add_ref(ref);
+            } else {
+                return it->second.add_ref(ref);
+            }
         }
 
         static void sandbox_deserialize_end() {

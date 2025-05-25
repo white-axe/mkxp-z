@@ -19,6 +19,7 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <utility>
 #include "sandbox-serial-util.h"
 #include "etc-internal.h"
 #include "quad.h"
@@ -40,6 +41,30 @@ using namespace mkxp_sandbox;
 } while (0)
 
 std::vector<std::tuple<const void *, wasm_size_t>> mkxp_sandbox::extra_objects;
+std::unordered_map<wasm_size_t, struct sandbox_object_deser_info> mkxp_sandbox::objects_deser;
+std::unordered_map<wasm_size_t, struct sandbox_object_deser_info> mkxp_sandbox::extra_objects_deser;
+
+sandbox_object_deser_info::sandbox_object_deser_info() : ptr(new std::vector<void **>), typenum(0), ref_count(0), exists(false) {}
+
+sandbox_object_deser_info::sandbox_object_deser_info(struct sandbox_object_deser_info &&info) noexcept : ptr(std::exchange(info.ptr, nullptr)), typenum(info.typenum), ref_count(std::exchange(info.ref_count, 1)), exists(std::exchange(info.exists, true)) {}
+
+struct sandbox_object_deser_info &sandbox_object_deser_info::operator=(struct sandbox_object_deser_info &&info) noexcept {
+    ptr = std::exchange(info.ptr, nullptr);
+    typenum = info.typenum;
+    ref_count = std::exchange(info.ref_count, 1);
+    exists = std::exchange(info.exists, true);
+    return *this;
+}
+
+sandbox_object_deser_info::~sandbox_object_deser_info() {
+    if (!exists) {
+        delete (std::vector<void **> *)ptr;
+    }
+}
+
+wasm_size_t sandbox_object_deser_info::get_ref_count() const noexcept {
+    return ref_count;
+}
 
 template <> bool mkxp_sandbox::sandbox_serialize(bool value, void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(uint8_t));
