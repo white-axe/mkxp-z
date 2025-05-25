@@ -48,7 +48,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(bool value, void *&data, wasm_s
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(bool &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(bool &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(uint8_t));
     value = *(uint8_t *)data;
     ADVANCE(sizeof(uint8_t));
@@ -62,7 +62,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(int8_t value, void *&data, wasm
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(int8_t &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(int8_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(int8_t));
     value = *(int8_t *)data;
     ADVANCE(sizeof(int8_t));
@@ -76,7 +76,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(uint8_t value, void *&data, was
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(uint8_t &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(uint8_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(uint8_t));
     value = *(uint8_t *)data;
     ADVANCE(sizeof(uint8_t));
@@ -90,7 +90,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(int16_t value, void *&data, was
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(int16_t &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(int16_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(int16_t));
     value = *(int16_t *)data;
     ADVANCE(sizeof(int16_t));
@@ -104,7 +104,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(uint16_t value, void *&data, wa
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(uint16_t &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(uint16_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(uint16_t));
     value = *(uint16_t *)data;
     ADVANCE(sizeof(uint16_t));
@@ -118,7 +118,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(int32_t value, void *&data, was
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(int32_t &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(int32_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(int32_t));
     value = *(int32_t *)data;
     ADVANCE(sizeof(int32_t));
@@ -132,7 +132,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(uint32_t value, void *&data, wa
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(uint32_t &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(uint32_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(uint32_t));
     value = *(uint32_t *)data;
     ADVANCE(sizeof(uint32_t));
@@ -146,7 +146,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(int64_t value, void *&data, was
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(int64_t &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(int64_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(int64_t));
     value = *(int64_t *)data;
     ADVANCE(sizeof(int64_t));
@@ -160,7 +160,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(uint64_t value, void *&data, wa
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(uint64_t &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(uint64_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(uint64_t));
     value = *(uint64_t *)data;
     ADVANCE(sizeof(uint64_t));
@@ -174,7 +174,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(float value, void *&data, wasm_
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(float &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(float &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(float));
     value = *(float *)data;
     ADVANCE(sizeof(float));
@@ -188,7 +188,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(double value, void *&data, wasm
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(double &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(double &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(double));
     value = *(double *)data;
     ADVANCE(sizeof(double));
@@ -211,7 +211,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(const std::string &value, void 
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(std::string &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(std::string &value, const void *&data, wasm_size_t &max_size) {
     wasm_size_t size;
     if (!sandbox_deserialize(size, data, max_size)) return false;
     if (size == 0 || ((const char *)data)[size - 1] != 0) return false;
@@ -232,7 +232,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(const NormValue &value, void *&
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(NormValue &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(NormValue &value, const void *&data, wasm_size_t &max_size) {
     if (!sandbox_deserialize((int32_t &)value.unNorm, data, max_size)) return false;
     return true;
 }
@@ -243,7 +243,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(const Vec2 &value, void *&data,
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(Vec2 &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(Vec2 &value, const void *&data, wasm_size_t &max_size) {
     if (!sandbox_deserialize(value.x, data, max_size)) return false;
     if (!sandbox_deserialize(value.y, data, max_size)) return false;
     return true;
@@ -257,7 +257,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(const Vec4 &value, void *&data,
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(Vec4 &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(Vec4 &value, const void *&data, wasm_size_t &max_size) {
     if (!sandbox_deserialize(value.x, data, max_size)) return false;
     if (!sandbox_deserialize(value.y, data, max_size)) return false;
     if (!sandbox_deserialize(value.z, data, max_size)) return false;
@@ -271,7 +271,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(const Vec2i &value, void *&data
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(Vec2i &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(Vec2i &value, const void *&data, wasm_size_t &max_size) {
     if (!sandbox_deserialize((int32_t &)value.x, data, max_size)) return false;
     if (!sandbox_deserialize((int32_t &)value.y, data, max_size)) return false;
     return true;
@@ -285,7 +285,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(const IntRect &value, void *&da
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(IntRect &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(IntRect &value, const void *&data, wasm_size_t &max_size) {
     if (!sandbox_deserialize((int32_t &)value.x, data, max_size)) return false;
     if (!sandbox_deserialize((int32_t &)value.y, data, max_size)) return false;
     if (!sandbox_deserialize((int32_t &)value.w, data, max_size)) return false;
@@ -299,7 +299,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(const Scene::Geometry &value, v
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(Scene::Geometry &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(Scene::Geometry &value, const void *&data, wasm_size_t &max_size) {
     if (!sandbox_deserialize(value.rect, data, max_size)) return false;
     if (!sandbox_deserialize(value.orig, data, max_size)) return false;
     return true;
@@ -311,7 +311,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(const SVertex &value, void *&da
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(SVertex &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(SVertex &value, const void *&data, wasm_size_t &max_size) {
     if (!sandbox_deserialize(value.pos, data, max_size)) return false;
     if (!sandbox_deserialize(value.texPos, data, max_size)) return false;
     return true;
@@ -323,7 +323,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(const CVertex &value, void *&da
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(CVertex &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(CVertex &value, const void *&data, wasm_size_t &max_size) {
     if (!sandbox_deserialize(value.pos, data, max_size)) return false;
     if (!sandbox_deserialize(value.color, data, max_size)) return false;
     return true;
@@ -336,7 +336,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(const Vertex &value, void *&dat
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(Vertex &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(Vertex &value, const void *&data, wasm_size_t &max_size) {
     if (!sandbox_deserialize(value.pos, data, max_size)) return false;
     if (!sandbox_deserialize(value.texPos, data, max_size)) return false;
     if (!sandbox_deserialize(value.color, data, max_size)) return false;
@@ -351,7 +351,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(const Quad &value, void *&data,
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(Quad &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(Quad &value, const void *&data, wasm_size_t &max_size) {
     if (!sandbox_deserialize(value.vert[0], data, max_size)) return false;
     if (!sandbox_deserialize(value.vert[1], data, max_size)) return false;
     if (!sandbox_deserialize(value.vert[2], data, max_size)) return false;
@@ -368,7 +368,7 @@ template <> bool mkxp_sandbox::sandbox_serialize(const Transform &value, void *&
     return true;
 }
 
-template <> bool mkxp_sandbox::sandbox_deserialize(Transform &value, void *&data, wasm_size_t &max_size) {
+template <> bool mkxp_sandbox::sandbox_deserialize(Transform &value, const void *&data, wasm_size_t &max_size) {
     if (!sandbox_deserialize(value.getPosition(), data, max_size)) return false;
     if (!sandbox_deserialize(value.getOrigin(), data, max_size)) return false;
     if (!sandbox_deserialize(value.getScale(), data, max_size)) return false;
