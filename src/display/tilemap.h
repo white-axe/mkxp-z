@@ -45,6 +45,10 @@ public:
 	class Autotiles
 	{
 	public:
+		Autotiles() : tilemap(nullptr) {}
+		Autotiles(Tilemap *tilemap) : tilemap(tilemap) {}
+		~Autotiles() { if (tilemap) tilemap->atProxy = nullptr; }
+
 		void set(int i, Bitmap *bitmap);
 		Bitmap *get(int i) const;
 
@@ -54,9 +58,6 @@ public:
 #endif // MKXPZ_RETRO
 
 	private:
-		Autotiles() {}
-		~Autotiles() {}
-
 		Tilemap *tilemap;
 		friend class Tilemap;
 		friend struct TilemapPrivate;
@@ -67,7 +68,7 @@ public:
 
 	void update(Exception &exception);
 
-	Autotiles &getAutotiles(Exception &exception);
+	Autotiles *getAutotiles(Exception &exception);
 	Viewport *getViewport(Exception &exception) const;
 
 	DECL_ATTR( Tileset,    Bitmap*   )
@@ -92,7 +93,7 @@ public:
 
 private:
 	TilemapPrivate *p;
-	Autotiles atProxy;
+	Autotiles *atProxy;
 
 	void releaseResources();
 	const char *klassName() const { return "tilemap"; }

@@ -41,6 +41,10 @@ public:
 	class BitmapArray
 	{
 	public:
+		BitmapArray() : tilemap(nullptr) {}
+		BitmapArray(TilemapVX *tilemap) : tilemap(tilemap) {}
+		~BitmapArray() { if (tilemap) tilemap->bmProxy = nullptr; }
+
 		void set(int i, Bitmap *bitmap);
 		Bitmap *get(int i) const;
 
@@ -50,9 +54,6 @@ public:
 #endif // MKXPZ_RETRO
 
 	private:
-		BitmapArray() {}
-		~BitmapArray() {}
-
 		TilemapVX *tilemap;
 		friend class TilemapVX;
 		friend struct TilemapVXPrivate;
@@ -63,7 +64,7 @@ public:
 
 	void update(Exception &exception);
 
-	BitmapArray &getBitmapArray(Exception &exception);
+	BitmapArray *getBitmapArray(Exception &exception);
 
 	DECL_ATTR( Viewport,   Viewport* )
 	DECL_ATTR( MapData,    Table*    )
@@ -80,7 +81,7 @@ public:
 
 private:
 	TilemapVXPrivate *p;
-	BitmapArray bmProxy;
+	BitmapArray *bmProxy;
 
 	void releaseResources();
 	const char *klassName() const { return "tilemap"; }

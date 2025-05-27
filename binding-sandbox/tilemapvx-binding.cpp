@@ -59,10 +59,6 @@ struct bitmap_array_binding_init : boost::asio::coroutine {
                 BOOST_ASIO_CORO_REENTER (this) {
                     GFX_LOCK;
 
-                    if (get_private_data<TilemapVX::BitmapArray>(self) == nullptr) {
-                        return self;
-                    }
-
                     SANDBOX_AWAIT_S(0, rb_num2ulong, i);
 
                     get_private_data<TilemapVX::BitmapArray>(self)->set(SANDBOX_SLOT(0), get_private_data<Bitmap>(obj));
@@ -122,7 +118,7 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     set_private_data(SANDBOX_SLOT(1), (TilemapVX::BitmapArray *)nullptr);
                 }
 
-                SANDBOX_GUARD(SANDBOX_AWAIT_S(1, wrap_property, self, &get_private_data<TilemapVX>(self)->getBitmapArray(sb().e), "bitmap_array", bitmap_array_class));
+                SANDBOX_GUARD(SANDBOX_AWAIT_S(1, wrap_property, self, get_private_data<TilemapVX>(self)->getBitmapArray(sb().e), "bitmap_array", bitmap_array_class));
 
                 SANDBOX_AWAIT_S(2, rb_class_new_instance, 0, nullptr, sb()->rb_cArray());
                 for (SANDBOX_SLOT(3) = 0; SANDBOX_SLOT(3) < 9; ++SANDBOX_SLOT(3)) {

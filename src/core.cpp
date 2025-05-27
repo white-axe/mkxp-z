@@ -1857,7 +1857,7 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
             if (object.typenum != typenum) {
                 object.typenum = typenum;
                 object.inner.ptr = typenum_table[typenum - 1].constructor();
-                if (object.inner.ptr == nullptr && typenum != get_typenum<Tilemap::Autotiles>::value && typenum != get_typenum<TilemapVX::BitmapArray>::value) DESER_OBJECTS_END_FAIL;
+                if (object.inner.ptr == nullptr) DESER_OBJECTS_END_FAIL;
             }
             if (!typenum_table[typenum - 1].deserialize(object.inner.ptr, data, max_size)) DESER_OBJECTS_END_FAIL;
             auto it = objects_deser.find(object_key);
@@ -1879,7 +1879,7 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
         if (!sandbox_deserialize(typenum, data, max_size)) DESER_OBJECTS_END_FAIL;
         if (typenum != get_typenum<Color>::value && typenum != get_typenum<Tone>::value && typenum != get_typenum<Rect>::value) DESER_OBJECTS_END_FAIL;
         void *ptr = typenum_table[typenum - 1].constructor();
-        if (ptr == nullptr && typenum != get_typenum<Tilemap::Autotiles>::value && typenum != get_typenum<TilemapVX::BitmapArray>::value) DESER_OBJECTS_END_FAIL;
+        if (ptr == nullptr) DESER_OBJECTS_END_FAIL;
         if (!typenum_table[typenum - 1].deserialize(ptr, data, max_size)) {
             typenum_table[typenum - 1].destructor(ptr);
             DESER_OBJECTS_END_FAIL;

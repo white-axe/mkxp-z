@@ -25,12 +25,10 @@
 using namespace mkxp_sandbox;
 
 template <typename T> static typename std::enable_if<std::is_constructible<T>::value, void *>::type constructor() {
-    static_assert(!(std::is_same<T, Tilemap::Autotiles>::value || std::is_same<T, TilemapVX::BitmapArray>::value), "this type should not have a public constructor");
     return new T;
 }
 
 template <typename T> static typename std::enable_if<!std::is_constructible<T>::value && std::is_constructible<T, Exception &>::value, void *>::type constructor() {
-    static_assert(!(std::is_same<T, Tilemap::Autotiles>::value || std::is_same<T, TilemapVX::BitmapArray>::value), "this type should not have a public constructor");
     Exception e;
     T *obj = new T(e);
     if (e.is_ok()) {
@@ -41,20 +39,10 @@ template <typename T> static typename std::enable_if<!std::is_constructible<T>::
     }
 }
 
-template <typename T> static typename std::enable_if<!std::is_constructible<T>::value && !std::is_constructible<T, Exception &>::value, void *>::type constructor() {
-    static_assert((std::is_same<T, Tilemap::Autotiles>::value || std::is_same<T, TilemapVX::BitmapArray>::value), "this type should have a public constructor");
-    return nullptr;
-}
-
-template <typename T> static typename std::enable_if<std::is_destructible<T>::value>::type destructor(void *self) {
-    static_assert(!(std::is_same<T, Tilemap::Autotiles>::value || std::is_same<T, TilemapVX::BitmapArray>::value), "this type should not have a public destructor");
+template <typename T> static void destructor(void *self) {
     if (self != nullptr) {
         delete (T *)self;
     }
-}
-
-template <typename T> static typename std::enable_if<!std::is_destructible<T>::value>::type destructor(void *self) {
-    static_assert(std::is_same<T, Tilemap::Autotiles>::value || std::is_same<T, TilemapVX::BitmapArray>::value, "this type should have a public destructor");
 }
 
 template <typename T> static bool serialize(const void *self, void *&data, wasm_size_t &max_size) {

@@ -474,7 +474,7 @@ Bitmap *TilemapVX::BitmapArray::get(int i) const
 TilemapVX::TilemapVX(Viewport *viewport)
 {
 	p = new TilemapVXPrivate(viewport);
-	bmProxy.tilemap = this;
+	bmProxy = new BitmapArray(this);
 }
 
 TilemapVX::~TilemapVX()
@@ -505,9 +505,9 @@ void TilemapVX::update(Exception &exception)
 		p->flashAlphaIdx = 0;
 }
 
-TilemapVX::BitmapArray &TilemapVX::getBitmapArray(Exception &exception)
+TilemapVX::BitmapArray *TilemapVX::getBitmapArray(Exception &exception)
 {
-	GUARD_V(bmProxy, guardDisposed(exception));
+	GUARD_V(nullptr, guardDisposed(exception));
 
 	return bmProxy;
 }
@@ -612,7 +612,8 @@ void TilemapVX::setOY(Exception &exception, int value)
 void TilemapVX::releaseResources()
 {
 	delete p;
-	bmProxy.tilemap = 0;
+	if (bmProxy)
+		bmProxy->tilemap = 0;
 }
 
 #ifdef MKXPZ_RETRO
@@ -652,6 +653,8 @@ bool TilemapVX::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_si
 	if (!mkxp_sandbox::sandbox_serialize(p->mapData, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->flashMap.getData(), data, max_size)) return false;
 
+	if (!mkxp_sandbox::sandbox_serialize(bmProxy, data, max_size)) return false;
+
 	return true;
 }
 
@@ -671,9 +674,21 @@ bool TilemapVX::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t
 	if (!mkxp_sandbox::sandbox_deserialize(p->dispPos, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->groundVert, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->aboveVert, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize((mkxp_sandbox::wasm_size_t &)p->allocQuads, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize((mkxp_sandbox::wasm_size_t &)p->groundQuads, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize((mkxp_sandbox::wasm_size_t &)p->aboveQuads, data, max_size)) return false;
+	{
+		mkxp_sandbox::wasm_size_t value;
+		if (!mkxp_sandbox::sandbox_deserialize(value, data, max_size)) return false;
+		p->allocQuads = value;
+	}
+	{
+		mkxp_sandbox::wasm_size_t value;
+		if (!mkxp_sandbox::sandbox_deserialize(value, data, max_size)) return false;
+		p->groundQuads = value;
+	}
+	{
+		mkxp_sandbox::wasm_size_t value;
+		if (!mkxp_sandbox::sandbox_deserialize(value, data, max_size)) return false;
+		p->aboveQuads = value;
+	}
 	if (!mkxp_sandbox::sandbox_deserialize(p->frameIdx, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->aniOffset, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->flashAlphaIdx, data, max_size)) return false;
@@ -683,6 +698,8 @@ bool TilemapVX::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t
 		if (!mkxp_sandbox::sandbox_deserialize(p->bitmaps[i], data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->mapData, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->flashMap.getData(), data, max_size)) return false;
+
+	if (!mkxp_sandbox::sandbox_deserialize(bmProxy, data, max_size)) return false;
 
 	return true;
 }

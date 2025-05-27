@@ -60,10 +60,6 @@ struct tilemap_autotiles_binding_init : boost::asio::coroutine {
                 BOOST_ASIO_CORO_REENTER (this) {
                     GFX_LOCK;
 
-                    if (get_private_data<Tilemap::Autotiles>(self) == nullptr) {
-                        return self;
-                    }
-
                     SANDBOX_AWAIT_S(0, rb_num2ulong, i);
 
                     get_private_data<Tilemap::Autotiles>(self)->set(SANDBOX_SLOT(0), get_private_data<Bitmap>(obj));
@@ -128,7 +124,7 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     set_private_data(SANDBOX_SLOT(1), (Tilemap::Autotiles *)nullptr);
                 }
 
-                SANDBOX_GUARD(SANDBOX_AWAIT_S(1, wrap_property, self, &get_private_data<Tilemap>(self)->getAutotiles(sb().e), "autotiles", tilemap_autotiles_class));
+                SANDBOX_GUARD(SANDBOX_AWAIT_S(1, wrap_property, self, get_private_data<Tilemap>(self)->getAutotiles(sb().e), "autotiles", tilemap_autotiles_class));
 
                 SANDBOX_GUARD(SANDBOX_AWAIT(wrap_property, self, &get_private_data<Tilemap>(self)->getColor(sb().e), "color", color_class));
                 SANDBOX_GUARD(SANDBOX_AWAIT(wrap_property, self, &get_private_data<Tilemap>(self)->getTone(sb().e), "tone", tone_class));
