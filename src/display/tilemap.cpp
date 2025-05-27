@@ -1223,51 +1223,51 @@ void ZLayer::finiUpdateZ(ZLayer *prev)
 
 void Tilemap::Autotiles::set(int i, Bitmap *bitmap)
 {
-	if (!p)
+	if (!tilemap)
 		return;
 
 	if (i < 0 || i > autotileCount-1)
 		return;
 
-	if (p->autotiles[i] == bitmap)
+	if (tilemap->p->autotiles[i] == bitmap)
 		return;
 
-	p->autotiles[i] = bitmap;
+	tilemap->p->autotiles[i] = bitmap;
 
-	p->invalidateAtlasContents();
+	tilemap->p->invalidateAtlasContents();
 
-	p->autotilesCon[i].disconnect();
-	p->autotilesDispCon[i].disconnect();
+	tilemap->p->autotilesCon[i].disconnect();
+	tilemap->p->autotilesDispCon[i].disconnect();
 
 	if (nullOrDisposed(bitmap))
 	{
-		p->autotiles[i] = 0;
+		tilemap->p->autotiles[i] = 0;
 		return;
 	}
 
-	p->autotilesCon[i] = bitmap->modified.connect
-	        (&TilemapPrivate::invalidateAtlasContents, p);
+	tilemap->p->autotilesCon[i] = bitmap->modified.connect
+	        (&TilemapPrivate::invalidateAtlasContents, tilemap->p);
 
-	p->autotilesDispCon[i] = bitmap->wasDisposed.connect( [i, this] { p->atlasContentsDisposal(i); } );
+	tilemap->p->autotilesDispCon[i] = bitmap->wasDisposed.connect( [i, this] { tilemap->p->atlasContentsDisposal(i); } );
 
-	p->updateAutotileInfo();
+	tilemap->p->updateAutotileInfo();
 }
 
 Bitmap *Tilemap::Autotiles::get(int i) const
 {
-	if (!p)
+	if (!tilemap)
 		return 0;
 
 	if (i < 0 || i > autotileCount-1)
 		return 0;
 
-	return p->autotiles[i];
+	return tilemap->p->autotiles[i];
 }
 
 Tilemap::Tilemap(Viewport *viewport)
 {
 	p = new TilemapPrivate(viewport);
-	atProxy.p = p;
+	atProxy.tilemap = this;
 }
 
 Tilemap::~Tilemap()
@@ -1454,17 +1454,21 @@ void Tilemap::initDynAttribs()
 void Tilemap::releaseResources()
 {
 	delete p;
-	atProxy.p = 0;
+	atProxy.tilemap = 0;
 }
 
 #ifdef MKXPZ_RETRO
 bool Tilemap::Autotiles::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
+	if (!mkxp_sandbox::sandbox_serialize(tilemap, data, max_size)) return false;
+
 	return true;
 }
 
 bool Tilemap::Autotiles::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
+	if (!mkxp_sandbox::sandbox_deserialize(tilemap, data, max_size)) return false;
+
 	return true;
 }
 

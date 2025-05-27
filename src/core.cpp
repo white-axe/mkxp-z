@@ -1687,6 +1687,7 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         wasm_size_t typenum = std::get<1>(extra_objects[i]);
         if (typenum != get_typenum<Color>::value && typenum != get_typenum<Tone>::value && typenum != get_typenum<Rect>::value) {
             std::fprintf(stderr, "extra object other than Color, Tone or Rect found during save state serialization with typenum %llu (there's probably a bug in the sandbox bindings)\n", (unsigned long long)typenum);
+            std::fflush(stderr);
             std::abort();
         } else {
             if (!sandbox_serialize(typenum, data, max_size)) SER_OBJECTS_END_FAIL;

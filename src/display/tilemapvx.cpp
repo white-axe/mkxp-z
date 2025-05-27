@@ -433,48 +433,48 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
 
 void TilemapVX::BitmapArray::set(int i, Bitmap *bitmap)
 {
-	if (!p)
+	if (!tilemap)
 		return;
 
 	if (i < 0 || i >= BM_COUNT)
 		return;
 
-	if (p->bitmaps[i] == bitmap)
+	if (tilemap->p->bitmaps[i] == bitmap)
 		return;
 
-	p->bitmaps[i] = bitmap;
-	p->atlasDirty = true;
+	tilemap->p->bitmaps[i] = bitmap;
+	tilemap->p->atlasDirty = true;
 
-	p->bmChangedCons[i].disconnect();
-	p->bmDisposedCons[i].disconnect();
+	tilemap->p->bmChangedCons[i].disconnect();
+	tilemap->p->bmDisposedCons[i].disconnect();
 
 	if (nullOrDisposed(bitmap))
 	{
-		p->bitmaps[i] = 0;
+		tilemap->p->bitmaps[i] = 0;
 		return;
 	}
 
-	p->bmChangedCons[i] = bitmap->modified.connect
-        (&TilemapVXPrivate::invalidateAtlas, p);
+	tilemap->p->bmChangedCons[i] = bitmap->modified.connect
+        (&TilemapVXPrivate::invalidateAtlas, tilemap->p);
 
-	p->bmDisposedCons[i] = bitmap->wasDisposed.connect( [i, this] { p->atlasDisposal(i); } );
+	tilemap->p->bmDisposedCons[i] = bitmap->wasDisposed.connect( [i, this] { tilemap->p->atlasDisposal(i); } );
 }
 
 Bitmap *TilemapVX::BitmapArray::get(int i) const
 {
-	if (!p)
+	if (!tilemap)
 		return 0;
 
 	if (i < 0 || i >= BM_COUNT)
 		return 0;
 
-	return p->bitmaps[i];
+	return tilemap->p->bitmaps[i];
 }
 
 TilemapVX::TilemapVX(Viewport *viewport)
 {
 	p = new TilemapVXPrivate(viewport);
-	bmProxy.p = p;
+	bmProxy.tilemap = this;
 }
 
 TilemapVX::~TilemapVX()
@@ -612,17 +612,21 @@ void TilemapVX::setOY(Exception &exception, int value)
 void TilemapVX::releaseResources()
 {
 	delete p;
-	bmProxy.p = 0;
+	bmProxy.tilemap = 0;
 }
 
 #ifdef MKXPZ_RETRO
 bool TilemapVX::BitmapArray::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
+	if (!mkxp_sandbox::sandbox_serialize(tilemap, data, max_size)) return false;
+
 	return true;
 }
 
 bool TilemapVX::BitmapArray::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
+	if (!mkxp_sandbox::sandbox_deserialize(tilemap, data, max_size)) return false;
+
 	return true;
 }
 

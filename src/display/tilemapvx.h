@@ -53,7 +53,7 @@ public:
 		BitmapArray() {}
 		~BitmapArray() {}
 
-		TilemapVXPrivate *p;
+		TilemapVX *tilemap;
 		friend class TilemapVX;
 		friend struct TilemapVXPrivate;
 	};

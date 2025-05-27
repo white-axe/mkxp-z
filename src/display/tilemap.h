@@ -57,7 +57,7 @@ public:
 		Autotiles() {}
 		~Autotiles() {}
 
-		TilemapPrivate *p;
+		Tilemap *tilemap;
 		friend class Tilemap;
 		friend struct TilemapPrivate;
 	};
