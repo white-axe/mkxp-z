@@ -84,7 +84,7 @@ struct SharedState
 
 	sigslot::signal<> prepareDraw;
 
-	unsigned int genTimeStamp();
+	uint64_t genTimeStamp();
     
     // Returns time since SharedState was constructed in microseconds
     double runTime();

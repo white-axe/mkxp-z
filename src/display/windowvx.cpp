@@ -1183,11 +1183,6 @@ bool WindowVX::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_siz
 	if (!mkxp_sandbox::sandbox_serialize(p->contentsOpacity, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->openness, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->ctrlVert, data, max_size)) return false;
-
-	if (!mkxp_sandbox::sandbox_serialize(p->pauseVert != nullptr, data, max_size)) return false;
-	if (p->pauseVert != nullptr)
-		if (!mkxp_sandbox::sandbox_serialize(*p->pauseVert, data, max_size)) return false;
-
 	if (!mkxp_sandbox::sandbox_serialize(p->contentsQuad, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->padRect, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->clipRect, data, max_size)) return false;
@@ -1201,6 +1196,49 @@ bool WindowVX::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_siz
 	if (!mkxp_sandbox::sandbox_serialize(p->contents, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->cursorRect, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->tone, data, max_size)) return false;
+
+	return true;
+}
+
+bool WindowVX::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
+{
+	{
+		bool active;
+		if (!mkxp_sandbox::sandbox_deserialize(active, data, max_size)) return false;
+		if (!active) {
+			dispose();
+			return true;
+		}
+		// TODO: undispose
+	}
+
+	if (!mkxp_sandbox::sandbox_deserialize(p->active, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->arrowsVisible, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->pause, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->width, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->height, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->geo, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->contentsOff, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->padding, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->paddingBottom, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->opacity, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->backOpacity, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->contentsOpacity, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->openness, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->ctrlVert, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->contentsQuad, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->padRect, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->clipRect, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->cursorVert, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->pauseAlphaIdx, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->pauseQuadIdx, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->cursorAlphaIdx, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->sceneOffset, data, max_size)) return false;
+	if (!sandbox_deserialize_viewport_element(data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->windowskin, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->contents, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->cursorRect, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->tone, data, max_size)) return false;
 
 	return true;
 }

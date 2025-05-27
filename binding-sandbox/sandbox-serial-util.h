@@ -32,8 +32,8 @@
 
 namespace mkxp_sandbox {
     struct sandbox_object_deser_info {
-        sandbox_object_deser_info();
-        template <typename T> sandbox_object_deser_info(T *ptr) : ptr(ptr), typenum(get_typenum<T>::value), ref_count(0), exists(true) {}
+        template <typename T> sandbox_object_deser_info(T *&ref) : ptr(new std::vector<void **>({(void **)&ref})), typenum(mkxp_sandbox::get_typenum<T>::value), ref_count(1), exists(false) {}
+        sandbox_object_deser_info(void *ptr, wasm_size_t typenum);
         sandbox_object_deser_info(const struct sandbox_object_deser_info &) = delete;
         sandbox_object_deser_info(struct sandbox_object_deser_info &&) noexcept;
         struct sandbox_object_deser_info &operator=(const struct sandbox_object_deser_info &) = delete;
@@ -41,37 +41,25 @@ namespace mkxp_sandbox {
         ~sandbox_object_deser_info();
         wasm_size_t get_ref_count() const noexcept;
         template <typename T> bool add_ref(T *&ref) {
-            if (typenum == 0) {
-                typenum = get_typenum<T>::value;
-            } else if (typenum != get_typenum<T>::value) {
+            if (typenum != mkxp_sandbox::get_typenum<T>::value) {
+                return false;
+            }
+            if (ref_count > 0 && (std::is_same<T, Color>::value || std::is_same<T, Tone>::value || std::is_same<T, Rect>::value || std::is_same<T, Tilemap::Autotiles>::value || std::is_same<T, TilemapVX::BitmapArray>::value)) {
+                // Don't allow types that are copied by value (Color, Tone and Rect) or autotiles/bitmap arrays to be referenced more than once
                 return false;
             }
             if (exists) {
                 ref = (T *)ptr;
             } else {
+                ref = nullptr;
                 ((std::vector<void **> *)ptr)->push_back((void **)&ref);
             }
             ++ref_count;
             return true;
         }
-        template <typename T> bool set_ptr(T *ptr) {
-            if (typenum == 0) {
-                typenum = get_typenum<T>::value;
-            } else if (typenum != get_typenum<T>::value) {
-                return false;
-            }
-            if (exists && ptr != this->ptr) {
-                return false;
-            }
-            if (!exists) {
-                for (void **ref : *(std::vector<void **> *)this->ptr) {
-                    *(T **)ref = ptr;
-                }
-                delete (std::vector<void **> *)this->ptr;
-                exists = true;
-                this->ptr = ptr;
-            }
-        }
+        bool set_ptr(void *ptr, wasm_size_t typenum);
+        void *get_ptr();
+        wasm_size_t get_typenum();
 
     private:
         // If `exists` is true, this is a pointer to the object. Otherwise, this is a `std::vector<void **>` of pointers that are waiting to point to the object.
@@ -138,7 +126,7 @@ namespace mkxp_sandbox {
             extra_objects.clear();
 
             wasm_objkey_t key = 0;
-            for (const auto &object : sb()->get_objects()) {
+            for (const auto &object : sb()->objects) {
                 ++key;
                 if (object.typenum == get_typenum<T>::value) {
                     map.emplace((T *)object.inner.ptr, (struct info){.key = key, .is_extra = false});
@@ -221,7 +209,8 @@ namespace mkxp_sandbox {
             auto &deser_map = type != 0 ? extra_objects_deser : objects_deser;
             const auto it = deser_map.find(key);
             if (it == deser_map.end()) {
-                return deser_map.emplace(key, sandbox_object_deser_info()).first->second.add_ref(ref);
+                deser_map.emplace(key, sandbox_object_deser_info(ref));
+                return true;
             } else {
                 return it->second.add_ref(ref);
             }
@@ -234,6 +223,15 @@ namespace mkxp_sandbox {
 
             is_deserializing = false;
             objects_deser.clear();
+
+            // Delete extra objects with no references so we don't leak them
+            for (auto &pair : extra_objects_deser) {
+                struct sandbox_object_deser_info &info = pair.second;
+                if (info.get_ref_count() == 0 && info.get_ptr() != nullptr) {
+                    typenum_table[info.get_typenum() - 1].destructor(info.get_ptr());
+                }
+            }
+
             extra_objects_deser.clear();
         }
     };
@@ -267,9 +265,6 @@ namespace mkxp_sandbox {
             value.emplace_back();
             if (!sandbox_deserialize(value.back(), data, max_size)) return false;
             --size;
-        }
-        for (T &item : value) {
-            if (!sandbox_deserialize(item, data, max_size)) return false;
         }
         return true;
     }

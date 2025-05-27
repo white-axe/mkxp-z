@@ -693,14 +693,41 @@ Font::getSdlFont(Exception &exception)
 #ifdef MKXPZ_RETRO
 bool Font::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
-	if (!mkxp_sandbox::sandbox_serialize((int32_t)p->size, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->bold, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->italic, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->outline, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->shadow, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->name, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->color, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->outColor, data, max_size)) return false;
+
+	if (!mkxp_sandbox::sandbox_serialize((int32_t)p->size, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->name, data, max_size)) return false;
+
+	return true;
+}
+
+bool Font::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
+{
+	if (!mkxp_sandbox::sandbox_deserialize(p->bold, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->italic, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->outline, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->shadow, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->color, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->outColor, data, max_size)) return false;
+
+	// Invalidate the inner font object if either the name or size of this font is different from before
+	if (p->sdlFont != nullptr) {
+		int32_t size = p->size;
+		if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->size, data, max_size)) return false;
+		std::string name(p->name);
+		if (!mkxp_sandbox::sandbox_deserialize(p->name, data, max_size)) return false;
+		if (p->size != size || p->name != name) {
+			p->sdlFont = nullptr;
+		}
+	} else {
+		if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->size, data, max_size)) return false;
+		if (!mkxp_sandbox::sandbox_deserialize(p->name, data, max_size)) return false;
+	}
 
 	return true;
 }

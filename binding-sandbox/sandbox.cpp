@@ -129,6 +129,10 @@ bool sandbox::sandbox_serialize_fdtable(void *&data, wasm_size_t &max_size) cons
     return wasi->sandbox_serialize(data, max_size);
 }
 
+bool sandbox::sandbox_deserialize_fdtable(const void *&data, wasm_size_t &max_size) {
+    return wasi->sandbox_deserialize(data, max_size);
+}
+
 Movie *sandbox::get_movie_from_main_thread() {
     return movie.load(std::memory_order_relaxed); // No need for synchronization because we always set the movie from the main thread
 }

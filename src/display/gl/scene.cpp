@@ -211,9 +211,18 @@ void SceneElement::unlink()
 #ifdef MKXPZ_RETRO
 bool SceneElement::sandbox_serialize_scene_element(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
-	if (!mkxp_sandbox::sandbox_serialize((uint64_t)creationStamp, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(creationStamp, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize((int32_t)z, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(visible, data, max_size)) return false;
+
+	return true;
+}
+
+bool SceneElement::sandbox_deserialize_scene_element(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
+{
+	if (!mkxp_sandbox::sandbox_deserialize(creationStamp, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)z, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(visible, data, max_size)) return false;
 
 	return true;
 }

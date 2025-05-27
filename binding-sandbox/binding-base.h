@@ -199,8 +199,10 @@ namespace mkxp_sandbox {
     }
 
     struct typenum_table_entry {
+        void *(*constructor)();
         void (*destructor)(void *self);
         bool (*serialize)(const void *self, void *&data, wasm_size_t &max_size);
+        bool (*deserialize)(void *self, const void *&data, wasm_size_t &max_size);
     };
 
     extern const struct typenum_table_entry typenum_table[];
@@ -270,6 +272,7 @@ namespace mkxp_sandbox {
             // Otherwise, this is a number corresponding to the type of the object.
             wasm_size_t typenum;
 
+            object();
             object(wasm_size_t typenum, void *ptr);
             object(const struct object &object) = delete;
             object(struct object &&object) noexcept;
@@ -278,12 +281,14 @@ namespace mkxp_sandbox {
             ~object();
         };
 
-        std::shared_ptr<struct w2c_ruby> _instance;
+    public:
         std::vector<struct object> objects;
-        wasm_objkey_t next_free_objkey;
+    private:
+        std::shared_ptr<struct w2c_ruby> _instance;
         wasm_ptr_t stack_ptr;
 
     public:
+        wasm_objkey_t next_free_objkey;
         std::unordered_map<key_t, struct fiber, boost::hash<key_t>> fibers;
 
         binding_base(std::shared_ptr<struct w2c_ruby> m);
@@ -334,9 +339,6 @@ namespace mkxp_sandbox {
         template <typename T> void arycpy(wasm_ptr_t dst_address, const T *src, wasm_size_t num_elements) const noexcept {
             return sandbox_arycpy(instance(), dst_address, src, num_elements);
         }
-
-        // Returns a reference to all currently existing objects.
-        const std::vector<struct object> &get_objects() const noexcept;
 
         // Creates a new object and returns its key.
         wasm_objkey_t create_object(wasm_size_t typenum, void *ptr);

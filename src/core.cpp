@@ -32,6 +32,7 @@
 #include <alext.h>
 #include <fluidsynth.h>
 
+#include "binding-util.h"
 #include "mkxp-polyfill.h" // std::mutex, std::strtoul
 #include "git-hash.h"
 
@@ -1567,11 +1568,18 @@ extern "C" RETRO_API size_t retro_serialize_size() {
     max_size -= (bytes); \
 } while (0)
 
-#define OBJECTS_BEGIN_DETAIL(_r, _data, T) sandbox_ptr_map<T>::sandbox_serialize_begin();
-#define OBJECTS_BEGIN do { BOOST_PP_SEQ_FOR_EACH(OBJECTS_BEGIN_DETAIL, _, SANDBOX_TYPENUM_TYPES) } while (0)
-#define OBJECTS_END_DETAIL(_r, _data, T) sandbox_ptr_map<T>::sandbox_serialize_end();
-#define OBJECTS_END do { BOOST_PP_SEQ_FOR_EACH(OBJECTS_END_DETAIL, _, SANDBOX_TYPENUM_TYPES) } while (0)
-#define OBJECTS_END_FAIL do { OBJECTS_END; return false; } while (0)
+#define SER_OBJECTS_BEGIN_DETAIL(_r, _data, T) sandbox_ptr_map<T>::sandbox_serialize_begin();
+#define SER_OBJECTS_BEGIN do { BOOST_PP_SEQ_FOR_EACH(SER_OBJECTS_BEGIN_DETAIL, _, SANDBOX_TYPENUM_TYPES) } while (0)
+#define SER_OBJECTS_END_DETAIL(_r, _data, T) sandbox_ptr_map<T>::sandbox_serialize_end();
+#define SER_OBJECTS_END do { BOOST_PP_SEQ_FOR_EACH(SER_OBJECTS_END_DETAIL, _, SANDBOX_TYPENUM_TYPES) } while (0)
+#define SER_OBJECTS_END_FAIL do { SER_OBJECTS_END; return false; } while (0)
+
+#define DESER_FAIL do { deinit_sandbox(); return false; } while (0)
+#define DESER_OBJECTS_BEGIN_DETAIL(_r, _data, T) sandbox_ptr_map<T>::sandbox_deserialize_begin();
+#define DESER_OBJECTS_BEGIN do { BOOST_PP_SEQ_FOR_EACH(DESER_OBJECTS_BEGIN_DETAIL, _, SANDBOX_TYPENUM_TYPES) } while (0)
+#define DESER_OBJECTS_END_DETAIL(_r, _data, T) sandbox_ptr_map<T>::sandbox_deserialize_end();
+#define DESER_OBJECTS_END do { BOOST_PP_SEQ_FOR_EACH(DESER_OBJECTS_END_DETAIL, _, SANDBOX_TYPENUM_TYPES) } while (0)
+#define DESER_OBJECTS_END_FAIL do { DESER_OBJECTS_END; sb()->objects.clear(); sb()->next_free_objkey = 0; DESER_FAIL; } while (0)
 
 extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     wasm_size_t max_size = len;
@@ -1646,49 +1654,48 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     if (!sb().sandbox_serialize_fdtable(data, max_size)) return false;
 
     // Write the number of objects, then each object
-    OBJECTS_BEGIN;
-    if (!sandbox_serialize((wasm_size_t)sb()->get_objects().size(), data, max_size)) OBJECTS_END_FAIL;
+    SER_OBJECTS_BEGIN;
+    if (!sandbox_serialize((wasm_size_t)sb()->objects.size(), data, max_size)) SER_OBJECTS_END_FAIL;
     wasm_size_t num_free_objects = 0;
-    for (const auto &object : sb()->get_objects()) {
+    for (const auto &object : sb()->objects) {
         if (object.typenum == 0) {
             ++num_free_objects;
         } else if (object.typenum > SANDBOX_NUM_TYPENUMS) {
             std::abort();
         } else {
             if (num_free_objects > 0) {
-                if (!sandbox_serialize((wasm_size_t)0, data, max_size)) OBJECTS_END_FAIL;
-                if (!sandbox_serialize(num_free_objects, data, max_size)) OBJECTS_END_FAIL;
+                if (!sandbox_serialize((wasm_size_t)0, data, max_size)) SER_OBJECTS_END_FAIL;
+                if (!sandbox_serialize(num_free_objects, data, max_size)) SER_OBJECTS_END_FAIL;
                 num_free_objects = 0;
             }
-            if (!sandbox_serialize(object.typenum, data, max_size)) OBJECTS_END_FAIL;
-            if (!typenum_table[object.typenum - 1].serialize(object.inner.ptr, data, max_size)) OBJECTS_END_FAIL;
+            if (!sandbox_serialize(object.typenum, data, max_size)) SER_OBJECTS_END_FAIL;
+            if (!typenum_table[object.typenum - 1].serialize(object.inner.ptr, data, max_size)) SER_OBJECTS_END_FAIL;
         }
     }
     if (num_free_objects > 0) {
-        if (!sandbox_serialize((wasm_size_t)0, data, max_size)) OBJECTS_END_FAIL;
-        if (!sandbox_serialize(num_free_objects, data, max_size)) OBJECTS_END_FAIL;
+        if (!sandbox_serialize((wasm_size_t)0, data, max_size)) SER_OBJECTS_END_FAIL;
+        if (!sandbox_serialize(num_free_objects, data, max_size)) SER_OBJECTS_END_FAIL;
         num_free_objects = 0;
     }
 
     // Write the number of extra objects that were found during serialization of the normal objects, then each such object
-    if (max_size < sizeof(wasm_size_t)) OBJECTS_END_FAIL;
+    if (max_size < sizeof(wasm_size_t)) SER_OBJECTS_END_FAIL;
     wasm_size_t *num_extra_objects_ptr = (wasm_size_t *)data;
     ADVANCE(sizeof(wasm_size_t));
     for (size_t i = 0; i < extra_objects.size(); ++i) { // More items can be added to this vector during iteration
         const void *ptr = std::get<0>(extra_objects[i]);
         wasm_size_t typenum = std::get<1>(extra_objects[i]);
-        if (typenum == 0) {
-            std::abort();
-        } else if (typenum > SANDBOX_NUM_TYPENUMS) {
+        if (typenum != get_typenum<Color>::value && typenum != get_typenum<Tone>::value && typenum != get_typenum<Rect>::value) {
+            std::fprintf(stderr, "extra object other than Color, Tone or Rect found during save state serialization with typenum %llu (there's probably a bug in the sandbox bindings)\n", (unsigned long long)typenum);
             std::abort();
         } else {
-            if (!sandbox_serialize(typenum, data, max_size)) OBJECTS_END_FAIL;
-            if (!typenum_table[typenum - 1].serialize(ptr, data, max_size)) OBJECTS_END_FAIL;
+            if (!sandbox_serialize(typenum, data, max_size)) SER_OBJECTS_END_FAIL;
+            if (!typenum_table[typenum - 1].serialize(ptr, data, max_size)) SER_OBJECTS_END_FAIL;
         }
     }
     *num_extra_objects_ptr = (wasm_size_t)extra_objects.size();
 
-    OBJECTS_END;
+    SER_OBJECTS_END;
     std::memset(data, 0, max_size);
     return true;
 }
@@ -1727,37 +1734,37 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     // Read the sandbox state
     {
         wasm_ptr_t value;
-        if (!sandbox_deserialize(value, data, max_size)) return false;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
         sb()->set_machine_stack_pointer(value);
     }
     {
         uint8_t value;
-        if (!sandbox_deserialize(value, data, max_size)) return false;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
         sb()->set_asyncify_state(value);
     }
     {
         wasm_ptr_t value;
-        if (!sandbox_deserialize(value, data, max_size)) return false;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
         sb()->set_asyncify_data(value);
     }
-    if (!sandbox_deserialize(frame_count, data, max_size)) return false;
+    if (!sandbox_deserialize(frame_count, data, max_size)) DESER_FAIL;
     {
         uint64_t value;
-        if (!sandbox_deserialize(value, data, max_size)) return false;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
         frame_time = value;
     }
-    if (!sandbox_deserialize(frame_time_remainder, data, max_size)) return false;
-    if (!sandbox_deserialize(retro_run_count, data, max_size)) return false;
-    if (!sandbox_deserialize(sb().transitioning, data, max_size)) return false;
+    if (!sandbox_deserialize(frame_time_remainder, data, max_size)) DESER_FAIL;
+    if (!sandbox_deserialize(retro_run_count, data, max_size)) DESER_FAIL;
+    if (!sandbox_deserialize(sb().transitioning, data, max_size)) DESER_FAIL;
     {
         bool have_trans_map;
-        if (!sandbox_deserialize(have_trans_map, data, max_size)) return false;
+        if (!sandbox_deserialize(have_trans_map, data, max_size)) DESER_FAIL;
         if (have_trans_map) {
             if (sb().trans_map == nullptr) {
                 // TODO
-                return false;
+                DESER_FAIL;
             }
-            if (!sandbox_deserialize(*sb().trans_map, data, max_size)) return false;
+            if (!sandbox_deserialize(*sb().trans_map, data, max_size)) DESER_FAIL;
         } else {
             if (sb().trans_map != nullptr) {
                 delete sb().trans_map;
@@ -1768,14 +1775,14 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     {
         // TODO: movie
         bool have_movie;
-        if (!sandbox_deserialize(have_movie, data, max_size)) return false;
-        if (have_movie) return false;
+        if (!sandbox_deserialize(have_movie, data, max_size)) DESER_FAIL;
+        if (have_movie) DESER_FAIL;
     }
 
     {
         // Read sandbox fibers
         wasm_size_t num_fibers;
-        if (!sandbox_deserialize(num_fibers, data, max_size)) return false;
+        if (!sandbox_deserialize(num_fibers, data, max_size)) DESER_FAIL;
 
         sb()->fibers.clear();
         sb()->fibers.reserve(num_fibers);
@@ -1783,25 +1790,25 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
         while (num_fibers > 0) {
             // Read the key of the fiber
             std::tuple<wasm_size_t, wasm_size_t, wasm_size_t> key;
-            if (!sandbox_deserialize(std::get<0>(key), data, max_size)) return false;
-            if (!sandbox_deserialize(std::get<1>(key), data, max_size)) return false;
-            if (!sandbox_deserialize(std::get<2>(key), data, max_size)) return false;
+            if (!sandbox_deserialize(std::get<0>(key), data, max_size)) DESER_FAIL;
+            if (!sandbox_deserialize(std::get<1>(key), data, max_size)) DESER_FAIL;
+            if (!sandbox_deserialize(std::get<2>(key), data, max_size)) DESER_FAIL;
 
             // Construct the fiber
             auto &fiber = sb()->fibers.emplace(key, key).first->second;
 
             // Read the stack index of the fiber
-            if (!sandbox_deserialize(fiber.stack_index, data, max_size)) return false;
+            if (!sandbox_deserialize(fiber.stack_index, data, max_size)) DESER_FAIL;
 
             // Read sandbox frames
             wasm_size_t num_frames;
-            if (!sandbox_deserialize(num_frames, data, max_size)) return false;
+            if (!sandbox_deserialize(num_frames, data, max_size)) DESER_FAIL;
             fiber.deser_stack.reserve(num_frames);
             while (num_frames > 0) {
                 wasm_ptr_t stack_pointer;
-                if (!sandbox_deserialize(stack_pointer, data, max_size)) return false;
+                if (!sandbox_deserialize(stack_pointer, data, max_size)) DESER_FAIL;
                 int32_t state;
-                if (!sandbox_deserialize(state, data, max_size)) return false;
+                if (!sandbox_deserialize(state, data, max_size)) DESER_FAIL;
                 fiber.deser_stack.emplace_back(stack_pointer, state);
                 --num_frames;
             }
@@ -1810,6 +1817,85 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
         }
     }
 
+    // Read the open WASI file descriptors
+    if (!sb().sandbox_deserialize_fdtable(data, max_size)) DESER_FAIL;
+
+    // Read objects
+    DESER_OBJECTS_BEGIN;
+    sb()->next_free_objkey = 0;
+    wasm_objkey_t object_key = 1;
+    wasm_size_t num_objects;
+    if (!sandbox_deserialize(num_objects, data, max_size)) DESER_OBJECTS_END_FAIL;
+    sb()->objects.resize(num_objects);
+    while (object_key <= num_objects) {
+        wasm_size_t typenum;
+        if (!sandbox_deserialize(typenum, data, max_size)) DESER_OBJECTS_END_FAIL;
+        if (typenum == 0) {
+            wasm_size_t num_free_objects;
+            if (!::sandbox_deserialize(num_free_objects, data, max_size)) DESER_OBJECTS_END_FAIL;
+            if (object_key - 1 + num_free_objects > num_objects || object_key + num_free_objects < object_key) DESER_OBJECTS_END_FAIL;
+            for (wasm_size_t i = object_key; i < object_key + num_free_objects; ++i) {
+                auto &object = sb()->objects[i - 1];
+                if (object.typenum > 0) {
+                    if (object.typenum > SANDBOX_NUM_TYPENUMS) {
+                        std::abort();
+                    }
+                    typenum_table[object.typenum - 1].destructor(object.inner.ptr);
+                    object.typenum = 0;
+                }
+                object.inner.next = sb()->next_free_objkey;
+                sb()->next_free_objkey = i;
+            }
+            object_key += num_free_objects;
+        } else {
+            if (typenum > SANDBOX_NUM_TYPENUMS) DESER_OBJECTS_END_FAIL;
+            auto &object = sb()->objects[object_key - 1];
+            if (object.typenum > 0 && object.typenum != typenum) {
+                typenum_table[object.typenum - 1].destructor(object.inner.ptr);
+            }
+            if (object.typenum != typenum) {
+                object.typenum = typenum;
+                object.inner.ptr = typenum_table[typenum - 1].constructor();
+                if (object.inner.ptr == nullptr && typenum != get_typenum<Tilemap::Autotiles>::value && typenum != get_typenum<TilemapVX::BitmapArray>::value) DESER_OBJECTS_END_FAIL;
+            }
+            if (!typenum_table[typenum - 1].deserialize(object.inner.ptr, data, max_size)) DESER_OBJECTS_END_FAIL;
+            auto it = objects_deser.find(object_key);
+            if (it == objects_deser.end()) {
+                objects_deser.emplace(object_key, sandbox_object_deser_info(object.inner.ptr, typenum));
+            } else {
+                it->second.set_ptr(object.inner.ptr, typenum);
+            }
+            ++object_key;
+        }
+    }
+
+    // Read extra objects
+    wasm_objkey_t extra_object_key = 1;
+    wasm_size_t num_extra_objects;
+    if (!sandbox_deserialize(num_extra_objects, data, max_size)) DESER_OBJECTS_END_FAIL;
+    while (extra_object_key <= num_extra_objects) {
+        wasm_size_t typenum;
+        if (!sandbox_deserialize(typenum, data, max_size)) DESER_OBJECTS_END_FAIL;
+        if (typenum != get_typenum<Color>::value && typenum != get_typenum<Tone>::value && typenum != get_typenum<Rect>::value) DESER_OBJECTS_END_FAIL;
+        void *ptr = typenum_table[typenum - 1].constructor();
+        if (ptr == nullptr && typenum != get_typenum<Tilemap::Autotiles>::value && typenum != get_typenum<TilemapVX::BitmapArray>::value) DESER_OBJECTS_END_FAIL;
+        if (!typenum_table[typenum - 1].deserialize(ptr, data, max_size)) {
+            typenum_table[typenum - 1].destructor(ptr);
+            DESER_OBJECTS_END_FAIL;
+        }
+        auto it = extra_objects_deser.find(extra_object_key);
+        if (it == extra_objects_deser.end()) {
+            extra_objects_deser.emplace(extra_object_key, sandbox_object_deser_info(ptr, typenum));
+        } else {
+            if (!it->second.set_ptr(ptr, typenum)) {
+                typenum_table[typenum - 1].destructor(ptr);
+                DESER_OBJECTS_END_FAIL;
+            }
+        }
+        ++extra_object_key;
+    }
+
+    DESER_OBJECTS_END;
     return true;
 }
 

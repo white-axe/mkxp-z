@@ -982,4 +982,43 @@ bool Window::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
 
 	return true;
 }
+
+bool Window::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
+{
+	{
+		bool active;
+		if (!mkxp_sandbox::sandbox_deserialize(active, data, max_size)) return false;
+		if (!active) {
+			dispose();
+			return true;
+		}
+		// TODO: undispose
+	}
+
+	if (!mkxp_sandbox::sandbox_deserialize(p->bgStretch, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->active, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->pause, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->sceneOffset, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->position, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->size, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->contentsOffset, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->opacity, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->backOpacity, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->contentsOpacity, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->baseQuadArray, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->useBaseTex, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->baseTexQuad, data, max_size)) return false;
+	if (!p->controlsElement.sandbox_deserialize_viewport_element(data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->controlsQuadArray, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->contentsQuad, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->cursorAniAlphaIdx, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->pauseAniAlphaIdx, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->pauseAniQuadIdx, data, max_size)) return false;
+	if (!sandbox_deserialize_viewport_element(data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->windowskin, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->contents, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->cursorRect, data, max_size)) return false;
+
+	return true;
+}
 #endif // MKXPZ_RETRO

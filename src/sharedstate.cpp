@@ -107,7 +107,7 @@ struct SharedStatePrivate
 
 	Quad gpQuad;
 
-	unsigned int stampCounter;
+	uint64_t stampCounter;
     
     std::chrono::time_point<std::chrono::steady_clock> startupTime;
 
@@ -435,7 +435,7 @@ double SharedState::runTime() {
 #endif // MKXPZ_RETRO
 }
 
-unsigned int SharedState::genTimeStamp()
+uint64_t SharedState::genTimeStamp()
 {
 	return p->stampCounter++;
 }

@@ -56,7 +56,7 @@ class Bitmap : public Disposable
 
 public:
 	Bitmap(Exception &exception, const char *filename);
-	Bitmap(Exception &exception, int width, int height, bool isHires = false);
+	Bitmap(Exception &exception, int width = 1, int height = 1, bool isHires = false);
 	Bitmap(Exception &exception, void *pixeldata, int width, int height);
 	Bitmap(Exception &exception, TEXFBO &other);
 	Bitmap(Exception &exception, SDL_Surface *imgSurf, SDL_Surface *imgSurfHires, bool forceMega = false);

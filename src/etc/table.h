@@ -35,7 +35,7 @@
 class Table : public Serializable
 {
 public:
-	Table(int x, int y = 1, int z = 1);
+	Table(int x = 1, int y = 1, int z = 1);
 	/* Clone constructor */
 	Table(const Table &other);
 	virtual ~Table() {}
@@ -70,6 +70,7 @@ public:
 
 #ifdef MKXPZ_RETRO
 	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
+	bool sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size);
 #endif // MKXPZ_RETRO
 
 private:

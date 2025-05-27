@@ -896,4 +896,51 @@ bool Sprite::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
 
     return true;
 }
+
+bool Sprite::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
+{
+    {
+        bool active;
+        if (!mkxp_sandbox::sandbox_deserialize(active, data, max_size)) return false;
+        if (!active) {
+            dispose();
+            return true;
+        }
+        // TODO: undispose
+    }
+
+    if (!mkxp_sandbox::sandbox_deserialize(p->quad, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->trans, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->mirrored, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->bushDepth, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->efBushDepth, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->bushOpacity, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->opacity, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->blendType, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->patternBlendType, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->patternTile, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->patternOpacity, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->patternScroll, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->patternZoom, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->invert, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->sceneRect, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->sceneOrig, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->isVisible, data, max_size)) return false;
+
+    if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->wave.amp, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->wave.length, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->wave.speed, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->wave.phase, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->wave.qArray, data, max_size)) return false;
+
+    if (!sandbox_deserialize_viewport_element(data, max_size)) return false;
+
+    if (!mkxp_sandbox::sandbox_deserialize(p->bitmap, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->pattern, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->srcRect, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->color, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->tone, data, max_size)) return false;
+
+    return true;
+}
 #endif // MKXPZ_RETRO

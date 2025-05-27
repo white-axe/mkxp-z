@@ -46,6 +46,7 @@ public:
 
 #ifdef MKXPZ_RETRO
 		bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
+		bool sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size);
 #endif // MKXPZ_RETRO
 
 	private:
@@ -74,6 +75,7 @@ public:
 
 #ifdef MKXPZ_RETRO
 	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
+	bool sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size);
 #endif // MKXPZ_RETRO
 
 private:

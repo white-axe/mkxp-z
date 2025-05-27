@@ -44,7 +44,7 @@ std::vector<std::tuple<const void *, wasm_size_t>> mkxp_sandbox::extra_objects;
 std::unordered_map<wasm_size_t, struct sandbox_object_deser_info> mkxp_sandbox::objects_deser;
 std::unordered_map<wasm_size_t, struct sandbox_object_deser_info> mkxp_sandbox::extra_objects_deser;
 
-sandbox_object_deser_info::sandbox_object_deser_info() : ptr(new std::vector<void **>), typenum(0), ref_count(0), exists(false) {}
+sandbox_object_deser_info::sandbox_object_deser_info(void *ptr, wasm_size_t typenum) : ptr(ptr), typenum(typenum), ref_count(0), exists(true) {}
 
 sandbox_object_deser_info::sandbox_object_deser_info(struct sandbox_object_deser_info &&info) noexcept : ptr(std::exchange(info.ptr, nullptr)), typenum(info.typenum), ref_count(std::exchange(info.ref_count, 1)), exists(std::exchange(info.exists, true)) {}
 
@@ -64,6 +64,32 @@ sandbox_object_deser_info::~sandbox_object_deser_info() {
 
 wasm_size_t sandbox_object_deser_info::get_ref_count() const noexcept {
     return ref_count;
+}
+
+bool sandbox_object_deser_info::set_ptr(void *ptr, wasm_size_t typenum) {
+    if (this->typenum != typenum) {
+        return false;
+    }
+    if (exists && ptr != this->ptr) {
+        return false;
+    }
+    if (!exists) {
+        for (void **ref : *(std::vector<void **> *)this->ptr) {
+            *ref = ptr;
+        }
+        delete (std::vector<void **> *)this->ptr;
+        exists = true;
+        this->ptr = ptr;
+    }
+    return true;
+}
+
+void *sandbox_object_deser_info::get_ptr() {
+    return exists ? ptr : nullptr;
+}
+
+wasm_size_t sandbox_object_deser_info::get_typenum() {
+    return typenum;
 }
 
 template <> bool mkxp_sandbox::sandbox_serialize(bool value, void *&data, wasm_size_t &max_size) {
@@ -221,7 +247,8 @@ template <> bool mkxp_sandbox::sandbox_deserialize(double &value, const void *&d
 }
 
 template <> bool mkxp_sandbox::sandbox_serialize(const char *value, void *&data, wasm_size_t &max_size) {
-    wasm_size_t size = std::strlen(value) + 1;
+    wasm_size_t size = std::strlen(value);
+    if (!sandbox_serialize(size, data, max_size)) return false;
     RESERVE(size);
     std::memcpy(data, value, size);
     ADVANCE(size);
@@ -229,7 +256,8 @@ template <> bool mkxp_sandbox::sandbox_serialize(const char *value, void *&data,
 }
 
 template <> bool mkxp_sandbox::sandbox_serialize(const std::string &value, void *&data, wasm_size_t &max_size) {
-    wasm_size_t size = value.length() + 1;
+    wasm_size_t size = value.length();
+    if (!sandbox_serialize(size, data, max_size)) return false;
     RESERVE(size);
     std::memcpy(data, value.c_str(), size);
     ADVANCE(size);
@@ -239,12 +267,12 @@ template <> bool mkxp_sandbox::sandbox_serialize(const std::string &value, void 
 template <> bool mkxp_sandbox::sandbox_deserialize(std::string &value, const void *&data, wasm_size_t &max_size) {
     wasm_size_t size;
     if (!sandbox_deserialize(size, data, max_size)) return false;
-    if (size == 0 || ((const char *)data)[size - 1] != 0) return false;
     RESERVE(size);
-    value.resize(size - 1);
+    value.clear();
+    value.resize(size);
     char *str = &value[0];
-    std::memcpy(str, data, size - 1);
-    if (std::strlen(str) != size - 1) {
+    std::memcpy(str, data, size);
+    if (std::strlen(str) != size) {
         value.clear();
         return false;
     }

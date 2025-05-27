@@ -1463,6 +1463,11 @@ bool Tilemap::Autotiles::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_
 	return true;
 }
 
+bool Tilemap::Autotiles::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
+{
+	return true;
+}
+
 bool Tilemap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
 	if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
@@ -1512,6 +1517,66 @@ bool Tilemap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size
 	if (!mkxp_sandbox::sandbox_serialize(p->flashMap.getData(), data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->color, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->tone, data, max_size)) return false;
+
+	return true;
+}
+
+bool Tilemap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
+{
+	{
+		bool active;
+		if (!mkxp_sandbox::sandbox_deserialize(active, data, max_size)) return false;
+		if (!active) {
+			dispose();
+			return true;
+		}
+		// TODO: undispose
+	}
+
+	if (!mkxp_sandbox::sandbox_deserialize(p->visible, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->origin, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->dispPos, data, max_size)) return false;
+
+	if (!mkxp_sandbox::sandbox_deserialize(p->atlas.size, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->atlas.efTilesetH, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->atlas.usableATs, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->atlas.animatedATs, data, max_size)) return false;
+	for (size_t i = 0; i < autotileCount; ++i)
+		if (!mkxp_sandbox::sandbox_deserialize(p->atlas.smallATs[i], data, max_size)) return false;
+	for (size_t i = 0; i < autotileCount; ++i)
+		if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->atlas.nATFrames[i], data, max_size)) return false;
+
+	if (!mkxp_sandbox::sandbox_deserialize(p->viewpPos, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->groundVert, data, max_size)) return false;
+	for (size_t i = 0; i < zlayersMax; ++i)
+		if (!mkxp_sandbox::sandbox_deserialize(p->zlayerVert[i], data, max_size)) return false;
+	for (size_t i = 0; i < zlayersMax + 1; ++i)
+		if (!mkxp_sandbox::sandbox_deserialize((mkxp_sandbox::wasm_size_t &)p->zlayerBases[i], data, max_size)) return false;
+
+	if (!mkxp_sandbox::sandbox_deserialize(p->tiles.animated, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->tiles.aniIdx, data, max_size)) return false;
+
+	if (!mkxp_sandbox::sandbox_deserialize(p->flashAlphaIdx, data, max_size)) return false;
+
+	if (!p->elem.ground->sandbox_deserialize_viewport_element(data, max_size)) return false;
+
+	for (size_t i = 0; i < zlayersMax; ++i)
+		if (!p->elem.zlayers[i]->sandbox_deserialize_viewport_element(data, max_size)) return false;
+
+	if (!mkxp_sandbox::sandbox_deserialize((mkxp_sandbox::wasm_size_t &)p->elem.activeLayers, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->elem.sceneGeo, data, max_size)) return false;
+
+	if (!mkxp_sandbox::sandbox_deserialize(p->opacity, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->blendType, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->viewport, data, max_size)) return false;
+	for (size_t i = 0; i < autotileCount; ++i)
+		if (!mkxp_sandbox::sandbox_deserialize(p->autotiles[i], data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->tileset, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->mapData, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->priorities, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->flashMap.getData(), data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->color, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->tone, data, max_size)) return false;
 
 	return true;
 }

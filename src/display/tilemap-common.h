@@ -136,6 +136,11 @@ struct FlashMap
 		return data;
 	}
 
+	Table *&getData()
+	{
+		return data;
+	}
+
 	void setData(Table *value)
 	{
 		if (data == value)

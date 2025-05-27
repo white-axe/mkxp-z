@@ -220,6 +220,8 @@ void binding_base::strncpy(wasm_ptr_t dst_address, const char *src, wasm_size_t 
     sandbox_strncpy(instance(), dst_address, src, max_size);
 }
 
+binding_base::object::object() : inner {.next = 0}, typenum(0) {}
+
 binding_base::object::object(wasm_size_t typenum, void *ptr) : inner {.ptr = ptr}, typenum(typenum) {}
 
 binding_base::object::object(struct object &&object) noexcept : inner(std::exchange(object.inner, (union binding_base::object::inner){.next = 0})), typenum(std::exchange(object.typenum, 0)) {}
@@ -237,10 +239,6 @@ binding_base::object::~object() {
         }
         typenum_table[typenum - 1].destructor(inner.ptr);
     }
-}
-
-const std::vector<struct binding_base::object> &binding_base::get_objects() const noexcept {
-    return objects;
 }
 
 wasm_objkey_t binding_base::create_object(wasm_size_t typenum, void *ptr) {

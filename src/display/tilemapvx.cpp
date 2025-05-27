@@ -621,6 +621,11 @@ bool TilemapVX::BitmapArray::sandbox_serialize(void *&data, mkxp_sandbox::wasm_s
 	return true;
 }
 
+bool TilemapVX::BitmapArray::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
+{
+	return true;
+}
+
 bool TilemapVX::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
 	if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
@@ -642,6 +647,38 @@ bool TilemapVX::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_si
 		if (!mkxp_sandbox::sandbox_serialize(p->bitmaps[i], data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->mapData, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->flashMap.getData(), data, max_size)) return false;
+
+	return true;
+}
+
+bool TilemapVX::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
+{
+	{
+		bool active;
+		if (!mkxp_sandbox::sandbox_deserialize(active, data, max_size)) return false;
+		if (!active) {
+			dispose();
+			return true;
+		}
+		// TODO: undispose
+	}
+
+	if (!mkxp_sandbox::sandbox_deserialize(p->origin, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->dispPos, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->groundVert, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->aboveVert, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize((mkxp_sandbox::wasm_size_t &)p->allocQuads, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize((mkxp_sandbox::wasm_size_t &)p->groundQuads, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize((mkxp_sandbox::wasm_size_t &)p->aboveQuads, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->frameIdx, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->aniOffset, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->flashAlphaIdx, data, max_size)) return false;
+	if (!p->above.sandbox_deserialize_viewport_element(data, max_size)) return false;
+	if (!p->sandbox_deserialize_viewport_element(data, max_size)) return false;
+	for (size_t i = 0; i < BM_COUNT; ++i)
+		if (!mkxp_sandbox::sandbox_deserialize(p->bitmaps[i], data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->mapData, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->flashMap.getData(), data, max_size)) return false;
 
 	return true;
 }

@@ -64,6 +64,7 @@ namespace mkxp_sandbox {
         sandbox();
         ~sandbox();
         bool sandbox_serialize_fdtable(void *&data, wasm_size_t &max_size) const;
+        bool sandbox_deserialize_fdtable(const void *&data, wasm_size_t &max_size);
         Movie *get_movie_from_main_thread();
         Movie *get_movie_from_audio_thread();
         void set_movie(Movie *new_movie);

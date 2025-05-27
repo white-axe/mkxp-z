@@ -97,6 +97,7 @@ public:
 
 #ifdef MKXPZ_RETRO
 	bool sandbox_serialize_scene_element(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
+	bool sandbox_deserialize_scene_element(const void *&data, mkxp_sandbox::wasm_size_t &max_size);
 #endif // MKXPZ_REROO
 
 protected:
@@ -131,7 +132,7 @@ protected:
 	void unlink();
 
 	IntruListLink<SceneElement> link;
-	const unsigned int creationStamp;
+	uint64_t creationStamp;
 	int z;
 	bool visible;
 	Scene *scene;

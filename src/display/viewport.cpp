@@ -244,6 +244,28 @@ bool Viewport::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_siz
 
 	return true;
 }
+
+bool Viewport::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
+{
+	{
+		bool active;
+		if (!mkxp_sandbox::sandbox_deserialize(active, data, max_size)) return false;
+		if (!active) {
+			dispose();
+			return true;
+		}
+		// TODO: undispose
+	}
+
+	if (!mkxp_sandbox::sandbox_deserialize(p->screenRect, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->isOnScreen, data, max_size)) return false;
+	if (!sandbox_deserialize_scene_element(data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->rect, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->color, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->tone, data, max_size)) return false;
+
+	return true;
+}
 #endif // MXKPZ_RETRO
 
 
@@ -290,6 +312,14 @@ bool ViewportElement::sandbox_serialize_viewport_element(void *&data, mkxp_sandb
 {
 	if (!sandbox_serialize_scene_element(data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(m_viewport, data, max_size)) return false;
+
+	return true;
+}
+
+bool ViewportElement::sandbox_deserialize_viewport_element(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
+{
+	if (!sandbox_deserialize_scene_element(data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(m_viewport, data, max_size)) return false;
 
 	return true;
 }

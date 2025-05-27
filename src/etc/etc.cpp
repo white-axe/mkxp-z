@@ -191,6 +191,15 @@ bool Color::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) 
 
 	return true;
 }
+
+bool Color::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size) {
+	if (!mkxp_sandbox::sandbox_deserialize(red, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(green, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(blue, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(alpha, data, max_size)) return false;
+
+	return true;
+}
 #endif // MKXPZ_RETRO
 
 
@@ -317,6 +326,15 @@ bool Tone::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) c
 	if (!mkxp_sandbox::sandbox_serialize(green, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(blue, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(gray, data, max_size)) return false;
+
+	return true;
+}
+
+bool Tone::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size) {
+	if (!mkxp_sandbox::sandbox_deserialize(red, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(green, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(blue, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(gray, data, max_size)) return false;
 
 	return true;
 }
@@ -469,6 +487,15 @@ bool Rect::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) c
 	if (!mkxp_sandbox::sandbox_serialize((int32_t)y, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize((int32_t)width, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize((int32_t)height, data, max_size)) return false;
+
+	return true;
+}
+
+bool Rect::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size) {
+	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)x, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)y, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)width, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)height, data, max_size)) return false;
 
 	return true;
 }

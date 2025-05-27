@@ -94,6 +94,7 @@ struct Color : public Serializable
 
 #ifdef MKXPZ_RETRO
 	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
+	bool sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size);
 #endif // MKXPZ_RETRO
 
 	/* Range (0.0 ~ 255.0) */
@@ -150,6 +151,7 @@ struct Tone : public Serializable
 
 #ifdef MKXPZ_RETRO
 	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
+	bool sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size);
 #endif // MKXPZ_RETRO
 
 	/* Range (-255.0 ~ 255.0) */
@@ -213,6 +215,7 @@ struct Rect : public Serializable
 
 #ifdef MKXPZ_RETRO
 	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
+	bool sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size);
 #endif // MKXPZ_RETRO
 
 	int x;
