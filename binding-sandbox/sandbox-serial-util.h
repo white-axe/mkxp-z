@@ -268,8 +268,8 @@ namespace mkxp_sandbox {
             if (!sandbox_deserialize(value.back(), data, max_size)) return false;
             --size;
         }
-        for (const T &item : value) {
-            if (!sandbox_serialize(item, data, max_size)) return false;
+        for (T &item : value) {
+            if (!sandbox_deserialize(item, data, max_size)) return false;
         }
         return true;
     }
