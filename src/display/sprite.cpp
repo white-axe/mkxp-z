@@ -931,6 +931,15 @@ bool Sprite::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
     return true;
 }
 
+void Sprite::sandbox_deserialize_begin()
+{
+    sandbox_deserialize_end_viewport_element();
+
+    if (isDisposed()) return;
+
+    p->bitmapDispCon.disconnect();
+}
+
 void Sprite::sandbox_deserialize_end()
 {
     sandbox_deserialize_end_viewport_element();

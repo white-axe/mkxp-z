@@ -87,6 +87,7 @@ public:
 #ifdef MKXPZ_RETRO
 	bool sandbox_serialize_viewport_element(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
 	bool sandbox_deserialize_viewport_element(const void *&data, mkxp_sandbox::wasm_size_t &max_size);
+	void sandbox_deserialize_begin_viewport_element();
 	void sandbox_deserialize_end_viewport_element();
 #endif // MXKPZ_RETRO
 

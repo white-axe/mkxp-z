@@ -3448,6 +3448,11 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
     return true;
 }
 
+void Bitmap::sandbox_deserialize_begin()
+{
+    loresDispCon.disconnect();
+}
+
 void Bitmap::sandbox_deserialize_end()
 {
     if (isDisposed()) return;

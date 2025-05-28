@@ -1585,6 +1585,23 @@ bool Tilemap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &
 	return true;
 }
 
+void Tilemap::sandbox_deserialize_begin()
+{
+	if (isDisposed()) return;
+
+	p->elem.ground->sandbox_deserialize_begin_viewport_element();
+
+	for (size_t i = 0; i < zlayersMax; ++i) {
+		p->elem.zlayers[i]->sandbox_deserialize_begin_viewport_element();
+	}
+
+	for (size_t i = 0; i < autotileCount; ++i) {
+		p->autotilesDispCon[i].disconnect();
+	}
+
+	p->tilesetDispCon.disconnect();
+}
+
 void Tilemap::sandbox_deserialize_end()
 {
 	if (isDisposed()) return;

@@ -311,6 +311,11 @@ bool ViewportElement::sandbox_deserialize_viewport_element(const void *&data, mk
 	return true;
 }
 
+void ViewportElement::sandbox_deserialize_begin_viewport_element()
+{
+	viewportDispCon.disconnect();
+}
+
 void ViewportElement::sandbox_deserialize_end_viewport_element()
 {
 	if (m_viewport != nullptr) {

@@ -1827,6 +1827,11 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
 
     // Read objects
     DESER_OBJECTS_BEGIN;
+    for (const auto &object : sb()->objects) {
+        if (object.typenum > 0) {
+            typenum_table[object.typenum - 1].deserialize_begin(object.inner.ptr);
+        }
+    }
     sb()->next_free_objkey = 0;
     wasm_objkey_t object_key = 1;
     wasm_size_t num_objects;
@@ -1847,7 +1852,7 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
                     if (object.typenum > SANDBOX_NUM_TYPENUMS) {
                         std::abort();
                     }
-                    typenum_table[object.typenum - 1].destroy_without_signal(object.inner.ptr);
+                    typenum_table[object.typenum - 1].destroy(object.inner.ptr);
                     object.typenum = 0;
                 }
                 object.inner.next = sb()->next_free_objkey;
@@ -1867,7 +1872,7 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
             bool should_create = object.typenum != typenum || (currently_disposed && !should_be_disposed);
             bool should_destroy = should_create && object.typenum > 0;
             if (should_destroy) {
-                typenum_table[object.typenum - 1].destroy_without_signal(object.inner.ptr);
+                typenum_table[object.typenum - 1].destroy(object.inner.ptr);
             }
             if (should_create) {
                 object.typenum = typenum;
@@ -1879,7 +1884,7 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
             if (!should_be_disposed) {
                 if (!typenum_table[typenum - 1].deserialize(object.inner.ptr, data, max_size)) DESER_OBJECTS_END_FAIL;
             } else if (!currently_disposed) {
-                typenum_table[typenum - 1].dispose_without_signal(object.inner.ptr);
+                typenum_table[typenum - 1].dispose(object.inner.ptr);
             }
 
             // Add it to the pointer map so that other objects that reference this one will be able to see it
@@ -1926,12 +1931,12 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     }
 
     for (const auto &object : sb()->objects) {
-        if (object.typenum > 0 && !typenum_table[object.typenum - 1].disposed(object.inner.ptr)) {
+        if (object.typenum > 0) {
             typenum_table[object.typenum - 1].deserialize_end(object.inner.ptr);
         }
     }
     for (const auto &pair : extra_objects_deser) {
-        if (pair.second.get_typenum() > 0 && !typenum_table[pair.second.get_typenum() - 1].disposed(pair.second.get_ptr())) {
+        if (pair.second.get_typenum() > 0) {
             typenum_table[pair.second.get_typenum() - 1].deserialize_end(pair.second.get_ptr());
         }
     }

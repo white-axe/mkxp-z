@@ -691,6 +691,19 @@ bool TilemapVX::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t
 	return true;
 }
 
+void TilemapVX::sandbox_deserialize_begin()
+{
+	if (isDisposed()) return;
+
+	p->above.sandbox_deserialize_begin_viewport_element();
+
+	p->sandbox_deserialize_begin_viewport_element();
+
+	for (size_t i = 0; i < BM_COUNT; ++i) {
+		p->bmDisposedCons[i].disconnect();
+	}
+}
+
 void TilemapVX::sandbox_deserialize_end()
 {
 	if (isDisposed()) return;

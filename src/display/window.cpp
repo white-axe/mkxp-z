@@ -1009,6 +1009,17 @@ bool Window::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
 	return true;
 }
 
+void Window::sandbox_deserialize_begin()
+{
+	sandbox_deserialize_begin_viewport_element();
+
+	if (isDisposed()) return;
+
+	p->windowskinDispCon.disconnect();
+
+	p->contentsDispCon.disconnect();
+}
+
 void Window::sandbox_deserialize_end()
 {
 	sandbox_deserialize_end_viewport_element();
