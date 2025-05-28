@@ -93,6 +93,10 @@ uint32_t wasi_t::allocate_file_descriptor(enum wasi_fd_type type, void *handle) 
 }
 
 void wasi_t::deallocate_file_descriptor(uint32_t fd) {
+    if (fdtable[fd].type == wasi_fd_type::VACANT) {
+        return;
+    }
+
     if (fdtable[fd].handle != nullptr) {
         switch (fdtable[fd].type) {
             case wasi_fd_type::FS:
@@ -103,7 +107,7 @@ void wasi_t::deallocate_file_descriptor(uint32_t fd) {
                 delete fdtable[fd].file_handle();
                 break;
             default:
-                return;
+                break;
         }
     }
 
@@ -188,6 +192,9 @@ bool wasi_t::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
             if (!::sandbox_deserialize(num_free_handles, data, max_size)) return false;
             if (i + num_free_handles > size || i + num_free_handles < i) return false;
             for (uint32_t j = i; j < i + num_free_handles; ++j) {
+                if (fdtable[i].type != wasi_fd_type::FSDIR && fdtable[i].type != wasi_fd_type::FSFILE) {
+                    continue;
+                }
                 deallocate_file_descriptor(j);
                 vacant_fds.clear();
             }
@@ -232,7 +239,7 @@ bool wasi_t::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
         }
     }
 
-    for (uint32_t j = 0; i < fdtable.size(); ++j) {
+    for (uint32_t j = 0; j < fdtable.size(); ++j) {
         if (fdtable[j].type == wasi_fd_type::VACANT) {
             vacant_fds.push_back(j);
         }
