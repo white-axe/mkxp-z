@@ -3392,9 +3392,6 @@ void Bitmap::loresDisposal()
 #ifdef MKXPZ_RETRO
 bool Bitmap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
-    if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
-    if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
-
     if (!mkxp_sandbox::sandbox_serialize(p->path, data, max_size)) return false;
 
     if (!mkxp_sandbox::sandbox_serialize((int32_t)width(), data, max_size)) return false;
@@ -3422,16 +3419,6 @@ bool Bitmap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
 
 bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
-    {
-        bool active;
-        if (!mkxp_sandbox::sandbox_deserialize(active, data, max_size)) return false;
-        if (!active) {
-            dispose();
-            return true;
-        }
-        // TODO: undispose
-    }
-
     if (!mkxp_sandbox::sandbox_deserialize(p->path, data, max_size)) return false;
 
     if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->gl.width, data, max_size)) return false;
@@ -3459,5 +3446,16 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
     // TODO: reload the bitmap
 
     return true;
+}
+
+void Bitmap::sandbox_deserialize_end()
+{
+    if (isDisposed()) return;
+    if (p->selfLores != nullptr) {
+        loresDispCon = p->selfLores->wasDisposed.connect(&Bitmap::loresDisposal, this);
+        if (p->selfLores->isDisposed()) {
+            p->selfLores->wasDisposed();
+        }
+    }
 }
 #endif // MKXPZ_RETRO

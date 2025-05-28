@@ -232,9 +232,6 @@ void Viewport::releaseResources()
 #ifdef MKXPZ_RETRO
 bool Viewport::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
-	if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
-	if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
-
 	if (!mkxp_sandbox::sandbox_serialize(p->screenRect, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->isOnScreen, data, max_size)) return false;
 	if (!sandbox_serialize_scene_element(data, max_size)) return false;
@@ -247,16 +244,6 @@ bool Viewport::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_siz
 
 bool Viewport::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
-	{
-		bool active;
-		if (!mkxp_sandbox::sandbox_deserialize(active, data, max_size)) return false;
-		if (!active) {
-			dispose();
-			return true;
-		}
-		// TODO: undispose
-	}
-
 	if (!mkxp_sandbox::sandbox_deserialize(p->screenRect, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->isOnScreen, data, max_size)) return false;
 	if (!sandbox_deserialize_scene_element(data, max_size)) return false;
@@ -322,5 +309,15 @@ bool ViewportElement::sandbox_deserialize_viewport_element(const void *&data, mk
 	if (!mkxp_sandbox::sandbox_deserialize(m_viewport, data, max_size)) return false;
 
 	return true;
+}
+
+void ViewportElement::sandbox_deserialize_end_viewport_element()
+{
+	if (m_viewport != nullptr) {
+		viewportDispCon = m_viewport->wasDisposed.connect(&ViewportElement::viewportElementDisposal, this);
+		if (m_viewport->isDisposed()) {
+			m_viewport->wasDisposed();
+		}
+	}
 }
 #endif // MXKPZ_RETRO

@@ -953,9 +953,6 @@ void Window::releaseResources()
 #ifdef MKXPZ_RETRO
 bool Window::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
-	if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
-	if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
-
 	if (!mkxp_sandbox::sandbox_serialize(p->bgStretch, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->active, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->pause, data, max_size)) return false;
@@ -985,16 +982,6 @@ bool Window::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
 
 bool Window::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
-	{
-		bool active;
-		if (!mkxp_sandbox::sandbox_deserialize(active, data, max_size)) return false;
-		if (!active) {
-			dispose();
-			return true;
-		}
-		// TODO: undispose
-	}
-
 	if (!mkxp_sandbox::sandbox_deserialize(p->bgStretch, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->active, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->pause, data, max_size)) return false;
@@ -1020,5 +1007,26 @@ bool Window::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
 	if (!mkxp_sandbox::sandbox_deserialize(p->cursorRect, data, max_size)) return false;
 
 	return true;
+}
+
+void Window::sandbox_deserialize_end()
+{
+	sandbox_deserialize_end_viewport_element();
+
+	if (isDisposed()) return;
+	if (p->windowskin != nullptr) {
+		p->windowskinDispCon = p->windowskin->wasDisposed.connect(&WindowPrivate::windowskinDisposal, p);
+		if (p->windowskin->isDisposed()) {
+			p->windowskin->wasDisposed();
+		}
+	}
+
+	if (isDisposed()) return;
+	if (p->contents != nullptr) {
+		p->contentsDispCon = p->contents->wasDisposed.connect(&WindowPrivate::contentsDisposal, p);
+		if (p->contents->isDisposed()) {
+			p->contents->wasDisposed();
+		}
+	}
 }
 #endif // MKXPZ_RETRO

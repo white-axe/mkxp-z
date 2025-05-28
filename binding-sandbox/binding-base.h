@@ -199,10 +199,14 @@ namespace mkxp_sandbox {
     }
 
     struct typenum_table_entry {
-        void *(*constructor)();
-        void (*destructor)(void *self);
+        void *(*construct)();
+        void (*destroy)(void *self);
+        void (*destroy_without_signal)(void *self);
+        void (*dispose_without_signal)(void *self);
+        bool (*disposed)(void *self);
         bool (*serialize)(const void *self, void *&data, wasm_size_t &max_size);
         bool (*deserialize)(void *self, const void *&data, wasm_size_t &max_size);
+        void (*deserialize_end)(void *self);
     };
 
     extern const struct typenum_table_entry typenum_table[];

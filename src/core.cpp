@@ -1669,7 +1669,11 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
                 num_free_objects = 0;
             }
             if (!sandbox_serialize(object.typenum, data, max_size)) SER_OBJECTS_END_FAIL;
-            if (!typenum_table[object.typenum - 1].serialize(object.inner.ptr, data, max_size)) SER_OBJECTS_END_FAIL;
+            bool disposed = typenum_table[object.typenum - 1].disposed(object.inner.ptr);
+            if (!sandbox_serialize(disposed, data, max_size)) SER_OBJECTS_END_FAIL;
+            if (!disposed) {
+                if (!typenum_table[object.typenum - 1].serialize(object.inner.ptr, data, max_size)) SER_OBJECTS_END_FAIL;
+            }
         }
     }
     if (num_free_objects > 0) {
@@ -1835,31 +1839,50 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
             wasm_size_t num_free_objects;
             if (!::sandbox_deserialize(num_free_objects, data, max_size)) DESER_OBJECTS_END_FAIL;
             if (object_key - 1 + num_free_objects > num_objects || object_key + num_free_objects < object_key) DESER_OBJECTS_END_FAIL;
+
+            // Destroy objects that currently exist but don't exist in the save state
             for (wasm_size_t i = object_key; i < object_key + num_free_objects; ++i) {
                 auto &object = sb()->objects[i - 1];
                 if (object.typenum > 0) {
                     if (object.typenum > SANDBOX_NUM_TYPENUMS) {
                         std::abort();
                     }
-                    typenum_table[object.typenum - 1].destructor(object.inner.ptr);
+                    typenum_table[object.typenum - 1].destroy_without_signal(object.inner.ptr);
                     object.typenum = 0;
                 }
                 object.inner.next = sb()->next_free_objkey;
                 sb()->next_free_objkey = i;
             }
+
             object_key += num_free_objects;
         } else {
             if (typenum > SANDBOX_NUM_TYPENUMS) DESER_OBJECTS_END_FAIL;
+
+            bool should_be_disposed;
+            if (!sandbox_deserialize(should_be_disposed, data, max_size)) return false;
+
+            // Destroy and recreate objects that don't match the type in the save state, or are currently disposed but not disposed in the save state
             auto &object = sb()->objects[object_key - 1];
-            if (object.typenum > 0 && object.typenum != typenum) {
-                typenum_table[object.typenum - 1].destructor(object.inner.ptr);
+            bool currently_disposed = object.typenum == 0 || typenum_table[object.typenum - 1].disposed(object.inner.ptr);
+            bool should_create = object.typenum != typenum || (currently_disposed && !should_be_disposed);
+            bool should_destroy = should_create && object.typenum > 0;
+            if (should_destroy) {
+                typenum_table[object.typenum - 1].destroy_without_signal(object.inner.ptr);
             }
-            if (object.typenum != typenum) {
+            if (should_create) {
                 object.typenum = typenum;
-                object.inner.ptr = typenum_table[typenum - 1].constructor();
+                object.inner.ptr = typenum_table[typenum - 1].construct();
                 if (object.inner.ptr == nullptr) DESER_OBJECTS_END_FAIL;
             }
-            if (!typenum_table[typenum - 1].deserialize(object.inner.ptr, data, max_size)) DESER_OBJECTS_END_FAIL;
+
+            // Deserialize the object
+            if (!should_be_disposed) {
+                if (!typenum_table[typenum - 1].deserialize(object.inner.ptr, data, max_size)) DESER_OBJECTS_END_FAIL;
+            } else if (!currently_disposed) {
+                typenum_table[typenum - 1].dispose_without_signal(object.inner.ptr);
+            }
+
+            // Add it to the pointer map so that other objects that reference this one will be able to see it
             auto it = objects_deser.find(object_key);
             if (it == objects_deser.end()) {
                 objects_deser.emplace(object_key, sandbox_object_deser_info(object.inner.ptr, typenum));
@@ -1878,24 +1901,40 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
         wasm_size_t typenum;
         if (!sandbox_deserialize(typenum, data, max_size)) DESER_OBJECTS_END_FAIL;
         if (typenum != get_typenum<Color>::value && typenum != get_typenum<Tone>::value && typenum != get_typenum<Rect>::value) DESER_OBJECTS_END_FAIL;
-        void *ptr = typenum_table[typenum - 1].constructor();
+
+        // Create a new object
+        void *ptr = typenum_table[typenum - 1].construct();
         if (ptr == nullptr) DESER_OBJECTS_END_FAIL;
+
+        // Deserialize into the newly created object
         if (!typenum_table[typenum - 1].deserialize(ptr, data, max_size)) {
-            typenum_table[typenum - 1].destructor(ptr);
+            typenum_table[typenum - 1].destroy(ptr);
             DESER_OBJECTS_END_FAIL;
         }
+
+        // Add it to the pointer map so that other objects that reference this one will be able to see it
         auto it = extra_objects_deser.find(extra_object_key);
         if (it == extra_objects_deser.end()) {
             extra_objects_deser.emplace(extra_object_key, sandbox_object_deser_info(ptr, typenum));
         } else {
             if (!it->second.set_ptr(ptr, typenum)) {
-                typenum_table[typenum - 1].destructor(ptr);
+                typenum_table[typenum - 1].destroy(ptr);
                 DESER_OBJECTS_END_FAIL;
             }
         }
         ++extra_object_key;
     }
 
+    for (const auto &object : sb()->objects) {
+        if (object.typenum > 0 && !typenum_table[object.typenum - 1].disposed(object.inner.ptr)) {
+            typenum_table[object.typenum - 1].deserialize_end(object.inner.ptr);
+        }
+    }
+    for (const auto &pair : extra_objects_deser) {
+        if (pair.second.get_typenum() > 0 && !typenum_table[pair.second.get_typenum() - 1].disposed(pair.second.get_ptr())) {
+            typenum_table[pair.second.get_typenum() - 1].deserialize_end(pair.second.get_ptr());
+        }
+    }
     DESER_OBJECTS_END;
     return true;
 }

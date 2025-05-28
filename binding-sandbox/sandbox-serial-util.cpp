@@ -84,11 +84,11 @@ bool sandbox_object_deser_info::set_ptr(void *ptr, wasm_size_t typenum) {
     return true;
 }
 
-void *sandbox_object_deser_info::get_ptr() {
+void *sandbox_object_deser_info::get_ptr() const {
     return exists ? ptr : nullptr;
 }
 
-wasm_size_t sandbox_object_deser_info::get_typenum() {
+wasm_size_t sandbox_object_deser_info::get_typenum() const {
     return typenum;
 }
 

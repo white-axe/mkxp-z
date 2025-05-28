@@ -353,9 +353,6 @@ void Plane::releaseResources()
 #ifdef MKXPZ_RETRO
 bool Plane::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
-	if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
-	if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
-
 	if (!mkxp_sandbox::sandbox_serialize(p->opacity, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->blendType, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize((int32_t)p->ox, data, max_size)) return false;
@@ -375,16 +372,6 @@ bool Plane::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) 
 
 bool Plane::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
-	{
-		bool active;
-		if (!mkxp_sandbox::sandbox_deserialize(active, data, max_size)) return false;
-		if (!active) {
-			dispose();
-			return true;
-		}
-		// TODO: undispose
-	}
-
 	if (!mkxp_sandbox::sandbox_deserialize(p->opacity, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->blendType, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->ox, data, max_size)) return false;
@@ -400,5 +387,18 @@ bool Plane::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &ma
 	if (!mkxp_sandbox::sandbox_deserialize(p->tone, data, max_size)) return false;
 
 	return true;
+}
+
+void Plane::sandbox_deserialize_end()
+{
+	sandbox_deserialize_end_viewport_element();
+
+	if (isDisposed()) return;
+	if (p->bitmap != nullptr) {
+		p->bitmapDispCon = p->bitmap->wasDisposed.connect(&PlanePrivate::bitmapDisposal, p);
+		if (p->bitmap->isDisposed()) {
+			p->bitmap->wasDisposed();
+		}
+	}
 }
 #endif // MKXPZ_RETRO

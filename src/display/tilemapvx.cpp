@@ -633,9 +633,6 @@ bool TilemapVX::BitmapArray::sandbox_deserialize(const void *&data, mkxp_sandbox
 
 bool TilemapVX::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
-	if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
-	if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
-
 	if (!mkxp_sandbox::sandbox_serialize(p->origin, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->dispPos, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->groundVert, data, max_size)) return false;
@@ -660,16 +657,6 @@ bool TilemapVX::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_si
 
 bool TilemapVX::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
-	{
-		bool active;
-		if (!mkxp_sandbox::sandbox_deserialize(active, data, max_size)) return false;
-		if (!active) {
-			dispose();
-			return true;
-		}
-		// TODO: undispose
-	}
-
 	if (!mkxp_sandbox::sandbox_deserialize(p->origin, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->dispPos, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->groundVert, data, max_size)) return false;
@@ -702,5 +689,24 @@ bool TilemapVX::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t
 	if (!mkxp_sandbox::sandbox_deserialize(bmProxy, data, max_size)) return false;
 
 	return true;
+}
+
+void TilemapVX::sandbox_deserialize_end()
+{
+	if (isDisposed()) return;
+	p->above.sandbox_deserialize_end_viewport_element();
+
+	if (isDisposed()) return;
+	p->sandbox_deserialize_end_viewport_element();
+
+	for (size_t i = 0; i < BM_COUNT; ++i) {
+		if (isDisposed()) return;
+		if (p->bitmaps[i] != nullptr) {
+			p->bmDisposedCons[i] = p->bitmaps[i]->wasDisposed.connect( [i, this] { p->atlasDisposal(i); } );
+			if (p->bitmaps[i]->isDisposed()) {
+				p->bitmaps[i]->wasDisposed();
+			}
+		}
+	}
 }
 #endif // MKXPZ_RETRO

@@ -21,14 +21,15 @@
 
 #include "binding-util.h"
 #include "sharedstate.h"
+#include <boost/type_traits/is_detected.hpp>
 
 using namespace mkxp_sandbox;
 
-template <typename T> static typename std::enable_if<std::is_constructible<T>::value, void *>::type constructor() {
+template <typename T> static typename std::enable_if<std::is_constructible<T>::value, void *>::type construct() {
     return new T;
 }
 
-template <typename T> static typename std::enable_if<!std::is_constructible<T>::value && std::is_constructible<T, Exception &>::value, void *>::type constructor() {
+template <typename T> static typename std::enable_if<!std::is_constructible<T>::value && std::is_constructible<T, Exception &>::value, void *>::type construct() {
     Exception e;
     T *obj = new T(e);
     if (e.is_ok()) {
@@ -39,10 +40,38 @@ template <typename T> static typename std::enable_if<!std::is_constructible<T>::
     }
 }
 
-template <typename T> static void destructor(void *self) {
+template <typename T> static void destroy(void *self) {
     if (self != nullptr) {
         delete (T *)self;
     }
+}
+
+template <typename T> static typename std::enable_if<std::is_base_of<Disposable, T>::value>::type destroy_without_signal(void *self) {
+    if (self != nullptr) {
+        ((T *)self)->wasDisposed.disconnect_all();
+        delete (T *)self;
+    }
+}
+
+template <typename T> static typename std::enable_if<!std::is_base_of<Disposable, T>::value>::type destroy_without_signal(void *self) {
+    destroy<T>(self);
+}
+
+template <typename T> static typename std::enable_if<std::is_base_of<Disposable, T>::value>::type dispose_without_signal(void *self) {
+    if (self != nullptr) {
+        ((T *)self)->wasDisposed.disconnect_all();
+        ((T *)self)->dispose();
+    }
+}
+
+template <typename T> static typename std::enable_if<!std::is_base_of<Disposable, T>::value>::type dispose_without_signal(void *self) {}
+
+template <typename T> static typename std::enable_if<std::is_base_of<Disposable, T>::value, bool>::type disposed(void *self) {
+    return self == nullptr || ((T *)self)->isDisposed();
+}
+
+template <typename T> static typename std::enable_if<!std::is_base_of<Disposable, T>::value, bool>::type disposed(void *self) {
+    return self == nullptr;
 }
 
 template <typename T> static bool serialize(const void *self, void *&data, wasm_size_t &max_size) {
@@ -53,7 +82,15 @@ template <typename T> static bool deserialize(void *self, const void *&data, was
     return ((T *)self)->sandbox_deserialize(data, max_size);
 }
 
-#define _SANDBOX_DEF_TYPENUM_TABLE_ENTRY(_r, _data, T) {constructor<T>, destructor<T>, serialize<T>, deserialize<T>},
+template <typename T> using deserialize_end_declaration = decltype(std::declval<T *>()->sandbox_deserialize_end());
+
+template <typename T> static typename std::enable_if<boost::is_detected<deserialize_end_declaration, T>::value>::type deserialize_end(void *self) {
+    ((T *)self)->sandbox_deserialize_end();
+}
+
+template <typename T> static typename std::enable_if<!boost::is_detected<deserialize_end_declaration, T>::value>::type deserialize_end(void *self) {}
+
+#define _SANDBOX_DEF_TYPENUM_TABLE_ENTRY(_r, _data, T) {construct<T>, destroy<T>, destroy_without_signal<T>, dispose_without_signal<T>, disposed<T>, serialize<T>, deserialize<T>, deserialize_end<T>},
 extern const struct typenum_table_entry mkxp_sandbox::typenum_table[SANDBOX_NUM_TYPENUMS] = {BOOST_PP_SEQ_FOR_EACH(_SANDBOX_DEF_TYPENUM_TABLE_ENTRY, _, SANDBOX_TYPENUM_TYPES)};
 extern const wasm_size_t mkxp_sandbox::typenum_table_size = SANDBOX_NUM_TYPENUMS;
 

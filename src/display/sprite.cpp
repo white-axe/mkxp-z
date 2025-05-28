@@ -859,9 +859,6 @@ void Sprite::releaseResources()
 #ifdef MKXPZ_RETRO
 bool Sprite::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
-    if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
-    if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
-
     if (!mkxp_sandbox::sandbox_serialize(p->quad, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->trans, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->mirrored, data, max_size)) return false;
@@ -899,16 +896,6 @@ bool Sprite::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
 
 bool Sprite::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
-    {
-        bool active;
-        if (!mkxp_sandbox::sandbox_deserialize(active, data, max_size)) return false;
-        if (!active) {
-            dispose();
-            return true;
-        }
-        // TODO: undispose
-    }
-
     if (!mkxp_sandbox::sandbox_deserialize(p->quad, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_deserialize(p->trans, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_deserialize(p->mirrored, data, max_size)) return false;
@@ -942,5 +929,18 @@ bool Sprite::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
     if (!mkxp_sandbox::sandbox_deserialize(p->tone, data, max_size)) return false;
 
     return true;
+}
+
+void Sprite::sandbox_deserialize_end()
+{
+    sandbox_deserialize_end_viewport_element();
+
+    if (isDisposed()) return;
+    if (p->bitmap != nullptr) {
+        p->bitmapDispCon = p->bitmap->wasDisposed.connect(&SpritePrivate::bitmapDisposal, p);
+        if (p->bitmap->isDisposed()) {
+            p->bitmap->wasDisposed();
+        }
+    }
 }
 #endif // MKXPZ_RETRO

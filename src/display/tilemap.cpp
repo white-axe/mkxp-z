@@ -1475,9 +1475,6 @@ bool Tilemap::Autotiles::sandbox_deserialize(const void *&data, mkxp_sandbox::wa
 
 bool Tilemap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
-	if (isDisposed()) return mkxp_sandbox::sandbox_serialize(false, data, max_size);
-	if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
-
 	if (!mkxp_sandbox::sandbox_serialize(p->visible, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->origin, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->dispPos, data, max_size)) return false;
@@ -1530,16 +1527,6 @@ bool Tilemap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size
 
 bool Tilemap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
-	{
-		bool active;
-		if (!mkxp_sandbox::sandbox_deserialize(active, data, max_size)) return false;
-		if (!active) {
-			dispose();
-			return true;
-		}
-		// TODO: undispose
-	}
-
 	if (!mkxp_sandbox::sandbox_deserialize(p->visible, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->origin, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->dispPos, data, max_size)) return false;
@@ -1596,5 +1583,34 @@ bool Tilemap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &
 	if (!mkxp_sandbox::sandbox_deserialize(atProxy, data, max_size)) return false;
 
 	return true;
+}
+
+void Tilemap::sandbox_deserialize_end()
+{
+	if (isDisposed()) return;
+	p->elem.ground->sandbox_deserialize_end_viewport_element();
+
+	for (size_t i = 0; i < zlayersMax; ++i) {
+		if (isDisposed()) return;
+		p->elem.zlayers[i]->sandbox_deserialize_end_viewport_element();
+	}
+
+	for (size_t i = 0; i < autotileCount; ++i) {
+		if (isDisposed()) return;
+		if (p->autotiles[i] != nullptr) {
+			p->autotilesDispCon[i] = p->autotiles[i]->wasDisposed.connect( [i, this] { p->atlasContentsDisposal(i); } );
+			if (p->autotiles[i]->isDisposed()) {
+				p->autotiles[i]->wasDisposed();
+			}
+		}
+	}
+
+	if (isDisposed()) return;
+	if (p->tileset != nullptr) {
+		p->tilesetDispCon = p->tileset->wasDisposed.connect(&TilemapPrivate::tilesetDisposal, p);
+		if (p->tileset->isDisposed()) {
+			p->tileset->wasDisposed();
+		}
+	}
 }
 #endif // MKXPZ_RETRO

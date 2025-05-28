@@ -58,8 +58,8 @@ namespace mkxp_sandbox {
             return true;
         }
         bool set_ptr(void *ptr, wasm_size_t typenum);
-        void *get_ptr();
-        wasm_size_t get_typenum();
+        void *get_ptr() const;
+        wasm_size_t get_typenum() const;
 
     private:
         // If `exists` is true, this is a pointer to the object. Otherwise, this is a `std::vector<void **>` of pointers that are waiting to point to the object.
@@ -76,8 +76,8 @@ namespace mkxp_sandbox {
     extern std::unordered_map<wasm_size_t, struct sandbox_object_deser_info> objects_deser;
     extern std::unordered_map<wasm_size_t, struct sandbox_object_deser_info> extra_objects_deser;
 
-    template <typename T> using sandbox_serialize_member_declaration = decltype(std::declval<const T &>().sandbox_serialize(std::declval<void *&>(), std::declval<wasm_size_t &>()));
-    template <typename T> using sandbox_deserialize_member_declaration = decltype(std::declval<T &>().sandbox_deserialize(std::declval<const void *&>(), std::declval<wasm_size_t &>()));
+    template <typename T> using sandbox_serialize_member_declaration = decltype(std::declval<const T *>()->sandbox_serialize(std::declval<void *&>(), std::declval<wasm_size_t &>()));
+    template <typename T> using sandbox_deserialize_member_declaration = decltype(std::declval<T *>()->sandbox_deserialize(std::declval<const void *&>(), std::declval<wasm_size_t &>()));
 
     template <typename T> typename std::enable_if<std::is_same<T, bool>::value, bool>::type sandbox_serialize(T value, void *&data, wasm_size_t &max_size);
     template <typename T> typename std::enable_if<std::is_enum<T>::value, bool>::type sandbox_serialize(T value, void *&data, wasm_size_t &max_size);
@@ -228,7 +228,7 @@ namespace mkxp_sandbox {
             for (auto &pair : extra_objects_deser) {
                 struct sandbox_object_deser_info &info = pair.second;
                 if (info.get_ref_count() == 0 && info.get_ptr() != nullptr) {
-                    typenum_table[info.get_typenum() - 1].destructor(info.get_ptr());
+                    typenum_table[info.get_typenum() - 1].destroy(info.get_ptr());
                 }
             }
 

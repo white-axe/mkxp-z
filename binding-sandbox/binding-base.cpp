@@ -237,7 +237,7 @@ binding_base::object::~object() {
         if (typenum > typenum_table_size) {
             std::abort();
         }
-        typenum_table[typenum - 1].destructor(inner.ptr);
+        typenum_table[typenum - 1].destroy(inner.ptr);
     }
 }
 
@@ -292,7 +292,7 @@ void binding_base::destroy_object(wasm_objkey_t key) {
     if (object.typenum == 0 || object.typenum > typenum_table_size) {
         std::abort();
     }
-    typenum_table[object.typenum - 1].destructor(object.inner.ptr);
+    typenum_table[object.typenum - 1].destroy(object.inner.ptr);
     object.typenum = 0;
     object.inner.next = next_free_objkey;
     next_free_objkey = key;
