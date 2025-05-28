@@ -28,7 +28,7 @@
 #include <sndfile.hh>
 
 SF_VIRTUAL_IO sfvirtual = {
-	.get_filelen = [](void *handle) {
+	[](void *handle) {
 #ifdef MKXPZ_RETRO
 		return (sf_count_t)std::max((PHYSFS_sint64)0, PHYSFS_fileLength(((struct FileSystem::File *)handle)->get()));
 #else
@@ -42,7 +42,7 @@ SF_VIRTUAL_IO sfvirtual = {
 #endif // MKXPZ_RETRO
 	},
 
-	.seek = [](sf_count_t offset, int whence, void *handle) {
+	[](sf_count_t offset, int whence, void *handle) {
 #ifdef MKXPZ_RETRO
 		switch (whence) {
 			case SF_SEEK_CUR:
@@ -66,7 +66,7 @@ SF_VIRTUAL_IO sfvirtual = {
 #endif // MKXPZ_RETRO
 	},
 
-	.read = [](void *ptr, sf_count_t count, void *handle) {
+	[](void *ptr, sf_count_t count, void *handle) {
 #ifdef MKXPZ_RETRO
 		return (sf_count_t)PHYSFS_readBytes(((struct FileSystem::File *)handle)->get(), ptr, count);
 #else
@@ -74,11 +74,11 @@ SF_VIRTUAL_IO sfvirtual = {
 #endif // MKXPZ_RETRO
 	},
 
-	.write = [](const void *ptr, sf_count_t count, void *handle) {
+	[](const void *ptr, sf_count_t count, void *handle) {
 		return (sf_count_t)-1;
 	},
 
-	.tell = [](void *handle) {
+	[](void *handle) {
 #ifdef MKXPZ_RETRO
 		return (sf_count_t)PHYSFS_tell(((struct FileSystem::File *)handle)->get());
 #else

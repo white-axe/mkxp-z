@@ -267,6 +267,8 @@ namespace mkxp_sandbox {
             union inner {
                 wasm_size_t next;
                 void *ptr;
+                inline inner(wasm_ptr_t next) : next(next) {}
+                inline inner(void *ptr) : ptr(ptr) {}
             } inner;
             // If this is a free object, this is 0.
             // Otherwise, this is a number corresponding to the type of the object.

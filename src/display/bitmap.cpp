@@ -325,7 +325,7 @@ struct BitmapPrivate
     void allocSurface()
     {
 #ifdef MKXPZ_RETRO
-        surface = new SDL_Surface {.w = gl.width, .h = gl.height, .pixels = STBI_MALLOC(4 * gl.width * gl.height)};
+        surface = new SDL_Surface {gl.width, gl.height, STBI_MALLOC(4 * gl.width * gl.height)};
         if (surface->pixels == nullptr) {
             MKXPZ_THROW(std::bad_alloc());
         }
@@ -572,26 +572,26 @@ struct BitmapOpenHandler : FileSystem::OpenHandler
             };
 
             const static stbi_io_callbacks callbacks = {
-                .read = [](void *handle, char *buf, int size) {
+                [](void *handle, char *buf, int size) {
                     assert(size >= 0);
                     int n = PHYSFS_readBytes(((struct file *)handle)->handle->get(), buf, size);
                     assert(((struct file *)handle)->offset + (uint64_t)n >= ((struct file *)handle)->offset);
                     ((struct file *)handle)->offset += n;
                     return n;
                 },
-                .skip = [](void *handle, int size) {
+                [](void *handle, int size) {
                     assert(size >= 0);
                     assert(((struct file *)handle)->offset + (uint64_t)size >= ((struct file *)handle)->offset);
                     PHYSFS_seek(((struct file *)handle)->handle->get(), (((struct file *)handle)->offset += (uint64_t)size));
                 },
-                .eof = [](void *handle) {
+                [](void *handle) {
                     return PHYSFS_eof(((struct file *)handle)->handle->get());
                 },
             };
 
             struct file file {
-                .handle = ops.get(),
-                .offset = 0,
+                ops.get(),
+                0,
             };
 
             image = stbi_load_from_callbacks(&callbacks, &file, &width, &height, nullptr, STBI_rgb_alpha);
@@ -2226,7 +2226,7 @@ static void applyShadow(SDL_Surface *&in, const SDL_PixelFormat &fm, const SDL_C
 #endif // MKXPZ_RETRO
 {
 #ifdef MKXPZ_RETRO
-    SDL_Surface *out = new SDL_Surface {.w = in->w+1, .h = in->h+1, .pixels = STBI_MALLOC(4 * (in->w+1) * (in->h+1))};
+    SDL_Surface *out = new SDL_Surface {in->w+1, in->h+1, STBI_MALLOC(4 * (in->w+1) * (in->h+1))};
     if (out->pixels == nullptr) {
         MKXPZ_THROW(std::bad_alloc());
     }

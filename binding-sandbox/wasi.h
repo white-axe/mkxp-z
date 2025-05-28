@@ -181,10 +181,10 @@ enum wasi_fd_type {
 };
 
 struct wasi_file_entry {
-    wasi_fd_type type;
-
     // The file/directory handle that the file descriptor corresponds to. The exact type of this handle depends on the type of file descriptor.
     void *handle;
+
+    wasi_fd_type type;
 
     struct fs_dir *dir_handle() const noexcept;
     struct fs_file *file_handle() const noexcept;

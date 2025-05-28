@@ -48,13 +48,13 @@ struct fs_file *wasi_file_entry::file_handle() const noexcept {
 
 wasi_t::w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby) : ruby(ruby) {
     // Initialize WASI file descriptor table
-    fdtable.push_back({.type = wasi_fd_type::STDIN});
-    fdtable.push_back({.type = wasi_fd_type::STDOUT});
-    fdtable.push_back({.type = wasi_fd_type::STDERR});
-    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new fs_dir {.path = std::string("/Game"), .writable = true}});
-    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new fs_dir {.path = std::string("/Save"), .writable = true}});
-    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new fs_dir {.path = std::string("/System"), .writable = false}});
-    fdtable.push_back({.type = wasi_fd_type::FS, .handle = new fs_dir {.path = std::string("/Dist"), .writable = false}});
+    fdtable.push_back({nullptr, wasi_fd_type::STDIN});
+    fdtable.push_back({nullptr, wasi_fd_type::STDOUT});
+    fdtable.push_back({nullptr, wasi_fd_type::STDERR});
+    fdtable.push_back({new fs_dir {"/Game", 0, true}, wasi_fd_type::FS});
+    fdtable.push_back({new fs_dir {"/Save", 0, true}, wasi_fd_type::FS});
+    fdtable.push_back({new fs_dir {"/System", 0, false}, wasi_fd_type::FS});
+    fdtable.push_back({new fs_dir {"/Dist", 0, false}, wasi_fd_type::FS});
 }
 
 wasi_t::~w2c_wasi__snapshot__preview1() {
@@ -81,13 +81,13 @@ uint32_t wasi_t::allocate_file_descriptor(enum wasi_fd_type type, void *handle) 
             MKXPZ_THROW(std::bad_alloc());
         }
         uint32_t fd = fdtable.size();
-        fdtable.push_back({.type = type, .handle = handle});
+        fdtable.push_back({handle, type});
         return fd;
     } else {
         uint32_t fd = vacant_fds.back();
         vacant_fds.pop_back();
-        fdtable[fd].type = type;
         fdtable[fd].handle = handle;
+        fdtable[fd].type = type;
         return fd;
     }
 }
@@ -107,7 +107,7 @@ void wasi_t::deallocate_file_descriptor(uint32_t fd) {
         }
     }
 
-    fdtable[fd] = {.type = wasi_fd_type::VACANT, .handle = nullptr};
+    fdtable[fd] = {nullptr, wasi_fd_type::VACANT};
     vacant_fds.push_back(fd);
 }
 
@@ -176,7 +176,7 @@ bool wasi_t::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
         deallocate_file_descriptor(--i);
     }
     vacant_fds.clear();
-    fdtable.resize(size, {.type = wasi_fd_type::VACANT});
+    fdtable.resize(size, {nullptr, wasi_fd_type::VACANT});
 
     uint32_t i = 0;
     while (i < size) {
@@ -207,7 +207,7 @@ bool wasi_t::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
                 std::string path;
                 if (!::sandbox_deserialize(path, data, max_size)) return false;
                 path = mkxp_retro::fs->normalize(path.c_str(), false, true);
-                fdtable[i] = {.type = wasi_fd_type::FSDIR, .handle = new fs_dir {.path = path, .root = root, .writable = fdtable[root].dir_handle()->writable}};
+                fdtable[i] = {new fs_dir {path, root, fdtable[root].dir_handle()->writable}, wasi_fd_type::FSDIR};
             } else if (type == 2) {
                 if (fdtable[i].type != wasi_fd_type::VACANT && fdtable[i].type != wasi_fd_type::FSFILE) {
                     deallocate_file_descriptor(i);
@@ -219,12 +219,12 @@ bool wasi_t::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
                 std::string path;
                 if (!::sandbox_deserialize(path, data, max_size)) return false;
                 path = mkxp_retro::fs->normalize(path.c_str(), false, true);
-                struct fs_file *handle = new fs_file {.file {*mkxp_retro::fs, path.c_str(), fdtable[root].dir_handle()->writable ? fdtable[root].dir_handle()->path.c_str() : nullptr, false}, .root = root};
+                struct fs_file *handle = new fs_file {{*mkxp_retro::fs, path.c_str(), fdtable[root].dir_handle()->writable ? fdtable[root].dir_handle()->path.c_str() : nullptr, false}, root};
                 if (!handle->file.is_open() || (fdtable[root].dir_handle()->writable && !handle->file.is_write_open())) {
                     delete handle;
                     return false;
                 }
-                fdtable[i] = {.type = wasi_fd_type::FSFILE, .handle = handle};
+                fdtable[i] = {handle, wasi_fd_type::FSFILE};
             } else {
                 return false;
             }
@@ -561,14 +561,14 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, uint32
         case wasi_fd_type::FSDIR:
             {
                 struct fs_enumerate_data edata = {
-                    .wasi = wasi,
-                    .fd = fd,
-                    .original_buf = buf,
-                    .buf = buf,
-                    .buf_len = buf_len,
-                    .initial_cookie = cookie,
-                    .cookie = 0,
-                    .result = result,
+                    wasi,
+                    fd,
+                    buf,
+                    buf,
+                    buf_len,
+                    cookie,
+                    0,
+                    result,
                 };
                 bool success = PHYSFS_enumerate(
                     wasi->fdtable[fd].dir_handle()->path.c_str(),
@@ -674,7 +674,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_renumber(wasi_t *wasi, uint3
             } else {
                 wasi->fdtable[to] = wasi->fdtable[fd];
             }
-            wasi->fdtable[fd] = {.type = wasi_fd_type::VACANT, .handle = nullptr};
+            wasi->fdtable[fd] = {nullptr, wasi_fd_type::VACANT};
             wasi->vacant_fds.push_back(fd);
             return WASI_ESUCCESS;
     }
@@ -913,7 +913,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, uint32_
                 uint32_t root = wasi->fdtable[fd].type == wasi_fd_type::FS ? fd : wasi->fdtable[fd].dir_handle()->root;
 
                 if (exists && stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
-                    struct fs_dir *handle = new fs_dir {.path = new_path, .root = root, .writable = writable};
+                    struct fs_dir *handle = new fs_dir {new_path, root, writable};
                     wasi->ref<uint32_t>(result) = wasi->allocate_file_descriptor(wasi_fd_type::FSDIR, handle);
                 } else {
                     const char *write_path_prefix;
@@ -924,7 +924,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, uint32_
                         write_path_prefix = nullptr;
                     }
 
-                    struct fs_file *handle = new fs_file {.file {*mkxp_retro::fs, new_path.c_str(), write_path_prefix, truncate, exists}, .root = root};
+                    struct fs_file *handle = new fs_file {{*mkxp_retro::fs, new_path.c_str(), write_path_prefix, truncate, exists}, root};
 
                     // Check for errors opening the read handle and/or write handle
                     if (!handle->file.is_open() || (needs_write && writable && !handle->file.is_write_open())) {

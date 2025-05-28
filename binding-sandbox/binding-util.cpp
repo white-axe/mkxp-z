@@ -53,7 +53,7 @@ template <typename T> static bool deserialize(void *self, const void *&data, was
     return ((T *)self)->sandbox_deserialize(data, max_size);
 }
 
-#define _SANDBOX_DEF_TYPENUM_TABLE_ENTRY(_r, _data, T) {.constructor = constructor<T>, .destructor = destructor<T>, .serialize = serialize<T>, .deserialize = deserialize<T>},
+#define _SANDBOX_DEF_TYPENUM_TABLE_ENTRY(_r, _data, T) {constructor<T>, destructor<T>, serialize<T>, deserialize<T>},
 extern const struct typenum_table_entry mkxp_sandbox::typenum_table[SANDBOX_NUM_TYPENUMS] = {BOOST_PP_SEQ_FOR_EACH(_SANDBOX_DEF_TYPENUM_TABLE_ENTRY, _, SANDBOX_TYPENUM_TYPES)};
 extern const wasm_size_t mkxp_sandbox::typenum_table_size = SANDBOX_NUM_TYPENUMS;
 

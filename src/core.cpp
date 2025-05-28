@@ -52,42 +52,42 @@
 
 static const struct retro_core_option_v2_category core_option_categories[] = {
     {
-        .key = "runtime",
-        .desc = "Runtime",
-        .info = nullptr,
+        "runtime",
+        "Runtime",
+        nullptr,
     },
     {
-        .key = "video",
-        .desc = "Video",
-        .info = nullptr,
+        "video",
+        "Video",
+        nullptr,
     },
     {
-        .key = "audio",
-        .desc = "Audio",
-        .info = nullptr,
+        "audio",
+        "Audio",
+        nullptr,
     },
     {
-        .key = nullptr,
-        .desc = nullptr,
-        .info = nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
     },
 };
 
 static const struct retro_core_option_v2_definition core_option_definitions[] = {
     {
-        .key = "mkxp-z_rgssVersion",
-        .desc = "RGSS Version",
-        .desc_categorized = nullptr,
-        .info = (
+        "mkxp-z_rgssVersion",
+        "RGSS Version",
+        nullptr,
+        (
             "Specify the RGSS version to run under."
             " By default, mkxp will try to guess the required version"
             " based on the game files."
             " If this fails, the version defaults to 1."
             " Changes will take effect after the core is reset."
         ),
-        .info_categorized = nullptr,
-        .category_key = "runtime",
-        .values = {
+        nullptr,
+        "runtime",
+        {
             {"inherit", "Inherit from mkxp.json"},
             {"default", "Default"},
             {"1", "1 (RPG Maker XP)"},
@@ -95,20 +95,20 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
             {"3", "3 (RPG Maker VX Ace)"},
             {nullptr, nullptr},
         },
-        .default_value = "inherit",
+        "inherit",
     },
     {
-        .key = "mkxp-z_saveStateSize",
-        .desc = "Save State Size",
-        .desc_categorized = nullptr,
-        .info = (
+        "mkxp-z_saveStateSize",
+        "Save State Size",
+        nullptr,
+        (
             "Maximum size of each save state, in mebibytes."
             " If the game uses more than this much memory, save state creation will fail."
             " Changes to this setting will not take effect until the core is unloaded."
         ),
-        .info_categorized = nullptr,
-        .category_key = "runtime",
-        .values = {
+        nullptr,
+        "runtime",
+        {
             {"64", "64"},
             {"66", "66"},
             {"68", "68"},
@@ -238,128 +238,128 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
             {"992", "992"},
             {nullptr, nullptr},
         },
-        .default_value = "100",
+        "100",
     },
     {
-        .key = "mkxp-z_frameSkip",
-        .desc = "Frame Skip",
-        .desc_categorized = nullptr,
-        .info = (
+        "mkxp-z_frameSkip",
+        "Frame Skip",
+        nullptr,
+        (
             "Skip (don't draw) frames when behind."
         ),
-        .info_categorized = nullptr,
-        .category_key = "video",
-        .values = {
+        nullptr,
+        "video",
+        {
             {"inherit", "Inherit from mkxp.json"},
             {"enabled", "Enabled"},
             {"disabled", "Disabled"},
             {nullptr, nullptr},
         },
-        .default_value = "disabled",
+        "disabled",
     },
     {
-        .key = "mkxp-z_subImageFix",
-        .desc = "Subimage Fix",
-        .desc_categorized = nullptr,
-        .info = (
+        "mkxp-z_subImageFix",
+        "Subimage Fix",
+        nullptr,
+        (
             "Work around buggy graphics drivers which don't"
             " properly synchronize texture access, most"
             " apparent when text doesn't show up or the map"
             " tileset doesn't render at all."
             " (default: enabled for systems using OpenGL ES, disabled on other systems)"
         ),
-        .info_categorized = nullptr,
-        .category_key = "video",
-        .values = {
+        nullptr,
+        "video",
+        {
             {"inherit", "Inherit from mkxp.json"},
             {"default", "Default"},
             {"enabled", "Enabled"},
             {"disabled", "Disabled"},
             {nullptr, nullptr},
         },
-        .default_value = "default",
+        "default",
     },
     {
-        .key = "mkxp-z_enableBlitting",
-        .desc = "Framebuffer Blitting",
-        .desc_categorized = nullptr,
-        .info = (
+        "mkxp-z_enableBlitting",
+        "Framebuffer Blitting",
+        nullptr,
+        (
             "Enable framebuffer blitting if the driver is"
             " capable of it. Some drivers carry buggy"
             " implementations of this functionality, so"
             " disabling it can be used as a workaround."
             " (default: disabled on Windows, enabled on other systems)"
         ),
-        .info_categorized = nullptr,
-        .category_key = "video",
-        .values = {
+        nullptr,
+        "video",
+        {
             {"inherit", "Inherit from mkxp.json"},
             {"default", "Default"},
             {"enabled", "Enabled"},
             {"disabled", "Disabled"},
             {nullptr, nullptr},
         },
-        .default_value = "default",
+        "default",
     },
     {
-        .key = "mkxp-z_threadedAudio",
-        .desc = "Threaded Audio",
-        .desc_categorized = nullptr,
-        .info = (
+        "mkxp-z_threadedAudio",
+        "Threaded Audio",
+        nullptr,
+        (
             "Use a worker thread for rendering the audio instead of"
             " rendering in the main thread, if possible. Reduces audio"
             " crackling, especially on systems with slow file system"
             " access speed. Changes to this setting will not take effect"
             " until the game is closed."
         ),
-        .info_categorized = nullptr,
-        .category_key = "audio",
-        .values = {
+        nullptr,
+        "audio",
+        {
             {"enabled", "Enabled"},
             {"disabled", "Disabled"},
             {nullptr, nullptr},
         },
-        .default_value = "enabled",
+        "enabled",
     },
     {
-        .key = "mkxp-z_midiChorus",
-        .desc = "MIDI Chorus",
-        .desc_categorized = nullptr,
-        .info = (
+        "mkxp-z_midiChorus",
+        "MIDI Chorus",
+        nullptr,
+        (
             "Activate \"chorus\" effect for midi playback."
         ),
-        .info_categorized = nullptr,
-        .category_key = "audio",
-        .values = {
+        nullptr,
+        "audio",
+        {
             {"inherit", "Inherit from mkxp.json"},
             {"enabled", "Enabled"},
             {"disabled", "Disabled"},
             {nullptr, nullptr},
         },
-        .default_value = "inherit",
+        "inherit",
     },
     {
-        .key = "mkxp-z_midiReverb",
-        .desc = "MIDI Reverb",
-        .desc_categorized = nullptr,
-        .info = (
+        "mkxp-z_midiReverb",
+        "MIDI Reverb",
+        nullptr,
+        (
             "Activate \"reverb\" effect for midi playback."
         ),
-        .info_categorized = nullptr,
-        .category_key = "audio",
-        .values = {
+        nullptr,
+        "audio",
+        {
             {"inherit", "Inherit from mkxp.json"},
             {"enabled", "Enabled"},
             {"disabled", "Disabled"},
             {nullptr, nullptr},
         },
-        .default_value = "inherit",
+        "inherit",
     },
     {
-        .key = "mkxp-z_SESourceCount",
-        .desc = "SE Source Count",
-        .desc_categorized = nullptr,
-        .info = (
+        "mkxp-z_SESourceCount",
+        "SE Source Count",
+        nullptr,
+        (
             "Number of OpenAL sources to allocate for SE playback."
             " If there are a lot of sounds playing at the same time"
             " and audibly cutting each other off, try increasing"
@@ -369,9 +369,9 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
             " the maximum of the value set here and the value in"
             " mkxp.json will be used)"
         ),
-        .info_categorized = nullptr,
-        .category_key = "audio",
-        .values = {
+        nullptr,
+        "audio",
+        {
             {"6", "6"},
             {"7", "7"},
             {"8", "8"},
@@ -433,17 +433,17 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
             {"64", "64"},
             {nullptr, nullptr},
         },
-        .default_value = "6",
+        "6",
     },
     {
-        .key = nullptr,
-        .desc = nullptr,
-        .desc_categorized = nullptr,
-        .info = nullptr,
-        .info_categorized = nullptr,
-        .category_key = nullptr,
-        .values = {{nullptr, nullptr}},
-        .default_value = nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        {{nullptr, nullptr}},
+        nullptr,
     },
 };
 
@@ -604,7 +604,7 @@ static size_t save_state_size = 0;
 static retro_system_av_info av_info;
 static struct retro_audio_callback audio_callback;
 static struct retro_frame_time_callback frame_time_callback = {
-    .callback = [](retro_usec_t delta) {
+    [](retro_usec_t delta) {
         frame_time += delta;
         frame_time_remainder += delta;
     },
@@ -695,8 +695,8 @@ static void audio_render(size_t samples) {
 
 static const char *get_core_option(const char *key) {
     struct retro_variable variable = {
-        .key = key,
-        .value = "",
+        key,
+        "",
     };
     return environment(RETRO_ENVIRONMENT_GET_VARIABLE, &variable) ? variable.value : "";
 }
@@ -986,10 +986,10 @@ static bool init_sandbox() {
                     std::string rtp_lowercase;
                     bool found;
                 } data = {
-                    .rtp_root_path = rtp_root_path,
-                    .rtp = rtp,
-                    .rtp_lowercase = rtp,
-                    .found = false,
+                    rtp_root_path,
+                    rtp,
+                    rtp,
+                    false,
                 };
                 for (char &c : data.rtp_lowercase) {
                     c = std::tolower(c);
@@ -1234,7 +1234,7 @@ extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
     }
 
     static const struct retro_keyboard_callback keyboard = {
-        .callback = [](bool down, unsigned int keycode, uint32_t character, uint16_t key_modifiers) {
+        [](bool down, unsigned int keycode, uint32_t character, uint16_t key_modifiers) {
             if (keycode < RETROK_LAST) {
                 keyboard_state[keycode] = down;
             }
@@ -1244,13 +1244,13 @@ extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
     cb(RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK, (void *)&keyboard);
 
     perf = {
-        .get_time_usec = nullptr,
-        .get_cpu_features = nullptr,
-        .get_perf_counter = nullptr,
-        .perf_register = nullptr,
-        .perf_start = nullptr,
-        .perf_stop = nullptr,
-        .perf_log = nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
     };
     cb(RETRO_ENVIRONMENT_GET_PERF_INTERFACE, &perf);
 
@@ -1262,8 +1262,8 @@ extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
         default:
             {
                 const struct retro_core_options_v2 core_options = {
-                    .categories = (struct retro_core_option_v2_category *)core_option_categories,
-                    .definitions = (struct retro_core_option_v2_definition *)core_option_definitions,
+                    (struct retro_core_option_v2_category *)core_option_categories,
+                    (struct retro_core_option_v2_definition *)core_option_definitions,
                 };
                 if (cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2, (void *)&core_options)) {
                     break;

@@ -122,12 +122,12 @@ struct SharedFontStatePrivate
 	FT_Error ftOpenFile(std::shared_ptr<struct FileSystem::File> ops, FT_Face &font)
 	{
 		FT_StreamRec ft_stream = {
-			.base = NULL,
-			.size = (unsigned long)-1,
-			.pos = 0,
-			.descriptor = {.pointer = new std::shared_ptr<struct FileSystem::File>(ops)},
-			.pathname = {.pointer = NULL},
-			.read = [](FT_Stream stream, unsigned long offset, unsigned char *buffer, unsigned long count) {
+			nullptr,
+			(unsigned long)-1,
+			0,
+			{},
+			{},
+			[](FT_Stream stream, unsigned long offset, unsigned char *buffer, unsigned long count) {
 				if (!PHYSFS_seek(((std::shared_ptr<struct FileSystem::File> *)stream->descriptor.pointer)->get()->get(), offset))
 					return (unsigned long)(count == 0);
 				if (count == 0)
@@ -135,20 +135,21 @@ struct SharedFontStatePrivate
 				PHYSFS_uint64 n = PHYSFS_readBytes(((std::shared_ptr<struct FileSystem::File> *)stream->descriptor.pointer)->get()->get(), buffer, count);
 				return n < 0 ? 0UL : (unsigned long)n;
 			},
-			.close = [](FT_Stream stream) {
+			[](FT_Stream stream) {
 				delete (std::shared_ptr<struct FileSystem::File> *)stream->descriptor.pointer;
 			},
 		};
+		ft_stream.descriptor.pointer = new std::shared_ptr<struct FileSystem::File>(ops);
 	
 		const FT_Open_Args ft_open_args = {
-			.flags = FT_OPEN_STREAM,
-			.memory_base = NULL,
-			.memory_size = 0,
-			.pathname = NULL,
-			.stream = &ft_stream,
-			.driver = NULL,
-			.num_params = 0,
-			.params = NULL,
+			FT_OPEN_STREAM,
+			nullptr,
+			0,
+			nullptr,
+			&ft_stream,
+			nullptr,
+			0,
+			nullptr,
 		};
 	
 		return FT_Open_Face(library, &ft_open_args, 0, &font);
