@@ -98,7 +98,6 @@ private:
 	void (*m_dispose)(void *);
 	Viewport *m_viewport;
 	sigslot::connection viewportDispCon;
-	sigslot::connection viewportElementDispCon;
 	void viewportElementDisposal();
 };
 

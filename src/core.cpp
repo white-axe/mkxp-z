@@ -1878,6 +1878,7 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
                 object.typenum = typenum;
                 object.inner.ptr = typenum_table[typenum - 1].construct();
                 if (object.inner.ptr == nullptr) DESER_OBJECTS_END_FAIL;
+                typenum_table[typenum - 1].deserialize_begin(object.inner.ptr);
             }
 
             // Deserialize the object
@@ -1910,6 +1911,7 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
         // Create a new object
         void *ptr = typenum_table[typenum - 1].construct();
         if (ptr == nullptr) DESER_OBJECTS_END_FAIL;
+        typenum_table[typenum - 1].deserialize_begin(ptr);
 
         // Deserialize into the newly created object
         if (!typenum_table[typenum - 1].deserialize(ptr, data, max_size)) {

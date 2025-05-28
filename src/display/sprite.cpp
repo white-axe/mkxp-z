@@ -933,7 +933,7 @@ bool Sprite::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
 
 void Sprite::sandbox_deserialize_begin()
 {
-    sandbox_deserialize_end_viewport_element();
+    sandbox_deserialize_begin_viewport_element();
 
     if (isDisposed()) return;
 
