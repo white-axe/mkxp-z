@@ -274,7 +274,7 @@ void Viewport::sandbox_deserialize_end()
 	if (isDisposed()) return;
 	if (p->rect != nullptr) {
 		p->rectCon = p->rect->valueChanged.connect(&ViewportPrivate::onRectChange, p);
-		if (!(*p->rect == p->deserSavedRect)) {
+		if (*p->rect != p->deserSavedRect) {
 			p->onRectChange();
 		}
 	}

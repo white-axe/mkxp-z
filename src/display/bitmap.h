@@ -192,6 +192,7 @@ public:
 
 	sigslot::signal<> modified;
 #ifdef MKXPZ_RETRO
+	const uint64_t id; // Globally unique nonzero ID for this bitmap, for change detection during save state deserialization
 	bool deserModified;
 #endif // MKXPZ_RETRO
 

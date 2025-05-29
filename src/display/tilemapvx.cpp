@@ -99,10 +99,19 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
 	bool mapViewportDirty;
 
 	sigslot::connection mapDataCon;
+#ifdef MKXPZ_RETRO
+	uint64_t deserSavedMapDataId;
+#endif // MKXPZ_RETRO
 	sigslot::connection flagsCon;
+#ifdef MKXPZ_RETRO
+	uint64_t deserSavedFlagsId;
+#endif // MKXPZ_RETRO
 
 	sigslot::connection prepareCon;
 	sigslot::connection bmChangedCons[BM_COUNT];
+#ifdef MKXPZ_RETRO
+	uint64_t deserSavedBitmapIds[BM_COUNT];
+#endif // MKXPZ_RETRO
 	sigslot::connection bmDisposedCons[BM_COUNT];
 
 	struct AboveLayer : public ViewportElement
@@ -635,6 +644,7 @@ bool TilemapVX::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_si
 {
 	if (!mkxp_sandbox::sandbox_serialize(p->origin, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->dispPos, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->sceneGeo, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->groundVert, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->aboveVert, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize((mkxp_sandbox::wasm_size_t)p->allocQuads, data, max_size)) return false;
@@ -657,8 +667,21 @@ bool TilemapVX::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_si
 
 bool TilemapVX::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
-	if (!mkxp_sandbox::sandbox_deserialize(p->origin, data, max_size)) return false;
+	{
+		Vec2i old_origin = p->origin;
+		if (!mkxp_sandbox::sandbox_deserialize(p->origin, data, max_size)) return false;
+		if (p->origin != old_origin) {
+			p->mapViewportDirty = true;
+		}
+	}
 	if (!mkxp_sandbox::sandbox_deserialize(p->dispPos, data, max_size)) return false;
+	{
+		Scene::Geometry old_geo = p->sceneGeo;
+		if (!mkxp_sandbox::sandbox_deserialize(p->sceneGeo, data, max_size)) return false;
+		if (p->sceneGeo != old_geo) {
+			p->mapViewportDirty = true;
+		}
+	}
 	if (!mkxp_sandbox::sandbox_deserialize(p->groundVert, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->aboveVert, data, max_size)) return false;
 	{
@@ -705,11 +728,14 @@ void TilemapVX::sandbox_deserialize_begin()
 
 	for (size_t i = 0; i < BM_COUNT; ++i) {
 		p->bmChangedCons[i].disconnect();
+		p->deserSavedBitmapIds[i] = p->bitmaps[i] == nullptr ? 0 : p->bitmaps[i]->id;
 	}
 
 	p->mapDataCon.disconnect();
+	p->deserSavedMapDataId = p->mapData == nullptr ? 0 : p->mapData->id;
 
 	p->flagsCon.disconnect();
+	p->deserSavedFlagsId = p->flags == nullptr ? 0 : p->flags->id;
 }
 
 void TilemapVX::sandbox_deserialize_end()
@@ -734,7 +760,7 @@ void TilemapVX::sandbox_deserialize_end()
 		if (isDisposed()) return;
 		if (p->bitmaps[i] != nullptr) {
 			p->bmChangedCons[i] = p->bitmaps[i]->modified.connect(&TilemapVXPrivate::invalidateAtlas, p);
-			if (p->bitmaps[i]->deserModified) {
+			if (p->bitmaps[i]->deserModified || p->bitmaps[i]->id != p->deserSavedBitmapIds[i]) {
 				p->invalidateAtlas();
 			}
 		}
@@ -743,7 +769,7 @@ void TilemapVX::sandbox_deserialize_end()
 	if (isDisposed()) return;
 	if (p->mapData != nullptr) {
 		p->mapDataCon = p->mapData->modified.connect(&TilemapVXPrivate::invalidateBuffers, p);
-		if (p->mapData->deserModified) {
+		if (p->mapData->deserModified || p->mapData->id != p->deserSavedMapDataId) {
 			p->invalidateBuffers();
 		}
 	}
@@ -751,7 +777,7 @@ void TilemapVX::sandbox_deserialize_end()
 	if (isDisposed()) return;
 	if (p->flags != nullptr) {
 		p->flagsCon = p->flags->modified.connect(&TilemapVXPrivate::invalidateBuffers, p);
-		if (p->flags->deserModified) {
+		if (p->flags->deserModified || p->flags->id != p->deserSavedFlagsId) {
 			p->invalidateBuffers();
 		}
 	}

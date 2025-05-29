@@ -965,7 +965,7 @@ void Sprite::sandbox_deserialize_end()
     if (isDisposed()) return;
     if (p->srcRect != nullptr) {
         p->srcRectCon = p->srcRect->valueChanged.connect(&SpritePrivate::onSrcRectChange, p);
-        if (!(*p->srcRect == p->deserSavedSrcRect)) {
+        if (*p->srcRect != p->deserSavedSrcRect) {
             p->onSrcRectChange();
         }
     }

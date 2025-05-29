@@ -1053,7 +1053,7 @@ void Window::sandbox_deserialize_end()
 	if (isDisposed()) return;
 	if (p->cursorRect != nullptr) {
 		p->cursorRectCon = p->cursorRect->valueChanged.connect(&WindowPrivate::markControlVertDirty, p);
-		if (!(*p->cursorRect == p->deserSavedCursorRect)) {
+		if (*p->cursorRect != p->deserSavedCursorRect) {
 			p->markControlVertDirty();
 		}
 	}

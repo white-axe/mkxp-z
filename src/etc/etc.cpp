@@ -76,6 +76,11 @@ bool Color::operator==(const Color &o) const
 	       alpha == o.alpha;
 }
 
+bool Color::operator!=(const Color &o) const
+{
+	return !(*this == o);
+}
+
 const Color &Color::operator=(const Color &o)
 {
 	red   = o.red;
@@ -222,6 +227,11 @@ bool Tone::operator==(const Tone &o) const
 	       gray  == o.gray;
 }
 
+bool Tone::operator!=(const Tone &o) const
+{
+	return !(*this == o);
+}
+
 void Tone::set(double red, double green, double blue, double gray)
 {
 	this->red   = red;
@@ -360,6 +370,11 @@ bool Rect::operator==(const Rect &o) const
 	       y      == o.y     &&
 	       width  == o.width &&
 	       height == o.height;
+}
+
+bool Rect::operator!=(const Rect &o) const
+{
+	return !(*this == o);
 }
 
 void Rect::operator=(const IntRect &rect)

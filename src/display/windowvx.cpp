@@ -1284,7 +1284,7 @@ void WindowVX::sandbox_deserialize_end()
 	if (isDisposed()) return;
 	if (p->cursorRect != nullptr) {
 		p->cursorRectCon = p->cursorRect->valueChanged.connect(&WindowVXPrivate::invalidateCursorVert, p);
-		if (!(*p->cursorRect == p->deserSavedCursorRect)) {
+		if (*p->cursorRect != p->deserSavedCursorRect) {
 			p->invalidateCursorVert();
 		}
 	}
@@ -1292,7 +1292,7 @@ void WindowVX::sandbox_deserialize_end()
 	if (isDisposed()) return;
 	if (p->tone != nullptr) {
 		p->toneCon = p->tone->valueChanged.connect(&WindowVXPrivate::invalidateBaseTex, p);
-		if (!(*p->tone == p->deserSavedTone)) {
+		if (*p->tone != p->deserSavedTone) {
 			p->invalidateBaseTex();
 		}
 	}

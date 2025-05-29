@@ -105,6 +105,10 @@ return __VA_ARGS__; \
 
 #define OUTLINE_SIZE 1
 
+#ifdef MKXPZ_RETRO
+static uint64_t next_id = 1;
+#endif // MKXPZ_RETRO
+
 /* Normalize (= ensure width and
  * height are positive) */
 static IntRect normalizedRect(const IntRect &rect)
@@ -609,6 +613,9 @@ struct BitmapOpenHandler : FileSystem::OpenHandler
 };
 
 Bitmap::Bitmap(Exception &exception, const char *filename)
+#ifdef MKXPZ_RETRO
+    : id(next_id++)
+#endif // MKXPZ_RETRO
 {
     std::string hiresPrefix = "Hires/";
     std::string filenameStd = filename;
@@ -792,6 +799,9 @@ Bitmap::Bitmap(Exception &exception, const char *filename)
 }
 
 Bitmap::Bitmap(Exception &exception, int width, int height, bool isHires)
+#ifdef MKXPZ_RETRO
+    : id(next_id++)
+#endif // MKXPZ_RETRO
 {
     if (width <= 0 || height <= 0) {
         exception = Exception(Exception::RGSSError, "failed to create bitmap");
@@ -835,6 +845,9 @@ Bitmap::Bitmap(Exception &exception, int width, int height, bool isHires)
 }
 
 Bitmap::Bitmap(Exception &exception, void *pixeldata, int width, int height)
+#ifdef MKXPZ_RETRO
+    : id(next_id++)
+#endif // MKXPZ_RETRO
 {
 #ifdef MKXPZ_RETRO
     SDL_Surface *surface = new SDL_Surface;
@@ -900,6 +913,9 @@ Bitmap::Bitmap(Exception &exception, void *pixeldata, int width, int height)
 
 // frame is -2 for "any and all", -1 for "current", anything else for a specific frame
 Bitmap::Bitmap(Exception &exception, const Bitmap &other, int frame)
+#ifdef MKXPZ_RETRO
+    : id(next_id++)
+#endif // MKXPZ_RETRO
 {
     GUARD(other.guardDisposed(exception));
     GUARD(other.ensureNonMega(exception));
@@ -964,6 +980,9 @@ Bitmap::Bitmap(Exception &exception, const Bitmap &other, int frame)
 }
 
 Bitmap::Bitmap(Exception &exception, TEXFBO &other)
+#ifdef MKXPZ_RETRO
+    : id(next_id++)
+#endif // MKXPZ_RETRO
 {
     Bitmap *hiresBitmap = nullptr;
 
@@ -1006,6 +1025,9 @@ Bitmap::Bitmap(Exception &exception, TEXFBO &other)
 }
 
 Bitmap::Bitmap(Exception &exception, SDL_Surface *imgSurf, SDL_Surface *imgSurfHires, bool forceMega)
+#ifdef MKXPZ_RETRO
+    : id(next_id++)
+#endif // MKXPZ_RETRO
 {
     Bitmap *hiresBitmap = nullptr;
 
@@ -3419,13 +3441,38 @@ bool Bitmap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
 
 bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
-    if (!mkxp_sandbox::sandbox_deserialize(p->path, data, max_size)) return false;
+    {
+        std::string old_path = p->path;
+        if (!mkxp_sandbox::sandbox_deserialize(p->path, data, max_size)) return false;
+        if (p->path != old_path) {
+            deserModified = true;
+        }
+    }
 
-    if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->gl.width, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->gl.height, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_deserialize(p->animation.enabled, data, max_size)) return false;
+    {
+        int32_t old_width = p->animation.enabled ? p->animation.width : p->gl.width;
+        if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->gl.width, data, max_size)) return false;
+        if (p->gl.width != old_width) {
+            deserModified = true;
+        }
+    }
+    {
+        int32_t old_height = p->animation.enabled ? p->animation.height : p->gl.height;
+        if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->gl.height, data, max_size)) return false;
+        if (p->gl.height != old_height) {
+            deserModified = true;
+        }
+    }
+    {
+        bool old_enabled = p->animation.enabled;
+        if (!mkxp_sandbox::sandbox_deserialize(p->animation.enabled, data, max_size)) return false;
+        if (p->animation.enabled != old_enabled) {
+            deserModified = true;
+        }
+    }
 
     if (p->animation.enabled) {
+        uint32_t old_frame = p->animation.currentFrameI();
         p->animation.width = p->gl.width;
         p->animation.height = p->gl.height;
         if (!mkxp_sandbox::sandbox_deserialize(p->animation.fps, data, max_size)) return false;
@@ -3435,6 +3482,9 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
         if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->animation.lastFrame, data, max_size)) return false;
         if (!mkxp_sandbox::sandbox_deserialize(p->animation.playTime, data, max_size)) return false;
         if (!mkxp_sandbox::sandbox_deserialize(p->animation.startTime, data, max_size)) return false;
+        if (p->animation.currentFrameI() != old_frame) {
+            deserModified = true;
+        }
     }
 
     if (!mkxp_sandbox::sandbox_deserialize(p->font, data, max_size)) return false;

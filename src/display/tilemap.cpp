@@ -329,9 +329,21 @@ struct TilemapPrivate
 
 	/* Change watches */
 	sigslot::connection tilesetCon;
+#ifdef MKXPZ_RETRO
+	uint64_t deserSavedTilesetId;
+#endif // MKXPZ_RETRO
 	sigslot::connection autotilesCon[autotileCount];
+#ifdef MKXPZ_RETRO
+	uint64_t deserSavedAutotileIds[autotileCount];
+#endif // MKXPZ_RETRO
 	sigslot::connection mapDataCon;
+#ifdef MKXPZ_RETRO
+	uint64_t deserSavedMapDataId;
+#endif // MKXPZ_RETRO
 	sigslot::connection prioritiesCon;
+#ifdef MKXPZ_RETRO
+	uint64_t deserSavedPrioritiesId;
+#endif // MKXPZ_RETRO
 
 	/* Dispose watches */
 	sigslot::connection autotilesDispCon[autotileCount];
@@ -1488,7 +1500,6 @@ bool Tilemap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size
 	for (size_t i = 0; i < autotileCount; ++i)
 		if (!mkxp_sandbox::sandbox_serialize((int32_t)p->atlas.nATFrames[i], data, max_size)) return false;
 
-	if (!mkxp_sandbox::sandbox_serialize(p->viewpPos, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->groundVert, data, max_size)) return false;
 	for (size_t i = 0; i < zlayersMax; ++i)
 		if (!mkxp_sandbox::sandbox_serialize(p->zlayerVert[i], data, max_size)) return false;
@@ -1528,7 +1539,16 @@ bool Tilemap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size
 bool Tilemap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
 	if (!mkxp_sandbox::sandbox_deserialize(p->visible, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->origin, data, max_size)) return false;
+	{
+		Vec2i old_origin = p->origin;
+		if (!mkxp_sandbox::sandbox_deserialize(p->origin, data, max_size)) return false;
+		if (p->origin != old_origin) {
+			p->mapViewportDirty = true;
+		}
+		if (p->origin.y != old_origin.y) {
+			p->zOrderDirty = true;
+		}
+	}
 	if (!mkxp_sandbox::sandbox_deserialize(p->dispPos, data, max_size)) return false;
 
 	if (!mkxp_sandbox::sandbox_deserialize(p->atlas.size, data, max_size)) return false;
@@ -1540,7 +1560,6 @@ bool Tilemap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &
 	for (size_t i = 0; i < autotileCount; ++i)
 		if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->atlas.nATFrames[i], data, max_size)) return false;
 
-	if (!mkxp_sandbox::sandbox_deserialize(p->viewpPos, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->groundVert, data, max_size)) return false;
 	for (size_t i = 0; i < zlayersMax; ++i)
 		if (!mkxp_sandbox::sandbox_deserialize(p->zlayerVert[i], data, max_size)) return false;
@@ -1566,7 +1585,13 @@ bool Tilemap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &
 		if (!mkxp_sandbox::sandbox_deserialize(value, data, max_size)) return false;
 		p->elem.activeLayers = value;
 	}
-	if (!mkxp_sandbox::sandbox_deserialize(p->elem.sceneGeo, data, max_size)) return false;
+	{
+		Scene::Geometry old_geo = p->elem.sceneGeo;
+		if (!mkxp_sandbox::sandbox_deserialize(p->elem.sceneGeo, data, max_size)) return false;
+		if (p->elem.sceneGeo != old_geo) {
+			p->mapViewportDirty = true;
+		}
+	}
 
 	if (!mkxp_sandbox::sandbox_deserialize(p->opacity, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->blendType, data, max_size)) return false;
@@ -1602,13 +1627,18 @@ void Tilemap::sandbox_deserialize_begin()
 	p->tilesetDispCon.disconnect();
 
 	p->tilesetCon.disconnect();
+	p->deserSavedTilesetId = p->tileset == nullptr ? 0 : p->tileset->id;
 
-	for (size_t i = 0; i < autotileCount; ++i)
+	for (size_t i = 0; i < autotileCount; ++i) {
 		p->autotilesCon[i].disconnect();
+		p->deserSavedAutotileIds[i] = p->autotiles[i] == nullptr ? 0 : p->autotiles[i]->id;
+	}
 
 	p->mapDataCon.disconnect();
+	p->deserSavedMapDataId = p->mapData == nullptr ? 0 : p->mapData->id;
 
 	p->prioritiesCon.disconnect();
+	p->deserSavedPrioritiesId = p->priorities == nullptr ? 0 : p->priorities->id;
 }
 
 void Tilemap::sandbox_deserialize_end()
@@ -1651,7 +1681,7 @@ void Tilemap::sandbox_deserialize_end()
 		if (isDisposed()) return;
 		if (p->autotiles[i] != nullptr) {
 			p->autotilesCon[i] = p->autotiles[i]->modified.connect(&TilemapPrivate::invalidateAtlasContents, p);
-			if (p->autotiles[i]->deserModified) {
+			if (p->autotiles[i]->deserModified || p->autotiles[i]->id != p->deserSavedAutotileIds[i]) {
 				p->invalidateAtlasContents();
 			}
 		}
@@ -1660,7 +1690,7 @@ void Tilemap::sandbox_deserialize_end()
 	if (isDisposed()) return;
 	if (p->mapData != nullptr) {
 		p->mapDataCon = p->mapData->modified.connect(&TilemapPrivate::invalidateBuffers, p);
-		if (p->mapData->deserModified) {
+		if (p->mapData->deserModified || p->mapData->id != p->deserSavedMapDataId) {
 			p->invalidateBuffers();
 		}
 	}
@@ -1668,9 +1698,14 @@ void Tilemap::sandbox_deserialize_end()
 	if (isDisposed()) return;
 	if (p->priorities != nullptr) {
 		p->prioritiesCon = p->priorities->modified.connect(&TilemapPrivate::invalidateBuffers, p);
-		if (p->priorities->deserModified) {
+		if (p->priorities->deserModified || p->priorities->id != p->deserSavedPrioritiesId) {
 			p->invalidateBuffers();
 		}
+	}
+
+	if (isDisposed()) return;
+	if (p->tileset->deserModified) {
+		p->invalidateAtlasSize();
 	}
 }
 #endif // MKXPZ_RETRO

@@ -69,6 +69,7 @@ public:
     sigslot::signal<> modified;
 
 #ifdef MKXPZ_RETRO
+	const uint64_t id; // Globally unique nonzero ID for this table, for change detection during save state deserialization
 	bool deserModified;
 
 	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;

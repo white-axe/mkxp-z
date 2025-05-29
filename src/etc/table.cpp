@@ -30,16 +30,26 @@
 
 #ifdef MKXPZ_RETRO
 #  include "sandbox-serial-util.h"
+
+static uint64_t next_id = 1;
 #endif // MKXPZ_RETRO
 
 /* Init normally */
 Table::Table(int x, int y /*= 1*/, int z /*= 1*/)
-    : xs(x), ys(y), zs(z),
+    :
+#ifdef MKXPZ_RETRO
+      id(next_id++),
+#endif // MKXPZ_RETRO
+      xs(x), ys(y), zs(z),
       data(x*y*z)
 {}
 
 Table::Table(const Table &other)
-    : xs(other.xs), ys(other.ys), zs(other.zs),
+    :
+#ifdef MKXPZ_RETRO
+      id(next_id++),
+#endif // MKXPZ_RETRO
+      xs(other.xs), ys(other.ys), zs(other.zs),
       data(other.data)
 {}
 

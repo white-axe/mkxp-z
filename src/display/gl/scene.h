@@ -49,6 +49,16 @@ public:
 		/* Origin of contents */
 		Vec2i orig;
 
+		bool operator==(const Geometry &other) const
+		{
+			return rect == other.rect && orig == other.orig;
+		}
+
+		bool operator!=(const Geometry &other) const
+		{
+			return !(*this == other);
+		}
+
 		Vec2i offset() const
 		{
 			return rect.pos() - orig;

@@ -65,6 +65,7 @@ struct Color : public Serializable
 	void set(double red, double green, double blue, double alpha);
 
 	bool operator==(const Color &o) const;
+	bool operator!=(const Color &o) const;
 
 	void setRed(double value);
 	void setGreen(double value);
@@ -119,6 +120,7 @@ struct Tone : public Serializable
 	virtual ~Tone() {}
 
 	bool operator==(const Tone &o) const;
+	bool operator!=(const Tone &o) const;
 
 	void set(double red, double green, double blue, double gray);
 	const Tone &operator=(const Tone &o);
@@ -180,6 +182,7 @@ struct Rect : public Serializable
 	Rect(const IntRect &r);
 
 	bool operator==(const Rect &o) const;
+	bool operator!=(const Rect &o) const;
 	void operator=(const IntRect &rect);
 	void set(int x, int y, int w, int h);
 	const Rect &operator=(const Rect &o);
