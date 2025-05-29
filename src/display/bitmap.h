@@ -191,6 +191,9 @@ public:
 	void taintArea(const IntRect &rect);
 
 	sigslot::signal<> modified;
+#ifdef MKXPZ_RETRO
+	bool deserModified;
+#endif // MKXPZ_RETRO
 
 	static int maxSize();
 
@@ -199,7 +202,7 @@ public:
 #ifdef MKXPZ_RETRO
 	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
 	bool sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size);
-	void sandbox_deserialize_begin();
+	void sandbox_deserialize_begin(bool is_new);
 	void sandbox_deserialize_end();
 #endif // MKXPZ_RETRO
 

@@ -3448,9 +3448,11 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
     return true;
 }
 
-void Bitmap::sandbox_deserialize_begin()
+void Bitmap::sandbox_deserialize_begin(bool is_new)
 {
     loresDispCon.disconnect();
+
+    deserModified = is_new;
 }
 
 void Bitmap::sandbox_deserialize_end()
@@ -3459,7 +3461,7 @@ void Bitmap::sandbox_deserialize_end()
     if (p->selfLores != nullptr) {
         loresDispCon = p->selfLores->wasDisposed.connect(&Bitmap::loresDisposal, this);
         if (p->selfLores->isDisposed()) {
-            p->selfLores->wasDisposed();
+            loresDisposal();
         }
     }
 }

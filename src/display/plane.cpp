@@ -406,7 +406,7 @@ void Plane::sandbox_deserialize_end()
 	if (p->bitmap != nullptr) {
 		p->bitmapDispCon = p->bitmap->wasDisposed.connect(&PlanePrivate::bitmapDisposal, p);
 		if (p->bitmap->isDisposed()) {
-			p->bitmap->wasDisposed();
+			p->bitmapDisposal();
 		}
 	}
 }

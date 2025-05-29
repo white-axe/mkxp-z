@@ -188,6 +188,9 @@ struct WindowPrivate
 	bool pause;
 
 	sigslot::connection cursorRectCon;
+#ifdef MKXPZ_RETRO
+	Rect deserSavedCursorRect;
+#endif // MKXPZ_RETRO
 
 	Vec2i sceneOffset;
 
@@ -1018,6 +1021,13 @@ void Window::sandbox_deserialize_begin()
 	p->windowskinDispCon.disconnect();
 
 	p->contentsDispCon.disconnect();
+
+	p->cursorRectCon.disconnect();
+	if (p->cursorRect != nullptr) {
+		p->deserSavedCursorRect = *p->cursorRect;
+	} else {
+		p->deserSavedCursorRect.set(0, 0, 0, 0);
+	}
 }
 
 void Window::sandbox_deserialize_end()
@@ -1028,7 +1038,7 @@ void Window::sandbox_deserialize_end()
 	if (p->windowskin != nullptr) {
 		p->windowskinDispCon = p->windowskin->wasDisposed.connect(&WindowPrivate::windowskinDisposal, p);
 		if (p->windowskin->isDisposed()) {
-			p->windowskin->wasDisposed();
+			p->windowskinDisposal();
 		}
 	}
 
@@ -1036,7 +1046,15 @@ void Window::sandbox_deserialize_end()
 	if (p->contents != nullptr) {
 		p->contentsDispCon = p->contents->wasDisposed.connect(&WindowPrivate::contentsDisposal, p);
 		if (p->contents->isDisposed()) {
-			p->contents->wasDisposed();
+			p->contentsDisposal();
+		}
+	}
+
+	if (isDisposed()) return;
+	if (p->cursorRect != nullptr) {
+		p->cursorRectCon = p->cursorRect->valueChanged.connect(&WindowPrivate::markControlVertDirty, p);
+		if (!(*p->cursorRect == p->deserSavedCursorRect)) {
+			p->markControlVertDirty();
 		}
 	}
 }

@@ -21,6 +21,7 @@
 
 #include "binding-util.h"
 #include "sharedstate.h"
+#include <utility>
 #include <boost/type_traits/is_detected.hpp>
 
 using namespace mkxp_sandbox;
@@ -70,13 +71,18 @@ template <typename T> static bool deserialize(void *self, const void *&data, was
     return ((T *)self)->sandbox_deserialize(data, max_size);
 }
 
-template <typename T> using deserialize_begin_declaration = decltype(std::declval<T *>()->sandbox_deserialize_begin());
+template <typename T> using deserialize_begin_declaration_with_is_new = decltype(std::declval<T *>()->sandbox_deserialize_begin(std::declval<bool>()));
+template <typename T> using deserialize_begin_declaration_without_is_new = decltype(std::declval<T *>()->sandbox_deserialize_begin());
 
-template <typename T> static typename std::enable_if<boost::is_detected<deserialize_begin_declaration, T>::value>::type deserialize_begin(void *self) {
+template <typename T> static typename std::enable_if<boost::is_detected<deserialize_begin_declaration_with_is_new, T>::value>::type deserialize_begin(void *self, bool is_new) {
+    ((T *)self)->sandbox_deserialize_begin(is_new);
+}
+
+template <typename T> static typename std::enable_if<!boost::is_detected<deserialize_begin_declaration_with_is_new, T>::value && boost::is_detected<deserialize_begin_declaration_without_is_new, T>::value>::type deserialize_begin(void *self, bool is_new) {
     ((T *)self)->sandbox_deserialize_begin();
 }
 
-template <typename T> static typename std::enable_if<!boost::is_detected<deserialize_begin_declaration, T>::value>::type deserialize_begin(void *self) {}
+template <typename T> static typename std::enable_if<!boost::is_detected<deserialize_begin_declaration_with_is_new, T>::value && !boost::is_detected<deserialize_begin_declaration_without_is_new, T>::value>::type deserialize_begin(void *self, bool is_new) {}
 
 template <typename T> using deserialize_end_declaration = decltype(std::declval<T *>()->sandbox_deserialize_end());
 

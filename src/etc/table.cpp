@@ -172,9 +172,12 @@ bool Table::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) 
 	if (!mkxp_sandbox::sandbox_serialize((int32_t)xs, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize((int32_t)ys, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize((int32_t)zs, data, max_size)) return false;
+
 	if ((uint32_t)xs * (uint32_t)ys * (uint32_t)zs != this->data.size()) std::abort();
 	if (max_size < this->data.size() * sizeof(int16_t)) return false;
+
 	memcpy(data, this->data.data(), this->data.size() * sizeof(int16_t));
+
 	data = (uint8_t *)data + this->data.size() * sizeof(int16_t);
 	max_size -= this->data.size() * sizeof(int16_t);
 	return true;
@@ -185,12 +188,28 @@ bool Table::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &ma
 	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)xs, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)ys, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)zs, data, max_size)) return false;
-	this->data.clear();
-	this->data.resize((uint32_t)xs * (uint32_t)ys * (uint32_t)zs);
+
+	if (this->data.size() != (uint32_t)xs * (uint32_t)ys * (uint32_t)zs) {
+		this->data.clear();
+		this->data.resize((uint32_t)xs * (uint32_t)ys * (uint32_t)zs);
+		deserModified = true;
+	}
 	if (max_size < this->data.size() * sizeof(int16_t)) return false;
-	memcpy(this->data.data(), data, this->data.size() * sizeof(int16_t));
+
+	if (deserModified) {
+		memcpy(this->data.data(), data, this->data.size() * sizeof(int16_t));
+	} else if (memcmp(this->data.data(), data, this->data.size() * sizeof(int16_t))) {
+		memcpy(this->data.data(), data, this->data.size() * sizeof(int16_t));
+		deserModified = true;
+	}
+
 	data = (uint8_t *)data + this->data.size() * sizeof(int16_t);
 	max_size -= this->data.size() * sizeof(int16_t);
 	return true;
+}
+
+void Table::sandbox_deserialize_begin(bool is_new)
+{
+	deserModified = is_new;
 }
 #endif // MKXPZ_RETRO

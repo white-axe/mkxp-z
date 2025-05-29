@@ -702,6 +702,14 @@ void TilemapVX::sandbox_deserialize_begin()
 	for (size_t i = 0; i < BM_COUNT; ++i) {
 		p->bmDisposedCons[i].disconnect();
 	}
+
+	for (size_t i = 0; i < BM_COUNT; ++i) {
+		p->bmChangedCons[i].disconnect();
+	}
+
+	p->mapDataCon.disconnect();
+
+	p->flagsCon.disconnect();
 }
 
 void TilemapVX::sandbox_deserialize_end()
@@ -717,8 +725,34 @@ void TilemapVX::sandbox_deserialize_end()
 		if (p->bitmaps[i] != nullptr) {
 			p->bmDisposedCons[i] = p->bitmaps[i]->wasDisposed.connect( [i, this] { p->atlasDisposal(i); } );
 			if (p->bitmaps[i]->isDisposed()) {
-				p->bitmaps[i]->wasDisposed();
+				p->atlasDisposal(i);
 			}
+		}
+	}
+
+	for (size_t i = 0; i < BM_COUNT; ++i) {
+		if (isDisposed()) return;
+		if (p->bitmaps[i] != nullptr) {
+			p->bmChangedCons[i] = p->bitmaps[i]->modified.connect(&TilemapVXPrivate::invalidateAtlas, p);
+			if (p->bitmaps[i]->deserModified) {
+				p->invalidateAtlas();
+			}
+		}
+	}
+
+	if (isDisposed()) return;
+	if (p->mapData != nullptr) {
+		p->mapDataCon = p->mapData->modified.connect(&TilemapVXPrivate::invalidateBuffers, p);
+		if (p->mapData->deserModified) {
+			p->invalidateBuffers();
+		}
+	}
+
+	if (isDisposed()) return;
+	if (p->flags != nullptr) {
+		p->flagsCon = p->flags->modified.connect(&TilemapVXPrivate::invalidateBuffers, p);
+		if (p->flags->deserModified) {
+			p->invalidateBuffers();
 		}
 	}
 }

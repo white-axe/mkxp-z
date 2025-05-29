@@ -1600,6 +1600,15 @@ void Tilemap::sandbox_deserialize_begin()
 	}
 
 	p->tilesetDispCon.disconnect();
+
+	p->tilesetCon.disconnect();
+
+	for (size_t i = 0; i < autotileCount; ++i)
+		p->autotilesCon[i].disconnect();
+
+	p->mapDataCon.disconnect();
+
+	p->prioritiesCon.disconnect();
 }
 
 void Tilemap::sandbox_deserialize_end()
@@ -1617,7 +1626,7 @@ void Tilemap::sandbox_deserialize_end()
 		if (p->autotiles[i] != nullptr) {
 			p->autotilesDispCon[i] = p->autotiles[i]->wasDisposed.connect( [i, this] { p->atlasContentsDisposal(i); } );
 			if (p->autotiles[i]->isDisposed()) {
-				p->autotiles[i]->wasDisposed();
+				p->atlasContentsDisposal(i);
 			}
 		}
 	}
@@ -1626,7 +1635,41 @@ void Tilemap::sandbox_deserialize_end()
 	if (p->tileset != nullptr) {
 		p->tilesetDispCon = p->tileset->wasDisposed.connect(&TilemapPrivate::tilesetDisposal, p);
 		if (p->tileset->isDisposed()) {
-			p->tileset->wasDisposed();
+			p->tilesetDisposal();
+		}
+	}
+
+	if (isDisposed()) return;
+	if (p->tileset != nullptr) {
+		p->tilesetCon = p->tileset->modified.connect(&TilemapPrivate::invalidateAtlasSize, p);
+		if (p->tileset->deserModified) {
+			p->invalidateAtlasSize();
+		}
+	}
+
+	for (size_t i = 0; i < autotileCount; ++i) {
+		if (isDisposed()) return;
+		if (p->autotiles[i] != nullptr) {
+			p->autotilesCon[i] = p->autotiles[i]->modified.connect(&TilemapPrivate::invalidateAtlasContents, p);
+			if (p->autotiles[i]->deserModified) {
+				p->invalidateAtlasContents();
+			}
+		}
+	}
+
+	if (isDisposed()) return;
+	if (p->mapData != nullptr) {
+		p->mapDataCon = p->mapData->modified.connect(&TilemapPrivate::invalidateBuffers, p);
+		if (p->mapData->deserModified) {
+			p->invalidateBuffers();
+		}
+	}
+
+	if (isDisposed()) return;
+	if (p->priorities != nullptr) {
+		p->prioritiesCon = p->priorities->modified.connect(&TilemapPrivate::invalidateBuffers, p);
+		if (p->priorities->deserModified) {
+			p->invalidateBuffers();
 		}
 	}
 }

@@ -61,6 +61,9 @@ struct SpritePrivate
     
     Rect *srcRect;
     sigslot::connection srcRectCon;
+#ifdef MKXPZ_RETRO
+    Rect deserSavedSrcRect;
+#endif // MKXPZ_RETRO
     
     bool mirrored;
     int bushDepth;
@@ -938,6 +941,13 @@ void Sprite::sandbox_deserialize_begin()
     if (isDisposed()) return;
 
     p->bitmapDispCon.disconnect();
+
+    p->srcRectCon.disconnect();
+    if (p->srcRect != nullptr) {
+        p->deserSavedSrcRect = *p->srcRect;
+    } else {
+        p->deserSavedSrcRect.set(0, 0, 0, 0);
+    }
 }
 
 void Sprite::sandbox_deserialize_end()
@@ -948,7 +958,15 @@ void Sprite::sandbox_deserialize_end()
     if (p->bitmap != nullptr) {
         p->bitmapDispCon = p->bitmap->wasDisposed.connect(&SpritePrivate::bitmapDisposal, p);
         if (p->bitmap->isDisposed()) {
-            p->bitmap->wasDisposed();
+            p->bitmapDisposal();
+        }
+    }
+
+    if (isDisposed()) return;
+    if (p->srcRect != nullptr) {
+        p->srcRectCon = p->srcRect->valueChanged.connect(&SpritePrivate::onSrcRectChange, p);
+        if (!(*p->srcRect == p->deserSavedSrcRect)) {
+            p->onSrcRectChange();
         }
     }
 }

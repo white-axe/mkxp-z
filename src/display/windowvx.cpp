@@ -190,7 +190,13 @@ struct WindowVXPrivate
 	Tone *tone;
 
 	sigslot::connection cursorRectCon;
+#ifdef MKXPZ_RETRO
+	Rect deserSavedCursorRect;
+#endif // MKXPZ_RETRO
 	sigslot::connection toneCon;
+#ifdef MKXPZ_RETRO
+	Tone deserSavedTone;
+#endif // MKXPZ_RETRO
 	sigslot::connection prepareCon;
 
 	EtcTemps tmp;
@@ -1239,6 +1245,20 @@ void WindowVX::sandbox_deserialize_begin()
 	p->windowskinDispCon.disconnect();
 
 	p->contentsDispCon.disconnect();
+
+	p->cursorRectCon.disconnect();
+	if (p->cursorRect != nullptr) {
+		p->deserSavedCursorRect = *p->cursorRect;
+	} else {
+		p->deserSavedCursorRect.set(0, 0, 0, 0);
+	}
+
+	p->toneCon.disconnect();
+	if (p->tone != nullptr) {
+		p->deserSavedTone = *p->tone;
+	} else {
+		p->deserSavedTone.set(0, 0, 0, 0);
+	}
 }
 
 void WindowVX::sandbox_deserialize_end()
@@ -1249,7 +1269,7 @@ void WindowVX::sandbox_deserialize_end()
 	if (p->windowskin != nullptr) {
 		p->windowskinDispCon = p->windowskin->wasDisposed.connect(&WindowVXPrivate::windowskinDisposal, p);
 		if (p->windowskin->isDisposed()) {
-			p->windowskin->wasDisposed();
+			p->windowskinDisposal();
 		}
 	}
 
@@ -1257,7 +1277,23 @@ void WindowVX::sandbox_deserialize_end()
 	if (p->contents != nullptr) {
 		p->contentsDispCon = p->contents->wasDisposed.connect(&WindowVXPrivate::contentsDisposal, p);
 		if (p->contents->isDisposed()) {
-			p->contents->wasDisposed();
+			p->contentsDisposal();
+		}
+	}
+
+	if (isDisposed()) return;
+	if (p->cursorRect != nullptr) {
+		p->cursorRectCon = p->cursorRect->valueChanged.connect(&WindowVXPrivate::invalidateCursorVert, p);
+		if (!(*p->cursorRect == p->deserSavedCursorRect)) {
+			p->invalidateCursorVert();
+		}
+	}
+
+	if (isDisposed()) return;
+	if (p->tone != nullptr) {
+		p->toneCon = p->tone->valueChanged.connect(&WindowVXPrivate::invalidateBaseTex, p);
+		if (!(*p->tone == p->deserSavedTone)) {
+			p->invalidateBaseTex();
 		}
 	}
 }

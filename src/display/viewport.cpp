@@ -44,6 +44,9 @@ struct ViewportPrivate
 
 	Rect *rect;
 	sigslot::connection rectCon;
+#ifdef MKXPZ_RETRO
+	Rect deserSavedRect;
+#endif // MKXPZ_RETRO
 
 	Color *color;
 	Tone *tone;
@@ -253,6 +256,29 @@ bool Viewport::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t 
 
 	return true;
 }
+
+void Viewport::sandbox_deserialize_begin()
+{
+	if (isDisposed()) return;
+
+	p->rectCon.disconnect();
+	if (p->rect != nullptr) {
+		p->deserSavedRect = *p->rect;
+	} else {
+		p->deserSavedRect.set(0, 0, 0, 0);
+	}
+}
+
+void Viewport::sandbox_deserialize_end()
+{
+	if (isDisposed()) return;
+	if (p->rect != nullptr) {
+		p->rectCon = p->rect->valueChanged.connect(&ViewportPrivate::onRectChange, p);
+		if (!(*p->rect == p->deserSavedRect)) {
+			p->onRectChange();
+		}
+	}
+}
 #endif // MXKPZ_RETRO
 
 
@@ -321,7 +347,7 @@ void ViewportElement::sandbox_deserialize_end_viewport_element()
 	if (m_viewport != nullptr) {
 		viewportDispCon = m_viewport->wasDisposed.connect(&ViewportElement::viewportElementDisposal, this);
 		if (m_viewport->isDisposed()) {
-			m_viewport->wasDisposed();
+			viewportElementDisposal();
 		}
 	}
 }
