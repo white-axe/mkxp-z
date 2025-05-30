@@ -1355,7 +1355,7 @@ void WindowVX::sandbox_deserialize_end()
 	}
 
 	if (isDisposed()) return;
-	if (deserModified) {
+	if (deserSceneElementModified) {
 		scene->reinsert(*this);
 	}
 }

@@ -52,6 +52,8 @@ public:
 	void initDynAttribs();
 
 #ifdef MKXPZ_RETRO
+	const uint64_t id; // Globally unique nonzero ID for this viewport, for change detection during save state deserialization
+
 	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
 	bool sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size);
 	void sandbox_deserialize_begin();
@@ -100,6 +102,9 @@ private:
 	void (*m_dispose)(void *);
 	Viewport *m_viewport;
 	sigslot::connection viewportDispCon;
+#ifdef MKXPZ_RETRO
+	uint64_t deserSavedViewportId;
+#endif // MKXPZ_RETRO
 	void viewportElementDisposal();
 };
 

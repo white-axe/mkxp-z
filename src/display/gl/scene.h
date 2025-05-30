@@ -114,7 +114,7 @@ public:
 
 	Scene *scene;
 #ifdef MKXPZ_RETRO
-	bool deserModified;
+	bool deserSceneElementModified;
 #endif // MKXPZ_RETRO
 
 protected:

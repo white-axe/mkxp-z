@@ -37,6 +37,10 @@
 #define GUARD_V(value, expression) do { expression; if (exception.is_error()) return value; } while (0)
 #define GUARD(expression) GUARD_V(, expression)
 
+#ifdef MKXPZ_RETRO
+static uint64_t next_id = 1;
+#endif // MKXPZ_RETRO
+
 struct ViewportPrivate
 {
 	/* Needed for geometry changes */
@@ -46,6 +50,7 @@ struct ViewportPrivate
 	sigslot::connection rectCon;
 #ifdef MKXPZ_RETRO
 	Rect deserSavedRect;
+	bool deserScreenRectChanged;
 #endif // MKXPZ_RETRO
 
 	Color *color;
@@ -105,6 +110,9 @@ struct ViewportPrivate
 
 Viewport::Viewport(int x, int y, int width, int height)
     : SceneElement(*shState->screen()),
+#ifdef MKXPZ_RETRO
+      id(next_id++),
+#endif // MKXPZ_RETRO
       sceneLink(this)
 {
 	initViewport(x, y, width, height);
@@ -112,6 +120,9 @@ Viewport::Viewport(int x, int y, int width, int height)
 
 Viewport::Viewport(Rect *rect)
     : SceneElement(*shState->screen()),
+#ifdef MKXPZ_RETRO
+      id(next_id++),
+#endif // MKXPZ_RETRO
       sceneLink(this)
 {
 	initViewport(rect->x, rect->y, rect->width, rect->height);
@@ -119,6 +130,9 @@ Viewport::Viewport(Rect *rect)
 
 Viewport::Viewport()
     : SceneElement(*shState->screen()),
+#ifdef MKXPZ_RETRO
+      id(next_id++),
+#endif // MKXPZ_RETRO
       sceneLink(this)
 {
 	const Graphics &graphics = shState->graphics();
@@ -236,8 +250,9 @@ void Viewport::releaseResources()
 bool Viewport::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
 	if (!mkxp_sandbox::sandbox_serialize(p->screenRect, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->isOnScreen, data, max_size)) return false;
+
 	if (!sandbox_serialize_scene_element(data, max_size)) return false;
+
 	if (!mkxp_sandbox::sandbox_serialize(p->rect, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->color, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->tone, data, max_size)) return false;
@@ -247,9 +262,16 @@ bool Viewport::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_siz
 
 bool Viewport::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
-	if (!mkxp_sandbox::sandbox_deserialize(p->screenRect, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->isOnScreen, data, max_size)) return false;
+	{
+		IntRect value = p->screenRect;
+		if (!mkxp_sandbox::sandbox_deserialize(p->screenRect, data, max_size)) return false;
+		if (p->screenRect != value) {
+			p->deserScreenRectChanged = true;
+		}
+	}
+
 	if (!sandbox_deserialize_scene_element(data, max_size)) return false;
+
 	if (!mkxp_sandbox::sandbox_deserialize(p->rect, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->color, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->tone, data, max_size)) return false;
@@ -269,6 +291,8 @@ void Viewport::sandbox_deserialize_begin()
 	} else {
 		p->deserSavedRect.set(0, 0, 0, 0);
 	}
+
+	p->deserScreenRectChanged = false;
 }
 
 void Viewport::sandbox_deserialize_end()
@@ -282,7 +306,12 @@ void Viewport::sandbox_deserialize_end()
 	}
 
 	if (isDisposed()) return;
-	if (deserModified) {
+	if (p->deserScreenRectChanged) {
+		p->recomputeOnScreen();
+	}
+
+	if (isDisposed()) return;
+	if (deserSceneElementModified) {
 		scene->reinsert(*this);
 	}
 }
@@ -349,15 +378,28 @@ void ViewportElement::sandbox_deserialize_begin_viewport_element()
 	sandbox_deserialize_begin_scene_element();
 
 	viewportDispCon.disconnect();
+
+	deserSavedViewportId = m_viewport == nullptr ? 0 : m_viewport->id;
 }
 
 void ViewportElement::sandbox_deserialize_end_viewport_element()
 {
 	if (m_viewport != nullptr) {
-		viewportDispCon = m_viewport->wasDisposed.connect(&ViewportElement::viewportElementDisposal, this);
-		if (m_viewport->isDisposed()) {
-			viewportElementDisposal();
+		if (rgssVer == 1) {
+			viewportDispCon = m_viewport->wasDisposed.connect(&ViewportElement::viewportElementDisposal, this);
+			if (m_viewport->isDisposed()) {
+				viewportElementDisposal();
+			}
 		}
+		if (m_viewport->id != deserSavedViewportId) {
+			setScene(*m_viewport);
+			onViewportChange();
+			onGeometryChange(scene->getGeometry());
+		}
+	} else if (deserSavedViewportId != 0) {
+		setScene(*shState->screen());
+		onViewportChange();
+		onGeometryChange(scene->getGeometry());
 	}
 }
 #endif // MXKPZ_RETRO

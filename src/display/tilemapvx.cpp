@@ -792,10 +792,10 @@ void TilemapVX::sandbox_deserialize_end()
 	}
 
 	if (isDisposed()) return;
-	if (p->above.deserModified) {
+	if (p->above.deserSceneElementModified) {
 		p->above.scene->reinsert(p->above);
 	}
-	if (p->deserModified) {
+	if (p->deserSceneElementModified) {
 		p->scene->reinsert(*p);
 	}
 }

@@ -224,14 +224,14 @@ bool SceneElement::sandbox_deserialize_scene_element(const void *&data, mkxp_san
 		uint64_t value = creationStamp;
 		if (!mkxp_sandbox::sandbox_deserialize(creationStamp, data, max_size)) return false;
 		if (creationStamp != value) {
-			deserModified = true;
+			deserSceneElementModified = true;
 		}
 	}
 	{
 		int32_t value = (int32_t)z;
 		if (!mkxp_sandbox::sandbox_deserialize((int32_t &)z, data, max_size)) return false;
 		if (z != value) {
-			deserModified = true;
+			deserSceneElementModified = true;
 		}
 	}
 	if (!mkxp_sandbox::sandbox_deserialize(visible, data, max_size)) return false;
@@ -241,6 +241,6 @@ bool SceneElement::sandbox_deserialize_scene_element(const void *&data, mkxp_san
 
 void SceneElement::sandbox_deserialize_begin_scene_element()
 {
-	deserModified = false;
+	deserSceneElementModified = false;
 }
 #endif // MKXPZ_REROO
