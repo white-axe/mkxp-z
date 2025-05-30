@@ -24,23 +24,9 @@
 
 #include <type_traits>
 #include <boost/optional.hpp>
-#include <boost/preprocessor/seq/for_each.hpp>
-#include <boost/preprocessor/seq/size.hpp>
-#include "core.h"
+#include "sandbox-serial-util.h"
 #include "exception.h"
 #include "sandbox.h"
-
-#include "bitmap.h"
-#include "etc.h"
-#include "font.h"
-#include "plane.h"
-#include "sprite.h"
-#include "table.h"
-#include "tilemap.h"
-#include "tilemapvx.h"
-#include "viewport.h"
-#include "window.h"
-#include "windowvx.h"
 
 #define SANDBOX_SLOT(slot_index) (::mkxp_sandbox::sb()->ref<typename ::mkxp_sandbox::slot_type<(slot_index), slots>::type>(::mkxp_sandbox::sb()->stack_pointer() + ::mkxp_sandbox::slot_offset<(slot_index), slots>::value))
 
@@ -457,37 +443,7 @@
 #define SANDBOX_GUARD_LF(finalizer, ...) do { GFX_LOCK; SANDBOX_GUARD_F(finalizer; GFX_UNLOCK, __VA_ARGS__); GFX_UNLOCK; } while (0)
 #define SANDBOX_GUARD_L(...) SANDBOX_GUARD_LF(, __VA_ARGS__)
 
-#define SANDBOX_TYPENUM_TYPES \
-    (Bitmap) \
-    (Color) \
-    (Font) \
-    (Plane) \
-    (Rect) \
-    (Sprite) \
-    (Table) \
-    (Tilemap) \
-    (Tilemap::Autotiles) \
-    (TilemapVX) \
-    (TilemapVX::BitmapArray) \
-    (Tone) \
-    (Viewport) \
-    (Window) \
-    (WindowVX) \
-
-#define SANDBOX_NUM_TYPENUMS BOOST_PP_SEQ_SIZE(SANDBOX_TYPENUM_TYPES)
-
-#define _SANDBOX_DEF_GET_TYPENUM_DETAIL(T, num) template <> struct get_typenum<T> { \
-    static_assert(num != 0, "typenum should not be 0"); \
-    static_assert(num <= SANDBOX_NUM_TYPENUMS, "typenum should not be greater than the number of typenums"); \
-    static constexpr wasm_size_t value = num; \
-};
-#define _SANDBOX_DEF_GET_TYPENUM(_r, _data, T) _SANDBOX_DEF_GET_TYPENUM_DETAIL(T, __COUNTER__ - _get_typenum_counter_start)
-
 namespace mkxp_sandbox {
-    template <typename T> struct get_typenum;
-    static constexpr wasm_size_t _get_typenum_counter_start = __COUNTER__;
-    BOOST_PP_SEQ_FOR_EACH(_SANDBOX_DEF_GET_TYPENUM, _, SANDBOX_TYPENUM_TYPES);
-
     // We need these helper functions so that the arguments to `SANDBOX_AWAIT`/`SANDBOX_AWAIT_R`/`SANDBOX_AWAIT_S` are evaluated before `sb()->bind` is called instead of after.
     // The reverse happening can lead to incorrect behaviour if one or more of the arguments is using `SANDBOX_SLOT` or other macros that need the state of the sandbox.
     template <typename Coroutine, typename... Args> bool _sandbox_await(Args... args) {

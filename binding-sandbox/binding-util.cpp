@@ -21,80 +21,8 @@
 
 #include "binding-util.h"
 #include "sharedstate.h"
-#include <utility>
-#include <boost/type_traits/is_detected.hpp>
 
 using namespace mkxp_sandbox;
-
-template <typename T> static typename std::enable_if<std::is_constructible<T>::value, void *>::type construct() {
-    return new T;
-}
-
-template <typename T> static typename std::enable_if<!std::is_constructible<T>::value && std::is_constructible<T, Exception &>::value, void *>::type construct() {
-    Exception e;
-    T *obj = new T(e);
-    if (e.is_ok()) {
-        return obj;
-    } else {
-        delete obj;
-        return nullptr;
-    }
-}
-
-template <typename T> static void destroy(void *self) {
-    if (self != nullptr) {
-        delete (T *)self;
-    }
-}
-
-template <typename T> static typename std::enable_if<std::is_base_of<Disposable, T>::value>::type dispose(void *self) {
-    if (self != nullptr) {
-        ((T *)self)->dispose();
-    }
-}
-
-template <typename T> static typename std::enable_if<!std::is_base_of<Disposable, T>::value>::type dispose(void *self) {}
-
-template <typename T> static typename std::enable_if<std::is_base_of<Disposable, T>::value, bool>::type disposed(void *self) {
-    return self == nullptr || ((T *)self)->isDisposed();
-}
-
-template <typename T> static typename std::enable_if<!std::is_base_of<Disposable, T>::value, bool>::type disposed(void *self) {
-    return self == nullptr;
-}
-
-template <typename T> static bool serialize(const void *self, void *&data, wasm_size_t &max_size) {
-    return ((const T *)self)->sandbox_serialize(data, max_size);
-}
-
-template <typename T> static bool deserialize(void *self, const void *&data, wasm_size_t &max_size) {
-    return ((T *)self)->sandbox_deserialize(data, max_size);
-}
-
-template <typename T> using deserialize_begin_declaration_with_is_new = decltype(std::declval<T *>()->sandbox_deserialize_begin(std::declval<bool>()));
-template <typename T> using deserialize_begin_declaration_without_is_new = decltype(std::declval<T *>()->sandbox_deserialize_begin());
-
-template <typename T> static typename std::enable_if<boost::is_detected<deserialize_begin_declaration_with_is_new, T>::value>::type deserialize_begin(void *self, bool is_new) {
-    ((T *)self)->sandbox_deserialize_begin(is_new);
-}
-
-template <typename T> static typename std::enable_if<!boost::is_detected<deserialize_begin_declaration_with_is_new, T>::value && boost::is_detected<deserialize_begin_declaration_without_is_new, T>::value>::type deserialize_begin(void *self, bool is_new) {
-    ((T *)self)->sandbox_deserialize_begin();
-}
-
-template <typename T> static typename std::enable_if<!boost::is_detected<deserialize_begin_declaration_with_is_new, T>::value && !boost::is_detected<deserialize_begin_declaration_without_is_new, T>::value>::type deserialize_begin(void *self, bool is_new) {}
-
-template <typename T> using deserialize_end_declaration = decltype(std::declval<T *>()->sandbox_deserialize_end());
-
-template <typename T> static typename std::enable_if<boost::is_detected<deserialize_end_declaration, T>::value>::type deserialize_end(void *self) {
-    ((T *)self)->sandbox_deserialize_end();
-}
-
-template <typename T> static typename std::enable_if<!boost::is_detected<deserialize_end_declaration, T>::value>::type deserialize_end(void *self) {}
-
-#define _SANDBOX_DEF_TYPENUM_TABLE_ENTRY(_r, _data, T) {construct<T>, destroy<T>, dispose<T>, disposed<T>, serialize<T>, deserialize<T>, deserialize_begin<T>, deserialize_end<T>},
-extern const struct typenum_table_entry mkxp_sandbox::typenum_table[SANDBOX_NUM_TYPENUMS] = {BOOST_PP_SEQ_FOR_EACH(_SANDBOX_DEF_TYPENUM_TABLE_ENTRY, _, SANDBOX_TYPENUM_TYPES)};
-extern const wasm_size_t mkxp_sandbox::typenum_table_size = SANDBOX_NUM_TYPENUMS;
 
 void mkxp_sandbox::dfree(wasm_objkey_t key) {
     sb()->destroy_object(key);

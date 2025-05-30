@@ -25,12 +25,56 @@
 #include <tuple>
 #include <type_traits>
 #include <unordered_map>
+#include <utility>
 #include <vector>
+#include <boost/preprocessor/seq/for_each.hpp>
+#include <boost/preprocessor/seq/size.hpp>
 #include <boost/type_traits/is_detected.hpp>
-#include "binding-util.h"
+
+#include "bitmap.h"
+#include "etc.h"
+#include "font.h"
+#include "plane.h"
 #include "quadarray.h"
+#include "sprite.h"
+#include "table.h"
+#include "tilemap.h"
+#include "tilemapvx.h"
+#include "viewport.h"
+#include "window.h"
+#include "windowvx.h"
+
+#define SANDBOX_TYPENUM_TYPES \
+    (Bitmap) \
+    (Color) \
+    (Font) \
+    (Plane) \
+    (Rect) \
+    (Sprite) \
+    (Table) \
+    (Tilemap) \
+    (Tilemap::Autotiles) \
+    (TilemapVX) \
+    (TilemapVX::BitmapArray) \
+    (Tone) \
+    (Viewport) \
+    (Window) \
+    (WindowVX) \
+
+#define SANDBOX_NUM_TYPENUMS BOOST_PP_SEQ_SIZE(SANDBOX_TYPENUM_TYPES)
+
+#define _SANDBOX_DEF_GET_TYPENUM_DETAIL(T, num) template <> struct get_typenum<T> { \
+    static_assert(num != 0, "typenum should not be 0"); \
+    static_assert(num <= SANDBOX_NUM_TYPENUMS, "typenum should not be greater than the number of typenums"); \
+    static constexpr wasm_size_t value = num; \
+};
+#define _SANDBOX_DEF_GET_TYPENUM(_r, _data, T) _SANDBOX_DEF_GET_TYPENUM_DETAIL(T, __COUNTER__ - _get_typenum_counter_start)
 
 namespace mkxp_sandbox {
+    template <typename T> struct get_typenum;
+    static constexpr wasm_size_t _get_typenum_counter_start = __COUNTER__;
+    BOOST_PP_SEQ_FOR_EACH(_SANDBOX_DEF_GET_TYPENUM, _, SANDBOX_TYPENUM_TYPES);
+
     struct sandbox_object_deser_info {
         template <typename T> sandbox_object_deser_info(T *&ref) : ptr(new std::vector<void **>({(void **)&ref})), typenum(mkxp_sandbox::get_typenum<T>::value), ref_count(1), exists(false) {}
         sandbox_object_deser_info(void *ptr, wasm_size_t typenum);

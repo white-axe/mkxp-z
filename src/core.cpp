@@ -32,7 +32,6 @@
 #include <alext.h>
 #include <fluidsynth.h>
 
-#include "binding-util.h"
 #include "mkxp-polyfill.h" // std::mutex, std::strtoul
 #include "git-hash.h"
 
