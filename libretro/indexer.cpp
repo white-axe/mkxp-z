@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
     // Read the input file into the vector `data`
     std::vector<uint8_t> data;
     {
-        std::ifstream f(argv[1]);
+        std::ifstream f(argv[1], std::ios::binary);
         if (!f.is_open()) {
             std::cerr << "[indexer] error: could not open " << argv[1] << std::endl;
             return 2;
