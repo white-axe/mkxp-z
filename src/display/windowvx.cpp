@@ -189,6 +189,10 @@ struct WindowVXPrivate
 	NormValue openness;
 	Tone *tone;
 
+#ifdef MKXPZ_RETRO
+	uint64_t deserSavedWindowskinId;
+	uint64_t deserSavedContentsId;
+#endif // MKXPZ_RETRO
 	sigslot::connection cursorRectCon;
 #ifdef MKXPZ_RETRO
 	Rect deserSavedCursorRect;
@@ -1175,8 +1179,6 @@ bool WindowVX::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_siz
 	if (!mkxp_sandbox::sandbox_serialize(p->active, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->arrowsVisible, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->pause, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize((int32_t)p->width, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize((int32_t)p->height, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->geo, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->contentsOff, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize((int32_t)p->padding, data, max_size)) return false;
@@ -1206,16 +1208,57 @@ bool WindowVX::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_siz
 bool WindowVX::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
 	if (!mkxp_sandbox::sandbox_deserialize(p->active, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->arrowsVisible, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->pause, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->width, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->height, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->geo, data, max_size)) return false;
+	{
+		bool value = p->arrowsVisible;
+		if (!mkxp_sandbox::sandbox_deserialize(p->arrowsVisible, data, max_size)) return false;
+		if (p->arrowsVisible != value) {
+			p->ctrlVertDirty = true;
+		}
+	}
+	{
+		bool value = p->pause;
+		if (!mkxp_sandbox::sandbox_deserialize(p->pause, data, max_size)) return false;
+		if (p->pause != value) {
+			p->ctrlVertDirty = true;
+		}
+	}
+	{
+		IntRect value = p->geo;
+		if (!mkxp_sandbox::sandbox_deserialize(p->geo, data, max_size)) return false;
+		if (p->geo.size() != value.size()) {
+			p->base.vertDirty = true;
+			p->base.texSizeDirty = true;
+			p->clipRectDirty = true;
+			p->ctrlVertDirty = true;
+		} else if (p->geo.pos() != value.pos()) {
+			p->ctrlVertDirty = true;
+		}
+		p->width = p->geo.w;
+		p->height = p->geo.h;
+	}
 	if (!mkxp_sandbox::sandbox_deserialize(p->contentsOff, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->padding, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->paddingBottom, data, max_size)) return false;
+	{
+		int32_t value = (int32_t)p->padding;
+		if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->padding, data, max_size)) return false;
+		if ((int32_t)p->padding != value) {
+			p->clipRectDirty = true;
+		}
+	}
+	{
+		int32_t value = (int32_t)p->paddingBottom;
+		if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->paddingBottom, data, max_size)) return false;
+		if ((int32_t)p->paddingBottom != value) {
+			p->clipRectDirty = true;
+		}
+	}
 	if (!mkxp_sandbox::sandbox_deserialize(p->opacity, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->backOpacity, data, max_size)) return false;
+	{
+		NormValue value = p->backOpacity;
+		if (!mkxp_sandbox::sandbox_deserialize(p->backOpacity, data, max_size)) return false;
+		if (p->backOpacity != value) {
+			p->base.texDirty = true;
+		}
+	}
 	if (!mkxp_sandbox::sandbox_deserialize(p->contentsOpacity, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->openness, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->ctrlVert, data, max_size)) return false;
@@ -1245,6 +1288,10 @@ void WindowVX::sandbox_deserialize_begin()
 	p->windowskinDispCon.disconnect();
 
 	p->contentsDispCon.disconnect();
+
+	p->deserSavedContentsId = p->contents == nullptr ? 0 : p->contents->id;
+
+	p->deserSavedWindowskinId = p->windowskin == nullptr ? 0 : p->windowskin->id;
 
 	p->cursorRectCon.disconnect();
 	if (p->cursorRect != nullptr) {
@@ -1279,6 +1326,16 @@ void WindowVX::sandbox_deserialize_end()
 		if (p->contents->isDisposed()) {
 			p->contentsDisposal();
 		}
+	}
+
+	if (isDisposed()) return;
+	if (p->windowskin != nullptr && (p->windowskin->deserModified || p->windowskin->id != p->deserSavedWindowskinId)) {
+		p->invalidateBaseTex();
+	}
+
+	if (isDisposed()) return;
+	if (p->contents != nullptr && (p->contents->deserModified || p->contents->id != p->deserSavedContentsId)) {
+		p->ctrlVertDirty = true;
 	}
 
 	if (isDisposed()) return;

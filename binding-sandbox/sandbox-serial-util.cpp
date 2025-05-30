@@ -474,10 +474,34 @@ template <> bool mkxp_sandbox::sandbox_serialize(const Quad &value, void *&data,
 }
 
 template <> bool mkxp_sandbox::sandbox_deserialize(Quad &value, const void *&data, wasm_size_t &max_size) {
-    if (!sandbox_deserialize(value.vert[0], data, max_size)) return false;
-    if (!sandbox_deserialize(value.vert[1], data, max_size)) return false;
-    if (!sandbox_deserialize(value.vert[2], data, max_size)) return false;
-    if (!sandbox_deserialize(value.vert[3], data, max_size)) return false;
+    {
+        Vertex old_vert = value.vert[0];
+        if (!sandbox_deserialize(value.vert[0], data, max_size)) return false;
+        if (value.vert[0].pos != old_vert.pos || value.vert[0].texPos != old_vert.texPos || value.vert[0].color != old_vert.color) {
+            value.vboDirty = true;
+        }
+    }
+    {
+        Vertex old_vert = value.vert[1];
+        if (!sandbox_deserialize(value.vert[1], data, max_size)) return false;
+        if (value.vert[1].pos != old_vert.pos || value.vert[1].texPos != old_vert.texPos || value.vert[1].color != old_vert.color) {
+            value.vboDirty = true;
+        }
+    }
+    {
+        Vertex old_vert = value.vert[2];
+        if (!sandbox_deserialize(value.vert[2], data, max_size)) return false;
+        if (value.vert[2].pos != old_vert.pos || value.vert[2].texPos != old_vert.texPos || value.vert[2].color != old_vert.color) {
+            value.vboDirty = true;
+        }
+    }
+    {
+        Vertex old_vert = value.vert[3];
+        if (!sandbox_deserialize(value.vert[3], data, max_size)) return false;
+        if (value.vert[3].pos != old_vert.pos || value.vert[3].texPos != old_vert.texPos || value.vert[3].color != old_vert.color) {
+            value.vboDirty = true;
+        }
+    }
     return true;
 }
 

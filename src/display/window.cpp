@@ -985,15 +985,45 @@ bool Window::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
 
 bool Window::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
-	if (!mkxp_sandbox::sandbox_deserialize(p->bgStretch, data, max_size)) return false;
+	{
+		bool value = p->bgStretch;
+		if (!mkxp_sandbox::sandbox_deserialize(p->bgStretch, data, max_size)) return false;
+		if (p->bgStretch != value) {
+			p->baseVertDirty = true;
+		}
+	}
 	if (!mkxp_sandbox::sandbox_deserialize(p->active, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->pause, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->sceneOffset, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->position, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->size, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->contentsOffset, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->opacity, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->backOpacity, data, max_size)) return false;
+	{
+		Vec2i value = p->size;
+		if (!mkxp_sandbox::sandbox_deserialize(p->size, data, max_size)) return false;
+		if (p->size != value) {
+			p->baseVertDirty = true;
+		}
+	}
+	{
+		Vec2i value = p->contentsOffset;
+		if (!mkxp_sandbox::sandbox_deserialize(p->contentsOffset, data, max_size)) return false;
+		if (p->contentsOffset != value) {
+			p->controlsVertDirty = true;
+		}
+	}
+	{
+		bool value = p->opacity;
+		if (!mkxp_sandbox::sandbox_deserialize(p->opacity, data, max_size)) return false;
+		if (p->opacity != value) {
+			p->opacityDirty = true;
+		}
+	}
+	{
+		bool value = p->backOpacity;
+		if (!mkxp_sandbox::sandbox_deserialize(p->backOpacity, data, max_size)) return false;
+		if (p->backOpacity != value) {
+			p->opacityDirty = true;
+		}
+	}
 	if (!mkxp_sandbox::sandbox_deserialize(p->contentsOpacity, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->baseQuadArray, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->useBaseTex, data, max_size)) return false;

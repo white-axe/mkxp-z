@@ -54,6 +54,11 @@ struct Vec2
 	{
 		return (x == other.x && y == other.y);
 	}
+
+	bool operator!=(const Vec2 &other) const
+	{
+		return !(*this == other);
+	}
 };
 
 struct Vec4
@@ -71,6 +76,11 @@ struct Vec4
 	bool operator==(const Vec4 &other) const
 	{
 		return (x == other.x && y == other.y && z == other.z && w == other.w);
+	}
+
+	bool operator!=(const Vec4 &other) const
+	{
+		return !(*this == other);
 	}
 
 	bool xyzNotNull() const
