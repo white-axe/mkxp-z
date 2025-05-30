@@ -66,10 +66,6 @@ public:
 		matrix[15] = 1;
 	}
 
-	Vec2 &getPosition() { return position; }
-	Vec2 &getOrigin()   { return origin;   }
-	Vec2 &getScale()    { return scale;    }
-	Vec2i &getGlobalOffset() { return offset;    }
 	const Vec2 &getPosition() const { return position; }
 	const Vec2 &getOrigin() const   { return origin;   }
 	const Vec2 &getScale() const    { return scale;    }

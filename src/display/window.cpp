@@ -1087,5 +1087,10 @@ void Window::sandbox_deserialize_end()
 			p->markControlVertDirty();
 		}
 	}
+
+	if (isDisposed()) return;
+	if (deserModified) {
+		scene->reinsert(*this);
+	}
 }
 #endif // MKXPZ_RETRO

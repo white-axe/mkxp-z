@@ -110,11 +110,11 @@ void Scene::composite(Exception &exception)
 
 
 SceneElement::SceneElement(Scene &scene, int z, int spriteY)
-    : link(this),
+    : scene(&scene),
+      link(this),
       creationStamp(shState->genTimeStamp()),
       z(z),
       visible(true),
-      scene(&scene),
       spriteY(spriteY)
 {
 	scene.insert(*this);
@@ -220,10 +220,27 @@ bool SceneElement::sandbox_serialize_scene_element(void *&data, mkxp_sandbox::wa
 
 bool SceneElement::sandbox_deserialize_scene_element(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
-	if (!mkxp_sandbox::sandbox_deserialize(creationStamp, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)z, data, max_size)) return false;
+	{
+		uint64_t value = creationStamp;
+		if (!mkxp_sandbox::sandbox_deserialize(creationStamp, data, max_size)) return false;
+		if (creationStamp != value) {
+			deserModified = true;
+		}
+	}
+	{
+		int32_t value = (int32_t)z;
+		if (!mkxp_sandbox::sandbox_deserialize((int32_t &)z, data, max_size)) return false;
+		if (z != value) {
+			deserModified = true;
+		}
+	}
 	if (!mkxp_sandbox::sandbox_deserialize(visible, data, max_size)) return false;
 
 	return true;
+}
+
+void SceneElement::sandbox_deserialize_begin_scene_element()
+{
+	deserModified = false;
 }
 #endif // MKXPZ_REROO

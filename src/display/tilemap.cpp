@@ -343,6 +343,7 @@ struct TilemapPrivate
 	sigslot::connection prioritiesCon;
 #ifdef MKXPZ_RETRO
 	uint64_t deserSavedPrioritiesId;
+	uint64_t deserSavedDataId;
 #endif // MKXPZ_RETRO
 
 	/* Dispose watches */
@@ -1639,6 +1640,8 @@ void Tilemap::sandbox_deserialize_begin()
 
 	p->prioritiesCon.disconnect();
 	p->deserSavedPrioritiesId = p->priorities == nullptr ? 0 : p->priorities->id;
+
+	p->deserSavedDataId = p->flashMap.getData() == nullptr ? 0 : p->flashMap.getData()->id;
 }
 
 void Tilemap::sandbox_deserialize_end()
@@ -1670,9 +1673,9 @@ void Tilemap::sandbox_deserialize_end()
 	}
 
 	if (isDisposed()) return;
-	if (p->tileset != nullptr) {
+	if (p->tileset != nullptr && !p->tileset->isDisposed()) {
 		p->tilesetCon = p->tileset->modified.connect(&TilemapPrivate::invalidateAtlasSize, p);
-		if (p->tileset->deserModified) {
+		if (p->tileset->deserModified || p->tileset->id != p->deserSavedTilesetId) {
 			p->invalidateAtlasSize();
 		}
 	}
@@ -1704,8 +1707,18 @@ void Tilemap::sandbox_deserialize_end()
 	}
 
 	if (isDisposed()) return;
-	if (p->tileset->deserModified) {
-		p->invalidateAtlasSize();
+	if (p->flashMap.getData() != nullptr && (p->flashMap.getData()->deserModified || p->flashMap.getData()->id != p->deserSavedDataId)) {
+		p->flashMap.setDirty();
+	}
+
+	if (isDisposed()) return;
+	if (p->elem.ground->deserModified) {
+		p->elem.ground->scene->reinsert(*p->elem.ground);
+	}
+	for (size_t i = 0; i < zlayersMax; ++i) {
+		if (p->elem.zlayers[i]->deserModified) {
+			p->elem.zlayers[i]->scene->reinsert(*p->elem.zlayers[i]);
+		}
 	}
 }
 #endif // MKXPZ_RETRO

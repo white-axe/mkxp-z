@@ -259,6 +259,8 @@ bool Viewport::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t 
 
 void Viewport::sandbox_deserialize_begin()
 {
+	sandbox_deserialize_begin_scene_element();
+
 	if (isDisposed()) return;
 
 	p->rectCon.disconnect();
@@ -277,6 +279,11 @@ void Viewport::sandbox_deserialize_end()
 		if (*p->rect != p->deserSavedRect) {
 			p->onRectChange();
 		}
+	}
+
+	if (isDisposed()) return;
+	if (deserModified) {
+		scene->reinsert(*this);
 	}
 }
 #endif // MXKPZ_RETRO
@@ -339,6 +346,8 @@ bool ViewportElement::sandbox_deserialize_viewport_element(const void *&data, mk
 
 void ViewportElement::sandbox_deserialize_begin_viewport_element()
 {
+	sandbox_deserialize_begin_scene_element();
+
 	viewportDispCon.disconnect();
 }
 

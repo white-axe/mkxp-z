@@ -196,12 +196,12 @@ struct FlashMap
 		GLMeta::vaoUnbind(vao);
 	}
 
-private:
 	void setDirty()
 	{
 		dirty = true;
 	}
 
+private:
 	size_t quadCount() const
 	{
 		return vertices.size() / 4;

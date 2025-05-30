@@ -515,12 +515,40 @@ template <> bool mkxp_sandbox::sandbox_serialize(const Transform &value, void *&
 }
 
 template <> bool mkxp_sandbox::sandbox_deserialize(Transform &value, const void *&data, wasm_size_t &max_size) {
-    if (!sandbox_deserialize(value.getPosition(), data, max_size)) return false;
-    if (!sandbox_deserialize(value.getOrigin(), data, max_size)) return false;
-    if (!sandbox_deserialize(value.getScale(), data, max_size)) return false;
-    if (!sandbox_deserialize(value.getGlobalOffset(), data, max_size)) return false;
-    float rotation;
-    if (!sandbox_deserialize(rotation, data, max_size)) return false;
-    value.setRotation(rotation);
+    {
+        Vec2 position;
+        if (!sandbox_deserialize(position, data, max_size)) return false;
+        if (position != value.getPosition()) {
+            value.setPosition(position);
+        }
+    }
+    {
+        Vec2 origin;
+        if (!sandbox_deserialize(origin, data, max_size)) return false;
+        if (origin != value.getOrigin()) {
+            value.setOrigin(origin);
+        }
+    }
+    {
+        Vec2 scale;
+        if (!sandbox_deserialize(scale, data, max_size)) return false;
+        if (scale != value.getScale()) {
+            value.setScale(scale);
+        }
+    }
+    {
+        Vec2i offset;
+        if (!sandbox_deserialize(offset, data, max_size)) return false;
+        if (offset != value.getGlobalOffset()) {
+            value.setGlobalOffset(offset);
+        }
+    }
+    {
+        float rotation;
+        if (!sandbox_deserialize(rotation, data, max_size)) return false;
+        if (rotation != value.getRotation()) {
+            value.setRotation(rotation);
+        }
+    }
     return true;
 }

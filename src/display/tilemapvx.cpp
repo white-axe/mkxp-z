@@ -105,6 +105,7 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
 	sigslot::connection flagsCon;
 #ifdef MKXPZ_RETRO
 	uint64_t deserSavedFlagsId;
+	uint64_t deserSavedDataId;
 #endif // MKXPZ_RETRO
 
 	sigslot::connection prepareCon;
@@ -679,6 +680,7 @@ bool TilemapVX::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t
 		Scene::Geometry old_geo = p->sceneGeo;
 		if (!mkxp_sandbox::sandbox_deserialize(p->sceneGeo, data, max_size)) return false;
 		if (p->sceneGeo != old_geo) {
+			p->buffersDirty = true;
 			p->mapViewportDirty = true;
 		}
 	}
@@ -736,6 +738,8 @@ void TilemapVX::sandbox_deserialize_begin()
 
 	p->flagsCon.disconnect();
 	p->deserSavedFlagsId = p->flags == nullptr ? 0 : p->flags->id;
+
+	p->deserSavedDataId = p->flashMap.getData() == nullptr ? 0 : p->flashMap.getData()->id;
 }
 
 void TilemapVX::sandbox_deserialize_end()
@@ -780,6 +784,19 @@ void TilemapVX::sandbox_deserialize_end()
 		if (p->flags->deserModified || p->flags->id != p->deserSavedFlagsId) {
 			p->invalidateBuffers();
 		}
+	}
+
+	if (isDisposed()) return;
+	if (p->flashMap.getData() != nullptr && (p->flashMap.getData()->deserModified || p->flashMap.getData()->id != p->deserSavedDataId)) {
+		p->flashMap.setDirty();
+	}
+
+	if (isDisposed()) return;
+	if (p->above.deserModified) {
+		p->above.scene->reinsert(p->above);
+	}
+	if (p->deserModified) {
+		p->scene->reinsert(*p);
 	}
 }
 #endif // MKXPZ_RETRO

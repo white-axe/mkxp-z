@@ -75,10 +75,11 @@ public:
 
 	const Geometry &getGeometry() const { return geometry; }
 
+	void reinsert(SceneElement &element);
+
 protected:
 	void insert(SceneElement &element);
 	void insertAfter(SceneElement &element, SceneElement &after);
-	void reinsert(SceneElement &element);
 
 	/* Notify all elements that geometry has changed */
 	void notifyGeometryChange();
@@ -108,7 +109,13 @@ public:
 #ifdef MKXPZ_RETRO
 	bool sandbox_serialize_scene_element(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
 	bool sandbox_deserialize_scene_element(const void *&data, mkxp_sandbox::wasm_size_t &max_size);
+	void sandbox_deserialize_begin_scene_element();
 #endif // MKXPZ_REROO
+
+	Scene *scene;
+#ifdef MKXPZ_RETRO
+	bool deserModified;
+#endif // MKXPZ_RETRO
 
 protected:
 	/* A bit about OpenGL state:
@@ -145,7 +152,6 @@ protected:
 	uint64_t creationStamp;
 	int z;
 	bool visible;
-	Scene *scene;
 
 	friend class Scene;
 	friend class Viewport;

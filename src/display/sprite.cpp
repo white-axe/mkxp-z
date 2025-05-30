@@ -62,7 +62,11 @@ struct SpritePrivate
     Rect *srcRect;
     sigslot::connection srcRectCon;
 #ifdef MKXPZ_RETRO
+    uint64_t deserSavedBitmapId;
     Rect deserSavedSrcRect;
+    bool deserMirrorChanged;
+    bool deserYChanged;
+    bool deserBushDepthChanged;
 #endif // MKXPZ_RETRO
     
     bool mirrored;
@@ -862,11 +866,9 @@ void Sprite::releaseResources()
 #ifdef MKXPZ_RETRO
 bool Sprite::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
-    if (!mkxp_sandbox::sandbox_serialize(p->quad, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->trans, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->mirrored, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize((int32_t)p->bushDepth, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_serialize(p->efBushDepth, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->bushOpacity, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->opacity, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->blendType, data, max_size)) return false;
@@ -884,7 +886,6 @@ bool Sprite::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
     if (!mkxp_sandbox::sandbox_serialize((int32_t)p->wave.length, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize((int32_t)p->wave.speed, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->wave.phase, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_serialize(p->wave.qArray, data, max_size)) return false;
 
     if (!sandbox_serialize_viewport_element(data, max_size)) return false;
 
@@ -899,11 +900,37 @@ bool Sprite::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
 
 bool Sprite::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
-    if (!mkxp_sandbox::sandbox_deserialize(p->quad, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_deserialize(p->trans, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_deserialize(p->mirrored, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->bushDepth, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_deserialize(p->efBushDepth, data, max_size)) return false;
+    {
+        float old_y = p->trans.getPosition().y;
+        float old_zoom_y = p->trans.getScale().y;
+        if (!mkxp_sandbox::sandbox_deserialize(p->trans, data, max_size)) return false;
+        if (p->trans.getPosition().y != old_y) {
+            p->deserYChanged = true;
+            if (rgssVer >= 2) {
+                p->wave.dirty = true;
+            }
+        }
+        if (p->trans.getScale().y != old_zoom_y) {
+            p->deserBushDepthChanged = true;
+            if (rgssVer >= 2) {
+                p->wave.dirty = true;
+            }
+        }
+    }
+    {
+        bool value = p->mirrored;
+        if (!mkxp_sandbox::sandbox_deserialize(p->mirrored, data, max_size)) return false;
+        if (p->mirrored != value) {
+            p->deserMirrorChanged = true;
+        }
+    }
+    {
+        int32_t value = (int32_t)p->bushDepth;
+        if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->bushDepth, data, max_size)) return false;
+        if ((int32_t)p->bushDepth != value) {
+            p->deserBushDepthChanged = true;
+        }
+    }
     if (!mkxp_sandbox::sandbox_deserialize(p->bushOpacity, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_deserialize(p->opacity, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_deserialize(p->blendType, data, max_size)) return false;
@@ -917,11 +944,34 @@ bool Sprite::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
     if (!mkxp_sandbox::sandbox_deserialize(p->sceneOrig, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_deserialize(p->isVisible, data, max_size)) return false;
 
-    if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->wave.amp, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->wave.length, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->wave.speed, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_deserialize(p->wave.phase, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_deserialize(p->wave.qArray, data, max_size)) return false;
+    {
+        int32_t value = (int32_t)p->wave.amp;
+        if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->wave.amp, data, max_size)) return false;
+        if ((int32_t)p->wave.amp != value) {
+            p->wave.dirty = true;
+        }
+    }
+    {
+        int32_t value = (int32_t)p->wave.length;
+        if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->wave.length, data, max_size)) return false;
+        if ((int32_t)p->wave.length != value) {
+            p->wave.dirty = true;
+        }
+    }
+    {
+        int32_t value = (int32_t)p->wave.speed;
+        if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->wave.speed, data, max_size)) return false;
+        if ((int32_t)p->wave.speed != value) {
+            p->wave.dirty = true;
+        }
+    }
+    {
+        float value = p->wave.phase;
+        if (!mkxp_sandbox::sandbox_deserialize(p->wave.phase, data, max_size)) return false;
+        if (p->wave.phase != value) {
+            p->wave.dirty = true;
+        }
+    }
 
     if (!sandbox_deserialize_viewport_element(data, max_size)) return false;
 
@@ -942,12 +992,18 @@ void Sprite::sandbox_deserialize_begin()
 
     p->bitmapDispCon.disconnect();
 
+    p->deserSavedBitmapId = p->bitmap == nullptr ? 0 : p->bitmap->id;
+
     p->srcRectCon.disconnect();
     if (p->srcRect != nullptr) {
         p->deserSavedSrcRect = *p->srcRect;
     } else {
         p->deserSavedSrcRect.set(0, 0, 0, 0);
     }
+
+    p->deserMirrorChanged = false;
+
+    p->deserBushDepthChanged = false;
 }
 
 void Sprite::sandbox_deserialize_end()
@@ -963,11 +1019,36 @@ void Sprite::sandbox_deserialize_end()
     }
 
     if (isDisposed()) return;
+    if (p->bitmap != nullptr && (p->bitmap->deserModified || p->bitmap->id != p->deserSavedBitmapId)) {
+        p->wave.dirty = true;
+    }
+
+    if (isDisposed()) return;
     if (p->srcRect != nullptr) {
         p->srcRectCon = p->srcRect->valueChanged.connect(&SpritePrivate::onSrcRectChange, p);
         if (*p->srcRect != p->deserSavedSrcRect) {
             p->onSrcRectChange();
         }
+    }
+
+    if (isDisposed()) return;
+    if (p->deserMirrorChanged) {
+        p->onSrcRectChange();
+    }
+
+    if (isDisposed()) return;
+    if (p->deserYChanged && rgssVer >= 2) {
+        setSpriteY(p->trans.getPositionI().y);
+    }
+
+    if (isDisposed()) return;
+    if (p->deserBushDepthChanged) {
+        p->recomputeBushDepth();
+    }
+
+    if (isDisposed()) return;
+    if (deserModified) {
+        scene->reinsert(*this);
     }
 }
 #endif // MKXPZ_RETRO
