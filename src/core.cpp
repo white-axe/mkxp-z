@@ -1889,6 +1889,7 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
                 object.inner.ptr = typenum_table[typenum - 1].construct();
                 if (object.inner.ptr == nullptr) DESER_OBJECTS_END_FAIL;
                 typenum_table[typenum - 1].deserialize_begin(object.inner.ptr, true);
+                currently_disposed = false;
             }
 
             // Deserialize the object
