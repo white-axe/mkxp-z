@@ -89,8 +89,8 @@ namespace mkxp_sandbox {
             if (typenum != mkxp_sandbox::get_typenum<T>::value) {
                 return false;
             }
-            if (ref_count > 0 && (std::is_same<T, Color>::value || std::is_same<T, Tone>::value || std::is_same<T, Rect>::value || std::is_same<T, Tilemap::Autotiles>::value || std::is_same<T, TilemapVX::BitmapArray>::value)) {
-                // Don't allow types that are copied by value (Color, Tone and Rect) or autotiles/bitmap arrays to be referenced more than once
+            if (ref_count > 0 && (std::is_same<T, Color>::value || std::is_same<T, Tone>::value || std::is_same<T, Rect>::value || std::is_same<T, Font>::value || std::is_same<T, Tilemap::Autotiles>::value || std::is_same<T, TilemapVX::BitmapArray>::value)) {
+                // Don't allow types that are copied by value (Color, Tone, Rect and Font) or autotiles/bitmap arrays to be referenced more than once
                 return false;
             }
             if (exists) {

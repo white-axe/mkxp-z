@@ -1584,9 +1584,13 @@ bool Tilemap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &
 	return true;
 }
 
-void Tilemap::sandbox_deserialize_begin()
+void Tilemap::sandbox_deserialize_begin(bool is_new)
 {
 	if (isDisposed()) return;
+
+	if (is_new) {
+		delete atProxy;
+	}
 
 	p->elem.ground->sandbox_deserialize_begin_viewport_element();
 

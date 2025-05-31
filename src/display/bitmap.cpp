@@ -3430,7 +3430,7 @@ bool Bitmap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
         if (!mkxp_sandbox::sandbox_serialize(p->animation.startTime, data, max_size)) return false;
     }
 
-    if (!mkxp_sandbox::sandbox_serialize(p->font, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->font == &shState->defaultFont() ? nullptr : p->font, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->selfHires, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->selfLores, data, max_size)) return false;
 
@@ -3490,6 +3490,9 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
     }
 
     if (!mkxp_sandbox::sandbox_deserialize(p->font, data, max_size)) return false;
+    if (p->font == nullptr) {
+        p->font = &shState->defaultFont();
+    }
     if (!mkxp_sandbox::sandbox_deserialize(p->selfHires, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_deserialize(p->selfLores, data, max_size)) return false;
 
