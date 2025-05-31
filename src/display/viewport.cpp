@@ -297,6 +297,7 @@ void Viewport::sandbox_deserialize_begin()
 
 void Viewport::sandbox_deserialize_end()
 {
+	if (isDisposed()) return;
 	sandbox_deserialize_end_scene_element();
 
 	if (isDisposed()) return;

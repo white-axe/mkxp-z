@@ -426,6 +426,7 @@ void Plane::sandbox_deserialize_begin()
 
 void Plane::sandbox_deserialize_end()
 {
+	if (isDisposed()) return;
 	sandbox_deserialize_end_viewport_element();
 
 	if (isDisposed()) return;
