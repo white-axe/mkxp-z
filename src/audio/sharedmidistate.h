@@ -53,8 +53,6 @@ struct SharedMidiState
 	fluid_settings_t *flSettings;
 
 #ifdef MKXPZ_RETRO
-	fluid_sfloader_t *flLoader;
-
 	SharedMidiState()
 	    : inited(false)
 	{}
@@ -99,43 +97,6 @@ struct SharedMidiState
 		fluid.settings_setnum(flSettings, "synth.sample-rate", SYNTH_SAMPLERATE);
 		fluid.settings_setint(flSettings, "synth.chorus.active", mkxp_retro::midi_chorus_override == 1 || (mkxp_retro::midi_chorus_override != 0 && conf.midi.chorus));
 		fluid.settings_setint(flSettings, "synth.reverb.active", mkxp_retro::midi_reverb_override == 1 || (mkxp_retro::midi_reverb_override != 0 && conf.midi.reverb));
-
-		extern const uint8_t mkxp_gmgsx_sf2[];
-		extern const size_t mkxp_gmgsx_sf2_len;
-		flLoader = new_fluid_defsfloader(flSettings);
-		fluid_sfloader_set_callbacks(
-			flLoader,
-			[](const char *filename) {
-				return std::strcmp(filename, "/GMGSx.sf2") ? NULL : std::calloc(1, sizeof(fluid_long_long_t));
-			},
-			[](void *buf, fluid_long_long_t count, void *handle) {
-				assert((size_t)(*(fluid_long_long_t *)handle + count) < mkxp_gmgsx_sf2_len);
-				std::memcpy(buf, mkxp_gmgsx_sf2 + *(fluid_long_long_t *)handle, count);
-				*(fluid_long_long_t *)handle += count;
-				return (int)FLUID_OK;
-			},
-			[](void *handle, fluid_long_long_t offset, int origin) {
-				switch (origin) {
-					case SEEK_CUR:
-						*(fluid_long_long_t *)handle += offset;
-						break;
-					case SEEK_END:
-						*(fluid_long_long_t *)handle = mkxp_gmgsx_sf2_len + offset;
-						break;
-					default:
-						*(fluid_long_long_t *)handle = offset;
-						break;
-				}
-				return (int)FLUID_OK;
-			},
-			[](void *handle) {
-				return *(fluid_long_long_t *)handle;
-			},
-			[](void *handle) {
-				std::free(handle);
-				return (int)FLUID_OK;
-			}
-		);
 
 		for (size_t i = 0; i < SYNTH_INIT_COUNT; ++i)
 			addSynth(false);
@@ -208,7 +169,45 @@ private:
 		fluid_synth_t *syn = fluid.new_synth(flSettings);
 
 #ifdef MKXPZ_RETRO
-		fluid_synth_add_sfloader(syn, flLoader);
+		extern const uint8_t mkxp_gmgsx_sf2[];
+		extern const size_t mkxp_gmgsx_sf2_len;
+
+		fluid_sfloader_t *loader = new_fluid_defsfloader(flSettings);
+		fluid_sfloader_set_callbacks(
+			loader,
+			[](const char *filename) {
+				return std::strcmp(filename, "/GMGSx.sf2") ? NULL : std::calloc(1, sizeof(fluid_long_long_t));
+			},
+			[](void *buf, fluid_long_long_t count, void *handle) {
+				assert((size_t)(*(fluid_long_long_t *)handle + count) < mkxp_gmgsx_sf2_len);
+				std::memcpy(buf, mkxp_gmgsx_sf2 + *(fluid_long_long_t *)handle, count);
+				*(fluid_long_long_t *)handle += count;
+				return (int)FLUID_OK;
+			},
+			[](void *handle, fluid_long_long_t offset, int origin) {
+				switch (origin) {
+					case SEEK_CUR:
+						*(fluid_long_long_t *)handle += offset;
+						break;
+					case SEEK_END:
+						*(fluid_long_long_t *)handle = mkxp_gmgsx_sf2_len + offset;
+						break;
+					default:
+						*(fluid_long_long_t *)handle = offset;
+						break;
+				}
+				return (int)FLUID_OK;
+			},
+			[](void *handle) {
+				return *(fluid_long_long_t *)handle;
+			},
+			[](void *handle) {
+				std::free(handle);
+				return (int)FLUID_OK;
+			}
+		);
+
+		fluid_synth_add_sfloader(syn, loader);
 		fluid.synth_sfload(syn, "/GMGSx.sf2", 1);
 #else
 		if (!soundFont.empty())

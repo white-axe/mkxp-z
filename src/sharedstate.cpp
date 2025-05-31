@@ -228,14 +228,15 @@ void SharedState::initInstance(Exception &exception, RGSSThreadData *threadData)
 	_globalIBO = new GlobalIBO();
 	_globalIBO->ensureSize(1);
 
-	SharedState::instance = 0;
 	Font *defaultFont = 0;
 
 	SharedState::instance = new SharedState(exception, threadData);
 	if (exception.is_error())
 	{
 		delete SharedState::instance;
+		SharedState::instance = 0;
 		delete _globalIBO;
+		_globalIBO = 0;
 		return;
 	}
 
@@ -247,7 +248,9 @@ void SharedState::initInstance(Exception &exception, RGSSThreadData *threadData)
 	MKXPZ_CATCH (const Exception &)
 	{
 		delete _globalIBO;
+		_globalIBO = 0;
 		delete SharedState::instance;
+		SharedState::instance = 0;
 		delete defaultFont;
 
 		MKXPZ_RETHROW;
@@ -259,10 +262,13 @@ void SharedState::initInstance(Exception &exception, RGSSThreadData *threadData)
 void SharedState::finiInstance()
 {
 	delete SharedState::instance->p->defaultFont;
+	SharedState::instance->p->defaultFont = 0;
 
 	delete SharedState::instance;
+	SharedState::instance = 0;
 
 	delete _globalIBO;
+	_globalIBO = 0;
 }
 
 void SharedState::setScreen(Scene &screen)

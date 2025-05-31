@@ -744,16 +744,21 @@ struct main : boost::asio::coroutine {
 };
 
 static void deinit_sandbox() {
+    bool shared_state_was_initialized = shared_state_initialized.load_relaxed();
     shared_state_initialized = false;
-    struct lock_guard guard(threaded_audio_mutex);
+    struct lock_guard guard(threaded_audio_mutex); // Wait for the audio thread to stop rendering audio
 
     if (sound_buf != nullptr) {
         mkxp_aligned_free(sound_buf);
         sound_buf = nullptr;
     }
+
     mkxp_retro::sandbox.reset();
+
     thread_data.reset();
+
     input.reset();
+
     audio.reset();
     if (al_context != nullptr) {
         alcDestroyContext(al_context);
@@ -763,7 +768,13 @@ static void deinit_sandbox() {
         alcCloseDevice(al_device);
         al_device = nullptr;
     }
+
+    if (shared_state_was_initialized) {
+        SharedState::finiInstance();
+    }
+
     conf.reset();
+
     fs.reset();
 }
 
