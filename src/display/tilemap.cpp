@@ -1710,15 +1710,5 @@ void Tilemap::sandbox_deserialize_end()
 	if (p->flashMap.getData() != nullptr && (p->flashMap.getData()->deserModified || p->flashMap.getData()->id != p->deserSavedDataId)) {
 		p->flashMap.setDirty();
 	}
-
-	if (isDisposed()) return;
-	if (p->elem.ground->deserSceneElementModified) {
-		p->elem.ground->scene->reinsert(*p->elem.ground);
-	}
-	for (size_t i = 0; i < zlayersMax; ++i) {
-		if (p->elem.zlayers[i]->deserSceneElementModified) {
-			p->elem.zlayers[i]->scene->reinsert(*p->elem.zlayers[i]);
-		}
-	}
 }
 #endif // MKXPZ_RETRO

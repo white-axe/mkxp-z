@@ -110,12 +110,10 @@ public:
 	bool sandbox_serialize_scene_element(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
 	bool sandbox_deserialize_scene_element(const void *&data, mkxp_sandbox::wasm_size_t &max_size);
 	void sandbox_deserialize_begin_scene_element();
+	void sandbox_deserialize_end_scene_element();
 #endif // MKXPZ_REROO
 
 	Scene *scene;
-#ifdef MKXPZ_RETRO
-	bool deserSceneElementModified;
-#endif // MKXPZ_RETRO
 
 protected:
 	/* A bit about OpenGL state:
@@ -152,6 +150,10 @@ protected:
 	uint64_t creationStamp;
 	int z;
 	bool visible;
+
+#ifdef MKXPZ_RETRO
+	bool deserSceneElementWasUnlinked;
+#endif // MKXPZ_RETRO
 
 	friend class Scene;
 	friend class Viewport;

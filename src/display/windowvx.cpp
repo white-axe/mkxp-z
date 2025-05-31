@@ -1353,10 +1353,5 @@ void WindowVX::sandbox_deserialize_end()
 			p->invalidateBaseTex();
 		}
 	}
-
-	if (isDisposed()) return;
-	if (deserSceneElementModified) {
-		scene->reinsert(*this);
-	}
 }
 #endif // MKXPZ_RETRO

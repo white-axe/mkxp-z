@@ -1045,10 +1045,5 @@ void Sprite::sandbox_deserialize_end()
     if (p->deserBushDepthChanged) {
         p->recomputeBushDepth();
     }
-
-    if (isDisposed()) return;
-    if (deserSceneElementModified) {
-        scene->reinsert(*this);
-    }
 }
 #endif // MKXPZ_RETRO

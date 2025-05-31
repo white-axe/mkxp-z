@@ -297,6 +297,8 @@ void Viewport::sandbox_deserialize_begin()
 
 void Viewport::sandbox_deserialize_end()
 {
+	sandbox_deserialize_end_scene_element();
+
 	if (isDisposed()) return;
 	if (p->rect != nullptr) {
 		p->rectCon = p->rect->valueChanged.connect(&ViewportPrivate::onRectChange, p);
@@ -308,11 +310,6 @@ void Viewport::sandbox_deserialize_end()
 	if (isDisposed()) return;
 	if (p->deserScreenRectChanged) {
 		p->recomputeOnScreen();
-	}
-
-	if (isDisposed()) return;
-	if (deserSceneElementModified) {
-		scene->reinsert(*this);
 	}
 }
 #endif // MXKPZ_RETRO
@@ -391,15 +388,16 @@ void ViewportElement::sandbox_deserialize_end_viewport_element()
 				viewportElementDisposal();
 			}
 		}
-		if (m_viewport->id != deserSavedViewportId) {
-			setScene(*m_viewport);
-			onViewportChange();
-			onGeometryChange(scene->getGeometry());
-		}
-	} else if (deserSavedViewportId != 0) {
-		setScene(*shState->screen());
-		onViewportChange();
-		onGeometryChange(scene->getGeometry());
 	}
+
+	if ((m_viewport != nullptr && m_viewport->id != deserSavedViewportId) || (m_viewport == nullptr && deserSavedViewportId != 0)) {
+		if (!deserSceneElementWasUnlinked) {
+			unlink();
+		}
+		scene = m_viewport == nullptr ? shState->screen() : m_viewport;
+		onViewportChange();
+	}
+
+	sandbox_deserialize_end_scene_element();
 }
 #endif // MXKPZ_RETRO

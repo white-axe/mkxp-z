@@ -387,16 +387,16 @@ bool Plane::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &ma
 		}
 	}
 	{
-		int32_t value = (int32_t)p->zoomX;
-		if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->zoomX, data, max_size)) return false;
-		if ((int32_t)p->zoomX != value) {
+		float value = p->zoomX;
+		if (!mkxp_sandbox::sandbox_deserialize(p->zoomX, data, max_size)) return false;
+		if (p->zoomX != value) {
 			p->quadSourceDirty = true;
 		}
 	}
 	{
-		int32_t value = (int32_t)p->zoomY;
-		if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->zoomY, data, max_size)) return false;
-		if ((int32_t)p->zoomY != value) {
+		float value = p->zoomY;
+		if (!mkxp_sandbox::sandbox_deserialize(p->zoomY, data, max_size)) return false;
+		if (p->zoomY != value) {
 			p->quadSourceDirty = true;
 		}
 	}
@@ -434,11 +434,6 @@ void Plane::sandbox_deserialize_end()
 		if (p->bitmap->isDisposed()) {
 			p->bitmapDisposal();
 		}
-	}
-
-	if (isDisposed()) return;
-	if (deserSceneElementModified) {
-		scene->reinsert(*this);
 	}
 }
 #endif // MKXPZ_RETRO

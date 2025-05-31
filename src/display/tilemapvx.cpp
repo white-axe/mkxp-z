@@ -790,13 +790,5 @@ void TilemapVX::sandbox_deserialize_end()
 	if (p->flashMap.getData() != nullptr && (p->flashMap.getData()->deserModified || p->flashMap.getData()->id != p->deserSavedDataId)) {
 		p->flashMap.setDirty();
 	}
-
-	if (isDisposed()) return;
-	if (p->above.deserSceneElementModified) {
-		p->above.scene->reinsert(p->above);
-	}
-	if (p->deserSceneElementModified) {
-		p->scene->reinsert(*p);
-	}
 }
 #endif // MKXPZ_RETRO

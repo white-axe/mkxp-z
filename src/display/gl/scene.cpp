@@ -40,6 +40,9 @@ Scene::~Scene()
 	for (iter = elements.begin(); iter != elements.end(); iter = iter->next)
 	{
 		iter->data->scene = 0;
+#ifdef MKXPZ_RETRO
+		iter->data->deserSceneElementWasUnlinked = true;
+#endif // MKXPZ_RETRO
 	}
 }
 
@@ -82,6 +85,9 @@ void Scene::insertAfter(SceneElement &element, SceneElement &after)
 void Scene::reinsert(SceneElement &element)
 {
 	elements.remove(element.link);
+#ifdef MKXPZ_RETRO
+	element.deserSceneElementWasUnlinked = true;
+#endif // MKXPZ_RETRO
 	insert(element);
 }
 
@@ -206,6 +212,10 @@ void SceneElement::unlink()
 {
 	if (scene)
 		scene->elements.remove(link);
+
+#ifdef MKXPZ_RETRO
+	deserSceneElementWasUnlinked = true;
+#endif // MKXPZ_RETRO
 }
 
 #ifdef MKXPZ_RETRO
@@ -224,14 +234,14 @@ bool SceneElement::sandbox_deserialize_scene_element(const void *&data, mkxp_san
 		uint64_t value = creationStamp;
 		if (!mkxp_sandbox::sandbox_deserialize(creationStamp, data, max_size)) return false;
 		if (creationStamp != value) {
-			deserSceneElementModified = true;
+			unlink();
 		}
 	}
 	{
 		int32_t value = (int32_t)z;
 		if (!mkxp_sandbox::sandbox_deserialize((int32_t &)z, data, max_size)) return false;
 		if (z != value) {
-			deserSceneElementModified = true;
+			unlink();
 		}
 	}
 	if (!mkxp_sandbox::sandbox_deserialize(visible, data, max_size)) return false;
@@ -241,6 +251,14 @@ bool SceneElement::sandbox_deserialize_scene_element(const void *&data, mkxp_san
 
 void SceneElement::sandbox_deserialize_begin_scene_element()
 {
-	deserSceneElementModified = false;
+	deserSceneElementWasUnlinked = false;
+}
+
+void SceneElement::sandbox_deserialize_end_scene_element()
+{
+	if (deserSceneElementWasUnlinked && scene != nullptr) {
+		scene->insert(*this);
+		onGeometryChange(scene->getGeometry());
+	}
 }
 #endif // MKXPZ_REROO
