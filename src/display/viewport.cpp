@@ -253,9 +253,9 @@ bool Viewport::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_siz
 
 	if (!sandbox_serialize_scene_element(data, max_size)) return false;
 
-	if (!mkxp_sandbox::sandbox_serialize(p->rect, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->color, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->tone, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->rect == &p->tmp.rect ? nullptr : p->rect, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->color == &p->tmp.color ? nullptr : p->color, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->tone == &p->tmp.tone ? nullptr : p->tone, data, max_size)) return false;
 
 	return true;
 }
@@ -273,8 +273,17 @@ bool Viewport::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t 
 	if (!sandbox_deserialize_scene_element(data, max_size)) return false;
 
 	if (!mkxp_sandbox::sandbox_deserialize(p->rect, data, max_size)) return false;
+	if (p->rect == nullptr) {
+		p->rect = &p->tmp.rect;
+	}
 	if (!mkxp_sandbox::sandbox_deserialize(p->color, data, max_size)) return false;
+	if (p->color == nullptr) {
+		p->color = &p->tmp.color;
+	}
 	if (!mkxp_sandbox::sandbox_deserialize(p->tone, data, max_size)) return false;
+	if (p->tone == nullptr) {
+		p->tone = &p->tmp.tone;
+	}
 
 	return true;
 }

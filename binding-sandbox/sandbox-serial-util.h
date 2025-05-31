@@ -22,7 +22,6 @@
 #ifndef MKXPZ_SANDBOX_SERIAL_UTIL_H
 #define MKXPZ_SANDBOX_SERIAL_UTIL_H
 
-#include <tuple>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
@@ -76,14 +75,14 @@ namespace mkxp_sandbox {
     static constexpr wasm_size_t _get_typenum_counter_start = __COUNTER__;
     BOOST_PP_SEQ_FOR_EACH(_SANDBOX_DEF_GET_TYPENUM, _, SANDBOX_TYPENUM_TYPES);
 
-    struct sandbox_object_deser_info {
-        template <typename T> sandbox_object_deser_info(T *&ref) : ptr(new std::vector<void **>({(void **)&ref})), typenum(mkxp_sandbox::get_typenum<T>::value), ref_count(1), exists(false) {}
-        sandbox_object_deser_info(void *ptr, wasm_size_t typenum);
-        sandbox_object_deser_info(const struct sandbox_object_deser_info &) = delete;
-        sandbox_object_deser_info(struct sandbox_object_deser_info &&) noexcept;
-        struct sandbox_object_deser_info &operator=(const struct sandbox_object_deser_info &) = delete;
-        struct sandbox_object_deser_info &operator=(struct sandbox_object_deser_info &&) noexcept;
-        ~sandbox_object_deser_info();
+    struct sandbox_swizzle_info {
+        template <typename T> sandbox_swizzle_info(T *&ref) : ptr(new std::vector<void **>({(void **)&ref})), typenum(mkxp_sandbox::get_typenum<T>::value), ref_count(1), exists(false) {}
+        sandbox_swizzle_info(void *ptr, wasm_size_t typenum);
+        sandbox_swizzle_info(const struct sandbox_swizzle_info &) = delete;
+        sandbox_swizzle_info(struct sandbox_swizzle_info &&) noexcept;
+        struct sandbox_swizzle_info &operator=(const struct sandbox_swizzle_info &) = delete;
+        struct sandbox_swizzle_info &operator=(struct sandbox_swizzle_info &&) noexcept;
+        ~sandbox_swizzle_info();
         wasm_size_t get_ref_count() const noexcept;
         template <typename T> bool add_ref(T *&ref) {
             if (typenum != mkxp_sandbox::get_typenum<T>::value) {
@@ -118,9 +117,7 @@ namespace mkxp_sandbox {
         bool exists;
     };
 
-    extern std::vector<std::tuple<const void *, wasm_size_t>> extra_objects;
-    extern std::unordered_map<wasm_size_t, struct sandbox_object_deser_info> objects_deser;
-    extern std::unordered_map<wasm_size_t, struct sandbox_object_deser_info> extra_objects_deser;
+    extern std::unordered_map<wasm_size_t, struct sandbox_swizzle_info> swizzle_map;
 
     template <typename T> using sandbox_serialize_member_declaration = decltype(std::declval<const T *>()->sandbox_serialize(std::declval<void *&>(), std::declval<wasm_size_t &>()));
     template <typename T> using sandbox_deserialize_member_declaration = decltype(std::declval<T *>()->sandbox_deserialize(std::declval<const void *&>(), std::declval<wasm_size_t &>()));
@@ -144,12 +141,7 @@ namespace mkxp_sandbox {
 
     template <typename T> struct sandbox_ptr_map {
     private:
-        struct info {
-            mkxp_sandbox::wasm_objkey_t key;
-            bool is_extra;
-        };
-
-        static std::unordered_map<const T *, struct info> map;
+        static std::unordered_map<const T *, mkxp_sandbox::wasm_objkey_t> unswizzle_map;
         static bool is_serializing;
         static bool is_deserializing;
 
@@ -166,14 +158,13 @@ namespace mkxp_sandbox {
             }
 
             is_serializing = true;
-            map.clear();
-            extra_objects.clear();
+            unswizzle_map.clear();
 
             wasm_objkey_t key = 0;
             for (const auto &object : sb()->objects) {
                 ++key;
                 if (object.typenum == get_typenum<T>::value) {
-                    map.emplace((T *)object.inner.ptr, (struct info){key, false});
+                    unswizzle_map.emplace((T *)object.inner.ptr, key);
                 }
             }
         }
@@ -185,22 +176,9 @@ namespace mkxp_sandbox {
                 std::abort();
             }
 
-            if (ptr == nullptr) {
-                if (!mkxp_sandbox::sandbox_serialize((uint8_t)2, data, max_size)) return false;
-            } else {
-                const auto &it = map.find(ptr);
-                if (it != map.end()) {
-                    if (!mkxp_sandbox::sandbox_serialize((uint8_t)(it->second.is_extra ? 1 : 0), data, max_size)) return false;
-                    if (!mkxp_sandbox::sandbox_serialize(it->second.key, data, max_size)) return false;
-                } else {
-                    if (!mkxp_sandbox::sandbox_serialize((uint8_t)1, data, max_size)) return false;
-
-                    constexpr wasm_size_t typenum = get_typenum<T>::value;
-                    extra_objects.emplace_back((const void *)ptr, typenum);
-                    map.emplace(ptr, (struct info){(wasm_objkey_t)extra_objects.size(), true});
-
-                    if (!mkxp_sandbox::sandbox_serialize((wasm_objkey_t)extra_objects.size(), data, max_size)) return false;
-                }
+            if (!mkxp_sandbox::sandbox_serialize(ptr != nullptr, data, max_size)) return false;
+            if (ptr != nullptr) {
+                if (!mkxp_sandbox::sandbox_serialize(unswizzle_map.at(ptr), data, max_size)) return false;
             }
 
             return true;
@@ -212,8 +190,7 @@ namespace mkxp_sandbox {
             }
 
             is_serializing = false;
-            map.clear();
-            extra_objects.clear();
+            unswizzle_map.clear();
         }
 
         static void sandbox_deserialize_begin() {
@@ -228,8 +205,7 @@ namespace mkxp_sandbox {
             }
 
             is_deserializing = true;
-            objects_deser.clear();
-            extra_objects_deser.clear();
+            swizzle_map.clear();
         }
 
         static bool sandbox_deserialize(T *&ref, const void *&data, wasm_size_t &max_size) {
@@ -239,22 +215,19 @@ namespace mkxp_sandbox {
                 std::abort();
             }
 
-            uint8_t type;
-            if (!mkxp_sandbox::sandbox_deserialize(type, data, max_size)) return false;
-            if (type > 2) return false;
+            bool is_not_null;
+            if (!mkxp_sandbox::sandbox_deserialize(is_not_null, data, max_size)) return false;
 
-            if (type == 2) {
+            if (!is_not_null) {
                 ref = nullptr;
-                // Don't allow null Color, Tone or Rect pointers (null Font pointers are allowed since they indicate `shState->defaultFont()`)
-                return !std::is_same<T, Color>::value && !std::is_same<T, Tone>::value && !std::is_same<T, Rect>::value;
+                return true;
             }
 
             wasm_objkey_t key;
             if (!mkxp_sandbox::sandbox_deserialize(key, data, max_size)) return false;
-            auto &deser_map = type != 0 ? extra_objects_deser : objects_deser;
-            const auto it = deser_map.find(key);
-            if (it == deser_map.end()) {
-                deser_map.emplace(key, sandbox_object_deser_info(ref));
+            const auto it = swizzle_map.find(key);
+            if (it == swizzle_map.end()) {
+                swizzle_map.emplace(key, sandbox_swizzle_info(ref));
                 return true;
             } else {
                 return it->second.add_ref(ref);
@@ -267,21 +240,11 @@ namespace mkxp_sandbox {
             }
 
             is_deserializing = false;
-            objects_deser.clear();
-
-            // Delete extra objects with no references so we don't leak them
-            for (auto &pair : extra_objects_deser) {
-                struct sandbox_object_deser_info &info = pair.second;
-                if (info.get_ref_count() == 0 && info.get_ptr() != nullptr) {
-                    typenum_table[info.get_typenum() - 1].destroy(info.get_ptr());
-                }
-            }
-
-            extra_objects_deser.clear();
+            swizzle_map.clear();
         }
     };
 
-    template <typename T> std::unordered_map<const T *, struct sandbox_ptr_map<T>::info> sandbox_ptr_map<T>::map;
+    template <typename T> std::unordered_map<const T *, mkxp_sandbox::wasm_objkey_t> sandbox_ptr_map<T>::unswizzle_map;
     template <typename T> bool sandbox_ptr_map<T>::is_serializing = false;
     template <typename T> bool sandbox_ptr_map<T>::is_deserializing = false;
 

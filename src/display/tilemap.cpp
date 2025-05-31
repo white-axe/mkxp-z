@@ -1514,8 +1514,8 @@ bool Tilemap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size
 	if (!mkxp_sandbox::sandbox_serialize(p->mapData, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->priorities, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->flashMap.getData(), data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->color, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->tone, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->color == &p->tmp.color ? nullptr : p->color, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->tone == &p->tmp.tone ? nullptr : p->tone, data, max_size)) return false;
 
 	if (!mkxp_sandbox::sandbox_serialize(atProxy, data, max_size)) return false;
 
@@ -1577,7 +1577,13 @@ bool Tilemap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &
 	if (!mkxp_sandbox::sandbox_deserialize(p->priorities, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->flashMap.getData(), data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->color, data, max_size)) return false;
+	if (p->color == nullptr) {
+		p->color = &p->tmp.color;
+	}
 	if (!mkxp_sandbox::sandbox_deserialize(p->tone, data, max_size)) return false;
+	if (p->tone == nullptr) {
+		p->tone = &p->tmp.tone;
+	}
 
 	if (!mkxp_sandbox::sandbox_deserialize(atProxy, data, max_size)) return false;
 

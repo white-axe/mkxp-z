@@ -967,14 +967,18 @@ bool Window::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
 	if (!mkxp_sandbox::sandbox_serialize(p->opacity, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->backOpacity, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->contentsOpacity, data, max_size)) return false;
+
 	if (!p->controlsElement.sandbox_serialize_viewport_element(data, max_size)) return false;
+
 	if (!mkxp_sandbox::sandbox_serialize(p->cursorAniAlphaIdx, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->pauseAniAlphaIdx, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->pauseAniQuadIdx, data, max_size)) return false;
+
 	if (!sandbox_serialize_viewport_element(data, max_size)) return false;
+
 	if (!mkxp_sandbox::sandbox_serialize(p->windowskin, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->contents, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->cursorRect, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->cursorRect == &p->tmp.rect ? nullptr : p->cursorRect, data, max_size)) return false;
 
 	return true;
 }
@@ -1033,17 +1037,24 @@ bool Window::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
 			p->contentsQuad.setColor(Vec4(1, 1, 1, p->contentsOpacity.norm));
 		}
 	}
+
 	if (!p->controlsElement.sandbox_deserialize_viewport_element(data, max_size)) return false;
+
 	if (!mkxp_sandbox::sandbox_deserialize(p->cursorAniAlphaIdx, data, max_size)) return false;
 	p->cursorAniAlphaIdx %= cursorAniAlphaN;
 	if (!mkxp_sandbox::sandbox_deserialize(p->pauseAniAlphaIdx, data, max_size)) return false;
 	p->pauseAniAlphaIdx = std::min(p->pauseAniAlphaIdx, (uint8_t)(pauseAniAlphaN - 1));
 	if (!mkxp_sandbox::sandbox_deserialize(p->pauseAniQuadIdx, data, max_size)) return false;
 	p->pauseAniQuadIdx %= pauseAniQuadN;
+
 	if (!sandbox_deserialize_viewport_element(data, max_size)) return false;
+
 	if (!mkxp_sandbox::sandbox_deserialize(p->windowskin, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->contents, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->cursorRect, data, max_size)) return false;
+	if (p->cursorRect == nullptr) {
+		p->cursorRect = &p->tmp.rect;
+	}
 
 	return true;
 }

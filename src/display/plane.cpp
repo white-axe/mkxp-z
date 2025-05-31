@@ -360,10 +360,12 @@ bool Plane::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) 
 	if (!mkxp_sandbox::sandbox_serialize(p->zoomX, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->zoomY, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->sceneGeo, data, max_size)) return false;
+
 	if (!sandbox_serialize_viewport_element(data, max_size)) return false;
+
 	if (!mkxp_sandbox::sandbox_serialize(p->bitmap, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->color, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->tone, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->color == &p->tmp.color ? nullptr : p->color, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->tone == &p->tmp.tone ? nullptr : p->tone, data, max_size)) return false;
 
 	return true;
 }
@@ -407,10 +409,18 @@ bool Plane::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &ma
 			p->quadSourceDirty = true;
 		}
 	}
+
 	if (!sandbox_deserialize_viewport_element(data, max_size)) return false;
+
 	if (!mkxp_sandbox::sandbox_deserialize(p->bitmap, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->color, data, max_size)) return false;
+	if (p->color == nullptr) {
+		p->color = &p->tmp.color;
+	}
 	if (!mkxp_sandbox::sandbox_deserialize(p->tone, data, max_size)) return false;
+	if (p->tone == nullptr) {
+		p->tone = &p->tmp.tone;
+	}
 
 	return true;
 }

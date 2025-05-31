@@ -1692,24 +1692,6 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         num_free_objects = 0;
     }
 
-    // Write the number of extra objects that were found during serialization of the normal objects, then each such object
-    if (max_size < sizeof(wasm_size_t)) SER_OBJECTS_END_FAIL;
-    wasm_size_t *num_extra_objects_ptr = (wasm_size_t *)data;
-    ADVANCE(sizeof(wasm_size_t));
-    for (size_t i = 0; i < extra_objects.size(); ++i) { // More items can be added to this vector during iteration
-        const void *ptr = std::get<0>(extra_objects[i]);
-        wasm_size_t typenum = std::get<1>(extra_objects[i]);
-        if (typenum != get_typenum<Color>::value && typenum != get_typenum<Tone>::value && typenum != get_typenum<Rect>::value) {
-            std::fprintf(stderr, "extra object other than Color, Tone or Rect found during save state serialization with typenum %llu (there's probably a bug in the sandbox bindings)\n", (unsigned long long)typenum);
-            std::fflush(stderr);
-            std::abort();
-        } else {
-            if (!sandbox_serialize(typenum, data, max_size)) SER_OBJECTS_END_FAIL;
-            if (!typenum_table[typenum - 1].serialize(ptr, data, max_size)) SER_OBJECTS_END_FAIL;
-        }
-    }
-    *num_extra_objects_ptr = (wasm_size_t)extra_objects.size();
-
     SER_OBJECTS_END;
     std::memset(data, 0, max_size);
     return true;
@@ -1888,8 +1870,8 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
                 object.typenum = typenum;
                 object.inner.ptr = typenum_table[typenum - 1].construct();
                 if (object.inner.ptr == nullptr) DESER_OBJECTS_END_FAIL;
-                typenum_table[typenum - 1].deserialize_begin(object.inner.ptr, true);
                 currently_disposed = false;
+                typenum_table[typenum - 1].deserialize_begin(object.inner.ptr, true);
             }
 
             // Deserialize the object
@@ -1899,10 +1881,10 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
                 typenum_table[typenum - 1].dispose(object.inner.ptr);
             }
 
-            // Add it to the pointer map so that other objects that reference this one will be able to see it
-            auto it = objects_deser.find(object_key);
-            if (it == objects_deser.end()) {
-                objects_deser.emplace(object_key, sandbox_object_deser_info(object.inner.ptr, typenum));
+            // Add it to the swizzle map so that other objects that reference this one will be able to see it
+            auto it = swizzle_map.find(object_key);
+            if (it == swizzle_map.end()) {
+                swizzle_map.emplace(object_key, sandbox_swizzle_info(object.inner.ptr, typenum));
             } else {
                 it->second.set_ptr(object.inner.ptr, typenum);
             }
@@ -1910,46 +1892,8 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
         }
     }
 
-    // Read extra objects
-    wasm_objkey_t extra_object_key = 1;
-    wasm_size_t num_extra_objects;
-    if (!sandbox_deserialize(num_extra_objects, data, max_size)) DESER_OBJECTS_END_FAIL;
-    while (extra_object_key <= num_extra_objects) {
-        wasm_size_t typenum;
-        if (!sandbox_deserialize(typenum, data, max_size)) DESER_OBJECTS_END_FAIL;
-        if (typenum != get_typenum<Color>::value && typenum != get_typenum<Tone>::value && typenum != get_typenum<Rect>::value) DESER_OBJECTS_END_FAIL;
-
-        // Create a new object
-        void *ptr = typenum_table[typenum - 1].construct();
-        if (ptr == nullptr) DESER_OBJECTS_END_FAIL;
-        typenum_table[typenum - 1].deserialize_begin(ptr, true);
-
-        // Deserialize into the newly created object
-        if (!typenum_table[typenum - 1].deserialize(ptr, data, max_size)) {
-            typenum_table[typenum - 1].destroy(ptr);
-            DESER_OBJECTS_END_FAIL;
-        }
-
-        // Add it to the pointer map so that other objects that reference this one will be able to see it
-        auto it = extra_objects_deser.find(extra_object_key);
-        if (it == extra_objects_deser.end()) {
-            extra_objects_deser.emplace(extra_object_key, sandbox_object_deser_info(ptr, typenum));
-        } else {
-            if (!it->second.set_ptr(ptr, typenum)) {
-                typenum_table[typenum - 1].destroy(ptr);
-                DESER_OBJECTS_END_FAIL;
-            }
-        }
-        ++extra_object_key;
-    }
-
     // Make sure every pointer in the save state has been swizzled
-    for (const auto &pair : objects_deser) {
-        if (!pair.second.get_exists()) {
-            DESER_OBJECTS_END_FAIL;
-        }
-    }
-    for (const auto &pair : extra_objects_deser) {
+    for (const auto &pair : swizzle_map) {
         if (!pair.second.get_exists()) {
             DESER_OBJECTS_END_FAIL;
         }
@@ -1958,11 +1902,6 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     for (const auto &object : sb()->objects) {
         if (object.typenum > 0) {
             typenum_table[object.typenum - 1].deserialize_end(object.inner.ptr);
-        }
-    }
-    for (const auto &pair : extra_objects_deser) {
-        if (pair.second.get_typenum() > 0) {
-            typenum_table[pair.second.get_typenum() - 1].deserialize_end(pair.second.get_ptr());
         }
     }
     DESER_OBJECTS_END;

@@ -107,15 +107,13 @@ template <typename T> static typename std::enable_if<!boost::is_detected<deseria
 extern const struct typenum_table_entry mkxp_sandbox::typenum_table[SANDBOX_NUM_TYPENUMS] = {BOOST_PP_SEQ_FOR_EACH(_SANDBOX_DEF_TYPENUM_TABLE_ENTRY, _, SANDBOX_TYPENUM_TYPES)};
 extern const wasm_size_t mkxp_sandbox::typenum_table_size = SANDBOX_NUM_TYPENUMS;
 
-std::vector<std::tuple<const void *, wasm_size_t>> mkxp_sandbox::extra_objects;
-std::unordered_map<wasm_size_t, struct sandbox_object_deser_info> mkxp_sandbox::objects_deser;
-std::unordered_map<wasm_size_t, struct sandbox_object_deser_info> mkxp_sandbox::extra_objects_deser;
+std::unordered_map<wasm_size_t, struct sandbox_swizzle_info> mkxp_sandbox::swizzle_map;
 
-sandbox_object_deser_info::sandbox_object_deser_info(void *ptr, wasm_size_t typenum) : ptr(ptr), typenum(typenum), ref_count(0), exists(true) {}
+sandbox_swizzle_info::sandbox_swizzle_info(void *ptr, wasm_size_t typenum) : ptr(ptr), typenum(typenum), ref_count(0), exists(true) {}
 
-sandbox_object_deser_info::sandbox_object_deser_info(struct sandbox_object_deser_info &&info) noexcept : ptr(std::exchange(info.ptr, nullptr)), typenum(info.typenum), ref_count(std::exchange(info.ref_count, 1)), exists(std::exchange(info.exists, true)) {}
+sandbox_swizzle_info::sandbox_swizzle_info(struct sandbox_swizzle_info &&info) noexcept : ptr(std::exchange(info.ptr, nullptr)), typenum(info.typenum), ref_count(std::exchange(info.ref_count, 1)), exists(std::exchange(info.exists, true)) {}
 
-struct sandbox_object_deser_info &sandbox_object_deser_info::operator=(struct sandbox_object_deser_info &&info) noexcept {
+struct sandbox_swizzle_info &sandbox_swizzle_info::operator=(struct sandbox_swizzle_info &&info) noexcept {
     ptr = std::exchange(info.ptr, nullptr);
     typenum = info.typenum;
     ref_count = std::exchange(info.ref_count, 1);
@@ -123,17 +121,17 @@ struct sandbox_object_deser_info &sandbox_object_deser_info::operator=(struct sa
     return *this;
 }
 
-sandbox_object_deser_info::~sandbox_object_deser_info() {
+sandbox_swizzle_info::~sandbox_swizzle_info() {
     if (!exists) {
         delete (std::vector<void **> *)ptr;
     }
 }
 
-wasm_size_t sandbox_object_deser_info::get_ref_count() const noexcept {
+wasm_size_t sandbox_swizzle_info::get_ref_count() const noexcept {
     return ref_count;
 }
 
-bool sandbox_object_deser_info::set_ptr(void *ptr, wasm_size_t typenum) {
+bool sandbox_swizzle_info::set_ptr(void *ptr, wasm_size_t typenum) {
     if (this->typenum != typenum) {
         // Don't allow pointers of mismatching type
         return false;
@@ -153,15 +151,15 @@ bool sandbox_object_deser_info::set_ptr(void *ptr, wasm_size_t typenum) {
     return true;
 }
 
-void *sandbox_object_deser_info::get_ptr() const {
+void *sandbox_swizzle_info::get_ptr() const {
     return exists ? ptr : nullptr;
 }
 
-wasm_size_t sandbox_object_deser_info::get_typenum() const {
+wasm_size_t sandbox_swizzle_info::get_typenum() const {
     return typenum;
 }
 
-bool sandbox_object_deser_info::get_exists() const {
+bool sandbox_swizzle_info::get_exists() const {
     return exists;
 }
 
