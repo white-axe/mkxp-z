@@ -1187,11 +1187,6 @@ bool WindowVX::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_siz
 	if (!mkxp_sandbox::sandbox_serialize(p->backOpacity, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->contentsOpacity, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->openness, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->ctrlVert, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->contentsQuad, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->padRect, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->clipRect, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->cursorVert, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->pauseAlphaIdx, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->pauseQuadIdx, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->cursorAlphaIdx, data, max_size)) return false;
@@ -1236,7 +1231,13 @@ bool WindowVX::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t 
 		p->width = p->geo.w;
 		p->height = p->geo.h;
 	}
-	if (!mkxp_sandbox::sandbox_deserialize(p->contentsOff, data, max_size)) return false;
+	{
+		Vec2i value = p->contentsOff;
+		if (!mkxp_sandbox::sandbox_deserialize(p->contentsOff, data, max_size)) return false;
+		if (p->contentsOff != value) {
+			p->ctrlVertDirty = true;
+		}
+	}
 	{
 		int32_t value = (int32_t)p->padding;
 		if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->padding, data, max_size)) return false;
@@ -1251,7 +1252,13 @@ bool WindowVX::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t 
 			p->clipRectDirty = true;
 		}
 	}
-	if (!mkxp_sandbox::sandbox_deserialize(p->opacity, data, max_size)) return false;
+	{
+		NormValue value = p->opacity;
+		if (!mkxp_sandbox::sandbox_deserialize(p->opacity, data, max_size)) return false;
+		if (p->opacity != value) {
+			p->base.quad.setColor(Vec4(1, 1, 1, p->opacity.norm));
+		}
+	}
 	{
 		NormValue value = p->backOpacity;
 		if (!mkxp_sandbox::sandbox_deserialize(p->backOpacity, data, max_size)) return false;
@@ -1259,16 +1266,26 @@ bool WindowVX::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t 
 			p->base.texDirty = true;
 		}
 	}
-	if (!mkxp_sandbox::sandbox_deserialize(p->contentsOpacity, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->openness, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->ctrlVert, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->contentsQuad, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->padRect, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->clipRect, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->cursorVert, data, max_size)) return false;
+	{
+		NormValue value = p->contentsOpacity;
+		if (!mkxp_sandbox::sandbox_deserialize(p->contentsOpacity, data, max_size)) return false;
+		if (p->contentsOpacity != value) {
+			p->contentsQuad.setColor(Vec4(1, 1, 1, p->contentsOpacity.norm));
+		}
+	}
+	{
+		NormValue value = p->openness;
+		if (!mkxp_sandbox::sandbox_deserialize(p->openness, data, max_size)) return false;
+		if (p->openness != value) {
+			p->updateBaseQuad();
+		}
+	}
 	if (!mkxp_sandbox::sandbox_deserialize(p->pauseAlphaIdx, data, max_size)) return false;
+	p->pauseAlphaIdx = std::min(p->pauseAlphaIdx, (uint8_t)(pauseAlphaN - 1));
 	if (!mkxp_sandbox::sandbox_deserialize(p->pauseQuadIdx, data, max_size)) return false;
+	p->pauseQuadIdx %= pauseQuadN;
 	if (!mkxp_sandbox::sandbox_deserialize(p->cursorAlphaIdx, data, max_size)) return false;
+	p->cursorAlphaIdx %= cursorAlphaN;
 	if (!mkxp_sandbox::sandbox_deserialize(p->sceneOffset, data, max_size)) return false;
 	if (!sandbox_deserialize_viewport_element(data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->windowskin, data, max_size)) return false;
@@ -1335,6 +1352,7 @@ void WindowVX::sandbox_deserialize_end()
 
 	if (isDisposed()) return;
 	if (p->contents != nullptr && (p->contents->deserModified || p->contents->id != p->deserSavedContentsId)) {
+		p->contentsQuad.setTexPosRect(p->contents->rect(), p->contents->rect());
 		p->ctrlVertDirty = true;
 	}
 

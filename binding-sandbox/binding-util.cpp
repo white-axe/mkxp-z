@@ -20,6 +20,7 @@
 */
 
 #include "binding-util.h"
+#include "core.h"
 #include "sharedstate.h"
 
 using namespace mkxp_sandbox;

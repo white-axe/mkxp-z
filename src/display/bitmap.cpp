@@ -3454,6 +3454,7 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
         if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->gl.width, data, max_size)) return false;
         if (p->gl.width != old_width) {
             deserModified = true;
+            deserSizeChanged = true;
         }
     }
     {
@@ -3461,6 +3462,7 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
         if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->gl.height, data, max_size)) return false;
         if (p->gl.height != old_height) {
             deserModified = true;
+            deserSizeChanged = true;
         }
     }
     {
@@ -3503,6 +3505,8 @@ void Bitmap::sandbox_deserialize_begin(bool is_new)
     loresDispCon.disconnect();
 
     deserModified = is_new;
+
+    deserSizeChanged = is_new;
 }
 
 void Bitmap::sandbox_deserialize_end()

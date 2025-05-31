@@ -21,10 +21,8 @@
 
 #include "sandbox-serial-util.h"
 #include "etc-internal.h"
-#include "quad.h"
 #include "scene.h"
 #include "transform.h"
-#include "vertex.h"
 
 using namespace mkxp_sandbox;
 
@@ -356,6 +354,8 @@ template <> bool mkxp_sandbox::sandbox_serialize(const NormValue &value, void *&
 
 template <> bool mkxp_sandbox::sandbox_deserialize(NormValue &value, const void *&data, wasm_size_t &max_size) {
     if (!sandbox_deserialize((int32_t &)value.unNorm, data, max_size)) return false;
+    value.unNorm = clamp(value.unNorm, 0, 255);
+    value.norm = value.unNorm / 255.0f;
     return true;
 }
 
@@ -424,84 +424,6 @@ template <> bool mkxp_sandbox::sandbox_serialize(const Scene::Geometry &value, v
 template <> bool mkxp_sandbox::sandbox_deserialize(Scene::Geometry &value, const void *&data, wasm_size_t &max_size) {
     if (!sandbox_deserialize(value.rect, data, max_size)) return false;
     if (!sandbox_deserialize(value.orig, data, max_size)) return false;
-    return true;
-}
-
-template <> bool mkxp_sandbox::sandbox_serialize(const SVertex &value, void *&data, wasm_size_t &max_size) {
-    if (!sandbox_serialize(value.pos, data, max_size)) return false;
-    if (!sandbox_serialize(value.texPos, data, max_size)) return false;
-    return true;
-}
-
-template <> bool mkxp_sandbox::sandbox_deserialize(SVertex &value, const void *&data, wasm_size_t &max_size) {
-    if (!sandbox_deserialize(value.pos, data, max_size)) return false;
-    if (!sandbox_deserialize(value.texPos, data, max_size)) return false;
-    return true;
-}
-
-template <> bool mkxp_sandbox::sandbox_serialize(const CVertex &value, void *&data, wasm_size_t &max_size) {
-    if (!sandbox_serialize(value.pos, data, max_size)) return false;
-    if (!sandbox_serialize(value.color, data, max_size)) return false;
-    return true;
-}
-
-template <> bool mkxp_sandbox::sandbox_deserialize(CVertex &value, const void *&data, wasm_size_t &max_size) {
-    if (!sandbox_deserialize(value.pos, data, max_size)) return false;
-    if (!sandbox_deserialize(value.color, data, max_size)) return false;
-    return true;
-}
-
-template <> bool mkxp_sandbox::sandbox_serialize(const Vertex &value, void *&data, wasm_size_t &max_size) {
-    if (!sandbox_serialize(value.pos, data, max_size)) return false;
-    if (!sandbox_serialize(value.texPos, data, max_size)) return false;
-    if (!sandbox_serialize(value.color, data, max_size)) return false;
-    return true;
-}
-
-template <> bool mkxp_sandbox::sandbox_deserialize(Vertex &value, const void *&data, wasm_size_t &max_size) {
-    if (!sandbox_deserialize(value.pos, data, max_size)) return false;
-    if (!sandbox_deserialize(value.texPos, data, max_size)) return false;
-    if (!sandbox_deserialize(value.color, data, max_size)) return false;
-    return true;
-}
-
-template <> bool mkxp_sandbox::sandbox_serialize(const Quad &value, void *&data, wasm_size_t &max_size) {
-    if (!sandbox_serialize(value.vert[0], data, max_size)) return false;
-    if (!sandbox_serialize(value.vert[1], data, max_size)) return false;
-    if (!sandbox_serialize(value.vert[2], data, max_size)) return false;
-    if (!sandbox_serialize(value.vert[3], data, max_size)) return false;
-    return true;
-}
-
-template <> bool mkxp_sandbox::sandbox_deserialize(Quad &value, const void *&data, wasm_size_t &max_size) {
-    {
-        Vertex old_vert = value.vert[0];
-        if (!sandbox_deserialize(value.vert[0], data, max_size)) return false;
-        if (value.vert[0].pos != old_vert.pos || value.vert[0].texPos != old_vert.texPos || value.vert[0].color != old_vert.color) {
-            value.vboDirty = true;
-        }
-    }
-    {
-        Vertex old_vert = value.vert[1];
-        if (!sandbox_deserialize(value.vert[1], data, max_size)) return false;
-        if (value.vert[1].pos != old_vert.pos || value.vert[1].texPos != old_vert.texPos || value.vert[1].color != old_vert.color) {
-            value.vboDirty = true;
-        }
-    }
-    {
-        Vertex old_vert = value.vert[2];
-        if (!sandbox_deserialize(value.vert[2], data, max_size)) return false;
-        if (value.vert[2].pos != old_vert.pos || value.vert[2].texPos != old_vert.texPos || value.vert[2].color != old_vert.color) {
-            value.vboDirty = true;
-        }
-    }
-    {
-        Vertex old_vert = value.vert[3];
-        if (!sandbox_deserialize(value.vert[3], data, max_size)) return false;
-        if (value.vert[3].pos != old_vert.pos || value.vert[3].texPos != old_vert.texPos || value.vert[3].color != old_vert.color) {
-            value.vboDirty = true;
-        }
-    }
     return true;
 }
 

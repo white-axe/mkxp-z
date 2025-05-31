@@ -680,7 +680,9 @@ bool TilemapVX::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t
 		}
 	}
 	if (!mkxp_sandbox::sandbox_deserialize(p->frameIdx, data, max_size)) return false;
+	p->frameIdx %= 30*3*4;
 	if (!mkxp_sandbox::sandbox_deserialize(p->flashAlphaIdx, data, max_size)) return false;
+	p->flashAlphaIdx %= flashAlphaN;
 
 	if (!p->above.sandbox_deserialize_viewport_element(data, max_size)) return false;
 	if (!p->sandbox_deserialize_viewport_element(data, max_size)) return false;

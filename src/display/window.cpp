@@ -189,6 +189,7 @@ struct WindowPrivate
 
 	sigslot::connection cursorRectCon;
 #ifdef MKXPZ_RETRO
+	uint64_t deserSavedContentsId;
 	Rect deserSavedCursorRect;
 #endif // MKXPZ_RETRO
 
@@ -966,12 +967,7 @@ bool Window::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
 	if (!mkxp_sandbox::sandbox_serialize(p->opacity, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->backOpacity, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->contentsOpacity, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->baseQuadArray, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->useBaseTex, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->baseTexQuad, data, max_size)) return false;
 	if (!p->controlsElement.sandbox_serialize_viewport_element(data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->controlsQuadArray, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->contentsQuad, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->cursorAniAlphaIdx, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->pauseAniAlphaIdx, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->pauseAniQuadIdx, data, max_size)) return false;
@@ -993,7 +989,13 @@ bool Window::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
 		}
 	}
 	if (!mkxp_sandbox::sandbox_deserialize(p->active, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->pause, data, max_size)) return false;
+	{
+		bool value = p->pause;
+		if (!mkxp_sandbox::sandbox_deserialize(p->pause, data, max_size)) return false;
+		if (p->pause != value) {
+			p->controlsVertDirty = true;
+		}
+	}
 	if (!mkxp_sandbox::sandbox_deserialize(p->sceneOffset, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->position, data, max_size)) return false;
 	{
@@ -1024,16 +1026,20 @@ bool Window::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
 			p->opacityDirty = true;
 		}
 	}
-	if (!mkxp_sandbox::sandbox_deserialize(p->contentsOpacity, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->baseQuadArray, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->useBaseTex, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->baseTexQuad, data, max_size)) return false;
+	{
+		NormValue value = p->contentsOpacity;
+		if (!mkxp_sandbox::sandbox_deserialize(p->contentsOpacity, data, max_size)) return false;
+		if (value != p->contentsOpacity) {
+			p->contentsQuad.setColor(Vec4(1, 1, 1, p->contentsOpacity.norm));
+		}
+	}
 	if (!p->controlsElement.sandbox_deserialize_viewport_element(data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->controlsQuadArray, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->contentsQuad, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->cursorAniAlphaIdx, data, max_size)) return false;
+	p->cursorAniAlphaIdx %= cursorAniAlphaN;
 	if (!mkxp_sandbox::sandbox_deserialize(p->pauseAniAlphaIdx, data, max_size)) return false;
+	p->pauseAniAlphaIdx = std::min(p->pauseAniAlphaIdx, (uint8_t)(pauseAniAlphaN - 1));
 	if (!mkxp_sandbox::sandbox_deserialize(p->pauseAniQuadIdx, data, max_size)) return false;
+	p->pauseAniQuadIdx %= pauseAniQuadN;
 	if (!sandbox_deserialize_viewport_element(data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->windowskin, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->contents, data, max_size)) return false;
@@ -1051,6 +1057,8 @@ void Window::sandbox_deserialize_begin()
 	p->windowskinDispCon.disconnect();
 
 	p->contentsDispCon.disconnect();
+
+	p->deserSavedContentsId = p->contents == nullptr ? 0 : p->contents->id;
 
 	p->cursorRectCon.disconnect();
 	if (p->cursorRect != nullptr) {
@@ -1078,6 +1086,11 @@ void Window::sandbox_deserialize_end()
 		if (p->contents->isDisposed()) {
 			p->contentsDisposal();
 		}
+	}
+
+	if (isDisposed()) return;
+	if (p->contents != nullptr && (p->contents->deserSizeChanged || p->contents->id != p->deserSavedContentsId)) {
+		p->contentsQuad.setTexPosRect(p->contents->rect(), p->contents->rect());
 	}
 
 	if (isDisposed()) return;

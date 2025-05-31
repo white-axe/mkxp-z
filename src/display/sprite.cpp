@@ -62,7 +62,6 @@ struct SpritePrivate
     Rect *srcRect;
     sigslot::connection srcRectCon;
 #ifdef MKXPZ_RETRO
-    uint64_t deserSavedBitmapId;
     Rect deserSavedSrcRect;
     bool deserMirrorChanged;
     bool deserYChanged;
@@ -992,8 +991,6 @@ void Sprite::sandbox_deserialize_begin()
 
     p->bitmapDispCon.disconnect();
 
-    p->deserSavedBitmapId = p->bitmap == nullptr ? 0 : p->bitmap->id;
-
     p->srcRectCon.disconnect();
     if (p->srcRect != nullptr) {
         p->deserSavedSrcRect = *p->srcRect;
@@ -1016,11 +1013,6 @@ void Sprite::sandbox_deserialize_end()
         if (p->bitmap->isDisposed()) {
             p->bitmapDisposal();
         }
-    }
-
-    if (isDisposed()) return;
-    if (p->bitmap != nullptr && (p->bitmap->deserModified || p->bitmap->id != p->deserSavedBitmapId)) {
-        p->wave.dirty = true;
     }
 
     if (isDisposed()) return;

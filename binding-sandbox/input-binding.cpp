@@ -20,6 +20,8 @@
 */
 
 #include "input-binding.h"
+#include "input.h"
+#include "core.h"
 #include "sharedstate.h"
 
 using namespace mkxp_sandbox;

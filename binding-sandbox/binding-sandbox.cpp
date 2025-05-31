@@ -22,6 +22,7 @@
 #include "binding-sandbox.h"
 #include <zlib.h>
 #include "sharedstate.h"
+#include "core.h"
 #include "audio-binding.h"
 #include "bitmap-binding.h"
 #include "etc-binding.h"

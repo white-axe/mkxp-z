@@ -1552,6 +1552,7 @@ bool Tilemap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &
 	if (!mkxp_sandbox::sandbox_deserialize(p->tiles.aniIdx, data, max_size)) return false;
 
 	if (!mkxp_sandbox::sandbox_deserialize(p->flashAlphaIdx, data, max_size)) return false;
+	p->flashAlphaIdx %= flashAlphaN;
 
 	if (!p->elem.ground->sandbox_deserialize_viewport_element(data, max_size)) return false;
 
@@ -1645,10 +1646,12 @@ void Tilemap::sandbox_deserialize_end()
 	}
 
 	if (isDisposed()) return;
-	if (p->tileset != nullptr && !p->tileset->isDisposed()) {
+	if (p->tileset != nullptr) {
 		p->tilesetCon = p->tileset->modified.connect(&TilemapPrivate::invalidateAtlasSize, p);
 		if (p->tileset->deserModified || p->tileset->id != p->deserSavedTilesetId) {
 			p->invalidateAtlasSize();
+			Exception e;
+			p->updateAtlasInfo(e);
 		}
 	}
 
@@ -1658,7 +1661,10 @@ void Tilemap::sandbox_deserialize_end()
 			p->autotilesCon[i] = p->autotiles[i]->modified.connect(&TilemapPrivate::invalidateAtlasContents, p);
 			if (p->autotiles[i]->deserModified || p->autotiles[i]->id != p->deserSavedAutotileIds[i]) {
 				p->invalidateAtlasContents();
+				p->updateAutotileInfo();
 			}
+		} else if (p->deserSavedAutotileIds[i] != 0) {
+			p->invalidateAtlasContents();
 		}
 	}
 
