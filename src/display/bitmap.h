@@ -67,6 +67,8 @@ public:
 	Bitmap(Exception &exception, const Bitmap &other, int frame = -2);
 	~Bitmap();
 
+	void initFromFilename(Exception &exception, const char *filename);
+	void initFromDimensions(Exception &exception, int width = 1, int height = 1, bool isHires = false);
 	void initFromSurface(Exception &exception, SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool forceMega = false);
 
 	int getWidth(Exception &exception)  const;

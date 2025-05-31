@@ -617,6 +617,11 @@ Bitmap::Bitmap(Exception &exception, const char *filename)
     : id(next_id++)
 #endif // MKXPZ_RETRO
 {
+    initFromFilename(exception, filename);
+}
+
+void Bitmap::initFromFilename(Exception &exception, const char *filename)
+{
     std::string hiresPrefix = "Hires/";
     std::string filenameStd = filename;
     Bitmap *hiresBitmap = nullptr;
@@ -796,12 +801,18 @@ Bitmap::Bitmap(Exception &exception, const char *filename)
 #ifdef MKXPZ_RETRO
     p->path = filename;
 #endif // MKXPZ_RETRO
+
 }
 
 Bitmap::Bitmap(Exception &exception, int width, int height, bool isHires)
 #ifdef MKXPZ_RETRO
     : id(next_id++)
 #endif // MKXPZ_RETRO
+{
+    initFromDimensions(exception, width, height, isHires);
+}
+
+void Bitmap::initFromDimensions(Exception &exception, int width, int height, bool isHires)
 {
     if (width <= 0 || height <= 0) {
         exception = Exception(Exception::RGSSError, "failed to create bitmap");
@@ -3418,6 +3429,7 @@ bool Bitmap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
 
     if (!mkxp_sandbox::sandbox_serialize((int32_t)width(), data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize((int32_t)height(), data, max_size)) return false;
+
     if (!mkxp_sandbox::sandbox_serialize(p->animation.enabled, data, max_size)) return false;
 
     if (p->animation.enabled) {
@@ -3430,11 +3442,11 @@ bool Bitmap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
         if (!mkxp_sandbox::sandbox_serialize(p->animation.startTime, data, max_size)) return false;
     }
 
+    // TODO: serialize bitmap pixels
+
     if (!mkxp_sandbox::sandbox_serialize(p->font == &shState->defaultFont() ? nullptr : p->font, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->selfHires, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->selfLores, data, max_size)) return false;
-
-    // TODO: serialize bitmap pixels
 
     return true;
 }
@@ -3445,6 +3457,15 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
         std::string old_path = p->path;
         if (!mkxp_sandbox::sandbox_deserialize(p->path, data, max_size)) return false;
         if (p->path != old_path) {
+            if (!p->path.empty()) {
+                std::string path(p->path);
+                delete p;
+                Exception e;
+                initFromFilename(e, path.c_str());
+                if (e.is_error()) {
+                    return false;
+                }
+            }
             deserModified = true;
         }
     }
@@ -3453,6 +3474,9 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
         int32_t old_width = p->animation.enabled ? p->animation.width : p->gl.width;
         if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->gl.width, data, max_size)) return false;
         if (p->gl.width != old_width) {
+            if (!p->path.empty()) {
+                return false;
+            }
             deserModified = true;
             deserSizeChanged = true;
         }
@@ -3461,14 +3485,30 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
         int32_t old_height = p->animation.enabled ? p->animation.height : p->gl.height;
         if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->gl.height, data, max_size)) return false;
         if (p->gl.height != old_height) {
+            if (!p->path.empty()) {
+                return false;
+            }
             deserModified = true;
             deserSizeChanged = true;
         }
     }
+
+    if (deserSizeChanged && p->path.empty()) {
+        delete p;
+        Exception e;
+        initFromDimensions(e, p->gl.width, p->gl.height, true);
+        if (e.is_error()) {
+            return false;
+        }
+    }
+
     {
         bool old_enabled = p->animation.enabled;
         if (!mkxp_sandbox::sandbox_deserialize(p->animation.enabled, data, max_size)) return false;
         if (p->animation.enabled != old_enabled) {
+            if (!p->path.empty()) {
+                return false;
+            }
             deserModified = true;
         }
     }
@@ -3489,16 +3529,14 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
         }
     }
 
+    // TODO: deserialize bitmap pixels
+
     if (!mkxp_sandbox::sandbox_deserialize(p->font, data, max_size)) return false;
     if (p->font == nullptr) {
         p->font = &shState->defaultFont();
     }
     if (!mkxp_sandbox::sandbox_deserialize(p->selfHires, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_deserialize(p->selfLores, data, max_size)) return false;
-
-    // TODO: deserialize bitmap pixels
-
-    // TODO: reload the bitmap
 
     return true;
 }
