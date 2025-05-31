@@ -239,8 +239,6 @@ struct ZLayer : public ViewportElement
 
 struct TilemapPrivate
 {
-	Viewport *viewport;
-
 	Bitmap *autotiles[autotileCount];
 
 	Bitmap *tileset;
@@ -362,8 +360,7 @@ struct TilemapPrivate
 	EtcTemps tmp;
 
 	TilemapPrivate(Viewport *viewport)
-	    : viewport(viewport),
-	      tileset(0),
+	    : tileset(0),
 	      mapData(0),
 	      priorities(0),
 	      visible(true),
@@ -1313,7 +1310,13 @@ Tilemap::Autotiles *Tilemap::getAutotiles(Exception &exception)
 	return atProxy;
 }
 
-DEF_ATTR_RD_SIMPLE(Tilemap, Viewport, Viewport*, p->viewport)
+Viewport *Tilemap::getViewport(Exception &exception) const
+{
+	GUARD_V(nullptr, guardDisposed(exception));
+
+	return p->elem.ground->getViewport();
+}
+
 DEF_ATTR_RD_SIMPLE(Tilemap, Tileset, Bitmap*, p->tileset)
 DEF_ATTR_RD_SIMPLE(Tilemap, MapData, Table*, p->mapData)
 DEF_ATTR_RD_SIMPLE(Tilemap, FlashData, Table*, p->flashMap.getData())
@@ -1490,24 +1493,7 @@ bool Tilemap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size
 {
 	if (!mkxp_sandbox::sandbox_serialize(p->visible, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->origin, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->dispPos, data, max_size)) return false;
 
-	if (!mkxp_sandbox::sandbox_serialize(p->atlas.size, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize((int32_t)p->atlas.efTilesetH, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->atlas.usableATs, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->atlas.animatedATs, data, max_size)) return false;
-	for (size_t i = 0; i < autotileCount; ++i)
-		if (!mkxp_sandbox::sandbox_serialize(p->atlas.smallATs[i], data, max_size)) return false;
-	for (size_t i = 0; i < autotileCount; ++i)
-		if (!mkxp_sandbox::sandbox_serialize((int32_t)p->atlas.nATFrames[i], data, max_size)) return false;
-
-	if (!mkxp_sandbox::sandbox_serialize(p->groundVert, data, max_size)) return false;
-	for (size_t i = 0; i < zlayersMax; ++i)
-		if (!mkxp_sandbox::sandbox_serialize(p->zlayerVert[i], data, max_size)) return false;
-	for (size_t i = 0; i < zlayersMax + 1; ++i)
-		if (!mkxp_sandbox::sandbox_serialize((mkxp_sandbox::wasm_size_t)p->zlayerBases[i], data, max_size)) return false;
-
-	if (!mkxp_sandbox::sandbox_serialize(p->tiles.animated, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->tiles.aniIdx, data, max_size)) return false;
 
 	if (!mkxp_sandbox::sandbox_serialize(p->flashAlphaIdx, data, max_size)) return false;
@@ -1517,12 +1503,11 @@ bool Tilemap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size
 	for (size_t i = 0; i < zlayersMax; ++i)
 		if (!p->elem.zlayers[i]->sandbox_serialize_viewport_element(data, max_size)) return false;
 
-	if (!mkxp_sandbox::sandbox_serialize((mkxp_sandbox::wasm_size_t)p->elem.activeLayers, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->elem.sceneGeo, data, max_size)) return false;
 
 	if (!mkxp_sandbox::sandbox_serialize(p->opacity, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->blendType, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->viewport, data, max_size)) return false;
+
 	for (size_t i = 0; i < autotileCount; ++i)
 		if (!mkxp_sandbox::sandbox_serialize(p->autotiles[i], data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->tileset, data, max_size)) return false;
@@ -1539,7 +1524,20 @@ bool Tilemap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size
 
 bool Tilemap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
-	if (!mkxp_sandbox::sandbox_deserialize(p->visible, data, max_size)) return false;
+	{
+		bool value = p->visible;
+		if (!mkxp_sandbox::sandbox_deserialize(p->visible, data, max_size)) return false;
+		if (p->visible != value && p->tilemapReady) {
+			{
+				Exception e;
+				p->elem.ground->setVisible(e, p->visible);
+			}
+			for (size_t i = 0; i < p->elem.activeLayers; ++i) {
+				Exception e;
+				p->elem.zlayers[i]->setVisible(e, p->visible);
+			}
+		}
+	}
 	{
 		Vec2i old_origin = p->origin;
 		if (!mkxp_sandbox::sandbox_deserialize(p->origin, data, max_size)) return false;
@@ -1550,28 +1548,7 @@ bool Tilemap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &
 			p->zOrderDirty = true;
 		}
 	}
-	if (!mkxp_sandbox::sandbox_deserialize(p->dispPos, data, max_size)) return false;
 
-	if (!mkxp_sandbox::sandbox_deserialize(p->atlas.size, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->atlas.efTilesetH, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->atlas.usableATs, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->atlas.animatedATs, data, max_size)) return false;
-	for (size_t i = 0; i < autotileCount; ++i)
-		if (!mkxp_sandbox::sandbox_deserialize(p->atlas.smallATs[i], data, max_size)) return false;
-	for (size_t i = 0; i < autotileCount; ++i)
-		if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->atlas.nATFrames[i], data, max_size)) return false;
-
-	if (!mkxp_sandbox::sandbox_deserialize(p->groundVert, data, max_size)) return false;
-	for (size_t i = 0; i < zlayersMax; ++i)
-		if (!mkxp_sandbox::sandbox_deserialize(p->zlayerVert[i], data, max_size)) return false;
-	for (size_t i = 0; i < zlayersMax + 1; ++i)
-	{
-		mkxp_sandbox::wasm_size_t value;
-		if (!mkxp_sandbox::sandbox_deserialize(value, data, max_size)) return false;
-		p->zlayerBases[i] = value;
-	}
-
-	if (!mkxp_sandbox::sandbox_deserialize(p->tiles.animated, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->tiles.aniIdx, data, max_size)) return false;
 
 	if (!mkxp_sandbox::sandbox_deserialize(p->flashAlphaIdx, data, max_size)) return false;
@@ -1582,11 +1559,6 @@ bool Tilemap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &
 		if (!p->elem.zlayers[i]->sandbox_deserialize_viewport_element(data, max_size)) return false;
 
 	{
-		mkxp_sandbox::wasm_size_t value;
-		if (!mkxp_sandbox::sandbox_deserialize(value, data, max_size)) return false;
-		p->elem.activeLayers = value;
-	}
-	{
 		Scene::Geometry old_geo = p->elem.sceneGeo;
 		if (!mkxp_sandbox::sandbox_deserialize(p->elem.sceneGeo, data, max_size)) return false;
 		if (p->elem.sceneGeo != old_geo) {
@@ -1596,7 +1568,7 @@ bool Tilemap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &
 
 	if (!mkxp_sandbox::sandbox_deserialize(p->opacity, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->blendType, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->viewport, data, max_size)) return false;
+
 	for (size_t i = 0; i < autotileCount; ++i)
 		if (!mkxp_sandbox::sandbox_deserialize(p->autotiles[i], data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->tileset, data, max_size)) return false;

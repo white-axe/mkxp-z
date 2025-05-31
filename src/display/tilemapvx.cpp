@@ -644,21 +644,17 @@ bool TilemapVX::BitmapArray::sandbox_deserialize(const void *&data, mkxp_sandbox
 bool TilemapVX::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
 	if (!mkxp_sandbox::sandbox_serialize(p->origin, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->dispPos, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->sceneGeo, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->groundVert, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->aboveVert, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize((mkxp_sandbox::wasm_size_t)p->allocQuads, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize((mkxp_sandbox::wasm_size_t)p->groundQuads, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize((mkxp_sandbox::wasm_size_t)p->aboveQuads, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->frameIdx, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->aniOffset, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->flashAlphaIdx, data, max_size)) return false;
+
 	if (!p->above.sandbox_serialize_viewport_element(data, max_size)) return false;
 	if (!p->sandbox_serialize_viewport_element(data, max_size)) return false;
+
 	for (size_t i = 0; i < BM_COUNT; ++i)
 		if (!mkxp_sandbox::sandbox_serialize(p->bitmaps[i], data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->mapData, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->flags, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->flashMap.getData(), data, max_size)) return false;
 
 	if (!mkxp_sandbox::sandbox_serialize(bmProxy, data, max_size)) return false;
@@ -675,7 +671,6 @@ bool TilemapVX::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t
 			p->mapViewportDirty = true;
 		}
 	}
-	if (!mkxp_sandbox::sandbox_deserialize(p->dispPos, data, max_size)) return false;
 	{
 		Scene::Geometry old_geo = p->sceneGeo;
 		if (!mkxp_sandbox::sandbox_deserialize(p->sceneGeo, data, max_size)) return false;
@@ -684,31 +679,16 @@ bool TilemapVX::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t
 			p->mapViewportDirty = true;
 		}
 	}
-	if (!mkxp_sandbox::sandbox_deserialize(p->groundVert, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->aboveVert, data, max_size)) return false;
-	{
-		mkxp_sandbox::wasm_size_t value;
-		if (!mkxp_sandbox::sandbox_deserialize(value, data, max_size)) return false;
-		p->allocQuads = value;
-	}
-	{
-		mkxp_sandbox::wasm_size_t value;
-		if (!mkxp_sandbox::sandbox_deserialize(value, data, max_size)) return false;
-		p->groundQuads = value;
-	}
-	{
-		mkxp_sandbox::wasm_size_t value;
-		if (!mkxp_sandbox::sandbox_deserialize(value, data, max_size)) return false;
-		p->aboveQuads = value;
-	}
 	if (!mkxp_sandbox::sandbox_deserialize(p->frameIdx, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->aniOffset, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->flashAlphaIdx, data, max_size)) return false;
+
 	if (!p->above.sandbox_deserialize_viewport_element(data, max_size)) return false;
 	if (!p->sandbox_deserialize_viewport_element(data, max_size)) return false;
+
 	for (size_t i = 0; i < BM_COUNT; ++i)
 		if (!mkxp_sandbox::sandbox_deserialize(p->bitmaps[i], data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->mapData, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->flags, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->flashMap.getData(), data, max_size)) return false;
 
 	if (!mkxp_sandbox::sandbox_deserialize(bmProxy, data, max_size)) return false;
