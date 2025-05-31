@@ -1942,6 +1942,18 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
         ++extra_object_key;
     }
 
+    // Make sure every pointer in the save state has been swizzled
+    for (const auto &pair : objects_deser) {
+        if (!pair.second.get_exists()) {
+            DESER_OBJECTS_END_FAIL;
+        }
+    }
+    for (const auto &pair : extra_objects_deser) {
+        if (!pair.second.get_exists()) {
+            DESER_OBJECTS_END_FAIL;
+        }
+    }
+
     for (const auto &object : sb()->objects) {
         if (object.typenum > 0) {
             typenum_table[object.typenum - 1].deserialize_end(object.inner.ptr);

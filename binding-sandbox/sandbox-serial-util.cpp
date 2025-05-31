@@ -135,9 +135,11 @@ wasm_size_t sandbox_object_deser_info::get_ref_count() const noexcept {
 
 bool sandbox_object_deser_info::set_ptr(void *ptr, wasm_size_t typenum) {
     if (this->typenum != typenum) {
+        // Don't allow pointers of mismatching type
         return false;
     }
     if (exists && ptr != this->ptr) {
+        // Don't allow setting the pointer more than once
         return false;
     }
     if (!exists) {
@@ -157,6 +159,10 @@ void *sandbox_object_deser_info::get_ptr() const {
 
 wasm_size_t sandbox_object_deser_info::get_typenum() const {
     return typenum;
+}
+
+bool sandbox_object_deser_info::get_exists() const {
+    return exists;
 }
 
 template <> bool mkxp_sandbox::sandbox_serialize(bool value, void *&data, wasm_size_t &max_size) {

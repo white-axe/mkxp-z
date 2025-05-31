@@ -105,6 +105,7 @@ namespace mkxp_sandbox {
         bool set_ptr(void *ptr, wasm_size_t typenum);
         void *get_ptr() const;
         wasm_size_t get_typenum() const;
+        bool get_exists() const;
 
     private:
         // If `exists` is true, this is a pointer to the object. Otherwise, this is a `std::vector<void **>` of pointers that are waiting to point to the object.
@@ -244,7 +245,8 @@ namespace mkxp_sandbox {
 
             if (type == 2) {
                 ref = nullptr;
-                return true;
+                // Don't allow null Color, Tone or Rect pointers (null Font pointers are allowed since they indicate `shState->defaultFont()`)
+                return !std::is_same<T, Color>::value && !std::is_same<T, Tone>::value && !std::is_same<T, Rect>::value;
             }
 
             wasm_objkey_t key;
