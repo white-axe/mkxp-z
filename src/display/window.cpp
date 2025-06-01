@@ -1065,6 +1065,8 @@ void Window::sandbox_deserialize_begin()
 
 	if (isDisposed()) return;
 
+	p->controlsElement.sandbox_deserialize_begin_viewport_element();
+
 	p->windowskinDispCon.disconnect();
 
 	p->contentsDispCon.disconnect();
@@ -1083,6 +1085,9 @@ void Window::sandbox_deserialize_end()
 {
 	if (isDisposed()) return;
 	sandbox_deserialize_end_viewport_element();
+
+	if (isDisposed()) return;
+	p->controlsElement.sandbox_deserialize_end_viewport_element();
 
 	if (isDisposed()) return;
 	if (p->windowskin != nullptr) {
