@@ -203,6 +203,8 @@ bool Color::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &ma
 	if (!mkxp_sandbox::sandbox_deserialize(blue, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(alpha, data, max_size)) return false;
 
+	updateInternal();
+
 	return true;
 }
 #endif // MKXPZ_RETRO
@@ -345,6 +347,8 @@ bool Tone::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max
 	if (!mkxp_sandbox::sandbox_deserialize(green, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(blue, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(gray, data, max_size)) return false;
+
+	updateInternal();
 
 	return true;
 }
