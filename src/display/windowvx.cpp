@@ -1220,15 +1220,14 @@ bool WindowVX::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t 
 		}
 	}
 	{
-		IntRect value = p->geo;
+		Vec2i value = p->geo.size();
 		if (!mkxp_sandbox::sandbox_deserialize(p->geo, data, max_size)) return false;
-		if (p->geo.size() != value.size()) {
+		if (p->geo.size() != value) {
 			p->base.vertDirty = true;
 			p->base.texSizeDirty = true;
 			p->clipRectDirty = true;
 			p->ctrlVertDirty = true;
-		} else if (p->geo.pos() != value.pos()) {
-			p->ctrlVertDirty = true;
+			p->updateBaseQuad();
 		}
 		p->width = p->geo.w;
 		p->height = p->geo.h;
