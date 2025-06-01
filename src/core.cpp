@@ -614,6 +614,9 @@ static bool frame_time_callback_enabled = false;
 static struct atomic<bool> shared_state_initialized(false);
 static std::string previous_frame_skip_value;
 
+static unsigned int screen_width;
+static unsigned int screen_height;
+
 namespace mkxp_retro {
     retro_log_printf_t log_printf;
     retro_video_refresh_t video_refresh;
@@ -1204,8 +1207,8 @@ static bool init_sandbox() {
         }
     }
 
-    av_info.geometry.base_width = conf->defScreenW;
-    av_info.geometry.base_height = conf->defScreenH;
+    av_info.geometry.base_width = screen_width = conf->defScreenW;
+    av_info.geometry.base_height = screen_height = conf->defScreenH;
     av_info.geometry.max_width = av_info.geometry.base_width;
     av_info.geometry.max_height = av_info.geometry.base_height;
     av_info.geometry.aspect_ratio = (float)av_info.geometry.base_width / (float)av_info.geometry.base_height;
@@ -1541,9 +1544,11 @@ extern "C" RETRO_API void retro_run() {
             fb = frame_buf;
         }
     }
-    unsigned int width = shState->graphics().width();
-    unsigned int height = shState->graphics().height();
-    video_refresh(fb, width, height, width * 4);
+    if (mkxp_retro::sandbox.has_value()) {
+        screen_width = shState->graphics().width();
+        screen_height = shState->graphics().height();
+    }
+    video_refresh(fb, screen_width, screen_height, screen_width * 4);
 
     if (!threaded_audio_enabled && mkxp_retro::sandbox.has_value()) {
         audio_render((uint64_t)std::ceil((double)((uint64_t)SYNTH_SAMPLERATE * (retro_run_count + 1)) / av_info.timing.fps) - (uint64_t)std::ceil((double)((uint64_t)SYNTH_SAMPLERATE * retro_run_count) / av_info.timing.fps));
