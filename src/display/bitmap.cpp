@@ -3854,29 +3854,40 @@ bool Bitmap::sandbox_deserialize_pixels(const void *&data, mkxp_sandbox::wasm_si
                 if (!mkxp_sandbox::sandbox_deserialize(num_empty_tiles, data, max_size)) return false;
 
                 while (num_empty_tiles > 0) {
-                    // If a tile is empty in the save state but not currently empty, reload the bitmap to clear all the tiles and then try deserializing the pixels again
                     if (!frame[tile_number].empty()) {
-                        int old_width = p->gl.width;
-                        int old_height = p->gl.height;
                         if (p->path.empty()) {
-                            delete p;
-                            Exception e;
-                            initFromDimensions(e, old_width, old_height, true);
-                            if (e.is_error()) {
-                                return false;
+                            // If a tile is empty in the save state but not currently empty, and the bitmap has no path, we can just upload empty pixels to that part of the bitmap
+                            void *buf = STBI_MALLOC(4 * DIFF_TILE_SIZE * DIFF_TILE_SIZE);
+                            if (buf == nullptr) {
+                                MKXPZ_THROW(std::bad_alloc());
                             }
+                            std::memset(buf, 0, 4 * DIFF_TILE_SIZE * DIFF_TILE_SIZE);
+                            TEX::uploadSubImage(DIFF_TILE_SIZE * (tile_number % CEIL_DIV_DIFF_TILE_SIZE(width())), DIFF_TILE_SIZE * (tile_number / CEIL_DIV_DIFF_TILE_SIZE(width())), DIFF_TILE_SIZE, DIFF_TILE_SIZE, buf, GL_RGBA);
+                            stbi_image_free(buf);
                         } else {
-                            std::string path(p->path);
-                            delete p;
-                            Exception e;
-                            initFromFilename(e, path.c_str());
-                            if (e.is_error() || p->gl.width != old_width || p->gl.height != old_height) {
-                                return false;
+                            // If a tile is empty in the save state but not currently empty, and the bitmap has a path, reload the bitmap to clear all the tiles and then try deserializing the pixels again
+                            int old_width = p->gl.width;
+                            int old_height = p->gl.height;
+                            if (p->path.empty()) {
+                                delete p;
+                                Exception e;
+                                initFromDimensions(e, old_width, old_height, true);
+                                if (e.is_error()) {
+                                    return false;
+                                }
+                            } else {
+                                std::string path(p->path);
+                                delete p;
+                                Exception e;
+                                initFromFilename(e, path.c_str());
+                                if (e.is_error() || p->gl.width != old_width || p->gl.height != old_height) {
+                                    return false;
+                                }
                             }
+                            data = old_data;
+                            max_size = old_max_size;
+                            return true;
                         }
-                        data = old_data;
-                        max_size = old_max_size;
-                        return true;
                     }
 
                     ++tile_number;
