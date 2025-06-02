@@ -32,12 +32,26 @@
 #include "etc-internal.h"
 #include "etc.h"
 
+#include "gl-util.h"
+
+#include <string>
+#include <vector>
+
 #include "sigslot/signal.hpp"
 
 class Font;
 class ShaderBase;
-struct TEXFBO;
 struct SDL_Surface;
+
+struct BitmapFrame
+{
+    TEXFBO gl;
+#ifdef MKXPZ_RETRO
+    std::vector<std::vector<uint32_t>> diff;
+    std::string path;
+    int originalFrameIndex;
+#endif // MKXPZ_RETRO
+};
 
 struct BitmapPrivate;
 // FIXME make this class use proper RGSS classes again
@@ -174,7 +188,7 @@ public:
     
     void nextFrame(Exception &exception);
     void previousFrame(Exception &exception);
-    std::vector<TEXFBO> &getFrames() const;
+    std::vector<BitmapFrame> &getFrames() const;
     
     void setAnimationFPS(Exception &exception, float FPS);
     float getAnimationFPS(Exception &exception) const;
@@ -231,7 +245,9 @@ private:
 #ifdef MKXPZ_RETRO
 	IntRect textRect(Exception &exception, const char *str, bool solid);
 	SDL_Surface *drawTextInner(Exception &exception, FT_Face font, const char *str, SDL_Color &c, size_t outline);
-	bool sandbox_deserialize_pixels(const void *&data, mkxp_sandbox::wasm_size_t &max_size, bool &done);
+	bool sandbox_serialize_pixels(void *&data, mkxp_sandbox::wasm_size_t &max_size, const std::vector<std::vector<uint32_t>> &diff) const;
+	bool sandbox_deserialize_pixels_check_need_reload(const void *&data, mkxp_sandbox::wasm_size_t &max_size, const std::vector<std::vector<uint32_t>> &diff, bool &need_reload, bool &need_reload_if_path_not_empty, bool modify_data_and_max_size) const;
+	bool sandbox_deserialize_pixels(const void *&data, mkxp_sandbox::wasm_size_t &max_size, std::vector<std::vector<uint32_t>> &diff, mkxp_sandbox::wasm_size_t frame_number = 0);
 #endif // MKXPZ_RETRO
 };
 
