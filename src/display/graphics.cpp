@@ -281,7 +281,7 @@ struct Movie
         // Create this Bitmap without a hires replacement, because we don't
         // support hires replacement for Movies yet.
         Exception exception;
-        videoBitmap = new Bitmap(exception, video->width, video->height, true);
+        videoBitmap = new Bitmap(exception, video->width, video->height, true, false);
         if (exception.is_error()) {
             delete videoBitmap;
             videoBitmap = NULL;
@@ -1864,7 +1864,7 @@ Movie *Graphics::playMovie(Exception &exception, const char *filename, int volum
         }
         
         movie->letterboxSprite = new Sprite;
-        movie->letterbox = new Bitmap(exception, width(), height());
+        movie->letterbox = new Bitmap(exception, width(), height(), false, false);
         if (exception.is_error()) {
             delete movie;
             return nullptr;

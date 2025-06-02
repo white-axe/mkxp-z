@@ -26,7 +26,7 @@
 #  include <stb_image.h>
 #  include <pixman-region/pixman-region.h>
 #  include FT_STROKER_H
-#  include "mkxp-polyfill.h" // std::lround
+#  include "mkxp-polyfill.h" // std::lround, std::to_string
 #  include "sandbox-serial-util.h"
 #else
 #  include <SDL.h>
@@ -65,6 +65,8 @@
 
 #include <math.h>
 #include <algorithm>
+#include <string>
+#include <vector>
 
 extern "C" {
 #include "libnsgif/libnsgif.h"
@@ -106,6 +108,9 @@ return __VA_ARGS__; \
 #define OUTLINE_SIZE 1
 
 #ifdef MKXPZ_RETRO
+#define DIFF_TILE_SIZE (size_t)64
+#define FLOOR_DIV_DIFF_TILE_SIZE(x) ((size_t)(x) / DIFF_TILE_SIZE)
+#define CEIL_DIV_DIFF_TILE_SIZE(x) ((((size_t)(x) - 1) / DIFF_TILE_SIZE) + 1)
 static uint64_t next_id = 1;
 #endif // MKXPZ_RETRO
 
@@ -274,6 +279,7 @@ struct BitmapPrivate
     bool assumingRubyGC;
 
 #ifdef MKXPZ_RETRO
+    std::vector<std::vector<std::vector<uint32_t>>> diff;
     std::string path;
 #endif // MKXPZ_RETRO
     
@@ -475,6 +481,92 @@ struct BitmapPrivate
         
         self->modified();
     }
+
+#ifdef MKXPZ_RETRO
+    void pushDiff(const void *pixels, IntRect rect)
+    {
+        int image_width = megaSurface != nullptr ? megaSurface->w : animation.enabled ? animation.width : gl.width;
+        int image_height = megaSurface != nullptr ? megaSurface->h : animation.enabled ? animation.height : gl.height;
+        rect = normalizedRect(rect);
+        rect.x = clamp(rect.x, 0, image_width - 1);
+        rect.y = clamp(rect.y, 0, image_height - 1);
+        rect.w = clamp(rect.w, 0, image_width - rect.x);
+        rect.h = clamp(rect.h, 0, image_height - rect.y);
+
+        if (diff.empty() || rect.w <= 0 || rect.h <= 0)
+            return;
+
+        std::vector<std::vector<uint32_t>> &frame = diff[animation.enabled ? animation.currentFrameI() : 0];
+
+        for (size_t tile_row = FLOOR_DIV_DIFF_TILE_SIZE(rect.y); tile_row <= FLOOR_DIV_DIFF_TILE_SIZE(rect.y + (rect.h - 1)); ++tile_row)
+        {
+            for (size_t tile_col = FLOOR_DIV_DIFF_TILE_SIZE(rect.x); tile_col <= FLOOR_DIV_DIFF_TILE_SIZE(rect.x + (rect.w - 1)); ++tile_col)
+            {
+                std::vector<uint32_t> &tile = frame[CEIL_DIV_DIFF_TILE_SIZE(image_width) * tile_row + tile_col];
+                tile.resize(DIFF_TILE_SIZE * DIFF_TILE_SIZE);
+                tile.shrink_to_fit();
+                size_t y_start = rect.y > DIFF_TILE_SIZE * tile_row ? rect.y - DIFF_TILE_SIZE * tile_row : 0;
+                size_t x_start = rect.x > DIFF_TILE_SIZE * tile_col ? rect.x - DIFF_TILE_SIZE * tile_col : 0;
+                for (size_t y = y_start; y < DIFF_TILE_SIZE && DIFF_TILE_SIZE * tile_row + y < rect.y + rect.h; ++y)
+                {
+                    std::memcpy(tile.data() + DIFF_TILE_SIZE * y + x_start, (const uint32_t *)pixels + rect.w * (DIFF_TILE_SIZE * tile_row + y - rect.y) + DIFF_TILE_SIZE * tile_col + x_start - rect.x, 4 * std::min(DIFF_TILE_SIZE - x_start, rect.x + rect.w - (DIFF_TILE_SIZE * tile_col + x_start)));
+                }
+
+                // If the path is empty, that means the bitmap was originally empty when it was created, so empty tiles can be removed from the diff
+                if (path.empty())
+                {
+                    bool tile_is_empty = true;
+                    const uint8_t *data = (uint8_t *)tile.data();
+                    for (size_t i = 0; i < 4 * tile.size(); ++i)
+                    {
+                        if (data[i] != 0)
+                        {
+                            tile_is_empty = false;
+                            break;
+                        }
+                    }
+                    if (tile_is_empty)
+                    {
+                        tile.clear();
+                    }
+                }
+            }
+        }
+    }
+
+    void pushDiff(IntRect rect)
+    {
+        int image_width = megaSurface != nullptr ? megaSurface->w : animation.enabled ? animation.width : gl.width;
+        int image_height = megaSurface != nullptr ? megaSurface->h : animation.enabled ? animation.height : gl.height;
+        rect = normalizedRect(rect);
+        rect.x = clamp(rect.x, 0, image_width - 1);
+        rect.y = clamp(rect.y, 0, image_height - 1);
+        rect.w = clamp(rect.w, 0, image_width - rect.x);
+        rect.h = clamp(rect.h, 0, image_height - rect.y);
+
+        if (diff.empty() || rect.w <= 0 || rect.h <= 0)
+            return;
+
+        uint32_t *pixels = (uint32_t *)STBI_MALLOC(4 * rect.w * rect.h);
+        if (pixels == nullptr)
+            MKXPZ_THROW(std::bad_alloc());
+
+        if (megaSurface != nullptr)
+        {
+            for (size_t y = 0; y < rect.h; ++y)
+                std::memcpy(pixels + rect.w * y, (const uint32_t *)megaSurface->pixels + megaSurface->w * (rect.y + y) + rect.x, rect.w);
+        }
+        else
+        {
+            bindFBO();
+            ::gl.ReadPixels(rect.x, rect.y, rect.w, rect.h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        }
+
+        pushDiff(pixels, rect);
+
+        stbi_image_free(pixels);
+    }
+#endif // MKXPZ_RETRO
 };
 
 struct BitmapOpenHandler : FileSystem::OpenHandler
@@ -612,15 +704,15 @@ struct BitmapOpenHandler : FileSystem::OpenHandler
     }
 };
 
-Bitmap::Bitmap(Exception &exception, const char *filename)
+Bitmap::Bitmap(Exception &exception, const char *filename, bool useDiff)
 #ifdef MKXPZ_RETRO
     : id(next_id++)
 #endif // MKXPZ_RETRO
 {
-    initFromFilename(exception, filename);
+    initFromFilename(exception, filename, useDiff);
 }
 
-void Bitmap::initFromFilename(Exception &exception, const char *filename)
+void Bitmap::initFromFilename(Exception &exception, const char *filename, bool useDiff)
 {
     std::string hiresPrefix = "Hires/";
     std::string filenameStd = filename;
@@ -698,9 +790,6 @@ void Bitmap::initFromFilename(Exception &exception, const char *filename)
         }
         
         p = new BitmapPrivate(this);
-#ifdef MKXPZ_RETRO
-        p->path = filename;
-#endif // MKXPZ_RETRO
         
         p->selfHires = hiresBitmap;
         
@@ -781,7 +870,21 @@ void Bitmap::initFromFilename(Exception &exception, const char *filename)
             TEX::uploadImage(p->animation.width, p->animation.height, handler.gif->frame_image, GL_RGBA);
             p->animation.frames.push_back(texfbo);
         }
-        
+
+#ifdef MKXPZ_RETRO
+        p->diff.clear();
+        if (useDiff)
+        {
+            p->diff.resize(handler.gif->frame_count);
+            for (auto &d : p->diff)
+            {
+                d.clear();
+                d.resize(CEIL_DIV_DIFF_TILE_SIZE(p->animation.width) * CEIL_DIV_DIFF_TILE_SIZE(p->animation.height));
+            }
+        }
+        p->path = filename;
+#endif // MKXPZ_RETRO
+
         gif_finalise(handler.gif);
         delete handler.gif;
         delete handler.gif_data;
@@ -797,22 +900,21 @@ void Bitmap::initFromFilename(Exception &exception, const char *filename)
 #else
     SDL_Surface *imgSurf = handler.surface;
 #endif // MKXPZ_RETRO
-    GUARD(initFromSurface(exception, imgSurf, hiresBitmap, false));
+    GUARD(initFromSurface(exception, imgSurf, hiresBitmap, false, useDiff));
 #ifdef MKXPZ_RETRO
     p->path = filename;
 #endif // MKXPZ_RETRO
-
 }
 
-Bitmap::Bitmap(Exception &exception, int width, int height, bool isHires)
+Bitmap::Bitmap(Exception &exception, int width, int height, bool isHires, bool useDiff)
 #ifdef MKXPZ_RETRO
     : id(next_id++)
 #endif // MKXPZ_RETRO
 {
-    initFromDimensions(exception, width, height, isHires);
+    initFromDimensions(exception, width, height, isHires, useDiff);
 }
 
-void Bitmap::initFromDimensions(Exception &exception, int width, int height, bool isHires)
+void Bitmap::initFromDimensions(Exception &exception, int width, int height, bool isHires, bool useDiff)
 {
     if (width <= 0 || height <= 0) {
         exception = Exception(Exception::RGSSError, "failed to create bitmap");
@@ -852,10 +954,20 @@ void Bitmap::initFromDimensions(Exception &exception, int width, int height, boo
         p->gl.selfHires = &p->selfHires->getGLTypes();
     }
     
+#ifdef MKXPZ_RETRO
+    p->diff.clear();
+    if (useDiff)
+    {
+        p->diff.resize(1);
+        p->diff.front().clear();
+        p->diff.front().resize(CEIL_DIV_DIFF_TILE_SIZE(width) * CEIL_DIV_DIFF_TILE_SIZE(height));
+    }
+    p->path.clear();
+#endif // MKXPZ_RETRO
     GUARD(clear(exception));
 }
 
-Bitmap::Bitmap(Exception &exception, void *pixeldata, int width, int height)
+Bitmap::Bitmap(Exception &exception, void *pixeldata, int width, int height, bool useDiff)
 #ifdef MKXPZ_RETRO
     : id(next_id++)
 #endif // MKXPZ_RETRO
@@ -870,7 +982,7 @@ Bitmap::Bitmap(Exception &exception, void *pixeldata, int width, int height)
     surface->pixels = image;
     surface->w = width;
     surface->h = height;
-#else
+#else // TODO
     SDL_Surface *surface = SDL_CreateRGBSurface(0, width, height, p->format->BitsPerPixel,
                                                 p->format->Rmask,
                                                 p->format->Gmask,
@@ -918,12 +1030,24 @@ Bitmap::Bitmap(Exception &exception, void *pixeldata, int width, int height)
         SDL_FreeSurface(surface);
 #endif // MKXPZ_RETRO
     }
-    
+
+#ifdef MKXPZ_RETRO
+    p->diff.clear();
+    if (useDiff)
+    {
+        p->diff.resize(1);
+        p->diff.front().clear();
+        p->diff.front().resize(CEIL_DIV_DIFF_TILE_SIZE(width) * CEIL_DIV_DIFF_TILE_SIZE(height));
+    }
+    p->path.clear();
+    p->pushDiff(pixeldata, rect());
+#endif // MKXPZ_RETRO
+
     p->addTaintedArea(rect());
 }
 
 // frame is -2 for "any and all", -1 for "current", anything else for a specific frame
-Bitmap::Bitmap(Exception &exception, const Bitmap &other, int frame)
+Bitmap::Bitmap(Exception &exception, const Bitmap &other, int frame, bool useDiff)
 #ifdef MKXPZ_RETRO
     : id(next_id++)
 #endif // MKXPZ_RETRO
@@ -937,9 +1061,6 @@ Bitmap::Bitmap(Exception &exception, const Bitmap &other, int frame)
     }
 
     p = new BitmapPrivate(this);
-#ifdef MKXPZ_RETRO
-    p->path = other.p->path;
-#endif // MKXPZ_RETRO
     
     // TODO: Clean me up
     if (!other.isAnimated() || frame >= -1) {
@@ -986,11 +1107,17 @@ Bitmap::Bitmap(Exception &exception, const Bitmap &other, int frame)
             p->animation.frames.push_back(newframe);
         }
     }
-    
+
+#ifdef MKXPZ_RETRO
+    if (useDiff)
+        p->diff = other.p->diff;
+    p->path = other.p->path;
+#endif // MKXPZ_RETRO
+
     p->addTaintedArea(rect());
 }
 
-Bitmap::Bitmap(Exception &exception, TEXFBO &other)
+Bitmap::Bitmap(Exception &exception, TEXFBO &other, bool useDiff)
 #ifdef MKXPZ_RETRO
     : id(next_id++)
 #endif // MKXPZ_RETRO
@@ -1032,10 +1159,22 @@ Bitmap::Bitmap(Exception &exception, TEXFBO &other)
         GLMeta::blitEnd();
     }
 
+#ifdef MKXPZ_RETRO
+    p->diff.clear();
+    if (useDiff)
+    {
+        p->diff.resize(1);
+        p->diff.front().clear();
+        p->diff.front().resize(CEIL_DIV_DIFF_TILE_SIZE(width()) * CEIL_DIV_DIFF_TILE_SIZE(height()));
+    }
+    p->path.clear();
+    p->pushDiff(rect());
+#endif // MKXPZ_RETRO
+
     p->addTaintedArea(rect());
 }
 
-Bitmap::Bitmap(Exception &exception, SDL_Surface *imgSurf, SDL_Surface *imgSurfHires, bool forceMega)
+Bitmap::Bitmap(Exception &exception, SDL_Surface *imgSurf, SDL_Surface *imgSurfHires, bool forceMega, bool useDiff)
 #ifdef MKXPZ_RETRO
     : id(next_id++)
 #endif // MKXPZ_RETRO
@@ -1056,7 +1195,7 @@ Bitmap::Bitmap(Exception &exception, SDL_Surface *imgSurf, SDL_Surface *imgSurfH
         }
     }
 
-    GUARD(initFromSurface(exception, imgSurf, hiresBitmap, forceMega));
+    GUARD(initFromSurface(exception, imgSurf, hiresBitmap, forceMega, useDiff));
 }
 
 Bitmap::~Bitmap()
@@ -1066,7 +1205,7 @@ Bitmap::~Bitmap()
     loresDispCon.disconnect();
 }
 
-void Bitmap::initFromSurface(Exception &exception, SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool forceMega)
+void Bitmap::initFromSurface(Exception &exception, SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool forceMega, bool useDiff)
 {
 #ifndef MKXPZ_RETRO
     p->ensureFormat(imgSurf, SDL_PIXELFORMAT_ABGR8888);
@@ -1117,7 +1256,18 @@ void Bitmap::initFromSurface(Exception &exception, SDL_Surface *imgSurf, Bitmap 
         SDL_FreeSurface(imgSurf);
 #endif // MKXPZ_RETRO
     }
-    
+
+#ifdef MKXPZ_RETRO
+    p->diff.clear();
+    if (useDiff)
+    {
+        p->diff.resize(1);
+        p->diff.front().clear();
+        p->diff.front().resize(CEIL_DIV_DIFF_TILE_SIZE(width()) * CEIL_DIV_DIFF_TILE_SIZE(height()));
+    }
+    p->path.clear();
+#endif // MKXPZ_RETRO
+
     p->addTaintedArea(rect());
 }
 
@@ -1592,11 +1742,20 @@ void Bitmap::stretchBlt(Exception &exception,
         }
     }
     
-#ifndef MKXPZ_RETRO // TODO
     if (blitTemp)
+#ifdef MKXPZ_RETRO
+    {
+        stbi_image_free(blitTemp->pixels);
+        delete blitTemp;
+    }
+#else
         SDL_FreeSurface(blitTemp);
 #endif // MKXPZ_RETRO
-    
+
+#ifdef MKXPZ_RETRO
+    p->pushDiff(destRect);
+#endif // MKXPZ_RETRO
+
     p->addTaintedArea(destRect);
     p->onModified();
 }
@@ -1627,6 +1786,21 @@ void Bitmap::fillRect(Exception &exception, const IntRect &rect, const Vec4 &col
     }
 
     p->fillRect(rect, color);
+
+#ifdef MKXPZ_RETRO
+    uint8_t *pixels = (uint8_t *)STBI_MALLOC(4 * rect.w * rect.h);
+    if (pixels == nullptr)
+        MKXPZ_THROW(std::bad_alloc());
+    for (size_t i = 0; i < rect.w * rect.h; ++i)
+    {
+        pixels[4 * i] = color.x;
+        pixels[4 * i + 1] = color.y;
+        pixels[4 * i + 2] = color.z;
+        pixels[4 * i + 3] = color.w;
+    }
+    p->pushDiff(pixels, rect);
+    stbi_image_free(pixels);
+#endif // MKXPZ_RETRO
     
     if (color.w == 0)
     /* Clear op */
@@ -1696,7 +1870,11 @@ void Bitmap::gradientFillRect(Exception &exception,
     p->blitQuad(quad);
     
     p->popViewport();
-    
+
+#ifdef MKXPZ_RETRO
+    p->pushDiff(rect);
+#endif // MKXPZ_RETRO
+
     p->addTaintedArea(rect);
     
     p->onModified();
@@ -1725,6 +1903,15 @@ void Bitmap::clearRect(Exception &exception, const IntRect &rect)
     }
 
     p->fillRect(rect, Vec4());
+
+#ifdef MKXPZ_RETRO
+    void *pixels = STBI_MALLOC(4 * rect.w * rect.h);
+    if (pixels == nullptr)
+        MKXPZ_THROW(std::bad_alloc());
+    std::memset(pixels, 0, 4 * rect.w * rect.h);
+    p->pushDiff(pixels, rect);
+    stbi_image_free(pixels);
+#endif // MKXPZ_RETRO
     
     p->onModified();
 }
@@ -1778,7 +1965,11 @@ void Bitmap::blur(Exception &exception)
     glState.blend.pop();
     
     shState->texPool().release(auxTex);
-    
+
+#ifdef MKXPZ_RETRO
+    p->pushDiff(this->rect());
+#endif // MKXPZ_RETRO
+
     p->onModified();
 }
 
@@ -1880,7 +2071,11 @@ void Bitmap::radialBlur(Exception &exception, int angle, int divisions)
     
     shState->texPool().release(p->gl);
     p->gl = newTex;
-    
+
+#ifdef MKXPZ_RETRO
+    p->pushDiff(rect());
+#endif // MKXPZ_RETRO
+
     p->onModified();
 }
 
@@ -1902,7 +2097,28 @@ void Bitmap::clear(Exception &exception)
     FBO::clear();
     
     glState.clearColor.pop();
-    
+
+#ifdef MKXPZ_RETRO
+    if (p->animation.enabled)
+    {
+        void *pixels = STBI_MALLOC(4 * width() * height());
+        if (pixels == nullptr)
+            MKXPZ_THROW(std::bad_alloc());
+        std::memset(pixels, 0, 4 * width() * height());
+        p->pushDiff(pixels, rect());
+        stbi_image_free(pixels);
+    }
+    else
+    {
+        if (!p->diff.empty())
+        {
+            p->diff.front().clear();
+            p->diff.front().resize(CEIL_DIV_DIFF_TILE_SIZE(width()) * CEIL_DIV_DIFF_TILE_SIZE(height()));
+        }
+        p->path.clear();
+    }
+#endif // MKXPZ_RETRO
+
     p->clearTaintedArea();
     
     p->onModified();
@@ -2041,14 +2257,18 @@ void Bitmap::setPixel(Exception &exception, int x, int y, const Color &color)
     /* Setting just a single pixel is no reason to throw away the
      * whole cached surface; we can just apply the same change */
     
-#ifndef MKXPZ_RETRO
+#ifndef MKXPZ_RETRO // TODO
     if (p->surface)
     {
         uint32_t &surfPixel = getPixelAt(p->surface, p->format, x, y);
         surfPixel = SDL_MapRGBA(p->format, pixel[0], pixel[1], pixel[2], pixel[3]);
     }
 #endif // MKXPZ_RETRO
-    
+
+#ifdef MKXPZ_RETRO
+    p->pushDiff(pixel, IntRect(x, y, 1, 1));
+#endif // MKXPZ_RETRO
+
     p->onModified(false);
 }
 
@@ -2112,7 +2332,11 @@ void Bitmap::replaceRaw(Exception &exception, void *pixel_data, int size)
 #if defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
     std::reverse((uint8_t *)pixel_data, (uint8_t *)pixel_data + size);
 #endif
-    
+
+#ifdef MKXPZ_RETRO
+    p->pushDiff(pixel_data, rect());
+#endif // MKXPZ_RETRO
+
     taintArea(IntRect(0,0,w,h));
     p->onModified();
 }
@@ -2225,7 +2449,11 @@ void Bitmap::hueChange(Exception &exception, int hue)
     
     shState->texPool().release(p->gl);
     p->gl = newTex;
-    
+
+#ifdef MKXPZ_RETRO
+    p->pushDiff(rect());
+#endif // MKXPZ_RETRO
+
     p->onModified();
 }
 
@@ -2850,7 +3078,7 @@ void Bitmap::drawText(Exception &exception, const IntRect &rect, const char *str
     sourceRect.w = destRect.w / squeeze;
     sourceRect.h = destRect.h;
     
-    Bitmap txtBitmap(exception, txtSurf, nullptr, true);
+    Bitmap txtBitmap(exception, txtSurf, nullptr, true, false);
     if (exception.is_error()) {
         return;
     }
@@ -3425,24 +3653,50 @@ void Bitmap::loresDisposal()
 #ifdef MKXPZ_RETRO
 bool Bitmap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
+    if (!mkxp_sandbox::sandbox_serialize(p->animation.enabled, data, max_size)) return false;
+
     if (!mkxp_sandbox::sandbox_serialize(p->path, data, max_size)) return false;
 
     if (!mkxp_sandbox::sandbox_serialize((int32_t)width(), data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize((int32_t)height(), data, max_size)) return false;
 
-    if (!mkxp_sandbox::sandbox_serialize(p->animation.enabled, data, max_size)) return false;
-
-    if (p->animation.enabled) {
-        if (!mkxp_sandbox::sandbox_serialize(p->animation.fps, data, max_size)) return false;
-        if (!mkxp_sandbox::sandbox_serialize(p->animation.playing, data, max_size)) return false;
-        if (!mkxp_sandbox::sandbox_serialize(p->animation.needsReset, data, max_size)) return false;
-        if (!mkxp_sandbox::sandbox_serialize(p->animation.loop, data, max_size)) return false;
-        if (!mkxp_sandbox::sandbox_serialize((int32_t)p->animation.lastFrame, data, max_size)) return false;
-        if (!mkxp_sandbox::sandbox_serialize(p->animation.playTime, data, max_size)) return false;
-        if (!mkxp_sandbox::sandbox_serialize(p->animation.startTime, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize((mkxp_sandbox::wasm_size_t)p->diff.size(), data, max_size)) return false;
+    for (const std::vector<std::vector<uint32_t>> &frame : p->diff) {
+        if (!mkxp_sandbox::sandbox_serialize((mkxp_sandbox::wasm_size_t)frame.size(), data, max_size)) return false;
+        mkxp_sandbox::wasm_size_t num_empty_tiles = 0;
+        for (const std::vector<uint32_t> &tile : frame) {
+            if (tile.empty()) {
+                ++num_empty_tiles;
+            } else {
+                if (num_empty_tiles > 0) {
+                    if (!mkxp_sandbox::sandbox_serialize(false, data, max_size)) return false;
+                    if (!mkxp_sandbox::sandbox_serialize(num_empty_tiles, data, max_size)) return false;
+                    num_empty_tiles = 0;
+                }
+                if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
+                if (tile.size() != DIFF_TILE_SIZE * DIFF_TILE_SIZE) {
+                    std::abort();
+                }
+                if (max_size < 4 * DIFF_TILE_SIZE * DIFF_TILE_SIZE) return false;
+                std::memcpy(data, tile.data(), 4 * DIFF_TILE_SIZE * DIFF_TILE_SIZE);
+                data = (uint8_t *)data + 4 * DIFF_TILE_SIZE * DIFF_TILE_SIZE;
+                max_size -= 4 * DIFF_TILE_SIZE * DIFF_TILE_SIZE;
+            }
+        }
+        if (num_empty_tiles > 0) {
+            if (!mkxp_sandbox::sandbox_serialize(false, data, max_size)) return false;
+            if (!mkxp_sandbox::sandbox_serialize(num_empty_tiles, data, max_size)) return false;
+            num_empty_tiles = 0;
+        }
     }
 
-    // TODO: serialize bitmap pixels
+    if (p->animation.enabled) {
+        if (!mkxp_sandbox::sandbox_serialize(p->animation.playing, data, max_size)) return false;
+        if (!mkxp_sandbox::sandbox_serialize(p->animation.fps, data, max_size)) return false;
+        if (!mkxp_sandbox::sandbox_serialize(p->animation.loop, data, max_size)) return false;
+        if (!mkxp_sandbox::sandbox_serialize((int32_t)p->animation.lastFrame, data, max_size)) return false;
+        if (!mkxp_sandbox::sandbox_serialize(p->animation.startTime, data, max_size)) return false;
+    }
 
     if (!mkxp_sandbox::sandbox_serialize(p->font == &shState->defaultFont() ? nullptr : p->font, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->selfHires, data, max_size)) return false;
@@ -3453,10 +3707,14 @@ bool Bitmap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
 
 bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
+    bool was_enabled = p->animation.enabled;
+    if (!mkxp_sandbox::sandbox_deserialize(p->animation.enabled, data, max_size)) return false;
+    bool should_be_enabled = p->animation.enabled;
+
     {
         std::string old_path = p->path;
         if (!mkxp_sandbox::sandbox_deserialize(p->path, data, max_size)) return false;
-        if (p->path != old_path) {
+        if ((was_enabled && !should_be_enabled) || p->path != old_path) {
             if (!p->path.empty()) {
                 std::string path(p->path);
                 delete p;
@@ -3465,6 +3723,16 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
                 if (e.is_error()) {
                     return false;
                 }
+            }
+            if (p->animation.enabled && !should_be_enabled) {
+                p->animation.enabled = false;
+                p->animation.playing = false;
+                p->animation.width = 0;
+                p->animation.height = 0;
+                p->animation.lastFrame = 0;
+                p->gl = p->animation.frames.front();
+                p->animation.frames.clear();
+                taintArea(rect());
             }
             deserModified = true;
         }
@@ -3502,34 +3770,44 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
         }
     }
 
-    {
-        bool old_enabled = p->animation.enabled;
-        if (!mkxp_sandbox::sandbox_deserialize(p->animation.enabled, data, max_size)) return false;
-        if (p->animation.enabled != old_enabled) {
-            if (!p->path.empty()) {
-                return false;
-            }
-            deserModified = true;
-        }
+    for (bool done = false; !done;) {
+        if (!sandbox_deserialize_pixels(data, max_size, done)) return false;
     }
 
     if (p->animation.enabled) {
-        uint32_t old_frame = p->animation.currentFrameI();
         p->animation.width = p->gl.width;
         p->animation.height = p->gl.height;
-        if (!mkxp_sandbox::sandbox_deserialize(p->animation.fps, data, max_size)) return false;
-        if (!mkxp_sandbox::sandbox_deserialize(p->animation.playing, data, max_size)) return false;
-        if (!mkxp_sandbox::sandbox_deserialize(p->animation.needsReset, data, max_size)) return false;
+        {
+            bool old_playing = p->animation.playing;
+            bool new_playing;
+            if (!mkxp_sandbox::sandbox_deserialize(new_playing, data, max_size)) return false;
+            if (new_playing != old_playing) {
+                if (new_playing) {
+                    p->animation.play();
+                } else {
+                    p->animation.stop();
+                }
+            }
+        }
+        {
+            float value = p->animation.fps;
+            if (!mkxp_sandbox::sandbox_deserialize(p->animation.fps, data, max_size)) return false;
+            if (p->animation.fps < 0) {
+                p->animation.fps = 0;
+            }
+            if (p->animation.fps != value) {
+                bool restart = p->animation.playing;
+                p->animation.stop();
+                if (restart) {
+                    p->animation.play();
+                }
+            }
+        }
         if (!mkxp_sandbox::sandbox_deserialize(p->animation.loop, data, max_size)) return false;
         if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->animation.lastFrame, data, max_size)) return false;
-        if (!mkxp_sandbox::sandbox_deserialize(p->animation.playTime, data, max_size)) return false;
+        p->animation.lastFrame = clamp(p->animation.lastFrame, 0, (int)p->animation.frames.size());
         if (!mkxp_sandbox::sandbox_deserialize(p->animation.startTime, data, max_size)) return false;
-        if (p->animation.currentFrameI() != old_frame) {
-            deserModified = true;
-        }
     }
-
-    // TODO: deserialize bitmap pixels
 
     if (!mkxp_sandbox::sandbox_deserialize(p->font, data, max_size)) return false;
     if (p->font == nullptr) {
@@ -3538,6 +3816,133 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
     if (!mkxp_sandbox::sandbox_deserialize(p->selfHires, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_deserialize(p->selfLores, data, max_size)) return false;
 
+    return true;
+}
+
+bool Bitmap::sandbox_deserialize_pixels(const void *&data, mkxp_sandbox::wasm_size_t &max_size, bool &done)
+{
+    const void *old_data = data;
+    mkxp_sandbox::wasm_size_t old_max_size = max_size;
+    done = false;
+
+    mkxp_sandbox::wasm_size_t num_frames;
+    if (!mkxp_sandbox::sandbox_deserialize(num_frames, data, max_size)) return false;
+    if (num_frames != p->diff.size()) {
+        p->diff.clear();
+        p->diff.resize(num_frames);
+        data = old_data;
+        max_size = old_max_size;
+        return true;
+    }
+
+    mkxp_sandbox::wasm_size_t frame_number = 0;
+    while (num_frames > 0) {
+        mkxp_sandbox::wasm_size_t num_tiles;
+        if (!mkxp_sandbox::sandbox_deserialize(num_tiles, data, max_size)) return false;
+
+        std::vector<std::vector<uint32_t>> &frame = p->diff[frame_number];
+        if (num_tiles != frame.size()) return false;
+
+        mkxp_sandbox::wasm_size_t tile_number = 0;
+        while (num_tiles > 0) {
+            bool is_not_empty;
+            if (!mkxp_sandbox::sandbox_deserialize(is_not_empty, data, max_size)) return false;
+
+            if (!is_not_empty) {
+                mkxp_sandbox::wasm_size_t num_empty_tiles;
+                if (!mkxp_sandbox::sandbox_deserialize(num_empty_tiles, data, max_size)) return false;
+
+                while (num_empty_tiles > 0) {
+                    // If a tile is empty in the save state but not currently empty, reload the bitmap to clear all the tiles and then try deserializing the pixels again
+                    if (!frame[tile_number].empty()) {
+                        int old_width = p->gl.width;
+                        int old_height = p->gl.height;
+                        if (p->path.empty()) {
+                            delete p;
+                            Exception e;
+                            initFromDimensions(e, old_width, old_height, true);
+                            if (e.is_error()) {
+                                return false;
+                            }
+                        } else {
+                            std::string path(p->path);
+                            delete p;
+                            Exception e;
+                            initFromFilename(e, path.c_str());
+                            if (e.is_error() || p->gl.width != old_width || p->gl.height != old_height) {
+                                return false;
+                            }
+                        }
+                        data = old_data;
+                        max_size = old_max_size;
+                        return true;
+                    }
+
+                    ++tile_number;
+                    --num_tiles;
+                    --num_empty_tiles;
+                }
+            } else {
+                if (max_size < 4 * DIFF_TILE_SIZE * DIFF_TILE_SIZE) return false;
+
+                bool tile_modified = false;
+
+                std::vector<uint32_t> &tile = frame[tile_number];
+
+                if (tile.size() != DIFF_TILE_SIZE * DIFF_TILE_SIZE) {
+                    tile.clear();
+                    tile.resize(DIFF_TILE_SIZE * DIFF_TILE_SIZE);
+                    tile_modified = true;
+                }
+
+                if (!tile_modified && std::memcmp(tile.data(), data, 4 * DIFF_TILE_SIZE * DIFF_TILE_SIZE)) {
+                    tile_modified = true;
+                }
+
+                // Upload modified tiles to the bitmap
+                if (tile_modified) {
+                    std::memcpy(tile.data(), data, 4 * DIFF_TILE_SIZE * DIFF_TILE_SIZE);
+
+                    IntRect src_rect = IntRect(DIFF_TILE_SIZE * (tile_number % CEIL_DIV_DIFF_TILE_SIZE(width())), DIFF_TILE_SIZE * (tile_number / CEIL_DIV_DIFF_TILE_SIZE(width())), DIFF_TILE_SIZE, DIFF_TILE_SIZE);
+                    IntRect dst_rect(src_rect);
+                    dst_rect.w = std::min(dst_rect.w, width() - dst_rect.x);
+                    dst_rect.h = std::min(dst_rect.h, height() - dst_rect.y);
+
+                    if (isMega()) {
+                        for (size_t y = 0; y < dst_rect.h; ++y) {
+                            std::memcpy((uint32_t *)p->megaSurface + p->megaSurface->w * (dst_rect.y + y) + dst_rect.x, (const uint32_t *)data + src_rect.w * y, 4 * dst_rect.w);
+                        }
+                    } else {
+                        TEX::bind(p->animation.enabled ? p->animation.frames[frame_number].tex : p->gl.tex);
+                        if (src_rect == dst_rect) {
+                            TEX::uploadSubImage(dst_rect.x, dst_rect.y, dst_rect.w, dst_rect.h, data, GL_RGBA);
+                        } else {
+                            void *buf = STBI_MALLOC(4 * dst_rect.w * dst_rect.h);
+                            if (buf == nullptr) {
+                                MKXPZ_THROW(std::bad_alloc());
+                            }
+                            for (size_t y = 0; y < dst_rect.h; ++y) {
+                                std::memcpy((uint32_t *)buf + dst_rect.w * y, (const uint32_t *)data + src_rect.w * y, 4 * dst_rect.w);
+                            }
+                            TEX::uploadSubImage(dst_rect.x, dst_rect.y, dst_rect.w, dst_rect.h, buf, GL_RGBA);
+                            stbi_image_free(buf);
+                        }
+                    }
+                    p->addTaintedArea(dst_rect);
+                }
+
+                data = (uint8_t *)data + 4 * DIFF_TILE_SIZE * DIFF_TILE_SIZE;
+                max_size -= 4 * DIFF_TILE_SIZE * DIFF_TILE_SIZE;
+                ++tile_number;
+                --num_tiles;
+            }
+        }
+
+        ++frame_number;
+        --num_frames;
+    }
+
+    done = true;
     return true;
 }
 

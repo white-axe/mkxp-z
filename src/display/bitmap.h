@@ -55,21 +55,21 @@ class Bitmap : public Disposable
 	friend struct WindowVXPrivate;
 
 public:
-	Bitmap(Exception &exception, const char *filename);
-	Bitmap(Exception &exception, int width = 1, int height = 1, bool isHires = false);
-	Bitmap(Exception &exception, void *pixeldata, int width, int height);
-	Bitmap(Exception &exception, TEXFBO &other);
-	Bitmap(Exception &exception, SDL_Surface *imgSurf, SDL_Surface *imgSurfHires, bool forceMega = false);
+	Bitmap(Exception &exception, const char *filename, bool useDiff = true);
+	Bitmap(Exception &exception, int width = 1, int height = 1, bool isHires = false, bool useDiff = true);
+	Bitmap(Exception &exception, void *pixeldata, int width, int height, bool useDiff = true);
+	Bitmap(Exception &exception, TEXFBO &other, bool useDiff = true);
+	Bitmap(Exception &exception, SDL_Surface *imgSurf, SDL_Surface *imgSurfHires, bool forceMega = false, bool useDiff = true);
 
 	/* Clone constructor */
     
     // frame is -2 for "any and all", -1 for "current", anything else for a specific frame
-	Bitmap(Exception &exception, const Bitmap &other, int frame = -2);
+	Bitmap(Exception &exception, const Bitmap &other, int frame = -2, bool useDiff = true);
 	~Bitmap();
 
-	void initFromFilename(Exception &exception, const char *filename);
-	void initFromDimensions(Exception &exception, int width = 1, int height = 1, bool isHires = false);
-	void initFromSurface(Exception &exception, SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool forceMega = false);
+	void initFromFilename(Exception &exception, const char *filename, bool useDiff = true);
+	void initFromDimensions(Exception &exception, int width = 1, int height = 1, bool isHires = false, bool useDiff = true);
+	void initFromSurface(Exception &exception, SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool forceMega = false, bool useDiff = true);
 
 	int getWidth(Exception &exception)  const;
 	int getHeight(Exception &exception) const;
@@ -231,6 +231,7 @@ private:
 #ifdef MKXPZ_RETRO
 	IntRect textRect(Exception &exception, const char *str, bool solid);
 	SDL_Surface *drawTextInner(Exception &exception, FT_Face font, const char *str, SDL_Color &c, size_t outline);
+	bool sandbox_deserialize_pixels(const void *&data, mkxp_sandbox::wasm_size_t &max_size, bool &done);
 #endif // MKXPZ_RETRO
 };
 
