@@ -1788,16 +1788,17 @@ void Bitmap::fillRect(Exception &exception, const IntRect &rect, const Vec4 &col
     p->fillRect(rect, color);
 
 #ifdef MKXPZ_RETRO
-    uint8_t *pixels = (uint8_t *)STBI_MALLOC(4 * rect.w * rect.h);
+    uint32_t *pixels = (uint32_t *)STBI_MALLOC(4 * rect.w * rect.h);
     if (pixels == nullptr)
         MKXPZ_THROW(std::bad_alloc());
+    const uint8_t pixel[4] = {
+        (uint8_t)clamp(color.x * 255.0f, 0.0f, 255.0f),
+        (uint8_t)clamp(color.y * 255.0f, 0.0f, 255.0f),
+        (uint8_t)clamp(color.z * 255.0f, 0.0f, 255.0f),
+        (uint8_t)clamp(color.w * 255.0f, 0.0f, 255.0f),
+    };
     for (size_t i = 0; i < rect.w * rect.h; ++i)
-    {
-        pixels[4 * i] = color.x;
-        pixels[4 * i + 1] = color.y;
-        pixels[4 * i + 2] = color.z;
-        pixels[4 * i + 3] = color.w;
-    }
+        std::memcpy(pixels + i, pixel, 4);
     p->pushDiff(pixels, rect);
     stbi_image_free(pixels);
 #endif // MKXPZ_RETRO
