@@ -312,7 +312,7 @@ namespace mkxp_sandbox {
         wasm_size_t memory_capacity() const noexcept;
         wasm_size_t memory_size() const noexcept;
         void copy_memory_to(void *ptr) const noexcept;
-        void copy_memory_from(const void *ptr, wasm_size_t size, wasm_size_t capacity) noexcept;
+        void copy_memory_from(const void *ptr, wasm_size_t size, wasm_size_t capacity, bool swap_bytes) noexcept;
 
         // Gets a pointer to the given address in sandbox memory.
         void *ptr(wasm_ptr_t address) const noexcept;

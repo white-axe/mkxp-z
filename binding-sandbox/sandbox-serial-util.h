@@ -118,6 +118,7 @@ namespace mkxp_sandbox {
     };
 
     extern std::unordered_map<wasm_size_t, struct sandbox_swizzle_info> swizzle_map;
+    extern bool deser_swap_bytes;
 
     template <typename T> using sandbox_serialize_member_declaration = decltype(std::declval<const T *>()->sandbox_serialize(std::declval<void *&>(), std::declval<wasm_size_t &>()));
     template <typename T> using sandbox_deserialize_member_declaration = decltype(std::declval<T *>()->sandbox_deserialize(std::declval<const void *&>(), std::declval<wasm_size_t &>()));

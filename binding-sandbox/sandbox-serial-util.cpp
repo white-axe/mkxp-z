@@ -24,6 +24,10 @@
 #include "scene.h"
 #include "transform.h"
 
+#ifdef _MSC_VER
+#  include <stdlib.h>
+#endif // _MSC_VER
+
 using namespace mkxp_sandbox;
 
 #define RESERVE(bytes) do { \
@@ -108,6 +112,7 @@ extern const struct typenum_table_entry mkxp_sandbox::typenum_table[SANDBOX_NUM_
 extern const wasm_size_t mkxp_sandbox::typenum_table_size = SANDBOX_NUM_TYPENUMS;
 
 std::unordered_map<wasm_size_t, struct sandbox_swizzle_info> mkxp_sandbox::swizzle_map;
+bool mkxp_sandbox::deser_swap_bytes = false;
 
 sandbox_swizzle_info::sandbox_swizzle_info(void *ptr, wasm_size_t typenum) : ptr(ptr), typenum(typenum), ref_count(0), exists(true) {}
 
@@ -214,7 +219,16 @@ template <> bool mkxp_sandbox::sandbox_serialize(int16_t value, void *&data, was
 
 template <> bool mkxp_sandbox::sandbox_deserialize(int16_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(int16_t));
-    value = *(int16_t *)data;
+    if (deser_swap_bytes) {
+#ifdef _MSC_VER
+        static_assert(sizeof(unsigned short) == sizeof(int16_t), "unsigned short should be 16 bits");
+        value = (int16_t)_byteswap_ushort(*(unsigned short *)data);
+#else
+        value = (int16_t)__builtin_bswap16(*(uint16_t *)data);
+#endif // _MSC_VER
+    } else {
+        value = *(int16_t *)data;
+    }
     ADVANCE(sizeof(int16_t));
     return true;
 }
@@ -228,7 +242,16 @@ template <> bool mkxp_sandbox::sandbox_serialize(uint16_t value, void *&data, wa
 
 template <> bool mkxp_sandbox::sandbox_deserialize(uint16_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(uint16_t));
-    value = *(uint16_t *)data;
+    if (deser_swap_bytes) {
+#ifdef _MSC_VER
+        static_assert(sizeof(unsigned short) == sizeof(uint16_t), "unsigned short should be 16 bits");
+        value = (uint16_t)_byteswap_ushort(*(unsigned short *)data);
+#else
+        value = __builtin_bswap16(*(uint16_t *)data);
+#endif // _MSC_VER
+    } else {
+        value = *(uint16_t *)data;
+    }
     ADVANCE(sizeof(uint16_t));
     return true;
 }
@@ -242,7 +265,16 @@ template <> bool mkxp_sandbox::sandbox_serialize(int32_t value, void *&data, was
 
 template <> bool mkxp_sandbox::sandbox_deserialize(int32_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(int32_t));
-    value = *(int32_t *)data;
+    if (deser_swap_bytes) {
+#ifdef _MSC_VER
+        static_assert(sizeof(unsigned long) == sizeof(int32_t), "unsigned long should be 32 bits");
+        value = (int32_t)_byteswap_ulong(*(unsigned long *)data);
+#else
+        value = (int32_t)__builtin_bswap32(*(uint32_t *)data);
+#endif // _MSC_VER
+    } else {
+        value = *(int32_t *)data;
+    }
     ADVANCE(sizeof(int32_t));
     return true;
 }
@@ -256,7 +288,16 @@ template <> bool mkxp_sandbox::sandbox_serialize(uint32_t value, void *&data, wa
 
 template <> bool mkxp_sandbox::sandbox_deserialize(uint32_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(uint32_t));
-    value = *(uint32_t *)data;
+    if (deser_swap_bytes) {
+#ifdef _MSC_VER
+        static_assert(sizeof(unsigned long) == sizeof(uint32_t), "unsigned long should be 32 bits");
+        value = (uint32_t)_byteswap_ulong(*(unsigned long *)data);
+#else
+        value = __builtin_bswap32(*(uint32_t *)data);
+#endif // _MSC_VER
+    } else {
+        value = *(uint32_t *)data;
+    }
     ADVANCE(sizeof(uint32_t));
     return true;
 }
@@ -270,7 +311,15 @@ template <> bool mkxp_sandbox::sandbox_serialize(int64_t value, void *&data, was
 
 template <> bool mkxp_sandbox::sandbox_deserialize(int64_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(int64_t));
-    value = *(int64_t *)data;
+    if (deser_swap_bytes) {
+#ifdef _MSC_VER
+        value = (int64_t)_byteswap_uint64(*(unsigned __int64 *)data);
+#else
+        value = (int64_t)__builtin_bswap64(*(uint64_t *)data);
+#endif // _MSC_VER
+    } else {
+        value = *(int64_t *)data;
+    }
     ADVANCE(sizeof(int64_t));
     return true;
 }
@@ -284,7 +333,15 @@ template <> bool mkxp_sandbox::sandbox_serialize(uint64_t value, void *&data, wa
 
 template <> bool mkxp_sandbox::sandbox_deserialize(uint64_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(uint64_t));
-    value = *(uint64_t *)data;
+    if (deser_swap_bytes) {
+#ifdef _MSC_VER
+        value = (uint64_t)_byteswap_uint64(*(unsigned __int64 *)data);
+#else
+        value = __builtin_bswap64(*(uint64_t *)data);
+#endif // _MSC_VER
+    } else {
+        value = *(uint64_t *)data;
+    }
     ADVANCE(sizeof(uint64_t));
     return true;
 }
@@ -298,7 +355,17 @@ template <> bool mkxp_sandbox::sandbox_serialize(float value, void *&data, wasm_
 
 template <> bool mkxp_sandbox::sandbox_deserialize(float &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(float));
-    value = *(float *)data;
+    if (deser_swap_bytes) {
+#ifdef _MSC_VER
+        static_assert(sizeof(unsigned long) == sizeof(float), "unsigned long should be 32 bits");
+        uint32_t tmp = (uint32_t)_byteswap_ulong(*(unsigned long *)data);
+#else
+        uint32_t tmp = __builtin_bswap32(*(uint32_t *)data);
+#endif // _MSC_VER
+        std::memcpy(&value, &tmp, 4);
+    } else {
+        value = *(float *)data;
+    }
     ADVANCE(sizeof(float));
     return true;
 }
@@ -312,7 +379,16 @@ template <> bool mkxp_sandbox::sandbox_serialize(double value, void *&data, wasm
 
 template <> bool mkxp_sandbox::sandbox_deserialize(double &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(double));
-    value = *(double *)data;
+    if (deser_swap_bytes) {
+#ifdef _MSC_VER
+        uint64_t tmp = (uint64_t)_byteswap_uint64(*(unsigned __int64 *)data);
+#else
+        uint64_t tmp = __builtin_bswap64(*(uint64_t *)data);
+#endif // _MSC_VER
+        std::memcpy(&value, &tmp, 8);
+    } else {
+        value = *(double *)data;
+    }
     ADVANCE(sizeof(double));
     return true;
 }

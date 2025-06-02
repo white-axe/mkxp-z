@@ -22,6 +22,7 @@
 #include "binding-base.h"
 #include "wasm-rt.h"
 #include "mkxp-sandbox-ruby-indices.h"
+#include <algorithm>
 #include <boost/preprocessor/cat.hpp>
 
 using namespace mkxp_sandbox;
@@ -110,10 +111,14 @@ void binding_base::copy_memory_to(void *ptr) const noexcept {
     std::memcpy(ptr, instance().w2c_memory.data, memory_size());
 }
 
-void binding_base::copy_memory_from(const void *ptr, wasm_size_t size, wasm_size_t capacity) noexcept {
+void binding_base::copy_memory_from(const void *ptr, wasm_size_t size, wasm_size_t capacity, bool swap_bytes) noexcept {
     capacity = std::max(size, capacity);
     wasm_rt_replace_memory(&instance().w2c_memory, size, capacity);
-    std::memcpy(instance().w2c_memory.data, ptr, memory_size());
+    if (swap_bytes) {
+        std::reverse_copy((const uint8_t *)ptr, (const uint8_t *)ptr + size, (uint8_t *)instance().w2c_memory.data);
+    } else {
+        std::memcpy(instance().w2c_memory.data, ptr, memory_size());
+    }
 }
 
 void *mkxp_sandbox::sandbox_ptr(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {

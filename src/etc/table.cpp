@@ -206,11 +206,29 @@ bool Table::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &ma
 	}
 	if (max_size < this->data.size() * sizeof(int16_t)) return false;
 
+	if (!deserModified) {
+		if (mkxp_sandbox::deser_swap_bytes) {
+			const int16_t *buf = this->data.data();
+			for (size_t i = 0; i < this->data.size(); ++i) {
+				if (buf[i] != (int16_t)__builtin_bswap16(((const uint16_t *)data)[i])) {
+					deserModified = true;
+					break;
+				}
+			}
+		} else if (memcmp(this->data.data(), this->data.data(), this->data.size() * sizeof(int16_t))) {
+			deserModified = true;
+		}
+	}
+
 	if (deserModified) {
-		memcpy(this->data.data(), data, this->data.size() * sizeof(int16_t));
-	} else if (memcmp(this->data.data(), data, this->data.size() * sizeof(int16_t))) {
-		memcpy(this->data.data(), data, this->data.size() * sizeof(int16_t));
-		deserModified = true;
+		if (mkxp_sandbox::deser_swap_bytes) {
+			int16_t *buf = this->data.data();
+			for (size_t i = 0; i < this->data.size(); ++i) {
+				buf[i] = (int16_t)__builtin_bswap16(((const uint16_t *)data)[i]);
+			}
+		} else {
+			memcpy(this->data.data(), data, this->data.size() * sizeof(int16_t));
+		}
 	}
 
 	data = (uint8_t *)data + this->data.size() * sizeof(int16_t);

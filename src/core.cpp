@@ -1705,13 +1705,21 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
 extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     wasm_size_t max_size = len;
 
-    // TODO: allow deserializing save states of the opposite endianness
+    // Check endianness of save state, and enable byte swapping if it's not the same as that of the current machine
     RESERVE(4);
 #ifdef MKXPZ_BIG_ENDIAN
-    if (std::memcmp(data, "MKXP", 4))
+    if (!std::memcmp(data, "MKXP", 4))
 #else
-    if (std::memcmp(data, "mkxp", 4))
+    if (!std::memcmp(data, "mkxp", 4))
 #endif // MKXPZ_BIG_ENDIAN
+        deser_swap_bytes = false;
+#ifdef MKXPZ_BIG_ENDIAN
+    else if (!std::memcmp(data, "mkxp", 4))
+#else
+    else if (!std::memcmp(data, "MKXP", 4))
+#endif // MKXPZ_BIG_ENDIAN
+        deser_swap_bytes = true;
+    else
         return false;
     ADVANCE(4);
 
@@ -1729,7 +1737,7 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
         wasm_size_t memory_size;
         if (!sandbox_deserialize(memory_size, data, max_size)) return false;
         RESERVE(memory_size);
-        sb()->copy_memory_from(data, memory_size, memory_capacity);
+        sb()->copy_memory_from(data, memory_size, memory_capacity, deser_swap_bytes);
         ADVANCE(memory_size);
     }
 
