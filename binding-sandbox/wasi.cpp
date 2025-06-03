@@ -856,12 +856,12 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_write(wasi_t *wasi, uint32_t
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_create_directory(wasi_t *wasi, uint32_t fd, wasm_ptr_t path, uint32_t path_len) {
-    WASI_DEBUG("path_create_directory(%u, \"%.*s\")\n", fd, path_len, wasi->str(path));
+    WASI_DEBUG("path_create_directory(%u, \"%.*s\")\n", fd, path_len, (const char *)wasi->str(path));
     return WASI_ENOSYS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_filestat_get(wasi_t *wasi, uint32_t fd, uint32_t flags, wasm_ptr_t path, uint32_t path_len, wasm_ptr_t result) {
-    WASI_DEBUG("path_filestat_get(%u, %u, \"%.*s\")\n", fd, flags, path_len, wasi->str(path));
+    WASI_DEBUG("path_filestat_get(%u, %u, \"%.*s\")\n", fd, flags, path_len, (const char *)wasi->str(path));
 
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
@@ -913,17 +913,17 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_filestat_get(wasi_t *wasi,
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_filestat_set_times(wasi_t *wasi, uint32_t fd, uint32_t flags, wasm_ptr_t path, uint32_t path_len, uint64_t atim, uint64_t ntim, uint32_t fst_flags) {
-    WASI_DEBUG("path_filestat_set_times(%u, %u, \"%.*s\", %lu, %lu, %u)\n", fd, flags, path_len, wasi->str(path), atim, ntim, fst_flags);
+    WASI_DEBUG("path_filestat_set_times(%u, %u, \"%.*s\", %lu, %lu, %u)\n", fd, flags, path_len, (const char *)wasi->str(path), atim, ntim, fst_flags);
     return WASI_ENOSYS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_link(wasi_t *wasi, uint32_t old_fd, uint32_t old_flags, wasm_ptr_t old_path, uint32_t old_path_len, uint32_t new_fd, wasm_ptr_t new_path, uint32_t new_path_len) {
-    WASI_DEBUG("path_link(%u, %u, \"%.*s\", %u, \"%.*s\")\n", old_fd, old_flags, old_path_len, wasi->str(old_path), new_fd, new_path_len, wasi->str(new_path));
+    WASI_DEBUG("path_link(%u, %u, \"%.*s\", %u, \"%.*s\")\n", old_fd, old_flags, old_path_len, (const char *)wasi->str(old_path), new_fd, new_path_len, (const char *)wasi->str(new_path));
     return WASI_ENOSYS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, uint32_t fd, uint32_t dirflags, wasm_ptr_t path, uint32_t path_len, uint32_t oflags, uint64_t fs_base_rights, uint64_t fs_rights_inheriting, uint32_t fdflags, wasm_ptr_t result) {
-    WASI_DEBUG("path_open(%u, %u, \"%.*s\", %u, %lu, %lu, %u)\n", fd, dirflags, path_len, wasi->str(path), oflags, fs_base_rights, fs_rights_inheriting, fdflags);
+    WASI_DEBUG("path_open(%u, %u, \"%.*s\", %u, %lu, %lu, %u)\n", fd, dirflags, path_len, (const char *)wasi->str(path), oflags, fs_base_rights, fs_rights_inheriting, fdflags);
 
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
@@ -1034,12 +1034,12 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, uint32_
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_readlink(wasi_t *wasi, uint32_t fd, wasm_ptr_t path, uint32_t path_len, wasm_ptr_t buf, uint32_t buf_len, wasm_ptr_t result) {
-    WASI_DEBUG("path_readlink(%u, \"%.*s\", 0x%08x (%u))\n", fd, path_len, wasi->str(path), buf, buf_len);
+    WASI_DEBUG("path_readlink(%u, \"%.*s\", 0x%08x (%u))\n", fd, path_len, (const char *)wasi->str(path), buf, buf_len);
     return WASI_ENOSYS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_remove_directory(wasi_t *wasi, uint32_t fd, wasm_ptr_t path, uint32_t path_len) {
-    WASI_DEBUG("path_remove_directory(%u, \"%.*s\")\n", fd, path_len, wasi->str(path));
+    WASI_DEBUG("path_remove_directory(%u, \"%.*s\")\n", fd, path_len, (const char *)wasi->str(path));
 
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
@@ -1105,17 +1105,17 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_remove_directory(wasi_t *w
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_rename(wasi_t *wasi, uint32_t fd, wasm_ptr_t old_path, uint32_t old_path_len, uint32_t new_fd, wasm_ptr_t new_path, uint32_t new_path_len) {
-    WASI_DEBUG("path_rename(%u, \"%.*s\", %u, \"%.*s\")\n", fd, old_path_len, wasi->str(old_path), new_fd, new_path_len, wasi->str(new_path));
+    WASI_DEBUG("path_rename(%u, \"%.*s\", %u, \"%.*s\")\n", fd, old_path_len, (const char *)wasi->str(old_path), new_fd, new_path_len, (const char *)wasi->str(new_path));
     return WASI_ENOSYS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_symlink(wasi_t *wasi, wasm_ptr_t old_path, uint32_t old_path_len, uint32_t fd, wasm_ptr_t new_path, uint32_t new_path_len) {
-    WASI_DEBUG("path_symlink(\"%.*s\", %u, \"%.*s\")\n", old_path_len, wasi->str(old_path), fd, new_path_len, wasi->str(new_path));
+    WASI_DEBUG("path_symlink(\"%.*s\", %u, \"%.*s\")\n", old_path_len, (const char *)wasi->str(old_path), fd, new_path_len, (const char *)wasi->str(new_path));
     return WASI_ENOSYS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_unlink_file(wasi_t *wasi, uint32_t fd, wasm_ptr_t path, uint32_t path_len) {
-    WASI_DEBUG("path_unlink_file(%u, \"%.*s\")\n", fd, path_len, wasi->str(path));
+    WASI_DEBUG("path_unlink_file(%u, \"%.*s\")\n", fd, path_len, (const char *)wasi->str(path));
 
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;

@@ -122,7 +122,7 @@ struct run_rmxp_scripts : boost::asio::coroutine {
                     }
 
                     if (zlib_result != Z_OK) {
-                        mkxp_retro::log_printf(RETRO_LOG_ERROR, "Error decoding script %zu: '%s'\n", SANDBOX_SLOT(3), sb()->str(SANDBOX_SLOT(5)));
+                        mkxp_retro::log_printf(RETRO_LOG_ERROR, "Error decoding script %zu: '%s'\n", SANDBOX_SLOT(3), (const char *)sb()->str(SANDBOX_SLOT(5)));
                         break;
                     }
                 }

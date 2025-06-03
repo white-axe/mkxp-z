@@ -58,7 +58,7 @@ void log_backtrace::operator()(VALUE exception) {
         SANDBOX_AWAIT_S(2, rb_str_new_cstr, "\n\t");
         SANDBOX_AWAIT_S(1, rb_funcall, SANDBOX_SLOT(1), SANDBOX_SLOT(0), 1, SANDBOX_SLOT(2));
         SANDBOX_AWAIT_S(3, rb_string_value_cstr, &SANDBOX_SLOT(1));
-        mkxp_retro::log_printf(RETRO_LOG_ERROR, "%s\n", sb()->str(SANDBOX_SLOT(3)));
+        mkxp_retro::log_printf(RETRO_LOG_ERROR, "%s\n", (const char *)sb()->str(SANDBOX_SLOT(3)));
     }
 }
 
