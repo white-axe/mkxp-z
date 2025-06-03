@@ -175,6 +175,10 @@ struct Movie
     float volume;
     bool openedAudio;
 
+#ifdef MKXPZ_RETRO
+    bool dupeFrame;
+#endif // MKXPZ_RETRO
+
     // Variables used by streamMovieAudioProc
     ALint streamMovieAudioState;
     ALint procBufs;
@@ -185,13 +189,16 @@ struct Movie
     ALuint samplesToProcess;
     ALshort *sampleBuffer;
     ALuint remainingSamples;
-    
+
     Movie(float volume, bool skippable_)
     : decoder(0), audio(0), video(0), skippable(skippable_), videoBitmap(0),
 #ifndef MKXPZ_RETRO
         audioThread(0),
 #endif // MKXPZ_RETRO
         movieSprite(nullptr), letterboxSprite(nullptr), letterbox(nullptr), baseTicks(-1), currentTicks(0), volume(volume), openedAudio(false),
+#ifdef MKXPZ_RETRO
+        dupeFrame(true),
+#endif // MKXPZ_RETRO
         streamMovieAudioState(0), procBufs(STREAM_BUFS)
     {
         audioThreadTermReq.set();
@@ -431,6 +438,8 @@ struct Movie
     
     bool play()
     {
+        dupeFrame = true;
+
         if (baseTicks == (uint64_t)-1) {
             baseTicks = movieTicks();
         }
@@ -511,6 +520,7 @@ struct Movie
                 }
                 THEORAPLAY_freeVideo(video);
                 video = NULL;
+                dupeFrame = false;
             } else {
 #ifndef MKXPZ_RETRO
                 // Next video frame not yet ready, let the CPU breathe
@@ -1944,6 +1954,10 @@ bool Graphics::streamMovieAudioProc(Movie *movie) {
 }
 
 #ifdef MKXPZ_RETRO
+bool Graphics::getMovieDupeFrame(Movie *movie) {
+    return movie->dupeFrame;
+}
+
 bool Graphics::sandbox_serialize_movie(const Movie *movie, void *&data, mkxp_sandbox::wasm_size_t &max_size) {
     if (movie == nullptr) {
         return false;

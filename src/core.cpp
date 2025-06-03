@@ -1516,13 +1516,19 @@ extern "C" RETRO_API void retro_run() {
         shState->graphics().repaint(sb().transitioning);
     }
 
+    bool movie_dupe_frame = should_render && mkxp_retro::sandbox->get_movie_from_main_thread() != nullptr && Graphics::getMovieDupeFrame(mkxp_retro::sandbox->get_movie_from_main_thread());
+
+    if (!dupe_supported && movie_dupe_frame) {
+        shState->graphics().repaint(sb().transitioning);
+    }
+
     // We need to call `input_poll()` at least once every time `retro_run()` is called
     if (!input_polled) {
         input_poll();
     }
 
     void *fb;
-    if (dupe_supported && !should_render) {
+    if (dupe_supported && (!should_render || movie_dupe_frame)) {
         fb = nullptr;
     } else if (hw_render.context_type != RETRO_HW_CONTEXT_NONE) {
         gl.UseProgram(0);
