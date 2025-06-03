@@ -29,9 +29,11 @@
 #include "config.h"
 #include "util.h"
 #include "debugwriter.h"
+#include "wasm-types.h"
 
 #ifdef MKXPZ_RETRO
 #  include <sndfile.hh>
+#  include "sandbox-serial-util.h"
 #else
 #  include <SDL_sound.h>
 #endif // MKXPZ_RETRO
@@ -99,6 +101,7 @@ SoundEmitter::SoundEmitter(const Config &conf)
       srcCount(conf.SE.sourceCount),
       alSrcs(srcCount),
       atchBufs(srcCount),
+      filenames(srcCount),
       srcPrio(srcCount)
 {
 	for (size_t i = 0; i < srcCount; ++i)
@@ -182,6 +185,8 @@ void SoundEmitter::play(const std::string &filename,
 	AL::Source::setPitch(src, _pitch);
 
 	AL::Source::play(src);
+
+	filenames[srcIndex] = filename;
 }
 
 void SoundEmitter::stop()
@@ -335,4 +340,101 @@ SoundBuffer *SoundEmitter::allocateBuffer(const std::string &filename)
 
 		return buffer;
 	}
+}
+
+bool SoundEmitter::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
+{
+	if (!mkxp_sandbox::sandbox_serialize((mkxp_sandbox::wasm_size_t)srcCount, data, max_size)) return false;
+
+	for (size_t i = 0; i < srcCount; ++i) {
+		if (!mkxp_sandbox::sandbox_serialize(filenames[i], data, max_size)) return false;
+
+		AL::Source::ID source = alSrcs[i];
+		ALenum state = AL::Source::getState(source);
+		if (!mkxp_sandbox::sandbox_serialize((int32_t)state, data, max_size)) return false;
+
+		{
+			ALfloat value;
+			alGetSourcef(source.al, AL_SEC_OFFSET, &value);
+			if (!mkxp_sandbox::sandbox_serialize(value, data, max_size)) return false;
+		}
+		{
+			ALfloat value;
+			alGetSourcef(source.al, AL_PITCH, &value);
+			if (!mkxp_sandbox::sandbox_serialize(value, data, max_size)) return false;
+		}
+		{
+			ALfloat value;
+			alGetSourcef(source.al, AL_GAIN, &value);
+			if (!mkxp_sandbox::sandbox_serialize(value, data, max_size)) return false;
+		}
+	}
+
+	return true;
+}
+
+bool SoundEmitter::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
+{
+	{
+		mkxp_sandbox::wasm_size_t count;
+		if (!mkxp_sandbox::sandbox_deserialize(count, data, max_size)) return false;
+		if (count != srcCount) return false;
+	}
+
+	for (size_t i = 0; i < srcCount; ++i) {
+		AL::Source::ID source = alSrcs[i];
+
+		{
+			std::string value = filenames[i];
+			if (!mkxp_sandbox::sandbox_deserialize(filenames[i], data, max_size)) return false;
+			if (atchBufs[i] != nullptr) {
+				SoundBuffer::deref(atchBufs[i]);
+			}
+			if (filenames[i] != value) {
+				if (filenames[i].empty()) {
+					atchBufs[i] = nullptr;
+				} else {
+					SoundBuffer *buffer = allocateBuffer(filenames[i]);
+					if (buffer == nullptr) return false;
+					atchBufs[i] = SoundBuffer::ref(buffer);
+					AL::Source::attachBuffer(source, buffer->alBuffer);
+				}
+			}
+		}
+
+		int32_t state;
+		if (!mkxp_sandbox::sandbox_deserialize(state, data, max_size)) return false;
+		if (state != AL::Source::getState(source)) {
+			switch (state) {
+				case AL_PLAYING:
+					AL::Source::play(source);
+					break;
+				case AL_PAUSED:
+					AL::Source::pause(source);
+					break;
+				case AL_STOPPED:
+				default:
+					AL::Source::stop(source);
+					break;
+			}
+		}
+
+		{
+			ALfloat value;
+			if (!mkxp_sandbox::sandbox_deserialize(value, data, max_size)) return false;
+			alSourcef(source.al, AL_SEC_OFFSET, value);
+		}
+		{
+			ALfloat value;
+			if (!mkxp_sandbox::sandbox_deserialize(value, data, max_size)) return false;
+			alSourcef(source.al, AL_PITCH, value);
+		}
+		{
+			ALfloat value;
+			if (!mkxp_sandbox::sandbox_deserialize(value, data, max_size)) return false;
+			alSourcef(source.al, AL_GAIN, value);
+		}
+	}
+
+	return true;
 }

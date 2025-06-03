@@ -1732,6 +1732,9 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         ADVANCE(shState->graphics().frozenPixels.size());
     }
 
+    // Write the audio state
+    if (!audio->sandbox_serialize(data, max_size)) return false;
+
     std::memset(data, 0, max_size);
     return true;
 }
@@ -2078,6 +2081,9 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
         shState->graphics().uploadFrozenPixels();
         ADVANCE((size_t)shState->graphics().width() * (size_t)shState->graphics().height());
     }
+
+    // Read the audio state
+    if (!audio->sandbox_deserialize(data, max_size)) DESER_FAIL;
 
     return true;
 }

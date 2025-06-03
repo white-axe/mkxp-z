@@ -28,6 +28,7 @@
 #include "eventthread.h"
 
 #include "mkxp-polyfill.h" // std::to_string
+#include "wasm-types.h"
 
 #include <string>
 #include <utility>
@@ -35,6 +36,7 @@
 
 #ifdef MKXPZ_RETRO
 #  include "graphics.h"
+#  include "sandbox-serial-util.h"
 #else
 #  include "sdl-util.h"
 #  include <SDL_mutex.h>
@@ -606,3 +608,41 @@ void Audio::reset()
 }
 
 Audio::~Audio() { delete p; }
+
+bool Audio::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
+{
+	if (!mkxp_sandbox::sandbox_serialize((mkxp_sandbox::wasm_size_t)p->bgmTracks.size(), data, max_size)) return false;
+
+	for (AudioStream *track : p->bgmTracks) {
+		if (!track->sandbox_serialize(data, max_size)) return false;
+	}
+
+	if (!p->bgs.sandbox_serialize(data, max_size)) return false;
+
+	if (!p->me.sandbox_serialize(data, max_size)) return false;
+
+	if (!p->se.sandbox_serialize(data, max_size)) return false;
+
+	return true;
+}
+
+bool Audio::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
+{
+	{
+		mkxp_sandbox::wasm_size_t count;
+		if (!mkxp_sandbox::sandbox_deserialize(count, data, max_size)) return false;
+		if (count != p->bgmTracks.size()) return false;
+	}
+
+	for (AudioStream *track : p->bgmTracks) {
+		if (!track->sandbox_deserialize(data, max_size)) return false;
+	}
+
+	if (!p->bgs.sandbox_deserialize(data, max_size)) return false;
+
+	if (!p->me.sandbox_deserialize(data, max_size)) return false;
+
+	if (!p->se.sandbox_deserialize(data, max_size)) return false;
+
+	return true;
+}

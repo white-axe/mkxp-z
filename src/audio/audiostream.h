@@ -29,6 +29,10 @@
 
 #include <string>
 
+#ifdef MKXPZ_RETRO
+#  include "wasm-types.h"
+#endif // MKXPZ_RETRO
+
 struct AudioStream
 {
 	struct
@@ -152,6 +156,9 @@ struct AudioStream
 
 #ifdef MKXPZ_RETRO
 	void render();
+
+	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size);
+	bool sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size);
 #endif // MKXPZ_RETRO
 
 private:

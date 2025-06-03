@@ -26,6 +26,7 @@
 
 #ifdef MKXPZ_RETRO
 #  include "core.h"
+#  include "sandbox-serial-util.h"
 #else
 #  include <SDL_mutex.h>
 #  include <SDL_thread.h>
@@ -434,6 +435,72 @@ void AudioStream::render()
 		fadeIn.enabled = false;
 
 	stream.render();
+}
+
+bool AudioStream::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
+{
+	AudioMutexGuard guard(mutex);
+
+	ALStream::State state = stream.queryState();
+
+	if (!mkxp_sandbox::sandbox_serialize(current.filename, data, max_size)) return false;
+
+	if (!mkxp_sandbox::sandbox_serialize(state, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(playingOffset(), data, max_size)) return false;
+
+	if (!mkxp_sandbox::sandbox_serialize(current.pitch, data, max_size)) return false;
+
+	for (int i = 0; i < AudioStream::VolumeType::VolumeTypeCount; ++i) {
+		if (!mkxp_sandbox::sandbox_serialize(volumes[i], data, max_size)) return false;
+	}
+
+	return true;
+}
+
+bool AudioStream::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
+{
+	AudioMutexGuard guard(mutex);
+	{
+		std::string value;
+		if (!mkxp_sandbox::sandbox_deserialize(current.filename, data, max_size)) return false;
+		if (current.filename != value) {
+			Exception e;
+			stream.open(e, current.filename);
+			if (e.is_error()) return false;
+		}
+	}
+
+	ALStream::State state;
+	if (!mkxp_sandbox::sandbox_deserialize(state, data, max_size)) return false;
+	double offset;
+	if (!mkxp_sandbox::sandbox_deserialize(offset, data, max_size)) return false;
+	if (state != stream.queryState()) {
+		stream.stop();
+		switch (state) {
+			case ALStream::State::Playing:
+				stream.needsRewind.set();
+				stream.play(offset);
+				break;
+			case ALStream::State::Paused:
+				stream.needsRewind.set();
+				stream.play(offset);
+				stream.pause();
+				break;
+			case ALStream::State::Stopped:
+			default:
+				break;
+		}
+	}
+
+	if (!mkxp_sandbox::sandbox_deserialize(current.pitch, data, max_size)) return false;
+	stream.setPitch(current.pitch);
+
+	for (int i = 0; i < AudioStream::VolumeType::VolumeTypeCount; ++i) {
+		if (!mkxp_sandbox::sandbox_deserialize(volumes[i], data, max_size)) return false;
+	}
+	updateVolume();
+
+	return true;
 }
 #else
 void AudioStream::fadeOutThread()

@@ -34,6 +34,7 @@
 
 #ifdef MKXPZ_RETRO
 #  include "mkxp-polyfill.h"
+#  include "wasm-types.h"
 #else
 #  include <SDL_mutex.h>
 #endif // MKXPZ_RETRO
@@ -123,6 +124,11 @@ public:
 	void reset();
 
 	std::string getLastError();
+
+#ifdef MKXPZ_RETRO
+	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size);
+	bool sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size);
+#endif // MKXPZ_RETRO
 
 #ifndef MKXPZ_RETRO
 private:
