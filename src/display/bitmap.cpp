@@ -2126,12 +2126,11 @@ void Bitmap::clear(Exception &exception)
 #ifdef MKXPZ_RETRO
     if (p->animation.enabled)
     {
-        void *pixels = STBI_MALLOC(4 * width() * height());
-        if (pixels == nullptr)
-            MKXPZ_THROW(std::bad_alloc());
-        std::memset(pixels, 0, 4 * width() * height());
-        p->pushDiff(pixels, rect());
-        stbi_image_free(pixels);
+        if (!p->animation.currentFrame().diff.empty())
+        {
+            p->animation.currentFrame().diff.clear();
+            p->animation.currentFrame().diff.resize(CEIL_DIV_DIFF_TILE_SIZE(width()) * CEIL_DIV_DIFF_TILE_SIZE(height()));
+        }
     }
     else
     {
@@ -3830,6 +3829,13 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
                 if (e.is_error() || isMega()) {
                     return false;
                 }
+                p->animation.enabled = true;
+                p->animation.playing = false;
+                p->animation.width = new_width;
+                p->animation.height = new_height;
+                p->animation.lastFrame = 0;
+                p->diff.clear();
+                p->animation.frames.clear();
             }
             deserModified = true;
 
@@ -3844,7 +3850,7 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
                     const auto it = sources.find(path);
                     if (it == sources.end()) {
                         Exception e;
-                        source = new Bitmap(e, path.c_str(), false);
+                        source = path.empty() ? new Bitmap(e, new_width, new_height, true, false) : new Bitmap(e, path.c_str(), false);
                         if (e.is_error()) {
                             delete source;
                             return false;
