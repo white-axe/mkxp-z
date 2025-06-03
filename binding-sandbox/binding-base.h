@@ -168,10 +168,38 @@ namespace mkxp_sandbox {
     // Gets the length of a string stored at a given address in sandbox memory.
     wasm_size_t sandbox_strlen(struct w2c_ruby &instance, wasm_ptr_t address) noexcept;
 
+    struct sandbox_str_guard {
+    private:
+#ifdef MKXPZ_BIG_ENDIAN
+        std::string str;
+#endif // MKXPZ_BIG_ENDIAN
+        const char *ptr;
+
+    public:
+#ifdef MKXPZ_BIG_ENDIAN
+        inline sandbox_str_guard(std::string &&str) : str(str) {}
+#endif // MKXPZ_BIG_ENDIAN
+        inline sandbox_str_guard(const char *str) :
+#ifdef MKXPZ_BIG_ENDIAN
+            str(str), ptr(nullptr) {}
+#else
+            ptr(str) {}
+#endif // MKXPZ_BIG_ENDIAN
+        inline operator const char *() const {
+#ifdef MKXPZ_BIG_ENDIAN
+            if (ptr == nullptr) {
+                return str.c_str();
+            } else {
+                return ptr;
+            }
+#else
+            return ptr;
+#endif // MKXPZ_BIG_ENDIAN
+        }
+    };
+
     // Gets a string stored at a given address in sandbox memory.
-    // The returned string doesn't need to be freed but only lives until the next call to this function,
-    // so you need to store the returned string in a buffer somewhere if you need to get more than one.
-    const char *sandbox_str(struct w2c_ruby &instance, wasm_ptr_t address) noexcept;
+    struct sandbox_str_guard sandbox_str(struct w2c_ruby &instance, wasm_ptr_t address) noexcept;
 
     // Copies a string into a sandbox memory address.
     void sandbox_strcpy(struct w2c_ruby &instance, wasm_ptr_t dst_address, const char *src) noexcept;
@@ -325,9 +353,7 @@ namespace mkxp_sandbox {
         wasm_size_t strlen(wasm_ptr_t address) const noexcept;
 
         // Gets a string stored at a given address in sandbox memory.
-        // The returned string doesn't need to be freed but only lives until the next call to this function,
-        // so you need to store the returned string in a buffer somewhere if you need to get more than one.
-        const char *str(wasm_ptr_t address) const noexcept;
+        struct sandbox_str_guard str(wasm_ptr_t address) const noexcept;
 
         // Copies a string into a sandbox memory address.
         void strcpy(wasm_ptr_t dst_address, const char *src) const noexcept;

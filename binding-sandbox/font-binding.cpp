@@ -39,7 +39,7 @@ struct collect_strings : boost::asio::coroutine {
             SANDBOX_AWAIT_S(3, rb_obj_is_kind_of, obj, sb()->rb_cString());
             if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(3))) {
                 SANDBOX_AWAIT_S(0, rb_string_value_cstr, &obj);
-                out.push_back(sb()->str(SANDBOX_SLOT(0)));
+                out.push_back((const char *)sb()->str(SANDBOX_SLOT(0)));
             } else {
                 SANDBOX_AWAIT_S(3, rb_obj_is_kind_of, obj, sb()->rb_cArray());
                 if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(3))) {
@@ -51,7 +51,7 @@ struct collect_strings : boost::asio::coroutine {
                         SANDBOX_AWAIT_S(3, rb_obj_is_kind_of, SANDBOX_SLOT(4), sb()->rb_cString());
                         if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(3))) {
                             SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(4));
-                            out.push_back(sb()->str(SANDBOX_SLOT(0)));
+                            out.push_back((const char *)sb()->str(SANDBOX_SLOT(0)));
                         }
                     }
                 }

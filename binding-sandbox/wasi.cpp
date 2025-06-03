@@ -143,7 +143,7 @@ void wasi_t::strncpy(wasm_ptr_t dst_address, const char *src, wasm_size_t max_si
     sandbox_strncpy(*ruby, dst_address, src, max_size);
 }
 
-const char *wasi_t::str(wasm_ptr_t address) const noexcept {
+struct mkxp_sandbox::sandbox_str_guard wasi_t::str(wasm_ptr_t address) const noexcept {
     return sandbox_str(*ruby, address);
 }
 

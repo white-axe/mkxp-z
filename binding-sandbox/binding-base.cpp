@@ -147,16 +147,15 @@ wasm_size_t mkxp_sandbox::sandbox_strlen(struct w2c_ruby &instance, wasm_ptr_t a
 #endif
 }
 
-const char *mkxp_sandbox::sandbox_str(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {
+struct sandbox_str_guard mkxp_sandbox::sandbox_str(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {
 #ifdef MKXPZ_BIG_ENDIAN
-    static std::string buf;
-    buf.clear();
-    buf.reserve(sandbox_strlen(instance, address));
+    std::string str;
+    str.reserve(sandbox_strlen(instance, address));
     const char *ptr = (const char *)sandbox_ptr(instance, address);
     while ((uint8_t *)ptr != instance.w2c_memory.data && *--ptr) {
-        buf.push_back(*ptr);
+        str.push_back(*ptr);
     }
-    return buf.c_str();
+    return str;
 #else
     if (instance.w2c_memory.size - address <= sandbox_strlen(instance, address)) {
         std::abort();
@@ -214,7 +213,7 @@ wasm_size_t binding_base::strlen(wasm_ptr_t address) const noexcept {
     return sandbox_strlen(instance(), address);
 }
 
-const char *binding_base::str(wasm_ptr_t address) const noexcept {
+struct sandbox_str_guard binding_base::str(wasm_ptr_t address) const noexcept {
     return sandbox_str(instance(), address);
 }
 

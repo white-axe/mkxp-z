@@ -105,7 +105,7 @@ struct run_rmxp_scripts : boost::asio::coroutine {
                         zlib_result = uncompress(
                             sb().script_decode_buffer.data(),
                             &buffer_len,
-                            (const unsigned char *)sb()->str(SANDBOX_SLOT(6)),
+                            (const unsigned char *)(const char *)sb()->str(SANDBOX_SLOT(6)),
                             SANDBOX_SLOT(7)
                         );
                         sb().script_decode_buffer[buffer_len] = 0;

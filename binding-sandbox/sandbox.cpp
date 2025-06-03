@@ -156,7 +156,7 @@ void sandbox::set_movie(Movie *new_movie) {
     }
 }
 
-const char *sandbox::getcwd() {
+struct sandbox_str_guard sandbox::getcwd() {
     if (w2c_ruby_mkxp_sandbox_getcwd(ruby.get())) {
         return bindings->str(ruby->w2c_mkxp_sandbox_cwd);
     } else {

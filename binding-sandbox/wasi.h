@@ -219,9 +219,7 @@ typedef struct w2c_wasi__snapshot__preview1 {
     }
 
     // Gets a string stored at a given address in sandbox memory.
-    // The returned string doesn't need to be freed but only lives until the next call to this function,
-    // so you need to store the returned string in a buffer somewhere if you need to get more than one.
-    const char *str(mkxp_sandbox::wasm_ptr_t address) const noexcept;
+    struct mkxp_sandbox::sandbox_str_guard str(mkxp_sandbox::wasm_ptr_t address) const noexcept;
 
     // Gets the length of a string stored at a given address in sandbox memory.
     mkxp_sandbox::wasm_size_t strlen(mkxp_sandbox::wasm_ptr_t address) const noexcept;
