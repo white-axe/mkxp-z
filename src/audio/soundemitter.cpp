@@ -29,7 +29,6 @@
 #include "config.h"
 #include "util.h"
 #include "debugwriter.h"
-#include "wasm-types.h"
 
 #ifdef MKXPZ_RETRO
 #  include <sndfile.hh>

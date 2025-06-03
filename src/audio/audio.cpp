@@ -28,7 +28,6 @@
 #include "eventthread.h"
 
 #include "mkxp-polyfill.h" // std::to_string
-#include "wasm-types.h"
 
 #include <string>
 #include <utility>
