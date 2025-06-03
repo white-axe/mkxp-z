@@ -272,6 +272,8 @@ if is_libretro
         'b_staticpic': use_pic,
     }
     global_dependencies += subproject('theora', default_options: theora_options).get_variable('theoradec')
+
+    global_dependencies += subproject('priority-deque').get_variable('priority_deque')
 else
     physfs = dependency('physfs', version: '>=2.1', static: build_static)
     openal = dependency('openal', static: build_static, method: 'pkg-config')

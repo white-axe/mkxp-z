@@ -20,10 +20,13 @@
 */
 
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
 #include <cstring>
+#include <functional>
 #include <random>
 #include <sstream>
+#include <utility>
 #include <mkxp-sandbox-ruby.h>
 #include "filesystem.h"
 #include "core.h"
@@ -84,8 +87,8 @@ uint32_t wasi_t::allocate_file_descriptor(enum wasi_fd_type type, void *handle) 
         fdtable.push_back({handle, type});
         return fd;
     } else {
-        uint32_t fd = vacant_fds.back();
-        vacant_fds.pop_back();
+        uint32_t fd = vacant_fds.minimum();
+        vacant_fds.pop_minimum();
         fdtable[fd].handle = handle;
         fdtable[fd].type = type;
         return fd;
@@ -111,8 +114,17 @@ void wasi_t::deallocate_file_descriptor(uint32_t fd) {
         }
     }
 
-    fdtable[fd] = {nullptr, wasi_fd_type::VACANT};
-    vacant_fds.push_back(fd);
+    if (fd == fdtable.size() - 1) {
+        fdtable.pop_back();
+        while (!fdtable.empty() && fdtable.back().type == wasi_fd_type::VACANT) {
+            assert(!vacant_fds.empty() && vacant_fds.maximum() == fdtable.size() - 1);
+            vacant_fds.pop_maximum();
+            fdtable.pop_back();
+        }
+    } else {
+        fdtable[fd] = {nullptr, wasi_fd_type::VACANT};
+        vacant_fds.push(fd);
+    }
 }
 
 void *wasi_t::ptr(wasm_ptr_t address) const noexcept {
@@ -175,6 +187,7 @@ bool wasi_t::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
 bool wasi_t::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size) {
     uint32_t size;
     if (!::sandbox_deserialize(size, data, max_size)) return false;
+    if (size < fdtable.size() && (fdtable[size].type == wasi_fd_type::FS || fdtable[size].type == wasi_fd_type::STDIN || fdtable[size].type == wasi_fd_type::STDOUT || fdtable[size].type == wasi_fd_type::STDERR)) return false;
 
     for (uint32_t i = fdtable.size(); i > size;) {
         deallocate_file_descriptor(--i);
@@ -239,11 +252,13 @@ bool wasi_t::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
         }
     }
 
+    std::vector<u32> new_vacant_fds;
     for (uint32_t j = 0; j < fdtable.size(); ++j) {
         if (fdtable[j].type == wasi_fd_type::VACANT) {
-            vacant_fds.push_back(j);
+            new_vacant_fds.push_back(j);
         }
     }
+    vacant_fds = boost::container::priority_deque<uint32_t>(std::less<uint32_t>(), std::move(new_vacant_fds));
 
     return true;
 }
@@ -681,8 +696,19 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_renumber(wasi_t *wasi, uint3
             } else {
                 wasi->fdtable[to] = wasi->fdtable[fd];
             }
-            wasi->fdtable[fd] = {nullptr, wasi_fd_type::VACANT};
-            wasi->vacant_fds.push_back(fd);
+
+            if (fd == wasi->fdtable.size() - 1) {
+                wasi->fdtable.pop_back();
+                while (!wasi->fdtable.empty() && wasi->fdtable.back().type == wasi_fd_type::VACANT) {
+                    assert(!wasi->vacant_fds.empty() && wasi->vacant_fds.maximum() == wasi->fdtable.size() - 1);
+                    wasi->vacant_fds.pop_maximum();
+                    wasi->fdtable.pop_back();
+                }
+            } else {
+                wasi->fdtable[fd] = {nullptr, wasi_fd_type::VACANT};
+                wasi->vacant_fds.push(fd);
+            }
+
             return WASI_ESUCCESS;
     }
 

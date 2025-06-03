@@ -25,8 +25,8 @@
 #include <atomic>
 #include <memory>
 #include <vector>
-#include <boost/optional.hpp>
 #include <mkxp-sandbox-bindgen.h>
+#include <boost/optional.hpp>
 #include "wasm-types.h"
 #include "audio.h"
 #include "etc.h"

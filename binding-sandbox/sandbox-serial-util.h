@@ -22,6 +22,8 @@
 #ifndef MKXPZ_SANDBOX_SERIAL_UTIL_H
 #define MKXPZ_SANDBOX_SERIAL_UTIL_H
 
+#include "sandbox.h"
+
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
@@ -29,8 +31,6 @@
 #include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/preprocessor/seq/size.hpp>
 #include <boost/type_traits/is_detected.hpp>
-
-#include "sandbox.h"
 
 #include "bitmap.h"
 #include "etc.h"
@@ -165,7 +165,7 @@ namespace mkxp_sandbox {
             for (const auto &object : sb()->objects) {
                 ++key;
                 if (object.typenum == get_typenum<T>::value) {
-                    unswizzle_map.emplace((T *)object.inner.ptr, key);
+                    unswizzle_map.emplace((T *)object.ptr, key);
                 }
             }
         }

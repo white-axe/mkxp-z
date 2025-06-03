@@ -19,12 +19,18 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "core.h"
+#include "binding-sandbox.h"
+#include "sandbox-serial-util.h"
+
 #include <atomic>
 #include <cctype>
 #include <cstdarg>
 #include <cstring>
+#include <functional>
 #include <string>
 #include <tuple>
+#include <utility>
 
 #include <boost/optional.hpp>
 #include <boost/preprocessor/seq/for_each.hpp>
@@ -34,10 +40,6 @@
 
 #include "mkxp-polyfill.h" // std::mutex, std::strtoul
 #include "git-hash.h"
-
-#include "core.h"
-#include "binding-sandbox.h"
-#include "sandbox-serial-util.h"
 
 #include "al-util.h"
 #include "audio.h"
@@ -1594,7 +1596,7 @@ extern "C" RETRO_API size_t retro_serialize_size() {
 #define DESER_OBJECTS_BEGIN do { BOOST_PP_SEQ_FOR_EACH(DESER_OBJECTS_BEGIN_DETAIL, _, SANDBOX_TYPENUM_TYPES) } while (0)
 #define DESER_OBJECTS_END_DETAIL(_r, _data, T) sandbox_ptr_map<T>::sandbox_deserialize_end();
 #define DESER_OBJECTS_END do { BOOST_PP_SEQ_FOR_EACH(DESER_OBJECTS_END_DETAIL, _, SANDBOX_TYPENUM_TYPES) } while (0)
-#define DESER_OBJECTS_END_FAIL do { DESER_OBJECTS_END; sb()->objects.clear(); sb()->next_free_objkey = 0; DESER_FAIL; } while (0)
+#define DESER_OBJECTS_END_FAIL do { DESER_OBJECTS_END; sb()->vacant_object_keys.clear(); sb()->objects.clear(); DESER_FAIL; } while (0)
 
 extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     wasm_size_t max_size = len;
@@ -1676,10 +1678,10 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
                 num_free_objects = 0;
             }
             if (!sandbox_serialize(object.typenum, data, max_size)) SER_OBJECTS_END_FAIL;
-            bool disposed = typenum_table[object.typenum - 1].disposed(object.inner.ptr);
+            bool disposed = typenum_table[object.typenum - 1].disposed(object.ptr);
             if (!sandbox_serialize(disposed, data, max_size)) SER_OBJECTS_END_FAIL;
             if (!disposed) {
-                if (!typenum_table[object.typenum - 1].serialize(object.inner.ptr, data, max_size)) SER_OBJECTS_END_FAIL;
+                if (!typenum_table[object.typenum - 1].serialize(object.ptr, data, max_size)) SER_OBJECTS_END_FAIL;
             }
         }
     }
@@ -1836,7 +1838,7 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     DESER_OBJECTS_BEGIN;
     for (const auto &object : sb()->objects) {
         if (object.typenum > 0) {
-            typenum_table[object.typenum - 1].deserialize_begin(object.inner.ptr, false);
+            typenum_table[object.typenum - 1].deserialize_begin(object.ptr, false);
         }
     }
     if (sb().trans_map != nullptr) {
@@ -1844,7 +1846,8 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     }
 
     // Read objects
-    sb()->next_free_objkey = 0;
+    sb()->vacant_object_keys.clear();
+    std::vector<wasm_objkey_t> vacant_object_keys;
     wasm_objkey_t object_key = 1;
     wasm_size_t num_objects;
     if (!sandbox_deserialize(num_objects, data, max_size)) DESER_OBJECTS_END_FAIL;
@@ -1864,11 +1867,10 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
                     if (object.typenum > SANDBOX_NUM_TYPENUMS) {
                         std::abort();
                     }
-                    typenum_table[object.typenum - 1].destroy(object.inner.ptr);
+                    typenum_table[object.typenum - 1].destroy(object.ptr);
                     object.typenum = 0;
+                    vacant_object_keys.push_back(i);
                 }
-                object.inner.next = sb()->next_free_objkey;
-                sb()->next_free_objkey = i;
             }
 
             object_key += num_free_objects;
@@ -1880,33 +1882,33 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
 
             // Destroy and recreate objects that don't match the type in the save state, or are currently disposed but not disposed in the save state
             auto &object = sb()->objects[object_key - 1];
-            bool currently_disposed = object.typenum == 0 || typenum_table[object.typenum - 1].disposed(object.inner.ptr);
+            bool currently_disposed = object.typenum == 0 || typenum_table[object.typenum - 1].disposed(object.ptr);
             bool should_create = object.typenum != typenum || (currently_disposed && !should_be_disposed);
             bool should_destroy = should_create && object.typenum > 0;
             if (should_destroy) {
-                typenum_table[object.typenum - 1].destroy(object.inner.ptr);
+                typenum_table[object.typenum - 1].destroy(object.ptr);
             }
             if (should_create) {
                 object.typenum = typenum;
-                object.inner.ptr = typenum_table[typenum - 1].construct();
-                if (object.inner.ptr == nullptr) DESER_OBJECTS_END_FAIL;
+                object.ptr = typenum_table[typenum - 1].construct();
+                if (object.ptr == nullptr) DESER_OBJECTS_END_FAIL;
                 currently_disposed = false;
-                typenum_table[typenum - 1].deserialize_begin(object.inner.ptr, true);
+                typenum_table[typenum - 1].deserialize_begin(object.ptr, true);
             }
 
             // Deserialize the object
             if (!should_be_disposed) {
-                if (!typenum_table[typenum - 1].deserialize(object.inner.ptr, data, max_size)) DESER_OBJECTS_END_FAIL;
+                if (!typenum_table[typenum - 1].deserialize(object.ptr, data, max_size)) DESER_OBJECTS_END_FAIL;
             } else if (!currently_disposed) {
-                typenum_table[typenum - 1].dispose(object.inner.ptr);
+                typenum_table[typenum - 1].dispose(object.ptr);
             }
 
             // Add it to the swizzle map so that other objects that reference this one will be able to see it
             auto it = swizzle_map.find(object_key);
             if (it == swizzle_map.end()) {
-                swizzle_map.emplace(object_key, sandbox_swizzle_info(object.inner.ptr, typenum));
+                swizzle_map.emplace(object_key, sandbox_swizzle_info(object.ptr, typenum));
             } else {
-                it->second.set_ptr(object.inner.ptr, typenum);
+                it->second.set_ptr(object.ptr, typenum);
             }
             ++object_key;
         }
@@ -1956,9 +1958,10 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     }
     for (const auto &object : sb()->objects) {
         if (object.typenum > 0) {
-            typenum_table[object.typenum - 1].deserialize_end(object.inner.ptr);
+            typenum_table[object.typenum - 1].deserialize_end(object.ptr);
         }
     }
+    sb()->vacant_object_keys = boost::container::priority_deque<wasm_objkey_t>(std::less<wasm_objkey_t>(), std::move(vacant_object_keys));
     DESER_OBJECTS_END;
 
     // Read the graphics state

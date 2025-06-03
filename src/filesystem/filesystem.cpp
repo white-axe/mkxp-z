@@ -39,8 +39,8 @@
 #  include <list>
 #  include <memory>
 #  include <sstream>
-#  include <boost/optional.hpp>
 #  include "core.h"
+#  include <boost/optional.hpp>
 #endif // MKXPZ_RETRO
 
 #include <algorithm>

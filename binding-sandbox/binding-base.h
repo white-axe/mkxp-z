@@ -31,6 +31,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <priority_deque.hpp>
 #include <boost/type_traits/is_detected.hpp>
 #include <boost/container_hash/hash.hpp>
 #include <boost/asio/coroutine.hpp>
@@ -266,14 +267,7 @@ namespace mkxp_sandbox {
         };
 
         struct object {
-            // If this is a free object, the `next` field is the key of the next free object, or 0 if this is the last free object.
-            // Otherwise, the `ptr` field is a pointer to the actual object.
-            union inner {
-                wasm_size_t next;
-                void *ptr;
-                inline inner(wasm_ptr_t next) : next(next) {}
-                inline inner(void *ptr) : ptr(ptr) {}
-            } inner;
+            void *ptr;
             // If this is a free object, this is 0.
             // Otherwise, this is a number corresponding to the type of the object.
             wasm_size_t typenum;
@@ -289,12 +283,12 @@ namespace mkxp_sandbox {
 
     public:
         std::vector<struct object> objects;
+        boost::container::priority_deque<wasm_ptr_t> vacant_object_keys;
     private:
         std::shared_ptr<struct w2c_ruby> _instance;
         wasm_ptr_t stack_ptr;
 
     public:
-        wasm_objkey_t next_free_objkey;
         std::unordered_map<key_t, struct fiber, boost::hash<key_t>> fibers;
 
         binding_base(std::shared_ptr<struct w2c_ruby> m);

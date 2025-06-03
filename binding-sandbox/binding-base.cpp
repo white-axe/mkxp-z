@@ -23,6 +23,7 @@
 #include "wasm-rt.h"
 #include "mkxp-sandbox-ruby-indices.h"
 #include <algorithm>
+#include <cassert>
 #include <boost/preprocessor/cat.hpp>
 
 using namespace mkxp_sandbox;
@@ -46,7 +47,7 @@ binding_base::stack_frame::~stack_frame() {
     }
 }
 
-binding_base::binding_base(std::shared_ptr<struct w2c_ruby> m) : next_free_objkey(0), _instance(m) {}
+binding_base::binding_base(std::shared_ptr<struct w2c_ruby> m) : _instance(m) {}
 
 binding_base::~binding_base() {
     // Destroy all stack frames in order from top to bottom to enforce a portable, compiler-independent ordering of stack frame destruction
@@ -225,14 +226,14 @@ void binding_base::strncpy(wasm_ptr_t dst_address, const char *src, wasm_size_t 
     sandbox_strncpy(instance(), dst_address, src, max_size);
 }
 
-binding_base::object::object() : inner((wasm_ptr_t)0), typenum(0) {}
+binding_base::object::object() : ptr(nullptr), typenum(0) {}
 
-binding_base::object::object(wasm_size_t typenum, void *ptr) : inner(ptr), typenum(typenum) {}
+binding_base::object::object(wasm_size_t typenum, void *ptr) : ptr(ptr), typenum(typenum) {}
 
-binding_base::object::object(struct object &&object) noexcept : inner(std::exchange(object.inner, (union binding_base::object::inner)(wasm_ptr_t)0)), typenum(std::exchange(object.typenum, 0)) {}
+binding_base::object::object(struct object &&object) noexcept : ptr(std::exchange(object.ptr, nullptr)), typenum(std::exchange(object.typenum, 0)) {}
 
 struct binding_base::object &binding_base::object::operator=(struct object &&object) noexcept {
-    inner = std::exchange(object.inner, (union binding_base::object::inner)(wasm_ptr_t)0);
+    ptr = std::exchange(object.ptr, nullptr);
     typenum = std::exchange(object.typenum, 0);
     return *this;
 }
@@ -242,7 +243,7 @@ binding_base::object::~object() {
         if (typenum > typenum_table_size) {
             std::abort();
         }
-        typenum_table[typenum - 1].destroy(inner.ptr);
+        typenum_table[typenum - 1].destroy(ptr);
     }
 }
 
@@ -250,19 +251,19 @@ wasm_objkey_t binding_base::create_object(wasm_size_t typenum, void *ptr) {
     if (ptr == nullptr || typenum == 0 || typenum > typenum_table_size) {
         std::abort();
     }
-    if (next_free_objkey == 0) {
+    if (vacant_object_keys.empty()) {
         objects.emplace_back(typenum, ptr);
         if ((size_t)(wasm_objkey_t)objects.size() < objects.size()) {
             MKXPZ_THROW(std::bad_alloc());
         }
         return objects.size();
     } else {
-        wasm_objkey_t key = next_free_objkey;
-        struct object &object = objects[next_free_objkey - 1];
+        wasm_objkey_t key = vacant_object_keys.minimum();
+        vacant_object_keys.pop_minimum();
+        struct object &object = objects[key - 1];
         assert(object.typenum == 0);
-        next_free_objkey = object.inner.next;
         object.typenum = typenum;
-        object.inner.ptr = ptr;
+        object.ptr = ptr;
         return key;
     }
 }
@@ -275,7 +276,7 @@ void *binding_base::get_object(wasm_objkey_t key) const {
     if (object.typenum == 0 || object.typenum > typenum_table_size) {
         std::abort();
     }
-    return object.inner.ptr;
+    return object.ptr;
 }
 
 bool binding_base::check_object_type(wasm_objkey_t key, wasm_size_t typenum) const {
@@ -297,10 +298,19 @@ void binding_base::destroy_object(wasm_objkey_t key) {
     if (object.typenum == 0 || object.typenum > typenum_table_size) {
         std::abort();
     }
-    typenum_table[object.typenum - 1].destroy(object.inner.ptr);
-    object.typenum = 0;
-    object.inner.next = next_free_objkey;
-    next_free_objkey = key;
+    if (key == objects.size()) {
+        objects.pop_back();
+        while (!objects.empty() && objects.back().typenum == 0) {
+            assert(!vacant_object_keys.empty() && vacant_object_keys.maximum() == objects.size());
+            vacant_object_keys.pop_maximum();
+            objects.pop_back();
+        }
+    } else {
+        typenum_table[object.typenum - 1].destroy(object.ptr);
+        object.typenum = 0;
+        object.ptr = nullptr;
+        vacant_object_keys.push(key);
+    }
 }
 
 wasm_ptr_t binding_base::get_machine_stack_pointer() const noexcept {

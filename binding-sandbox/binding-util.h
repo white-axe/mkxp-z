@@ -22,11 +22,11 @@
 #ifndef MKXPZ_SANDBOX_BINDING_UTIL_H
 #define MKXPZ_SANDBOX_BINDING_UTIL_H
 
-#include <type_traits>
-#include <boost/optional.hpp>
 #include "sandbox-serial-util.h"
 #include "exception.h"
 #include "sandbox.h"
+#include <type_traits>
+#include <boost/optional.hpp>
 
 #define SANDBOX_SLOT(slot_index) (::mkxp_sandbox::sb()->ref<typename ::mkxp_sandbox::slot_type<(slot_index), slots>::type>(::mkxp_sandbox::sb()->stack_pointer() + ::mkxp_sandbox::slot_offset<(slot_index), slots>::value))
 

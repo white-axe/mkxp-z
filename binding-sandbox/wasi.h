@@ -25,6 +25,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <priority_deque.hpp>
 #include "filesystem.h"
 #include "wasm-types.h"
 #include "binding-base.h"
@@ -157,7 +158,7 @@
 #define WASI_SOCK_SHUTDOWN (1 << 28)
 #define WASI_SOCK_ACCEPT (1 << 29)
 
-typedef std::pair<u32, std::string> path_cache_entry_t;
+typedef std::pair<uint32_t, std::string> path_cache_entry_t;
 
 struct fs_dir {
     std::string path; // Path of the directory.
@@ -196,13 +197,13 @@ typedef struct w2c_wasi__snapshot__preview1 {
     // WASI file descriptor table. Maps WASI file descriptors (unsigned 32-bit integers) to file handles.
     std::vector<wasi_file_entry> fdtable;
 
-    // List of vacant WASI file descriptors so that we can reallocate vacant WASI file descriptors in O(1) amortized time.
-    std::vector<u32> vacant_fds;
+    // List of vacant WASI file descriptors so that we can reallocate vacant WASI file descriptors quickly.
+    boost::container::priority_deque<uint32_t> vacant_fds;
 
     w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby);
     ~w2c_wasi__snapshot__preview1();
-    u32 allocate_file_descriptor(enum wasi_fd_type type, void *handle = nullptr);
-    void deallocate_file_descriptor(u32 fd);
+    uint32_t allocate_file_descriptor(enum wasi_fd_type type, void *handle = nullptr);
+    void deallocate_file_descriptor(uint32_t fd);
 
     // Gets a pointer to the given address in sandbox memory.
     void *ptr(mkxp_sandbox::wasm_ptr_t address) const noexcept;
