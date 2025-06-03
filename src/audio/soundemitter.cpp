@@ -387,17 +387,23 @@ bool SoundEmitter::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_siz
 		{
 			std::string value = filenames[i];
 			if (!mkxp_sandbox::sandbox_deserialize(filenames[i], data, max_size)) return false;
-			if (atchBufs[i] != nullptr) {
-				SoundBuffer::deref(atchBufs[i]);
-			}
+			SoundBuffer *old_buffer = atchBufs[i];
 			if (filenames[i] != value) {
 				if (filenames[i].empty()) {
+					if (old_buffer != nullptr) {
+						SoundBuffer::deref(old_buffer);
+					}
 					atchBufs[i] = nullptr;
 				} else {
-					SoundBuffer *buffer = allocateBuffer(filenames[i]);
-					if (buffer == nullptr) return false;
-					atchBufs[i] = SoundBuffer::ref(buffer);
-					AL::Source::attachBuffer(source, buffer->alBuffer);
+					SoundBuffer *new_buffer = allocateBuffer(filenames[i]);
+					if (new_buffer == nullptr) return false;
+					if (new_buffer != old_buffer) {
+						if (old_buffer != nullptr) {
+							SoundBuffer::deref(old_buffer);
+						}
+						atchBufs[i] = SoundBuffer::ref(new_buffer);
+						AL::Source::attachBuffer(source, new_buffer->alBuffer);
+					}
 				}
 			}
 		}
