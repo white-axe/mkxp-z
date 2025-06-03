@@ -438,7 +438,9 @@ struct Movie
     
     bool play()
     {
+#ifdef MKXPZ_RETRO
         dupeFrame = true;
+#endif // MKXPZ_RETRO
 
         if (baseTicks == (uint64_t)-1) {
             baseTicks = movieTicks();
@@ -520,7 +522,9 @@ struct Movie
                 }
                 THEORAPLAY_freeVideo(video);
                 video = NULL;
+#ifdef MKXPZ_RETRO
                 dupeFrame = false;
+#endif // MKXPZ_RETRO
             } else {
 #ifndef MKXPZ_RETRO
                 // Next video frame not yet ready, let the CPU breathe
