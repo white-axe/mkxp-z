@@ -678,8 +678,6 @@ struct InputPrivate
     /* Collective binding array */
     std::vector<Binding*> bindings;
     
-    std::string clipboardText;
-    
     ButtonState stateArray[BUTTON_CODE_COUNT*2];
     
     ButtonState *states;
@@ -1514,12 +1512,12 @@ void Input::clearText()
     shState->eThread().textInputBuffer.clear();
 }
 
-const char *Input::getClipboardText()
+std::string Input::getClipboardText()
 {
     const char *tx = SDL_GetClipboardText();
-    p->clipboardText = tx;
+    std::string str(tx);
     SDL_free((void *)tx);
-    return p->clipboardText.c_str();
+    return str;
 }
 
 void Input::setClipboardText(const char *text)

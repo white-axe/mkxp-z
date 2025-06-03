@@ -110,7 +110,7 @@ public:
     const char *getText();
     void clearText();
     
-    const char *getClipboardText();
+    std::string getClipboardText();
     void setClipboardText(const char *text);
     
     const char *getAxisName(SDL_GameControllerAxis axis);
