@@ -1264,9 +1264,9 @@ void Input::clearText()
 
 }
 
-const char *Input::getClipboardText()
+std::string Input::getClipboardText()
 {
-    return "";
+    return {};
 }
 
 void Input::setClipboardText(const char *text)

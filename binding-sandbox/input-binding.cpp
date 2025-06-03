@@ -581,7 +581,7 @@ static VALUE gets_(VALUE self) {
 }
 
 static VALUE get_clipboard(VALUE self) {
-    return sb()->bind<struct rb_str_new_cstr>()()(mkxp_retro::input->getClipboardText());
+    return sb()->bind<struct rb_str_new_cstr>()()(mkxp_retro::input->getClipboardText().c_str());
 }
 
 static VALUE set_clipboard(VALUE self, VALUE value) {
