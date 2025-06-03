@@ -1633,15 +1633,6 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     if (!sandbox_serialize(frame_time.load_relaxed(), data, max_size)) return false;
     if (!sandbox_serialize(frame_time_remainder, data, max_size)) return false;
     if (!sandbox_serialize(retro_run_count, data, max_size)) return false;
-    if (!sandbox_serialize(sb().transitioning, data, max_size)) return false;
-    if (!sandbox_serialize(sb().trans_map != nullptr, data, max_size)) return false;
-    if (sb().trans_map != nullptr) {
-        if (!sandbox_serialize(*sb().trans_map, data, max_size)) return false;
-    }
-    if (!sandbox_serialize(sb().get_movie_from_main_thread() != nullptr, data, max_size)) return false;
-    if (sb().get_movie_from_main_thread() != nullptr) {
-        if (!Graphics::sandbox_serialize_movie(sb().get_movie_from_main_thread(), data, max_size)) return false;
-    }
 
     // Write the number of sandbox fibers
     if (!sandbox_serialize((wasm_size_t)sb()->fibers.size(), data, max_size)) return false;
@@ -1668,8 +1659,9 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     // Write the open WASI file descriptors
     if (!sb().sandbox_serialize_fdtable(data, max_size)) return false;
 
-    // Write the number of objects, then each object
     SER_OBJECTS_BEGIN;
+
+    // Write the number of objects, then each object
     if (!sandbox_serialize((wasm_size_t)sb()->objects.size(), data, max_size)) SER_OBJECTS_END_FAIL;
     wasm_size_t num_free_objects = 0;
     for (const auto &object : sb()->objects) {
@@ -1697,7 +1689,41 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         num_free_objects = 0;
     }
 
+    // Write the transition map and movie, if applicable
+    if (!sandbox_serialize(sb().transitioning, data, max_size)) return false;
+    if (!sandbox_serialize(sb().trans_map != nullptr, data, max_size)) return false;
+    if (sb().trans_map != nullptr) {
+        if (!sandbox_serialize(*sb().trans_map, data, max_size)) return false;
+    }
+    if (!sandbox_serialize(sb().get_movie_from_main_thread() != nullptr, data, max_size)) return false;
+    if (sb().get_movie_from_main_thread() != nullptr) {
+        if (!Graphics::sandbox_serialize_movie(sb().get_movie_from_main_thread(), data, max_size)) return false;
+    }
+
     SER_OBJECTS_END;
+
+    // Write the graphics state
+    if (!sandbox_serialize((int32_t)shState->graphics().width(), data, max_size)) return false;
+    if (!sandbox_serialize((int32_t)shState->graphics().height(), data, max_size)) return false;
+    if (!sandbox_serialize((int32_t)shState->graphics().getFrameRate(), data, max_size)) return false;
+    if (!sandbox_serialize((int32_t)shState->graphics().getFrameCount(), data, max_size)) return false;
+    if (!sandbox_serialize((int32_t)shState->graphics().getBrightness(), data, max_size)) return false;
+    if (!sandbox_serialize(shState->graphics().getFullscreen(), data, max_size)) return false;
+    if (!sandbox_serialize(shState->graphics().getShowCursor(), data, max_size)) return false;
+    if (!sandbox_serialize(shState->graphics().getScale(), data, max_size)) return false;
+    if (!sandbox_serialize(shState->graphics().getFrameskip(), data, max_size)) return false;
+    if (!sandbox_serialize(shState->graphics().getFixedAspectRatio(), data, max_size)) return false;
+    if (!sandbox_serialize((int32_t)shState->graphics().getSmoothScaling(), data, max_size)) return false;
+    if (!sandbox_serialize(shState->graphics().getIntegerScaling(), data, max_size)) return false;
+    if (!sandbox_serialize(shState->graphics().getLastMileScaling(), data, max_size)) return false;
+    if (!sandbox_serialize(shState->graphics().getThreadsafe(), data, max_size)) return false;
+    if (!sandbox_serialize(shState->graphics().frozen(), data, max_size)) return false;
+    if (shState->graphics().frozen()) {
+        RESERVE(shState->graphics().frozenPixels.size());
+        std::memcpy(data, shState->graphics().frozenPixels.data(), 4 * shState->graphics().frozenPixels.size());
+        ADVANCE(shState->graphics().frozenPixels.size());
+    }
+
     std::memset(data, 0, max_size);
     return true;
 }
@@ -1765,29 +1791,6 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     }
     if (!sandbox_deserialize(frame_time_remainder, data, max_size)) DESER_FAIL;
     if (!sandbox_deserialize(retro_run_count, data, max_size)) DESER_FAIL;
-    if (!sandbox_deserialize(sb().transitioning, data, max_size)) DESER_FAIL;
-    {
-        bool have_trans_map;
-        if (!sandbox_deserialize(have_trans_map, data, max_size)) DESER_FAIL;
-        if (have_trans_map) {
-            if (sb().trans_map == nullptr) {
-                // TODO
-                DESER_FAIL;
-            }
-            if (!sandbox_deserialize(*sb().trans_map, data, max_size)) DESER_FAIL;
-        } else {
-            if (sb().trans_map != nullptr) {
-                delete sb().trans_map;
-            }
-            sb().trans_map = nullptr;
-        }
-    }
-    {
-        // TODO: movie
-        bool have_movie;
-        if (!sandbox_deserialize(have_movie, data, max_size)) DESER_FAIL;
-        if (have_movie) DESER_FAIL;
-    }
 
     {
         // Read sandbox fibers
@@ -1830,13 +1833,17 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     // Read the open WASI file descriptors
     if (!sb().sandbox_deserialize_fdtable(data, max_size)) DESER_FAIL;
 
-    // Read objects
     DESER_OBJECTS_BEGIN;
     for (const auto &object : sb()->objects) {
         if (object.typenum > 0) {
             typenum_table[object.typenum - 1].deserialize_begin(object.inner.ptr, false);
         }
     }
+    if (sb().trans_map != nullptr) {
+        sb().trans_map->sandbox_deserialize_begin(false);
+    }
+
+    // Read objects
     sb()->next_free_objkey = 0;
     wasm_objkey_t object_key = 1;
     wasm_size_t num_objects;
@@ -1905,6 +1912,38 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
         }
     }
 
+    // Read transition map and movie
+    if (!sandbox_deserialize(sb().transitioning, data, max_size)) DESER_OBJECTS_END_FAIL;
+    {
+        bool have_trans_map;
+        if (!sandbox_deserialize(have_trans_map, data, max_size)) DESER_OBJECTS_END_FAIL;
+        if (have_trans_map) {
+            if (!sb().transitioning) {
+                DESER_OBJECTS_END_FAIL;
+            }
+            if (sb().trans_map == nullptr) {
+                Exception e;
+                sb().trans_map = new Bitmap(e);
+                if (e.is_error()) {
+                    DESER_OBJECTS_END_FAIL;
+                }
+                sb().trans_map->sandbox_deserialize_begin(true);
+            }
+            if (!sandbox_deserialize(*sb().trans_map, data, max_size)) DESER_OBJECTS_END_FAIL;
+        } else {
+            if (sb().trans_map != nullptr) {
+                delete sb().trans_map;
+            }
+            sb().trans_map = nullptr;
+        }
+    }
+    {
+        // TODO: movie
+        bool have_movie;
+        if (!sandbox_deserialize(have_movie, data, max_size)) DESER_OBJECTS_END_FAIL;
+        if (have_movie) DESER_OBJECTS_END_FAIL;
+    }
+
     // Make sure every pointer in the save state has been swizzled
     for (const auto &pair : swizzle_map) {
         if (!pair.second.get_exists()) {
@@ -1912,12 +1951,125 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
         }
     }
 
+    if (sb().trans_map != nullptr) {
+        sb().trans_map->sandbox_deserialize_end();
+    }
     for (const auto &object : sb()->objects) {
         if (object.typenum > 0) {
             typenum_table[object.typenum - 1].deserialize_end(object.inner.ptr);
         }
     }
     DESER_OBJECTS_END;
+
+    // Read the graphics state
+    {
+        int32_t width;
+        int32_t height;
+        if (!sandbox_deserialize(width, data, max_size)) DESER_FAIL;
+        if (!sandbox_deserialize(height, data, max_size)) DESER_FAIL;
+        width = std::max((int32_t)1, width);
+        height = std::max((int32_t)1, height);
+        if (width != shState->graphics().width() || height != shState->graphics().height()) {
+            shState->graphics().resizeScreen(width, height);
+        }
+    }
+    {
+        int32_t value;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
+        value = std::max((int32_t)1, value);
+        if (value != shState->graphics().getFrameRate()) {
+            shState->graphics().setFrameRate(value);
+        }
+    }
+    {
+        int32_t value;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
+        if (value != shState->graphics().getFrameCount()) {
+            shState->graphics().setFrameCount(value);
+        }
+    }
+    {
+        int32_t value;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
+        if (value != shState->graphics().getBrightness()) {
+            shState->graphics().setBrightness(value);
+        }
+    }
+    {
+        bool value;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
+        if (value != shState->graphics().getFullscreen()) {
+            shState->graphics().setFullscreen(value);
+        }
+    }
+    {
+        bool value;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
+        if (value != shState->graphics().getShowCursor()) {
+            shState->graphics().setShowCursor(value);
+        }
+    }
+    {
+        double value;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
+        if (value != shState->graphics().getScale()) {
+            shState->graphics().setScale(value);
+        }
+    }
+    {
+        bool value;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
+        if (value != shState->graphics().getFrameskip()) {
+            shState->graphics().setFrameskip(value);
+        }
+    }
+    {
+        bool value;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
+        if (value != shState->graphics().getFixedAspectRatio()) {
+            shState->graphics().setFixedAspectRatio(value);
+        }
+    }
+    {
+        int32_t value;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
+        if (value != shState->graphics().getSmoothScaling()) {
+            shState->graphics().setSmoothScaling(value);
+        }
+    }
+    {
+        bool value;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
+        if (value != shState->graphics().getIntegerScaling()) {
+            shState->graphics().setIntegerScaling(value);
+        }
+    }
+    {
+        bool value;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
+        if (value != shState->graphics().getLastMileScaling()) {
+            shState->graphics().setLastMileScaling(value);
+        }
+    }
+    {
+        bool value;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
+        if (value != shState->graphics().getThreadsafe()) {
+            shState->graphics().setThreadsafe(value);
+        }
+    }
+    if (!sandbox_deserialize(shState->graphics().frozen(), data, max_size)) DESER_FAIL;
+    if (shState->graphics().frozen()) {
+        RESERVE((size_t)shState->graphics().width() * (size_t)shState->graphics().height());
+        if (shState->graphics().frozenPixels.size() != (size_t)shState->graphics().width() * (size_t)shState->graphics().height()) {
+            shState->graphics().frozenPixels.clear();
+            shState->graphics().frozenPixels.resize((size_t)shState->graphics().width() * (size_t)shState->graphics().height());
+        }
+        std::memcpy(shState->graphics().frozenPixels.data(), data, (size_t)4 * (size_t)shState->graphics().width() * (size_t)shState->graphics().height());
+        shState->graphics().uploadFrozenPixels();
+        ADVANCE((size_t)shState->graphics().width() * (size_t)shState->graphics().height());
+    }
+
     return true;
 }
 

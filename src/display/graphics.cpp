@@ -1015,7 +1015,7 @@ struct GraphicsPrivate {
     /* Global list of all live Disposables
      * (disposed on reset) */
     IntruList<Disposable> dispList;
-    
+
     GraphicsPrivate(RGSSThreadData *rtData)
     : scResLores(DEF_SCREEN_W, DEF_SCREEN_H),
     scRes(rtData->config.enableHires ? (int)lround(rtData->config.framebufferScalingFactor * DEF_SCREEN_W) : DEF_SCREEN_W,
@@ -1468,11 +1468,27 @@ void Graphics::freeze(Exception &exception) {
     
     /* Capture scene into frozen buffer */
     GUARD(p->compositeToBuffer(exception, p->frozenScene));
+
+#ifdef MKXPZ_RETRO
+    if (frozenPixels.size() != (size_t)p->frozenScene.width * (size_t)p->frozenScene.height) {
+        frozenPixels.clear();
+        frozenPixels.resize((size_t)p->frozenScene.width * (size_t)p->frozenScene.height);
+    }
+    FBO::bind(p->frozenScene.fbo);
+    gl.ReadPixels(0, 0, p->frozenScene.width, p->frozenScene.height, GL_RGBA, GL_UNSIGNED_BYTE, frozenPixels.data());
+#endif // MKXPZ_RETRO
 }
 
-bool Graphics::frozen() {
+bool &Graphics::frozen() {
     return p->frozen;
 }
+
+#ifdef MKXPZ_RETRO
+void Graphics::uploadFrozenPixels() {
+    TEX::bind(p->frozenScene.tex);
+    TEX::uploadImage(p->frozenScene.width, p->frozenScene.height, frozenPixels.data(), GL_RGBA);
+}
+#endif // MKXPZ_RETRO
 
 void Graphics::transition(Exception &exception, int duration, Bitmap *transMap, int vague, int start, int stop) {
     p->checkSyncLock();

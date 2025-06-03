@@ -46,7 +46,7 @@ public:
     
 	bool update(Exception &exception, bool checkForShutdown = true);
 	void freeze(Exception &exception);
-	bool frozen();
+	bool &frozen();
 	void transition(Exception &exception,
 	                int duration = 8,
 	                Bitmap *transMap = 0,
@@ -113,6 +113,11 @@ public:
     
     void lock(bool force = false);
     void unlock(bool force = false);
+
+#ifdef MKXPZ_RETRO
+	std::vector<uint32_t> frozenPixels;
+	void uploadFrozenPixels();
+#endif // MKXPZ_RETRO
 
 private:
 	Graphics(RGSSThreadData *data);
