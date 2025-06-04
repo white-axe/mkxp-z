@@ -1,0 +1,10 @@
+[binaries]
+c = 'ppu-gcc'
+cpp = 'ppu-g++'
+ar = 'ppu-ar'
+
+[host_machine]
+system = 'bare'
+cpu_family = 'ppc64'
+cpu = 'ppc-cell-be'
+endian = 'big'

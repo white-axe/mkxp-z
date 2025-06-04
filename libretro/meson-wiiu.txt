@@ -1,0 +1,10 @@
+[binaries]
+c = '/opt/devkitpro/devkitPPC/bin/powerpc-eabi-gcc'
+cpp = '/opt/devkitpro/devkitPPC/bin/powerpc-eabi-g++'
+ar = '/opt/devkitpro/devkitPPC/bin/powerpc-eabi-ar'
+
+[host_machine]
+system = 'bare'
+cpu_family = 'ppc'
+cpu = 'ppc750'
+endian = 'big'

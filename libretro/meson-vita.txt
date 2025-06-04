@@ -1,0 +1,10 @@
+[binaries]
+c = 'arm-vita-eabi-gcc'
+cpp = 'arm-vita-eabi-g++'
+ar = 'arm-vita-eabi-ar'
+
+[host_machine]
+system = 'bare'
+cpu_family = 'arm'
+cpu = 'cortex-a9'
+endian = 'little'

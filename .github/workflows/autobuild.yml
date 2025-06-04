@@ -1103,24 +1103,13 @@ jobs:
 
       - name: Configure core
         run: |
-          echo "[binaries]" | tee -a ${{ runner.temp }}/cross.ini
-          echo "c = 'emcc'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "cpp = 'em++'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "ar = 'emar'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "cmake = ['emcmake', 'cmake']" | tee -a ${{ runner.temp }}/cross.ini
-          echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
-          echo "system = 'emscripten'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "cpu_family = 'wasm32'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "cpu = 'wasm32'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "endian = 'little'" | tee -a ${{ runner.temp }}/cross.ini
-          echo '--------------------------------------------------------------------------------'
           if [ '${{ matrix.threading }}' = 'threaded' ]
           then
             threaded=true
           else
             threaded=false
           fi
-          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dlibretro=true -Demscripten_threaded=$threaded
+          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-emscripten.txt --buildtype release -Db_lto=true -Dlibretro=true -Demscripten_threaded=$threaded
 
       - name: Build core
         run: |
@@ -1188,18 +1177,8 @@ jobs:
 
       - name: Configure core
         run: |
-          echo "[binaries]" | tee -a ~/cross.ini
-          echo "c = 'ppu-gcc'" | tee -a ~/cross.ini
-          echo "cpp = 'ppu-g++'" | tee -a ~/cross.ini
-          echo "ar = 'ppu-ar'" | tee -a ~/cross.ini
-          echo "[host_machine]" | tee -a ~/cross.ini
-          echo "system = 'bare'" | tee -a ~/cross.ini
-          echo "cpu_family = 'ppc64'" | tee -a ~/cross.ini
-          echo "cpu = 'ppc-cell-be'" | tee -a ~/cross.ini
-          echo "endian = 'big'" | tee -a ~/cross.ini
-          echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=false -Druby_lto=true -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-ps3.txt --buildtype release -Db_lto=false -Druby_lto=true -Dlibretro=true
 
       - name: Build core
         run: |
@@ -1260,18 +1239,8 @@ jobs:
 
       - name: Configure core
         run: |
-          echo "[binaries]" | tee -a ~/cross.ini
-          echo "c = '/opt/devkitpro/devkitARM/bin/arm-none-eabi-gcc'" | tee -a ~/cross.ini
-          echo "cpp = '/opt/devkitpro/devkitARM/bin/arm-none-eabi-g++'" | tee -a ~/cross.ini
-          echo "ar = '/opt/devkitpro/devkitARM/bin/arm-none-eabi-ar'" | tee -a ~/cross.ini
-          echo "[host_machine]" | tee -a ~/cross.ini
-          echo "system = 'bare'" | tee -a ~/cross.ini
-          echo "cpu_family = 'arm'" | tee -a ~/cross.ini
-          echo "cpu = 'arm11mpcore'" | tee -a ~/cross.ini
-          echo "endian = 'little'" | tee -a ~/cross.ini
-          echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-3ds.txt --buildtype release -Db_lto=true -Dlibretro=true
 
       - name: Build core
         run: |
@@ -1333,18 +1302,8 @@ jobs:
 
       - name: Configure core
         run: |
-          echo "[binaries]" | tee -a ~/cross.ini
-          echo "c = 'arm-vita-eabi-gcc'" | tee -a ~/cross.ini
-          echo "cpp = 'arm-vita-eabi-g++'" | tee -a ~/cross.ini
-          echo "ar = 'arm-vita-eabi-ar'" | tee -a ~/cross.ini
-          echo "[host_machine]" | tee -a ~/cross.ini
-          echo "system = 'bare'" | tee -a ~/cross.ini
-          echo "cpu_family = 'arm'" | tee -a ~/cross.ini
-          echo "cpu = 'cortex-a9'" | tee -a ~/cross.ini
-          echo "endian = 'little'" | tee -a ~/cross.ini
-          echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-vita.txt --buildtype release -Db_lto=true -Dlibretro=true
 
       - name: Build core
         run: |
@@ -1428,18 +1387,8 @@ jobs:
 
       - name: Configure core
         run: |
-          echo "[binaries]" | tee -a ~/cross.ini
-          echo "c = '/opt/devkitpro/devkitPPC/bin/powerpc-eabi-gcc'" | tee -a ~/cross.ini
-          echo "cpp = '/opt/devkitpro/devkitPPC/bin/powerpc-eabi-g++'" | tee -a ~/cross.ini
-          echo "ar = '/opt/devkitpro/devkitPPC/bin/powerpc-eabi-ar'" | tee -a ~/cross.ini
-          echo "[host_machine]" | tee -a ~/cross.ini
-          echo "system = 'bare'" | tee -a ~/cross.ini
-          echo "cpu_family = 'ppc'" | tee -a ~/cross.ini
-          echo "cpu = 'ppc750'" | tee -a ~/cross.ini
-          echo "endian = 'big'" | tee -a ~/cross.ini
-          echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-wiiu.txt --buildtype release -Db_lto=true -Dlibretro=true
 
       - name: Build core
         run: |
@@ -1500,18 +1449,8 @@ jobs:
 
       - name: Configure core
         run: |
-          echo "[binaries]" | tee -a ~/cross.ini
-          echo "c = '/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc'" | tee -a ~/cross.ini
-          echo "cpp = '/opt/devkitpro/devkitA64/bin/aarch64-none-elf-g++'" | tee -a ~/cross.ini
-          echo "ar = '/opt/devkitpro/devkitA64/bin/aarch64-none-elf-ar'" | tee -a ~/cross.ini
-          echo "[host_machine]" | tee -a ~/cross.ini
-          echo "system = 'bare'" | tee -a ~/cross.ini
-          echo "cpu_family = 'aarch64'" | tee -a ~/cross.ini
-          echo "cpu = 'cortex-a57'" | tee -a ~/cross.ini
-          echo "endian = 'little'" | tee -a ~/cross.ini
-          echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-switch.txt --buildtype release -Db_lto=true -Dlibretro=true
 
       - name: Build core
         run: |
