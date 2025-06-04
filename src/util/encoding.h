@@ -17,7 +17,7 @@
 
 namespace Encoding {
 
-static std::string getCharset(std::string &str) {
+static std::string getCharset(const std::string &str) {
     uchardet_t ud = uchardet_new();
     uchardet_handle_data(ud, str.c_str(), str.length());
     uchardet_data_end(ud);
@@ -28,7 +28,7 @@ static std::string getCharset(std::string &str) {
     return ret;
 }
 
-static std::string convertString(std::string &str) {
+static std::string convertString(const std::string &str) {
     
     std::string charset = getCharset(str);
     

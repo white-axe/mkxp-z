@@ -20,9 +20,12 @@
 */
 
 #include "binding-sandbox.h"
+#include <cstring>
+#include <libretro.h>
 #include <zlib.h>
 #include "sharedstate.h"
 #include "core.h"
+#include "encoding.h"
 #include "audio-binding.h"
 #include "bitmap-binding.h"
 #include "etc-binding.h"
@@ -43,6 +46,8 @@ using namespace mkxp_sandbox;
 extern const char module_rpg1[];
 extern const char module_rpg2[];
 extern const char module_rpg3[];
+
+static VALUE utf8_encoding;
 
 struct eval_script : boost::asio::coroutine {
     typedef decl_slots<ID> slots;
@@ -261,8 +266,291 @@ static VALUE rgss_stop(VALUE self) {
     return sb()->bind<struct coro>()()(self);
 }
 
+static VALUE delta(VALUE self) {
+    return sb()->bind<struct rb_float_new>()()(shState->runTime());
+}
+
+static VALUE data_directory(VALUE self) {
+    return sb()->bind<struct rb_str_new_cstr>()()("/Save");
+}
+
+static VALUE get_window_title(VALUE self) {
+    return sb()->bind<struct rb_str_new_cstr>()()("");
+}
+
+static VALUE set_window_title(VALUE self, VALUE value) {
+    return value;
+}
+
+static VALUE show_settings(VALUE self) {
+    return SANDBOX_NIL;
+}
+
+static VALUE desensitize(VALUE self, VALUE value) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<wasm_ptr_t, VALUE> slots;
+
+        VALUE operator()(VALUE self, VALUE value) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, rb_string_value_cstr, &value);
+                SANDBOX_AWAIT_S(1, rb_str_new_cstr, mkxp_retro::fs->desensitize(sb()->str(SANDBOX_SLOT(0))));
+            }
+
+            return SANDBOX_SLOT(1);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self, value);
+}
+
+static VALUE platform(VALUE self) {
+    return sb()->bind<struct rb_str_new_cstr>()()("libretro");
+}
+
+static VALUE is_not_libretro(VALUE self) {
+    return SANDBOX_FALSE;
+}
+
+static VALUE is_libretro(VALUE self) {
+    return SANDBOX_TRUE;
+}
+
+static VALUE user_language(VALUE self) {
+    const char *str;
+
+    enum retro_language language;
+    if (!mkxp_retro::environment(RETRO_ENVIRONMENT_GET_LANGUAGE, &language)) {
+        language = RETRO_LANGUAGE_ENGLISH;
+    }
+    switch (language) {
+        default: case RETRO_LANGUAGE_ENGLISH: str = "en_US.UTF-8"; break;
+        case RETRO_LANGUAGE_JAPANESE: str = "ja_JP.UTF-8"; break;
+        case RETRO_LANGUAGE_FRENCH: str = "fr_FR.UTF-8"; break;
+        case RETRO_LANGUAGE_SPANISH: str = "es_ES.UTF-8"; break;
+        case RETRO_LANGUAGE_GERMAN: str = "de_DE.UTF-8"; break;
+        case RETRO_LANGUAGE_ITALIAN: str = "it_IT.UTF-8"; break;
+        case RETRO_LANGUAGE_DUTCH: str = "nl_NL.UTF-8"; break;
+        case RETRO_LANGUAGE_PORTUGUESE_BRAZIL: str = "pt_BR.UTF-8"; break;
+        case RETRO_LANGUAGE_PORTUGUESE_PORTUGAL: str = "pt_PT.UTF-8"; break;
+        case RETRO_LANGUAGE_RUSSIAN: str = "ru_RU.UTF-8"; break;
+        case RETRO_LANGUAGE_KOREAN: str = "ko_KR.UTF-8"; break;
+        case RETRO_LANGUAGE_CHINESE_TRADITIONAL: str = "zh_TW.UTF-8"; break;
+        case RETRO_LANGUAGE_CHINESE_SIMPLIFIED: str = "zh_CN.UTF-8"; break;
+        case RETRO_LANGUAGE_ESPERANTO: str = "eo.UTF-8"; break;
+        case RETRO_LANGUAGE_POLISH: str = "pl_PL.UTF-8"; break;
+        case RETRO_LANGUAGE_VIETNAMESE: str = "vi_VN.UTF-8"; break;
+        case RETRO_LANGUAGE_ARABIC: str = "ar_SA.UTF-8"; break;
+        case RETRO_LANGUAGE_GREEK: str = "el_GR.UTF-8"; break;
+        case RETRO_LANGUAGE_TURKISH: str = "tr_TR.UTF-8"; break;
+        case RETRO_LANGUAGE_SLOVAK: str = "sk_SK.UTF-8"; break;
+        case RETRO_LANGUAGE_PERSIAN: str = "fa_IR.UTF-8"; break;
+        case RETRO_LANGUAGE_HEBREW: str = "he_IL.UTF-8"; break;
+        case RETRO_LANGUAGE_ASTURIAN: str = "ast_ES.UTF-8"; break;
+        case RETRO_LANGUAGE_FINNISH: str = "fi_FI.UTF-8"; break;
+        case RETRO_LANGUAGE_INDONESIAN: str = "id_ID.UTF-8"; break;
+        case RETRO_LANGUAGE_SWEDISH: str = "sv_SE.UTF-8"; break;
+        case RETRO_LANGUAGE_UKRAINIAN: str = "uk_UA.UTF-8"; break;
+        case RETRO_LANGUAGE_CZECH: str = "cs_CZ.UTF-8"; break;
+        case RETRO_LANGUAGE_CATALAN_VALENCIA: str = "ca_ES.UTF-8"; break;
+        case RETRO_LANGUAGE_CATALAN: str = "ca_AD.UTF-8"; break;
+        case RETRO_LANGUAGE_BRITISH_ENGLISH: str = "en_GB.UTF-8"; break;
+        case RETRO_LANGUAGE_HUNGARIAN: str = "hu_HU.UTF-8"; break;
+        case RETRO_LANGUAGE_BELARUSIAN: str = "be_BY.UTF-8"; break;
+        case RETRO_LANGUAGE_GALICIAN: str = "gl_ES.UTF-8"; break;
+        case RETRO_LANGUAGE_NORWEGIAN: str = "no_NO.UTF-8"; break;
+    }
+
+    return sb()->bind<struct rb_str_new_cstr>()()(str);
+}
+
+static VALUE user_name(VALUE self) {
+    const char *str;
+
+    if (!mkxp_retro::environment(RETRO_ENVIRONMENT_GET_USERNAME, &str)) {
+        str = "";
+    }
+
+    return sb()->bind<struct rb_str_new_cstr>()()(str);
+}
+
+static VALUE game_title(VALUE self) {
+    return sb()->bind<struct rb_str_new_cstr>()()(shState->config().game.title.c_str());
+}
+
+static VALUE power_state(VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE, VALUE, VALUE, ID> slots;
+
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                if (!mkxp_retro::environment(RETRO_ENVIRONMENT_GET_DEVICE_POWER, &sb().device_power)) {
+                    sb().device_power.state = RETRO_POWERSTATE_UNKNOWN;
+                    sb().device_power.seconds = RETRO_POWERSTATE_NO_ESTIMATE;
+                    sb().device_power.percent = RETRO_POWERSTATE_NO_ESTIMATE;
+                }
+
+                SANDBOX_AWAIT_S(0, rb_hash_new);
+
+                SANDBOX_AWAIT_S(3, rb_intern, "seconds");
+                SANDBOX_AWAIT_S(1, rb_id2sym, SANDBOX_SLOT(3));
+                if (sb().device_power.seconds != RETRO_POWERSTATE_NO_ESTIMATE) {
+                    SANDBOX_AWAIT_S(2, rb_ll2inum, sb().device_power.seconds);
+                } else {
+                    SANDBOX_SLOT(2) = SANDBOX_NIL;
+                }
+                SANDBOX_AWAIT(rb_hash_aset, SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2));
+
+                SANDBOX_AWAIT_S(3, rb_intern, "percent");
+                SANDBOX_AWAIT_S(1, rb_id2sym, SANDBOX_SLOT(3));
+                if (sb().device_power.percent != RETRO_POWERSTATE_NO_ESTIMATE) {
+                    SANDBOX_AWAIT_S(2, rb_ll2inum, sb().device_power.percent);
+                } else {
+                    SANDBOX_SLOT(2) = SANDBOX_NIL;
+                }
+                SANDBOX_AWAIT(rb_hash_aset, SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2));
+
+                SANDBOX_AWAIT_S(3, rb_intern, "discharging");
+                SANDBOX_AWAIT_S(1, rb_id2sym, SANDBOX_SLOT(3));
+                if (sb().device_power.state != RETRO_POWERSTATE_UNKNOWN) {
+                    SANDBOX_SLOT(2) = SANDBOX_BOOL_TO_VALUE(sb().device_power.state == RETRO_POWERSTATE_DISCHARGING);
+                } else {
+                    SANDBOX_SLOT(2) = SANDBOX_NIL;
+                }
+                SANDBOX_AWAIT(rb_hash_aset, SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2));
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
+}
+
+static VALUE nproc(VALUE self) {
+    return sb()->bind<struct rb_num2int>()()(1);
+}
+
+static VALUE memory(VALUE self) {
+    return sb()->bind<struct rb_num2int>()()(0);
+}
+
+static VALUE reload_cache(VALUE self) {
+    mkxp_retro::fs->reloadPathCache();
+    return SANDBOX_NIL;
+}
+
+static VALUE mount(int32_t argc, wasm_ptr_t argv, VALUE self) {
+    Exception e(Exception::PHYSFSError, "Failed to mount (operation not supported in libretro builds)");
+    sb()->bind<struct exception_raise>()()(e);
+    return SANDBOX_NIL;
+}
+
+static VALUE unmount(int32_t argc, wasm_ptr_t argv, VALUE self) {
+    Exception e(Exception::PHYSFSError, "Failed to unmount (operation not supported in libretro builds)");
+    sb()->bind<struct exception_raise>()()(e);
+    return SANDBOX_NIL;
+}
+
+static VALUE file_exists(VALUE self, VALUE value) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<wasm_ptr_t> slots;
+
+        VALUE operator()(VALUE self, VALUE value) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, rb_string_value_cstr, &value);
+                return SANDBOX_BOOL_TO_VALUE(mkxp_retro::fs->exists(sb()->str(SANDBOX_SLOT(0))));
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self, value);
+}
+
+static VALUE launch(VALUE self, VALUE cmdname, VALUE args) {
+    Exception e(Exception::MKXPError, "Failed to launch (operation not supported in libretro builds)");
+    sb()->bind<struct exception_raise>()()(e);
+    return SANDBOX_NIL;
+}
+
+static VALUE default_font_family(VALUE self, VALUE value) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<wasm_ptr_t> slots;
+
+        VALUE operator()(VALUE self, VALUE value) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, rb_string_value_cstr, &value);
+                shState->fontState().setDefaultFontFamily(std::string(sb()->str(SANDBOX_SLOT(0))));
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self, value);
+}
+
+static VALUE to_utf8(VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<wasm_ptr_t, VALUE> slots;
+
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, rb_string_value_cstr, &self);
+                SANDBOX_AWAIT_S(1, rb_str_new_cstr, Encoding::convertString((const char *)sb()->str(SANDBOX_SLOT(0))).c_str());
+            }
+
+            return SANDBOX_SLOT(1);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
+}
+
+static VALUE to_utf8_bang(VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<wasm_ptr_t, ID> slots;
+
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, rb_string_value_cstr, &self);
+                sb().convert_string_buffer = Encoding::convertString((const char *)sb()->str(SANDBOX_SLOT(0)));
+                SANDBOX_AWAIT(rb_str_resize, self, sb().convert_string_buffer.length());
+                SANDBOX_AWAIT_S(0, rb_string_value_cstr, &self);
+                sb()->strcpy(SANDBOX_SLOT(0), sb().convert_string_buffer.c_str());
+                SANDBOX_AWAIT_S(1, rb_intern, "force_encoding");
+                SANDBOX_AWAIT(rb_funcall, self, SANDBOX_SLOT(1), 1, utf8_encoding);
+            }
+
+            return self;
+        }
+
+        ~coro() {
+            sb().convert_string_buffer.clear();
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
+}
+
 void sandbox_binding_init::operator()() {
+    static VALUE system_module;
+    static VALUE cfg_module;
+
+    struct register_utf8_encoding : boost::asio::coroutine {
+        typedef decl_slots<ID> slots;
+
+        void operator()() {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, rb_intern, "UTF_8");
+                SANDBOX_AWAIT_R(utf8_encoding, rb_const_get, sb()->rb_cEncoding(), SANDBOX_SLOT(0));
+            }
+        }
+    };
+
     BOOST_ASIO_CORO_REENTER (this) {
+        SANDBOX_AWAIT(register_utf8_encoding);
         SANDBOX_AWAIT(exception_binding_init);
 
         SANDBOX_AWAIT(table_binding_init);
@@ -301,6 +589,52 @@ void sandbox_binding_init::operator()() {
         } else {
             std::abort();
         }
+
+        SANDBOX_AWAIT_R(system_module, rb_define_module, "System");
+
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "delta", (VALUE (*)(ANYARGS))delta, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "uptime", (VALUE (*)(ANYARGS))delta, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "data_directory", (VALUE (*)(ANYARGS))data_directory, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "set_window_title", (VALUE (*)(ANYARGS))set_window_title, 1);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "window_title", (VALUE (*)(ANYARGS))get_window_title, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "window_title=", (VALUE (*)(ANYARGS))set_window_title, 1);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "show_settings", (VALUE (*)(ANYARGS))show_settings, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "desensitize", (VALUE (*)(ANYARGS))desensitize, 1);
+
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "platform", (VALUE (*)(ANYARGS))platform, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "is_mac?", (VALUE (*)(ANYARGS))is_not_libretro, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "is_rosetta?", (VALUE (*)(ANYARGS))is_not_libretro, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "is_linux?", (VALUE (*)(ANYARGS))is_not_libretro, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "is_windows?", (VALUE (*)(ANYARGS))is_not_libretro, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "is_wine?", (VALUE (*)(ANYARGS))is_not_libretro, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "is_really_mac?", (VALUE (*)(ANYARGS))is_not_libretro, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "is_really_linux?", (VALUE (*)(ANYARGS))is_not_libretro, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "is_really_windows?", (VALUE (*)(ANYARGS))is_not_libretro, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "is_libretro?", (VALUE (*)(ANYARGS))is_libretro, 0);
+
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "user_language", (VALUE (*)(ANYARGS))user_language, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "user_name", (VALUE (*)(ANYARGS))user_name, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "game_title", (VALUE (*)(ANYARGS))game_title, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "power_state", (VALUE (*)(ANYARGS))power_state, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "nproc", (VALUE (*)(ANYARGS))nproc, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "memory", (VALUE (*)(ANYARGS))memory, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "reload_cache", (VALUE (*)(ANYARGS))reload_cache, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "mount", (VALUE (*)(ANYARGS))mount, -1);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "unmount", (VALUE (*)(ANYARGS))unmount, -1);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "file_exists?", (VALUE (*)(ANYARGS))file_exists, 1);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "launch", (VALUE (*)(ANYARGS))launch, 2);
+
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "default_font_family", (VALUE (*)(ANYARGS))default_font_family, 1);
+
+        SANDBOX_AWAIT(rb_define_method, sb()->rb_cString(), "to_utf8", (VALUE (*)(ANYARGS))to_utf8, 0);
+        SANDBOX_AWAIT(rb_define_method, sb()->rb_cString(), "to_utf8!", (VALUE (*)(ANYARGS))to_utf8_bang, 0);
+
+        SANDBOX_AWAIT_R(cfg_module, rb_define_module, "CFG");
+
+        // TODO
+        //SANDBOX_AWAIT(rb_define_module_function, cfg_module, "[]", (VALUE (*)(ANYARGS))get_json_setting, 1);
+        //SANDBOX_AWAIT(rb_define_module_function, cfg_module, "[]=", (VALUE (*)(ANYARGS))set_json_setting, 2);
+        //SANDBOX_AWAIT(rb_define_module_function, cfg_module, "to_hash", (VALUE (*)(ANYARGS))get_all_json_settings, 0);
 
         SANDBOX_AWAIT(run_rmxp_scripts);
     }

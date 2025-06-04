@@ -24,9 +24,11 @@
 
 #include <atomic>
 #include <memory>
+#include <string>
 #include <vector>
 #include <mkxp-sandbox-bindgen.h>
 #include <boost/optional.hpp>
+#include <libretro.h>
 #include "wasm-types.h"
 #include "audio.h"
 #include "etc.h"
@@ -58,6 +60,8 @@ namespace mkxp_sandbox {
         Bitmap *trans_map;
         Color bitmap_pixel_buffer;
         AudioMutex movie_mutex;
+        struct retro_device_power device_power;
+        std::string convert_string_buffer;
         bool transitioning;
         inline struct mkxp_sandbox::bindings &operator*() noexcept { return *bindings; }
         inline struct mkxp_sandbox::bindings *operator->() noexcept { return &*bindings; }
