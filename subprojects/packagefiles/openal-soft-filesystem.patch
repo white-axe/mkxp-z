@@ -3,7 +3,7 @@
 
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -610,7 +610,7 @@ set(COMMON_OBJS
+@@ -628,7 +628,7 @@ set(COMMON_OBJS
      common/comptr.h
      common/dynload.cpp
      common/dynload.h
@@ -12,7 +12,7 @@
      common/filesystem.h
      common/flexarray.h
      common/intrusive_ptr.h
-@@ -673,7 +673,7 @@ set(CORE_OBJS
+@@ -691,7 +691,7 @@ set(CORE_OBJS
      core/fpu_ctrl.cpp
      core/fpu_ctrl.h
      core/front_stablizer.h
@@ -606,7 +606,7 @@
  
          if(!GetResource(IDR_DEFAULT_HRTF_MHR).empty())
              AddBuiltInEntry("Built-In HRTF", IDR_DEFAULT_HRTF_MHR);
-@@ -1303,14 +1303,14 @@ try {
+@@ -1303,14 +1303,14 @@ HrtfStorePtr GetLoadedHrtf(const std::string_view name, const uint devrate)
      else
      {
          TRACE("Loading {}...", fname);

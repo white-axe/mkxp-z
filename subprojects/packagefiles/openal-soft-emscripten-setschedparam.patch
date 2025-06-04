@@ -2,7 +2,7 @@
 
 --- a/core/helpers.cpp
 +++ b/core/helpers.cpp
-@@ -368,7 +368,7 @@ namespace {
+@@ -374,7 +374,7 @@ namespace {
  bool SetRTPriorityPthread(int prio [[maybe_unused]])
  {
      int err{ENOTSUP};

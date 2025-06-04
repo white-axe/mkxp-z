@@ -3,7 +3,7 @@
 
 --- a/al/auxeffectslot.cpp
 +++ b/al/auxeffectslot.cpp
-@@ -221,7 +221,7 @@ void RemoveActiveEffectSlots(const al::span<ALeffectslot*> auxslots, ALCcontext
+@@ -220,7 +220,7 @@ void RemoveActiveEffectSlots(const al::span<ALeffectslot*> auxslots, ALCcontext
  
  
  [[nodiscard]]
@@ -63,7 +63,7 @@
      {
 --- a/al/effects/chorus.cpp
 +++ b/al/effects/chorus.cpp
-@@ -36,7 +36,7 @@ constexpr std::optional<ChorusWaveform> WaveformFromEnum(ALenum type) noexcept
+@@ -37,7 +37,7 @@ constexpr std::optional<ChorusWaveform> WaveformFromEnum(ALenum type) noexcept
      }
      return std::nullopt;
  }
@@ -116,7 +116,7 @@
      {
 --- a/al/state.cpp
 +++ b/al/state.cpp
-@@ -129,7 +129,7 @@ constexpr auto DistanceModelFromALenum(ALenum model) noexcept -> std::optional<D
+@@ -135,7 +135,7 @@ constexpr auto DistanceModelFromALenum(ALenum model) noexcept -> std::optional<D
      }
      return std::nullopt;
  }

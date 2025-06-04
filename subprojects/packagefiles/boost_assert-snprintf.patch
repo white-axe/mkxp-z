@@ -2,7 +2,7 @@
 
 --- a/include/boost/assert/source_location.hpp
 +++ b/include/boost/assert/source_location.hpp
-@@ -73,7 +73,7 @@ public:
+@@ -76,7 +76,7 @@ public:
  # pragma warning( disable: 4996 )
  #endif
  

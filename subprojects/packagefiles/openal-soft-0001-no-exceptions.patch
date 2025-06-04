@@ -2,7 +2,7 @@
 
 --- a/al/auxeffectslot.cpp
 +++ b/al/auxeffectslot.cpp
-@@ -146,11 +146,11 @@ void AddActiveEffectSlots(const al::span<ALeffectslot*> auxslots, ALCcontext *co
+@@ -145,11 +145,11 @@ void AddActiveEffectSlots(const al::span<ALeffectslot*> auxslots, ALCcontext *co
      if(auxslots.empty()) return;
      EffectSlotArray *curarray{context->mActiveAuxSlots.load(std::memory_order_acquire)};
      if((curarray->size()>>1) > std::numeric_limits<size_t>::max()-auxslots.size())
@@ -16,7 +16,7 @@
  
      /* Insert the new effect slots into the head of the new array, followed by
       * the existing ones.
-@@ -249,7 +249,7 @@ constexpr auto EffectSlotTypeFromEnum(ALenum type) noexcept -> EffectSlotType
+@@ -248,7 +248,7 @@ constexpr auto EffectSlotTypeFromEnum(ALenum type) noexcept -> EffectSlotType
  
  [[nodiscard]]
  auto EnsureEffectSlots(ALCcontext *context, size_t needed) noexcept -> bool
@@ -25,7 +25,7 @@
      size_t count{std::accumulate(context->mEffectSlotList.cbegin(),
          context->mEffectSlotList.cend(), 0_uz,
          [](size_t cur, const EffectSlotSubList &sublist) noexcept -> size_t
-@@ -268,9 +268,9 @@ try {
+@@ -267,9 +267,9 @@ try {
      }
      return true;
  }
@@ -37,7 +37,7 @@
  
  [[nodiscard]]
  auto AllocEffectSlot(ALCcontext *context) -> ALeffectslot*
-@@ -326,7 +326,7 @@ inline void UpdateProps(ALeffectslot *slot, ALCcontext *context)
+@@ -325,7 +325,7 @@ inline void UpdateProps(ALeffectslot *slot, ALCcontext *context)
  AL_API DECL_FUNC2(void, alGenAuxiliaryEffectSlots, ALsizei,n, ALuint*,effectslots)
  FORCE_ALIGN void AL_APIENTRY alGenAuxiliaryEffectSlotsDirect(ALCcontext *context, ALsizei n,
      ALuint *effectslots) noexcept
@@ -46,7 +46,7 @@
      if(n < 0)
          context->throw_error(AL_INVALID_VALUE, "Generating {} effect slots", n);
      if(n <= 0) UNLIKELY return;
-@@ -345,7 +345,7 @@ try {
+@@ -344,7 +344,7 @@ try {
              (n==1) ? "" : "s");
  
      std::vector<ALeffectslot*> slots;
@@ -55,7 +55,7 @@
          if(eids.size() == 1)
          {
              /* Special handling for the easy and normal case. */
-@@ -361,25 +361,25 @@ try {
+@@ -360,25 +360,25 @@ try {
                  [](ALeffectslot *slot) -> ALuint { return slot->id; });
          }
      }
@@ -90,7 +90,7 @@
      if(n < 0) UNLIKELY
          context->throw_error(AL_INVALID_VALUE, "Deleting {} effect slots", n);
      if(n <= 0) UNLIKELY return;
-@@ -425,11 +425,11 @@ try {
+@@ -424,11 +424,11 @@ try {
          std::for_each(eids.begin(), eids.end(), delete_effectslot);
      }
  }
@@ -106,7 +106,7 @@
  
  AL_API DECL_FUNC1(ALboolean, alIsAuxiliaryEffectSlot, ALuint,effectslot)
  FORCE_ALIGN ALboolean AL_APIENTRY alIsAuxiliaryEffectSlotDirect(ALCcontext *context,
-@@ -474,7 +474,7 @@ AL_API void AL_APIENTRY alAuxiliaryEffectSlotStopvSOFT(ALsizei, const ALuint*) n
+@@ -473,7 +473,7 @@ AL_API void AL_APIENTRY alAuxiliaryEffectSlotStopvSOFT(ALsizei, const ALuint*) n
  AL_API DECL_FUNC3(void, alAuxiliaryEffectSloti, ALuint,effectslot, ALenum,param, ALint,value)
  FORCE_ALIGN void AL_APIENTRY alAuxiliaryEffectSlotiDirect(ALCcontext *context, ALuint effectslot,
      ALenum param, ALint value) noexcept
@@ -115,7 +115,7 @@
      std::lock_guard<std::mutex> proplock{context->mPropLock};
      std::lock_guard<std::mutex> slotlock{context->mEffectSlotLock};
  
-@@ -644,16 +644,16 @@ try {
+@@ -643,16 +643,16 @@ try {
      context->throw_error(AL_INVALID_ENUM, "Invalid effect slot integer property {:#04x}",
          as_unsigned(param));
  }
@@ -137,7 +137,7 @@
      switch(param)
      {
      case AL_EFFECTSLOT_EFFECT:
-@@ -673,16 +673,16 @@ try {
+@@ -672,16 +672,16 @@ try {
      context->throw_error(AL_INVALID_ENUM, "Invalid effect slot integer-vector property {:#04x}",
          as_unsigned(param));
  }
@@ -159,7 +159,7 @@
      std::lock_guard<std::mutex> proplock{context->mPropLock};
      std::lock_guard<std::mutex> slotlock{context->mEffectSlotLock};
  
-@@ -706,16 +706,16 @@ try {
+@@ -705,16 +705,16 @@ try {
      context->throw_error(AL_INVALID_ENUM, "Invalid effect slot float property {:#04x}",
          as_unsigned(param));
  }
@@ -181,7 +181,7 @@
      switch(param)
      {
      case AL_EFFECTSLOT_GAIN:
-@@ -731,17 +731,17 @@ try {
+@@ -730,17 +730,17 @@ try {
      context->throw_error(AL_INVALID_ENUM, "Invalid effect slot float-vector property {:#04x}",
          as_unsigned(param));
  }
@@ -204,7 +204,7 @@
      std::lock_guard<std::mutex> slotlock{context->mEffectSlotLock};
      ALeffectslot *slot{LookupEffectSlot(context, effectslot)};
      if(!slot)
-@@ -779,16 +779,16 @@ try {
+@@ -778,16 +778,16 @@ try {
      context->throw_error(AL_INVALID_ENUM, "Invalid effect slot integer property {:#04x}",
          as_unsigned(param));
  }
@@ -226,7 +226,7 @@
      switch(param)
      {
      case AL_EFFECTSLOT_EFFECT:
-@@ -808,16 +808,16 @@ try {
+@@ -807,16 +807,16 @@ try {
      context->throw_error(AL_INVALID_ENUM, "Invalid effect slot integer-vector property {:#04x}",
          as_unsigned(param));
  }
@@ -248,7 +248,7 @@
      std::lock_guard<std::mutex> slotlock{context->mEffectSlotLock};
      ALeffectslot *slot{LookupEffectSlot(context, effectslot)};
      if(!slot)
-@@ -831,16 +831,16 @@ try {
+@@ -830,16 +830,16 @@ try {
      context->throw_error(AL_INVALID_ENUM, "Invalid effect slot float property {:#04x}",
          as_unsigned(param));
  }
@@ -270,7 +270,7 @@
      switch(param)
      {
      case AL_EFFECTSLOT_GAIN:
-@@ -856,17 +856,17 @@ try {
+@@ -855,17 +855,17 @@ try {
      context->throw_error(AL_INVALID_ENUM, "Invalid effect slot float-vector property {:#04x}",
          as_unsigned(param));
  }
@@ -1211,24 +1211,24 @@
  }
 --- a/al/eax/utils.h
 +++ b/al/eax/utils.h
-@@ -8,7 +8,7 @@
- #include <type_traits>
+@@ -5,7 +5,7 @@
  
+ #include "fmt/core.h"
  #include "opthelpers.h"
 -
 +#include "../../src/mkxp-polyfill.h"
- using EaxDirtyFlags = unsigned int;
  
  struct EaxAlLowPassParam {
-@@ -32,7 +32,7 @@ void eax_validate_range(std::string_view value_name, const TValue& value, const
-         std::to_string(min_value) + "; max: " +
-         std::to_string(max_value) + ").";
+     float gain;
+@@ -23,7 +23,7 @@ void eax_validate_range(std::string_view value_name, const TValue& value, const
  
+     const auto message = fmt::format("{} out of range (value: {}; min: {}; max: {}).", value_name,
+         value, min_value, max_value);
 -    throw TException{message.c_str()};
 +    MKXPZ_THROW(TException{message.c_str()});
  }
  
- namespace detail {
+ #endif // !EAX_UTILS_INCLUDED
 --- a/al/effect.cpp
 +++ b/al/effect.cpp
 @@ -141,7 +141,7 @@ void InitEffectParams(ALeffect *effect, ALenum type) noexcept
@@ -1491,7 +1491,7 @@
  bool EaxAutowahCommitter::commit(const EAXAUTOWAHPROPERTIES &props)
 --- a/al/effects/chorus.cpp
 +++ b/al/effects/chorus.cpp
-@@ -43,8 +43,8 @@ constexpr ALenum EnumFromWaveform(ChorusWaveform type)
+@@ -44,8 +44,8 @@ constexpr ALenum EnumFromWaveform(ChorusWaveform type)
      case ChorusWaveform::Sinusoid: return AL_CHORUS_WAVEFORM_SINUSOID;
      case ChorusWaveform::Triangle: return AL_CHORUS_WAVEFORM_TRIANGLE;
      }
@@ -1502,7 +1502,7 @@
  }
  
  constexpr EffectProps genDefaultChorusProps() noexcept
-@@ -584,7 +584,7 @@ struct ChorusCommitter::Exception : public EaxException
+@@ -596,7 +596,7 @@ struct ChorusCommitter::Exception : public EaxException
  template<>
  [[noreturn]] void ChorusCommitter::fail(const char *message)
  {
@@ -1511,7 +1511,7 @@
  }
  
  bool EaxChorusCommitter::commit(const EAXCHORUSPROPERTIES &props)
-@@ -621,7 +621,7 @@ struct FlangerCommitter::Exception : public EaxException
+@@ -633,7 +633,7 @@ struct FlangerCommitter::Exception : public EaxException
  template<>
  [[noreturn]] void FlangerCommitter::fail(const char *message)
  {
@@ -1630,7 +1630,7 @@
  bool EaxPitchShifterCommitter::commit(const EAXPITCHSHIFTERPROPERTIES &props)
 --- a/al/effects/reverb.cpp
 +++ b/al/effects/reverb.cpp
-@@ -972,7 +972,7 @@ struct EaxReverbCommitter::Exception : public EaxReverbEffectException
+@@ -976,7 +976,7 @@ struct EaxReverbCommitter::Exception : public EaxReverbEffectException
  
  [[noreturn]] void EaxReverbCommitter::fail(const char* message)
  {
@@ -2273,7 +2273,7 @@
 +}}
 --- a/al/source.cpp
 +++ b/al/source.cpp
-@@ -733,7 +733,7 @@ bool EnsureSources(ALCcontext *context, size_t needed)
+@@ -722,7 +722,7 @@ bool EnsureSources(ALCcontext *context, size_t needed)
          [](size_t cur, const SourceSubList &sublist) noexcept -> size_t
          { return cur + static_cast<ALuint>(al::popcount(sublist.FreeMask)); })};
  
@@ -2282,7 +2282,7 @@
          while(needed > count)
          {
              if(context->mSourceList.size() >= 1<<25) UNLIKELY
-@@ -746,7 +746,7 @@ bool EnsureSources(ALCcontext *context, size_t needed)
+@@ -735,7 +735,7 @@ bool EnsureSources(ALCcontext *context, size_t needed)
              count += std::tuple_size_v<SubListAllocator::value_type>;
          }
      }
@@ -2291,7 +2291,7 @@
          return false;
      }
      return true;
-@@ -871,7 +871,7 @@ ALenum EnumFromStereoMode(SourceStereo mode)
+@@ -860,7 +860,7 @@ ALenum EnumFromStereoMode(SourceStereo mode)
      case SourceStereo::Normal: return AL_NORMAL_SOFT;
      case SourceStereo::Enhanced: return AL_SUPER_STEREO_SOFT;
      }
@@ -2300,7 +2300,7 @@
  }
  
  auto SpatializeModeFromEnum = [](auto mode) noexcept -> std::optional<SpatializeMode>
-@@ -892,8 +892,8 @@ ALenum EnumFromSpatializeMode(SpatializeMode mode)
+@@ -881,8 +881,8 @@ ALenum EnumFromSpatializeMode(SpatializeMode mode)
      case SpatializeMode::On: return AL_TRUE;
      case SpatializeMode::Auto: return AL_AUTO_SOFT;
      }
@@ -2311,7 +2311,7 @@
  }
  
  auto DirectModeFromEnum = [](auto mode) noexcept -> std::optional<DirectMode>
-@@ -914,7 +914,7 @@ ALenum EnumFromDirectMode(DirectMode mode)
+@@ -903,7 +903,7 @@ ALenum EnumFromDirectMode(DirectMode mode)
      case DirectMode::DropMismatch: return AL_DROP_UNMATCHED_SOFT;
      case DirectMode::RemixMismatch: return AL_REMIX_UNMATCHED_SOFT;
      }
@@ -2320,7 +2320,7 @@
  }
  
  auto DistanceModelFromALenum = [](auto model) noexcept -> std::optional<DistanceModel>
-@@ -943,8 +943,8 @@ ALenum ALenumFromDistanceModel(DistanceModel model)
+@@ -932,8 +932,8 @@ ALenum ALenumFromDistanceModel(DistanceModel model)
      case DistanceModel::Exponent: return AL_EXPONENT_DISTANCE;
      case DistanceModel::ExponentClamped: return AL_EXPONENT_DISTANCE_CLAMPED;
      }
@@ -2331,7 +2331,7 @@
  }
  
  enum SourceProp : ALenum {
-@@ -2673,7 +2673,7 @@ void StartSources(ALCcontext *const context, const al::span<ALsource*> srchandle
+@@ -2662,7 +2662,7 @@ void StartSources(ALCcontext *const context, const al::span<ALsource*> srchandle
  
  AL_API DECL_FUNC2(void, alGenSources, ALsizei,n, ALuint*,sources)
  FORCE_ALIGN void AL_APIENTRY alGenSourcesDirect(ALCcontext *context, ALsizei n, ALuint *sources) noexcept
@@ -2340,7 +2340,7 @@
      if(n < 0)
          context->throw_error(AL_INVALID_VALUE, "Generating {} sources", n);
      if(n <= 0) UNLIKELY return;
-@@ -2692,16 +2692,16 @@ try {
+@@ -2681,16 +2681,16 @@ try {
  
      std::generate(sids.begin(), sids.end(), [context]{ return AllocSource(context)->id; });
  }
@@ -2362,7 +2362,7 @@
      if(n < 0)
          context->throw_error(AL_INVALID_VALUE, "Deleting {} sources", n);
      if(n <= 0) UNLIKELY return;
-@@ -2725,11 +2725,11 @@ try {
+@@ -2714,11 +2714,11 @@ try {
      };
      std::for_each(sids.begin(), sids.end(), delete_source);
  }
@@ -2378,7 +2378,7 @@
  
  AL_API DECL_FUNC1(ALboolean, alIsSource, ALuint,source)
  FORCE_ALIGN ALboolean AL_APIENTRY alIsSourceDirect(ALCcontext *context, ALuint source) noexcept
-@@ -2744,7 +2744,7 @@ FORCE_ALIGN ALboolean AL_APIENTRY alIsSourceDirect(ALCcontext *context, ALuint s
+@@ -2733,7 +2733,7 @@ FORCE_ALIGN ALboolean AL_APIENTRY alIsSourceDirect(ALCcontext *context, ALuint s
  AL_API DECL_FUNC3(void, alSourcef, ALuint,source, ALenum,param, ALfloat,value)
  FORCE_ALIGN void AL_APIENTRY alSourcefDirect(ALCcontext *context, ALuint source, ALenum param,
      ALfloat value) noexcept
@@ -2387,7 +2387,7 @@
      std::lock_guard<std::mutex> proplock{context->mPropLock};
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
-@@ -2753,16 +2753,16 @@ try {
+@@ -2742,16 +2742,16 @@ try {
  
      SetProperty<float>(Source, context, static_cast<SourceProp>(param), {&value, 1u});
  }
@@ -2409,7 +2409,7 @@
      std::lock_guard<std::mutex> proplock{context->mPropLock};
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
-@@ -2772,16 +2772,16 @@ try {
+@@ -2761,16 +2761,16 @@ try {
      const std::array fvals{value1, value2, value3};
      SetProperty<float>(Source, context, static_cast<SourceProp>(param), fvals);
  }
@@ -2431,7 +2431,7 @@
      std::lock_guard<std::mutex> proplock{context->mPropLock};
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
-@@ -2793,17 +2793,17 @@ try {
+@@ -2782,17 +2782,17 @@ try {
      const ALuint count{FloatValsByProp(param)};
      SetProperty(Source, context, static_cast<SourceProp>(param), al::span{values, count});
  }
@@ -2454,7 +2454,7 @@
      std::lock_guard<std::mutex> proplock{context->mPropLock};
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
-@@ -2812,16 +2812,16 @@ try {
+@@ -2801,16 +2801,16 @@ try {
  
      SetProperty<double>(Source, context, static_cast<SourceProp>(param), {&value, 1});
  }
@@ -2476,7 +2476,7 @@
      std::lock_guard<std::mutex> proplock{context->mPropLock};
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
-@@ -2831,16 +2831,16 @@ try {
+@@ -2820,16 +2820,16 @@ try {
      const std::array dvals{value1, value2, value3};
      SetProperty<double>(Source, context, static_cast<SourceProp>(param), dvals);
  }
@@ -2498,7 +2498,7 @@
      std::lock_guard<std::mutex> proplock{context->mPropLock};
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
-@@ -2852,17 +2852,17 @@ try {
+@@ -2841,17 +2841,17 @@ try {
      const ALuint count{DoubleValsByProp(param)};
      SetProperty(Source, context, static_cast<SourceProp>(param), al::span{values, count});
  }
@@ -2521,7 +2521,7 @@
      std::lock_guard<std::mutex> proplock{context->mPropLock};
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
-@@ -2871,16 +2871,16 @@ try {
+@@ -2860,16 +2860,16 @@ try {
  
      SetProperty<int>(Source, context, static_cast<SourceProp>(param), {&value, 1u});
  }
@@ -2543,7 +2543,7 @@
      std::lock_guard<std::mutex> proplock{context->mPropLock};
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
-@@ -2890,16 +2890,16 @@ try {
+@@ -2879,16 +2879,16 @@ try {
      const std::array ivals{value1, value2, value3};
      SetProperty<int>(Source, context, static_cast<SourceProp>(param), ivals);
  }
@@ -2565,7 +2565,7 @@
      std::lock_guard<std::mutex> proplock{context->mPropLock};
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
-@@ -2911,17 +2911,17 @@ try {
+@@ -2900,17 +2900,17 @@ try {
      const ALuint count{IntValsByProp(param)};
      SetProperty(Source, context, static_cast<SourceProp>(param), al::span{values, count});
  }
@@ -2588,7 +2588,7 @@
      std::lock_guard<std::mutex> proplock{context->mPropLock};
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
-@@ -2930,16 +2930,16 @@ try {
+@@ -2919,16 +2919,16 @@ try {
  
      SetProperty<int64_t>(Source, context, static_cast<SourceProp>(param), {&value, 1u});
  }
@@ -2610,7 +2610,7 @@
      std::lock_guard<std::mutex> proplock{context->mPropLock};
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
-@@ -2949,16 +2949,16 @@ try {
+@@ -2938,16 +2938,16 @@ try {
      const std::array i64vals{value1, value2, value3};
      SetProperty<int64_t>(Source, context, static_cast<SourceProp>(param), i64vals);
  }
@@ -2632,7 +2632,7 @@
      std::lock_guard<std::mutex> proplock{context->mPropLock};
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
-@@ -2970,17 +2970,17 @@ try {
+@@ -2959,17 +2959,17 @@ try {
      const ALuint count{Int64ValsByProp(param)};
      SetProperty(Source, context, static_cast<SourceProp>(param), al::span{values, count});
  }
@@ -2655,7 +2655,7 @@
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
      if(!Source)
-@@ -2990,16 +2990,16 @@ try {
+@@ -2979,16 +2979,16 @@ try {
  
      GetProperty(Source, context, static_cast<SourceProp>(param), al::span{value, 1u});
  }
@@ -2677,7 +2677,7 @@
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
      if(!Source)
-@@ -3013,16 +3013,16 @@ try {
+@@ -3002,16 +3002,16 @@ try {
      *value2 = fvals[1];
      *value3 = fvals[2];
  }
@@ -2699,7 +2699,7 @@
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
      if(!Source)
-@@ -3033,17 +3033,17 @@ try {
+@@ -3022,17 +3022,17 @@ try {
      const ALuint count{FloatValsByProp(param)};
      GetProperty(Source, context, static_cast<SourceProp>(param), al::span{values, count});
  }
@@ -2722,7 +2722,7 @@
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
      if(!Source)
-@@ -3053,16 +3053,16 @@ try {
+@@ -3042,16 +3042,16 @@ try {
  
      GetProperty(Source, context, static_cast<SourceProp>(param), al::span{value, 1u});
  }
@@ -2744,7 +2744,7 @@
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
      if(!Source)
-@@ -3076,16 +3076,16 @@ try {
+@@ -3065,16 +3065,16 @@ try {
      *value2 = dvals[1];
      *value3 = dvals[2];
  }
@@ -2766,7 +2766,7 @@
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
      if(!Source)
-@@ -3096,17 +3096,17 @@ try {
+@@ -3085,17 +3085,17 @@ try {
      const ALuint count{DoubleValsByProp(param)};
      GetProperty(Source, context, static_cast<SourceProp>(param), al::span{values, count});
  }
@@ -2789,7 +2789,7 @@
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
      if(!Source)
-@@ -3116,16 +3116,16 @@ try {
+@@ -3105,16 +3105,16 @@ try {
  
      GetProperty(Source, context, static_cast<SourceProp>(param), al::span{value, 1u});
  }
@@ -2811,7 +2811,7 @@
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
      if(!Source)
-@@ -3139,16 +3139,16 @@ try {
+@@ -3128,16 +3128,16 @@ try {
      *value2 = ivals[1];
      *value3 = ivals[2];
  }
@@ -2833,7 +2833,7 @@
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
      if(!Source)
-@@ -3159,16 +3159,16 @@ try {
+@@ -3148,16 +3148,16 @@ try {
      const ALuint count{IntValsByProp(param)};
      GetProperty(Source, context, static_cast<SourceProp>(param), al::span{values, count});
  }
@@ -2855,7 +2855,7 @@
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
      if(!Source)
-@@ -3178,16 +3178,16 @@ try {
+@@ -3167,16 +3167,16 @@ try {
  
      GetProperty(Source, context, static_cast<SourceProp>(param), al::span{value, 1u});
  }
@@ -2877,7 +2877,7 @@
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
      if(!Source)
-@@ -3201,16 +3201,16 @@ try {
+@@ -3190,16 +3190,16 @@ try {
      *value2 = i64vals[1];
      *value3 = i64vals[2];
  }
@@ -2899,7 +2899,7 @@
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
      if(!Source)
-@@ -3221,16 +3221,16 @@ try {
+@@ -3210,16 +3210,16 @@ try {
      const ALuint count{Int64ValsByProp(param)};
      GetProperty(Source, context, static_cast<SourceProp>(param), al::span{values, count});
  }
@@ -2921,7 +2921,7 @@
      std::lock_guard<std::mutex> sourcelock{context->mSourceLock};
      ALsource *Source{LookupSource(context, source)};
      if(!Source)
-@@ -3238,16 +3238,16 @@ try {
+@@ -3227,16 +3227,16 @@ try {
  
      StartSources(context, {&Source, 1});
  }
@@ -2943,7 +2943,7 @@
      if(start_time < 0)
          context->throw_error(AL_INVALID_VALUE, "Invalid time point {}", start_time);
  
-@@ -3258,16 +3258,16 @@ try {
+@@ -3247,16 +3247,16 @@ try {
  
      StartSources(context, {&Source, 1}, nanoseconds{start_time});
  }
@@ -2965,7 +2965,7 @@
      if(n < 0)
          context->throw_error(AL_INVALID_VALUE, "Playing {} sources", n);
      if(n <= 0) UNLIKELY return;
-@@ -3292,16 +3292,16 @@ try {
+@@ -3281,16 +3281,16 @@ try {
  
      StartSources(context, srchandles);
  }
@@ -2987,7 +2987,7 @@
      if(n < 0)
          context->throw_error(AL_INVALID_VALUE, "Playing {} sources", n);
      if(n <= 0) UNLIKELY return;
-@@ -3329,11 +3329,11 @@ try {
+@@ -3318,11 +3318,11 @@ try {
  
      StartSources(context, srchandles, nanoseconds{start_time});
  }
@@ -3003,7 +3003,7 @@
  
  
  AL_API DECL_FUNC1(void, alSourcePause, ALuint,source)
-@@ -3343,7 +3343,7 @@ FORCE_ALIGN void AL_APIENTRY alSourcePauseDirect(ALCcontext *context, ALuint sou
+@@ -3332,7 +3332,7 @@ FORCE_ALIGN void AL_APIENTRY alSourcePauseDirect(ALCcontext *context, ALuint sou
  AL_API DECL_FUNC2(void, alSourcePausev, ALsizei,n, const ALuint*,sources)
  FORCE_ALIGN void AL_APIENTRY alSourcePausevDirect(ALCcontext *context, ALsizei n,
      const ALuint *sources) noexcept
@@ -3012,7 +3012,7 @@
      if(n < 0)
          context->throw_error(AL_INVALID_VALUE, "Pausing {} sources", n);
      if(n <= 0) UNLIKELY return;
-@@ -3404,11 +3404,11 @@ try {
+@@ -3393,11 +3393,11 @@ try {
          }
      }
  }
@@ -3028,7 +3028,7 @@
  
  
  AL_API DECL_FUNC1(void, alSourceStop, ALuint,source)
-@@ -3418,7 +3418,7 @@ FORCE_ALIGN void AL_APIENTRY alSourceStopDirect(ALCcontext *context, ALuint sour
+@@ -3407,7 +3407,7 @@ FORCE_ALIGN void AL_APIENTRY alSourceStopDirect(ALCcontext *context, ALuint sour
  AL_API DECL_FUNC2(void, alSourceStopv, ALsizei,n, const ALuint*,sources)
  FORCE_ALIGN void AL_APIENTRY alSourceStopvDirect(ALCcontext *context, ALsizei n,
      const ALuint *sources) noexcept
@@ -3037,7 +3037,7 @@
      if(n < 0)
          context->throw_error(AL_INVALID_VALUE, "Stopping {} sources", n);
      if(n <= 0) UNLIKELY return;
-@@ -3466,11 +3466,11 @@ try {
+@@ -3455,11 +3455,11 @@ try {
      if(tail) LIKELY
          SendVoiceChanges(context, tail);
  }
@@ -3053,7 +3053,7 @@
  
  
  AL_API DECL_FUNC1(void, alSourceRewind, ALuint,source)
-@@ -3480,7 +3480,7 @@ FORCE_ALIGN void AL_APIENTRY alSourceRewindDirect(ALCcontext *context, ALuint so
+@@ -3469,7 +3469,7 @@ FORCE_ALIGN void AL_APIENTRY alSourceRewindDirect(ALCcontext *context, ALuint so
  AL_API DECL_FUNC2(void, alSourceRewindv, ALsizei,n, const ALuint*,sources)
  FORCE_ALIGN void AL_APIENTRY alSourceRewindvDirect(ALCcontext *context, ALsizei n,
      const ALuint *sources) noexcept
@@ -3062,7 +3062,7 @@
      if(n < 0)
          context->throw_error(AL_INVALID_VALUE, "Rewinding {} sources", n);
      if(n <= 0) UNLIKELY return;
-@@ -3530,17 +3530,17 @@ try {
+@@ -3519,17 +3519,17 @@ try {
      if(tail) LIKELY
          SendVoiceChanges(context, tail);
  }
@@ -3085,25 +3085,25 @@
      if(nb < 0)
          context->throw_error(AL_INVALID_VALUE, "Queueing {} buffers", nb);
      if(nb <= 0) UNLIKELY return;
-@@ -3566,7 +3566,7 @@ try {
+@@ -3555,7 +3555,7 @@ try {
      std::unique_lock<std::mutex> buflock{device->BufferLock};
      const auto bids = al::span{buffers, static_cast<ALuint>(nb)};
      const size_t NewListStart{source->mQueue.size()};
 -    try {
 +    MKXPZ_TRY {
          ALbufferQueueItem *BufferList{nullptr};
-         std::for_each(bids.cbegin(), bids.cend(),
-         [context,source,device,&BufferFmt,&BufferList](const ALuint bid)
-@@ -3631,7 +3631,7 @@ try {
-                     NameFromFormat(buffer->mChannels));
-         });
+         auto append_buffer = [context,source,device,&BufferFmt,&BufferList](const ALuint bid)
+         {
+@@ -3620,7 +3620,7 @@ try {
+         };
+         std::for_each(bids.cbegin(), bids.cend(), append_buffer);
      }
 -    catch(...) {
 +    MKXPZ_CATCH(...) {
          /* A buffer failed (invalid ID or format), or there was some other
           * unexpected error, so unlock and release each buffer we had.
           */
-@@ -3642,7 +3642,7 @@ try {
+@@ -3631,7 +3631,7 @@ try {
                  DecrementRef(buf->ref);
          }
          source->mQueue.resize(NewListStart);
@@ -3112,7 +3112,7 @@
      }
      /* All buffers good. */
      buflock.unlock();
-@@ -3656,16 +3656,16 @@ try {
+@@ -3645,16 +3645,16 @@ try {
          (iter-1)->mNext.store(al::to_address(iter), std::memory_order_release);
      }
  }
@@ -3134,7 +3134,7 @@
      if(nb < 0)
          context->throw_error(AL_INVALID_VALUE, "Unqueueing {} buffers", nb);
      if(nb <= 0) UNLIKELY return;
-@@ -3712,11 +3712,11 @@ try {
+@@ -3701,11 +3701,11 @@ try {
          return bid;
      });
  }
@@ -3152,7 +3152,7 @@
  AL_API void AL_APIENTRY alSourceQueueBufferLayersSOFT(ALuint, ALsizei, const ALuint*) noexcept
 --- a/al/state.cpp
 +++ b/al/state.cpp
-@@ -112,7 +112,7 @@ const ALchar *GetResamplerName(const Resampler rtype)
+@@ -118,7 +118,7 @@ const ALchar *GetResamplerName(const Resampler rtype)
      }
  #undef HANDLE_RESAMPLER
      /* Should never get here. */
@@ -3161,7 +3161,7 @@
  }
  
  constexpr auto DistanceModelFromALenum(ALenum model) noexcept -> std::optional<DistanceModel>
-@@ -141,7 +141,7 @@ constexpr auto ALenumFromDistanceModel(DistanceModel model) -> ALenum
+@@ -147,7 +147,7 @@ constexpr auto ALenumFromDistanceModel(DistanceModel model) -> ALenum
      case DistanceModel::Exponent: return AL_EXPONENT_DISTANCE;
      case DistanceModel::ExponentClamped: return AL_EXPONENT_DISTANCE_CLAMPED;
      }
@@ -3172,7 +3172,7 @@
  enum PropertyValue : ALenum {
 --- a/alc/alc.cpp
 +++ b/alc/alc.cpp
-@@ -892,7 +892,7 @@ ALCenum EnumFromDevFmt(DevFmtType type)
+@@ -901,7 +901,7 @@ ALCenum EnumFromDevFmt(DevFmtType type)
      case DevFmtUInt: return ALC_UNSIGNED_INT_SOFT;
      case DevFmtFloat: return ALC_FLOAT_SOFT;
      }
@@ -3181,7 +3181,7 @@
  }
  
  std::optional<DevFmtChannels> DevFmtChannelsFromEnum(ALCenum channels)
-@@ -926,8 +926,8 @@ ALCenum EnumFromDevFmt(DevFmtChannels channels)
+@@ -935,8 +935,8 @@ ALCenum EnumFromDevFmt(DevFmtChannels channels)
      case DevFmtX7144:
      case DevFmtX3D71: break;
      }
@@ -3192,7 +3192,7 @@
  }
  
  std::optional<DevAmbiLayout> DevAmbiLayoutFromEnum(ALCenum layout)
-@@ -947,8 +947,8 @@ ALCenum EnumFromDevAmbi(DevAmbiLayout layout)
+@@ -956,8 +956,8 @@ ALCenum EnumFromDevAmbi(DevAmbiLayout layout)
      case DevAmbiLayout::FuMa: return ALC_FUMA_SOFT;
      case DevAmbiLayout::ACN: return ALC_ACN_SOFT;
      }
@@ -3203,7 +3203,7 @@
  }
  
  std::optional<DevAmbiScaling> DevAmbiScalingFromEnum(ALCenum scaling)
-@@ -970,8 +970,8 @@ ALCenum EnumFromDevAmbi(DevAmbiScaling scaling)
+@@ -979,8 +979,8 @@ ALCenum EnumFromDevAmbi(DevAmbiScaling scaling)
      case DevAmbiScaling::SN3D: return ALC_SN3D_SOFT;
      case DevAmbiScaling::N3D: return ALC_N3D_SOFT;
      }
@@ -3214,7 +3214,7 @@
  }
  
  
-@@ -1527,14 +1527,14 @@ auto UpdateDeviceParams(al::Device *device, const al::span<const int> attrList)
+@@ -1536,14 +1536,14 @@ auto UpdateDeviceParams(al::Device *device, const al::span<const int> attrList)
      const uint oldFreq{device->mSampleRate};
      const DevFmtChannels oldChans{device->FmtChans};
      const DevFmtType oldType{device->FmtType};
@@ -3234,7 +3234,7 @@
          return ALC_INVALID_DEVICE;
      }
  
-@@ -1719,7 +1719,7 @@ auto UpdateDeviceParams(al::Device *device, const al::span<const int> attrList)
+@@ -1728,7 +1728,7 @@ auto UpdateDeviceParams(al::Device *device, const al::span<const int> attrList)
      FPUCtl mixer_mode{};
      auto reset_context = [device](ContextBase *ctxbase)
      {
@@ -3243,7 +3243,7 @@
          assert(context != nullptr);
          if(!context) return;
  
-@@ -1873,14 +1873,14 @@ auto UpdateDeviceParams(al::Device *device, const al::span<const int> attrList)
+@@ -1882,14 +1882,14 @@ auto UpdateDeviceParams(al::Device *device, const al::span<const int> attrList)
      device->mDeviceState = DeviceState::Configured;
      if(!device->Flags.test(DevicePaused))
      {
@@ -3262,7 +3262,7 @@
              return ALC_INVALID_DEVICE;
          }
          TRACE("Post-start: {}, {}, {}hz, {} / {} buffer",
-@@ -1905,7 +1905,7 @@ auto ResetDeviceParams(al::Device *device, const al::span<const int> attrList) -
+@@ -1914,7 +1914,7 @@ auto ResetDeviceParams(al::Device *device, const al::span<const int> attrList) -
  
          for(ContextBase *ctxbase : *device->mContexts.load(std::memory_order_acquire))
          {
@@ -3271,7 +3271,7 @@
              assert(ctx != nullptr);
              if(!ctx || !ctx->mStopVoicesOnDisconnect.load(std::memory_order_acquire))
                  continue;
-@@ -3007,16 +3007,16 @@ ALC_API ALCdevice* ALC_APIENTRY alcOpenDevice(const ALCchar *deviceName) noexcep
+@@ -3016,16 +3016,16 @@ ALC_API ALCdevice* ALC_APIENTRY alcOpenDevice(const ALCchar *deviceName) noexcep
      device->AuxiliaryEffectSlotMax = 64;
      device->NumAuxSends = DefaultSends;
  
@@ -3292,7 +3292,7 @@
              ? ALC_OUT_OF_MEMORY : ALC_INVALID_VALUE);
          return nullptr;
      }
-@@ -3172,16 +3172,16 @@ ALC_API ALCdevice* ALC_APIENTRY alcCaptureOpenDevice(const ALCchar *deviceName,
+@@ -3181,16 +3181,16 @@ ALC_API ALCdevice* ALC_APIENTRY alcCaptureOpenDevice(const ALCchar *deviceName,
          DevFmtChannelsString(device->FmtChans), DevFmtTypeString(device->FmtType),
          device->mSampleRate, device->mUpdateSize, device->mBufferSize);
  
@@ -3313,7 +3313,7 @@
              ? ALC_OUT_OF_MEMORY : ALC_INVALID_VALUE);
          return nullptr;
      }
-@@ -3244,14 +3244,14 @@ ALC_API void ALC_APIENTRY alcCaptureStart(ALCdevice *device) noexcept
+@@ -3253,14 +3253,14 @@ ALC_API void ALC_APIENTRY alcCaptureStart(ALCdevice *device) noexcept
          alcSetError(dev.get(), ALC_INVALID_DEVICE);
      else if(dev->mDeviceState != DeviceState::Playing)
      {
@@ -3332,7 +3332,7 @@
              alcSetError(dev.get(), ALC_INVALID_DEVICE);
          }
      }
-@@ -3350,16 +3350,16 @@ ALC_API ALCdevice* ALC_APIENTRY alcLoopbackOpenDeviceSOFT(const ALCchar *deviceN
+@@ -3359,16 +3359,16 @@ ALC_API ALCdevice* ALC_APIENTRY alcLoopbackOpenDeviceSOFT(const ALCchar *deviceN
      device->NumStereoSources = 1;
      device->NumMonoSources = device->SourcesMax - device->NumStereoSources;
  
@@ -3353,7 +3353,7 @@
              ? ALC_OUT_OF_MEMORY : ALC_INVALID_VALUE);
          return nullptr;
      }
-@@ -3406,7 +3406,7 @@ ALC_API ALCboolean ALC_APIENTRY alcIsRenderFormatSupportedSOFT(ALCdevice *device
+@@ -3415,7 +3415,7 @@ ALC_API ALCboolean ALC_APIENTRY alcIsRenderFormatSupportedSOFT(ALCdevice *device
  #endif
  ALC_API void ALC_APIENTRY alcRenderSamplesSOFT(ALCdevice *device, ALCvoid *buffer, ALCsizei samples) noexcept
  {
@@ -3362,7 +3362,7 @@
      if(!aldev || aldev->Type != DeviceType::Loopback) UNLIKELY
          alcSetError(aldev, ALC_INVALID_DEVICE);
      else if(samples < 0 || (samples > 0 && buffer == nullptr)) UNLIKELY
-@@ -3467,14 +3467,14 @@ ALC_API void ALC_APIENTRY alcDeviceResumeSOFT(ALCdevice *device) noexcept
+@@ -3476,14 +3476,14 @@ ALC_API void ALC_APIENTRY alcDeviceResumeSOFT(ALCdevice *device) noexcept
      if(dev->mContexts.load()->empty())
          return;
  
@@ -3381,7 +3381,7 @@
          alcSetError(dev.get(), ALC_INVALID_DEVICE);
          return;
      }
-@@ -3585,28 +3585,28 @@ FORCE_ALIGN ALCboolean ALC_APIENTRY alcReopenDeviceSOFT(ALCdevice *device,
+@@ -3594,28 +3594,28 @@ FORCE_ALIGN ALCboolean ALC_APIENTRY alcReopenDeviceSOFT(ALCdevice *device,
      }
  
      BackendPtr newbackend;
@@ -3548,7 +3548,7 @@
  
 --- a/alc/context.cpp
 +++ b/alc/context.cpp
-@@ -456,7 +456,7 @@ void ALCcontext::eaxSetLastError() noexcept
+@@ -458,7 +458,7 @@ void ALCcontext::eaxSetLastError() noexcept
  
  [[noreturn]] void ALCcontext::eax_fail(const char* message)
  {
@@ -3834,7 +3834,7 @@
      }
  
      const auto newlist = al::span{*results}.subspan(base);
-@@ -272,7 +272,7 @@ const PathNamePair &GetProcBinary()
+@@ -278,7 +278,7 @@ const PathNamePair &GetProcBinary()
  
              for(const std::string_view name : SelfLinkNames)
              {
@@ -3843,7 +3843,7 @@
                      if(!fs::exists(name))
                          continue;
                      if(auto path = fs::read_symlink(name); !path.empty())
-@@ -281,8 +281,8 @@ const PathNamePair &GetProcBinary()
+@@ -287,8 +287,8 @@ const PathNamePair &GetProcBinary()
                          break;
                      }
                  }

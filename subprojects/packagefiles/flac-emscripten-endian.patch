@@ -2,7 +2,7 @@
 
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -137,7 +137,10 @@ check_c_source_compiles("
+@@ -142,7 +142,10 @@ check_c_source_compiles("
      }"
      HAVE_LANGINFO_CODESET)
  

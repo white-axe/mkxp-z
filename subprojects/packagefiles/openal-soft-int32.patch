@@ -3,7 +3,7 @@
 
 --- a/alc/alu.cpp
 +++ b/alc/alu.cpp
-@@ -2114,7 +2114,7 @@ inline T SampleConv(float) noexcept;
+@@ -2120,7 +2120,7 @@ inline T SampleConv(float) noexcept;
  
  template<> inline float SampleConv(float val) noexcept
  { return val; }
@@ -12,7 +12,7 @@
  {
      /* Floats have a 23-bit mantissa, plus an implied 1 bit and a sign bit.
       * This means a normalized float has at most 25 bits of signed precision.
-@@ -2123,13 +2123,16 @@ template<> inline int32_t SampleConv(float val) noexcept
+@@ -2129,13 +2129,16 @@ template<> inline int32_t SampleConv(float val) noexcept
       */
      return fastf2i(std::clamp(val*2147483648.0f, -2147483648.0f, 2147483520.0f));
  }

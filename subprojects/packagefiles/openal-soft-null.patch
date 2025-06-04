@@ -2,7 +2,7 @@
 
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -897,7 +897,7 @@ set(ALC_OBJS  ${ALC_OBJS}
+@@ -912,7 +912,7 @@ set(ALC_OBJS  ${ALC_OBJS}
      # Default backends, always available
      alc/backends/loopback.cpp
      alc/backends/loopback.h

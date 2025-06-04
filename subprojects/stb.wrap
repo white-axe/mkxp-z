@@ -1,6 +1,6 @@
 [wrap-git]
 url = https://github.com/nothings/stb
-revision = 5c205738c191bcb0abc65c4febfa9bd25ff35234
+revision = f58f558c120e9b32c217290b80bad1a0729fbb2c
 depth = 1
 patch_directory = stb
 diff_files = stb-uintptr.patch

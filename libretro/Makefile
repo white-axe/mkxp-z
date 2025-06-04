@@ -1,6 +1,6 @@
 # Configure flags are based on the ones from https://github.com/ruby/ruby.wasm
 
-RUBY_VERSION ?= v3_3_7
+RUBY_VERSION ?= v3_3_8
 WABT_VERSION ?= 1.0.37
 LIBYAML_VERSION ?= 0.2.5
 ZLIB_VERSION ?= 1.3.1
