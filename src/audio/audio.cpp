@@ -608,6 +608,7 @@ void Audio::reset()
 
 Audio::~Audio() { delete p; }
 
+#ifdef MKXPZ_RETRO
 bool Audio::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
 	if (!mkxp_sandbox::sandbox_serialize((mkxp_sandbox::wasm_size_t)p->bgmTracks.size(), data, max_size)) return false;
@@ -645,3 +646,4 @@ bool Audio::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &ma
 
 	return true;
 }
+#endif // MKXPZ_RETRO

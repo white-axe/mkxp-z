@@ -460,6 +460,7 @@ bool AudioStream::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_
 bool AudioStream::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
 	AudioMutexGuard guard(mutex);
+
 	{
 		std::string value;
 		if (!mkxp_sandbox::sandbox_deserialize(current.filename, data, max_size)) return false;

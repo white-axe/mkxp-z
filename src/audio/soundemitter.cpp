@@ -341,6 +341,7 @@ SoundBuffer *SoundEmitter::allocateBuffer(const std::string &filename)
 	}
 }
 
+#ifdef MKXPZ_RETRO
 bool SoundEmitter::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
 	if (!mkxp_sandbox::sandbox_serialize((mkxp_sandbox::wasm_size_t)srcCount, data, max_size)) return false;
@@ -443,3 +444,4 @@ bool SoundEmitter::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_siz
 
 	return true;
 }
+#endif // MKXPZ_RETRO
