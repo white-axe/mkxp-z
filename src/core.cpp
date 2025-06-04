@@ -790,13 +790,16 @@ static bool init_sandbox() {
 
     {
         std::string parsed_game_path(game_path);
+        std::string parsed_game_path_lower(game_path);
+        for (char &c : parsed_game_path_lower) {
+            c = std::tolower(c);
+        }
 
-        // If the game path doesn't end with ".mkxp" or ".mkxpz", remove the last component from the path since we want to mount the directory that the file is in, not the file itself.
+        // If the game path doesn't end with ".mkxpz", ".zip" or ".7z", remove the last component from the path since we want to mount the directory that the file is in, not the file itself.
         if (
-            !(parsed_game_path.length() >= 5 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 5), ".mkxp") == 0)
-                && !(parsed_game_path.length() >= 5 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 5), ".MKXP") == 0)
-                && !(parsed_game_path.length() >= 6 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 6), ".mkxpz") == 0)
-                && !(parsed_game_path.length() >= 6 && std::strcmp(parsed_game_path.c_str() + (parsed_game_path.length() - 6), ".MKXPZ") == 0)
+            !(parsed_game_path_lower.length() >= sizeof ".mkxpz" - 1 && std::strcmp(parsed_game_path_lower.c_str() + (parsed_game_path_lower.length() - (sizeof ".mkxpz" - 1)), ".mkxpz") == 0)
+                && !(parsed_game_path_lower.length() >= sizeof ".zip" - 1 && std::strcmp(parsed_game_path_lower.c_str() + (parsed_game_path_lower.length() - (sizeof ".zip" - 1)), ".zip") == 0)
+                && !(parsed_game_path_lower.length() >= sizeof ".7z" - 1 && std::strcmp(parsed_game_path_lower.c_str() + (parsed_game_path_lower.length() - (sizeof ".7z" - 1)), ".7z") == 0)
         ) {
             size_t last_slash_index = parsed_game_path.find_last_of('/');
 #ifdef _WIN32
@@ -1385,7 +1388,7 @@ extern "C" RETRO_API void retro_get_system_info(struct retro_system_info *info) 
     std::memset(info, 0, sizeof *info);
     info->library_name = "mkxp-z";
     info->library_version = MKXPZ_VERSION "/" MKXPZ_GIT_HASH;
-    info->valid_extensions = "mkxp|mkxpz|json|ini|rxproj|rvproj|rvproj2";
+    info->valid_extensions = "ini|json|rxproj|rvproj|rvproj2|mkxp|mkxpz|zip|7z";
     info->need_fullpath = true;
     info->block_extract = true;
 }
