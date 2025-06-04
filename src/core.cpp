@@ -40,6 +40,7 @@
 
 #include "mkxp-polyfill.h" // std::mutex, std::strtoul
 #include "git-hash.h"
+#include "binding-sandbox-hash.h"
 
 #include "al-util.h"
 #include "audio.h"
@@ -635,6 +636,8 @@ namespace mkxp_retro {
     uint8_t enable_blitting_override;
     uint8_t midi_chorus_override;
     uint8_t midi_reverb_override;
+
+    uint8_t ruby_revision[20];
 
     uint64_t get_ticks_ms() noexcept {
         return frame_time / 1000;
@@ -1622,6 +1625,19 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     // Write 4-byte version: 1
     if (!sandbox_serialize((uint32_t)1, data, max_size)) return false;
 
+    // Write mkxp-z version
+    if (!sandbox_serialize(MKXPZ_VERSION "/" MKXPZ_GIT_HASH, data, max_size)) return false;
+
+    // Write 20-byte Ruby revision
+    RESERVE(sizeof ruby_revision);
+    std::memcpy(data, ruby_revision, sizeof ruby_revision);
+    ADVANCE(sizeof ruby_revision);
+
+    // Write 32-byte hash of binding-sandbox source files
+    RESERVE(sizeof MKXPZ_BINDING_SANDBOX_HASH - 1);
+    std::memcpy(data, MKXPZ_BINDING_SANDBOX_HASH, sizeof MKXPZ_BINDING_SANDBOX_HASH - 1);
+    ADVANCE(sizeof MKXPZ_BINDING_SANDBOX_HASH - 1);
+
     // Write the capacity of the VM memory
     if (!sandbox_serialize(sb()->memory_capacity(), data, max_size)) return false;
 
@@ -1769,6 +1785,26 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
         if (!sandbox_deserialize(version, data, max_size)) return false;
         if (version != 1) return false;
     }
+
+    // Read mkxp-z version that the save state was created by
+    std::string mkxpz_version;
+    if (!sandbox_deserialize(mkxpz_version, data, max_size)) return false;
+
+    // Make sure the Ruby revision matches that of that version of mkxp-z, since save state compatibility breaks when the Ruby version changes
+    RESERVE(sizeof ruby_revision);
+    if (std::memcmp(data, ruby_revision, sizeof ruby_revision)) {
+        log_printf(RETRO_LOG_ERROR, "Failed to load save state because it uses a different Ruby version than the current version of mkxp-z; try using mkxp-z version %s to load this save state instead\n", mkxpz_version.c_str());
+        return false;
+    }
+    ADVANCE(sizeof ruby_revision);
+
+    // Make sure the hash of the binding-sandbox source files matches that of that version of mkxp-z, since save state compatibility breaks when the sandbox bindings are modified
+    RESERVE(sizeof MKXPZ_BINDING_SANDBOX_HASH - 1);
+    if (std::memcmp(data, MKXPZ_BINDING_SANDBOX_HASH, sizeof MKXPZ_BINDING_SANDBOX_HASH - 1)) {
+        log_printf(RETRO_LOG_ERROR, "Failed to load save state because the sandbox bindings used are incompatible with the current version of mkxp-z; try using mkxp-z version %s to load this save state instead\n", mkxpz_version.c_str());
+        return false;
+    }
+    ADVANCE(sizeof MKXPZ_BINDING_SANDBOX_HASH - 1);
 
     // Read the VM memory
     {

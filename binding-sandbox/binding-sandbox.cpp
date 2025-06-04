@@ -20,7 +20,8 @@
 */
 
 #include "binding-sandbox.h"
-#include <cstring>
+#include "mkxp-polyfill.h" // std::strtol
+#include <string>
 #include <libretro.h>
 #include <zlib.h>
 #include "sharedstate.h"
@@ -535,6 +536,26 @@ void sandbox_binding_init::operator()() {
     static VALUE system_module;
     static VALUE cfg_module;
 
+    struct register_ruby_revision : boost::asio::coroutine {
+        typedef decl_slots<wasm_ptr_t, VALUE, ID> slots;
+
+        void operator()() {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(2, rb_intern, "RUBY_REVISION");
+                SANDBOX_AWAIT_S(1, rb_const_get, sb()->rb_cObject(), SANDBOX_SLOT(2));
+                SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(1));
+
+                struct sandbox_str_guard str = sb()->str(SANDBOX_SLOT(0));
+                if (std::strlen(str) != 2 * sizeof mkxp_retro::ruby_revision) {
+                    std::abort();
+                }
+                for (size_t i = 0; i < sizeof mkxp_retro::ruby_revision; ++i) {
+                    mkxp_retro::ruby_revision[i] = std::strtol(std::string(str + 2 * i, 2).c_str(), nullptr, 16);
+                }
+            }
+        }
+    };
+
     struct register_utf8_encoding : boost::asio::coroutine {
         typedef decl_slots<ID> slots;
 
@@ -547,6 +568,7 @@ void sandbox_binding_init::operator()() {
     };
 
     BOOST_ASIO_CORO_REENTER (this) {
+        SANDBOX_AWAIT(register_ruby_revision);
         SANDBOX_AWAIT(register_utf8_encoding);
         SANDBOX_AWAIT(exception_binding_init);
 

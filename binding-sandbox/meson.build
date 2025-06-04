@@ -1,4 +1,4 @@
-global_sources += files(
+binding_sandbox_sources = files(
     'audio-binding.cpp',
     'binding-base.cpp',
     'binding-sandbox.cpp',
@@ -21,4 +21,33 @@ global_sources += files(
     'wasm-rt.cpp',
     'window-binding.cpp',
     'windowvx-binding.cpp',
+)
+
+global_sources += binding_sandbox_sources
+
+binding_sandbox_hasher = executable(
+    'binding-sandbox-hasher',
+    dependencies: subproject('picosha2').get_variable('picosha2'),
+    sources: 'hasher.cpp',
+    native: true,
+    override_options: [
+        'buildtype=release',
+        'b_coverage=false',
+        'b_lto=false',
+        'b_ndebug=false',
+        'b_pgo=off',
+        'b_sanitize=none',
+        'cpp_std=c++11',
+    ],
+)
+
+global_sources += custom_target(
+    'binding-sandbox-hash',
+    input: binding_sandbox_sources,
+    output: 'binding-sandbox-hash.h',
+    command: [
+        binding_sandbox_hasher,
+        '@OUTPUT@',
+        '@INPUT@',
+    ],
 )

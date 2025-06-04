@@ -50,6 +50,8 @@ namespace mkxp_retro {
     extern uint8_t midi_chorus_override;
     extern uint8_t midi_reverb_override;
 
+    extern uint8_t ruby_revision[20];
+
     uint64_t get_ticks_ms() noexcept;
     uint64_t get_ticks_us() noexcept;
     double get_refresh_rate() noexcept;
