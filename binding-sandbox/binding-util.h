@@ -553,7 +553,7 @@ namespace mkxp_sandbox {
 
     struct exception_raise : boost::asio::coroutine {
         typedef decl_slots<VALUE> slots;
-        void operator()(Exception &exception);
+        void operator()(const Exception &exception);
     };
 }
 

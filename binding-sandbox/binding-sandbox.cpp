@@ -440,14 +440,12 @@ static VALUE reload_cache(VALUE self) {
 }
 
 static VALUE mount(int32_t argc, wasm_ptr_t argv, VALUE self) {
-    Exception e(Exception::PHYSFSError, "Failed to mount (operation not supported in libretro builds)");
-    sb()->bind<struct exception_raise>()()(e);
+    sb()->bind<struct exception_raise>()()(Exception(Exception::PHYSFSError, "Failed to mount (operation not supported in libretro builds)"));
     return SANDBOX_NIL;
 }
 
 static VALUE unmount(int32_t argc, wasm_ptr_t argv, VALUE self) {
-    Exception e(Exception::PHYSFSError, "Failed to unmount (operation not supported in libretro builds)");
-    sb()->bind<struct exception_raise>()()(e);
+    sb()->bind<struct exception_raise>()()(Exception(Exception::PHYSFSError, "Failed to unmount (operation not supported in libretro builds)"));
     return SANDBOX_NIL;
 }
 
@@ -469,8 +467,7 @@ static VALUE file_exists(VALUE self, VALUE value) {
 }
 
 static VALUE launch(VALUE self, VALUE cmdname, VALUE args) {
-    Exception e(Exception::MKXPError, "Failed to launch (operation not supported in libretro builds)");
-    sb()->bind<struct exception_raise>()()(e);
+    sb()->bind<struct exception_raise>()()(Exception(Exception::MKXPError, "Failed to launch (operation not supported in libretro builds)"));
     return SANDBOX_NIL;
 }
 

@@ -83,7 +83,7 @@ void exception_binding_init::operator()() {
     }
 }
 
-void exception_raise::operator()(Exception &exception) {
+void exception_raise::operator()(const Exception &exception) {
     BOOST_ASIO_CORO_REENTER (this) {
         if (exception.type == Exception::Ok) {
             return;
