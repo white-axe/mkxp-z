@@ -621,7 +621,7 @@ void sandbox_binding_init::operator()() {
         SANDBOX_AWAIT(rb_define_module_function, system_module, "file_exists?", (VALUE (*)(ANYARGS))file_exists, 1);
         SANDBOX_AWAIT(rb_define_module_function, system_module, "launch", (VALUE (*)(ANYARGS))launch, 2);
 
-        SANDBOX_AWAIT(rb_define_module_function, system_module, "default_font_family", (VALUE (*)(ANYARGS))default_font_family, 1);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "default_font_family=", (VALUE (*)(ANYARGS))default_font_family, 1);
 
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cString(), "to_utf8", (VALUE (*)(ANYARGS))to_utf8, 0);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cString(), "to_utf8!", (VALUE (*)(ANYARGS))to_utf8_bang, 0);
