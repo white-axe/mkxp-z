@@ -1088,6 +1088,24 @@ static bool init_sandbox() {
                     );
                 }
             }
+
+            std::string fonts_path(system_root_path);
+#ifdef _WIN32
+            fonts_path.append("\\Fonts");
+#else
+            fonts_path.append("/Fonts");
+#endif // _WIN32
+
+            // Create the Fonts directory if needed
+            PHYSFS_setWriteDir(system_path);
+            if (!PHYSFS_mkdir(fonts_path.c_str() + std::strlen(system_path) + 1)) {
+                mkxp_retro::log_printf(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", fonts_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+                deinit_sandbox();
+                return false;
+            }
+
+            // Mount the Fonts directory
+            PHYSFS_mount(fonts_path.c_str(), "/Game/Fonts", true);
         }
     }
 

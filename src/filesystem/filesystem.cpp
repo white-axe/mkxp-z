@@ -520,15 +520,25 @@ static PHYSFS_EnumerateCallbackResult fontSetEnumCB(void *data, const char *dir,
   if (strcmp(lowExt, "ttf") && strcmp(lowExt, "otf"))
     return PHYSFS_ENUM_OK;
 
-  char filename[512];
+  char filename[4096];
   snprintf(filename, sizeof(filename), "%s/%s", dir, fname);
 
+#ifdef MKXPZ_RETRO
+  std::shared_ptr<FileSystem::File> handle(new FileSystem::File(*mkxp_retro::fs, filename));
+#else
   PHYSFS_File *handle = PHYSFS_openRead(filename);
+#endif // MKXPZ_RETRO
 
+#ifdef MKXPZ_RETRO
+  if (!handle->is_open())
+#else
   if (!handle)
+#endif // MKXPZ_RETRO
     return PHYSFS_ENUM_ERROR;
 
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+  d->sfs->initFontSetCB(handle, filename);
+#else
   SDL_RWops ops;
   initReadOps(handle, ops, false);
 
@@ -543,9 +553,9 @@ static PHYSFS_EnumerateCallbackResult fontSetEnumCB(void *data, const char *dir,
 /* Basically just a case-insensitive search
  * for the folder "Fonts"... */
 static PHYSFS_EnumerateCallbackResult
-findFontsFolderCB(void *data, const char *, const char *fname) {
+findFontsFolderCB(void *data, const char *dir, const char *fname) {
   size_t i = 0;
-  char buffer[512];
+  char buffer[4096];
   const char *s = fname;
 
   while (*s && i < sizeof(buffer))
@@ -554,7 +564,7 @@ findFontsFolderCB(void *data, const char *, const char *fname) {
   buffer[i] = '\0';
 
   if (strcmp(buffer, "fonts") == 0)
-    PHYSFS_enumerate(fname, fontSetEnumCB, data);
+    PHYSFS_enumerate(*dir == 0 ? fname : (std::string(dir) + '/' + fname).c_str(), fontSetEnumCB, data);
 
   return PHYSFS_ENUM_OK;
 }
@@ -562,7 +572,15 @@ findFontsFolderCB(void *data, const char *, const char *fname) {
 void FileSystem::initFontSets(SharedFontState &sfs) {
   FontSetsCBData d = {p, &sfs};
 
-  PHYSFS_enumerate("", findFontsFolderCB, &d);
+  PHYSFS_enumerate(
+#ifdef MKXPZ_RETRO
+    "/Game",
+#else
+    "",
+#endif // MKXPZ_RETRO
+    findFontsFolderCB,
+    &d
+  );
 }
 
 struct OpenReadEnumData {

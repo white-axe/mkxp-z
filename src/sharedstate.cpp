@@ -145,7 +145,9 @@ struct SharedStatePrivate
 		if (gl.ReleaseShaderCompiler)
 			gl.ReleaseShaderCompiler();
 
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+		mkxp_retro::fs->initFontSets(fontState);
+#else
 		std::string archPath = config.execName + gameArchExt();
 
 		for (size_t i = 0; i < config.patches.size(); ++i)
