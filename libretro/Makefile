@@ -15,18 +15,21 @@ GIT ?= git
 ZIP ?= zip
 SED ?= sed
 GREP ?= grep
-CC ?= cc
-CXX ?= c++
-LD ?= ld
-AR ?= ar
-RANLIB ?= ranlib
-CFLAGS ?=
-CXXFLAGS ?=
-LDFLAGS ?=
+NATIVE_CC ?= cc
+NATIVE_CXX ?= c++
+NATIVE_LD ?= ld
+NATIVE_AR ?= ar
+NATIVE_RANLIB ?= ranlib
+NATIVE_CFLAGS ?=
+NATIVE_CXXFLAGS ?=
+NATIVE_LDFLAGS ?=
 WASI_CFLAGS ?= -Oz -DNDEBUG
 WASI_CXXFLAGS ?= -Oz -DNDEBUG
 WASI_LDFLAGS ?=
 WASM_OPT_FLAGS ?= -Oz
+ZLIB_PATH ?=
+LIBYAML_PATH ?=
+OPENSSL_PATH ?=
 
 BUILD_PREFIX := ${PWD}/build
 OUTDIR := $(BUILD_PREFIX)/libretro-stage1
@@ -42,8 +45,26 @@ WASI_CXX := $(WASI_SDK)/bin/clang++
 WASI_LD := $(WASI_SDK)/bin/clang
 WASI_AR := $(WASI_SDK)/bin/llvm-ar
 WASI_RANLIB := $(WASI_SDK)/bin/llvm-ranlib
-NATIVE_TOOLCHAIN := CC=$(CC) CXX=$(CXX) LD=$(LD) AR=$(AR) RANLIB=$(RANLIB)
+NATIVE_TOOLCHAIN := CC=$(NATIVE_CC) CXX=$(NATIVE_CXX) LD=$(NATIVE_LD) AR=$(NATIVE_AR) RANLIB=$(NATIVE_RANLIB)
 WASI_TOOLCHAIN := CC=$(WASI_CC) CXX=$(WASI_CXX) LD=$(WASI_LD) AR=$(WASI_AR) RANLIB=$(WASI_RANLIB)
+
+ifeq ($(ZLIB_PATH),)
+	ZLIB_PATH_FLAG =
+else
+	ZLIB_PATH_FLAG = --with-zlib-dir=$(ZLIB_PATH)
+endif
+
+ifeq ($(LIBYAML_PATH),)
+	LIBYAML_PATH_FLAG =
+else
+	LIBYAML_PATH_FLAG = --with-libyaml-dir=$(LIBYAML_PATH)
+endif
+
+ifeq ($(OPENSSL_PATH),)
+	OPENSSL_PATH_FLAG =
+else
+	OPENSSL_PATH_FLAG = --with-openssl-dir=$(OPENSSL_PATH)
+endif
 
 all default: ruby-dist ruby-bindings
 
@@ -160,7 +181,7 @@ $(RUBY): $(DOWNLOADS)/baseruby/Makefile
 	if ! $(RUBY) -e 'exit 1 if RUBY_VERSION.split(".")[..1].join(".").to_f < 3.2'; then echo -e '\e[91m[ERROR] Ruby version must be at least 3.2 because earlier versions do not have WebAssembly support\e[0m'; rm $(RUBY); exit 1; fi;
 
 $(DOWNLOADS)/baseruby/Makefile: $(DOWNLOADS)/baseruby/configure
-	cd $(DOWNLOADS)/baseruby && ./configure --prefix=$(LIBDIR) $(NATIVE_TOOLCHAIN) LDFLAGS='$(LDFLAGS)' XCFLAGS='$(CFLAGS)' cppflags='$(CXXFLAGS)' --disable-install-doc
+	cd $(DOWNLOADS)/baseruby && ./configure --prefix=$(LIBDIR) $(NATIVE_TOOLCHAIN) LDFLAGS='$(NATIVE_LDFLAGS)' XCFLAGS='$(NATIVE_CFLAGS)' cppflags='$(NATIVE_CXXFLAGS)' --disable-install-doc $(ZLIB_PATH_FLAG) $(LIBYAML_PATH_FLAG) $(OPENSSL_PATH_FLAG)
 
 $(DOWNLOADS)/baseruby/configure: $(DOWNLOADS)/baseruby/configure.ac
 	cd $(DOWNLOADS)/baseruby && $(AUTORECONF) -i
@@ -226,20 +247,20 @@ WASM2C_SRC := $(WABT_SRC) $(DOWNLOADS)/wabt/src/tools/wasm2c.cc
 
 $(WASM2C): $(addsuffix .o,$(WASM2C_SRC))
 	mkdir -p $(LIBDIR)/bin
-	$(CXX) $(LDFLAGS) -o $@ $^
+	$(NATIVE_CXX) $(NATIVE_LDFLAGS) -o $@ $^
 
 $(INDEXER): $(addsuffix .o,$(WABT_SRC)) $(DOWNLOADS)/wabt/src/indexer.o
 	mkdir -p $(LIBDIR)/bin
-	$(CXX) $(LDFLAGS) -o $@ $^
+	$(NATIVE_CXX) $(NATIVE_LDFLAGS) -o $@ $^
 
 $(DOWNLOADS)/wabt/src/%.c.o: $(DOWNLOADS)/wabt/src/%.c $(DOWNLOADS)/wabt/include/wabt/config.h $(DOWNLOADS)/picosha2/picosha2.h
-	$(CC) $(CFLAGS) -I$(DOWNLOADS)/wabt/include -I$(DOWNLOADS)/picosha2 -c -o $@ $<
+	$(NATIVE_CC) $(NATIVE_CFLAGS) -I$(DOWNLOADS)/wabt/include -I$(DOWNLOADS)/picosha2 -c -o $@ $<
 
 $(DOWNLOADS)/wabt/src/%.cc.o: $(DOWNLOADS)/wabt/src/%.cc $(DOWNLOADS)/wabt/include/wabt/config.h $(DOWNLOADS)/picosha2/picosha2.h
-	$(CXX) $(CXXFLAGS) -I$(DOWNLOADS)/wabt/include -I$(DOWNLOADS)/picosha2 -c -o $@ $<
+	$(NATIVE_CXX) $(NATIVE_CXXFLAGS) -I$(DOWNLOADS)/wabt/include -I$(DOWNLOADS)/picosha2 -c -o $@ $<
 
 $(DOWNLOADS)/wabt/src/indexer.o: indexer.cpp $(DOWNLOADS)/wabt/include/wabt/config.h
-	$(CXX) $(CXXFLAGS) -I$(DOWNLOADS)/wabt/include -c -o $@ $<
+	$(NATIVE_CXX) $(NATIVE_CXXFLAGS) -I$(DOWNLOADS)/wabt/include -c -o $@ $<
 
 $(DOWNLOADS)/wabt/include/wabt/config.h: $(DOWNLOADS)/wabt/src/config.h.in
 	$(SED) \

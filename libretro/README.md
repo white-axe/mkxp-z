@@ -15,6 +15,10 @@ Required software:
 * [WASI SDK](https://github.com/WebAssembly/wasi-sdk) (currently you need WASI SDK version 21; later versions don't work yet)
 * [Binaryen](https://github.com/WebAssembly/binaryen)
 * Either [Universal Ctags](https://github.com/universal-ctags/ctags) or [Exuberant Ctags](https://ctags.sourceforge.net)
+* Ruby (any reasonably recent version)
+* zlib
+* libyaml
+* OpenSSL
 
 Go to the directory that this README.md is in and run this command, filling in the paths to WASI SDK, `wasm-opt` from Binaryen and `ctags` from Universal Ctags or Exuberant Ctags accordingly:
 
