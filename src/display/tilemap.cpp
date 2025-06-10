@@ -385,14 +385,7 @@ struct TilemapPrivate
 		tiles.animated = false;
 		tiles.aniIdx = 0;
 
-		/* Init tile buffers */
-		tiles.vbo = VBO::gen();
-
-		GLMeta::vaoFillInVertexData<SVertex>(tiles.vao);
-		tiles.vao.vbo = tiles.vbo;
-		tiles.vao.ibo = shState->globalIBO().ibo;
-
-		GLMeta::vaoInit(tiles.vao);
+		allocateResources();
 
 		elem.ground = new GroundLayer(this, viewport);
 
@@ -430,6 +423,18 @@ struct TilemapPrivate
 		prioritiesCon.disconnect();
 
 		prepareCon.disconnect();
+	}
+
+	void allocateResources()
+	{
+		/* Init tile buffers */
+		tiles.vbo = VBO::gen();
+
+		GLMeta::vaoFillInVertexData<SVertex>(tiles.vao);
+		tiles.vao.vbo = tiles.vbo;
+		tiles.vao.ibo = shState->globalIBO().ibo;
+
+		GLMeta::vaoInit(tiles.vao);
 	}
 
 	void updateFlashMapViewport()
@@ -1698,5 +1703,17 @@ void Tilemap::sandbox_deserialize_end()
 	if (p->flashMap.getData() != nullptr && (p->flashMap.getData()->deserModified || p->flashMap.getData()->id != p->deserSavedDataId)) {
 		p->flashMap.setDirty();
 	}
+}
+
+void Tilemap::sandbox_reinit()
+{
+	if (isDisposed()) return;
+
+	TEXFBO::clear(p->atlas.gl);
+	p->allocateResources();
+	p->flashMap.reinit();
+	p->invalidateAtlasSize();
+	p->invalidateBuffers();
+	p->mapViewportDirty = true;
 }
 #endif // MKXPZ_RETRO

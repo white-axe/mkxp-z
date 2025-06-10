@@ -122,6 +122,10 @@ struct SharedState
 	static void initInstance(Exception &exception, RGSSThreadData *threadData);
 	static void finiInstance();
 
+#ifdef MKXPZ_RETRO
+	void sandbox_reinit();
+#endif // MKXPZ_RETRO
+
 private:
 	SharedState(Exception &exception, RGSSThreadData *threadData);
 	~SharedState();

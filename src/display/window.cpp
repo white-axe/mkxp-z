@@ -1118,4 +1118,19 @@ void Window::sandbox_deserialize_end()
 		}
 	}
 }
+
+void Window::sandbox_reinit()
+{
+	if (isDisposed()) return;
+
+	TEXFBO::clear(p->baseTex);
+	p->baseTexQuad.reinit();
+	p->contentsQuad.reinit();
+	p->baseQuadArray.reinit();
+	p->controlsQuadArray.reinit();
+	p->baseVertDirty = true;
+	p->opacityDirty = true;
+	p->baseTexDirty = true;
+	p->controlsVertDirty = true;
+}
 #endif // MKXPZ_RETRO

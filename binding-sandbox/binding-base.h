@@ -236,6 +236,7 @@ namespace mkxp_sandbox {
         bool (*deserialize)(void *self, const void *&data, wasm_size_t &max_size);
         void (*deserialize_begin)(void *self, bool is_new);
         void (*deserialize_end)(void *self);
+        void (*reinit)(void *self);
     };
 
     extern const struct typenum_table_entry typenum_table[];

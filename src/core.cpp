@@ -2172,6 +2172,18 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
         initGLFunctions(e);
         if (e.is_error()) {
             log_printf(RETRO_LOG_ERROR, "%s\n", e.what());
+            deinit_sandbox();
+        } else if (shared_state_initialized) {
+            shState->sandbox_reinit();
+            shState->graphics().sandbox_reinit();
+            for (const auto &object : sb()->objects) {
+                if (object.typenum > 0) {
+                    if (object.typenum > SANDBOX_NUM_TYPENUMS) {
+                        std::abort();
+                    }
+                    typenum_table[object.typenum - 1].reinit(object.ptr);
+                }
+            }
         }
     };
     hw_render.context_destroy = nullptr;

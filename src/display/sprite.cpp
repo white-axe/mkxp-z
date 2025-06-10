@@ -1048,4 +1048,13 @@ void Sprite::sandbox_deserialize_end()
         p->recomputeBushDepth();
     }
 }
+
+void Sprite::sandbox_reinit()
+{
+    if (isDisposed()) return;
+
+    p->quad.reinit();
+    p->wave.qArray.reinit();
+    p->wave.dirty = true;
+}
 #endif // MKXPZ_RETRO

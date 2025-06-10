@@ -85,6 +85,7 @@ public:
 #ifdef MKXPZ_RETRO
 	static bool getMovieDupeFrame(Movie *movie);
 	static bool sandbox_serialize_movie(const Movie *movie, void *&data, mkxp_sandbox::wasm_size_t &max_size);
+	void sandbox_reinit();
 #endif // MKXPZ_RETRO
 	void screenshot(Exception &exception, const char *filename);
 

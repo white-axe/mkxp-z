@@ -151,22 +151,7 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
 	{
 		memset(bitmaps, 0, sizeof(bitmaps));
 
-		shState->requestAtlasTex(ATLASVX_W, ATLASVX_H, atlas);
-
-		if (shState->config().enableHires) {
-			double scalingFactor = shState->config().atlasScalingFactor;
-			int hiresWidth = (int)lround(scalingFactor * ATLASVX_W);
-			int hiresHeight = (int)lround(scalingFactor * ATLASVX_H);
-			shState->requestAtlasTex(hiresWidth, hiresHeight, atlasHires);
-			atlas.selfHires = &atlasHires;
-		}
-
-		vbo = VBO::gen();
-
-		GLMeta::vaoFillInVertexData<SVertex>(vao);
-		vao.vbo = vbo;
-		vao.ibo = shState->globalIBO().ibo;
-		GLMeta::vaoInit(vao);
+		allocateResources();
 
 		onGeometryChange(scene->getGeometry());
 
@@ -194,6 +179,26 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
 			bmChangedCons[i].disconnect();
 			bmDisposedCons[i].disconnect();
 		}
+	}
+
+	void allocateResources()
+	{
+		shState->requestAtlasTex(ATLASVX_W, ATLASVX_H, atlas);
+
+		if (shState->config().enableHires) {
+			double scalingFactor = shState->config().atlasScalingFactor;
+			int hiresWidth = (int)lround(scalingFactor * ATLASVX_W);
+			int hiresHeight = (int)lround(scalingFactor * ATLASVX_H);
+			shState->requestAtlasTex(hiresWidth, hiresHeight, atlasHires);
+			atlas.selfHires = &atlasHires;
+		}
+
+		vbo = VBO::gen();
+
+		GLMeta::vaoFillInVertexData<SVertex>(vao);
+		vao.vbo = vbo;
+		vao.ibo = shState->globalIBO().ibo;
+		GLMeta::vaoInit(vao);
 	}
 
 	void invalidateAtlas()
@@ -776,5 +781,19 @@ void TilemapVX::sandbox_deserialize_end()
 	if (p->flashMap.getData() != nullptr && (p->flashMap.getData()->deserModified || p->flashMap.getData()->id != p->deserSavedDataId)) {
 		p->flashMap.setDirty();
 	}
+}
+
+void TilemapVX::sandbox_reinit()
+{
+	if (isDisposed()) return;
+
+	TEXFBO::clear(p->atlas);
+	TEXFBO::clear(p->atlasHires);
+	p->allocateResources();
+	p->flashMap.reinit();
+	p->invalidateAtlas();
+	p->invalidateBuffers();
+	p->allocQuads = 0;
+	p->mapViewportDirty = true;
 }
 #endif // MKXPZ_RETRO

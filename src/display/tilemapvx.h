@@ -79,6 +79,7 @@ public:
 	bool sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size);
 	void sandbox_deserialize_begin(bool is_new);
 	void sandbox_deserialize_end();
+	void sandbox_reinit();
 #endif // MKXPZ_RETRO
 
 private:

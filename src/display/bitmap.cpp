@@ -3835,6 +3835,9 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
                 p->animation.height = new_height;
                 p->animation.lastFrame = 0;
                 p->diff.clear();
+                for (BitmapFrame &frame : p->animation.frames) {
+                    shState->texPool().release(frame.gl);
+                }
                 p->animation.frames.clear();
             }
             deserModified = true;
@@ -3864,32 +3867,27 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
                 mkxp_sandbox::wasm_size_t index;
                 if (!mkxp_sandbox::sandbox_deserialize(index, data, max_size)) return false;
 
-                TEXFBO src_texfbo;
+                TEXFBO *src_texfbo;
                 if (source->isAnimated()) {
                     if (index >= source->p->animation.frames.size()) {
+                        delete source;
                         return false;
                     }
-                    src_texfbo = source->p->animation.frames[index].gl;
+                    src_texfbo = &source->p->animation.frames[index].gl;
                 } else {
                     if (index != 0) {
+                        delete source;
                         return false;
                     }
-                    src_texfbo = source->p->gl;
+                    src_texfbo = &source->p->gl;
                 }
 
-                TEXFBO dst_texfbo;
-                {
-                    Exception e;
-                    dst_texfbo = shState->texPool().request(e, p->animation.width, p->animation.height);
-                    if (e.is_error()) {
-                        return false;
-                    }
-                }
+                TEXFBO new_texfbo = *src_texfbo;
+                TEXFBO::clear(*src_texfbo);
 
-                GLMeta::blitBegin(dst_texfbo, false, SameScale);
-                GLMeta::blitSource(src_texfbo, SameScale);
-                GLMeta::blitRectangle(rect(), rect());
-                GLMeta::blitEnd();
+                p->animation.frames.push_back({new_texfbo, std::vector<std::vector<uint32_t>>(CEIL_DIV_DIFF_TILE_SIZE(p->animation.width) * CEIL_DIV_DIFF_TILE_SIZE(p->animation.height)), path, (int)index});
+
+                delete source;
             }
         } else {
             for (mkxp_sandbox::wasm_size_t i = 0; i < num_frames; ++i) {
@@ -3954,6 +3952,9 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
                     p->diff = p->animation.frames[p->originalFrameIndex].diff;
                     p->path = p->animation.frames[p->originalFrameIndex].path;
                     p->originalFrameIndex = p->animation.frames[p->originalFrameIndex].originalFrameIndex;
+                    for (BitmapFrame &frame : p->animation.frames) {
+                        shState->texPool().release(frame.gl);
+                    }
                     p->animation.frames.clear();
                 }
             }
@@ -4180,6 +4181,128 @@ void Bitmap::sandbox_deserialize_end()
     if (isDisposed()) return;
     if ((p->selfHires != nullptr && p->selfHires->deserModified) || (p->selfLores != nullptr && p->selfLores->deserModified)) {
         deserModified = true;
+    }
+}
+
+void Bitmap::sandbox_reinit()
+{
+    if (isDisposed()) return;
+
+    if (p->animation.enabled) {
+        std::unordered_map<std::string, Bitmap *> sources;
+
+        for (BitmapFrame &frame : p->animation.frames) {
+            Bitmap *source;
+            {
+                const auto it = sources.find(frame.path);
+                if (it == sources.end()) {
+                    Exception e;
+                    source = frame.path.empty() ? new Bitmap(e, p->animation.width, p->animation.height, true, false) : new Bitmap(e, frame.path.c_str(), false);
+                    if (e.is_error()) {
+                        delete source;
+                        return;
+                    }
+                    sources.insert({frame.path, source});
+                } else {
+                    source = it->second;
+                }
+            }
+
+            TEXFBO *src_texfbo;
+            if (source->isAnimated()) {
+                if (frame.originalFrameIndex < 0 || frame.originalFrameIndex >= source->p->animation.frames.size()) {
+                    delete source;
+                    return;
+                }
+                src_texfbo = &source->p->animation.frames[frame.originalFrameIndex].gl;
+            } else {
+                if (frame.originalFrameIndex != 0) {
+                    delete source;
+                    return;
+                }
+                src_texfbo = &source->p->gl;
+            }
+
+            frame.gl = *src_texfbo;
+            TEXFBO::clear(*src_texfbo);
+
+            delete source;
+
+            size_t tile_number = 0;
+            for (const std::vector<uint32_t> &tile : frame.diff) {
+                if (tile.empty()) {
+                    ++tile_number;
+                    continue;
+                }
+
+                size_t tile_col = tile_number % CEIL_DIV_DIFF_TILE_SIZE(width());
+                size_t tile_row = tile_number / CEIL_DIV_DIFF_TILE_SIZE(width());
+                size_t tile_width = std::min(DIFF_TILE_SIZE, width() - DIFF_TILE_SIZE * tile_col);
+                size_t tile_height = std::min(DIFF_TILE_SIZE, height() - DIFF_TILE_SIZE * tile_row);
+                IntRect rect = IntRect(DIFF_TILE_SIZE * tile_col, DIFF_TILE_SIZE * tile_row, tile_width, tile_height);
+
+                if (tile.size() != tile_width * tile_height) {
+                    continue;
+                }
+
+                TEX::bind(frame.gl.tex);
+                TEX::uploadSubImage(rect.x, rect.y, rect.w, rect.h, tile.data(), GL_RGBA);
+
+                p->addTaintedArea(rect);
+
+                ++tile_number;
+            }
+        }
+    } else {
+        Bitmap *source;
+        {
+            Exception e;
+            source = p->path.empty() ? new Bitmap(e, width(), height(), true, false) : new Bitmap(e, p->path.c_str(), false);
+            if (e.is_error() || source->width() != width() || source->height() != height()) {
+                delete source;
+                return;
+            }
+        }
+
+        if (isMega()) {
+            std::memcpy(p->megaSurface->pixels, source->p->megaSurface->pixels, (size_t)4 * (size_t)p->megaSurface->w * (size_t)p->megaSurface->h);
+        } else {
+            p->gl = source->p->gl;
+            TEXFBO::clear(source->p->gl);
+        }
+
+        delete source;
+
+        size_t tile_number = 0;
+        for (const std::vector<uint32_t> &tile : p->diff) {
+            if (tile.empty()) {
+                ++tile_number;
+                continue;
+            }
+
+            size_t tile_col = tile_number % CEIL_DIV_DIFF_TILE_SIZE(width());
+            size_t tile_row = tile_number / CEIL_DIV_DIFF_TILE_SIZE(width());
+            size_t tile_width = std::min(DIFF_TILE_SIZE, width() - DIFF_TILE_SIZE * tile_col);
+            size_t tile_height = std::min(DIFF_TILE_SIZE, height() - DIFF_TILE_SIZE * tile_row);
+            IntRect rect = IntRect(DIFF_TILE_SIZE * tile_col, DIFF_TILE_SIZE * tile_row, tile_width, tile_height);
+
+            if (tile.size() != tile_width * tile_height) {
+                continue;
+            }
+
+            if (isMega()) {
+                for (size_t y = 0; y < rect.h; ++y) {
+                    std::memcpy((uint32_t *)p->megaSurface + p->megaSurface->w * (rect.y + y) + rect.x, tile.data() + rect.w * y, 4 * rect.w);
+                }
+            } else {
+                TEX::bind(p->gl.tex);
+                TEX::uploadSubImage(rect.x, rect.y, rect.w, rect.h, tile.data(), GL_RGBA);
+            }
+
+            p->addTaintedArea(rect);
+
+            ++tile_number;
+        }
     }
 }
 #endif // MKXPZ_RETRO

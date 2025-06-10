@@ -216,4 +216,10 @@ void TexPool::disable()
 	p->disabled = true;
 }
 
-
+void TexPool::clear()
+{
+	p->poolHash.clear();
+	p->priorityQueue.clear();
+	p->memSize = 0;
+	p->objCount = 0;
+}

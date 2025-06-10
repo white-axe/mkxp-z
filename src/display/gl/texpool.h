@@ -38,6 +38,8 @@ public:
 
 	void disable();
 
+	void clear();
+
 private:
 	TexPoolPrivate *p;
 };

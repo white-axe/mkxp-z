@@ -1382,4 +1382,24 @@ void WindowVX::sandbox_deserialize_end()
 		}
 	}
 }
+
+void WindowVX::sandbox_reinit()
+{
+	if (isDisposed()) return;
+
+	TEXFBO::clear(p->base.tex);
+	p->base.quad.reinit();
+	p->contentsQuad.reinit();
+	p->base.vert.reinit();
+	p->ctrlVert.reinit();
+	p->cursorVert.reinit();
+	p->base.vertDirty = true;
+	p->base.texSizeDirty = true;
+	p->base.texDirty = true;
+	p->ctrlVertDirty = true;
+	p->ctrlVertArrayDirty = true;
+	p->clipRectDirty = true;
+	p->cursorVertDirty = true;
+	p->cursorVertArrayDirty = true;
+}
 #endif // MKXPZ_RETRO

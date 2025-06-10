@@ -447,4 +447,12 @@ void Plane::sandbox_deserialize_end()
 		}
 	}
 }
+
+void Plane::sandbox_reinit()
+{
+	if (isDisposed()) return;
+
+	p->qArray.reinit();
+	p->quadSourceDirty = true;
+}
 #endif // MKXPZ_RETRO

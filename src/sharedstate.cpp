@@ -141,9 +141,11 @@ struct SharedStatePrivate
         
         startupTime = std::chrono::steady_clock::now();
         
+#ifndef MKXPZ_RETRO
 		/* Shaders have been compiled in ShaderSet's constructor */
 		if (gl.ReleaseShaderCompiler)
 			gl.ReleaseShaderCompiler();
+#endif // MKXPZ_RETRO
 
 #ifdef MKXPZ_RETRO
 		mkxp_retro::fs->initFontSets(fontState);
@@ -193,17 +195,7 @@ struct SharedStatePrivate
 		globalTexW = 128;
 		globalTexH = 64;
 
-		globalTex = TEX::gen();
-		TEX::bind(globalTex);
-		TEX::setRepeat(false);
-		TEX::setSmooth(false);
-		TEX::allocEmpty(globalTexW, globalTexH);
-		globalTexDirty = false;
-
-		TEXFBO::init(gpTexFBO);
-		/* Reuse starting values */
-		TEXFBO::allocEmpty(gpTexFBO, globalTexW, globalTexH);
-		TEXFBO::linkFBO(gpTexFBO);
+		reinit();
 
 		/* RGSS3 games will call setup_midi, so there's
 		 * no need to do it on startup */
@@ -216,6 +208,21 @@ struct SharedStatePrivate
 		TEX::del(globalTex);
 		TEXFBO::fini(gpTexFBO);
 		TEXFBO::fini(atlasTex);
+	}
+
+	void reinit()
+	{
+		globalTex = TEX::gen();
+		TEX::bind(globalTex);
+		TEX::setRepeat(false);
+		TEX::setSmooth(false);
+		TEX::allocEmpty(globalTexW, globalTexH);
+		globalTexDirty = false;
+
+		TEXFBO::init(gpTexFBO);
+		/* Reuse starting values */
+		TEXFBO::allocEmpty(gpTexFBO, globalTexW, globalTexH);
+		TEXFBO::linkFBO(gpTexFBO);
 	}
 };
 
@@ -482,3 +489,21 @@ SharedState::~SharedState()
 {
 	delete p;
 }
+
+#ifdef MKXPZ_RETRO
+
+void SharedState::sandbox_reinit()
+{
+	p->texPool.clear();
+	TEXFBO::clear(p->atlasTex);
+	new(_globalIBO) GlobalIBO;
+	_globalIBO->ensureSize(1);
+	p->gpQuad.reinit();
+	p->reinit();
+	{
+		// Ignore errors
+		Exception e;
+		p->shaders.reinit(e);
+	}
+}
+#endif // MKXPZ_RETRO

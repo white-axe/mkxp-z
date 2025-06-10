@@ -107,7 +107,15 @@ template <typename T> static typename std::enable_if<boost::is_detected<deserial
 
 template <typename T> static typename std::enable_if<!boost::is_detected<deserialize_end_declaration, T>::value>::type deserialize_end(void *self) {}
 
-#define _SANDBOX_DEF_TYPENUM_TABLE_ENTRY(_r, _data, T) {construct<T>, destroy<T>, dispose<T>, disposed<T>, serialize<T>, deserialize<T>, deserialize_begin<T>, deserialize_end<T>},
+template <typename T> using reinit_declaration = decltype(std::declval<T *>()->sandbox_reinit());
+
+template <typename T> static typename std::enable_if<boost::is_detected<reinit_declaration, T>::value>::type reinit(void *self) {
+    ((T *)self)->sandbox_reinit();
+}
+
+template <typename T> static typename std::enable_if<!boost::is_detected<reinit_declaration, T>::value>::type reinit(void *self) {}
+
+#define _SANDBOX_DEF_TYPENUM_TABLE_ENTRY(_r, _data, T) {construct<T>, destroy<T>, dispose<T>, disposed<T>, serialize<T>, deserialize<T>, deserialize_begin<T>, deserialize_end<T>, reinit<T>},
 extern const struct typenum_table_entry mkxp_sandbox::typenum_table[SANDBOX_NUM_TYPENUMS] = {BOOST_PP_SEQ_FOR_EACH(_SANDBOX_DEF_TYPENUM_TABLE_ENTRY, _, SANDBOX_TYPENUM_TYPES)};
 extern const wasm_size_t mkxp_sandbox::typenum_table_size = SANDBOX_NUM_TYPENUMS;
 

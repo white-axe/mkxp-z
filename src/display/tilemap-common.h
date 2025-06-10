@@ -113,15 +113,10 @@ atSelectSubPos(FloatRect &pos, int i)
 struct FlashMap
 {
 	FlashMap()
-		: dirty(false),
-	      data(0),
-	      allocQuads(0)
+		: data(0)
 	{
-		vao.vbo = VBO::gen();
-		vao.ibo = shState->globalIBO().ibo;
-		GLMeta::vaoFillInVertexData<CVertex>(vao);
-
-		GLMeta::vaoInit(vao);
+		reinit();
+		dirty = false;
 	}
 
 	~FlashMap()
@@ -129,6 +124,18 @@ struct FlashMap
 		GLMeta::vaoFini(vao);
 		VBO::del(vao.vbo);
 		dataCon.disconnect();
+	}
+
+	void reinit()
+	{
+		dirty = true;
+		allocQuads = 0;
+
+		vao.vbo = VBO::gen();
+		vao.ibo = shState->globalIBO().ibo;
+		GLMeta::vaoFillInVertexData<CVertex>(vao);
+
+		GLMeta::vaoInit(vao);
 	}
 
 	Table *getData() const

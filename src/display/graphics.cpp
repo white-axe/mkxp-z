@@ -631,6 +631,15 @@ struct PingPong {
     
     PingPong(int screenW, int screenH)
     : srcInd(0), dstInd(1), screenW(screenW), screenH(screenH) {
+        reinit();
+    }
+    
+    ~PingPong() {
+        for (int i = 0; i < 2; ++i)
+            TEXFBO::fini(rt[i]);
+    }
+
+    void reinit() {
         for (int i = 0; i < 2; ++i) {
             TEXFBO::init(rt[i]);
             TEXFBO::allocEmpty(rt[i], screenW, screenH);
@@ -639,12 +648,7 @@ struct PingPong {
             FBO::clear();
         }
     }
-    
-    ~PingPong() {
-        for (int i = 0; i < 2; ++i)
-            TEXFBO::fini(rt[i]);
-    }
-    
+
     TEXFBO &backBuffer() { return rt[srcInd]; }
     
     TEXFBO &frontBuffer() { return rt[dstInd]; }
@@ -682,6 +686,8 @@ private:
 };
 
 class ScreenScene : public Scene {
+    friend class Graphics;
+
 public:
     ScreenScene(int width, int height) : pp(width, height) {
         updateReso(width, height);
@@ -1070,9 +1076,7 @@ struct GraphicsPrivate {
         recalculateScreenSize(rtData->config.fixedAspectRatio);
         updateScreenResoRatio(rtData);
         
-        TEXFBO::init(frozenScene);
-        TEXFBO::allocEmpty(frozenScene, scRes.x, scRes.y);
-        TEXFBO::linkFBO(frozenScene);
+        reinit();
         
         FloatRect screenRect(0, 0, scRes.x, scRes.y);
         screenQuad.setTexPosRect(screenRect, screenRect);
@@ -1090,7 +1094,13 @@ struct GraphicsPrivate {
         SDL_DestroyMutex(glResourceLock);
 #endif // MKXPZ_RETRO
     }
-    
+
+    void reinit() {
+        TEXFBO::init(frozenScene);
+        TEXFBO::allocEmpty(frozenScene, scRes.x, scRes.y);
+        TEXFBO::linkFBO(frozenScene);
+    }
+
     void updateScreenResoRatio(RGSSThreadData *rtData) {
 #ifndef MKXPZ_RETRO
         Vec2 &ratio = rtData->sizeResoRatio;
@@ -1499,8 +1509,10 @@ bool &Graphics::frozen() {
 
 #ifdef MKXPZ_RETRO
 void Graphics::uploadFrozenPixels() {
-    TEX::bind(p->frozenScene.tex);
-    TEX::uploadImage(p->frozenScene.width, p->frozenScene.height, frozenPixels.data(), GL_RGBA);
+    if (p->frozen) {
+        TEX::bind(p->frozenScene.tex);
+        TEX::uploadImage(p->frozenScene.width, p->frozenScene.height, frozenPixels.data(), GL_RGBA);
+    }
 }
 #endif // MKXPZ_RETRO
 
@@ -1967,6 +1979,15 @@ bool Graphics::sandbox_serialize_movie(const Movie *movie, void *&data, mkxp_san
         return false;
     }
     return movie->sandbox_serialize(data, max_size);
+}
+
+void Graphics::sandbox_reinit() {
+    p->reinit();
+    p->screenQuad.reinit();
+    p->screen.screenQuad.reinit();
+    p->screen.brightnessQuad.reinit();
+    p->screen.pp.reinit();
+    uploadFrozenPixels();
 }
 #endif // MKXPZ_RETRO
 

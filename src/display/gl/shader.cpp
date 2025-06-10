@@ -29,6 +29,7 @@
 #include <assert.h>
 #include <string.h>
 #include <iostream>
+#include <utility>
 
 #ifndef MKXPZ_BUILD_XCODE
 #include "common.h.xxd"
@@ -994,3 +995,7 @@ ShaderSet::ShaderSet(Exception &exception) :
 	bicubicSprite(exception)
 #endif
 {}
+
+void ShaderSet::reinit(Exception &exception) {
+	new(this) ShaderSet(exception);
+}

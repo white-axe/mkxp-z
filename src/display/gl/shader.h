@@ -43,6 +43,10 @@ public:
 
 protected:
 	Shader();
+	Shader(const Shader &) = delete;
+	Shader(Shader &&) = delete;
+	Shader &operator=(const Shader &) = delete;
+	Shader &operator=(Shader &&) = delete;
 	~Shader();
 
 	void init(Exception &exception,
@@ -60,7 +64,7 @@ protected:
 
 	GLuint vertShader, fragShader;
 	GLuint program;
-    
+
 private:
 #ifdef MKXPZ_BUILD_XCODE
     static std::string shaderCommon;
@@ -435,6 +439,8 @@ struct ShaderSet
 #endif
 
 	ShaderSet(Exception &exception);
+
+	void reinit(Exception &exception);
 };
 
 #endif // SHADER_H
