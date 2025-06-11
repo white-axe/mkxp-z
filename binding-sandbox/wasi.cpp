@@ -52,7 +52,15 @@ struct fs_file *wasi_file_entry::file_handle() const noexcept {
     return (struct fs_file *)handle;
 }
 
-wasi_t::w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby) : ruby(ruby) {
+wasi_t::w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby) : ruby(ruby), prng_buffer_size(0) {
+    // Initialize PRNG
+    static_assert(sizeof(unsigned int) == sizeof(uint32_t), "unsigned int should be 32 bits");
+    static std::random_device dev;
+    prng_state = dev();
+    prng_state <<= 32U;
+    prng_state |= dev();
+    std::memset(prng_buffer, 0, 4);
+
     // Initialize WASI file descriptor table
     fdtable.push_back({nullptr, wasi_fd_type::STDIN});
     fdtable.push_back({nullptr, wasi_fd_type::STDOUT});
@@ -151,6 +159,13 @@ struct mkxp_sandbox::sandbox_str_guard wasi_t::str(wasm_ptr_t address) const noe
 }
 
 bool wasi_t::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const {
+    if (!::sandbox_serialize(prng_state, data, max_size)) return false;
+    if (max_size < 4) return false;
+    std::memcpy(data, prng_buffer, 4);
+    data = (uint8_t *)data + 4;
+    max_size -= 4;
+    if (!::sandbox_serialize((uint8_t)prng_buffer_size, data, max_size)) return false;
+
     if (!::sandbox_serialize((uint32_t)fdtable.size(), data, max_size)) return false;
 
     uint32_t num_free_handles = 0;
@@ -188,6 +203,17 @@ bool wasi_t::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
 }
 
 bool wasi_t::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size) {
+    if (!::sandbox_deserialize(prng_state, data, max_size)) return false;
+    if (max_size < 4) return false;
+    std::memcpy(prng_buffer, data, 4);
+    data = (uint8_t *)data + 4;
+    max_size -= 4;
+    {
+        uint8_t size;
+        if (!::sandbox_deserialize(size, data, max_size)) return false;
+        prng_buffer_size = size % 4;
+    }
+
     uint32_t size;
     if (!::sandbox_deserialize(size, data, max_size)) return false;
     if (size < fdtable.size() && (fdtable[size].type == wasi_fd_type::FS || fdtable[size].type == wasi_fd_type::STDIN || fdtable[size].type == wasi_fd_type::STDOUT || fdtable[size].type == wasi_fd_type::STDERR)) return false;
@@ -1193,23 +1219,30 @@ extern "C" void w2c_wasi__snapshot__preview1_proc_exit(wasi_t *wasi, uint32_t rv
 extern "C" uint32_t w2c_wasi__snapshot__preview1_random_get(wasi_t *wasi, wasm_ptr_t buf, uint32_t buf_len) {
     WASI_DEBUG("random_get(0x%08x (%u))\n", buf, buf_len);
 
-    static std::random_device dev;
-    static std::mt19937 rng(dev());
-
-    static uint32_t rng_buffer;
-    static uint32_t rng_buffer_size = 0;
-
     while (buf_len > 0) {
-        if (rng_buffer_size == 0) {
-            rng_buffer = rng();
-            rng_buffer_size = 4;
+        if (wasi->prng_buffer_size == 0) {
+            wasi->prng_buffer_size = 4;
+
+            // PCG32 XSH RR (based on https://github.com/imneme/pcg-cpp, licensed MIT)
+            uint64_t state = wasi->prng_state;
+            wasi->prng_state = wasi->prng_state * (uint64_t)6364136223846793005U + (uint64_t)1442695040888963407U; // Advance state before computing output to improve instruction-level parallelism
+            uint32_t xsh = (state ^ (state >> 18U)) >> 27U;
+            uint32_t rot = state >> 59U;
+            uint32_t out = xsh >> rot | xsh << ((uint32_t)32U - rot);
+#ifdef MKXPZ_BIG_ENDIAN
+            // Byte swap the output on big-endian machines to preserve state state compatibility across machines with different endiannesses
+            std::reverse_copy((uint8_t *)&out, (uint8_t *)&out + 4, wasi->prng_buffer);
+#else
+            std::memcpy(wasi->prng_buffer, &out, 4);
+#endif // MKXPZ_BIG_ENDIAN
         } else {
-            uint32_t n = std::min(rng_buffer_size, buf_len);
-            wasi->arycpy(buf, (uint8_t *)&rng_buffer + (4 - n), n);
+            uint32_t n = std::min(buf_len, wasi->prng_buffer_size);
+            wasi->arycpy(buf, wasi->prng_buffer + ((uint32_t)4 - n), n);
             buf += n;
             buf_len -= n;
-            rng_buffer_size -= n;
+            wasi->prng_buffer_size -= n;
         }
     }
+
     return WASI_ESUCCESS;
 }

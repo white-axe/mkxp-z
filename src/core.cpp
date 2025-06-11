@@ -1701,8 +1701,8 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         }
     }
 
-    // Write the open WASI file descriptors
-    if (!sb().sandbox_serialize_fdtable(data, max_size)) return false;
+    // Write the pseudorandom number generator state and open WASI file descriptors
+    if (!sb().sandbox_serialize_wasi(data, max_size)) return false;
 
     SER_OBJECTS_BEGIN;
 
@@ -1898,8 +1898,8 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
         }
     }
 
-    // Read the open WASI file descriptors
-    if (!sb().sandbox_deserialize_fdtable(data, max_size)) DESER_FAIL;
+    // Read the pseudorandom number generator state and open WASI file descriptors
+    if (!sb().sandbox_deserialize_wasi(data, max_size)) DESER_FAIL;
 
     DESER_OBJECTS_BEGIN;
     for (const auto &object : sb()->objects) {

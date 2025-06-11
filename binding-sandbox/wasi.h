@@ -200,6 +200,10 @@ typedef struct w2c_wasi__snapshot__preview1 {
     // List of vacant WASI file descriptors so that we can reallocate vacant WASI file descriptors quickly.
     boost::container::priority_deque<uint32_t> vacant_fds;
 
+    uint64_t prng_state;
+    uint8_t prng_buffer[4];
+    uint32_t prng_buffer_size;
+
     w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby);
     ~w2c_wasi__snapshot__preview1();
     uint32_t allocate_file_descriptor(enum wasi_fd_type type, void *handle = nullptr);

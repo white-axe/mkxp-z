@@ -125,11 +125,11 @@ sandbox::~sandbox() {
     wasm2c_ruby_free(RB);
 }
 
-bool sandbox::sandbox_serialize_fdtable(void *&data, wasm_size_t &max_size) const {
+bool sandbox::sandbox_serialize_wasi(void *&data, wasm_size_t &max_size) const {
     return wasi->sandbox_serialize(data, max_size);
 }
 
-bool sandbox::sandbox_deserialize_fdtable(const void *&data, wasm_size_t &max_size) {
+bool sandbox::sandbox_deserialize_wasi(const void *&data, wasm_size_t &max_size) {
     return wasi->sandbox_deserialize(data, max_size);
 }
 
