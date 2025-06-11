@@ -211,7 +211,7 @@ bool wasi_t::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
     {
         uint8_t size;
         if (!::sandbox_deserialize(size, data, max_size)) return false;
-        prng_buffer_size = size % 4;
+        prng_buffer_size = size % 5;
     }
 
     uint32_t size;
