@@ -654,6 +654,20 @@ namespace mkxp_retro {
     bool using_threaded_audio() noexcept {
         return threaded_audio_enabled;
     }
+
+    void request_resize(unsigned int width, unsigned int height) noexcept {
+        if (width == av_info.geometry.base_width && height == av_info.geometry.base_height) {
+            return;
+        }
+        av_info.geometry.max_width = av_info.geometry.base_width = width;
+        av_info.geometry.max_height = av_info.geometry.base_height = height;
+        if ((float)width / (float)height != av_info.geometry.aspect_ratio) {
+            av_info.geometry.aspect_ratio = (float)width / (float)height;
+            environment(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO, &av_info);
+        } else if (!environment(RETRO_ENVIRONMENT_SET_GEOMETRY, &av_info.geometry)) {
+            environment(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO, &av_info);
+        }
+    }
 }
 
 static void fallback_log(enum retro_log_level level, const char *fmt, ...) {
@@ -2174,6 +2188,7 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
             log_printf(RETRO_LOG_ERROR, "%s\n", e.what());
             deinit_sandbox();
         } else if (shared_state_initialized) {
+            glState.reset();
             shState->sandbox_reinit();
             shState->graphics().sandbox_reinit();
             for (const auto &object : sb()->objects) {

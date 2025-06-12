@@ -47,6 +47,7 @@
 
 #ifdef MKXPZ_RETRO
 #  include <memory>
+#  include "core.h"
 #  include "mkxp-polyfill.h"
 #  include "sandbox-serial-util.h"
 #else
@@ -1016,7 +1017,9 @@ struct GraphicsPrivate {
     TEXFBO frozenScene;
     Quad screenQuad;
     
+#ifndef MKXPZ_RETRO
     float backingScaleFactor;
+#endif // MKXPZ_RETRO
     
     Vec2i integerScaleFactor;
     TEXFBO integerScaleBuffer;
@@ -1053,7 +1056,11 @@ struct GraphicsPrivate {
 #endif // MKXPZ_RETRO
     useFrameSkip(rtData->config.frameSkip),
     frozen(false),
-    last_update(0), last_avg_update(0), backingScaleFactor(1), integerScaleFactor(0, 0),
+    last_update(0), last_avg_update(0),
+#ifndef MKXPZ_RETRO
+    backingScaleFactor(1),
+#endif // MKXPZ_RETRO
+    integerScaleFactor(0, 0),
 #ifdef MKXPZ_RETRO
     integerScaleActive(false),
     integerLastMileScaling(false)
@@ -1102,13 +1109,18 @@ struct GraphicsPrivate {
     }
 
     void updateScreenResoRatio(RGSSThreadData *rtData) {
-#ifndef MKXPZ_RETRO
         Vec2 &ratio = rtData->sizeResoRatio;
-        ratio.x = (float)scRes.x / scSize.x * backingScaleFactor;
-        ratio.y = (float)scRes.y / scSize.y * backingScaleFactor;
-        
-        rtData->screenOffset = scOffset / backingScaleFactor;
+
+#ifdef MKXPZ_RETRO
+        const float factor = 1.0f;
+#else
+        const float factor = backingScaleFactor;
 #endif // MKXPZ_RETRO
+
+        ratio.x = (float)scRes.x / scSize.x * factor;
+        ratio.y = (float)scRes.y / scSize.y * factor;
+        
+        rtData->screenOffset = scOffset / factor;
     }
     
     /* Enforces fixed aspect ratio, if desired */
@@ -1828,7 +1840,12 @@ void Graphics::resizeScreen(int width, int height) {
     
     glState.scissorBox.set(IntRect(0, 0, p->scRes.x, p->scRes.y));
     
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+    p->winSize = Vec2i(width, height);
+    p->recalculateScreenSize(p->threadData->config.fixedAspectRatio);
+    p->updateScreenResoRatio(p->threadData);
+    mkxp_retro::request_resize(width, height);
+#else
     shState->eThread().requestWindowResize(width, height);
 #endif // MKXPZ_RETRO
 }
@@ -1838,12 +1855,22 @@ void Graphics::resizeWindow(int width, int height, bool center) {
     p->threadData->rqWindowAdjust.wait();
 #endif // MKXPZ_RETRO
     p->checkResize();
-    
-    if (width == p->winSize.x / p->backingScaleFactor &&
-        height == p->winSize.y / p->backingScaleFactor)
+
+#ifdef MKXPZ_RETRO
+    const float factor = 1.0f;
+#else
+    const float factor = p->backingScaleFactor;
+#endif // MKXPZ_RETRO
+    if (width == p->winSize.x / factor &&
+        height == p->winSize.y / factor)
             return;
 
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+    p->winSize = Vec2i(width, height);
+    p->recalculateScreenSize(p->threadData->config.fixedAspectRatio);
+    p->updateScreenResoRatio(p->threadData);
+    mkxp_retro::request_resize(width, height);
+#else
     shState->eThread().requestWindowResize(width, height);
 #endif // MKXPZ_RETRO
     
@@ -2101,9 +2128,7 @@ bool Graphics::getFixedAspectRatio() const
 
 void Graphics::setFixedAspectRatio(bool value)
 {
-#ifndef MKXPZ_RETRO
     shState->config().fixedAspectRatio = value;
-#endif // MKXPZ_RETRO
     p->recalculateScreenSize(p->threadData->config.fixedAspectRatio);
     p->findHighestIntegerScale();
     p->recalculateScreenSize(p->threadData->config.fixedAspectRatio);
@@ -2118,9 +2143,7 @@ int Graphics::getSmoothScaling() const
 
 void Graphics::setSmoothScaling(int value)
 {
-#ifndef MKXPZ_RETRO
     shState->config().smoothScaling = value;
-#endif // MKXPZ_RETRO
 }
 
 bool Graphics::getIntegerScaling() const
@@ -2162,7 +2185,12 @@ void Graphics::setThreadsafe(bool value)
 
 double Graphics::getScale() const {
     p->checkResize();
-    return (double)(p->winSize.y / p->backingScaleFactor) / p->scRes.y;
+#ifdef MKXPZ_RETRO
+        const float factor = 1.0f;
+#else
+        const float factor = backingScaleFactor;
+#endif // MKXPZ_RETRO
+    return (double)(p->winSize.y / factor) / p->scRes.y;
     
 }
 
@@ -2178,7 +2206,12 @@ void Graphics::setScale(double factor) {
     int widthpx = p->scRes.x * factor;
     int heightpx = p->scRes.y * factor;
     
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+    p->winSize = Vec2i(widthpx, heightpx);
+    p->recalculateScreenSize(p->threadData->config.fixedAspectRatio);
+    p->updateScreenResoRatio(p->threadData);
+    mkxp_retro::request_resize(widthpx, heightpx);
+#else
     shState->eThread().requestWindowResize(widthpx, heightpx);
 #endif // MKXPZ_RETRO
 }

@@ -56,6 +56,7 @@ namespace mkxp_retro {
     uint64_t get_ticks_us() noexcept;
     double get_refresh_rate() noexcept;
     bool using_threaded_audio() noexcept;
+    void request_resize(unsigned int width, unsigned int height) noexcept;
 }
 
 #endif // MKXPZ_CORE_H

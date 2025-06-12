@@ -120,8 +120,13 @@ void GLState::reset() {
   blendMode.init(BlendNormal);
   blend.init(true);
   scissorTest.init(false);
-  scissorBox.init(IntRect(0, 0, conf.defScreenW, conf.defScreenH));
-  viewport.init(IntRect(0, 0, conf.defScreenW, conf.defScreenH));
+
+  {
+    IntRect rect = shState != nullptr ? IntRect(0, 0, shState->graphics().width(), shState->graphics().height()) : IntRect(0, 0, conf.defScreenW, conf.defScreenH);
+    scissorBox.init(rect);
+    viewport.init(rect);
+  }
+
   program.init(0);
 
   gl.ActiveTexture(GL_TEXTURE0);
