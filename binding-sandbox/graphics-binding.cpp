@@ -55,12 +55,9 @@ static VALUE delta(VALUE self) {
 
 static VALUE update(VALUE self) {
     struct coro : boost::asio::coroutine {
-        typedef decl_slots<uint8_t> slots;
-
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_GUARD_L(SANDBOX_SLOT(0) = shState->graphics().update(sb().e));
-                if (SANDBOX_SLOT(0)) {
+                if (shState->graphics().update(sb().e)) {
                     SANDBOX_YIELD;
                 }
             }
