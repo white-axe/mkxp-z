@@ -2188,7 +2188,7 @@ double Graphics::getScale() const {
 #ifdef MKXPZ_RETRO
         const float factor = 1.0f;
 #else
-        const float factor = backingScaleFactor;
+        const float factor = p->backingScaleFactor;
 #endif // MKXPZ_RETRO
     return (double)(p->winSize.y / factor) / p->scRes.y;
     
