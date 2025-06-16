@@ -1,6 +1,6 @@
 # Configure flags are based on the ones from https://github.com/ruby/ruby.wasm
 
-RUBY_VERSION ?= v3_3_8
+RUBY_VERSION ?= 3.3.8
 WABT_VERSION ?= 1.0.37
 LIBYAML_VERSION ?= 0.2.5
 ZLIB_VERSION ?= 1.3.1
@@ -9,6 +9,7 @@ TARGET ?= wasm32-wasip1
 WASI_SDK ?= /opt/wasi-sdk
 WASM_OPT ?= wasm-opt
 CTAGS ?= ctags
+RUBY ?= ruby
 AUTORECONF ?= autoreconf
 CURL ?= curl
 GIT ?= git
@@ -35,7 +36,6 @@ BUILD_PREFIX := ${PWD}/build
 OUTDIR := $(BUILD_PREFIX)/libretro-stage1
 LIBDIR := $(BUILD_PREFIX)/lib
 DOWNLOADS := $(BUILD_PREFIX)/downloads
-RUBY := $(LIBDIR)/bin/ruby
 WASM2C := $(LIBDIR)/bin/wasm2c
 INDEXER := $(LIBDIR)/bin/indexer
 CLONE := $(GIT) clone -q --depth 1
@@ -85,7 +85,7 @@ clean-ruby-bindings:
 	rm -f $(LIBDIR)/tags.c
 	rm -f $(LIBDIR)/tags
 
-# Cross Ruby (targets WASI)
+# Ruby (targets WASI)
 
 $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby_0.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_1.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_2.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_3.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_4.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_5.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_6.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_7.c &: $(WASM2C) $(LIBDIR)/Dist/bin/ruby
 	mkdir -p $(OUTDIR)/ruby
@@ -105,7 +105,7 @@ $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h: $(INDEXER) $(LIBDIR)/Dist/bin/ruby
 	mkdir -p $(OUTDIR)/ruby
 	$(INDEXER) $(LIBDIR)/Dist/bin/ruby > $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h
 
-$(OUTDIR)/dist.zip: $(LIBDIR)/Dist/bin/ruby $(RUBY) $(DOWNLOADS)/crossruby/BSDL $(DOWNLOADS)/crossruby/COPYING $(DOWNLOADS)/crossruby/COPYING.ja
+$(OUTDIR)/dist.zip: $(LIBDIR)/Dist/bin/ruby $(DOWNLOADS)/ruby/BSDL $(DOWNLOADS)/ruby/COPYING $(DOWNLOADS)/ruby/COPYING.ja
 	rm -rf $(LIBDIR)/_Dist
 	cp -r $(LIBDIR)/Dist $(LIBDIR)/_Dist
 	rm $(LIBDIR)/_Dist/bin/ruby
@@ -113,21 +113,21 @@ $(OUTDIR)/dist.zip: $(LIBDIR)/Dist/bin/ruby $(RUBY) $(DOWNLOADS)/crossruby/BSDL 
 	rm -r $(LIBDIR)/_Dist/include
 	rm -r $(LIBDIR)/_Dist/share
 	rm -r $(LIBDIR)/_Dist/lib/ruby/gems
-	rm -r $(LIBDIR)/_Dist/lib/ruby/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/bundler
-	rm -r $(LIBDIR)/_Dist/lib/ruby/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/rdoc
-	rm -r $(LIBDIR)/_Dist/lib/ruby/$(shell $(RUBY) -e 'puts RUBY_VERSION.split(".")[..1].join(".")').0/rubygems
+	rm -r $(LIBDIR)/_Dist/lib/ruby/$(shell $(RUBY) -e 'puts "$(RUBY_VERSION)".split(".")[..1].join(".")').0/bundler
+	rm -r $(LIBDIR)/_Dist/lib/ruby/$(shell $(RUBY) -e 'puts "$(RUBY_VERSION)".split(".")[..1].join(".")').0/rdoc
+	rm -r $(LIBDIR)/_Dist/lib/ruby/$(shell $(RUBY) -e 'puts "$(RUBY_VERSION)".split(".")[..1].join(".")').0/rubygems
 	echo '# This is a Ruby script that does nothing. We make Ruby load this file on startup just because Ruby needs to load a script on startup for some reason.' > $(LIBDIR)/_Dist/bin/mkxp-z
-	cp $(DOWNLOADS)/crossruby/BSDL $(LIBDIR)/_Dist/lib/ruby
-	cp $(DOWNLOADS)/crossruby/COPYING $(LIBDIR)/_Dist/lib/ruby
-	cp $(DOWNLOADS)/crossruby/COPYING.ja $(LIBDIR)/_Dist/lib/ruby
+	cp $(DOWNLOADS)/ruby/BSDL $(LIBDIR)/_Dist/lib/ruby
+	cp $(DOWNLOADS)/ruby/COPYING $(LIBDIR)/_Dist/lib/ruby
+	cp $(DOWNLOADS)/ruby/COPYING.ja $(LIBDIR)/_Dist/lib/ruby
 	rm -f $(OUTDIR)/dist.zip
 	cd $(LIBDIR)/_Dist && $(ZIP) -r $(OUTDIR)/dist.zip *
 	rm -r $(LIBDIR)/_Dist
 
-$(LIBDIR)/Dist/bin/ruby: $(DOWNLOADS)/crossruby/Makefile ruby-bindings.h
-	cd $(DOWNLOADS)/crossruby && $(MAKE) install DESTDIR=$(LIBDIR)
+$(LIBDIR)/Dist/bin/ruby: $(DOWNLOADS)/ruby/Makefile ruby-bindings.h
+	cd $(DOWNLOADS)/ruby && $(MAKE) install DESTDIR=$(LIBDIR)
 
-$(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.h &: sandbox-bindgen.rb $(LIBDIR)/tags $(RUBY)
+$(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.h &: sandbox-bindgen.rb $(LIBDIR)/tags
 	mkdir -p $(OUTDIR)/sandbox-bindgen
 	cd $(LIBDIR) && $(RUBY) ${PWD}/sandbox-bindgen.rb
 	mv $(LIBDIR)/mkxp-sandbox-bindgen.h $(OUTDIR)/sandbox-bindgen
@@ -136,12 +136,12 @@ $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sandbox-bindgen/mkx
 $(LIBDIR)/tags: $(LIBDIR)/tags.c
 	$(CTAGS) --fields=kS --kinds-c=epx -o $(LIBDIR)/tags $(LIBDIR)/tags.c
 
-$(LIBDIR)/tags.c: $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h
+$(LIBDIR)/tags.c: $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.h
 	mkdir -p $(LIBDIR)
-	echo '#include <ruby.h>' | $(WASI_CC) -E -I$(DOWNLOADS)/crossruby/include -I$(DOWNLOADS)/crossruby/.ext/include/$(TARGET) -o $(LIBDIR)/tags.c -
+	echo '#include <ruby.h>' | $(WASI_CC) -E -I$(DOWNLOADS)/ruby/include -I$(DOWNLOADS)/ruby/.ext/include/$(TARGET) -o $(LIBDIR)/tags.c -
 
-$(DOWNLOADS)/crossruby/Makefile $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ruby/config.h $(DOWNLOADS)/crossruby/BSDL $(DOWNLOADS)/crossruby/COPYING $(DOWNLOADS)/crossruby/COPYING.ja &: $(DOWNLOADS)/crossruby/configure $(RUBY) $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a
-	cd $(DOWNLOADS)/crossruby && ./configure \
+$(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.h $(DOWNLOADS)/ruby/BSDL $(DOWNLOADS)/ruby/COPYING $(DOWNLOADS)/ruby/COPYING.ja &: $(DOWNLOADS)/ruby/configure $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a
+	cd $(DOWNLOADS)/ruby && ./configure \
 		--prefix=/Dist \
 		--host $(TARGET) \
 		--build $(shell $(RUBY) -e 'puts(RbConfig::CONFIG["host"])') \
@@ -158,39 +158,23 @@ $(DOWNLOADS)/crossruby/Makefile $(DOWNLOADS)/crossruby/.ext/include/$(TARGET)/ru
 		cppflags='$(WASI_CXXFLAGS)' \
 		optflags='$(WASI_CFLAGS) -fno-fast-math' \
 		wasmoptflags='$(WASM_OPT_FLAGS) --pass-arg=asyncify-ignore-imports' \
-		$(shell $(RUBY) -e 'puts "ac_cv_func_dlopen=no" if RUBY_VERSION.split(".")[..1].join(".").to_f < 3.3') \
+		$(shell $(RUBY) -e 'puts "ac_cv_func_dlopen=no" if "$(RUBY_VERSION)".split(".")[..1].join(".").to_f < 3.3') \
 		--disable-rubygems \
 		--disable-install-doc
 
-$(DOWNLOADS)/crossruby/configure: $(DOWNLOADS)/crossruby/configure.ac $(RUBY)
-	cd $(DOWNLOADS)/crossruby && $(RUBY) tool/downloader.rb -d tool -e gnu config.guess config.sub
-	cd $(DOWNLOADS)/crossruby && $(AUTORECONF) -i
+$(DOWNLOADS)/ruby/configure: $(DOWNLOADS)/ruby/configure.ac
+	cd $(DOWNLOADS)/ruby && $(RUBY) tool/downloader.rb -d tool -e gnu config.guess config.sub
+	cd $(DOWNLOADS)/ruby && $(AUTORECONF) -i
 
-$(DOWNLOADS)/crossruby/configure.ac:
+$(DOWNLOADS)/ruby/configure.ac:
 	mkdir -p $(DOWNLOADS)
-	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/crossruby -b $(RUBY_VERSION)
-	cd $(DOWNLOADS)/crossruby && $(GIT) apply ${PWD}/ruby-stack-pointer.patch
-	cd $(DOWNLOADS)/crossruby && $(GIT) apply ${PWD}/ruby-jump-buffer.patch
-	cd $(DOWNLOADS)/crossruby && $(GIT) apply ${PWD}/ruby-compat.patch
-	echo '#include "${PWD}/ruby-bindings.h"' >> $(DOWNLOADS)/crossruby/gc.c
+	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/ruby -b v$(subst .,_,$(RUBY_VERSION))
+	cd $(DOWNLOADS)/ruby && $(GIT) apply ${PWD}/ruby-stack-pointer.patch
+	cd $(DOWNLOADS)/ruby && $(GIT) apply ${PWD}/ruby-jump-buffer.patch
+	cd $(DOWNLOADS)/ruby && $(GIT) apply ${PWD}/ruby-compat.patch
+	echo '#include "${PWD}/ruby-bindings.h"' >> $(DOWNLOADS)/ruby/gc.c
 
-# Base Ruby (targets the build machine)
-
-$(RUBY): $(DOWNLOADS)/baseruby/Makefile
-	cd $(DOWNLOADS)/baseruby && $(MAKE) install
-	if ! $(RUBY) -e 'exit 1 if RUBY_VERSION.split(".")[..1].join(".").to_f < 3.2'; then echo -e '\e[91m[ERROR] Ruby version must be at least 3.2 because earlier versions do not have WebAssembly support\e[0m'; rm $(RUBY); exit 1; fi;
-
-$(DOWNLOADS)/baseruby/Makefile: $(DOWNLOADS)/baseruby/configure
-	cd $(DOWNLOADS)/baseruby && ./configure --prefix=$(LIBDIR) $(NATIVE_TOOLCHAIN) LDFLAGS='$(NATIVE_LDFLAGS)' XCFLAGS='$(NATIVE_CFLAGS)' cppflags='$(NATIVE_CXXFLAGS)' --disable-install-doc $(ZLIB_PATH_FLAG) $(LIBYAML_PATH_FLAG) $(OPENSSL_PATH_FLAG)
-
-$(DOWNLOADS)/baseruby/configure: $(DOWNLOADS)/baseruby/configure.ac
-	cd $(DOWNLOADS)/baseruby && $(AUTORECONF) -i
-
-$(DOWNLOADS)/baseruby/configure.ac:
-	mkdir -p $(DOWNLOADS)
-	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/baseruby -b $(RUBY_VERSION)
-
-# WABT
+# WABT (targets the build machine)
 
 WABT_SRC := \
 	$(DOWNLOADS)/wabt/src/apply-names.cc \
@@ -280,7 +264,7 @@ $(DOWNLOADS)/picosha2/picosha2.h:
 	mkdir -p $(DOWNLOADS)/picosha2
 	$(CURL) -L -o $@ https://raw.githubusercontent.com/okdshin/PicoSHA2/$(PICOSHA2_VERSION)/picosha2.h
 
-# libyaml
+# libyaml (targets WASI)
 
 $(LIBDIR)/usr/local/lib/libyaml.a: $(DOWNLOADS)/libyaml/Makefile
 	cd $(DOWNLOADS)/libyaml && $(MAKE) install DESTDIR=$(LIBDIR)
@@ -295,7 +279,7 @@ $(DOWNLOADS)/libyaml/configure.ac:
 	mkdir -p $(DOWNLOADS)
 	$(CLONE) $(GITHUB)/yaml/libyaml $(DOWNLOADS)/libyaml -b $(LIBYAML_VERSION)
 
-# zlib
+# zlib (targets WASI)
 
 $(LIBDIR)/usr/local/lib/libz.a: $(DOWNLOADS)/zlib/Makefile
 	cd $(DOWNLOADS)/zlib && $(MAKE) install DESTDIR=$(LIBDIR)

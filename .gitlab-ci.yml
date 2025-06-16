@@ -167,7 +167,7 @@ stage1:
   image: $CI_SERVER_HOST:5050/libretro-infrastructure/libretro-build-amd64-ubuntu
   stage: build-prepare
   variables:
-    MINIFORGE_PACKAGES: clang clangxx make autoconf automake libtool zip binaryen universal-ctags ruby zlib yaml openssl
+    MINIFORGE_PACKAGES: clang clangxx make autoconf automake libtool zip binaryen universal-ctags ruby
   script:
     - !reference [.miniforge, script]
     - if [ ! -e /usr/bin/grep ]; then ln -s /bin/grep /usr/bin/grep; fi
