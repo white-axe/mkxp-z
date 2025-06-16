@@ -112,6 +112,7 @@ $(OUTDIR)/dist.zip: $(LIBDIR)/Dist/bin/ruby $(DOWNLOADS)/ruby/BSDL $(DOWNLOADS)/
 	rm $(LIBDIR)/_Dist/lib/libruby-static.a
 	rm -r $(LIBDIR)/_Dist/include
 	rm -r $(LIBDIR)/_Dist/share
+	rm -rf $(LIBDIR)/_Dist/lib/ruby/gems
 	rm -r $(LIBDIR)/_Dist/lib/ruby/$(shell $(RUBY) -e 'puts "$(RUBY_VERSION)".split(".")[..1].join(".")').0/bundler
 	rm -r $(LIBDIR)/_Dist/lib/ruby/$(shell $(RUBY) -e 'puts "$(RUBY_VERSION)".split(".")[..1].join(".")').0/rdoc
 	rm -r $(LIBDIR)/_Dist/lib/ruby/$(shell $(RUBY) -e 'puts "$(RUBY_VERSION)".split(".")[..1].join(".")').0/rubygems
