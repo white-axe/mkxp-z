@@ -2205,7 +2205,7 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
     };
     hw_render.context_destroy = nullptr;
     hw_render.cache_context = true;
-    hw_render.bottom_left_origin = true;
+    hw_render.bottom_left_origin = false;
     if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 6, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
         log_printf(RETRO_LOG_INFO, "Using OpenGL 4.6 graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 5, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
