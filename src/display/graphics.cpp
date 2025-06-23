@@ -192,7 +192,7 @@ struct Movie
     ALuint remainingSamples;
 
     Movie(float volume, bool skippable_)
-    : decoder(0), audio(0), video(0), skippable(skippable_), videoBitmap(0),
+    : decoder(0), audio(0), video(0), hasVideo(false), hasAudio(false), skippable(skippable_), videoBitmap(0),
 #ifndef MKXPZ_RETRO
         audioThread(0),
 #endif // MKXPZ_RETRO
