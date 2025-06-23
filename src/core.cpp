@@ -1462,6 +1462,7 @@ extern "C" RETRO_API void retro_run() {
         if (e.is_error()) {
             log_printf(RETRO_LOG_ERROR, "Error initializing shared state: %s\n", e.what());
             deinit_sandbox();
+            should_render = false;
         } else {
             shared_state_initialized = true;
         }
@@ -1549,6 +1550,7 @@ extern "C" RETRO_API void retro_run() {
     if (should_render) {
         if (sb().run<struct main>()) {
             deinit_sandbox();
+            should_render = false;
         }
     } else if (!dupe_supported && mkxp_retro::sandbox.has_value()) {
         shState->graphics().repaint(sb().transitioning);
