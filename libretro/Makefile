@@ -28,9 +28,6 @@ WASI_CFLAGS ?= -Oz -DNDEBUG
 WASI_CXXFLAGS ?= -Oz -DNDEBUG
 WASI_LDFLAGS ?=
 WASM_OPT_FLAGS ?= -Oz
-ZLIB_PATH ?=
-LIBYAML_PATH ?=
-OPENSSL_PATH ?=
 
 BUILD_PREFIX := ${PWD}/build
 OUTDIR := $(BUILD_PREFIX)/libretro-stage1
@@ -47,24 +44,6 @@ WASI_AR := $(WASI_SDK)/bin/llvm-ar
 WASI_RANLIB := $(WASI_SDK)/bin/llvm-ranlib
 NATIVE_TOOLCHAIN := CC=$(NATIVE_CC) CXX=$(NATIVE_CXX) LD=$(NATIVE_LD) AR=$(NATIVE_AR) RANLIB=$(NATIVE_RANLIB)
 WASI_TOOLCHAIN := CC=$(WASI_CC) CXX=$(WASI_CXX) LD=$(WASI_LD) AR=$(WASI_AR) RANLIB=$(WASI_RANLIB)
-
-ifeq ($(ZLIB_PATH),)
-	ZLIB_PATH_FLAG =
-else
-	ZLIB_PATH_FLAG = --with-zlib-dir=$(ZLIB_PATH)
-endif
-
-ifeq ($(LIBYAML_PATH),)
-	LIBYAML_PATH_FLAG =
-else
-	LIBYAML_PATH_FLAG = --with-libyaml-dir=$(LIBYAML_PATH)
-endif
-
-ifeq ($(OPENSSL_PATH),)
-	OPENSSL_PATH_FLAG =
-else
-	OPENSSL_PATH_FLAG = --with-openssl-dir=$(OPENSSL_PATH)
-endif
 
 all default: ruby-dist ruby-bindings
 
