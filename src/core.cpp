@@ -1780,9 +1780,9 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     if (!sandbox_serialize(shState->graphics().getThreadsafe(), data, max_size)) return false;
     if (!sandbox_serialize(shState->graphics().frozen(), data, max_size)) return false;
     if (shState->graphics().frozen()) {
-        RESERVE(shState->graphics().frozenPixels.size());
-        std::memcpy(data, shState->graphics().frozenPixels.data(), 4 * shState->graphics().frozenPixels.size());
-        ADVANCE(shState->graphics().frozenPixels.size());
+        RESERVE((size_t)4 * shState->graphics().frozenPixels.size());
+        std::memcpy(data, shState->graphics().frozenPixels.data(), (size_t)4 * shState->graphics().frozenPixels.size());
+        ADVANCE((size_t)4 * shState->graphics().frozenPixels.size());
     }
 
     // Write the audio state
@@ -2145,14 +2145,14 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     }
     if (!sandbox_deserialize(shState->graphics().frozen(), data, max_size)) DESER_FAIL;
     if (shState->graphics().frozen()) {
-        RESERVE((size_t)shState->graphics().width() * (size_t)shState->graphics().height());
+        RESERVE((size_t)4 * (size_t)shState->graphics().width() * (size_t)shState->graphics().height());
         if (shState->graphics().frozenPixels.size() != (size_t)shState->graphics().width() * (size_t)shState->graphics().height()) {
             shState->graphics().frozenPixels.clear();
             shState->graphics().frozenPixels.resize((size_t)shState->graphics().width() * (size_t)shState->graphics().height());
         }
         std::memcpy(shState->graphics().frozenPixels.data(), data, (size_t)4 * (size_t)shState->graphics().width() * (size_t)shState->graphics().height());
         shState->graphics().uploadFrozenPixels();
-        ADVANCE((size_t)shState->graphics().width() * (size_t)shState->graphics().height());
+        ADVANCE((size_t)4 * (size_t)shState->graphics().width() * (size_t)shState->graphics().height());
     }
 
     // Read the audio state
