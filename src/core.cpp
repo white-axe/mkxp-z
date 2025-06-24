@@ -1951,8 +1951,8 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
                     }
                     typenum_table[object.typenum - 1].destroy(object.ptr);
                     object.typenum = 0;
-                    vacant_object_keys.push_back(i);
                 }
+                vacant_object_keys.push_back(i);
             }
 
             object_key += num_free_objects;

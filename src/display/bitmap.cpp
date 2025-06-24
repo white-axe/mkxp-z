@@ -4083,18 +4083,23 @@ bool Bitmap::sandbox_deserialize_pixels(const void *&data, mkxp_sandbox::wasm_si
         bool is_not_empty;
         if (!mkxp_sandbox::sandbox_deserialize(is_not_empty, data, max_size)) return false;
 
-        size_t tile_col = tile_number % CEIL_DIV_DIFF_TILE_SIZE(width());
-        size_t tile_row = tile_number / CEIL_DIV_DIFF_TILE_SIZE(width());
-        size_t tile_width = std::min(DIFF_TILE_SIZE, width() - DIFF_TILE_SIZE * tile_col);
-        size_t tile_height = std::min(DIFF_TILE_SIZE, height() - DIFF_TILE_SIZE * tile_row);
-        IntRect rect = IntRect(DIFF_TILE_SIZE * tile_col, DIFF_TILE_SIZE * tile_row, tile_width, tile_height);
-
         if (!is_not_empty) {
             mkxp_sandbox::wasm_size_t num_empty_tiles;
             if (!mkxp_sandbox::sandbox_deserialize(num_empty_tiles, data, max_size)) return false;
 
             while (num_empty_tiles > 0) {
-                if (!diff[tile_number].empty()) {
+                std::vector<uint32_t> &tile = diff[tile_number];
+
+                // Clear tiles that are empty in the save state but not currently empty
+                if (!tile.empty()) {
+                    tile.clear();
+
+                    size_t tile_col = tile_number % CEIL_DIV_DIFF_TILE_SIZE(width());
+                    size_t tile_row = tile_number / CEIL_DIV_DIFF_TILE_SIZE(width());
+                    size_t tile_width = std::min(DIFF_TILE_SIZE, width() - DIFF_TILE_SIZE * tile_col);
+                    size_t tile_height = std::min(DIFF_TILE_SIZE, height() - DIFF_TILE_SIZE * tile_row);
+                    IntRect rect = IntRect(DIFF_TILE_SIZE * tile_col, DIFF_TILE_SIZE * tile_row, tile_width, tile_height);
+
                     FBO::bind(p->animation.enabled ? p->animation.frames[frame_number].gl.fbo : p->gl.fbo);
 
                     glState.scissorTest.pushSet(true);
@@ -4116,6 +4121,12 @@ bool Bitmap::sandbox_deserialize_pixels(const void *&data, mkxp_sandbox::wasm_si
                 --num_empty_tiles;
             }
         } else {
+            size_t tile_col = tile_number % CEIL_DIV_DIFF_TILE_SIZE(width());
+            size_t tile_row = tile_number / CEIL_DIV_DIFF_TILE_SIZE(width());
+            size_t tile_width = std::min(DIFF_TILE_SIZE, width() - DIFF_TILE_SIZE * tile_col);
+            size_t tile_height = std::min(DIFF_TILE_SIZE, height() - DIFF_TILE_SIZE * tile_row);
+            IntRect rect = IntRect(DIFF_TILE_SIZE * tile_col, DIFF_TILE_SIZE * tile_row, tile_width, tile_height);
+
             if (max_size < 4 * tile_width * tile_height) return false;
 
             bool tile_modified = false;
