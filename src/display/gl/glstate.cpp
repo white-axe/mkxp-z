@@ -108,13 +108,7 @@ void GLProgram::apply(const unsigned int &value) { gl.UseProgram(value); }
 GLState::Caps::Caps() { gl.GetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTexSize); }
 
 GLState::GLState(const Config &conf) : conf(conf) {
-  reset();
-}
-
-void GLState::reset() {
-  gl.PixelStorei(GL_PACK_ALIGNMENT, 4);
-  gl.PixelStorei(GL_UNPACK_ALIGNMENT, 4);
-  gl.Disable(GL_DEPTH_TEST);
+  refreshMiscGlobals();
 
   clearColor.init(Vec4(0, 0, 0, 1));
   blendMode.init(BlendNormal);
@@ -129,8 +123,24 @@ void GLState::reset() {
 
   program.init(0);
 
-  gl.ActiveTexture(GL_TEXTURE0);
-
   if (conf.maxTextureSize > 0)
     caps.maxTexSize = conf.maxTextureSize;
+}
+
+void GLState::refresh() {
+  refreshMiscGlobals();
+  clearColor.refresh();
+  scissorBox.refresh();
+  scissorTest.refresh();
+  blendMode.refresh();
+  blend.refresh();
+  viewport.refresh();
+  program.refresh();
+}
+
+void GLState::refreshMiscGlobals() {
+  gl.PixelStorei(GL_PACK_ALIGNMENT, 4);
+  gl.PixelStorei(GL_UNPACK_ALIGNMENT, 4);
+  gl.Disable(GL_DEPTH_TEST);
+  gl.ActiveTexture(GL_TEXTURE0);
 }

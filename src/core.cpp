@@ -1467,7 +1467,7 @@ extern "C" RETRO_API void retro_run() {
             shared_state_initialized = true;
         }
     } else if (hw_render.context_type != RETRO_HW_CONTEXT_NONE && (should_render || (!dupe_supported && mkxp_retro::sandbox.has_value()))) {
-        glState.reset();
+        glState.refresh();
     }
 
     {
@@ -2190,7 +2190,7 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
             log_printf(RETRO_LOG_ERROR, "%s\n", e.what());
             deinit_sandbox();
         } else if (shared_state_initialized) {
-            glState.reset();
+            glState.refresh();
             shState->sandbox_reinit();
             shState->graphics().sandbox_reinit();
             for (const auto &object : sb()->objects) {
