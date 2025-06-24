@@ -833,7 +833,7 @@ static bool init_sandbox() {
 
         Exception exception(Exception::Ok, "");
         fs->addPath(exception, parsed_game_path.c_str(), "/Game");
-        if (exception.type != Exception::Ok) {
+        if (exception.is_error()) {
             log_printf(RETRO_LOG_ERROR, "%s\n", exception.what());
             deinit_sandbox();
             return false;
@@ -1170,7 +1170,7 @@ static bool init_sandbox() {
             PHYSFS_setWriteDir(save_path_subdir.c_str());
             Exception exception(Exception::Ok, "");
             fs->addPath(exception, save_path_subdir.c_str(), "/Save");
-            if (exception.type != Exception::Ok) {
+            if (exception.is_error()) {
                 log_printf(RETRO_LOG_ERROR, "%s\n", exception.what());
                 deinit_sandbox();
                 return false;
@@ -1181,7 +1181,7 @@ static bool init_sandbox() {
                 struct physfs_allow_duplicates_guard guard;
                 fs->addPath(exception, save_path_subdir.c_str(), "/Game");
             }
-            if (exception.type != Exception::Ok) {
+            if (exception.is_error()) {
                 log_printf(RETRO_LOG_ERROR, "%s\n", exception.what());
                 deinit_sandbox();
                 return false;

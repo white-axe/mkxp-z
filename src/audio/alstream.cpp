@@ -264,7 +264,7 @@ void ALStream::openSource(Exception &exception, const std::string &filename)
 #else
 	shState->fileSystem().openRead(handler, filename.c_str());
 #endif // MKXPZ_RETRO
-	if (handler.exception.type != Exception::Ok)
+	if (handler.exception.is_error())
 	{
 		/* If no file was found then we leave the stream open.
 		 * A PHYSFSError means we found a match but couldn't

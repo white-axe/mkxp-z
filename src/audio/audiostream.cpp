@@ -133,7 +133,7 @@ void AudioStream::play(Exception &exception,
 	if (diffFile || sState == ALStream::Closed)
 	{
 		stream.open(exception, filename);
-		if (exception.type != Exception::Ok)
+		if (exception.is_error())
 			return;
 	} else {
 		switch (sState)
