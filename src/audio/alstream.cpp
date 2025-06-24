@@ -96,7 +96,7 @@ void ALStream::open(Exception &exception, const std::string &filename)
 {
 	openSource(exception, filename);
 
-	if (exception.type == Exception::Ok)
+	if (exception.is_ok())
 		state = Stopped;
 }
 
