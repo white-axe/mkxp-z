@@ -758,6 +758,7 @@ struct main : boost::asio::coroutine {
             SANDBOX_AWAIT_S(0, rb_rescue2, func, SANDBOX_NIL, rescue, SANDBOX_NIL, sb()->rb_eException(), 0);
             if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(0))) {
                 log_printf(RETRO_LOG_INFO, "Game exited; terminating\n");
+                environment(RETRO_ENVIRONMENT_SHUTDOWN, nullptr);
             } else {
                 log_printf(RETRO_LOG_ERROR, "Game threw an exception; terminating\n");
             }
