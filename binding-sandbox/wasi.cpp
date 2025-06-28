@@ -189,6 +189,14 @@ bool wasi_t::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
             if (!::sandbox_serialize((uint8_t)2, data, max_size)) return false;
             if (!::sandbox_serialize(entry.file_handle()->root, data, max_size)) return false;
             if (!::sandbox_serialize(entry.file_handle()->file.path(), data, max_size)) return false;
+            {
+                PHYSFS_File *file = entry.file_handle()->file.get();
+                if (!::sandbox_serialize(file == nullptr ? (int64_t)0 : std::max((int64_t)0, (int64_t)PHYSFS_tell(file)), data, max_size)) return false;
+            }
+            {
+                PHYSFS_File *file = entry.file_handle()->file.get_write();
+                if (!::sandbox_serialize(file == nullptr ? (int64_t)0 : std::max((int64_t)0, (int64_t)PHYSFS_tell(file)), data, max_size)) return false;
+            }
         } else {
             ++num_free_handles;
         }
@@ -274,6 +282,22 @@ bool wasi_t::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
                     return false;
                 }
                 fdtable[i] = {handle, wasi_fd_type::FSFILE};
+                {
+                    PHYSFS_File *file = handle->file.get();
+                    int64_t pos;
+                    if (!::sandbox_deserialize(pos, data, max_size)) return false;
+                    if (pos > 0) {
+                        PHYSFS_seek(file, pos);
+                    }
+                }
+                {
+                    PHYSFS_File *file = handle->file.get_write();
+                    int64_t pos;
+                    if (!::sandbox_deserialize(pos, data, max_size)) return false;
+                    if (file != nullptr && pos > 0) {
+                        PHYSFS_seek(file, pos);
+                    }
+                }
             } else {
                 return false;
             }
