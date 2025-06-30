@@ -398,6 +398,8 @@ bool SoundEmitter::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_siz
 					SoundBuffer *new_buffer = allocateBuffer(filenames[i]);
 					if (new_buffer == nullptr) return false;
 					if (new_buffer != old_buffer) {
+						AL::Source::stop(source);
+						AL::Source::detachBuffer(source);
 						if (old_buffer != nullptr) {
 							SoundBuffer::deref(old_buffer);
 						}
