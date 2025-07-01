@@ -110,7 +110,7 @@ static VALUE initialize_copy(VALUE self, VALUE value) {
     struct coro : boost::asio::coroutine {
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
-                if (self != value) {
+                if (self == value) {
                     return self;
                 }
 
