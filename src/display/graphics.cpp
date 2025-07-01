@@ -1061,13 +1061,8 @@ struct GraphicsPrivate {
     backingScaleFactor(1),
 #endif // MKXPZ_RETRO
     integerScaleFactor(0, 0),
-#ifdef MKXPZ_RETRO
-    integerScaleActive(false),
-    integerLastMileScaling(false)
-#else
     integerScaleActive(rtData->config.integerScaling.active),
     integerLastMileScaling(rtData->config.integerScaling.lastMileScaling)
-#endif // MKXPZ_RETRO
 {
         avgFPSData = std::vector<double>();
 #ifndef MKXPZ_RETRO

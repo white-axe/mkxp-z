@@ -1765,22 +1765,24 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     SER_OBJECTS_END;
 
     // Write the graphics state
-    if (!sandbox_serialize((int32_t)shState->graphics().width(), data, max_size)) return false;
-    if (!sandbox_serialize((int32_t)shState->graphics().height(), data, max_size)) return false;
-    if (!sandbox_serialize((int32_t)shState->graphics().getFrameRate(), data, max_size)) return false;
-    if (!sandbox_serialize((int32_t)shState->graphics().getFrameCount(), data, max_size)) return false;
-    if (!sandbox_serialize((int32_t)shState->graphics().getBrightness(), data, max_size)) return false;
-    if (!sandbox_serialize(shState->graphics().getFullscreen(), data, max_size)) return false;
-    if (!sandbox_serialize(shState->graphics().getShowCursor(), data, max_size)) return false;
-    if (!sandbox_serialize(shState->graphics().getScale(), data, max_size)) return false;
-    if (!sandbox_serialize(shState->graphics().getFrameskip(), data, max_size)) return false;
-    if (!sandbox_serialize(shState->graphics().getFixedAspectRatio(), data, max_size)) return false;
-    if (!sandbox_serialize((int32_t)shState->graphics().getSmoothScaling(), data, max_size)) return false;
-    if (!sandbox_serialize(shState->graphics().getIntegerScaling(), data, max_size)) return false;
-    if (!sandbox_serialize(shState->graphics().getLastMileScaling(), data, max_size)) return false;
-    if (!sandbox_serialize(shState->graphics().getThreadsafe(), data, max_size)) return false;
-    if (!sandbox_serialize(shState->graphics().frozen(), data, max_size)) return false;
-    if (shState->graphics().frozen()) {
+    bool initialized = shared_state_initialized.load_relaxed();
+    if (!sandbox_serialize(initialized ? (int32_t)shState->graphics().width() : (int32_t)conf->defScreenW, data, max_size)) return false;
+    if (!sandbox_serialize(initialized ? (int32_t)shState->graphics().height() : (int32_t)conf->defScreenH, data, max_size)) return false;
+    if (!sandbox_serialize(initialized ? (int32_t)shState->graphics().getFrameRate() : rgssVer == 1 ? (int32_t)40 : (int32_t)60, data, max_size)) return false;
+    if (!sandbox_serialize(initialized ? (int32_t)shState->graphics().getFrameCount() : (int32_t)0, data, max_size)) return false;
+    if (!sandbox_serialize(initialized ? (int32_t)shState->graphics().getBrightness() : (int32_t)255, data, max_size)) return false;
+    if (!sandbox_serialize(initialized ? shState->graphics().getFullscreen() : false, data, max_size)) return false;
+    if (!sandbox_serialize(initialized ? shState->graphics().getShowCursor() : true, data, max_size)) return false;
+    if (!sandbox_serialize(initialized ? shState->graphics().getScale() : 1.0, data, max_size)) return false;
+    if (!sandbox_serialize(initialized ? shState->graphics().getFrameskip() : conf->frameSkip, data, max_size)) return false;
+    if (!sandbox_serialize(initialized ? shState->graphics().getFixedAspectRatio() : conf->fixedAspectRatio, data, max_size)) return false;
+    if (!sandbox_serialize(initialized ? (int32_t)shState->graphics().getSmoothScaling() : conf->smoothScaling, data, max_size)) return false;
+    if (!sandbox_serialize(initialized ? shState->graphics().getIntegerScaling() : conf->integerScaling.active, data, max_size)) return false;
+    if (!sandbox_serialize(initialized ? shState->graphics().getLastMileScaling() : conf->integerScaling.lastMileScaling, data, max_size)) return false;
+    if (!sandbox_serialize(initialized ? shState->graphics().getThreadsafe() : true, data, max_size)) return false;
+    bool frozen = initialized && shState->graphics().frozen();
+    if (!sandbox_serialize(frozen, data, max_size)) return false;
+    if (frozen) {
         RESERVE((size_t)4 * shState->graphics().frozenPixels.size());
         std::memcpy(data, shState->graphics().frozenPixels.data(), (size_t)4 * shState->graphics().frozenPixels.size());
         ADVANCE((size_t)4 * shState->graphics().frozenPixels.size());
