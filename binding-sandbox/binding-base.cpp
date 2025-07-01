@@ -279,14 +279,7 @@ void *binding_base::get_object(wasm_objkey_t key) const {
 }
 
 bool binding_base::check_object_type(wasm_objkey_t key, wasm_size_t typenum) const {
-    if (key == 0 || key > objects.size()) {
-        std::abort();
-    }
-    const struct object &object = objects[key - 1];
-    if (object.typenum == 0 || object.typenum > typenum_table_size) {
-        std::abort();
-    }
-    return object.typenum == typenum;
+    return key != 0 && key <= objects.size() && objects[key - 1].typenum == typenum;
 }
 
 void binding_base::destroy_object(wasm_objkey_t key) {

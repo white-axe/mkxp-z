@@ -68,16 +68,34 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 if (argc == 0) {
                     SANDBOX_AWAIT_S(0, rb_iv_get, font_class, "default_name");
-                    set_private_data(self, new Font);
+                    if (has_private_data<Font>(self)) {
+                        Font *f = new Font;
+                        *get_private_data<Font>(self) = *f;
+                        delete f;
+                    } else {
+                        set_private_data(self, new Font);
+                    }
                 } else if (argc == 1) {
                     SANDBOX_SLOT(0) = sb()->ref<VALUE>(argv, 0);
                     SANDBOX_AWAIT(collect_strings, SANDBOX_SLOT(0), sb().font_names_buffer);
-                    set_private_data(self, new Font(&sb().font_names_buffer));
+                    if (has_private_data<Font>(self)) {
+                        Font *f = new Font(&sb().font_names_buffer);
+                        *get_private_data<Font>(self) = *f;
+                        delete f;
+                    } else {
+                        set_private_data(self, new Font(&sb().font_names_buffer));
+                    }
                 } else {
                     SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
                     SANDBOX_SLOT(0) = sb()->ref<VALUE>(argv, 0);
                     SANDBOX_AWAIT(collect_strings, SANDBOX_SLOT(0), sb().font_names_buffer);
-                    set_private_data(self, new Font(&sb().font_names_buffer, SANDBOX_SLOT(1)));
+                    if (has_private_data<Font>(self)) {
+                        Font *f = new Font(&sb().font_names_buffer, SANDBOX_SLOT(1));
+                        *get_private_data<Font>(self) = *f;
+                        delete f;
+                    } else {
+                        set_private_data(self, new Font(&sb().font_names_buffer, SANDBOX_SLOT(1)));
+                    }
                 }
                 sb().font_names_buffer.clear();
 

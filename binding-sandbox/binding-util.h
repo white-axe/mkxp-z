@@ -505,6 +505,12 @@ namespace mkxp_sandbox {
         return (T *)sb()->get_object(key);
     }
 
+    // Checks if the private data field of `val` has been set to a non-null object of the given type.
+    template <typename T> inline bool has_private_data(VALUE val) {
+        wasm_objkey_t key = sb()->ref<wasm_ptr_t>(sb()->rtypeddata_data(val));
+        return sb()->check_object_type(key, get_typenum<T>::value);
+    }
+
     void dfree(wasm_objkey_t key);
 
     // Gets the length of a Ruby object.
