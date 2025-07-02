@@ -431,6 +431,9 @@ namespace mkxp_sandbox {
                             std::abort();
                         }
                         struct deser_stack_frame &deser_frame = fiber->deser_stack[fiber->stack_index++];
+                        if (fiber->stack_index == 0) {
+                            MKXPZ_THROW(std::bad_alloc());
+                        }
                         b.stack_ptr = deser_frame.stack_ptr;
                         coroutine = construct_frame<T>(b);
                         fiber->stack.emplace_back(

@@ -1699,6 +1699,9 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     if (!sandbox_serialize(sb()->get_machine_stack_pointer(), data, max_size)) return false;
     if (!sandbox_serialize(sb()->get_asyncify_state(), data, max_size)) return false;
     if (!sandbox_serialize(sb()->get_asyncify_data(), data, max_size)) return false;
+    if (!sandbox_serialize(sb()->instance().w2c_mkxp_sandbox_fiber_entry_point, data, max_size)) return false;
+    if (!sandbox_serialize(sb()->instance().w2c_mkxp_sandbox_fiber_arg0, data, max_size)) return false;
+    if (!sandbox_serialize(sb()->instance().w2c_mkxp_sandbox_fiber_arg1, data, max_size)) return false;
     if (!sandbox_serialize(frame_count, data, max_size)) return false;
     if (!sandbox_serialize(frame_time.load_relaxed(), data, max_size)) return false;
     if (!sandbox_serialize(frame_time_remainder, data, max_size)) return false;
@@ -1880,6 +1883,9 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
         if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
         sb()->set_asyncify_data(value);
     }
+    if (!sandbox_deserialize(sb()->instance().w2c_mkxp_sandbox_fiber_entry_point, data, max_size)) return false;
+    if (!sandbox_deserialize(sb()->instance().w2c_mkxp_sandbox_fiber_arg0, data, max_size)) return false;
+    if (!sandbox_deserialize(sb()->instance().w2c_mkxp_sandbox_fiber_arg1, data, max_size)) return false;
     if (!sandbox_deserialize(frame_count, data, max_size)) DESER_FAIL;
     {
         uint64_t value;
