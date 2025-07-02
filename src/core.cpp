@@ -1238,6 +1238,7 @@ static bool init_sandbox() {
     input.emplace();
 
     mkxp_retro::sandbox.emplace();
+    Font::initDefaultDynAttribs();
 
     {
         float refresh_rate;

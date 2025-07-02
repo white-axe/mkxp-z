@@ -268,8 +268,6 @@ void font_binding_init::operator()() {
         SANDBOX_AWAIT_R(font_class, rb_define_class, "Font", sb()->rb_cObject());
         SANDBOX_AWAIT(rb_define_alloc_func, font_class, alloc);
 
-        Font::initDefaultDynAttribs();
-
         SANDBOX_AWAIT(wrap_property, font_class, &Font::getDefaultColor(), "default_color", color_class);
 
         if (rgssVer >= 3) {
