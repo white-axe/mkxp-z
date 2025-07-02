@@ -197,7 +197,7 @@ struct TilemapVXPrivate : public ViewportElement, TileAtlasVX::Reader
 
 		GLMeta::vaoFillInVertexData<SVertex>(vao);
 		vao.vbo = vbo;
-		vao.ibo = shState->globalIBO().ibo;
+		vao.ibo = SharedState::globalIBO().ibo;
 		GLMeta::vaoInit(vao);
 	}
 

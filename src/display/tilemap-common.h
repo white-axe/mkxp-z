@@ -132,7 +132,7 @@ struct FlashMap
 		allocQuads = 0;
 
 		vao.vbo = VBO::gen();
-		vao.ibo = shState->globalIBO().ibo;
+		vao.ibo = SharedState::globalIBO().ibo;
 		GLMeta::vaoFillInVertexData<CVertex>(vao);
 
 		GLMeta::vaoInit(vao);

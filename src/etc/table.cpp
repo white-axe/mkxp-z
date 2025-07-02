@@ -133,7 +133,8 @@ void Table::serialize(char *buffer) const
 	for (const int16_t datum : data)
 		*(int16_t *)(buffer -= sizeof(int16_t)) = datum;
 #else
-	memcpy(buffer, dataPtr(data), sizeof(int16_t)*size);
+	if (size > 0)
+		memcpy(buffer, dataPtr(data), sizeof(int16_t)*size);
 #endif
 }
 
@@ -170,7 +171,8 @@ Table *Table::deserialize(Exception &exception, const char *data, int len)
 	for (int16_t &datum : t->data)
 		datum = *(int16_t *)(data -= sizeof(int16_t));
 #else
-	memcpy(dataPtr(t->data), data, sizeof(int16_t)*size);
+	if (size > 0)
+		memcpy(dataPtr(t->data), data, sizeof(int16_t)*size);
 #endif
 
 	return t;

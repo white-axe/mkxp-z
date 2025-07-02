@@ -122,6 +122,7 @@ struct SpritePrivate
     opacity(255),
     blendType(BlendNormal),
     pattern(0),
+    patternBlendType(BlendNormal),
     patternTile(true),
     patternOpacity(255),
     invert(false),
