@@ -3203,7 +3203,6 @@ void Bitmap::setFont(Exception &exception, Font &value)
 
 void Bitmap::setInitFont(Font *value)
 {
-#ifndef MKXPZ_RETRO
     if (hasHires()) {
         Font *hiresFont = p->selfHires->p->font;
         if (hiresFont && hiresFont != &shState->defaultFont())
@@ -3212,7 +3211,6 @@ void Bitmap::setInitFont(Font *value)
             hiresFont->setSizeNoCheck(hiresFont->getSize() * p->selfHires->width() / width());
         }
     }
-#endif // MKXPZ_RETRO
 
     p->font = value;
 }

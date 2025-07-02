@@ -177,9 +177,16 @@ namespace mkxp_sandbox {
                 std::abort();
             }
 
-            if (!mkxp_sandbox::sandbox_serialize(ptr != nullptr, data, max_size)) return false;
             if (ptr != nullptr) {
-                if (!mkxp_sandbox::sandbox_serialize(unswizzle_map.at(ptr), data, max_size)) return false;
+                const auto it = unswizzle_map.find(ptr);
+                if (it != unswizzle_map.end()) {
+                    if (!mkxp_sandbox::sandbox_serialize(true, data, max_size)) return false;
+                    if (!mkxp_sandbox::sandbox_serialize(it->second, data, max_size)) return false;
+                } else {
+                    if (!mkxp_sandbox::sandbox_serialize(false, data, max_size)) return false;
+                }
+            } else {
+                if (!mkxp_sandbox::sandbox_serialize(false, data, max_size)) return false;
             }
 
             return true;
