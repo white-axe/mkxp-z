@@ -1252,7 +1252,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_random_get(wasi_t *wasi, wasm_p
             wasi->prng_state = wasi->prng_state * (uint64_t)6364136223846793005U + (uint64_t)1442695040888963407U; // Advance state before computing output to improve instruction-level parallelism
             uint32_t xsh = (state ^ (state >> 18U)) >> 27U;
             uint32_t rot = state >> 59U;
-            uint32_t out = xsh >> rot | xsh << ((uint32_t)32U - rot);
+            uint32_t out = xsh >> rot | xsh << ((uint32_t)31U - rot);
 #ifdef MKXPZ_BIG_ENDIAN
             // Byte swap the output on big-endian machines to preserve state state compatibility across machines with different endiannesses
             std::reverse_copy((uint8_t *)&out, (uint8_t *)&out + 4, wasi->prng_buffer);
