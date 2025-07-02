@@ -375,7 +375,7 @@ struct TilemapPrivate
 
 		GLMeta::vaoFillInVertexData<SVertex>(tiles.vao);
 		tiles.vao.vbo = tiles.vbo;
-		tiles.vao.ibo = shState->globalIBO().ibo;
+		tiles.vao.ibo = SharedState::globalIBO().ibo;
 
 		GLMeta::vaoInit(tiles.vao);
 

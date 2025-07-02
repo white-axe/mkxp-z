@@ -91,7 +91,7 @@ struct SharedState
 	/* Returns global quad IBO, and ensures it has indices
 	 * for at least minSize quads */
 	void ensureQuadIBO(size_t minSize);
-	GlobalIBO &globalIBO();
+	static GlobalIBO &globalIBO();
 
 	/* Global general purpose texture */
 	void bindTex();
