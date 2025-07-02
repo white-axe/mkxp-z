@@ -223,7 +223,9 @@ namespace mkxp_sandbox {
             std::abort();
         }
         T *dst = (T *)sandbox_ptr(instance, dst_address);
-        std::memcpy(dst, src, num_elements * sizeof(T));
+        if (num_elements > 0) {
+            std::memcpy(dst, src, num_elements * sizeof(T));
+        }
 #endif
     }
 
