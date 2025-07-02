@@ -188,7 +188,9 @@ bool Table::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) 
 	if ((uint32_t)xs * (uint32_t)ys * (uint32_t)zs != this->data.size()) std::abort();
 	if (max_size < this->data.size() * sizeof(int16_t)) return false;
 
-	memcpy(data, this->data.data(), this->data.size() * sizeof(int16_t));
+	if (this->data.size() > 0) {
+		memcpy(data, this->data.data(), this->data.size() * sizeof(int16_t));
+	}
 
 	data = (uint8_t *)data + this->data.size() * sizeof(int16_t);
 	max_size -= this->data.size() * sizeof(int16_t);
@@ -217,7 +219,7 @@ bool Table::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &ma
 					break;
 				}
 			}
-		} else if (memcmp(this->data.data(), this->data.data(), this->data.size() * sizeof(int16_t))) {
+		} else if (this->data.size() > 0 && memcmp(this->data.data(), data, this->data.size() * sizeof(int16_t))) {
 			deserModified = true;
 		}
 	}
@@ -228,7 +230,7 @@ bool Table::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &ma
 			for (size_t i = 0; i < this->data.size(); ++i) {
 				buf[i] = (int16_t)__builtin_bswap16(((const uint16_t *)data)[i]);
 			}
-		} else {
+		} else if (this->data.size() > 0) {
 			memcpy(this->data.data(), data, this->data.size() * sizeof(int16_t));
 		}
 	}

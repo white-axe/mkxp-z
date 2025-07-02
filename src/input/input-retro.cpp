@@ -845,7 +845,7 @@ struct InputPrivate
         }
 
         /* Check if repeating joypad key still pressed */
-        if (joypadState & (1 << repeating))
+        if (repeating < JOYPAD_BUTTON_MAX && joypadState & (1 << repeating))
         {
             ++repeatCount;
             return;
