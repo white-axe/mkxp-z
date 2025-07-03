@@ -1889,9 +1889,9 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
         if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
         sb()->set_asyncify_data(value);
     }
-    if (!sandbox_deserialize(sb()->instance().w2c_mkxp_sandbox_fiber_entry_point, data, max_size)) return false;
-    if (!sandbox_deserialize(sb()->instance().w2c_mkxp_sandbox_fiber_arg0, data, max_size)) return false;
-    if (!sandbox_deserialize(sb()->instance().w2c_mkxp_sandbox_fiber_arg1, data, max_size)) return false;
+    if (!sandbox_deserialize(sb()->instance().w2c_mkxp_sandbox_fiber_entry_point, data, max_size)) DESER_FAIL;
+    if (!sandbox_deserialize(sb()->instance().w2c_mkxp_sandbox_fiber_arg0, data, max_size)) DESER_FAIL;
+    if (!sandbox_deserialize(sb()->instance().w2c_mkxp_sandbox_fiber_arg1, data, max_size)) DESER_FAIL;
     if (!sandbox_deserialize(frame_count, data, max_size)) DESER_FAIL;
     {
         uint64_t value;
