@@ -27,6 +27,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <list>
 #include <memory>
 #include <tuple>
 #include <type_traits>
@@ -332,7 +333,8 @@ namespace mkxp_sandbox {
         wasm_ptr_t stack_ptr;
 
     public:
-        std::unordered_map<key_t, struct fiber, boost::hash<key_t>> fibers;
+        std::list<std::pair<key_t, struct fiber>> fiber_list;
+        std::unordered_map<key_t, decltype(fiber_list)::iterator, boost::hash<key_t>> fiber_map;
 
         binding_base(std::shared_ptr<struct w2c_ruby> m);
         ~binding_base();
@@ -412,11 +414,11 @@ namespace mkxp_sandbox {
                     bind.ref<wasm_ptr_t>(bind.instance().w2c_mkxp_sandbox_fiber_arg0),
                     bind.ref<wasm_ptr_t>(bind.instance().w2c_mkxp_sandbox_fiber_arg1),
                 };
-                const auto it = bind.fibers.find(key);
-                if (it != bind.fibers.end()) {
-                    return it->second;
+                const auto it = bind.fiber_map.find(key);
+                if (it != bind.fiber_map.end()) {
+                    return it->second->second;
                 } else {
-                    return bind.fibers.emplace(key, key).first->second;
+                    return bind.fiber_map.emplace(key, bind.fiber_list.emplace(bind.fiber_list.end(), key, key)).first->second->second;
                 }
             }
 
@@ -540,7 +542,11 @@ namespace mkxp_sandbox {
                 }
 
                 if (fiber->stack.empty()) {
-                    bind->fibers.erase(fiber->key);
+                    const auto map_it = bind->fiber_map.find(fiber->key);
+                    assert(map_it != bind->fiber_map.end());
+                    const auto list_it = map_it->second;
+                    bind->fiber_map.erase(map_it);
+                    bind->fiber_list.erase(list_it);
                 }
             }
 

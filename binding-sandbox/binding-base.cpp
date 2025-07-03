@@ -52,7 +52,7 @@ binding_base::binding_base(std::shared_ptr<struct w2c_ruby> m) : _instance(m) {}
 binding_base::~binding_base() {
     // Destroy all stack frames in order from top to bottom to enforce a portable, compiler-independent ordering of stack frame destruction
     // If we let the compiler use its default destructor, the stack frames may not be deallocated in a particular order, which can lead to hard-to-detect bugs if somehow a bug depends on the order in which the stack frames are deallocated
-    for (auto &it : fibers) {
+    for (auto &it : fiber_list) {
         while (!it.second.stack.empty()) {
             stack_ptr = it.second.stack.back().stack_ptr;
             it.second.stack.pop_back();

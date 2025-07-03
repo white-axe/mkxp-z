@@ -1708,9 +1708,9 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     if (!sandbox_serialize(retro_run_count, data, max_size)) return false;
 
     // Write the number of sandbox fibers
-    if (!sandbox_serialize((wasm_size_t)sb()->fibers.size(), data, max_size)) return false;
+    if (!sandbox_serialize((wasm_size_t)sb()->fiber_map.size(), data, max_size)) return false;
 
-    for (const auto &fiber : sb()->fibers) {
+    for (const auto &fiber : sb()->fiber_list) {
         // Write the key of the fiber
         if (!sandbox_serialize(std::get<0>(fiber.first), data, max_size)) return false;
         if (!sandbox_serialize(std::get<1>(fiber.first), data, max_size)) return false;
@@ -1900,8 +1900,9 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
         wasm_size_t num_fibers;
         if (!sandbox_deserialize(num_fibers, data, max_size)) DESER_FAIL;
 
-        sb()->fibers.clear();
-        sb()->fibers.reserve(num_fibers);
+        sb()->fiber_map.clear();
+        sb()->fiber_list.clear();
+        sb()->fiber_map.reserve(num_fibers);
 
         while (num_fibers > 0) {
             // Read the key of the fiber
@@ -1911,7 +1912,7 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
             if (!sandbox_deserialize(std::get<2>(key), data, max_size)) DESER_FAIL;
 
             // Construct the fiber
-            auto &fiber = sb()->fibers.emplace(key, key).first->second;
+            auto &fiber = sb()->fiber_map.emplace(key, sb()->fiber_list.emplace(sb()->fiber_list.end(), key, key)).first->second->second;
 
             // Read the stack index of the fiber
             if (!sandbox_deserialize(fiber.stack_index, data, max_size)) DESER_FAIL;
