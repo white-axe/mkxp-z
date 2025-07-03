@@ -1010,6 +1010,8 @@ void Sprite::sandbox_deserialize_begin()
 
     p->deserMirrorChanged = false;
 
+    p->deserYChanged = false;
+
     p->deserBushDepthChanged = false;
 }
 
