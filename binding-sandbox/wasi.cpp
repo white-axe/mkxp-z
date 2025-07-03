@@ -479,7 +479,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_filestat_get(wasi_t *wasi, u
                     return WASI_EIO;
                 }
                 wasi->ref<uint64_t>(result) = fd; // dev
-                wasi->ref<uint64_t>(result + 8) = 0; // ino // TODO: generate a pseudorandom inode number
+                wasi->ref<uint64_t>(result + 8) = 0; // ino
                 wasi->ref<uint8_t>(result + 16) = WASI_IFDIR; // filetype
                 wasi->ref<uint32_t>(result + 24) = 1; // nlink
                 wasi->ref<uint64_t>(result + 32) = stat.filesize; // size
@@ -499,7 +499,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_filestat_get(wasi_t *wasi, u
                     return WASI_EIO;
                 }
                 wasi->ref<uint64_t>(result) = fd; // dev
-                wasi->ref<uint64_t>(result + 8) = 0; // ino // TODO: generate a pseudorandom inode number
+                wasi->ref<uint64_t>(result + 8) = 0; // ino
                 wasi->ref<uint8_t>(result + 16) = WASI_IFREG; // filetype
                 wasi->ref<uint32_t>(result + 24) = 1; // nlink
                 wasi->ref<uint64_t>(result + 32) = stat.filesize; // size
@@ -694,19 +694,46 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, uint32
                         if (edata->buf - edata->original_buf + 8 > edata->buf_len) {
                             return PHYSFS_ENUM_STOP;
                         }
-                        wasi->ref<uint64_t>(edata->buf) = edata->cookie;
+                        std::memcpy(
+#ifdef MKXPZ_BIG_ENDIAN
+                            wasi->ptr(edata->buf + 8),
+#else
+                            wasi->ptr(edata->buf),
+#endif // MKXPZ_BIG_ENDIAN
+                            &edata->cookie,
+                            8
+                        );
                         edata->buf += 8;
 
                         if (edata->buf - edata->original_buf + 8 > edata->buf_len) {
                             return PHYSFS_ENUM_STOP;
                         }
-                        wasi->ref<uint64_t>(edata->buf) = 0; // TODO: generate a pseudorandom inode number
+                        std::memset(
+#ifdef MKXPZ_BIG_ENDIAN
+                            wasi->ptr(edata->buf + 8),
+#else
+                            wasi->ptr(edata->buf),
+#endif // MKXPZ_BIG_ENDIAN
+                            0,
+                            8
+                        );
                         edata->buf += 8;
 
                         if (edata->buf - edata->original_buf + 4 > edata->buf_len) {
                             return PHYSFS_ENUM_STOP;
                         }
-                        wasi->ref<uint32_t>(edata->buf) = std::strlen(filename);
+                        {
+                            const uint32_t value = std::strlen(filename);
+                            std::memcpy(
+#ifdef MKXPZ_BIG_ENDIAN
+                                wasi->ptr(edata->buf + 8),
+#else
+                                wasi->ptr(edata->buf),
+#endif // MKXPZ_BIG_ENDIAN
+                                &value,
+                                4
+                            );
+                        }
                         edata->buf += 4;
 
                         if (edata->buf - edata->original_buf + 4 > edata->buf_len) {
@@ -948,7 +975,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_filestat_get(wasi_t *wasi,
                 }
 
                 wasi->ref<uint64_t>(result) = fd; // dev
-                wasi->ref<uint64_t>(result + 8) = 0; // ino // TODO: generate a pseudorandom inode number
+                wasi->ref<uint64_t>(result + 8) = 0; // ino
                 wasi->ref<uint8_t>(result + 16) = stat.filetype == PHYSFS_FILETYPE_DIRECTORY ? WASI_IFDIR : WASI_IFREG; // filetype
                 wasi->ref<uint32_t>(result + 24) = 1; // nlink
                 wasi->ref<uint64_t>(result + 32) = stat.filetype; // size

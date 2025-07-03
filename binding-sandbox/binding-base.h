@@ -24,6 +24,8 @@
 
 #include <cassert>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <tuple>
@@ -153,8 +155,18 @@ namespace mkxp_sandbox {
     // Gets a reference to the value stored at a given address in sandbox memory.
     template <typename T> T &sandbox_ref(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {
         static_assert(std::is_arithmetic<T>::value, "can only get references to numeric values in the sandbox");
+        if (address % sizeof(T) != 0) {
+#ifdef MKXPZ_RETRO_MEMORY64
+            std::fprintf(stderr, "unaligned memory access of size %u at address 0x%016llx in `mkxp_sandbox::sandbox_ref()`\n", (unsigned int)sizeof(T), (unsigned long long)address);
+#else
+            std::fprintf(stderr, "unaligned memory access of size %u at address 0x%08llx in `mkxp_sandbox::sandbox_ref()`\n", (unsigned int)sizeof(T), (unsigned long long)address);
+#endif // MKXPZ_RETRO_MEMORY64
+            std::fflush(stderr);
+            std::abort();
+        }
+        assert(address % sizeof(T) == 0);
 #ifdef MKXPZ_BIG_ENDIAN
-        return *(T *)((uint8_t *)sandbox_ptr(instance, address) - sizeof(T));
+        return *(T *)sandbox_ptr(instance, address + sizeof(T));
 #else
         return *(T *)sandbox_ptr(instance, address);
 #endif // MKXPZ_BIG_ENDIAN

@@ -178,64 +178,63 @@ bool sandbox_swizzle_info::get_exists() const {
 
 template <> bool mkxp_sandbox::sandbox_serialize(bool value, void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(uint8_t));
-    *(uint8_t *)data = value;
+    std::memcpy(data, &value, sizeof(uint8_t));
     ADVANCE(sizeof(uint8_t));
     return true;
 }
 
 template <> bool mkxp_sandbox::sandbox_deserialize(bool &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(uint8_t));
-    value = *(uint8_t *)data;
+    std::memcpy(&value, data, sizeof(uint8_t));
     ADVANCE(sizeof(uint8_t));
     return true;
 }
 
 template <> bool mkxp_sandbox::sandbox_serialize(int8_t value, void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(int8_t));
-    *(int8_t *)data = value;
+    std::memcpy(data, &value, sizeof(int8_t));
     ADVANCE(sizeof(int8_t));
     return true;
 }
 
 template <> bool mkxp_sandbox::sandbox_deserialize(int8_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(int8_t));
-    value = *(int8_t *)data;
+    std::memcpy(&value, data, sizeof(int8_t));
     ADVANCE(sizeof(int8_t));
     return true;
 }
 
 template <> bool mkxp_sandbox::sandbox_serialize(uint8_t value, void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(uint8_t));
-    *(uint8_t *)data = value;
+    std::memcpy(data, &value, sizeof(uint8_t));
     ADVANCE(sizeof(uint8_t));
     return true;
 }
 
 template <> bool mkxp_sandbox::sandbox_deserialize(uint8_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(uint8_t));
-    value = *(uint8_t *)data;
+    std::memcpy(&value, data, sizeof(uint8_t));
     ADVANCE(sizeof(uint8_t));
     return true;
 }
 
 template <> bool mkxp_sandbox::sandbox_serialize(int16_t value, void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(int16_t));
-    *(int16_t *)data = value;
+    std::memcpy(data, &value, sizeof(int16_t));
     ADVANCE(sizeof(int16_t));
     return true;
 }
 
 template <> bool mkxp_sandbox::sandbox_deserialize(int16_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(int16_t));
+    std::memcpy(&value, data, sizeof(int16_t));
     if (deser_swap_bytes) {
 #ifdef _MSC_VER
         static_assert(sizeof(unsigned short) == sizeof(int16_t), "unsigned short should be 16 bits");
-        value = (int16_t)_byteswap_ushort(*(unsigned short *)data);
+        value = (int16_t)_byteswap_ushort((unsigned short)value);
 #else
-        value = (int16_t)__builtin_bswap16(*(uint16_t *)data);
+        value = (int16_t)__builtin_bswap16((uint16_t)value);
 #endif // _MSC_VER
-    } else {
-        value = *(int16_t *)data;
     }
     ADVANCE(sizeof(int16_t));
     return true;
@@ -243,22 +242,21 @@ template <> bool mkxp_sandbox::sandbox_deserialize(int16_t &value, const void *&
 
 template <> bool mkxp_sandbox::sandbox_serialize(uint16_t value, void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(uint16_t));
-    *(uint16_t *)data = value;
+    std::memcpy(data, &value, sizeof(uint16_t));
     ADVANCE(sizeof(uint16_t));
     return true;
 }
 
 template <> bool mkxp_sandbox::sandbox_deserialize(uint16_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(uint16_t));
+    std::memcpy(&value, data, sizeof(uint16_t));
     if (deser_swap_bytes) {
 #ifdef _MSC_VER
         static_assert(sizeof(unsigned short) == sizeof(uint16_t), "unsigned short should be 16 bits");
-        value = (uint16_t)_byteswap_ushort(*(unsigned short *)data);
+        value = (uint16_t)_byteswap_ushort((unsigned short)value);
 #else
-        value = __builtin_bswap16(*(uint16_t *)data);
+        value = __builtin_bswap16(value);
 #endif // _MSC_VER
-    } else {
-        value = *(uint16_t *)data;
     }
     ADVANCE(sizeof(uint16_t));
     return true;
@@ -266,22 +264,21 @@ template <> bool mkxp_sandbox::sandbox_deserialize(uint16_t &value, const void *
 
 template <> bool mkxp_sandbox::sandbox_serialize(int32_t value, void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(int32_t));
-    *(int32_t *)data = value;
+    std::memcpy(data, &value, sizeof(int32_t));
     ADVANCE(sizeof(int32_t));
     return true;
 }
 
 template <> bool mkxp_sandbox::sandbox_deserialize(int32_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(int32_t));
+    std::memcpy(&value, data, sizeof(int32_t));
     if (deser_swap_bytes) {
 #ifdef _MSC_VER
         static_assert(sizeof(unsigned long) == sizeof(int32_t), "unsigned long should be 32 bits");
-        value = (int32_t)_byteswap_ulong(*(unsigned long *)data);
+        value = (int32_t)_byteswap_ulong((unsigned long)value);
 #else
-        value = (int32_t)__builtin_bswap32(*(uint32_t *)data);
+        value = (int32_t)__builtin_bswap32((uint32_t)value);
 #endif // _MSC_VER
-    } else {
-        value = *(int32_t *)data;
     }
     ADVANCE(sizeof(int32_t));
     return true;
@@ -289,22 +286,21 @@ template <> bool mkxp_sandbox::sandbox_deserialize(int32_t &value, const void *&
 
 template <> bool mkxp_sandbox::sandbox_serialize(uint32_t value, void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(uint32_t));
-    *(uint32_t *)data = value;
+    std::memcpy(data, &value, sizeof(uint32_t));
     ADVANCE(sizeof(uint32_t));
     return true;
 }
 
 template <> bool mkxp_sandbox::sandbox_deserialize(uint32_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(uint32_t));
+    std::memcpy(&value, data, sizeof(uint32_t));
     if (deser_swap_bytes) {
 #ifdef _MSC_VER
         static_assert(sizeof(unsigned long) == sizeof(uint32_t), "unsigned long should be 32 bits");
-        value = (uint32_t)_byteswap_ulong(*(unsigned long *)data);
+        value = (uint32_t)_byteswap_ulong((unsigned long)value);
 #else
-        value = __builtin_bswap32(*(uint32_t *)data);
+        value = __builtin_bswap32(value);
 #endif // _MSC_VER
-    } else {
-        value = *(uint32_t *)data;
     }
     ADVANCE(sizeof(uint32_t));
     return true;
@@ -312,21 +308,20 @@ template <> bool mkxp_sandbox::sandbox_deserialize(uint32_t &value, const void *
 
 template <> bool mkxp_sandbox::sandbox_serialize(int64_t value, void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(int64_t));
-    *(int64_t *)data = value;
+    std::memcpy(data, &value, sizeof(int64_t));
     ADVANCE(sizeof(int64_t));
     return true;
 }
 
 template <> bool mkxp_sandbox::sandbox_deserialize(int64_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(int64_t));
+    std::memcpy(&value, data, sizeof(int64_t));
     if (deser_swap_bytes) {
 #ifdef _MSC_VER
-        value = (int64_t)_byteswap_uint64(*(unsigned __int64 *)data);
+        value = (int64_t)_byteswap_uint64((unsigned __int64)value);
 #else
-        value = (int64_t)__builtin_bswap64(*(uint64_t *)data);
+        value = (int64_t)__builtin_bswap64((uint64_t)value);
 #endif // _MSC_VER
-    } else {
-        value = *(int64_t *)data;
     }
     ADVANCE(sizeof(int64_t));
     return true;
@@ -334,21 +329,20 @@ template <> bool mkxp_sandbox::sandbox_deserialize(int64_t &value, const void *&
 
 template <> bool mkxp_sandbox::sandbox_serialize(uint64_t value, void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(uint64_t));
-    *(uint64_t *)data = value;
+    std::memcpy(data, &value, sizeof(uint64_t));
     ADVANCE(sizeof(uint64_t));
     return true;
 }
 
 template <> bool mkxp_sandbox::sandbox_deserialize(uint64_t &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(uint64_t));
+    std::memcpy(&value, data, sizeof(uint64_t));
     if (deser_swap_bytes) {
 #ifdef _MSC_VER
-        value = (uint64_t)_byteswap_uint64(*(unsigned __int64 *)data);
+        value = (uint64_t)_byteswap_uint64((unsigned __int64)value);
 #else
-        value = __builtin_bswap64(*(uint64_t *)data);
+        value = __builtin_bswap64(value);
 #endif // _MSC_VER
-    } else {
-        value = *(uint64_t *)data;
     }
     ADVANCE(sizeof(uint64_t));
     return true;
@@ -356,7 +350,7 @@ template <> bool mkxp_sandbox::sandbox_deserialize(uint64_t &value, const void *
 
 template <> bool mkxp_sandbox::sandbox_serialize(float value, void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(float));
-    *(float *)data = value;
+    std::memcpy(data, &value, sizeof(float));
     ADVANCE(sizeof(float));
     return true;
 }
@@ -364,15 +358,17 @@ template <> bool mkxp_sandbox::sandbox_serialize(float value, void *&data, wasm_
 template <> bool mkxp_sandbox::sandbox_deserialize(float &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(float));
     if (deser_swap_bytes) {
+        uint32_t tmp;
+        std::memcpy(&tmp, data, sizeof(float));
 #ifdef _MSC_VER
         static_assert(sizeof(unsigned long) == sizeof(float), "unsigned long should be 32 bits");
-        uint32_t tmp = (uint32_t)_byteswap_ulong(*(unsigned long *)data);
+        tmp = (uint32_t)_byteswap_ulong((unsigned long)tmp);
 #else
-        uint32_t tmp = __builtin_bswap32(*(uint32_t *)data);
+        tmp = __builtin_bswap32(tmp);
 #endif // _MSC_VER
-        std::memcpy(&value, &tmp, 4);
+        std::memcpy(&value, &tmp, sizeof(float));
     } else {
-        value = *(float *)data;
+        std::memcpy(&value, data, sizeof(float));
     }
     ADVANCE(sizeof(float));
     return true;
@@ -380,7 +376,7 @@ template <> bool mkxp_sandbox::sandbox_deserialize(float &value, const void *&da
 
 template <> bool mkxp_sandbox::sandbox_serialize(double value, void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(double));
-    *(double *)data = value;
+    std::memcpy(data, &value, sizeof(double));
     ADVANCE(sizeof(double));
     return true;
 }
@@ -388,14 +384,16 @@ template <> bool mkxp_sandbox::sandbox_serialize(double value, void *&data, wasm
 template <> bool mkxp_sandbox::sandbox_deserialize(double &value, const void *&data, wasm_size_t &max_size) {
     RESERVE(sizeof(double));
     if (deser_swap_bytes) {
+        uint64_t tmp;
+        std::memcpy(&tmp, data, sizeof(double));
 #ifdef _MSC_VER
-        uint64_t tmp = (uint64_t)_byteswap_uint64(*(unsigned __int64 *)data);
+        tmp = (uint64_t)_byteswap_uint64((unsigned __int64)tmp);
 #else
-        uint64_t tmp = __builtin_bswap64(*(uint64_t *)data);
+        tmp = __builtin_bswap64(tmp);
 #endif // _MSC_VER
-        std::memcpy(&value, &tmp, 8);
+        std::memcpy(&value, &tmp, sizeof(double));
     } else {
-        value = *(double *)data;
+        std::memcpy(&value, data, sizeof(double));
     }
     ADVANCE(sizeof(double));
     return true;
