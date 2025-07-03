@@ -299,9 +299,8 @@ namespace mkxp_sandbox {
             inline const std::vector<struct stack_frame> &get_stack() const noexcept {
                 return stack;
             }
-        private:
-            key_t key;
         public:
+            const key_t key;
             wasm_size_t stack_index;
             std::vector<struct deser_stack_frame> deser_stack;
         private:
@@ -331,7 +330,7 @@ namespace mkxp_sandbox {
         wasm_ptr_t stack_ptr;
 
     public:
-        std::list<std::pair<key_t, struct fiber>> fiber_list;
+        std::list<struct fiber> fiber_list;
         std::unordered_map<key_t, decltype(fiber_list)::iterator, boost::hash<key_t>> fiber_map;
 
         binding_base(std::shared_ptr<struct w2c_ruby> m);
@@ -414,9 +413,9 @@ namespace mkxp_sandbox {
                 };
                 const auto it = bind.fiber_map.find(key);
                 if (it != bind.fiber_map.end()) {
-                    return it->second->second;
+                    return *it->second;
                 } else {
-                    return bind.fiber_map.emplace(key, bind.fiber_list.emplace(bind.fiber_list.end(), key, key)).first->second->second;
+                    return *bind.fiber_map.emplace(key, bind.fiber_list.emplace(bind.fiber_list.end(), key)).first->second;
                 }
             }
 
