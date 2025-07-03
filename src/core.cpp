@@ -1708,7 +1708,7 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     if (!sandbox_serialize(retro_run_count, data, max_size)) return false;
 
     // Write the number of sandbox fibers
-    if (!sandbox_serialize((wasm_size_t)sb()->fiber_map.size(), data, max_size)) return false;
+    if (!sandbox_serialize((wasm_size_t)sb()->fiber_list.size(), data, max_size)) return false;
 
     for (const auto &fiber : sb()->fiber_list) {
         // Write the key of the fiber
@@ -1720,12 +1720,18 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         if (!sandbox_serialize(fiber.second.stack_index, data, max_size)) return false;
 
         // Write the number of frames in the fiber
-        if (!sandbox_serialize((wasm_size_t)fiber.second.get_stack().size(), data, max_size)) return false;
+        if (!sandbox_serialize((wasm_size_t)fiber.second.get_stack().size() + (wasm_size_t)fiber.second.deser_stack.size(), data, max_size)) return false;
 
         // Write the stack pointer and state of each frame
         for (const auto &frame : fiber.second.get_stack()) {
             if (!sandbox_serialize(frame.get_stack_pointer(), data, max_size)) return false;
             if (!sandbox_serialize((int32_t)frame, data, max_size)) return false;
+        }
+        if (fiber.second.deser_stack.size() > fiber.second.get_stack().size()) {
+            for (auto it = fiber.second.deser_stack.begin() + fiber.second.get_stack().size(); it != fiber.second.deser_stack.end(); ++it) {
+                if (!sandbox_serialize(it->stack_ptr, data, max_size)) return false;
+                if (!sandbox_serialize(it->state, data, max_size)) return false;
+            }
         }
     }
 

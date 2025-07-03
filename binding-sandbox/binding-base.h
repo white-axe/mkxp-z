@@ -262,11 +262,9 @@ namespace mkxp_sandbox {
         typedef std::tuple<wasm_ptr_t, wasm_ptr_t, wasm_ptr_t> key_t;
 
         struct deser_stack_frame {
-            friend struct binding_base;
             deser_stack_frame(wasm_ptr_t stack_ptr, int32_t state);
-        private:
-            wasm_ptr_t stack_ptr;
-            int32_t state;
+            const wasm_ptr_t stack_ptr;
+            const int32_t state;
         };
 
         struct stack_frame {
