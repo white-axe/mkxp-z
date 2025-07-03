@@ -1720,7 +1720,7 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         if (!sandbox_serialize(fiber.second.stack_index, data, max_size)) return false;
 
         // Write the number of frames in the fiber
-        if (!sandbox_serialize((wasm_size_t)fiber.second.get_stack().size() + (wasm_size_t)fiber.second.deser_stack.size(), data, max_size)) return false;
+        if (!sandbox_serialize(std::max((wasm_size_t)fiber.second.get_stack().size(), (wasm_size_t)fiber.second.deser_stack.size()), data, max_size)) return false;
 
         // Write the stack pointer and state of each frame
         for (const auto &frame : fiber.second.get_stack()) {
