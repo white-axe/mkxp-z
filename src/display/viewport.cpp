@@ -50,6 +50,7 @@ struct ViewportPrivate
 	sigslot::connection rectCon;
 #ifdef MKXPZ_RETRO
 	Rect deserSavedRect;
+	bool deserGeometryChanged;
 	bool deserScreenRectChanged;
 #endif // MKXPZ_RETRO
 
@@ -249,6 +250,7 @@ void Viewport::releaseResources()
 #ifdef MKXPZ_RETRO
 bool Viewport::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
+	if (!mkxp_sandbox::sandbox_serialize(geometry.orig, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->screenRect, data, max_size)) return false;
 
 	if (!sandbox_serialize_scene_element(data, max_size)) return false;
@@ -262,6 +264,14 @@ bool Viewport::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_siz
 
 bool Viewport::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
+	{
+		Vec2i value = geometry.orig;
+		if (!mkxp_sandbox::sandbox_deserialize(geometry.orig, data, max_size)) return false;
+		if (geometry.orig != value) {
+			p->deserGeometryChanged = true;
+		}
+	}
+
 	{
 		IntRect value = p->screenRect;
 		if (!mkxp_sandbox::sandbox_deserialize(p->screenRect, data, max_size)) return false;
@@ -301,6 +311,8 @@ void Viewport::sandbox_deserialize_begin()
 		p->deserSavedRect.set(0, 0, 0, 0);
 	}
 
+	p->deserGeometryChanged = false;
+
 	p->deserScreenRectChanged = false;
 }
 
@@ -313,8 +325,15 @@ void Viewport::sandbox_deserialize_end()
 	if (p->rect != nullptr) {
 		p->rectCon = p->rect->valueChanged.connect(&ViewportPrivate::onRectChange, p);
 		if (*p->rect != p->deserSavedRect) {
-			p->onRectChange();
+			geometry.rect.setSize(p->rect->toIntRect().size());
+			p->deserGeometryChanged = true;
+			p->deserScreenRectChanged = true;
 		}
+	}
+
+	if (isDisposed()) return;
+	if (p->deserGeometryChanged) {
+		notifyGeometryChange();
 	}
 
 	if (isDisposed()) return;
