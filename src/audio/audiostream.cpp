@@ -46,8 +46,8 @@ AudioStream::AudioStream(ALStream::LoopMode loopMode,
 		volumes[i] = 1.0f;
 
 #ifdef MKXPZ_RETRO
-	fade.enabled = false;
-	fadeIn.enabled = false;
+	fade.enabled.clear();
+	fadeIn.enabled.clear();
 #else
 	fade.thread = 0;
 	fade.threadName = std::string("audio_fadeout (") + threadId + ")";
@@ -211,7 +211,7 @@ void AudioStream::fadeOut(int duration)
 		fade.reqTerm.clear();
 		fade.reqFini.set();
 		fadeOutProc();
-		fade.enabled = false;
+		fade.enabled.clear();
 #else
 		fade.reqFini.set();
 		SDL_WaitThread(fade.thread, 0);
@@ -230,7 +230,7 @@ void AudioStream::fadeOut(int duration)
 #endif // MKXPZ_RETRO
 
 #ifdef MKXPZ_RETRO
-	fade.enabled = true;
+	fade.enabled.set();
 #else
 	fade.thread = createSDLThread
 		<AudioStream, &AudioStream::fadeOutThread>(this, fade.threadName);
@@ -285,7 +285,7 @@ void AudioStream::finiFadeOutInt()
 		fade.reqTerm.clear();
 		fade.reqFini.set();
 		fadeOutProc();
-		fade.enabled = false;
+		fade.enabled.clear();
 #else
 		fade.reqFini.set();
 		SDL_WaitThread(fade.thread, 0);
@@ -307,7 +307,7 @@ void AudioStream::finiFadeOutInt()
 		fadeIn.rqTerm.clear();
 		fadeIn.rqFini.set();
 		fadeInProc();
-		fadeIn.enabled = false;
+		fadeIn.enabled.clear();
 #else
 		fadeIn.rqFini.set();
 		SDL_WaitThread(fadeIn.thread, 0);
@@ -334,7 +334,7 @@ void AudioStream::startFadeIn()
 #endif // MKXPZ_RETRO
 
 #ifdef MKXPZ_RETRO
-	fadeIn.enabled = true;
+	fadeIn.enabled.set();
 #else
 	fadeIn.thread = createSDLThread
 		<AudioStream, &AudioStream::fadeInThread>(this, fadeIn.threadName);
@@ -429,10 +429,10 @@ bool AudioStream::fadeInProc()
 void AudioStream::render()
 {
 	if (fade.enabled && !fadeOutProc())
-		fade.enabled = false;
+		fade.enabled.clear();
 
 	if (fadeIn.enabled && !fadeInProc())
-		fadeIn.enabled = false;
+		fadeIn.enabled.clear();
 
 	stream.render();
 }
@@ -442,6 +442,23 @@ bool AudioStream::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_
 	AudioMutexGuard guard(mutex);
 
 	ALStream::State state = stream.queryState();
+
+	{
+		bool enabled = fade.enabled;
+		if (!mkxp_sandbox::sandbox_serialize(enabled, data, max_size)) return false;
+		if (enabled) {
+			if (!mkxp_sandbox::sandbox_serialize(fade.startTicks, data, max_size)) return false;
+			if (!mkxp_sandbox::sandbox_serialize(fade.msStep, data, max_size)) return false;
+		}
+	}
+
+	{
+		bool enabled = fadeIn.enabled;
+		if (!mkxp_sandbox::sandbox_serialize(enabled, data, max_size)) return false;
+		if (enabled) {
+			if (!mkxp_sandbox::sandbox_serialize(fadeIn.startTicks, data, max_size)) return false;
+		}
+	}
 
 	if (!mkxp_sandbox::sandbox_serialize(current.filename, data, max_size)) return false;
 
@@ -459,6 +476,59 @@ bool AudioStream::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_
 
 bool AudioStream::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
+	{
+		bool enabled;
+		if (!mkxp_sandbox::sandbox_deserialize(enabled, data, max_size)) return false;
+		if (enabled) {
+			if (fade.enabled) {
+				AudioMutexGuard guard(fade.mutex);
+				if (!mkxp_sandbox::sandbox_deserialize(fade.startTicks, data, max_size)) return false;
+				if (!mkxp_sandbox::sandbox_deserialize(fade.msStep, data, max_size)) return false;
+			} else {
+				if (!mkxp_sandbox::sandbox_deserialize(fade.startTicks, data, max_size)) return false;
+				if (!mkxp_sandbox::sandbox_deserialize(fade.msStep, data, max_size)) return false;
+				fade.active.set();
+				fade.reqFini.clear();
+				fade.reqTerm.clear();
+				fade.enabled.set();
+			}
+		} else if (fade.enabled) {
+			fade.reqTerm.set();
+			{
+				AudioMutexGuard guard(fade.mutex);
+			}
+			fade.reqTerm.clear();
+			fade.reqFini.set();
+			fadeOutProc();
+			fade.enabled.clear();
+		}
+	}
+
+	{
+		bool enabled;
+		if (!mkxp_sandbox::sandbox_deserialize(enabled, data, max_size)) return false;
+		if (enabled) {
+			if (fadeIn.enabled) {
+				AudioMutexGuard guard(fadeIn.mutex);
+				if (!mkxp_sandbox::sandbox_deserialize(fadeIn.startTicks, data, max_size)) return false;
+			} else {
+				if (!mkxp_sandbox::sandbox_deserialize(fadeIn.startTicks, data, max_size)) return false;
+				fadeIn.rqFini.clear();
+				fadeIn.rqTerm.clear();
+				fadeIn.enabled.set();
+			}
+		} else if (fadeIn.enabled) {
+			fadeIn.rqTerm.set();
+			{
+				AudioMutexGuard guard(fadeIn.mutex);
+			}
+			fadeIn.rqTerm.clear();
+			fadeIn.rqFini.set();
+			fadeOutProc();
+			fadeIn.enabled.clear();
+		}
+	}
+
 	AudioMutexGuard guard(mutex);
 
 	{

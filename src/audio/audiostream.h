@@ -105,7 +105,7 @@ struct AudioStream
 
 #ifdef MKXPZ_RETRO
 		AudioMutex mutex;
-		bool enabled;
+		AtomicFlag enabled;
 #else
 		SDL_Thread *thread;
 		std::string threadName;
@@ -127,7 +127,7 @@ struct AudioStream
 
 #ifdef MKXPZ_RETRO
 		AudioMutex mutex;
-		bool enabled;
+		AtomicFlag enabled;
 #else
 		SDL_Thread *thread;
 		std::string threadName;
