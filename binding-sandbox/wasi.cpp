@@ -889,6 +889,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_write(wasi_t *wasi, uint32_t
                     if (length > 0) {
 #ifdef MKXPZ_BIG_ENDIAN
                         uint8_t *buffer = &wasi->ref<uint8_t>(ptr, length - 1);
+                        std::reverse(buffer, buffer + length);
 #else
                         uint8_t *buffer = &wasi->ref<uint8_t>(ptr);
 #endif // MKXPZ_BIG_ENDIAN
