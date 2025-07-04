@@ -325,7 +325,7 @@ void Viewport::sandbox_deserialize_end()
 	if (p->rect != nullptr) {
 		p->rectCon = p->rect->valueChanged.connect(&ViewportPrivate::onRectChange, p);
 		if (*p->rect != p->deserSavedRect) {
-			geometry.rect.setSize(p->rect->toIntRect().size());
+			geometry.rect = p->rect->toIntRect();
 			p->deserGeometryChanged = true;
 			p->deserScreenRectChanged = true;
 		}
