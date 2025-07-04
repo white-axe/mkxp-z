@@ -151,11 +151,31 @@ namespace mkxp_sandbox {
     };
 
     // Gets a pointer to the given address in sandbox memory.
-    void *sandbox_ptr(struct w2c_ruby &instance, wasm_ptr_t address) noexcept;
+    // Unlike `sandbox_ref`, the address does not need to be aligned.
+    template <typename T> void *sandbox_ptr_unaligned(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {
+        static_assert(std::is_arithmetic<T>::value, "can only get references to numeric values in the sandbox");
+        if (address + (wasm_ptr_t)sizeof(T) < address || address + (wasm_ptr_t)sizeof(T) > instance.w2c_memory.size) {
+            std::abort();
+        }
+#ifdef MKXPZ_BIG_ENDIAN
+        return instance.w2c_memory.data + instance.w2c_memory.size - address - sizeof(T);
+#else
+        return instance.w2c_memory.data + address;
+#endif // MKXPZ_BIG_ENDIAN
+    }
+
+    // Gets a pointer to the given index in the array at a given address in sandbox memory.
+    // Unlike `sandbox_ref`, the address does not need to be aligned.
+    template <typename T> void *sandbox_ptr_unaligned(struct w2c_ruby &instance, wasm_ptr_t array_address, wasm_size_t array_index) noexcept {
+        if (array_address + array_index < array_address) {
+            std::abort();
+        }
+        return sandbox_ptr_unaligned<T>(instance, array_address + array_index * sizeof(T));
+    }
 
     // Gets a reference to the value stored at a given address in sandbox memory.
+    // Make sure the address is aligned, or this function will abort.
     template <typename T> T &sandbox_ref(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {
-        static_assert(std::is_arithmetic<T>::value, "can only get references to numeric values in the sandbox");
         if (address % sizeof(T) != 0) {
 #ifdef MKXPZ_RETRO_MEMORY64
             std::fprintf(stderr, "unaligned memory access of size %u at address 0x%016llx in `mkxp_sandbox::sandbox_ref()`\n", (unsigned int)sizeof(T), (unsigned long long)address);
@@ -165,16 +185,14 @@ namespace mkxp_sandbox {
             std::fflush(stderr);
             std::abort();
         }
-        assert(address % sizeof(T) == 0);
-#ifdef MKXPZ_BIG_ENDIAN
-        return *(T *)sandbox_ptr(instance, address + sizeof(T));
-#else
-        return *(T *)sandbox_ptr(instance, address);
-#endif // MKXPZ_BIG_ENDIAN
+        return *(T *)sandbox_ptr_unaligned<T>(instance, address);
     }
 
     // Gets a reference to the value stored at the given index in the array at a given address in sandbox memory.
     template <typename T> T &sandbox_ref(struct w2c_ruby &instance, wasm_ptr_t array_address, wasm_size_t array_index) noexcept {
+        if (array_address + array_index < array_address) {
+            std::abort();
+        }
         return sandbox_ref<T>(array_address + array_index * sizeof(T));
     }
 
@@ -218,26 +236,20 @@ namespace mkxp_sandbox {
     void sandbox_strcpy(struct w2c_ruby &instance, wasm_ptr_t dst_address, const char *src) noexcept;
 
     // Copies a string into a sandbox memory address.
-    void sandbox_strncpy(struct w2c_ruby &instance, wasm_ptr_t dst_address, const char *src, wasm_size_t max_size) noexcept;
+    void sandbox_strncpy_s(struct w2c_ruby &instance, wasm_ptr_t dst_address, const char *src, wasm_size_t max_size) noexcept;
 
     // Copies an array of length `num_elements` into a sandbox memory address.
     template <typename T> void sandbox_arycpy(struct w2c_ruby &instance, wasm_ptr_t dst_address, const T *src, wasm_size_t num_elements) noexcept {
-#ifdef MKXPZ_BIG_ENDIAN
-        T *dst = (T *)sandbox_ptr(instance, dst_address);
-        while (num_elements > 0) {
-            if ((uint8_t *)dst - instance.w2c_memory.data < sizeof(T)) {
-                std::abort();
-            }
-            *--dst = *src++;
-            --num_elements;
-        }
-#else
-        if (instance.w2c_memory.size - dst_address < num_elements * sizeof(T)) {
+        if (dst_address >= instance.w2c_memory.size || instance.w2c_memory.size - dst_address < num_elements * sizeof(T)) {
             std::abort();
         }
-        T *dst = (T *)sandbox_ptr(instance, dst_address);
+#ifdef MKXPZ_BIG_ENDIAN
+        for (wasm_size_t i = 0; i < num_elements; ++i) {
+            std::memcpy(sandbox_ptr_unaligned<T>(instance, dst_address, i), src + i, sizeof(T));
+        }
+#else
         if (num_elements > 0) {
-            std::memcpy(dst, src, num_elements * sizeof(T));
+            std::memcpy(sandbox_ptr_unaligned<T>(instance, dst_address), src, num_elements * sizeof(T));
         }
 #endif
     }
@@ -351,14 +363,25 @@ namespace mkxp_sandbox {
         void copy_memory_from(const void *ptr, wasm_size_t size, wasm_size_t capacity, bool swap_bytes) noexcept;
 
         // Gets a pointer to the given address in sandbox memory.
-        void *ptr(wasm_ptr_t address) const noexcept;
+        // Unlike `sandbox_ref`, the address does not need to be aligned.
+        template <typename T> void *ptr_unaligned(wasm_ptr_t address) const noexcept {
+            return sandbox_ptr_unaligned<T>(instance(), address);
+        }
+
+        // Gets a pointer to the given index in the array at a given address in sandbox memory.
+        // Unlike `sandbox_ref`, the address does not need to be aligned.
+        template <typename T> void *ptr_unaligned(wasm_ptr_t array_address, wasm_size_t array_index) const noexcept {
+            return sandbox_ptr_unaligned<T>(instance(), array_address, array_index);
+        }
 
         // Gets a reference to the value stored at a given address in sandbox memory.
+        // Make sure the address is aligned, or this function will abort.
         template <typename T> T &ref(wasm_ptr_t address) const noexcept {
             return sandbox_ref<T>(instance(), address);
         }
 
         // Gets a reference to the value stored at the given index in the array at a given address in sandbox memory.
+        // Make sure the address is aligned, or this function will abort.
         template <typename T> T &ref(wasm_ptr_t array_address, wasm_size_t array_index) const noexcept {
             return ref<T>(array_address + array_index * sizeof(T));
         }
@@ -373,7 +396,7 @@ namespace mkxp_sandbox {
         void strcpy(wasm_ptr_t dst_address, const char *src) const noexcept;
 
         // Copies a string into a sandbox memory address.
-        void strncpy(wasm_ptr_t dst_address, const char *src, wasm_size_t max_size) const noexcept;
+        void strncpy_s(wasm_ptr_t dst_address, const char *src, wasm_size_t max_size) const noexcept;
 
         // Copies an array of length `num_elements` into a sandbox memory address.
         template <typename T> void arycpy(wasm_ptr_t dst_address, const T *src, wasm_size_t num_elements) const noexcept {

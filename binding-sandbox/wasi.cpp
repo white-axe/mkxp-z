@@ -138,10 +138,6 @@ void wasi_t::deallocate_file_descriptor(uint32_t fd) {
     }
 }
 
-void *wasi_t::ptr(wasm_ptr_t address) const noexcept {
-    return sandbox_ptr(*ruby, address);
-}
-
 wasm_size_t wasi_t::strlen(wasm_ptr_t address) const noexcept {
     return sandbox_strlen(*ruby, address);
 }
@@ -150,8 +146,8 @@ void wasi_t::strcpy(wasm_ptr_t dst_address, const char *src) const noexcept {
     sandbox_strcpy(*ruby, dst_address, src);
 }
 
-void wasi_t::strncpy(wasm_ptr_t dst_address, const char *src, wasm_size_t max_size) const noexcept {
-    sandbox_strncpy(*ruby, dst_address, src, max_size);
+void wasi_t::strncpy_s(wasm_ptr_t dst_address, const char *src, wasm_size_t max_size) const noexcept {
+    sandbox_strncpy_s(*ruby, dst_address, src, max_size);
 }
 
 struct mkxp_sandbox::sandbox_str_guard wasi_t::str(wasm_ptr_t address) const noexcept {
@@ -550,7 +546,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_prestat_dir_name(wasi_t *was
             return WASI_EBADF;
 
         case wasi_fd_type::FS:
-            wasi->strncpy(path, wasi->fdtable[fd].dir_handle()->path.c_str(), path_len + 1);
+            wasi->strncpy_s(path, wasi->fdtable[fd].dir_handle()->path.c_str(), path_len + 1);
             return WASI_ESUCCESS;
 
         case wasi_fd_type::STDIN:
@@ -621,17 +617,21 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_read(wasi_t *wasi, uint32_t 
             {
                 uint32_t size = 0;
                 while (iovs_len > 0) {
-                    uint8_t *ptr = (uint8_t *)wasi->ptr(wasi->ref<uint32_t>(iovs));
+                    uint32_t ptr = wasi->ref<uint32_t>(iovs);
                     uint32_t length = wasi->ref<uint32_t>(iovs + 4);
+                    if (length > 0) {
 #ifdef MKXPZ_BIG_ENDIAN
-                    ptr -= length;
+                        uint8_t *buffer = &wasi->ref<uint8_t>(ptr, length - 1);
+#else
+                        uint8_t *buffer = &wasi->ref<uint8_t>(ptr);
 #endif // MKXPZ_BIG_ENDIAN
-                    PHYSFS_sint64 n = PHYSFS_readBytes(wasi->fdtable[fd].file_handle()->file.get(), ptr, length);
+                        PHYSFS_sint64 n = PHYSFS_readBytes(wasi->fdtable[fd].file_handle()->file.get(), buffer, length);
 #ifdef MKXPZ_BIG_ENDIAN
-                    std::reverse(ptr, ptr + length);
+                        std::reverse(buffer, buffer + length);
 #endif // MKXPZ_BIG_ENDIAN
-                    if (n < 0) return WASI_EIO;
-                    size += n;
+                        if (n < 0) return WASI_EIO;
+                        size += n;
+                    }
                     iovs += 8;
                     --iovs_len;
                 }
@@ -694,29 +694,13 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, uint32
                         if (edata->buf - edata->original_buf + 8 > edata->buf_len) {
                             return PHYSFS_ENUM_STOP;
                         }
-                        std::memcpy(
-#ifdef MKXPZ_BIG_ENDIAN
-                            wasi->ptr(edata->buf + 8),
-#else
-                            wasi->ptr(edata->buf),
-#endif // MKXPZ_BIG_ENDIAN
-                            &edata->cookie,
-                            8
-                        );
+                        std::memcpy(wasi->ptr_unaligned<uint64_t>(edata->buf), &edata->cookie, 8);
                         edata->buf += 8;
 
                         if (edata->buf - edata->original_buf + 8 > edata->buf_len) {
                             return PHYSFS_ENUM_STOP;
                         }
-                        std::memset(
-#ifdef MKXPZ_BIG_ENDIAN
-                            wasi->ptr(edata->buf + 8),
-#else
-                            wasi->ptr(edata->buf),
-#endif // MKXPZ_BIG_ENDIAN
-                            0,
-                            8
-                        );
+                        std::memset(wasi->ptr_unaligned<uint64_t>(edata->buf), 0, 8);
                         edata->buf += 8;
 
                         if (edata->buf - edata->original_buf + 4 > edata->buf_len) {
@@ -724,15 +708,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, uint32
                         }
                         {
                             const uint32_t value = std::strlen(filename);
-                            std::memcpy(
-#ifdef MKXPZ_BIG_ENDIAN
-                                wasi->ptr(edata->buf + 8),
-#else
-                                wasi->ptr(edata->buf),
-#endif // MKXPZ_BIG_ENDIAN
-                                &value,
-                                4
-                            );
+                            std::memcpy(wasi->ptr_unaligned<uint32_t>(edata->buf), &value, 4);
                         }
                         edata->buf += 4;
 
@@ -908,18 +884,21 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_write(wasi_t *wasi, uint32_t
                 }
                 uint32_t size = 0;
                 while (iovs_len > 0) {
-                    uint8_t *ptr = (uint8_t *)wasi->ptr(wasi->ref<uint32_t>(iovs));
+                    uint32_t ptr = wasi->ref<uint32_t>(iovs);
                     uint32_t length = wasi->ref<uint32_t>(iovs + 4);
+                    if (length > 0) {
 #ifdef MKXPZ_BIG_ENDIAN
-                    ptr -= length;
-                    std::reverse(ptr, ptr + length);
+                        uint8_t *buffer = &wasi->ref<uint8_t>(ptr, length - 1);
+#else
+                        uint8_t *buffer = &wasi->ref<uint8_t>(ptr);
 #endif // MKXPZ_BIG_ENDIAN
-                    PHYSFS_sint64 n = PHYSFS_writeBytes(wasi->fdtable[fd].file_handle()->file.get_write(), ptr, length);
+                        PHYSFS_sint64 n = PHYSFS_writeBytes(wasi->fdtable[fd].file_handle()->file.get_write(), buffer, length);
 #ifdef MKXPZ_BIG_ENDIAN
-                    std::reverse(ptr, ptr + length);
+                        std::reverse(buffer, buffer + length);
 #endif // MKXPZ_BIG_ENDIAN
-                    if (n >= 0) {
-                        size += n;
+                        if (n > 0) {
+                            size += n;
+                        }
                     }
                     iovs += 8;
                     --iovs_len;

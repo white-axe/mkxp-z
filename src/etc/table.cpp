@@ -129,13 +129,8 @@ void Table::serialize(char *buffer) const
 	writeInt32(&buffer, zs);
 	writeInt32(&buffer, size);
 
-#if defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
-	for (const int16_t datum : data)
-		*(int16_t *)(buffer -= sizeof(int16_t)) = datum;
-#else
 	if (size > 0)
 		memcpy(buffer, dataPtr(data), sizeof(int16_t)*size);
-#endif
 }
 
 
@@ -167,13 +162,8 @@ Table *Table::deserialize(Exception &exception, const char *data, int len)
 
 	Table *t = new Table(x, y, z);
 
-#if defined(MKXPZ_RETRO) && defined(MKXPZ_BIG_ENDIAN)
-	for (int16_t &datum : t->data)
-		datum = *(int16_t *)(data -= sizeof(int16_t));
-#else
 	if (size > 0)
 		memcpy(dataPtr(t->data), data, sizeof(int16_t)*size);
-#endif
 
 	return t;
 }

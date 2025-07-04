@@ -122,28 +122,24 @@ void binding_base::copy_memory_from(const void *ptr, wasm_size_t size, wasm_size
     }
 }
 
-void *mkxp_sandbox::sandbox_ptr(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {
-    if (address >= instance.w2c_memory.size) {
-        std::abort();
-    }
-#ifdef MKXPZ_BIG_ENDIAN
-    return instance.w2c_memory.data + instance.w2c_memory.size - address;
-#else
-    return instance.w2c_memory.data + address;
-#endif // MKXPZ_BIG_ENDIAN
-}
-
 wasm_size_t mkxp_sandbox::sandbox_strlen(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {
-    const char *ptr = (char *)sandbox_ptr(instance, address);
+    const char *ptr = &sandbox_ref<char>(instance, address);
 #ifdef MKXPZ_BIG_ENDIAN
     wasm_size_t size = 0;
-    while ((uint8_t *)ptr != instance.w2c_memory.data && *--ptr) {
+    while (*ptr) {
+        if ((uint8_t *)ptr == instance.w2c_memory.data) {
+            std::abort();
+        }
         ++size;
+        --ptr;
     }
     return size;
 #else
     const char *end = (const char *)std::memchr(ptr, 0, instance.w2c_memory.size - address);
-    return ptr == nullptr ? instance.w2c_memory.size - address : end - ptr;
+    if (ptr == nullptr) {
+        std::abort();
+    }
+    return end - ptr;
 #endif
 }
 
@@ -151,62 +147,24 @@ struct sandbox_str_guard mkxp_sandbox::sandbox_str(struct w2c_ruby &instance, wa
 #ifdef MKXPZ_BIG_ENDIAN
     std::string str;
     str.reserve(sandbox_strlen(instance, address));
-    const char *ptr = (const char *)sandbox_ptr(instance, address);
-    while ((uint8_t *)ptr != instance.w2c_memory.data && *--ptr) {
+    for (const char *ptr = &sandbox_ref<char>(instance, address); *ptr; --ptr) {
         str.push_back(*ptr);
     }
     return str;
 #else
-    if (instance.w2c_memory.size - address <= sandbox_strlen(instance, address)) {
+    if (address >= instance.w2c_memory.size || instance.w2c_memory.size - address <= sandbox_strlen(instance, address)) {
         std::abort();
     }
-    return (const char *)sandbox_ptr(instance, address);
+    return &sandbox_ref<char>(instance, address);
 #endif // MKXPZ_BIG_ENDIAN
 }
 
 void mkxp_sandbox::sandbox_strcpy(struct w2c_ruby &instance, wasm_ptr_t dst_address, const char *src) noexcept {
-#ifdef MKXPZ_BIG_ENDIAN
-    char *dst = (char *)sandbox_ptr(instance, dst_address);
-    while (*src) {
-        if ((uint8_t *)dst == instance.w2c_memory.data) {
-            std::abort();
-        }
-        *--dst = *src++;
-    }
-    *dst = 0;
-#else
-    if (instance.w2c_memory.size - dst_address <= std::strlen(src)) {
-        std::abort();
-    }
-    char *dst = (char *)sandbox_ptr(instance, dst_address);
-    std::strcpy(dst, src);
-#endif
+    sandbox_arycpy(instance, dst_address, src, (wasm_size_t)std::strlen(src) + 1);
 }
 
-void mkxp_sandbox::sandbox_strncpy(struct w2c_ruby &instance, wasm_ptr_t dst_address, const char *src, wasm_size_t max_size) noexcept {
-#ifdef MKXPZ_BIG_ENDIAN
-    char *dst = (char *)sandbox_ptr(instance, dst_address);
-    while (max_size && *src) {
-        if ((uint8_t *)dst == instance.w2c_memory.data) {
-            std::abort();
-        }
-        *--dst = *src++;
-        --max_size;
-    }
-    if (max_size) {
-        *dst = 0;
-    }
-#else
-    if (instance.w2c_memory.size - dst_address <= std::strlen(src)) {
-        std::abort();
-    }
-    char *dst = (char *)sandbox_ptr(instance, dst_address);
-    std::strncpy(dst, src, max_size);
-#endif
-}
-
-void *binding_base::ptr(wasm_ptr_t address) const noexcept {
-    return sandbox_ptr(instance(), address);
+void mkxp_sandbox::sandbox_strncpy_s(struct w2c_ruby &instance, wasm_ptr_t dst_address, const char *src, wasm_size_t max_size) noexcept {
+    sandbox_arycpy(instance, dst_address, src, std::min((wasm_size_t)std::strlen(src) + 1, max_size));
 }
 
 wasm_size_t binding_base::strlen(wasm_ptr_t address) const noexcept {
@@ -221,8 +179,8 @@ void binding_base::strcpy(wasm_ptr_t dst_address, const char *src) const noexcep
     sandbox_strcpy(instance(), dst_address, src);
 }
 
-void binding_base::strncpy(wasm_ptr_t dst_address, const char *src, wasm_size_t max_size) const noexcept {
-    sandbox_strncpy(instance(), dst_address, src, max_size);
+void binding_base::strncpy_s(wasm_ptr_t dst_address, const char *src, wasm_size_t max_size) const noexcept {
+    sandbox_strncpy_s(instance(), dst_address, src, max_size);
 }
 
 binding_base::object::object() : ptr(nullptr), typenum(0) {}

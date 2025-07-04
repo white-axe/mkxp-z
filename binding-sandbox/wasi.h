@@ -210,14 +210,25 @@ typedef struct w2c_wasi__snapshot__preview1 {
     void deallocate_file_descriptor(uint32_t fd);
 
     // Gets a pointer to the given address in sandbox memory.
-    void *ptr(mkxp_sandbox::wasm_ptr_t address) const noexcept;
+    // Unlike `sandbox_ref`, the address does not need to be aligned.
+    template <typename T> void *ptr_unaligned(mkxp_sandbox::wasm_ptr_t address) const noexcept {
+        return mkxp_sandbox::sandbox_ptr_unaligned<T>(*ruby, address);
+    }
+
+    // Gets a pointer to the given index in the array at a given address in sandbox memory.
+    // Unlike `sandbox_ref`, the address does not need to be aligned.
+    template <typename T> void *ptr_unaligned(mkxp_sandbox::wasm_ptr_t array_address, mkxp_sandbox::wasm_size_t array_index) const noexcept {
+        return mkxp_sandbox::sandbox_ptr_unaligned<T>(*ruby, array_address, array_index);
+    }
 
     // Gets a reference to the value stored at a given address in sandbox memory.
+    // Make sure the address is aligned, or this function will abort.
     template <typename T> T &ref(mkxp_sandbox::wasm_ptr_t address) const noexcept {
         return mkxp_sandbox::sandbox_ref<T>(*ruby, address);
     }
 
     // Gets a reference to the value stored at the given index in the array at a given address in sandbox memory.
+    // Make sure the address is aligned, or this function will abort.
     template <typename T> T &ref(mkxp_sandbox::wasm_ptr_t array_address, mkxp_sandbox::wasm_size_t array_index) const noexcept {
         return ref<T>(array_address + array_index * sizeof(T));
     }
@@ -232,7 +243,7 @@ typedef struct w2c_wasi__snapshot__preview1 {
     void strcpy(mkxp_sandbox::wasm_ptr_t dst_address, const char *src) const noexcept;
 
     // Copies a string into a sandbox memory address.
-    void strncpy(mkxp_sandbox::wasm_ptr_t dst_address, const char *src, mkxp_sandbox::wasm_size_t max_size) const noexcept;
+    void strncpy_s(mkxp_sandbox::wasm_ptr_t dst_address, const char *src, mkxp_sandbox::wasm_size_t max_size) const noexcept;
 
     // Copies an array of length `num_elements` into a sandbox memory address.
     template <typename T> void arycpy(mkxp_sandbox::wasm_ptr_t dst_address, const T *src, mkxp_sandbox::wasm_size_t num_elements) const noexcept {

@@ -19,6 +19,7 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
 #include "bitmap-binding.h"
 #include "disposable-binding.h"
 #include "etc-binding.h"
@@ -406,7 +407,12 @@ static VALUE get_raw_data(VALUE self) {
                 SANDBOX_AWAIT_S(1, rb_str_new_cstr, "");
                 SANDBOX_AWAIT(rb_str_resize, SANDBOX_SLOT(1), SANDBOX_SLOT(2));
                 SANDBOX_AWAIT_S(0, rb_string_value_ptr, &SANDBOX_SLOT(1));
-                SANDBOX_GUARD_L(bitmap->getRaw(sb().e, sb()->ptr(SANDBOX_SLOT(0)), SANDBOX_SLOT(2)));
+#ifdef MKXPZ_BIG_ENDIAN
+                SANDBOX_GUARD_L(bitmap->getRaw(sb().e, &sb()->ref<uint8_t>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(2), (int32_t)1) - 1), SANDBOX_SLOT(2)));
+                std::reverse(&sb()->ref<uint8_t>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(2), (int32_t)1) - 1), &sb()->ref<uint8_t>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(2), (int32_t)1) - 1) + SANDBOX_SLOT(2));
+#else
+                SANDBOX_GUARD_L(bitmap->getRaw(sb().e, &sb()->ref<uint8_t>(SANDBOX_SLOT(0)), SANDBOX_SLOT(2)));
+#endif // MKXPZ_BIG_ENDIAN
             }
 
             return SANDBOX_SLOT(1);
@@ -418,13 +424,18 @@ static VALUE get_raw_data(VALUE self) {
 
 static VALUE set_raw_data(VALUE self, VALUE value) {
     struct coro : boost::asio::coroutine {
-        typedef decl_slots<wasm_ptr_t, wasm_size_t> slots;
+        typedef decl_slots<wasm_ptr_t, int32_t> slots;
 
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_S(0, rb_string_value_ptr, &value);
                 SANDBOX_AWAIT_S(1, get_bytesize, value);
-                SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->replaceRaw(sb().e, sb()->ptr(SANDBOX_SLOT(0)), SANDBOX_SLOT(1)));
+#ifdef MKXPZ_BIG_ENDIAN
+                SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->replaceRaw(sb().e, &sb()->ref<uint8_t>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(1), (int32_t)1) - 1), SANDBOX_SLOT(1)));
+                std::reverse(&sb()->ref<uint8_t>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(1), (int32_t)1) - 1), &sb()->ref<uint8_t>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(1), (int32_t)1) - 1) + SANDBOX_SLOT(1));
+#else
+                SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->replaceRaw(sb().e, &sb()->ref<uint8_t>(SANDBOX_SLOT(0)), SANDBOX_SLOT(1)));
+#endif // MKXPZ_BIG_ENDIAN
             }
 
             return self;
