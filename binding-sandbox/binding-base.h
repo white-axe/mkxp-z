@@ -158,7 +158,7 @@ namespace mkxp_sandbox {
             std::abort();
         }
 #ifdef MKXPZ_BIG_ENDIAN
-        return instance.w2c_memory.data + instance.w2c_memory.size - address - sizeof(T);
+        return instance.w2c_memory.data + (instance.w2c_memory.size - address - sizeof(T));
 #else
         return instance.w2c_memory.data + address;
 #endif // MKXPZ_BIG_ENDIAN
