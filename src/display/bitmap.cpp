@@ -4158,8 +4158,6 @@ void Bitmap::sandbox_deserialize_begin(bool is_new)
     deserModified = is_new;
 
     deserSizeChanged = is_new;
-
-    assumeRubyGC(false);
 }
 
 void Bitmap::sandbox_deserialize_end(bool is_sandbox_object)
