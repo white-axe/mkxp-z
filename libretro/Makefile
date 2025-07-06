@@ -151,6 +151,7 @@ $(DOWNLOADS)/ruby/configure.ac:
 	cd $(DOWNLOADS)/ruby && $(GIT) apply ${PWD}/ruby-stack-pointer.patch
 	cd $(DOWNLOADS)/ruby && $(GIT) apply ${PWD}/ruby-jump-buffer.patch
 	cd $(DOWNLOADS)/ruby && $(GIT) apply ${PWD}/ruby-compat.patch
+	cd $(DOWNLOADS)/ruby && $(GIT) apply ${PWD}/ruby-prng-time.patch
 	echo '#include "${PWD}/ruby-bindings.h"' >> $(DOWNLOADS)/ruby/gc.c
 
 # WABT (targets the build machine)
