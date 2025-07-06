@@ -250,39 +250,49 @@ bool wasi_t::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
                 return false;
             }
             if (type == 1) {
+                uint32_t root;
+                if (!::sandbox_deserialize(root, data, max_size)) return false;
+                if (root >= fdtable.size() || fdtable[root].type != wasi_fd_type::FS) return false;
+                std::string path;
+                if (!::sandbox_deserialize(path, data, max_size)) return false;
+                path = mkxp_retro::fs->normalize(path.c_str(), false, true);
                 if (fdtable[i].type != wasi_fd_type::VACANT && fdtable[i].type != wasi_fd_type::FSDIR) {
                     deallocate_file_descriptor(i);
                     vacant_fds.clear();
                 }
+                if (fdtable[i].type == wasi_fd_type::FSDIR) {
+                    *fdtable[i].dir_handle() = {path, root, fdtable[root].dir_handle()->writable};
+                } else {
+                    fdtable[i] = {new fs_dir {path, root, fdtable[root].dir_handle()->writable}, wasi_fd_type::FSDIR};
+                }
+            } else if (type == 2) {
                 uint32_t root;
                 if (!::sandbox_deserialize(root, data, max_size)) return false;
                 if (root >= fdtable.size() || fdtable[root].type != wasi_fd_type::FS) return false;
                 std::string path;
                 if (!::sandbox_deserialize(path, data, max_size)) return false;
                 path = mkxp_retro::fs->normalize(path.c_str(), false, true);
-                fdtable[i] = {new fs_dir {path, root, fdtable[root].dir_handle()->writable}, wasi_fd_type::FSDIR};
-            } else if (type == 2) {
-                if (fdtable[i].type != wasi_fd_type::VACANT && fdtable[i].type != wasi_fd_type::FSFILE) {
+                if ((fdtable[i].type != wasi_fd_type::VACANT && fdtable[i].type != wasi_fd_type::FSFILE) || (fdtable[i].type == wasi_fd_type::FSFILE && std::strcmp(path.c_str(), fdtable[i].file_handle()->file.path()))) {
                     deallocate_file_descriptor(i);
                     vacant_fds.clear();
                 }
-                uint32_t root;
-                if (!::sandbox_deserialize(root, data, max_size)) return false;
-                if (root >= fdtable.size() || fdtable[root].type != wasi_fd_type::FS) return false;
-                std::string path;
-                if (!::sandbox_deserialize(path, data, max_size)) return false;
-                path = mkxp_retro::fs->normalize(path.c_str(), false, true);
-                struct fs_file *handle = new fs_file {{*mkxp_retro::fs, path.c_str(), fdtable[root].dir_handle()->writable ? fdtable[root].dir_handle()->path.c_str() : nullptr, false}, root};
-                if (!handle->file.is_open() || (fdtable[root].dir_handle()->writable && !handle->file.is_write_open())) {
-                    delete handle;
-                    return false;
+                struct fs_file *handle;
+                bool existing_handle = fdtable[i].type == wasi_fd_type::FSFILE;
+                if (existing_handle) {
+                    handle = fdtable[i].file_handle();
+                } else {
+                    handle = new fs_file {{*mkxp_retro::fs, path.c_str(), fdtable[root].dir_handle()->writable ? fdtable[root].dir_handle()->path.c_str() : nullptr, false}, root};
+                    if (!handle->file.is_open() || (fdtable[root].dir_handle()->writable && !handle->file.is_write_open())) {
+                        delete handle;
+                        return false;
+                    }
+                    fdtable[i] = {handle, wasi_fd_type::FSFILE};
                 }
-                fdtable[i] = {handle, wasi_fd_type::FSFILE};
                 {
                     PHYSFS_File *file = handle->file.get();
                     int64_t pos;
                     if (!::sandbox_deserialize(pos, data, max_size)) return false;
-                    if (pos > 0) {
+                    if (file != nullptr && (existing_handle || pos > 0)) {
                         PHYSFS_seek(file, pos);
                     }
                 }
@@ -290,7 +300,7 @@ bool wasi_t::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
                     PHYSFS_File *file = handle->file.get_write();
                     int64_t pos;
                     if (!::sandbox_deserialize(pos, data, max_size)) return false;
-                    if (file != nullptr && pos > 0) {
+                    if (file != nullptr && (existing_handle || pos > 0)) {
                         PHYSFS_seek(file, pos);
                     }
                 }
