@@ -199,6 +199,25 @@ static VALUE load_data(int32_t argc, wasm_ptr_t argv, VALUE self) {
     return sb()->bind<struct coro>()()(argc, argv, self);
 }
 
+static VALUE save_data(VALUE self, VALUE obj, VALUE filename) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<wasm_ptr_t, VALUE> slots;
+
+        VALUE operator()(VALUE self, VALUE obj, VALUE filename) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, rb_string_value_cstr, &filename);
+                SANDBOX_AWAIT_S(1, rb_file_open, sb()->str(SANDBOX_SLOT(0)), "wb");
+                SANDBOX_AWAIT(rb_marshal_dump, obj, SANDBOX_SLOT(1));
+                SANDBOX_AWAIT(rb_io_close, SANDBOX_SLOT(1));
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self, obj, filename);
+}
+
 static VALUE rgss_main(VALUE self) {
     struct coro : boost::asio::coroutine {
         static VALUE func(VALUE block) {
@@ -599,6 +618,7 @@ void sandbox_binding_init::operator()() {
         SANDBOX_AWAIT(graphics_binding_init);
 
         SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "load_data", (VALUE (*)(ANYARGS))load_data, -1);
+        SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "save_data", (VALUE (*)(ANYARGS))save_data, 2);
 
         if (rgssVer >= 3) {
             SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "rgss_main", (VALUE (*)(ANYARGS))rgss_main, 0);
