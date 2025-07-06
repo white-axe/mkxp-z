@@ -3634,9 +3634,9 @@ int Bitmap::maxSize(){
     return glState.caps.maxTexSize;
 }
 
-void Bitmap::assumeRubyGC()
+void Bitmap::assumeRubyGC(bool value)
 {
-    p->assumingRubyGC = true;
+    p->assumingRubyGC = value;
 }
 
 void Bitmap::releaseResources()
@@ -4158,9 +4158,11 @@ void Bitmap::sandbox_deserialize_begin(bool is_new)
     deserModified = is_new;
 
     deserSizeChanged = is_new;
+
+    assumeRubyGC(false);
 }
 
-void Bitmap::sandbox_deserialize_end()
+void Bitmap::sandbox_deserialize_end(bool is_sandbox_object)
 {
     if (isDisposed()) return;
     if (p->selfLores != nullptr) {
@@ -4174,6 +4176,9 @@ void Bitmap::sandbox_deserialize_end()
     if ((p->selfHires != nullptr && p->selfHires->deserModified) || (p->selfLores != nullptr && p->selfLores->deserModified)) {
         deserModified = true;
     }
+
+    if (isDisposed()) return;
+    assumeRubyGC(is_sandbox_object && p->selfHires != nullptr);
 }
 
 void Bitmap::sandbox_reinit()

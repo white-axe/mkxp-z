@@ -262,7 +262,7 @@ namespace mkxp_sandbox {
         bool (*serialize)(const void *self, void *&data, wasm_size_t &max_size);
         bool (*deserialize)(void *self, const void *&data, wasm_size_t &max_size);
         void (*deserialize_begin)(void *self, bool is_new);
-        void (*deserialize_end)(void *self);
+        void (*deserialize_end)(void *self, bool is_sandbox_object);
         void (*reinit)(void *self);
     };
 

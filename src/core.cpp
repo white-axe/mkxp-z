@@ -2062,11 +2062,11 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     }
 
     if (sb().trans_map != nullptr) {
-        sb().trans_map->sandbox_deserialize_end();
+        sb().trans_map->sandbox_deserialize_end(false);
     }
     for (const auto &object : sb()->objects) {
         if (object.typenum > 0) {
-            typenum_table[object.typenum - 1].deserialize_end(object.ptr);
+            typenum_table[object.typenum - 1].deserialize_end(object.ptr, true);
         }
     }
     sb()->vacant_object_keys = boost::container::priority_deque<wasm_objkey_t>(std::less<wasm_objkey_t>(), std::move(vacant_object_keys));
