@@ -174,15 +174,21 @@ struct run_rmxp_scripts : boost::asio::coroutine {
     }
 };
 
-static VALUE load_data(VALUE self, VALUE path) {
+static VALUE load_data(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        typedef decl_slots<wasm_ptr_t, VALUE, VALUE> slots;
+        typedef decl_slots<wasm_ptr_t, VALUE, VALUE, ID> slots;
 
-        VALUE operator()(VALUE path) {
+        VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, rb_string_value_cstr, &path);
+                // TODO: require at least one argument
+                SANDBOX_AWAIT_S(0, rb_string_value_cstr, &sb()->ref<VALUE>(argv, 0));
                 SANDBOX_AWAIT_S(1, rb_file_open, sb()->str(SANDBOX_SLOT(0)), "rb");
-                SANDBOX_AWAIT_S(2, rb_marshal_load, SANDBOX_SLOT(1));
+                if (argc < 2 || !SANDBOX_VALUE_TO_BOOL(sb()->ref<VALUE>(argv, 1))) {
+                    SANDBOX_AWAIT_S(2, rb_marshal_load, SANDBOX_SLOT(1));
+                } else {
+                    SANDBOX_AWAIT_S(3, rb_intern, "read");
+                    SANDBOX_AWAIT_S(2, rb_funcall, SANDBOX_SLOT(1), SANDBOX_SLOT(3), 0);
+                }
                 SANDBOX_AWAIT(rb_io_close, SANDBOX_SLOT(1));
             }
 
@@ -190,7 +196,7 @@ static VALUE load_data(VALUE self, VALUE path) {
         }
     };
 
-    return sb()->bind<struct coro>()()(path);
+    return sb()->bind<struct coro>()()(argc, argv, self);
 }
 
 static VALUE rgss_main(VALUE self) {
@@ -592,7 +598,7 @@ void sandbox_binding_init::operator()() {
         SANDBOX_AWAIT(audio_binding_init);
         SANDBOX_AWAIT(graphics_binding_init);
 
-        SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "load_data", (VALUE (*)(ANYARGS))load_data, 1);
+        SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "load_data", (VALUE (*)(ANYARGS))load_data, -1);
 
         if (rgssVer >= 3) {
             SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "rgss_main", (VALUE (*)(ANYARGS))rgss_main, 0);
