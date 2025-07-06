@@ -466,22 +466,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - id: cache
-        name: Restore cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            libretro/build/libretro-stage1
-          key: libretro-stage1-${{ hashFiles('libretro/Makefile', 'libretro/indexer.cpp', 'libretro/ruby-bindings.h', 'libretro/sandbox-bindgen.rb', 'libretro/ruby-stack-pointer.patch', 'libretro/ruby-jump-buffer.patch', 'libretro/ruby-compat.patch') }}
-
       - name: Install dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           sudo apt update
           sudo apt install -y git curl build-essential automake libtool binaryen zip universal-ctags ruby
 
       - name: Set up WASI SDK
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           curl -Lo ${{ runner.temp }}/wasi-sdk.tar.gz https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-21/wasi-sdk-21.0-linux.tar.gz
           mkdir ${{ runner.temp }}/wasi-sdk
@@ -489,7 +479,6 @@ jobs:
           rm ${{ runner.temp }}/wasi-sdk.tar.gz
 
       - name: Build stage 1
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           cd libretro
           CLICOLOR_FORCE=1 make -j $(nproc) WASI_SDK=${{ runner.temp }}/wasi-sdk
