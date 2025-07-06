@@ -89,8 +89,6 @@ extern "C" void wasm_rt_allocate_memory(wasm_rt_memory_t *memory, uint32_t initi
 }
 
 void wasm_rt_replace_memory(wasm_rt_memory_t *memory, size_t size, size_t capacity) {
-    std::free(memory->private_data);
-
     size = size / WASM_PAGE_SIZE * WASM_PAGE_SIZE;
     capacity = capacity / WASM_PAGE_SIZE * WASM_PAGE_SIZE;
 
@@ -98,15 +96,16 @@ void wasm_rt_replace_memory(wasm_rt_memory_t *memory, size_t size, size_t capaci
         MKXPZ_THROW(std::bad_alloc());
     }
 
-    uint8_t *new_private_data = (uint8_t *)std::malloc(capacity);
-    if (new_private_data == nullptr) {
-        MKXPZ_THROW(std::bad_alloc());
+    if (capacity != memory->capacity) {
+        std::free(memory->private_data);
+        if ((memory->private_data = (uint8_t *)std::malloc(capacity)) == nullptr) {
+            MKXPZ_THROW(std::bad_alloc());
+        }
+        memory->capacity = capacity;
     }
 
     memory->pages = size / WASM_PAGE_SIZE;
     memory->size = size;
-    memory->capacity = capacity;
-    memory->private_data = new_private_data;
 #ifdef MKXPZ_BIG_ENDIAN
     memory->data = memory->private_data + std::max((size_t)memory->size, (size_t)WASM_MIN_PAGES * (size_t)WASM_PAGE_SIZE) - (size_t)memory->size;
 #else
