@@ -296,6 +296,7 @@ if not compilers['cpp'].has_header('pthread.h') or not compilers['cpp'].links(''
     endif
 endif
 
+mkxp_polyfill_needs_cpp17 = false
 if compilers['cpp'].has_header_symbol('stdlib.h', 'posix_memalign') and compilers['cpp'].links('''
     #include <stdlib.h>
     int main(void) {
@@ -320,6 +321,24 @@ elif compilers['cpp'].has_header_symbol('stdlib.h', 'aligned_alloc') and compile
     }
 ''', name: 'aligned_alloc sanity check')
     global_args += '-DMKXPZ_HAVE_ALIGNED_ALLOC'
+elif compilers['cpp'].has_header_symbol('cstdlib', 'std::aligned_alloc') and compilers['cpp'].links('''
+    #include <cstdlib>
+    int main(void) {
+        return std::aligned_alloc(16, 4) == nullptr;
+    }
+''', args: ['-std=c++17'], name: 'std::aligned_alloc sanity check')
+    mkxp_polyfill_needs_cpp17 = true
+    global_args += '-DMKXPZ_HAVE_STD_ALIGNED_ALLOC'
+elif compilers['cpp'].links('''
+    #include <new>
+    int main(void) {
+        return operator new[](4, std::align_val_t(16), std::nothrow_t()) == nullptr;
+    }
+''', args: ['-std=c++17'], name: 'aligned operator new sanity check')
+    mkxp_polyfill_needs_cpp17 = true
+    global_args += '-DMKXPZ_HAVE_ALIGNED_OPERATOR_NEW'
+else
+    error('No aligned memory allocation function found.')
 endif
 
 if compilers['cpp'].has_header('sys/stat.h') and (not compilers['cpp'].has_header_symbol('sys/stat.h', 'lstat') or not compilers['cpp'].links('''
@@ -520,6 +539,31 @@ if is_libretro
     global_include_dirs += include_directories('binding-sandbox')
 endif
 global_include_dirs += include_directories('binding')
+
+if core_is_static
+    global_dependencies_processed = []
+    foreach dep : global_dependencies
+        global_dependencies_processed += dep.as_link_whole()
+    endforeach
+else
+    global_dependencies_processed = global_dependencies
+endif
+
+global_dependencies += declare_dependency(
+    link_with: static_library(
+        'mkxp-polyfill',
+        dependencies: global_dependencies_processed,
+        c_args: global_args,
+        cpp_args: global_args + global_cpp_args + (mkxp_polyfill_needs_cpp17 ? ['-std=c++17'] : []),
+        include_directories: global_include_dirs,
+        sources: [
+            'src/mkxp-polyfill.cpp',
+        ],
+        gnu_symbol_visibility: 'hidden',
+        install: false,
+        pic: use_pic,
+    ),
+)
 
 if is_libretro
     libretro_stage1_path = get_option('libretro_stage1_path')

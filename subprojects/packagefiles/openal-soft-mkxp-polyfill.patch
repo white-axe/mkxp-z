@@ -1,4 +1,4 @@
-# This patch makes OpenAL Soft use mkxp-polyfill.cpp instead of POSIX threads and `std::mutex` for portability reasons.
+# This patch makes OpenAL Soft use mkxp-polyfill.cpp to polyfill POSIX threads, `std::mutex` and the C++17 aligned `operator new[]`/`operator delete[]` on platforms where they're not available for better portability.
 
 --- a/al/auxeffectslot.cpp
 +++ b/al/auxeffectslot.cpp
@@ -249,6 +249,39 @@
  #include <optional>
  #include <string_view>
  
+--- a/common/almalloc.h
++++ b/common/almalloc.h
+@@ -35,13 +35,13 @@ enum FamCount : size_t { };
+                                                                               \
+     gsl::owner<void*> operator new(size_t /*size*/, FamCount count)           \
+     {                                                                         \
+-        const auto alignment = std::align_val_t{alignof(T)};                  \
+-        return ::operator new[](T::Sizeof(count), alignment);                 \
++        void *ptr = mkxp_aligned_malloc(alignof(T), T::Sizeof(count));        \
++        if (ptr == nullptr) MKXPZ_THROW(std::bad_alloc()); else return ptr;   \
+     }                                                                         \
+     void operator delete(gsl::owner<void*> block, FamCount) noexcept          \
+-    { ::operator delete[](block, std::align_val_t{alignof(T)}); }             \
++    { mkxp_aligned_free(block, alignof(T)); }                                 \
+     void operator delete(gsl::owner<void*> block) noexcept                    \
+-    { ::operator delete[](block, std::align_val_t{alignof(T)}); }             \
++    { mkxp_aligned_free(block, alignof(T)); }                                 \
+     void *operator new[](size_t /*size*/) = delete;                           \
+     void operator delete[](void* /*block*/) = delete;
+ 
+@@ -75,10 +75,10 @@ struct allocator {
+     gsl::owner<T*> allocate(std::size_t n)
+     {
+         if(n > std::numeric_limits<std::size_t>::max()/sizeof(T)) MKXPZ_THROW(std::bad_alloc());
+-        return static_cast<gsl::owner<T*>>(::operator new[](n*sizeof(T), AlignVal));
++        void *ptr = mkxp_aligned_malloc(Alignment, n*sizeof(T)); if (ptr == nullptr) MKXPZ_THROW(std::bad_alloc()); else return static_cast<gsl::owner<T*>>(ptr);
+     }
+     void deallocate(gsl::owner<T*> p, std::size_t) noexcept
+-    { ::operator delete[](gsl::owner<void*>{p}, AlignVal); }
++    { mkxp_aligned_free(gsl::owner<void*>{p}, Alignment); }
+ };
+ template<typename T, std::size_t N, typename U, std::size_t M>
+ constexpr bool operator==(const allocator<T,N>&, const allocator<U,M>&) noexcept
 --- a/common/alsem.cpp
 +++ b/common/alsem.cpp
 @@ -55,8 +55,8 @@ void semaphore::post()
@@ -466,6 +499,43 @@
  
      tss(const tss&) = delete;
      tss(tss&&) = delete;
+--- a/common/flexarray.h
++++ b/common/flexarray.h
+@@ -124,11 +124,11 @@ struct FlexArray {
+     [[nodiscard]] auto crend() const noexcept -> const_reverse_iterator { return mStore.crend(); }
+ 
+     gsl::owner<void*> operator new(size_t, FamCount count)
+-    { return ::operator new[](Sizeof(count), std::align_val_t{alignof(FlexArray)}); }
++    { void *ptr = mkxp_aligned_malloc(alignof(FlexArray), Sizeof(count)); if (ptr == nullptr) MKXPZ_THROW(std::bad_alloc()); else return ptr; }
+     void operator delete(gsl::owner<void*> block, FamCount) noexcept
+-    { ::operator delete[](block, std::align_val_t{alignof(FlexArray)}); }
++    { mkxp_aligned_free(block, alignof(FlexArray)); }
+     void operator delete(gsl::owner<void*> block) noexcept
+-    { ::operator delete[](block, std::align_val_t{alignof(FlexArray)}); }
++    { mkxp_aligned_free(block, alignof(FlexArray)); }
+ 
+     void *operator new(size_t size) = delete;
+     void *operator new[](size_t size) = delete;
+--- a/common/pffft.cpp
++++ b/common/pffft.cpp
+@@ -1489,7 +1489,7 @@ PFFFTSetupPtr pffft_new_setup(unsigned int N, pffft_transform_t transform)
+ 
+     const size_t storelen{std::max(offsetof(PFFFT_Setup, end) + 2_zu*Ncvec*sizeof(v4sf),
+         sizeof(PFFFT_Setup))};
+-    auto storage = static_cast<gsl::owner<std::byte*>>(::operator new[](storelen, V4sfAlignVal));
++    void *ptr = mkxp_aligned_malloc(V4sfAlignment, storelen); if (ptr == nullptr) MKXPZ_THROW(std::bad_alloc()); auto storage = static_cast<gsl::owner<std::byte*>>(ptr);
+     al::span extrastore{&storage[offsetof(PFFFT_Setup, end)], 2_zu*Ncvec*sizeof(v4sf)};
+ 
+     PFFFTSetupPtr s{::new(storage) PFFFT_Setup{}};
+@@ -1537,7 +1537,7 @@ PFFFTSetupPtr pffft_new_setup(unsigned int N, pffft_transform_t transform)
+ void PFFFTSetupDeleter::operator()(gsl::owner<PFFFT_Setup*> setup) const noexcept
+ {
+     std::destroy_at(setup);
+-    ::operator delete[](gsl::owner<void*>{setup}, V4sfAlignVal);
++    mkxp_aligned_free(gsl::owner<void*>{setup}, V4sfAlignment);
+ }
+ 
+ #if !defined(PFFFT_SIMD_DISABLE)
 --- a/core/context.h
 +++ b/core/context.h
 @@ -140,7 +140,7 @@ struct ContextBase {
@@ -532,6 +602,31 @@
  #include <numeric>
  #include <optional>
  #include <tuple>
+@@ -423,8 +423,8 @@ std::unique_ptr<HrtfStore> CreateHrtfStore(uint rate, uint8_t irSize,
+     total += sizeof(std::declval<HrtfStore&>().mCoeffs[0])*irCount;
+     total += sizeof(std::declval<HrtfStore&>().mDelays[0])*irCount;
+ 
+-    static constexpr auto AlignVal = std::align_val_t{alignof(HrtfStore)};
+-    std::unique_ptr<HrtfStore> Hrtf{::new(::operator new[](total, AlignVal)) HrtfStore{}};
++
++    std::unique_ptr<HrtfStore> Hrtf{::new(mkxp_aligned_malloc(alignof(HrtfStore), total)) HrtfStore{}};
+     Hrtf->mRef.store(1u, std::memory_order_relaxed);
+     Hrtf->mSampleRate = rate & 0xff'ff'ff;
+     Hrtf->mIrSize = irSize;
+--- a/core/hrtf.h
++++ b/core/hrtf.h
+@@ -52,9 +52,9 @@ struct alignas(16) HrtfStore {
+     void operator delete[](void*) noexcept = delete;
+ 
+     void operator delete(gsl::owner<void*> block, void*) noexcept
+-    { ::operator delete[](block, std::align_val_t{alignof(HrtfStore)}); }
++    { mkxp_aligned_free(block, alignof(HrtfStore)); }
+     void operator delete(gsl::owner<void*> block) noexcept
+-    { ::operator delete[](block, std::align_val_t{alignof(HrtfStore)}); }
++    { mkxp_aligned_free(block, alignof(HrtfStore)); }
+ };
+ using HrtfStorePtr = al::intrusive_ptr<HrtfStore>;
+ 
 --- a/core/logging.cpp
 +++ b/core/logging.cpp
 @@ -7,7 +7,7 @@

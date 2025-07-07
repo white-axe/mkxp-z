@@ -31,6 +31,10 @@
 #  include <malloc.h>
 #endif
 
+#ifdef MKXPZ_HAVE_ALIGNED_OPERATOR_NEW
+#  include <new>
+#endif
+
 #ifndef MKXPZ_NO_STD_THIS_THREAD_SLEEP_FOR
 #  include <thread>
 #elif !defined(MKXPZ_NO_USLEEP)
@@ -83,14 +87,20 @@ extern "C" void *mkxp_aligned_malloc(size_t alignment, size_t size) {
     return _aligned_malloc(size, alignment);
 #elif defined(MKXPZ_HAVE_ALIGNED_ALLOC)
     return aligned_alloc(alignment, size);
+#elif defined(MKXPZ_HAVE_STD_ALIGNED_ALLOC)
+    return std::aligned_alloc(alignment, size);
+#elif defined(MKXPZ_HAVE_ALIGNED_OPERATOR_NEW)
+    return operator new[](size, std::align_val_t(alignment), std::nothrow_t());
 #else
-    return std::malloc(size);
+#  error "no aligned memory allocation function found"
 #endif
 }
 
-extern "C" void mkxp_aligned_free(void *ptr) {
+extern "C" void mkxp_aligned_free(void *ptr, size_t alignment) {
 #if defined(MKXPZ_HAVE_ALIGNED_MALLOC)
     _aligned_free(ptr);
+#elif defined(MKXPZ_HAVE_ALIGNED_OPERATOR_NEW)
+    operator delete[](ptr, std::align_val_t(alignment));
 #else
     std::free(ptr);
 #endif

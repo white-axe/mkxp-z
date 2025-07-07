@@ -95,10 +95,6 @@ typedef pthread_t mkxp_thread_id_t;
 typedef uint8_t mkxp_thread_id_t;
 #endif
 
-#if defined(MKXPZ_HAVE_POSIX_MEMALIGN) || defined(MKXPZ_HAVE_ALIGNED_MALLOC) || defined(MKXPZ_HAVE_ALIGNED_ALLOC) || defined(MKXPZ_BUILD_XCODE)
-#  define MKXPZ_HAVE_ANY_ALIGNED_MALLOC 1
-#endif
-
 #ifdef __cplusplus
 #include <array>
 #include <cstdio>
@@ -131,7 +127,7 @@ int vsnprintf(char *buffer, size_t buf_size, const char *format, va_list vlist);
 
 void *mkxp_aligned_malloc(size_t alignment, size_t size);
 
-void mkxp_aligned_free(void *ptr);
+void mkxp_aligned_free(void *ptr, size_t alignment);
 
 int mkxp_mutex_init(mkxp_mutex_t *mutex, bool recursive);
 

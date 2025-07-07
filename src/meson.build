@@ -393,7 +393,6 @@ main_source = files(
     is_libretro ? [] : 'eventthread.cpp',
     is_libretro ? [] : 'settingsmenu.cpp',
     'sharedstate.cpp',
-    'mkxp-polyfill.cpp',
 
     'audio/alstream.cpp',
     'audio/audio.cpp',

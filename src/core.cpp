@@ -772,7 +772,7 @@ static void deinit_sandbox() {
     struct lock_guard guard(threaded_audio_mutex); // Wait for the audio thread to stop rendering audio
 
     if (sound_buf != nullptr) {
-        mkxp_aligned_free(sound_buf);
+        mkxp_aligned_free(sound_buf, 16);
         sound_buf = nullptr;
     }
 
