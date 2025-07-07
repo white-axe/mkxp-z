@@ -8,16 +8,6 @@ else ifeq ($(platform),win32)
     MKXPZ_CPU_FAMILY = x86
     MKXPZ_CPU = i686
     MKXPZ_ENDIAN = little
-else ifeq ($(platform),win64)
-    MKXPZ_SYSTEM = windows
-    MKXPZ_CPU_FAMILY = x86_64
-    MKXPZ_CPU = x86_64
-    MKXPZ_ENDIAN = little
-else ifeq ($(platform),win32)
-    MKXPZ_SYSTEM = windows
-    MKXPZ_CPU_FAMILY = x86
-    MKXPZ_CPU = i686
-    MKXPZ_ENDIAN = little
 else ifeq ($(platform),unix)
     MKXPZ_SYSTEM = linux
     ifeq ($(ARCH),x86)
@@ -131,17 +121,19 @@ ifeq ($(MKXPZ_LTO),)
     MKXPZ_LTO = true
 endif
 
-ifeq ($(MKXPZ_PLATFORM),windows)
+ifeq ($(MKXPZ_SYSTEM),windows)
     MKXPZ_EXTENSION = dll
-else ifeq ($(MKXPZ_PLATFORM),linux)
+else ifeq ($(MKXPZ_SYSTEM),linux)
     MKXPZ_EXTENSION = so
-else ifeq ($(MKXPZ_PLATFORM),darwin)
+else ifeq ($(MKXPZ_SYSTEM),android)
+    MKXPZ_EXTENSION = so
+else ifeq ($(MKXPZ_SYSTEM),darwin)
     MKXPZ_EXTENSION = dylib
 else
     MKXPZ_EXTENSION = a
 endif
 
-ifeq ($(MKXPZ_PLATFORM),emscripten)
+ifeq ($(MKXPZ_SYSTEM),emscripten)
     MKXPZ_EXTENSION_COPY = bc
 else
     MKXPZ_EXTENSION_COPY = $(MKXPZ_EXTENSION)
