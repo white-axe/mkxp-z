@@ -13,9 +13,11 @@ core_is_static = is_libretro and (is_emscripten or host_system == 'bare' or host
 is_vita = core_is_static and host_cpu_family == 'arm' and compilers['c'].has_header_symbol('sys/config.h', '__vita__')
 is_devkitarm = core_is_static and host_cpu_family == 'arm' and not is_vita
 is_devkitppc = core_is_static and host_cpu_family == 'ppc'
+is_devkita64 = core_is_static and host_cpu_family == 'aarch64'
+is_devkitpro = is_devkitarm or is_devkitppc or is_devkita64
 
 # Position-independent code is not supported on some platforms where we need to build a static library, e.g. https://github.com/vitasdk/vita-toolchain/issues/264
-use_pic = not core_is_static
+use_pic = is_devkitpro or not core_is_static
 
 if not is_libretro and host_system == 'darwin'
     error('This Meson project no longer supports macOS. Please use the Xcode project instead.')
