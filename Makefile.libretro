@@ -22,7 +22,7 @@ else ifeq ($(platform),unix)
 else ifeq ($(platform),osx)
     MKXPZ_SYSTEM = darwin
     ifeq ($(ARCH),arm)
-        MKXPZ_CPU_FAMILY = arm64
+        MKXPZ_CPU_FAMILY = aarch64
         MKXPZ_CPU = generic-armv8-a
         MKXPZ_ENDIAN = little
     else
@@ -44,7 +44,7 @@ else ifeq ($(platform),android-arm64)
     MKXPZ_SYSTEM = android
     MKXPZ_SUFFIX = android
     MKXPZ_ARCH_CMAKE = aarch64
-    MKXPZ_CPU_FAMILY = arm64
+    MKXPZ_CPU_FAMILY = aarch64
     MKXPZ_CPU = generic-armv8-a
     MKXPZ_ENDIAN = little
     CC = $(ANDROID_NDK_CLANG)/bin/aarch64-linux-android21-clang
@@ -73,7 +73,7 @@ else ifeq ($(platform),android-x86_64)
 else ifeq ($(platform),ios-arm64)
     MKXPZ_SYSTEM = darwin
     MKXPZ_SUFFIX = ios
-    MKXPZ_CPU_FAMILY = arm64
+    MKXPZ_CPU_FAMILY = aarch64
     MKXPZ_CPU = generic-armv8-a
     MKXPZ_ENDIAN = little
 else ifeq ($(platform),ios9)
@@ -85,12 +85,12 @@ else ifeq ($(platform),ios9)
 else ifeq ($(platform),tvos-arm64)
     MKXPZ_SYSTEM = darwin
     MKXPZ_SUFFIX = tvos
-    MKXPZ_CPU_FAMILY = arm64
+    MKXPZ_CPU_FAMILY = aarch64
     MKXPZ_CPU = generic-armv8-a
     MKXPZ_ENDIAN = little
 else ifeq ($(platform),libnx)
     MKXPZ_SYSTEM = bare
-    MKXPZ_CPU_FAMILY = arm64
+    MKXPZ_CPU_FAMILY = aarch64
     MKXPZ_CPU = cortex-a57
     MKXPZ_ENDIAN = little
 else ifeq ($(platform),gcw0)

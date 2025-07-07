@@ -9,6 +9,12 @@
   variables:
     CORENAME: mkxp-z
     MAKEFILE: Makefile.libretro
+
+.needs-shared:
+  dependencies:
+    - stage1
+
+.needs-static:
   needs:
     - job: stage1
       artifacts: true
@@ -26,14 +32,6 @@
     - .miniforge
   variables:
     MINIFORGE_PACKAGES: git meson cmake
-
-.deps-macos:
-  script:
-    - brew install -q git meson cmake
-
-.deps-windows:
-  script:
-    - pacman --noconfirm -S git meson cmake
 
 # Inclusion templates, required for the build to work
 include:
@@ -187,50 +185,63 @@ stage1:
 # Windows 64-bit
 libretro-build-windows-x64:
   extends:
-    - .deps-windows
     - .libretro-windows-x64-mingw-make-default
+    - .needs-shared
     - .core-defs
-  script:
-    - !reference [.deps-windows, script]
-    - !reference [.libretro-windows-x64-mingw-make-default, script]
+  dependencies:
+    - !reference [.libretro-windows-x64-mingw-make-default, dependencies]
+    - !reference [.needs-shared, dependencies]
 
 # Windows 32-bit
 libretro-build-windows-i686:
   extends:
-    - .deps-windows
     - .libretro-windows-i686-mingw-make-default
+    - .needs-shared
     - .core-defs
-  script:
-    - !reference [.deps-windows, script]
-    - !reference [.libretro-windows-i686-mingw-make-default, script]
+  dependencies:
+    - !reference [.libretro-windows-i686-mingw-make-default, dependencies]
+    - !reference [.needs-shared, dependencies]
 
 # Windows msvc10 64-bit
 #libretro-build-windows-msvc10-x64:
 #  extends:
 #    - .libretro-windows-x64-msvc10-msys2-make-default
+#    - .needs-shared
 #    - .core-defs
+#  dependencies:
+#    - !reference [.libretro-windows-x64-msvc10-msys2-make-default, dependencies]
+#    - !reference [.needs-shared, dependencies]
 
 # Windows msvc10 32-bit
 #libretro-build-windows-msvc10-i686:
 #  extends:
 #    - .libretro-windows-i686-msvc10-msys2-make-default
+#    - .needs-shared
 #    - .core-defs
+#  dependencies:
+#    - !reference [.libretro-windows-i686-msvc10-msys2-make-default, dependencies]
+#    - !reference [.needs-shared, dependencies]
 
 # Windows msvc05 32-bit
 #libretro-build-windows-msvc05-i686:
 #  extends:
 #    - .libretro-windows-i686-msvc05-msys2-make-default
+#    - .needs-shared
 #    - .core-defs
+#  dependencies:
+#    - !reference [.libretro-windows-i686-msvc05-msys2-make-default, dependencies]
+#    - !reference [.needs-shared, dependencies]
 
 # DJGPP
 #libretro-build-djgpp-i586:
 #  extends:
 #    - .deps-linux
 #    - .libretro-djgpp-static-retroarch-master
+#    - .needs-static
 #    - .core-defs
 #  needs:
 #    - !reference [.libretro-djgpp-static-retroarch-master, needs]
-#    - !reference [.core-defs, needs]
+#    - !reference [.needs-static, needs]
 #  script:
 #    - !reference [.deps-linux, script]
 #    - !reference [.libretro-build-djgpp-i586, script]
@@ -240,7 +251,11 @@ libretro-build-linux-x64:
   extends:
     - .deps-linux
     - .libretro-linux-x64-make-default
+    - .needs-shared
     - .core-defs
+  dependencies:
+    - !reference [.libretro-linux-x64-make-default, dependencies]
+    - !reference [.needs-shared, dependencies]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-linux-x64-make-default, script]
@@ -250,7 +265,11 @@ libretro-build-linux-i686:
   extends:
     - .deps-linux
     - .libretro-linux-i686-make-default
+    - .needs-shared
     - .core-defs
+  dependencies:
+    - !reference [.libretro-linux-i686-make-default, dependencies]
+    - !reference [.needs-shared, dependencies]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-linux-i686-make-default, script]
@@ -258,32 +277,32 @@ libretro-build-linux-i686:
 # MacOS 64-bit
 libretro-build-osx-x64:
   extends:
-    - .deps-macos
     - .libretro-osx-x64-make-default
+    - .needs-shared
     - .core-defs
-  script:
-    - !reference [.deps-macos, script]
-    - !reference [.libretro-osx-x64-make-default, script]
+  dependencies:
+    - !reference [.libretro-osx-x64-make-default, dependencies]
+    - !reference [.needs-shared, dependencies]
 
 # MacOS ARM 64-bit
 libretro-build-osx-arm64:
   extends:
-    - .deps-macos
     - .libretro-osx-arm64-make-default
+    - .needs-shared
     - .core-defs
-  script:
-    - !reference [.deps-macos, script]
-    - !reference [.libretro-osx-arm64-make-default, script]
+  dependencies:
+    - !reference [.libretro-osx-arm64-make-default, dependencies]
+    - !reference [.needs-shared, dependencies]
 
 # MacOS PowerPC 32-bit
 #libretro-build-osx-ppc:
 #  extends:
-#    - .deps-macos
 #    - .libretro-osx-ppc-make-default
+#    - .needs-shared
 #    - .core-defs
-#   script:
-#   - !reference [.deps-macos, script]
-#   - !reference [.libretro-osx-ppc-make-default, script]
+#  dependencies:
+#    - !reference [.libretro-osx-ppc-make-default, dependencies]
+#    - !reference [.needs-shared, dependencies]
 
 ################################### CELLULAR #################################
 # Android ARMv7a
@@ -291,7 +310,11 @@ android-armeabi-v7a:
   extends:
     - .deps-linux
     - .libretro-android-make-armeabi-v7a
+    - .needs-shared
     - .core-defs
+  dependencies:
+    - !reference [.libretro-android-make-armeabi-v7a, dependencies]
+    - !reference [.needs-shared, dependencies]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-android-make-armeabi-v7a, script]
@@ -301,7 +324,11 @@ android-arm64-v8a:
   extends:
     - .deps-linux
     - .libretro-android-make-arm64-v8a
+    - .needs-shared
     - .core-defs
+  dependencies:
+    - !reference [.libretro-android-make-arm64-v8a, dependencies]
+    - !reference [.needs-shared, dependencies]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-android-make-arm64-v8a, script]
@@ -311,7 +338,11 @@ android-x86_64:
   extends:
     - .deps-linux
     - .libretro-android-make-x86_64
+    - .needs-shared
     - .core-defs
+  dependencies:
+    - !reference [.libretro-android-make-x86_64, dependencies]
+    - !reference [.needs-shared, dependencies]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-android-make-x86_64, script]
@@ -321,7 +352,11 @@ android-x86:
   extends:
     - .deps-linux
     - .libretro-android-make-x86
+    - .needs-shared
     - .core-defs
+  dependencies:
+    - !reference [.libretro-android-make-x86, dependencies]
+    - !reference [.needs-shared, dependencies]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-android-make-x86, script]
@@ -329,32 +364,32 @@ android-x86:
 # iOS
 libretro-build-ios-arm64:
   extends:
-    - .deps-macos
     - .libretro-ios-arm64-make-default
+    - .needs-shared
     - .core-defs
-  script:
-    - !reference [.deps-macos, script]
-    - !reference [.libretro-ios-arm64-make-default, script]
+  dependencies:
+    - !reference [.libretro-ios-arm64-make-default, dependencies]
+    - !reference [.needs-shared, dependencies]
 
 # iOS (armv7) [iOS 9 and up]
 libretro-build-ios9:
   extends:
-    - .deps-macos
     - .libretro-ios9-make-default
+    - .needs-shared
     - .core-defs
-  script:
-    - !reference [.deps-macos, script]
-    - !reference [.libretro-ios9-make-default, script]
+  dependencies:
+    - !reference [.libretro-ios9-make-default, dependencies]
+    - !reference [.needs-shared, dependencies]
 
 # tvOS
 libretro-build-tvos-arm64:
   extends:
-    - .deps-macos
     - .libretro-tvos-arm64-make-default
+    - .needs-shared
     - .core-defs
-  script:
-    - !reference [.deps-macos, script]
-    - !reference [.libretro-tvos-arm64-make-default, script]
+  dependencies:
+    - !reference [.libretro-tvos-arm64-make-default, dependencies]
+    - !reference [.needs-shared, dependencies]
 
 ################################### CONSOLES #################################
 # PlayStation Portable
@@ -362,143 +397,161 @@ libretro-build-tvos-arm64:
 #  extends:
 #    - .deps-linux
 #    - .libretro-psp-static-retroarch-master
+#    - .needs-static
 #    - .core-defs
-#   needs:
-#   - !reference [.libretro-psp-static-retroarch-master, needs]
-#   - !reference [.core-defs, needs]
-#   script:
-#   - !reference [.deps-linux, script]
-#   - !reference [.libretro-psp-static-retroarch-master, script]
+#  needs:
+#    - !reference [.libretro-psp-static-retroarch-master, needs]
+#    - !reference [.needs-static, needs]
+#  script:
+#    - !reference [.deps-linux, script]
+#    - !reference [.libretro-psp-static-retroarch-master, script]
 
 # PlayStation Vita
 #libretro-build-vita:
 #  extends:
 #    - .deps-linux
 #    - .libretro-vita-static-retroarch-master
+#    - .needs-static
 #    - .core-defs
-#   needs:
-#   - !reference [.libretro-vita-static-retroarch-master, needs]
-#   - !reference [.core-defs, needs]
-#   script:
-#   - !reference [.deps-linux, script]
-#   - !reference [.libretro-vita-static-retroarch-master, script]
+#  needs:
+#    - !reference [.libretro-vita-static-retroarch-master, needs]
+#    - !reference [.needs-static, needs]
+#  script:
+#    - !reference [.deps-linux, script]
+#    - !reference [.libretro-vita-static-retroarch-master, script]
 
 # PlayStation2
 #libretro-build-ps2:
 #  extends:
 #    - .deps-linux
 #    - .libretro-ps2-static-retroarch-master
+#    - .needs-static
 #    - .core-defs
-#   needs:
-#   - !reference [.libretro-ps2-static-retroarch-master, needs]
-#   - !reference [.core-defs, needs]
-#   script:
-#   - !reference [.deps-linux, script]
-#   - !reference [.libretro-ps2-static-retroarch-master, script]
+#  needs:
+#    - !reference [.libretro-ps2-static-retroarch-master, needs]
+#    - !reference [.needs-static, needs]
+#  script:
+#    - !reference [.deps-linux, script]
+#    - !reference [.libretro-ps2-static-retroarch-master, script]
 
 # PlayStation3
 #libretro-build-psl1ght:
 #  extends:
 #    - .deps-linux
 #    - .libretro-psl1ght-static-retroarch-master
+#    - .needs-static
 #    - .core-defs
-#   needs:
-#   - !reference [.libretro-psl1ght-static-retroarch-master, needs]
-#   - !reference [.core-defs, needs]
-#   script:
-#   - !reference [.deps-linux, script]
-#   - !reference [.libretro-psl1ght-static-retroarch-master, script]
+#  needs:
+#    - !reference [.libretro-psl1ght-static-retroarch-master, needs]
+#    - !reference [.needs-static, needs]
+#  script:
+#    - !reference [.deps-linux, script]
+#    - !reference [.libretro-psl1ght-static-retroarch-master, script]
 
 # PlayStation 4
 #libretro-build-orbis:
 #  extends:
 #    - .deps-linux
 #    - .libretro-orbis-static-retroarch-master
+#    - .needs-static
 #    - .core-defs
-#   needs:
-#   - !reference [.libretro-orbis-static-retroarch-master, needs]
-#   - !reference [.core-defs, needs]
-#   script:
-#   - !reference [.deps-linux, script]
-#   - !reference [.libretro-orbis-static-retroarch-master, script]
+#  needs:
+#    - !reference [.libretro-orbis-static-retroarch-master, needs]
+#    - !reference [.needs-static, needs]
+#  script:
+#    - !reference [.deps-linux, script]
+#    - !reference [.libretro-orbis-static-retroarch-master, script]
 
 # Nintendo 3DS
 #libretro-build-ctr:
 #  extends:
 #    - .deps-linux
 #    - .libretro-ctr-static-retroarch-master
+#    - .needs-static
 #    - .core-defs
-#   needs:
-#   - !reference [.libretro-ctr-static-retroarch-master, needs]
-#   - !reference [.core-defs, needs]
-#   script:
-#   - !reference [.deps-linux, script]
-#   - !reference [.libretro-ctr-static-retroarch-master, script]
+#  needs:
+#    - !reference [.libretro-ctr-static-retroarch-master, needs]
+#    - !reference [.needs-static, needs]
+#  script:
+#    - !reference [.deps-linux, script]
+#    - !reference [.libretro-ctr-static-retroarch-master, script]
 
 # Nintendo GameCube
 #libretro-build-ngc:
 #  extends:
 #    - .deps-linux
 #    - .libretro-ngc-static-retroarch-master
+#    - .needs-static
 #    - .core-defs
-#   needs:
-#   - !reference [.libretro-ngc-static-retroarch-master, needs]
-#   - !reference [.core-defs, needs]
-#   script:
-#   - !reference [.deps-linux, script]
-#   - !reference [.libretro-ngc-static-retroarch-master, script]
+#  needs:
+#    - !reference [.libretro-ngc-static-retroarch-master, needs]
+#    - !reference [.needs-static, needs]
+#  script:
+#    - !reference [.deps-linux, script]
+#    - !reference [.libretro-ngc-static-retroarch-master, script]
 
 # Nintendo Wii
 #libretro-build-wii:
 #  extends:
 #    - .deps-linux
 #    - .libretro-wii-static-retroarch-master
+#    - .needs-static
 #    - .core-defs
-#   needs:
-#   - !reference [.libretro-wii-static-retroarch-master, needs]
-#   - !reference [.core-defs, needs]
-#   script:
-#   - !reference [.deps-linux, script]
-#   - !reference [.libretro-wii-static-retroarch-master, script]
+#  needs:
+#    - !reference [.libretro-wii-static-retroarch-master, needs]
+#    - !reference [.needs-static, needs]
+#  script:
+#    - !reference [.deps-linux, script]
+#    - !reference [.libretro-wii-static-retroarch-master, script]
 
 # Nintendo WiiU
 #libretro-build-wiiu:
 #  extends:
 #    - .libretro-wiiu-static-retroarch-master
+#    - .needs-static
 #    - .core-defs
-#   needs:
-#   - !reference [.libretro-wiiu-static-retroarch-master, needs]
-#   - !reference [.core-defs, needs]
+#  needs:
+#    - !reference [.libretro-wiiu-static-retroarch-master, needs]
+#    - !reference [.needs-static, needs]
 
 # Nintendo Switch
 libretro-build-libnx-aarch64:
   extends:
     - .deps-linux
     - .libretro-libnx-static-retroarch-master
+    - .needs-static
     - .core-defs
   needs:
     - !reference [.libretro-libnx-static-retroarch-master, needs]
-    - !reference [.core-defs, needs]
+    - !reference [.needs-static, needs]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-libnx-static-retroarch-master, script]
 
 # OpenDingux
-libretro-build-dingux-mips32:
-  extends:
-    - .deps-linux
-    - .libretro-dingux-mips32-make-default
-    - .core-defs
-  script:
-    - !reference [.deps-linux, script]
-    - !reference [.libretro-dingux-mips32-make-default, script]
+#libretro-build-dingux-mips32:
+#  extends:
+#    - .deps-linux
+#    - .libretro-dingux-mips32-make-default
+#    - .needs-shared
+#    - .core-defs
+#  dependencies:
+#    - !reference [.libretro-dingux-mips32-make-default, dependencies]
+#    - !reference [.needs-shared, dependencies]
+#  script:
+#    - !reference [.deps-linux, script]
+#    - !reference [.libretro-dingux-mips32-make-default, script]
 
 # OpenDingux Beta
 libretro-build-dingux-odbeta-mips32:
   extends:
     - .deps-linux
     - .libretro-dingux-odbeta-mips32-make-default
+    - .needs-shared
     - .core-defs
+  dependencies:
+    - !reference [.libretro-dingux-odbeta-mips32-make-default, dependencies]
+    - !reference [.needs-shared, dependencies]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-dingux-odbeta-mips32-make-default, script]
@@ -508,17 +561,25 @@ libretro-build-dingux-odbeta-mips32:
 #  extends:
 #    - .deps-linux
 #    - .libretro-rs90-odbeta-mips32-make-default
+#    - .needs-shared
 #    - .core-defs
-#   script:
-#   - !reference [.deps-linux, script]
-#   - !reference [.libretro-rs90-odbeta-mips32-make-default, script]
+#  dependencies:
+#    - !reference [.libretro-rs90-odbeta-mips32-make-default, dependencies]
+#    - !reference [.needs-shared, dependencies]
+#  script:
+#    - !reference [.deps-linux, script]
+#    - !reference [.libretro-rs90-odbeta-mips32-make-default, script]
 
 # Miyoo
 libretro-build-miyoo-arm32:
   extends:
     - .deps-linux
     - .libretro-miyoo-arm32-make-default
+    - .needs-shared
     - .core-defs
+  dependencies:
+    - !reference [.libretro-miyoo-arm32-make-default, dependencies]
+    - !reference [.needs-shared, dependencies]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-miyoo-arm32-make-default, script]
@@ -528,7 +589,11 @@ libretro-build-retrofw-mips32:
   extends:
     - .deps-linux
     - .libretro-retrofw-mips32-make-default
+    - .needs-shared
     - .core-defs
+  dependencies:
+    - !reference [.libretro-retrofw-mips32-make-default, dependencies]
+    - !reference [.needs-shared, dependencies]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-retrofw-mips32-make-default, script]
@@ -539,10 +604,11 @@ libretro-build-emscripten:
   extends:
     - .deps-linux
     - .libretro-emscripten-static-retroarch-master
+    - .needs-static
     - .core-defs
   needs:
     - !reference [.libretro-emscripten-static-retroarch-master, needs]
-    - !reference [.core-defs, needs]
+    - !reference [.needs-static, needs]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-emscripten-static-retroarch-master, script]
