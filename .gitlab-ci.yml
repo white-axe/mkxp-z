@@ -188,9 +188,6 @@ libretro-build-windows-x64:
     - .libretro-windows-x64-mingw-make-default
     - .needs-shared
     - .core-defs
-  dependencies:
-    - !reference [.libretro-windows-x64-mingw-make-default, dependencies]
-    - !reference [.needs-shared, dependencies]
 
 # Windows 32-bit
 libretro-build-windows-i686:
@@ -198,9 +195,6 @@ libretro-build-windows-i686:
     - .libretro-windows-i686-mingw-make-default
     - .needs-shared
     - .core-defs
-  dependencies:
-    - !reference [.libretro-windows-i686-mingw-make-default, dependencies]
-    - !reference [.needs-shared, dependencies]
 
 # Windows msvc10 64-bit
 #libretro-build-windows-msvc10-x64:
@@ -208,9 +202,6 @@ libretro-build-windows-i686:
 #    - .libretro-windows-x64-msvc10-msys2-make-default
 #    - .needs-shared
 #    - .core-defs
-#  dependencies:
-#    - !reference [.libretro-windows-x64-msvc10-msys2-make-default, dependencies]
-#    - !reference [.needs-shared, dependencies]
 
 # Windows msvc10 32-bit
 #libretro-build-windows-msvc10-i686:
@@ -218,9 +209,6 @@ libretro-build-windows-i686:
 #    - .libretro-windows-i686-msvc10-msys2-make-default
 #    - .needs-shared
 #    - .core-defs
-#  dependencies:
-#    - !reference [.libretro-windows-i686-msvc10-msys2-make-default, dependencies]
-#    - !reference [.needs-shared, dependencies]
 
 # Windows msvc05 32-bit
 #libretro-build-windows-msvc05-i686:
@@ -228,9 +216,6 @@ libretro-build-windows-i686:
 #    - .libretro-windows-i686-msvc05-msys2-make-default
 #    - .needs-shared
 #    - .core-defs
-#  dependencies:
-#    - !reference [.libretro-windows-i686-msvc05-msys2-make-default, dependencies]
-#    - !reference [.needs-shared, dependencies]
 
 # DJGPP
 #libretro-build-djgpp-i586:
@@ -253,9 +238,6 @@ libretro-build-linux-x64:
     - .libretro-linux-x64-make-default
     - .needs-shared
     - .core-defs
-  dependencies:
-    - !reference [.libretro-linux-x64-make-default, dependencies]
-    - !reference [.needs-shared, dependencies]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-linux-x64-make-default, script]
@@ -267,9 +249,6 @@ libretro-build-linux-i686:
     - .libretro-linux-i686-make-default
     - .needs-shared
     - .core-defs
-  dependencies:
-    - !reference [.libretro-linux-i686-make-default, dependencies]
-    - !reference [.needs-shared, dependencies]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-linux-i686-make-default, script]
@@ -280,9 +259,6 @@ libretro-build-osx-x64:
     - .libretro-osx-x64-make-default
     - .needs-shared
     - .core-defs
-  dependencies:
-    - !reference [.libretro-osx-x64-make-default, dependencies]
-    - !reference [.needs-shared, dependencies]
 
 # MacOS ARM 64-bit
 libretro-build-osx-arm64:
@@ -290,9 +266,6 @@ libretro-build-osx-arm64:
     - .libretro-osx-arm64-make-default
     - .needs-shared
     - .core-defs
-  dependencies:
-    - !reference [.libretro-osx-arm64-make-default, dependencies]
-    - !reference [.needs-shared, dependencies]
 
 # MacOS PowerPC 32-bit
 #libretro-build-osx-ppc:
@@ -300,9 +273,6 @@ libretro-build-osx-arm64:
 #    - .libretro-osx-ppc-make-default
 #    - .needs-shared
 #    - .core-defs
-#  dependencies:
-#    - !reference [.libretro-osx-ppc-make-default, dependencies]
-#    - !reference [.needs-shared, dependencies]
 
 ################################### CELLULAR #################################
 # Android ARMv7a
@@ -312,9 +282,6 @@ android-armeabi-v7a:
     - .libretro-android-make-armeabi-v7a
     - .needs-shared
     - .core-defs
-  dependencies:
-    - !reference [.libretro-android-make-armeabi-v7a, dependencies]
-    - !reference [.needs-shared, dependencies]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-android-make-armeabi-v7a, script]
@@ -326,9 +293,6 @@ android-arm64-v8a:
     - .libretro-android-make-arm64-v8a
     - .needs-shared
     - .core-defs
-  dependencies:
-    - !reference [.libretro-android-make-arm64-v8a, dependencies]
-    - !reference [.needs-shared, dependencies]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-android-make-arm64-v8a, script]
@@ -340,9 +304,6 @@ android-x86_64:
     - .libretro-android-make-x86_64
     - .needs-shared
     - .core-defs
-  dependencies:
-    - !reference [.libretro-android-make-x86_64, dependencies]
-    - !reference [.needs-shared, dependencies]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-android-make-x86_64, script]
@@ -354,9 +315,6 @@ android-x86:
     - .libretro-android-make-x86
     - .needs-shared
     - .core-defs
-  dependencies:
-    - !reference [.libretro-android-make-x86, dependencies]
-    - !reference [.needs-shared, dependencies]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-android-make-x86, script]
@@ -367,9 +325,6 @@ libretro-build-ios-arm64:
     - .libretro-ios-arm64-make-default
     - .needs-shared
     - .core-defs
-  dependencies:
-    - !reference [.libretro-ios-arm64-make-default, dependencies]
-    - !reference [.needs-shared, dependencies]
 
 # iOS (armv7) [iOS 9 and up]
 libretro-build-ios9:
@@ -377,9 +332,6 @@ libretro-build-ios9:
     - .libretro-ios9-make-default
     - .needs-shared
     - .core-defs
-  dependencies:
-    - !reference [.libretro-ios9-make-default, dependencies]
-    - !reference [.needs-shared, dependencies]
 
 # tvOS
 libretro-build-tvos-arm64:
@@ -387,9 +339,6 @@ libretro-build-tvos-arm64:
     - .libretro-tvos-arm64-make-default
     - .needs-shared
     - .core-defs
-  dependencies:
-    - !reference [.libretro-tvos-arm64-make-default, dependencies]
-    - !reference [.needs-shared, dependencies]
 
 ################################### CONSOLES #################################
 # PlayStation Portable
@@ -535,9 +484,6 @@ libretro-build-libnx-aarch64:
 #    - .libretro-dingux-mips32-make-default
 #    - .needs-shared
 #    - .core-defs
-#  dependencies:
-#    - !reference [.libretro-dingux-mips32-make-default, dependencies]
-#    - !reference [.needs-shared, dependencies]
 #  script:
 #    - !reference [.deps-linux, script]
 #    - !reference [.libretro-dingux-mips32-make-default, script]
@@ -549,9 +495,6 @@ libretro-build-dingux-odbeta-mips32:
     - .libretro-dingux-odbeta-mips32-make-default
     - .needs-shared
     - .core-defs
-  dependencies:
-    - !reference [.libretro-dingux-odbeta-mips32-make-default, dependencies]
-    - !reference [.needs-shared, dependencies]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-dingux-odbeta-mips32-make-default, script]
@@ -563,9 +506,6 @@ libretro-build-dingux-odbeta-mips32:
 #    - .libretro-rs90-odbeta-mips32-make-default
 #    - .needs-shared
 #    - .core-defs
-#  dependencies:
-#    - !reference [.libretro-rs90-odbeta-mips32-make-default, dependencies]
-#    - !reference [.needs-shared, dependencies]
 #  script:
 #    - !reference [.deps-linux, script]
 #    - !reference [.libretro-rs90-odbeta-mips32-make-default, script]
@@ -577,9 +517,6 @@ libretro-build-miyoo-arm32:
     - .libretro-miyoo-arm32-make-default
     - .needs-shared
     - .core-defs
-  dependencies:
-    - !reference [.libretro-miyoo-arm32-make-default, dependencies]
-    - !reference [.needs-shared, dependencies]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-miyoo-arm32-make-default, script]
@@ -591,9 +528,6 @@ libretro-build-retrofw-mips32:
     - .libretro-retrofw-mips32-make-default
     - .needs-shared
     - .core-defs
-  dependencies:
-    - !reference [.libretro-retrofw-mips32-make-default, dependencies]
-    - !reference [.needs-shared, dependencies]
   script:
     - !reference [.deps-linux, script]
     - !reference [.libretro-retrofw-mips32-make-default, script]
