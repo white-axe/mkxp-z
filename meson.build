@@ -352,6 +352,39 @@ if compilers['cpp'].has_header('sys/stat.h') and (not compilers['cpp'].has_heade
     global_args += '-DMKXPZ_NO_LSTAT'
 endif
 
+if host_system == 'darwin'
+    global_args += '-faligned-allocation'
+
+    disable_availability = false
+
+    if not compilers['cpp'].compiles('''
+        #include <optional>
+        int main(void) {
+            std::optional<int> optional;
+            return optional.value();
+        }
+    ''', args: ['-std=c++17'], name: 'check for broken std::bad_optional_access')
+        disable_availability = true
+        global_args += '-DMKXPZ_NO_STD_BAD_OPTIONAL_ACCESS'
+    endif
+
+    if not compilers['cpp'].compiles('''
+        #include <variant>
+        int main(void) {
+            std::variant<int, float> variant(0.0f);
+            return std::get<int>(variant);
+        }
+    ''', args: ['-std=c++17'], name: 'check for broken std::bad_variant_access')
+        disable_availability = true
+        global_args += '-DMKXPZ_NO_STD_BAD_VARIANT_ACCESS'
+    endif
+
+    if disable_availability
+        mkxp_polyfill_needs_cpp17 = true
+        global_args += '-D_LIBCPP_DISABLE_AVAILABILITY'
+    endif
+endif
+
 # Enable integer-only mode in FLAC when building with Vita SDK. Otherwise, we get an internal compiler error in FLAC__window_triangle:
 #
 # ../subprojects/flac/src/libFLAC/window.c: In function 'FLAC__window_triangle':

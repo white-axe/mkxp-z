@@ -47,6 +47,20 @@
 #  include <mutex>
 #endif
 
+#ifdef MKXPZ_NO_STD_BAD_OPTIONAL_ACCESS
+#  include <optional>
+const char *std::bad_optional_access::what() const noexcept {
+    return "std::bad_optional_access";
+}
+#endif
+
+#ifdef MKXPZ_NO_STD_BAD_VARIANT_ACCESS
+#  include <variant>
+const char *std::bad_variant_access::what() const noexcept {
+    return "std::bad_variant_access";
+}
+#endif
+
 #ifdef MKXPZ_NO_SPRINTF
 extern "C" int sprintf(char *buffer, const char *format, ...) {
     va_list vlist;
