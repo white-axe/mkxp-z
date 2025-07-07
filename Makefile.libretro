@@ -94,6 +94,9 @@ else ifeq ($(platform),libnx)
     MKXPZ_CPU_FAMILY = aarch64
     MKXPZ_CPU = cortex-a57
     MKXPZ_ENDIAN = little
+    CC = /opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc
+    CXX = /opt/devkitpro/devkitA64/bin/aarch64-none-elf-g++
+    AR = /opt/devkitpro/devkitA64/bin/aarch64-none-elf-ar
 else ifeq ($(platform),gcw0)
     MKXPZ_SYSTEM = linux
     MKXPZ_CPU_FAMILY = mips
