@@ -608,8 +608,8 @@
  
 -    static constexpr auto AlignVal = std::align_val_t{alignof(HrtfStore)};
 -    std::unique_ptr<HrtfStore> Hrtf{::new(::operator new[](total, AlignVal)) HrtfStore{}};
-+
-+    std::unique_ptr<HrtfStore> Hrtf{::new(mkxp_aligned_malloc(alignof(HrtfStore), total)) HrtfStore{}};
++    void *ptr = mkxp_aligned_malloc(alignof(HrtfStore), total); if (ptr == nullptr) MKXPZ_THROW(std::bad_alloc());
++    std::unique_ptr<HrtfStore> Hrtf{::new(ptr) HrtfStore{}};
      Hrtf->mRef.store(1u, std::memory_order_relaxed);
      Hrtf->mSampleRate = rate & 0xff'ff'ff;
      Hrtf->mIrSize = irSize;
