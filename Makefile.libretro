@@ -90,6 +90,7 @@ else ifeq ($(platform),tvos-arm64)
     MKXPZ_ENDIAN = little
 else ifeq ($(platform),libnx)
     MKXPZ_SYSTEM = bare
+    MKXPZ_SUFFIX = libnx
     MKXPZ_CPU_FAMILY = aarch64
     MKXPZ_CPU = cortex-a57
     MKXPZ_ENDIAN = little
@@ -110,6 +111,7 @@ else ifeq ($(platform),retrofw)
     MKXPZ_ENDIAN = little
 else ifeq ($(platform),emscripten)
     MKXPZ_SYSTEM = emscripten
+    MKXPZ_SUFFIX = emscripten
     MKXPZ_CPU_FAMILY = wasm32
     MKXPZ_CPU = wasm32
     MKXPZ_ENDIAN = little
