@@ -383,6 +383,15 @@ if host_system == 'darwin'
         mkxp_polyfill_needs_cpp17 = true
         global_args += '-D_LIBCPP_DISABLE_AVAILABILITY'
     endif
+
+    if not compilers['cpp'].links('''
+        #include <new>
+        int main(void) {
+            return operator new[](4, std::align_val_t(16), std::nothrow_t()) == nullptr;
+        }
+    ''', args: ['-std=c++17'], name: 'aligned operator new sanity check')
+        global_args += '-DMKXPZ_DARWIN_NO_ALIGNED_OPERATOR_NEW'
+    endif
 endif
 
 # Enable integer-only mode in FLAC when building with Vita SDK. Otherwise, we get an internal compiler error in FLAC__window_triangle:

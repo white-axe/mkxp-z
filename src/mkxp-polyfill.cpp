@@ -31,7 +31,7 @@
 #  include <malloc.h>
 #endif
 
-#ifdef MKXPZ_HAVE_ALIGNED_OPERATOR_NEW
+#if defined(MKXPZ_HAVE_ALIGNED_OPERATOR_NEW) || defined(MKXPZ_DARWIN_NO_ALIGNED_OPERATOR_NEW)
 #  include <new>
 #endif
 
@@ -119,6 +119,28 @@ extern "C" void mkxp_aligned_free(void *ptr, size_t alignment) {
     std::free(ptr);
 #endif
 }
+
+#if defined(MKXPZ_DARWIN_NO_ALIGNED_OPERATOR_NEW)
+void *operator new(size_t size, std::align_val_t alignment) {
+    void *ptr = mkxp_aligned_malloc((size_t)alignment, size);
+    if (ptr == nullptr) {
+        MKXPZ_THROW(std::bad_alloc());
+    }
+    return ptr;
+}
+
+void *operator new(size_t size, std::align_val_t alignment, const std::nothrow_t &) noexcept {
+    return mkxp_aligned_malloc((size_t)alignment, size);
+}
+
+void operator delete(void *ptr, std::align_val_t alignment) noexcept {
+    mkxp_aligned_free(ptr, (size_t)alignment);
+}
+
+void operator delete(void *ptr, std::align_val_t alignment, const std::nothrow_t &) noexcept {
+    mkxp_aligned_free(ptr, (size_t)alignment);
+}
+#endif
 
 #if defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_MUTEX) || defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_THREAD)
 extern "C" {
