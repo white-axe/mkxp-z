@@ -200,18 +200,18 @@ else
 	echo "c = '$(MKXPZ_CC)'" >> $(MKXPZ_CROSS_FILE)
 endif
 ifeq ($(MKXPZ_CXX),)
-	echo "c = '$(CXX)'" >> $(MKXPZ_CROSS_FILE)
+	echo "cpp = '$(CXX)'" >> $(MKXPZ_CROSS_FILE)
 else ifeq ($(patsubst [%,,$(firstword $(MKXPZ_CXX))),)
-	echo "c = $(MKXPZ_CXX)" >> $(MKXPZ_CROSS_FILE)
+	echo "cpp = $(MKXPZ_CXX)" >> $(MKXPZ_CROSS_FILE)
 else
-	echo "c = '$(MKXPZ_CXX)'" >> $(MKXPZ_CROSS_FILE)
+	echo "cpp = '$(MKXPZ_CXX)'" >> $(MKXPZ_CROSS_FILE)
 endif
 ifeq ($(MKXPZ_AR),)
-	echo "c = '$(AR)'" >> $(MKXPZ_CROSS_FILE)
+	echo "ar = '$(AR)'" >> $(MKXPZ_CROSS_FILE)
 else ifeq ($(patsubst [%,,$(firstword $(MKXPZ_AR))),)
-	echo "c = $(MKXPZ_AR)" >> $(MKXPZ_CROSS_FILE)
+	echo "ar = $(MKXPZ_AR)" >> $(MKXPZ_CROSS_FILE)
 else
-	echo "c = '$(MKXPZ_AR)'" >> $(MKXPZ_CROSS_FILE)
+	echo "ar = '$(MKXPZ_AR)'" >> $(MKXPZ_CROSS_FILE)
 endif
 	echo "[host_machine]" >> $(MKXPZ_CROSS_FILE)
 	echo "system = '$(MKXPZ_SYSTEM)'" >> $(MKXPZ_CROSS_FILE)
