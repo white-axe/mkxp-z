@@ -30,6 +30,8 @@ else ifeq ($(platform),osx)
         MKXPZ_CPU_FAMILY = x86_64
         MKXPZ_CPU = x86_64
         MKXPZ_ENDIAN = little
+        # The build times out with LTO enabled
+        MKXPZ_LTO = false
     endif
 else ifeq ($(platform),android-arm)
     MKXPZ_SYSTEM = android
