@@ -61,7 +61,7 @@ else
     global_args += '-DHAVE_NANOSLEEP'
 endif
 
-if core_is_static and not is_emscripten and get_option('b_lto')
+if (get_option('libretro_force_fat_lto') or (core_is_static and not is_emscripten)) and get_option('b_lto')
     global_args += '-ffat-lto-objects'
 endif
 
