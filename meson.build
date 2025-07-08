@@ -353,8 +353,6 @@ if compilers['cpp'].has_header('sys/stat.h') and (not compilers['cpp'].has_heade
 endif
 
 if host_system == 'darwin'
-    global_args += '-faligned-allocation'
-
     disable_availability = false
 
     if not compilers['cpp'].compiles('''
@@ -390,7 +388,9 @@ if host_system == 'darwin'
             return operator new[](4, std::align_val_t(16), std::nothrow_t()) == nullptr;
         }
     ''', args: ['-std=c++17'], name: 'aligned operator new sanity check')
+        mkxp_polyfill_needs_cpp17 = true
         global_args += '-DMKXPZ_DARWIN_NO_ALIGNED_OPERATOR_NEW'
+        global_args += '-faligned-allocation'
     endif
 endif
 
