@@ -436,11 +436,13 @@ if is_libretro
     endif
 
     # If possible, put all functions and data objects in their own sections to allow the linker to remove dead code
-    if compilers['c'].has_argument('-ffunction-sections')
-        global_args += '-ffunction-sections'
-    endif
-    if compilers['c'].has_argument('-fdata-sections')
-        global_args += '-fdata-sections'
+    if host_system != 'windows'
+        if compilers['c'].has_argument('-ffunction-sections')
+            global_args += '-ffunction-sections'
+        endif
+        if compilers['c'].has_argument('-fdata-sections')
+            global_args += '-fdata-sections'
+        endif
     endif
     if not core_is_static and compilers['cpp'].has_link_argument('-Wl,--gc-sections')
         global_link_args += '-Wl,--gc-sections'
@@ -536,8 +538,9 @@ else
     global_args += ['-Wno-stringop-truncation']
 endif
 if host_system == 'windows'
-    if not is_clang
-        global_args += '-masm=intel'
+    global_args += '-masm=att'
+    if host_cpu_family == 'x86'
+        global_args += '-msse'
     endif
 endif
 
