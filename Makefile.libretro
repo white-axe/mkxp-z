@@ -1,10 +1,12 @@
 ifeq ($(platform),win64)
     MKXPZ_SYSTEM = windows
+    MKXPZ_FORCE_FAT_LTO = true
     MKXPZ_CPU_FAMILY = x86_64
     MKXPZ_CPU = x86_64
     MKXPZ_ENDIAN = little
 else ifeq ($(platform),win32)
     MKXPZ_SYSTEM = windows
+    MKXPZ_FORCE_FAT_LTO = true
     MKXPZ_CPU_FAMILY = x86
     MKXPZ_CPU = i686
     MKXPZ_ENDIAN = little
