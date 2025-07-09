@@ -549,7 +549,7 @@ jobs:
           wget -O ~/Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
-          conda install -y nodejs=20 git jq meson cmake
+          conda install -y nodejs=20 git meson cmake
 
       - id: short-sha
         name: Get Git commit hash
@@ -899,6 +899,73 @@ jobs:
         with:
           name: mkxp-z_libretro.linux-musl.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/dist
+
+  build-libretro-linux-opendingux:
+    needs: build-libretro-stage1
+    name: LR OpenDingux ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    container:
+      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-dingux:${{ matrix.tag }}
+      options: -u root
+      volumes:
+        - /tmp:/__e/node20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: gcw0
+            tag: odbeta
+            strip: /opt/gcw0-toolchain/usr/bin/mipsel-gcw0-linux-uclibc-strip
+          - target: miyoo
+            tag: latest
+            strip: /opt/miyoo/usr/bin/arm-linux-strip
+          - target: retrofw
+            tag: odbeta
+            strip: /opt/retrofw-toolchain/usr/bin/mipsel-linux-strip
+    steps:
+      - name: Install dependencies
+        shell: bash
+        run: |
+          ln -s "$HOME/miniforge3/bin" /__e/node20/bin
+          echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
+          wget -O ~/Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+          bash ~/Miniforge3.sh -b -p ~/miniforge3
+          source ~/miniforge3/etc/profile.d/conda.sh
+          conda install -y nodejs=20 git meson cmake
+
+      - id: short-sha
+        name: Get Git commit hash
+        uses: benjlevesque/short-sha@v2.2
+        with:
+          length: 7
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download stage 1
+        uses: actions/download-artifact@v4
+        with:
+          name: stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          path: libretro/build/libretro-stage1
+
+      - name: Configure core
+        run: |
+          git config --global --add safe.directory "$(pwd)"
+          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-${{ matrix.target }}.txt --buildtype release -Db_lto=true -Dlibretro=true
+
+      - name: Build core
+        run: |
+          mkdir ~/dist
+          cd build
+          CLICOLOR_FORCE=1 ninja -v
+          ${{ matrix.strip }} mkxp-z_libretro.so
+          mv mkxp-z_libretro.so ~/dist/mkxp-z_libretro.so
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mkxp-z_libretro.linux-opendingux.${{ matrix.target }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          path: ~/dist
 
   build-libretro-android:
     needs: build-libretro-stage1
