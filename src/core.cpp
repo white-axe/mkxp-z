@@ -944,20 +944,19 @@ static bool init_sandbox() {
         if (environment(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &system_path) && system_path != nullptr) {
             std::string system_root_path(system_path);
 #ifdef _WIN32
-            system_root_path.append("\\mkxp-z");
-#else
-            system_root_path.append("/mkxp-z");
+            for (size_t i = 0; i < system_root_path.length(); ++i) {
+                if (system_root_path[i] == '\\') {
+                    system_root_path[i] = '/';
+                }
+            }
 #endif // _WIN32
+            PHYSFS_setWriteDir(system_root_path.c_str());
+            system_root_path.append("/mkxp-z");
 
             std::string rtp_root_path(system_root_path);
-#ifdef _WIN32
-            rtp_root_path.append("\\RTP");
-#else
             rtp_root_path.append("/RTP");
-#endif // _WIN32
 
             // Create the RTP root directory if needed
-            PHYSFS_setWriteDir(system_path);
             if (!PHYSFS_mkdir(rtp_root_path.c_str() + std::strlen(system_path) + 1)) {
                 mkxp_retro::log_printf(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", rtp_root_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
                 deinit_sandbox();
@@ -976,11 +975,7 @@ static bool init_sandbox() {
                 }
 
                 std::string rtp_path(system_root_path.c_str());
-#ifdef _WIN32
-                rtp_path.push_back('\\');
-#else
                 rtp_path.push_back('/');
-#endif // _WIN32
                 rtp_path.append(path.c_str() + sizeof "/System/" - 1);
 
                 // Check if this is a file or directory
@@ -1053,11 +1048,7 @@ static bool init_sandbox() {
                     }
 
                     std::string rtp_path(data.rtp_root_path);
-#ifdef _WIN32
-                    rtp_path.push_back('\\');
-#else
                     rtp_path.push_back('/');
-#endif // _WIN32
                     rtp_path.append(fname);
 
                     if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
@@ -1086,33 +1077,14 @@ static bool init_sandbox() {
                 }, &data);
 
                 if (!data.found) {
-                    log_printf(
-                        RETRO_LOG_ERROR,
-                        (
-                            "Failed to mount RTP \"%s\" because \"%s"
-#ifdef _WIN32
-                            "\\"
-#else
-                            "/"
-#endif // _WIN32
-                            "%s\" was not found\n"
-                        ),
-                        rtp.c_str(),
-                        rtp_root_path.c_str(),
-                        rtp.c_str()
-                    );
+                    log_printf(RETRO_LOG_ERROR, "Failed to mount RTP \"%s\" because \"%s/%s\" was not found\n", rtp.c_str(), rtp_root_path.c_str(), rtp.c_str());
                 }
             }
 
             std::string fonts_path(system_root_path);
-#ifdef _WIN32
-            fonts_path.append("\\Fonts");
-#else
             fonts_path.append("/Fonts");
-#endif // _WIN32
 
             // Create the Fonts directory if needed
-            PHYSFS_setWriteDir(system_path);
             if (!PHYSFS_mkdir(fonts_path.c_str() + std::strlen(system_path) + 1)) {
                 mkxp_retro::log_printf(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", fonts_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
                 deinit_sandbox();
@@ -1132,10 +1104,14 @@ static bool init_sandbox() {
             // Save to the subdirectory of the save directory corresponding to the game's name set in Game.ini
             std::string save_path_subdir(save_path);
 #ifdef _WIN32
-            save_path_subdir.append("\\mkxp-z\\Saves\\");
-#else
-            save_path_subdir.append("/mkxp-z/Saves/");
+            for (size_t i = 0; i < save_path_subdir.length(); ++i) {
+                if (save_path_subdir[i] == '\\') {
+                    save_path_subdir[i] = '/';
+                }
+            }
 #endif // _WIN32
+            PHYSFS_setWriteDir(save_path_subdir.c_str());
+            save_path_subdir.append("/mkxp-z/Saves/");
             if (!conf->windowTitle.empty()) {
                 save_path_subdir.append(conf->windowTitle);
             } else if (!conf->game.title.empty()) {
@@ -1160,7 +1136,6 @@ static bool init_sandbox() {
             }
 
             // Create the subdirectory if needed
-            PHYSFS_setWriteDir(save_path);
             if (!PHYSFS_mkdir(save_path_subdir.c_str() + std::strlen(save_path) + 1)) {
                 mkxp_retro::log_printf(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", save_path_subdir.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
                 deinit_sandbox();
