@@ -580,7 +580,7 @@ jobs:
           echo "endian = '${{ matrix.endian }}'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-ps3.txt --buildtype release -Db_lto=true -Dlibretro_force_fat_lto=true -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dlibretro_force_fat_lto=true -Dlibretro=true
 
       - name: Build core
         run: |
