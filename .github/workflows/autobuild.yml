@@ -519,14 +519,37 @@ jobs:
 
   build-libretro-windows:
     needs: build-libretro-stage1
-    name: LR Windows
-    runs-on: windows-latest
+    name: LR Windows ${{ matrix.arch_mkxpz }}
+    runs-on: ubuntu-latest
+    container:
+      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-mxe-win-cross-cores:gcc11
+      options: -u root
+      volumes:
+        - /tmp:/__e/node20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch_mkxpz: x86
+            arch_gcc: i686-w64-mingw32.static
+            cpu_family: x86
+            cpu: i686
+            endian: little
+          - arch_mkxpz: x86_64
+            arch_gcc: x86_64-w64-mingw32.static
+            cpu_family: x86_64
+            cpu: x86_64
+            endian: little
     steps:
-      - name: Set up MSYS2
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: mingw64
-          install: base-devel git mingw-w64-x86_64-gcc mingw-w64-x86_64-meson mingw-w64-x86_64-cmake
+      - name: Install dependencies
+        shell: bash
+        run: |
+          ln -s "$HOME/miniforge3/bin" /__e/node20/bin
+          echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
+          wget -O ~/Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+          bash ~/Miniforge3.sh -b -p ~/miniforge3
+          source ~/miniforge3/etc/profile.d/conda.sh
+          conda install -y nodejs=20 git jq meson cmake
 
       - id: short-sha
         name: Get Git commit hash
@@ -544,25 +567,34 @@ jobs:
           path: libretro/build/libretro-stage1
 
       - name: Configure core
-        shell: msys2 {0}
         run: |
-          CLICOLOR_FORCE=1 meson setup build --buildtype release -Db_lto=true -Dlibretro=true
+          echo "[binaries]" | tee -a ~/cross.ini
+          echo "c = '${{ matrix.arch_gcc }}-gcc'" | tee -a ~/cross.ini
+          echo "cpp = '${{ matrix.arch_gcc }}-g++'" | tee -a ~/cross.ini
+          echo "ar = '${{ matrix.arch_gcc }}-ar'" | tee -a ~/cross.ini
+          echo "strip = '${{ matrix.arch_gcc }}-strip'" | tee -a ~/cross.ini
+          echo "[host_machine]" | tee -a ~/cross.ini
+          echo "system = 'windows'" | tee -a ~/cross.ini
+          echo "cpu_family = '${{ matrix.cpu_family }}'" | tee -a ~/cross.ini
+          echo "cpu = '${{ matrix.cpu }}'" | tee -a ~/cross.ini
+          echo "endian = '${{ matrix.endian }}'" | tee -a ~/cross.ini
+          echo '--------------------------------------------------------------------------------'
+          git config --global --add safe.directory "$(pwd)"
+          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-ps3.txt --buildtype release -Db_lto=true -Dlibretro_force_fat_lto=true -Dlibretro=true
 
       - name: Build core
-        shell: msys2 {0}
         run: |
-          runner_temp="$(cygpath '${{ runner.temp }}')"
-          mkdir "$runner_temp"/dist
+          mkdir ~/dist
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          strip mkxp-z_libretro.dll
-          mv mkxp-z_libretro.dll "$runner_temp"/dist/mkxp-z_libretro.dll
+          ${{ matrix.arch_gcc }}-strip mkxp-z_libretro.dll
+          mv mkxp-z_libretro.dll ~/dist/mkxp-z_libretro.dll
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mkxp-z_libretro.windows.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: ${{ runner.temp }}/dist
+          name: mkxp-z_libretro.windows.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          path: ~/dist
 
   build-libretro-linux-gnu:
     needs: build-libretro-stage1
