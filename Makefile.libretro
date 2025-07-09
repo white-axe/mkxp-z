@@ -129,6 +129,7 @@ else ifeq ($(platform),gcw0)
     MKXPZ_ENDIAN = little
 else ifeq ($(platform),miyoo)
     MKXPZ_SYSTEM = linux
+    MKXPZ_FORCE_FAT_LTO = true
     MKXPZ_CPU_FAMILY = arm
     MKXPZ_CPU = cortex-a7
     MKXPZ_ENDIAN = little
