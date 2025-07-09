@@ -743,10 +743,11 @@ struct BitmapOpenHandler : FileSystem::OpenHandler
     }
 };
 
-Bitmap::Bitmap(Exception &exception, const char *filename, bool useDiff)
+Bitmap::Bitmap(Exception &exception, const char *filename, bool useDiff) :
 #ifdef MKXPZ_RETRO
-    : id(next_id++)
+    id(next_id++),
 #endif // MKXPZ_RETRO
+    p(nullptr)
 {
     initFromFilename(exception, filename, useDiff);
 }
@@ -942,10 +943,11 @@ void Bitmap::initFromFilename(Exception &exception, const char *filename, bool u
 #endif // MKXPZ_RETRO
 }
 
-Bitmap::Bitmap(Exception &exception, int width, int height, bool isHires, bool useDiff)
+Bitmap::Bitmap(Exception &exception, int width, int height, bool isHires, bool useDiff) :
 #ifdef MKXPZ_RETRO
-    : id(next_id++)
+    id(next_id++),
 #endif // MKXPZ_RETRO
+    p(nullptr)
 {
     initFromDimensions(exception, width, height, isHires, useDiff);
 }
@@ -999,10 +1001,11 @@ void Bitmap::initFromDimensions(Exception &exception, int width, int height, boo
     GUARD(clear(exception));
 }
 
-Bitmap::Bitmap(Exception &exception, void *pixeldata, int width, int height, bool useDiff)
+Bitmap::Bitmap(Exception &exception, void *pixeldata, int width, int height, bool useDiff) :
 #ifdef MKXPZ_RETRO
-    : id(next_id++)
+    id(next_id++),
 #endif // MKXPZ_RETRO
+    p(nullptr)
 {
 #ifdef MKXPZ_RETRO
     SDL_Surface *surface = new SDL_Surface;
@@ -1075,10 +1078,11 @@ Bitmap::Bitmap(Exception &exception, void *pixeldata, int width, int height, boo
 }
 
 // frame is -2 for "any and all", -1 for "current", anything else for a specific frame
-Bitmap::Bitmap(Exception &exception, const Bitmap &other, int frame, bool useDiff)
+Bitmap::Bitmap(Exception &exception, const Bitmap &other, int frame, bool useDiff) :
 #ifdef MKXPZ_RETRO
-    : id(next_id++)
+    id(next_id++),
 #endif // MKXPZ_RETRO
+    p(nullptr)
 {
     GUARD(other.guardDisposed(exception));
     GUARD(other.ensureNonMega(exception));
@@ -1149,10 +1153,11 @@ Bitmap::Bitmap(Exception &exception, const Bitmap &other, int frame, bool useDif
     p->addTaintedArea(rect());
 }
 
-Bitmap::Bitmap(Exception &exception, TEXFBO &other, bool useDiff)
+Bitmap::Bitmap(Exception &exception, TEXFBO &other, bool useDiff) :
 #ifdef MKXPZ_RETRO
-    : id(next_id++)
+    id(next_id++),
 #endif // MKXPZ_RETRO
+    p(nullptr)
 {
     Bitmap *hiresBitmap = nullptr;
 
@@ -1202,10 +1207,11 @@ Bitmap::Bitmap(Exception &exception, TEXFBO &other, bool useDiff)
     p->addTaintedArea(rect());
 }
 
-Bitmap::Bitmap(Exception &exception, SDL_Surface *imgSurf, SDL_Surface *imgSurfHires, bool forceMega, bool useDiff)
+Bitmap::Bitmap(Exception &exception, SDL_Surface *imgSurf, SDL_Surface *imgSurfHires, bool forceMega, bool useDiff) :
 #ifdef MKXPZ_RETRO
-    : id(next_id++)
+    id(next_id++),
 #endif // MKXPZ_RETRO
+    p(nullptr)
 {
     Bitmap *hiresBitmap = nullptr;
 
@@ -3641,6 +3647,10 @@ void Bitmap::assumeRubyGC(bool value)
 
 void Bitmap::releaseResources()
 {
+    // p can be null if there was an error creating this bitmap
+    if (p == nullptr)
+        return;
+
     if (p->selfHires && !p->assumingRubyGC) {
         delete p->selfHires;
     }
