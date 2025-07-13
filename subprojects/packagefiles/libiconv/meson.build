@@ -9,38 +9,49 @@ configuration = {
     'USE_MBSTATE_T': 0,
 }
 
+libiconv_config = import('fs').copyfile(
+    'libcharset/config.h.in',
+    'config.h',
+)
+
 libiconv = declare_dependency(
     include_directories: '.',
     link_with: library(
         'iconv',
         link_with: static_library(
             'localcharset',
+            dependencies: declare_dependency(
+                sources: [
+                    libiconv_config,
+                ],
+            ),
             c_args: get_option('cflags') + ['-DBUILDING_LIBCHARSET'],
             include_directories: 'libcharset/include',
             sources: [
-                import('fs').copyfile(
-                    'libcharset/config.h.in',
-                    'config.h',
-                ),
                 'libcharset/lib/localcharset.c',
             ],
             pic: get_option('b_staticpic'),
             gnu_symbol_visibility: 'hidden',
             install: false,
         ),
+        dependencies: declare_dependency(
+            sources: [
+                libiconv_config,
+                configure_file(
+                    input: 'libcharset/include/localcharset.h.build.in',
+                    output: 'localcharset.h',
+                    configuration: configuration,
+                ),
+                configure_file(
+                    input: 'include/iconv.h.build.in',
+                    output: 'iconv.h',
+                    configuration: configuration,
+                ),
+            ],
+        ),
         c_args: get_option('cflags') + ['-DBUILDING_LIBICONV', '-DBUILDING_LIBCHARSET', '-DICONV_CONST=' + configuration['ICONV_CONST'], '-DENABLE_EXTRA'],
         include_directories: 'include',
         sources: [
-            configure_file(
-                input: 'libcharset/include/localcharset.h.build.in',
-                output: 'localcharset.h',
-                configuration: configuration,
-            ),
-            configure_file(
-                input: 'include/iconv.h.build.in',
-                output: 'iconv.h',
-                configuration: configuration,
-            ),
             'lib/iconv.c',
         ],
         pic: get_option('b_staticpic'),
