@@ -8,8 +8,8 @@ endif
 
 compilers = {'cpp': meson.get_compiler('cpp')}
 
-global_sources = [vcs_tag(command: ['git', 'rev-parse', '--short=7', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h')]
-global_dependencies = []
+global_sources = []
+global_dependencies = [declare_dependency(sources: vcs_tag(command: ['git', 'rev-parse', '--short=7', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h'))]
 global_include_dirs = []
 global_args = []
 global_link_args = []
