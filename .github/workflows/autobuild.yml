@@ -523,6 +523,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-mxe-win-cross-cores:gcc11
+      options: -u root
       volumes:
         - /tmp:/__e/node20
     strategy:
@@ -899,6 +900,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-dingux:${{ matrix.tag }}
+      options: -u root
       volumes:
         - /tmp:/__e/node20
     strategy:
@@ -1241,6 +1243,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-psl1ght:latest
+      options: -u root
       volumes:
         - /tmp:/__e/node20
     steps:
@@ -1302,6 +1305,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-devkitpro:latest
+      options: -u root
       volumes:
         - /tmp:/__e/node20
     steps:
@@ -1364,6 +1368,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-vita:latest
+      options: -u root
       volumes:
         - /tmp:/__e/node20
     steps:
@@ -1430,6 +1435,7 @@ jobs:
       # Also, pre-C++17 versions of OpenAL Soft give linker errors when we try to build them for Wii U, so we can't just downgrade OpenAL Soft.
       # The libretro-build-devkitpro image that we're using here instead currently has a newer version of devkitPPC that supports C++17 but lacks wiiurpxtool, which is why we need to separately install wiiurpxtool.
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-devkitpro:latest
+      options: -u root
       volumes:
         - /tmp:/__e/node20
     steps:
@@ -1507,14 +1513,15 @@ jobs:
     needs: build-libretro-stage1
     name: LR PlayStation 4
     runs-on: ubuntu-latest
-    container: git.libretro.com:5050/libretro-infrastructure/libretro-build-orbis:latest
+    container:
+      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-orbis:latest
+      options: -u root
     steps:
       - name: Install dependencies
         run: |
-          sudo apk add git jq curl python3 gcc g++ ninja
+          apk add git jq curl python3 gcc g++ ninja
           python3 -m ensurepip
           python3 -m pip install meson cmake
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - id: short-sha
         name: Get Git commit hash
@@ -1564,6 +1571,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-libnx-devkitpro:latest
+      options: -u root
       volumes:
         - /tmp:/__e/node20
     steps:
