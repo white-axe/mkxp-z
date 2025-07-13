@@ -1155,8 +1155,14 @@ jobs:
 
   build-libretro-emscripten:
     needs: build-libretro-stage1
-    name: LR Emscripten
+    name: LR Emscripten ${{ matrix.threading }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - threading: threaded
+          - threading: unthreaded
     steps:
       - name: Install dependencies
         run: |
@@ -1185,7 +1191,13 @@ jobs:
 
       - name: Configure core
         run: |
-          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-emscripten.txt --buildtype release -Db_lto=true -Dlibretro=true -Demscripten_threaded=true
+          if [ '${{ matrix.threading }}' = 'threaded' ]
+          then
+            threaded=true
+          else
+            threaded=false
+          fi
+          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-emscripten.txt --buildtype release -Db_lto=true -Dlibretro=true -Demscripten_threaded=$threaded
 
       - name: Build core
         run: |
@@ -1197,17 +1209,26 @@ jobs:
       - name: Build frontend
         run: |
           cd ${{ runner.temp }}
-          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest -H 'Authorization: Bearer ${{ github.token }}' -H 'X-GitHub-Api-Version: 2022-11-28' | jq -r '.tag_name')
+          tag_name=$(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest -H 'Authorization: Bearer ${{ github.token }}' -H 'X-GitHub-Api-Version: 2022-11-28' | jq -r '.tag_name')
+          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b "$tag_name"
           mv mkxp-z_libretro.a retroarch/libretro_emscripten.a
           cd retroarch
-          CLICOLOR_FORCE=1 emmake make -f Makefile.emscripten LIBRETRO=mkxp-z HAVE_THREADS=1 PROXY_TO_PTHREAD=1 HAVE_AUDIOWORKLET=1 HAVE_RWEBAUDIO=0 HAVE_AL=0 HAVE_WASMFS=1 HAVE_EXTRA_WASMFS=1
+          if [ '${{ matrix.threading }}' = 'threaded' ]
+          then
+            flags='HAVE_THREADS=1 PROXY_TO_PTHREAD=1 HAVE_AUDIOWORKLET=1 HAVE_RWEBAUDIO=0 HAVE_AL=0 HAVE_WASMFS=1 HAVE_EXTRA_WASMFS=1'
+          elif [ "$tag_name" = 'v1.21.0' ]
+            flags='HAVE_THREADS=0 PROXY_TO_PTHREAD=0 HAVE_AUDIOWORKLET=0 HAVE_RWEBAUDIO=0 HAVE_AL=1 HAVE_WASMFS=0 HAVE_EXTRA_WASMFS=0'
+          else
+            flags='HAVE_THREADS=0 PROXY_TO_PTHREAD=0 HAVE_AUDIOWORKLET=0 HAVE_RWEBAUDIO=1 HAVE_AL=1 HAVE_WASMFS=0 HAVE_EXTRA_WASMFS=0'
+          fi
+          CLICOLOR_FORCE=1 emmake make -f Makefile.emscripten LIBRETRO=mkxp-z $flags
           mv mkxp-z_libretro.wasm ${{ runner.temp }}/dist/mkxp-z_libretro.wasm
           mv mkxp-z_libretro.js ${{ runner.temp }}/dist/mkxp-z_libretro.js
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mkxp-z_libretro.emscripten.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          name: mkxp-z_libretro.emscripten.${{ matrix.threading }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ${{ runner.temp }}/dist
 
   build-libretro-ps3:
