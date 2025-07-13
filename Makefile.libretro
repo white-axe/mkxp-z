@@ -242,7 +242,7 @@ endif
 	echo "endian = '$(MKXPZ_ENDIAN)'" >> $(MKXPZ_CROSS_FILE)
 	echo "[properties]" >> $(MKXPZ_CROSS_FILE)
 ifneq ($(MKXPZ_CMAKE_TOOLCHAIN_FILE),)
-	echo "CMAKE_TOOLCHAIN_FILE = '$(MKXPZ_CMAKE_TOOLCHAIN_FILE)'" >> $(MKXPZ_CROSS_FILE)
+	echo "cmake_toolchain_file = '$(MKXPZ_CMAKE_TOOLCHAIN_FILE)'" >> $(MKXPZ_CROSS_FILE)
 endif
 	echo "[cmake]" >> $(MKXPZ_CROSS_FILE)
 ifneq ($(MKXPZ_ARCH_CMAKE),)
