@@ -144,6 +144,7 @@ else ifeq ($(platform),emscripten)
     MKXPZ_CPU_FAMILY = wasm32
     MKXPZ_CPU = wasm32
     MKXPZ_ENDIAN = little
+    MKXPZ_CMAKE_TOOLCHAIN_FILE = $(shell em-config EMSCRIPTEN_ROOT)/cmake/Modules/Platform/Emscripten.cmake
     # The build times out with LTO enabled
     MKXPZ_LTO = false
 else
@@ -227,6 +228,10 @@ endif
 	echo "cpu_family = '$(MKXPZ_CPU_FAMILY)'" >> $(MKXPZ_CROSS_FILE)
 	echo "cpu = '$(MKXPZ_CPU)'" >> $(MKXPZ_CROSS_FILE)
 	echo "endian = '$(MKXPZ_ENDIAN)'" >> $(MKXPZ_CROSS_FILE)
+	echo "[properties]" >> $(MKXPZ_CROSS_FILE)
+ifneq ($(MKXPZ_CMAKE_TOOLCHAIN_FILE),)
+	echo "CMAKE_TOOLCHAIN_FILE = '$(MKXPZ_CMAKE_TOOLCHAIN_FILE)'" >> $(MKXPZ_CROSS_FILE)
+endif
 	echo "[cmake]" >> $(MKXPZ_CROSS_FILE)
 ifneq ($(MKXPZ_ARCH_CMAKE),)
 	echo "CMAKE_SYSTEM_PROCESSOR = '$(MKXPZ_ARCH_CMAKE)'" >> $(MKXPZ_CROSS_FILE)
