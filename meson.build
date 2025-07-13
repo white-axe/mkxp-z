@@ -87,10 +87,8 @@ if core_is_static and host_cpu_family == 'arm'
     global_args += '-mfloat-abi=hard'
 endif
 
-# Some of the static toolchains have difficulty linking standalone executables
-# (in particular the PlayStation 4 toolchain is unable to link any executable that uses functions from the C/C++ standard library),
-# so we pass this flag on those platforms to allow CMake/Meson's link tests to work
-if core_is_static
+# The PlayStation 4 toolchain won't link most programs without either `-r` or `-Wl,--gc-sections`
+if is_orbisdev
     link_test_args += '-r'
 endif
 

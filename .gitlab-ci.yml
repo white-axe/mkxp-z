@@ -35,9 +35,10 @@
 
 .deps-linux-alpine:
   script:
-    - apk add git jq curl python3 gcc g++ ninja
+    - sudo apk add git jq curl python3 gcc g++ ninja
     - python3 -m ensurepip
     - python3 -m pip install meson cmake
+    - export PATH="$HOME/.local/bin:$PATH"
 
 # Inclusion templates, required for the build to work
 include:

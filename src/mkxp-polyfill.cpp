@@ -19,6 +19,12 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifdef MKXPZ_NO_ISASCII
+extern "C" int isascii(int c) {
+    return c < 128;
+}
+#endif
+
 #include "mkxp-polyfill.h"
 #include <cassert>
 #include <cstring>
@@ -90,12 +96,6 @@ extern "C" int vsprintf(char *buffer, const char *format, va_list vlist) {
 #ifdef MKXPZ_NO_VSNPRINTF
 extern "C" int vsnprintf(char *buffer, size_t buf_size, const char *format, va_list vlist) {
     return stbsp_vsnprintf(buffer, buf_size, format, vlist);
-}
-#endif
-
-#ifdef MKXPZ_NO_ISASCII
-int isascii(int c) {
-    return c < 128;
 }
 #endif
 

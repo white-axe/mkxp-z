@@ -120,6 +120,7 @@ else ifeq ($(platform),orbis)
     MKXPZ_CC = ['/usr/local/orbisdev/bin/clang', '-isystem/usr/local/orbisdev/usr/include']
     MKXPZ_CXX = ['/usr/local/orbisdev/bin/clang++', '-isystem/usr/local/orbisdev/usr/include/c++/v1', '-isystem/usr/local/orbisdev/usr/include']
     MKXPZ_AR = /usr/local/orbisdev/bin/orbis-ar
+    MKXPZ_LDFLAGS = -r
     # LTO isn't supported by this toolchain
     MKXPZ_LTO = false
 else ifeq ($(platform),libnx)
@@ -249,4 +250,7 @@ ifneq ($(MKXPZ_ARCH_CMAKE),)
 endif
 ifeq ($(MKXPZ_SYSTEM),darwin)
 	echo "CMAKE_OSX_SYSROOT = '/nonexistent'" >> $(MKXPZ_CROSS_FILE)
+endif
+ifneq ($(MKXPZ_LDFLAGS),)
+	echo "CMAKE_EXE_LINKER_FLAGS_INIT = '$(MKXPZ_LDFLAGS)'" >> $(MKXPZ_CROSS_FILE)
 endif
