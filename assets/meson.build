@@ -11,9 +11,11 @@ endif
 
 embedded_assets_f = files(embedded_assets)
 
+embedded_assets_sources = []
+
 count = 0
 foreach file : embedded_assets_f
-    global_sources += custom_target(embedded_assets[count],
+    embedded_assets_sources += custom_target(embedded_assets[count],
     input: file,
     output: '@0@.xxd'.format(embedded_assets[count]),
     command: [
@@ -25,3 +27,5 @@ foreach file : embedded_assets_f
     )
     count += 1
 endforeach
+
+global_dependencies += declare_dependency(sources: embedded_assets_sources)
