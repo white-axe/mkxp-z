@@ -1515,6 +1515,62 @@ jobs:
           name: mkxp-z_libretro.wiiu.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
           path: ~/dist
 
+  build-libretro-ps4:
+    needs: build-libretro-stage1
+    name: LR PlayStation 4
+    runs-on: ubuntu-latest
+    container:
+      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-orbis:latest
+      options: -u root
+    steps:
+      - name: Install dependencies
+        run: |
+          apk add git jq curl python3 gcc g++ ninja
+          python3 -m ensurepip
+          python3 -m pip install meson cmake
+
+      - id: short-sha
+        name: Get Git commit hash
+        uses: benjlevesque/short-sha@v2.2
+        with:
+          length: 7
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download stage 1
+        uses: actions/download-artifact@v4
+        with:
+          name: stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          path: libretro/build/libretro-stage1
+
+      - name: Configure core
+        run: |
+          git config --global --add safe.directory "$(pwd)"
+          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-ps4.txt --buildtype release -Db_lto=false -Dlibretro=true
+
+      - name: Build core
+        run: |
+          mkdir ~/dist
+          cd build
+          CLICOLOR_FORCE=1 ninja -v
+          mv mkxp-z_libretro.a ~
+
+      - name: Build frontend
+        run: |
+          cd ~
+          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest -H 'Authorization: Bearer ${{ github.token }}' -H 'X-GitHub-Api-Version: 2022-11-28' | jq -r '.tag_name')
+          mv mkxp-z_libretro.a retroarch/libretro_orbis.a
+          cd retroarch
+          CLICOLOR_FORCE=1 make -f Makefile.orbis LIBRETRO=mkxp-z
+          mv retroarch_orbis.self ~/dist/mkxp-z_libretro_orbis.self
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mkxp-z_libretro.ps4.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
+          path: ~/dist
+
   build-libretro-switch:
     needs: build-libretro-stage1
     name: LR Nintendo Switch

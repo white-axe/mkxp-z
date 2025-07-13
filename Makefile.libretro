@@ -111,6 +111,17 @@ else ifeq ($(platform),tvos-arm64)
     MKXPZ_ENDIAN = little
     MKXPZ_CC = ['xcrun', '--sdk', 'appletvos', '$(CC)', '-arch', 'arm64']
     MKXPZ_CXX = ['xcrun', '--sdk', 'appletvos', '$(CXX)', '-arch', 'arm64']
+else ifeq ($(platform),orbis)
+    MKXPZ_SYSTEM = bare
+    MKXPZ_SUFFIX = orbis
+    MKXPZ_CPU_FAMILY = x86_64
+    MKXPZ_CPU = x86_64
+    MKXPZ_ENDIAN = little
+    MKXPZ_CC = ['/usr/local/orbisdev/bin/clang', '-isystem/usr/local/orbisdev/usr/include']
+    MKXPZ_CXX = ['/usr/local/orbisdev/bin/clang++', '-isystem/usr/local/orbisdev/usr/include/c++/v1', '-isystem/usr/local/orbisdev/usr/include']
+    MKXPZ_AR = /usr/local/orbisdev/bin/orbis-ar
+    # LTO isn't supported by this toolchain
+    MKXPZ_LTO = false
 else ifeq ($(platform),libnx)
     MKXPZ_SYSTEM = bare
     MKXPZ_SUFFIX = libnx

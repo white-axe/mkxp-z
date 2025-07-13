@@ -93,6 +93,25 @@ extern "C" int vsnprintf(char *buffer, size_t buf_size, const char *format, va_l
 }
 #endif
 
+#ifdef MKXPZ_NO_ISASCII
+int isascii(int c) {
+    return c < 128;
+}
+#endif
+
+#ifdef MKXPZ_NO_MEMCCPY
+extern "C" void *memccpy(void *dest, const void *src, int c, size_t n) {
+    const void *ptr = std::memchr(src, c, n);
+    if (ptr != nullptr) {
+        std::memcpy(dest, src, (const uint8_t *)ptr - (const uint8_t *)src + 1);
+        return (uint8_t *)ptr + 1;
+    } else {
+        std::memcpy(dest, src, n);
+        return nullptr;
+    }
+}
+#endif
+
 extern "C" void *mkxp_aligned_malloc(size_t alignment, size_t size) {
 #if defined(MKXPZ_HAVE_POSIX_MEMALIGN) || defined(MKXPZ_BUILD_XCODE)
     void *mem;

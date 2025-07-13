@@ -125,6 +125,10 @@ int vsprintf(char *buffer, const char *format, va_list vlist);
 int vsnprintf(char *buffer, size_t buf_size, const char *format, va_list vlist);
 #endif
 
+#ifdef MKXPZ_NO_MEMCCPY
+void *memccpy(void *dest, const void *src, int c, size_t n);
+#endif
+
 void *mkxp_aligned_malloc(size_t alignment, size_t size);
 
 void mkxp_aligned_free(void *ptr, size_t alignment);

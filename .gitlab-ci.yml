@@ -33,6 +33,12 @@
   variables:
     MINIFORGE_PACKAGES: git meson cmake
 
+.deps-linux-alpine:
+  script:
+    - apk add git jq curl python3 gcc g++ ninja
+    - python3 -m ensurepip
+    - python3 -m pip install meson cmake
+
 # Inclusion templates, required for the build to work
 include:
   ################################## DESKTOPS ################################
@@ -406,18 +412,18 @@ libretro-build-tvos-arm64:
 #    - !reference [.libretro-psl1ght-static-retroarch-master, script]
 
 # PlayStation 4
-#libretro-build-orbis:
-#  extends:
-#    - .deps-linux
-#    - .libretro-orbis-static-retroarch-master
-#    - .needs-static
-#    - .core-defs
-#  needs:
-#    - !reference [.libretro-orbis-static-retroarch-master, needs]
-#    - !reference [.needs-static, needs]
-#  script:
-#    - !reference [.deps-linux, script]
-#    - !reference [.libretro-orbis-static-retroarch-master, script]
+libretro-build-orbis:
+  extends:
+    - .deps-linux-alpine
+    - .libretro-orbis-static-retroarch-master
+    - .needs-static
+    - .core-defs
+  needs:
+    - !reference [.libretro-orbis-static-retroarch-master, needs]
+    - !reference [.needs-static, needs]
+  script:
+    - !reference [.deps-linux-alpine, script]
+    - !reference [.libretro-orbis-static-retroarch-master, script]
 
 # Nintendo 3DS
 #libretro-build-ctr:

@@ -15,6 +15,7 @@ is_devkitarm = core_is_static and host_cpu_family == 'arm' and not is_vita
 is_devkitppc = core_is_static and host_cpu_family == 'ppc'
 is_devkita64 = core_is_static and host_cpu_family == 'aarch64'
 is_devkitpro = is_devkitarm or is_devkitppc or is_devkita64
+is_orbisdev = core_is_static and host_cpu_family == 'x86_64'
 
 # Position-independent code is not supported on some platforms where we need to build a static library, e.g. https://github.com/vitasdk/vita-toolchain/issues/264
 use_pic = is_devkita64 or not core_is_static
@@ -35,6 +36,7 @@ global_args = []
 global_cpp_args = []
 global_link_args = []
 libretro_ruby_args = []
+link_test_args = []
 
 if is_libretro
     global_cpp_args += '-fno-rtti'
@@ -83,6 +85,13 @@ endif
 
 if core_is_static and host_cpu_family == 'arm'
     global_args += '-mfloat-abi=hard'
+endif
+
+# Some of the static toolchains have difficulty linking standalone executables
+# (in particular the PlayStation 4 toolchain is unable to link any executable that uses functions from the C/C++ standard library),
+# so we pass this flag on those platforms to allow CMake/Meson's link tests to work
+if core_is_static
+    link_test_args += '-r'
 endif
 
 if is_emscripten
@@ -212,7 +221,7 @@ if not compilers['cpp'].links('''
         atom.store(2, std::memory_order_seq_cst);
         return atom.load(std::memory_order_seq_cst) != 2 || atom.fetch_add(3, std::memory_order_seq_cst) != 2 || atom.load(std::memory_order_seq_cst) != 5;
     }
-''', name: 'check for broken std::atomic<uint64_t>')
+''', args: link_test_args, name: 'check for broken std::atomic<uint64_t>')
     global_args += '-DMKXPZ_NO_STD_ATOMIC_UINT64_T'
 endif
 
@@ -253,7 +262,7 @@ if not compilers['cpp'].has_header('pthread.h') or not compilers['cpp'].links(''
         pthread_mutex_destroy(&mutex);
         return result;
     }
-''', name: 'pthread.h mutex sanity check')
+''', args: link_test_args, name: 'pthread.h mutex sanity check')
     if is_devkitarm
         global_args += '-DMKXPZ_DEVKITARM_NO_PTHREAD_H_MUTEX'
     else
@@ -271,7 +280,7 @@ elif not compilers['cpp'].has_header('semaphore.h') or not compilers['cpp'].link
         sem_destroy(&sem);
         return 0;
     }
-''', name: 'semaphore.h sanity check')
+''', args: link_test_args, name: 'semaphore.h sanity check')
     global_args += '-DMKXPZ_NO_SEMAPHORE_H'
 endif
 
@@ -287,7 +296,7 @@ if not compilers['cpp'].has_header('pthread.h') or not compilers['cpp'].links(''
         pthread_join(thread, &ret);
         return ret != NULL;
     }
-''', name: 'pthread.h thread sanity check')
+''', args: link_test_args, name: 'pthread.h thread sanity check')
     if is_devkitarm
         global_args += '-DMKXPZ_DEVKITARM_NO_PTHREAD_H_THREAD'
     else
@@ -303,7 +312,7 @@ if compilers['cpp'].has_header_symbol('stdlib.h', 'posix_memalign') and compiler
         void *mem;
         return posix_memalign(&mem, 16, 4);
     }
-''', name: 'posix_memalign sanity check')
+''', args: link_test_args, name: 'posix_memalign sanity check')
     global_args += '-DMKXPZ_HAVE_POSIX_MEMALIGN'
 elif compilers['cpp'].has_header_symbol('malloc.h', '_aligned_malloc') and compilers['cpp'].links('''
     #include <malloc.h>
@@ -312,21 +321,21 @@ elif compilers['cpp'].has_header_symbol('malloc.h', '_aligned_malloc') and compi
         _aligned_free(mem);
         return mem == NULL;
     }
-''', name: '_aligned_malloc sanity check')
+''', args: link_test_args, name: '_aligned_malloc sanity check')
     global_args += '-DMKXPZ_HAVE_ALIGNED_MALLOC'
 elif compilers['cpp'].has_header_symbol('stdlib.h', 'aligned_alloc') and compilers['cpp'].links('''
     #include <stdlib.h>
     int main(void) {
         return aligned_alloc(16, 4) == NULL;
     }
-''', name: 'aligned_alloc sanity check')
+''', args: link_test_args, name: 'aligned_alloc sanity check')
     global_args += '-DMKXPZ_HAVE_ALIGNED_ALLOC'
 elif compilers['cpp'].has_header_symbol('cstdlib', 'std::aligned_alloc') and compilers['cpp'].links('''
     #include <cstdlib>
     int main(void) {
         return std::aligned_alloc(16, 4) == nullptr;
     }
-''', args: ['-std=c++17'], name: 'std::aligned_alloc sanity check')
+''', args: link_test_args + ['-std=c++17'], name: 'std::aligned_alloc sanity check')
     mkxp_polyfill_needs_cpp17 = true
     global_args += '-DMKXPZ_HAVE_STD_ALIGNED_ALLOC'
 elif compilers['cpp'].links('''
@@ -334,7 +343,7 @@ elif compilers['cpp'].links('''
     int main(void) {
         return operator new[](4, std::align_val_t(16), std::nothrow_t()) == nullptr;
     }
-''', args: ['-std=c++17'], name: 'aligned operator new sanity check')
+''', args: link_test_args + ['-std=c++17'], name: 'aligned operator new sanity check')
     mkxp_polyfill_needs_cpp17 = true
     global_args += '-DMKXPZ_HAVE_ALIGNED_OPERATOR_NEW'
 else
@@ -348,8 +357,30 @@ if compilers['cpp'].has_header('sys/stat.h') and (not compilers['cpp'].has_heade
         lstat("/", &stat);
         return 0;
     }
-''', name: 'lstat sanity check'))
+''', args: link_test_args, name: 'lstat sanity check'))
     global_args += '-DMKXPZ_NO_LSTAT'
+endif
+
+if is_orbisdev or not compilers['cpp'].links('''
+    #include <ctype.h>
+    #undef isascii
+    int isascii(int);
+    int main(void) {
+        return !isascii('a');
+    }
+''', args: link_test_args, name: 'isascii sanity check')
+    global_args += '-DMKXPZ_NO_ISASCII'
+endif
+
+if is_orbisdev or not compilers['cpp'].links('''
+    #include <string.h>
+    void *memccpy(void *, const void *, int, size_t);
+    char buffer[4];
+    int main(void) {
+        return !memccpy(buffer, "abc", 'b', 4);
+    }
+''', args: link_test_args, name: 'memccpy sanity check')
+    global_args += '-DMKXPZ_NO_MEMCCPY'
 endif
 
 if host_system == 'darwin'
@@ -387,7 +418,7 @@ if host_system == 'darwin'
         int main(void) {
             return operator new[](4, std::align_val_t(16), std::nothrow_t()) == nullptr;
         }
-    ''', args: ['-std=c++17'], name: 'aligned operator new sanity check')
+    ''', args: link_test_args + ['-std=c++17'], name: 'aligned operator new sanity check')
         mkxp_polyfill_needs_cpp17 = true
         global_args += '-DMKXPZ_DARWIN_NO_ALIGNED_OPERATOR_NEW'
         global_args += '-faligned-allocation'
