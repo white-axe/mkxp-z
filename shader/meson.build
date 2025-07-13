@@ -36,9 +36,11 @@ endif
 
 embedded_shaders_f = files(embedded_shaders)
 
+embedded_shaders_dep_sources = []
+
 count = 0
 foreach file : embedded_shaders_f
-    global_sources += custom_target(embedded_shaders[count],
+    embedded_shaders_dep_sources += custom_target(embedded_shaders[count],
         input: file,
         output: '@0@.xxd'.format(embedded_shaders[count]),
         command: [
@@ -50,3 +52,5 @@ foreach file : embedded_shaders_f
         )
     count += 1
 endforeach
+
+global_dependencies += declare_dependency(sources: embedded_shaders_dep_sources)

@@ -28,8 +28,8 @@ if is_libretro and (host_cpu_family == 'ppc' or host_cpu_family == 'ppc64') and 
     error('LTO is required when building for PowerPC architectures. Please pass either `-Db_lto=true` or `-Druby_lto=true` to Meson.')
 endif
 
-global_sources = [vcs_tag(command: ['git', 'rev-parse', '--short=7', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h')]
-global_dependencies = []
+global_sources = []
+global_dependencies = [declare_dependency(sources: vcs_tag(command: ['git', 'rev-parse', '--short=7', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h'))]
 global_include_dirs = []
 global_args = []
 global_cpp_args = []
