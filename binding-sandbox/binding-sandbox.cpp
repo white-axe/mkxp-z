@@ -393,7 +393,7 @@ static VALUE user_language(VALUE self) {
 static VALUE user_name(VALUE self) {
     const char *str;
 
-    if (!mkxp_retro::environment(RETRO_ENVIRONMENT_GET_USERNAME, &str)) {
+    if (!mkxp_retro::environment(RETRO_ENVIRONMENT_GET_USERNAME, &str) || str == nullptr) {
         str = "";
     }
 
