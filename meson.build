@@ -10,8 +10,8 @@ is_clang = ['armclang', 'clang', 'emscripten', 'llvm'].contains(compilers['cpp']
 is_libretro = get_option('libretro')
 is_emscripten = host_system == 'emscripten'
 core_is_static = is_libretro and (is_emscripten or host_system == 'bare' or host_system == 'none')
-is_vita = core_is_static and host_cpu_family == 'arm' and compilers['c'].has_header_symbol('sys/config.h', '__vita__')
-is_devkitarm = core_is_static and host_cpu_family == 'arm' and not is_vita
+is_vitasdk = core_is_static and host_cpu_family == 'arm' and compilers['c'].has_header_symbol('sys/config.h', '__vita__')
+is_devkitarm = core_is_static and host_cpu_family == 'arm' and not is_vitasdk
 is_devkitppc = core_is_static and host_cpu_family == 'ppc'
 is_devkita64 = core_is_static and host_cpu_family == 'aarch64'
 is_devkitpro = is_devkitarm or is_devkitppc or is_devkita64
@@ -74,7 +74,7 @@ if is_libretro and get_option('ruby_lto') and not get_option('b_lto')
     libretro_ruby_args += '-ffat-lto-objects'
 endif
 
-if is_vita
+if is_vitasdk
     global_args += '-mword-relocations'
 endif
 
@@ -438,7 +438,7 @@ endif
 # Please submit a full bug report,
 # with preprocessed source if appropriate.
 # See <https://gcc.gnu.org/bugs/> for instructions.
-if is_vita
+if is_vitasdk
     global_args += '-DFLAC__INTEGER_ONLY_LIBRARY'
 endif
 
