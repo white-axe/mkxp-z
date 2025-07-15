@@ -501,8 +501,11 @@ jobs:
 
       - name: Build wiiurpxtool
         run: |
-          git clone https://github.com/yawut/wiiurpxtool-ng
+          mkdir wiiurpxtool-ng
           cd wiiurpxtool-ng
+          git init
+          git remote add origin https://github.com/yawut/wiiurpxtool-ng
+          git fetch --depth 1 origin 682cc9f587dee507b400a307f5a0787efc5dcb72
           git checkout 682cc9f587dee507b400a307f5a0787efc5dcb72
           git submodule update --init --recursive
           mv /usr/lib/libz.so /usr/lib/libz.so.backup
