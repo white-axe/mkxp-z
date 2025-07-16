@@ -32,6 +32,9 @@
     - .miniforge
   variables:
     MINIFORGE_PACKAGES: git meson cmake
+  before_script:
+    - !reference [.miniforge, before_script]
+    - git config --global --add safe.directory "$(pwd)"
 
 .deps-linux-alpine:
   before_script:
@@ -39,6 +42,7 @@
     - python3 -m ensurepip
     - python3 -m pip install meson cmake
     - export PATH="$HOME/.local/bin:$PATH"
+    - git config --global --add safe.directory "$(pwd)"
 
 # Inclusion templates, required for the build to work
 include:
