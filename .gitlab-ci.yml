@@ -20,7 +20,7 @@
       artifacts: true
 
 .miniforge:
-  script:
+  before_script:
     - wget -O ~/Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh"
     - bash ~/Miniforge3.sh -b -p ~/miniforge3
     - source ~/miniforge3/etc/profile.d/conda.sh
@@ -34,7 +34,7 @@
     MINIFORGE_PACKAGES: git meson cmake
 
 .deps-linux-alpine:
-  script:
+  before_script:
     - sudo apk add git python3 gcc g++ ninja
     - python3 -m ensurepip
     - python3 -m pip install meson cmake
@@ -173,16 +173,17 @@ stage1:
   stage: build-prepare
   variables:
     MINIFORGE_PACKAGES: c-compiler cxx-compiler make autoconf automake libtool zip binaryen universal-ctags ruby
-  script:
-    - !reference [.miniforge, script]
+  before_script:
+    - !reference [.miniforge, before_script]
     - if [ ! -e /usr/bin/grep ]; then ln -s /bin/grep /usr/bin/grep; fi
     - if [ ! -e /usr/bin/sed ]; then ln -s /bin/sed /usr/bin/sed; fi
     - curl -Lo ~/wasi-sdk.tar.gz https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-21/wasi-sdk-21.0-linux.tar.gz
     - mkdir ~/wasi-sdk
     - tar xzf ~/wasi-sdk.tar.gz -C ~/wasi-sdk --strip-components=1
     - rm ~/wasi-sdk.tar.gz
+  script:
     - cd libretro
-    - CLICOLOR_FORCE=1 make -j $(nproc) WASI_SDK="$HOME/wasi-sdk"
+    - CLICOLOR_FORCE=1 make -j $(($(nproc)/5)) WASI_SDK="$HOME/wasi-sdk"
   artifacts:
     paths:
       - libretro/build/libretro-stage1/
@@ -196,9 +197,9 @@ libretro-build-windows-x64:
     - .libretro-windows-x64-mingw-make-default
     - .needs-shared
     - .core-defs
-  script:
-    - !reference [.deps-linux, script]
-    - !reference [.libretro-windows-x64-mingw-make-default, script]
+  before_script:
+    - !reference [.libretro-windows-x64-mingw-make-default, before_script]
+    - !reference [.deps-linux, before_script]
 
 # Windows 32-bit
 libretro-build-windows-i686:
@@ -207,9 +208,9 @@ libretro-build-windows-i686:
     - .libretro-windows-i686-mingw-make-default
     - .needs-shared
     - .core-defs
-  script:
-    - !reference [.deps-linux, script]
-    - !reference [.libretro-windows-i686-mingw-make-default, script]
+  before_script:
+    - !reference [.libretro-windows-i686-mingw-make-default, before_script]
+    - !reference [.deps-linux, before_script]
 
 # Windows msvc10 64-bit
 #libretro-build-windows-msvc10-x64:
@@ -242,9 +243,9 @@ libretro-build-windows-i686:
 #  needs:
 #    - !reference [.libretro-djgpp-static-retroarch-master, needs]
 #    - !reference [.needs-static, needs]
-#  script:
-#    - !reference [.deps-linux, script]
-#    - !reference [.libretro-build-djgpp-i586, script]
+#  before_script:
+#    - !reference [.libretro-build-djgpp-i586, before_script]
+#    - !reference [.deps-linux, before_script]
 
 # Linux 64-bit
 libretro-build-linux-x64:
@@ -253,9 +254,9 @@ libretro-build-linux-x64:
     - .libretro-linux-x64-make-default
     - .needs-shared
     - .core-defs
-  script:
-    - !reference [.deps-linux, script]
-    - !reference [.libretro-linux-x64-make-default, script]
+  before_script:
+    - !reference [.libretro-linux-x64-make-default, before_script]
+    - !reference [.deps-linux, before_script]
 
 # Linux 32-bit
 libretro-build-linux-i686:
@@ -264,9 +265,9 @@ libretro-build-linux-i686:
     - .libretro-linux-i686-make-default
     - .needs-shared
     - .core-defs
-  script:
-    - !reference [.deps-linux, script]
-    - !reference [.libretro-linux-i686-make-default, script]
+  before_script:
+    - !reference [.libretro-linux-i686-make-default, before_script]
+    - !reference [.deps-linux, before_script]
 
 # MacOS 64-bit
 libretro-build-osx-x64:
@@ -297,9 +298,9 @@ android-armeabi-v7a:
     - .libretro-android-make-armeabi-v7a
     - .needs-shared
     - .core-defs
-  script:
-    - !reference [.deps-linux, script]
-    - !reference [.libretro-android-make-armeabi-v7a, script]
+  before_script:
+    - !reference [.libretro-android-make-armeabi-v7a, before_script]
+    - !reference [.deps-linux, before_script]
 
 # Android ARMv8a
 android-arm64-v8a:
@@ -308,9 +309,9 @@ android-arm64-v8a:
     - .libretro-android-make-arm64-v8a
     - .needs-shared
     - .core-defs
-  script:
-    - !reference [.deps-linux, script]
-    - !reference [.libretro-android-make-arm64-v8a, script]
+  before_script:
+    - !reference [.libretro-android-make-arm64-v8a, before_script]
+    - !reference [.deps-linux, before_script]
 
 # Android 64-bit x86
 android-x86_64:
@@ -319,9 +320,9 @@ android-x86_64:
     - .libretro-android-make-x86_64
     - .needs-shared
     - .core-defs
-  script:
-    - !reference [.deps-linux, script]
-    - !reference [.libretro-android-make-x86_64, script]
+  before_script:
+    - !reference [.libretro-android-make-x86_64, before_script]
+    - !reference [.deps-linux, before_script]
 
 # Android 32-bit x86
 android-x86:
@@ -330,9 +331,9 @@ android-x86:
     - .libretro-android-make-x86
     - .needs-shared
     - .core-defs
-  script:
-    - !reference [.deps-linux, script]
-    - !reference [.libretro-android-make-x86, script]
+  before_script:
+    - !reference [.libretro-android-make-x86, before_script]
+    - !reference [.deps-linux, before_script]
 
 # iOS
 libretro-build-ios-arm64:
@@ -366,9 +367,9 @@ libretro-build-tvos-arm64:
 #  needs:
 #    - !reference [.libretro-psp-static-retroarch-master, needs]
 #    - !reference [.needs-static, needs]
-#  script:
-#    - !reference [.deps-linux, script]
-#    - !reference [.libretro-psp-static-retroarch-master, script]
+#  before_script:
+#    - !reference [.libretro-psp-static-retroarch-master, before_script]
+#    - !reference [.deps-linux, before_script]
 
 # PlayStation Vita
 #libretro-build-vita:
@@ -380,9 +381,9 @@ libretro-build-tvos-arm64:
 #  needs:
 #    - !reference [.libretro-vita-static-retroarch-master, needs]
 #    - !reference [.needs-static, needs]
-#  script:
-#    - !reference [.deps-linux, script]
-#    - !reference [.libretro-vita-static-retroarch-master, script]
+#  before_script:
+#    - !reference [.libretro-vita-static-retroarch-master, before_script]
+#    - !reference [.deps-linux, before_script]
 
 # PlayStation2
 #libretro-build-ps2:
@@ -394,9 +395,9 @@ libretro-build-tvos-arm64:
 #  needs:
 #    - !reference [.libretro-ps2-static-retroarch-master, needs]
 #    - !reference [.needs-static, needs]
-#  script:
-#    - !reference [.deps-linux, script]
-#    - !reference [.libretro-ps2-static-retroarch-master, script]
+#  before_script:
+#    - !reference [.libretro-ps2-static-retroarch-master, before_script]
+#    - !reference [.deps-linux, before_script]
 
 # PlayStation3
 #libretro-build-psl1ght:
@@ -408,9 +409,9 @@ libretro-build-tvos-arm64:
 #  needs:
 #    - !reference [.libretro-psl1ght-static-retroarch-master, needs]
 #    - !reference [.needs-static, needs]
-#  script:
-#    - !reference [.deps-linux, script]
-#    - !reference [.libretro-psl1ght-static-retroarch-master, script]
+#  before_script:
+#    - !reference [.libretro-psl1ght-static-retroarch-master, before_script]
+#    - !reference [.deps-linux, before_script]
 
 # PlayStation 4
 libretro-build-orbis:
@@ -422,9 +423,9 @@ libretro-build-orbis:
   needs:
     - !reference [.libretro-orbis-static-retroarch-master, needs]
     - !reference [.needs-static, needs]
-  script:
-    - !reference [.deps-linux-alpine, script]
-    - !reference [.libretro-orbis-static-retroarch-master, script]
+  before_script:
+    - !reference [.libretro-orbis-static-retroarch-master, before_script]
+    - !reference [.deps-linux-alpine, before_script]
 
 # Nintendo 3DS
 #libretro-build-ctr:
@@ -436,9 +437,9 @@ libretro-build-orbis:
 #  needs:
 #    - !reference [.libretro-ctr-static-retroarch-master, needs]
 #    - !reference [.needs-static, needs]
-#  script:
-#    - !reference [.deps-linux, script]
-#    - !reference [.libretro-ctr-static-retroarch-master, script]
+#  before_script:
+#    - !reference [.libretro-ctr-static-retroarch-master, before_script]
+#    - !reference [.deps-linux, before_script]
 
 # Nintendo GameCube
 #libretro-build-ngc:
@@ -450,9 +451,9 @@ libretro-build-orbis:
 #  needs:
 #    - !reference [.libretro-ngc-static-retroarch-master, needs]
 #    - !reference [.needs-static, needs]
-#  script:
-#    - !reference [.deps-linux, script]
-#    - !reference [.libretro-ngc-static-retroarch-master, script]
+#  before_script:
+#    - !reference [.libretro-ngc-static-retroarch-master, before_script]
+#    - !reference [.deps-linux, before_script]
 
 # Nintendo Wii
 #libretro-build-wii:
@@ -464,9 +465,9 @@ libretro-build-orbis:
 #  needs:
 #    - !reference [.libretro-wii-static-retroarch-master, needs]
 #    - !reference [.needs-static, needs]
-#  script:
-#    - !reference [.deps-linux, script]
-#    - !reference [.libretro-wii-static-retroarch-master, script]
+#  before_script:
+#    - !reference [.libretro-wii-static-retroarch-master, before_script]
+#    - !reference [.deps-linux, before_script]
 
 # Nintendo WiiU
 #libretro-build-wiiu:
@@ -488,9 +489,9 @@ libretro-build-libnx-aarch64:
   needs:
     - !reference [.libretro-libnx-static-retroarch-master, needs]
     - !reference [.needs-static, needs]
-  script:
-    - !reference [.deps-linux, script]
-    - !reference [.libretro-libnx-static-retroarch-master, script]
+  before_script:
+    - !reference [.libretro-libnx-static-retroarch-master, before_script]
+    - !reference [.deps-linux, before_script]
 
 # OpenDingux
 #libretro-build-dingux-mips32:
@@ -499,9 +500,9 @@ libretro-build-libnx-aarch64:
 #    - .libretro-dingux-mips32-make-default
 #    - .needs-shared
 #    - .core-defs
-#  script:
-#    - !reference [.deps-linux, script]
-#    - !reference [.libretro-dingux-mips32-make-default, script]
+#  before_script:
+#    - !reference [.libretro-dingux-mips32-make-default, before_script]
+#    - !reference [.deps-linux, before_script]
 
 # OpenDingux Beta
 libretro-build-dingux-odbeta-mips32:
@@ -510,9 +511,9 @@ libretro-build-dingux-odbeta-mips32:
     - .libretro-dingux-odbeta-mips32-make-default
     - .needs-shared
     - .core-defs
-  script:
-    - !reference [.deps-linux, script]
-    - !reference [.libretro-dingux-odbeta-mips32-make-default, script]
+  before_script:
+    - !reference [.libretro-dingux-odbeta-mips32-make-default, before_script]
+    - !reference [.deps-linux, before_script]
 
 # OpenDingux Beta
 #libretro-build-rs90-odbeta-mips32:
@@ -521,9 +522,9 @@ libretro-build-dingux-odbeta-mips32:
 #    - .libretro-rs90-odbeta-mips32-make-default
 #    - .needs-shared
 #    - .core-defs
-#  script:
-#    - !reference [.deps-linux, script]
-#    - !reference [.libretro-rs90-odbeta-mips32-make-default, script]
+#  before_script:
+#    - !reference [.libretro-rs90-odbeta-mips32-make-default, before_script]
+#    - !reference [.deps-linux, before_script]
 
 # Miyoo
 libretro-build-miyoo-arm32:
@@ -532,9 +533,9 @@ libretro-build-miyoo-arm32:
     - .libretro-miyoo-arm32-make-default
     - .needs-shared
     - .core-defs
-  script:
-    - !reference [.deps-linux, script]
-    - !reference [.libretro-miyoo-arm32-make-default, script]
+  before_script:
+    - !reference [.libretro-miyoo-arm32-make-default, before_script]
+    - !reference [.deps-linux, before_script]
 
 # RetroFW
 libretro-build-retrofw-mips32:
@@ -543,9 +544,9 @@ libretro-build-retrofw-mips32:
     - .libretro-retrofw-mips32-make-default
     - .needs-shared
     - .core-defs
-  script:
-    - !reference [.deps-linux, script]
-    - !reference [.libretro-retrofw-mips32-make-default, script]
+  before_script:
+    - !reference [.libretro-retrofw-mips32-make-default, before_script]
+    - !reference [.deps-linux, before_script]
 
 #################################### MISC ##################################
 # Emscripten
@@ -558,6 +559,6 @@ libretro-build-emscripten:
   needs:
     - !reference [.libretro-emscripten-static-retroarch-master, needs]
     - !reference [.needs-static, needs]
-  script:
-    - !reference [.deps-linux, script]
-    - !reference [.libretro-emscripten-static-retroarch-master, script]
+  before_script:
+    - !reference [.libretro-emscripten-static-retroarch-master, before_script]
+    - !reference [.deps-linux, before_script]
