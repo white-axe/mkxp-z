@@ -628,7 +628,7 @@ namespace mkxp_retro {
     retro_input_poll_t input_poll;
     retro_input_state_t input_state;
     struct retro_perf_callback perf;
-    retro_hw_render_callback hw_render;
+    struct retro_hw_render_callback hw_render;
     bool keyboard_state[RETROK_LAST];
     bool input_polled;
 
