@@ -1,3 +1,5 @@
+.PHONY: all default clean
+
 ifeq ($(platform),win64)
     MKXPZ_SYSTEM = windows
     MKXPZ_FORCE_FAT_LTO = true
@@ -199,6 +201,8 @@ endif
 MKXPZ_BUILD_DIR = build
 MKXPZ_CROSS_FILE = cross.ini
 
+all default: $(MKXPZ_BUILD_OUTPUT_COPY)
+
 $(MKXPZ_BUILD_OUTPUT_COPY): $(MKXPZ_BUILD_DIR)/$(MKXPZ_BUILD_OUTPUT)
 	cp $(MKXPZ_BUILD_DIR)/$(MKXPZ_BUILD_OUTPUT) $(MKXPZ_BUILD_OUTPUT_COPY)
 
@@ -254,3 +258,8 @@ endif
 ifneq ($(MKXPZ_LDFLAGS),)
 	echo "CMAKE_EXE_LINKER_FLAGS_INIT = '$(MKXPZ_LDFLAGS)'" >> $(MKXPZ_CROSS_FILE)
 endif
+
+clean:
+	rm -rf $(MKXPZ_BUILD_DIR)
+	rm -f $(MKXPZ_CROSS_FILE)
+	meson subprojects purge --confirm
