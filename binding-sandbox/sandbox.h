@@ -88,21 +88,23 @@ namespace mkxp_sandbox {
         }
 
         // Executes the given coroutine as the top-level coroutine. Don't call this from inside of another coroutine; use `sb()->bind<T>()` instead.
-        // Returns whether or not the coroutine completed execution.
-        template <typename T> inline bool run() {
-            if (yielding) {
+        // Returns the return value of the coroutine if it completed execution.
+        template <typename T> boost::optional<decltype(bindings->bind<T>()()())> run() {
+            if (w2c_ruby_asyncify_get_state(ruby.get()) == 1) {
                 w2c_ruby_asyncify_start_rewind(ruby.get(), ruby->w2c_mkxp_sandbox_async_buf);
-                yielding = false;
             }
             for (;;) {
                 {
                     struct mkxp_sandbox::bindings::stack_frame_guard<T> frame = bindings->bind<T>();
-                    frame()();
-                    if (yielding || frame().is_complete()) break;
+                    auto result = frame()();
+                    if (frame().is_complete()) return result;
+                }
+                if (yielding) {
+                    yielding = false;
+                    return boost::none;
                 }
                 w2c_ruby_mkxp_sandbox_yield(ruby.get());
             }
-            return !yielding;
         }
     };
 

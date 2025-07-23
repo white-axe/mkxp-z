@@ -19,8 +19,6 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <cstdio>
-#include <cstring>
 #include <string>
 #include <wasm-rt.h>
 #include "wasi.h"
@@ -118,7 +116,7 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
 
 sandbox::~sandbox() {
     set_movie(nullptr);
-    if (yielding) {
+    if (w2c_ruby_asyncify_get_state(ruby.get()) == 1) {
         w2c_ruby_asyncify_stop_unwind(ruby.get());
     }
     bindings.reset(); // Destroy the bindings before destroying the runtime since the bindings destructor requires the runtime to be alive

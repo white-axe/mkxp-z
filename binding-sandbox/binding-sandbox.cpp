@@ -61,119 +61,6 @@ struct eval_script : boost::asio::coroutine {
     }
 };
 
-// Runs the game scripts.
-struct run_rmxp_scripts : boost::asio::coroutine {
-    typedef decl_slots<VALUE, VALUE, wasm_size_t, wasm_size_t, VALUE, wasm_ptr_t, wasm_ptr_t, wasm_size_t, wasm_size_t, VALUE, VALUE> slots;
-    void operator()() {
-        BOOST_ASIO_CORO_REENTER (this) {
-            // Unmarshal the script array into slot 1
-            if (rgssVer == 1) {
-                SANDBOX_AWAIT_S(0, rb_file_open, "Data/Scripts.rxdata", "rb");
-            } else if (rgssVer == 2) {
-                SANDBOX_AWAIT_S(0, rb_file_open, "Data/Scripts.rvdata", "rb");
-            } else if (rgssVer == 3) {
-                SANDBOX_AWAIT_S(0, rb_file_open, "Data/Scripts.rvdata2", "rb");
-            } else {
-                std::abort();
-            }
-            SANDBOX_AWAIT_S(1, rb_marshal_load, SANDBOX_SLOT(0));
-            SANDBOX_AWAIT(rb_io_close, SANDBOX_SLOT(0));
-
-            // Assign it to the "$RGSS_SCRIPTS" global variable
-            SANDBOX_AWAIT(rb_gv_set, "$RGSS_SCRIPTS", SANDBOX_SLOT(1));
-
-            // Get the number of scripts into slot 2
-            SANDBOX_AWAIT_S(2, get_length, SANDBOX_SLOT(1));
-
-            sb().script_decode_buffer.resize(0x1000);
-
-            for (SANDBOX_SLOT(3) = 0; SANDBOX_SLOT(3) < SANDBOX_SLOT(2); ++SANDBOX_SLOT(3)) {
-                // Get the script into slot 4
-                SANDBOX_AWAIT_S(4, rb_ary_entry, SANDBOX_SLOT(1), SANDBOX_SLOT(3));
-                // Skip this script object if it's not an array
-                SANDBOX_AWAIT_S(0, rb_obj_is_kind_of, SANDBOX_SLOT(4), sb()->rb_cArray());
-                if (!SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(0))) {
-                    continue;
-                }
-
-                // Get the name of the script, the zlib-compressed script contents of the script and the length of said contents into slots 5, 6 and 7, respectively
-                SANDBOX_AWAIT_S(0, rb_ary_entry, SANDBOX_SLOT(4), 1);
-                SANDBOX_AWAIT_S(5, rb_string_value_cstr, &SANDBOX_SLOT(0));
-                SANDBOX_AWAIT_S(0, rb_ary_entry, SANDBOX_SLOT(4), 2);
-                SANDBOX_AWAIT_S(6, rb_string_value_ptr, &SANDBOX_SLOT(0));
-                SANDBOX_AWAIT_S(7, get_bytesize, SANDBOX_SLOT(0));
-
-                // Decompress the script contents
-                {
-                    int zlib_result = Z_OK;
-                    unsigned long buffer_len = sb().script_decode_buffer.size() - 1;
-                    while (true) {
-                        zlib_result = uncompress(
-                            sb().script_decode_buffer.data(),
-                            &buffer_len,
-                            (const unsigned char *)(const char *)sb()->str(SANDBOX_SLOT(6)),
-                            SANDBOX_SLOT(7)
-                        );
-                        sb().script_decode_buffer[buffer_len] = 0;
-
-                        if (zlib_result != Z_BUF_ERROR) {
-                            break;
-                        }
-
-                        if (2UL * (unsigned long)sb().script_decode_buffer.size() <= (unsigned long)sb().script_decode_buffer.size()) {
-                            MKXPZ_THROW(std::bad_alloc());
-                        }
-                        sb().script_decode_buffer.resize(2 * sb().script_decode_buffer.size());
-                        buffer_len = sb().script_decode_buffer.size() - 1;
-                    }
-
-                    if (zlib_result != Z_OK) {
-                        mkxp_retro::log_printf(RETRO_LOG_ERROR, "Error decoding script %zu: '%s'\n", SANDBOX_SLOT(3), (const char *)sb()->str(SANDBOX_SLOT(5)));
-                        break;
-                    }
-                }
-
-                SANDBOX_AWAIT_S(0, rb_utf8_str_new_cstr, (const char *)sb().script_decode_buffer.data());
-                SANDBOX_AWAIT(rb_ary_store, SANDBOX_SLOT(4), 3, SANDBOX_SLOT(0));
-            }
-
-            sb().script_decode_buffer.clear();
-
-            // TODO: preload scripts
-
-            while (true) {
-                for (SANDBOX_SLOT(3) = 0; SANDBOX_SLOT(3) < SANDBOX_SLOT(2); ++SANDBOX_SLOT(3)) {
-                    // Get the script into slot 4
-                    SANDBOX_AWAIT_S(4, rb_ary_entry, SANDBOX_SLOT(1), SANDBOX_SLOT(3));
-                    // Skip this script object if it's not an array
-                    SANDBOX_AWAIT_S(0, rb_obj_is_kind_of, SANDBOX_SLOT(4), sb()->rb_cArray());
-                    if (!SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(0))) {
-                        continue;
-                    }
-
-                    SANDBOX_AWAIT_S(9, rb_ary_entry, SANDBOX_SLOT(4), 3);
-                    SANDBOX_AWAIT_S(10, rb_ary_entry, SANDBOX_SLOT(4), 1);
-                    SANDBOX_AWAIT(eval_script, SANDBOX_SLOT(9), SANDBOX_SLOT(10));
-                }
-
-                // Stop unless a reset was requested
-                SANDBOX_AWAIT_S(0, rb_gv_get, "$!");
-                SANDBOX_AWAIT_S(0, rb_obj_class, SANDBOX_SLOT(0));
-                if (SANDBOX_SLOT(0) != reset_class) {
-                    break;
-                }
-
-                SANDBOX_AWAIT(audio_reset);
-                SANDBOX_AWAIT(graphics_reset);
-            }
-        }
-    }
-
-    ~run_rmxp_scripts() {
-        sb().script_decode_buffer.clear();
-    }
-};
-
 static VALUE load_data(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
         typedef decl_slots<wasm_ptr_t, VALUE, VALUE, ID> slots;
@@ -681,7 +568,114 @@ void sandbox_binding_init::operator()() {
         //SANDBOX_AWAIT(rb_define_module_function, cfg_module, "[]", (VALUE (*)(ANYARGS))get_json_setting, 1);
         //SANDBOX_AWAIT(rb_define_module_function, cfg_module, "[]=", (VALUE (*)(ANYARGS))set_json_setting, 2);
         //SANDBOX_AWAIT(rb_define_module_function, cfg_module, "to_hash", (VALUE (*)(ANYARGS))get_all_json_settings, 0);
-
-        SANDBOX_AWAIT(run_rmxp_scripts);
     }
+}
+
+void sandbox_run_rmxp_scripts::operator()() {
+    BOOST_ASIO_CORO_REENTER (this) {
+        // Unmarshal the script array into slot 1
+        if (rgssVer == 1) {
+            SANDBOX_AWAIT_S(0, rb_file_open, "Data/Scripts.rxdata", "rb");
+        } else if (rgssVer == 2) {
+            SANDBOX_AWAIT_S(0, rb_file_open, "Data/Scripts.rvdata", "rb");
+        } else if (rgssVer == 3) {
+            SANDBOX_AWAIT_S(0, rb_file_open, "Data/Scripts.rvdata2", "rb");
+        } else {
+            std::abort();
+        }
+        SANDBOX_AWAIT_S(1, rb_marshal_load, SANDBOX_SLOT(0));
+        SANDBOX_AWAIT(rb_io_close, SANDBOX_SLOT(0));
+
+        // Assign it to the "$RGSS_SCRIPTS" global variable
+        SANDBOX_AWAIT(rb_gv_set, "$RGSS_SCRIPTS", SANDBOX_SLOT(1));
+
+        // Get the number of scripts into slot 2
+        SANDBOX_AWAIT_S(2, get_length, SANDBOX_SLOT(1));
+
+        sb().script_decode_buffer.resize(0x1000);
+
+        for (SANDBOX_SLOT(3) = 0; SANDBOX_SLOT(3) < SANDBOX_SLOT(2); ++SANDBOX_SLOT(3)) {
+            // Get the script into slot 4
+            SANDBOX_AWAIT_S(4, rb_ary_entry, SANDBOX_SLOT(1), SANDBOX_SLOT(3));
+            // Skip this script object if it's not an array
+            SANDBOX_AWAIT_S(0, rb_obj_is_kind_of, SANDBOX_SLOT(4), sb()->rb_cArray());
+            if (!SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(0))) {
+                continue;
+            }
+
+            // Get the name of the script, the zlib-compressed script contents of the script and the length of said contents into slots 5, 6 and 7, respectively
+            SANDBOX_AWAIT_S(0, rb_ary_entry, SANDBOX_SLOT(4), 1);
+            SANDBOX_AWAIT_S(5, rb_string_value_cstr, &SANDBOX_SLOT(0));
+            SANDBOX_AWAIT_S(0, rb_ary_entry, SANDBOX_SLOT(4), 2);
+            SANDBOX_AWAIT_S(6, rb_string_value_ptr, &SANDBOX_SLOT(0));
+            SANDBOX_AWAIT_S(7, get_bytesize, SANDBOX_SLOT(0));
+
+            // Decompress the script contents
+            {
+                int zlib_result = Z_OK;
+                unsigned long buffer_len = sb().script_decode_buffer.size() - 1;
+                while (true) {
+                    zlib_result = uncompress(
+                        sb().script_decode_buffer.data(),
+                        &buffer_len,
+                        (const unsigned char *)(const char *)sb()->str(SANDBOX_SLOT(6)),
+                        SANDBOX_SLOT(7)
+                    );
+                    sb().script_decode_buffer[buffer_len] = 0;
+
+                    if (zlib_result != Z_BUF_ERROR) {
+                        break;
+                    }
+
+                    if (2UL * (unsigned long)sb().script_decode_buffer.size() <= (unsigned long)sb().script_decode_buffer.size()) {
+                        MKXPZ_THROW(std::bad_alloc());
+                    }
+                    sb().script_decode_buffer.resize(2 * sb().script_decode_buffer.size());
+                    buffer_len = sb().script_decode_buffer.size() - 1;
+                }
+
+                if (zlib_result != Z_OK) {
+                    mkxp_retro::log_printf(RETRO_LOG_ERROR, "Error decoding script %zu: '%s'\n", SANDBOX_SLOT(3), (const char *)sb()->str(SANDBOX_SLOT(5)));
+                    break;
+                }
+            }
+
+            SANDBOX_AWAIT_S(0, rb_utf8_str_new_cstr, (const char *)sb().script_decode_buffer.data());
+            SANDBOX_AWAIT(rb_ary_store, SANDBOX_SLOT(4), 3, SANDBOX_SLOT(0));
+        }
+
+        sb().script_decode_buffer.clear();
+
+        // TODO: preload scripts
+
+        while (true) {
+            for (SANDBOX_SLOT(3) = 0; SANDBOX_SLOT(3) < SANDBOX_SLOT(2); ++SANDBOX_SLOT(3)) {
+                // Get the script into slot 4
+                SANDBOX_AWAIT_S(4, rb_ary_entry, SANDBOX_SLOT(1), SANDBOX_SLOT(3));
+                // Skip this script object if it's not an array
+                SANDBOX_AWAIT_S(0, rb_obj_is_kind_of, SANDBOX_SLOT(4), sb()->rb_cArray());
+                if (!SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(0))) {
+                    continue;
+                }
+
+                SANDBOX_AWAIT_S(9, rb_ary_entry, SANDBOX_SLOT(4), 3);
+                SANDBOX_AWAIT_S(10, rb_ary_entry, SANDBOX_SLOT(4), 1);
+                SANDBOX_AWAIT(eval_script, SANDBOX_SLOT(9), SANDBOX_SLOT(10));
+            }
+
+            // Stop unless a reset was requested
+            SANDBOX_AWAIT_S(0, rb_gv_get, "$!");
+            SANDBOX_AWAIT_S(0, rb_obj_class, SANDBOX_SLOT(0));
+            if (SANDBOX_SLOT(0) != reset_class) {
+                break;
+            }
+
+            SANDBOX_AWAIT(audio_reset);
+            SANDBOX_AWAIT(graphics_reset);
+        }
+    }
+}
+
+sandbox_run_rmxp_scripts::~sandbox_run_rmxp_scripts() {
+    sb().script_decode_buffer.clear();
 }

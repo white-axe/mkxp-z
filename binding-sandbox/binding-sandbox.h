@@ -28,6 +28,12 @@ namespace mkxp_sandbox {
     struct sandbox_binding_init : boost::asio::coroutine {
         void operator()();
     };
+
+    struct sandbox_run_rmxp_scripts : boost::asio::coroutine {
+        typedef decl_slots<VALUE, VALUE, wasm_size_t, wasm_size_t, VALUE, wasm_ptr_t, wasm_ptr_t, wasm_size_t, wasm_size_t, VALUE, VALUE> slots;
+        void operator()();
+        ~sandbox_run_rmxp_scripts();
+    };
 }
 
 #endif // MKXPZ_BINDING_SANDBOX_H

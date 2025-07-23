@@ -722,47 +722,85 @@ static const char *get_core_option(const char *key) {
     return environment(RETRO_ENVIRONMENT_GET_VARIABLE, &variable) ? variable.value : "";
 }
 
-static VALUE func(VALUE arg) {
-    struct coro : boost::asio::coroutine {
-        VALUE operator()() {
-            BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT(sandbox_binding_init);
+struct init : boost::asio::coroutine {
+    typedef decl_slots<VALUE> slots;
+
+    static VALUE func(VALUE arg) {
+        struct coro : boost::asio::coroutine {
+            VALUE operator()() {
+                BOOST_ASIO_CORO_REENTER (this) {
+                    SANDBOX_AWAIT(sandbox_binding_init);
+                }
+
+                return SANDBOX_TRUE;
             }
+        };
 
-            return SANDBOX_TRUE;
-        }
-    };
+        return sb()->bind<struct coro>()()();
+    }
 
-    return sb()->bind<struct coro>()()();
-}
+    static VALUE rescue(VALUE arg, VALUE exception) {
+        struct coro : boost::asio::coroutine {
+            VALUE operator()(VALUE exception) {
+                BOOST_ASIO_CORO_REENTER (this) {
+                    SANDBOX_AWAIT(log_backtrace, exception);
+                }
 
-static VALUE rescue(VALUE arg, VALUE exception) {
-    struct coro : boost::asio::coroutine {
-        VALUE operator()(VALUE exception) {
-            BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT(log_backtrace, exception);
+                return SANDBOX_FALSE;
             }
+        };
 
-            return SANDBOX_FALSE;
+        return sb()->bind<struct coro>()()(exception);
+    }
+
+    bool operator()() {
+        BOOST_ASIO_CORO_REENTER (this) {
+            SANDBOX_AWAIT(rb_rescue2, func, SANDBOX_NIL, rescue, SANDBOX_NIL, sb()->rb_eException(), 0);
+            return SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(0));
         }
-    };
 
-    return sb()->bind<struct coro>()()(exception);
-}
+        return false;
+    }
+};
 
 struct main : boost::asio::coroutine {
     typedef decl_slots<VALUE> slots;
 
-    void operator()() {
+    static VALUE func(VALUE arg) {
+        struct coro : boost::asio::coroutine {
+            VALUE operator()() {
+                BOOST_ASIO_CORO_REENTER (this) {
+                    SANDBOX_AWAIT(sandbox_run_rmxp_scripts);
+                }
+
+                return SANDBOX_TRUE;
+            }
+        };
+
+        return sb()->bind<struct coro>()()();
+    }
+
+    static VALUE rescue(VALUE arg, VALUE exception) {
+        struct coro : boost::asio::coroutine {
+            VALUE operator()(VALUE exception) {
+                BOOST_ASIO_CORO_REENTER (this) {
+                    SANDBOX_AWAIT(log_backtrace, exception);
+                }
+
+                return SANDBOX_FALSE;
+            }
+        };
+
+        return sb()->bind<struct coro>()()(exception);
+    }
+
+    bool operator()() {
         BOOST_ASIO_CORO_REENTER (this) {
             SANDBOX_AWAIT_S(0, rb_rescue2, func, SANDBOX_NIL, rescue, SANDBOX_NIL, sb()->rb_eException(), 0);
-            if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(0))) {
-                log_printf(RETRO_LOG_INFO, "Game exited; terminating\n");
-                environment(RETRO_ENVIRONMENT_SHUTDOWN, nullptr);
-            } else {
-                log_printf(RETRO_LOG_ERROR, "Game threw an exception; terminating\n");
-            }
+            return SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(0));
         }
+
+        return false;
     }
 };
 
@@ -799,6 +837,19 @@ static void deinit_sandbox() {
     conf.reset();
 
     fs.reset();
+}
+
+static bool init_shared_state() {
+    Exception e;
+    SharedState::initInstance(e, &thread_data.get());
+    if (e.is_error()) {
+        log_printf(RETRO_LOG_ERROR, "Error initializing shared state: %s\n", e.what());
+        deinit_sandbox();
+        return false;
+    } else {
+        shared_state_initialized = true;
+        return true;
+    }
 }
 
 static bool init_sandbox() {
@@ -1243,6 +1294,8 @@ static bool init_sandbox() {
     frame_time_remainder = 0;
     retro_run_count = 0;
 
+    while (!sb().run<struct init>().has_value());
+
     return true;
 }
 
@@ -1385,9 +1438,6 @@ extern "C" RETRO_API void retro_init() {
         save_state_size = (size_t)(100 * 0x100000);
     }
     save_state_size = std::max(save_state_size, (size_t)(64 * 0x100000));
-
-    uint64_t quirks = RETRO_SERIALIZATION_QUIRK_MUST_INITIALIZE;
-    environment(RETRO_ENVIRONMENT_SET_SERIALIZATION_QUIRKS, &quirks);
 }
 
 extern "C" RETRO_API void retro_deinit() {
@@ -1421,10 +1471,17 @@ extern "C" RETRO_API void retro_reset() {
 }
 
 extern "C" RETRO_API void retro_run() {
-    bool should_render = mkxp_retro::sandbox.has_value() && (frame_count == 0 || frame_time_remainder >= frame_time_callback.reference);
+    // We need to wait until the graphics context is initialized before initializing shared state,
+    // which is why we initialize it here instead of in `retro_load_game()`
+    if (mkxp_retro::sandbox.has_value() && !shared_state_initialized.load_relaxed()) {
+        init_shared_state();
+    }
+    assert(mkxp_retro::sandbox.has_value() == shared_state_initialized.load_relaxed());
+
+    bool should_render = mkxp_retro::sandbox.has_value() && (frame_count == 0 || frame_time_remainder >= (uint64_t)frame_time_callback.reference);
 
     if (should_render) {
-        frame_time_remainder %= frame_time_callback.reference;
+        frame_time_remainder %= (uint64_t)frame_time_callback.reference;
     }
 
     if (!frame_time_callback_enabled) {
@@ -1435,18 +1492,7 @@ extern "C" RETRO_API void retro_run() {
 
     input_polled = false;
 
-    // We deferred initializing the shared state since the OpenGL symbols aren't available until the first call to `retro_run()`
-    if (mkxp_retro::sandbox.has_value() && !shared_state_initialized.load_relaxed()) {
-        Exception e;
-        SharedState::initInstance(e, &thread_data.get());
-        if (e.is_error()) {
-            log_printf(RETRO_LOG_ERROR, "Error initializing shared state: %s\n", e.what());
-            deinit_sandbox();
-            should_render = false;
-        } else {
-            shared_state_initialized = true;
-        }
-    } else if (hw_render.context_type != RETRO_HW_CONTEXT_NONE && (should_render || (!dupe_supported && mkxp_retro::sandbox.has_value()))) {
+    if (hw_render.context_type != RETRO_HW_CONTEXT_NONE && (should_render || (!dupe_supported && mkxp_retro::sandbox.has_value()))) {
         glState.refresh();
     }
 
@@ -1528,7 +1574,14 @@ extern "C" RETRO_API void retro_run() {
     }
 
     if (should_render) {
-        if (sb().run<struct main>()) {
+        boost::optional<bool> result = sb().run<struct main>();
+        if (result.has_value()) {
+            if (*result) {
+                log_printf(RETRO_LOG_INFO, "Game exited; terminating\n");
+                environment(RETRO_ENVIRONMENT_SHUTDOWN, nullptr);
+            } else {
+                log_printf(RETRO_LOG_ERROR, "Game threw an exception; terminating\n");
+            }
             deinit_sandbox();
             should_render = false;
         }
@@ -1625,7 +1678,12 @@ extern "C" RETRO_API size_t retro_serialize_size() {
 #define DESER_OBJECTS_END_FAIL do { DESER_OBJECTS_END; sb()->vacant_object_keys.clear(); sb()->objects.clear(); DESER_FAIL; } while (0)
 
 extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
-    if (!shared_state_initialized.load_relaxed()) {
+    if (mkxp_retro::sandbox.has_value() && !shared_state_initialized.load_relaxed()) {
+        init_shared_state();
+    }
+    assert(mkxp_retro::sandbox.has_value() == shared_state_initialized.load_relaxed());
+
+    if (!mkxp_retro::sandbox.has_value()) {
         return false;
     }
 
@@ -1783,7 +1841,12 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
 }
 
 extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
-    if (!shared_state_initialized.load_relaxed()) {
+    if (mkxp_retro::sandbox.has_value() && !shared_state_initialized.load_relaxed()) {
+        init_shared_state();
+    }
+    assert(mkxp_retro::sandbox.has_value() == shared_state_initialized.load_relaxed());
+
+    if (!mkxp_retro::sandbox.has_value()) {
         return false;
     }
 
@@ -2185,7 +2248,7 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
         if (e.is_error()) {
             log_printf(RETRO_LOG_ERROR, "%s\n", e.what());
             deinit_sandbox();
-        } else if (shared_state_initialized) {
+        } else if (shared_state_initialized.load_relaxed()) {
             glState.refresh();
             shState->sandbox_reinit();
             shState->graphics().sandbox_reinit();
