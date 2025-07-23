@@ -1670,15 +1670,6 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         ADVANCE(memory_size);
     }
 
-    // Write the sandbox state
-    if (!sandbox_serialize(sb()->get_machine_stack_pointer(), data, max_size)) return false;
-    if (!sandbox_serialize(sb()->get_asyncify_state(), data, max_size)) return false;
-    if (!sandbox_serialize(sb()->get_asyncify_data(), data, max_size)) return false;
-    if (!sandbox_serialize(frame_count, data, max_size)) return false;
-    if (!sandbox_serialize(frame_time.load_relaxed(), data, max_size)) return false;
-    if (!sandbox_serialize(frame_time_remainder, data, max_size)) return false;
-    if (!sandbox_serialize(retro_run_count, data, max_size)) return false;
-
     // Write the number of sandbox fibers
     if (!sandbox_serialize((wasm_size_t)sb()->fiber_list.size(), data, max_size)) return false;
 
@@ -1706,6 +1697,15 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
             }
         }
     }
+
+    // Write the sandbox state
+    if (!sandbox_serialize(sb()->get_machine_stack_pointer(), data, max_size)) return false;
+    if (!sandbox_serialize(sb()->get_asyncify_state(), data, max_size)) return false;
+    if (!sandbox_serialize(sb()->get_asyncify_data(), data, max_size)) return false;
+    if (!sandbox_serialize(frame_count, data, max_size)) return false;
+    if (!sandbox_serialize(frame_time.load_relaxed(), data, max_size)) return false;
+    if (!sandbox_serialize(frame_time_remainder, data, max_size)) return false;
+    if (!sandbox_serialize(retro_run_count, data, max_size)) return false;
 
     // Write the pseudorandom number generator state and open WASI file descriptors
     if (!sb().sandbox_serialize_wasi(data, max_size)) return false;
@@ -1834,43 +1834,16 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     }
     ADVANCE(sizeof MKXPZ_BINDING_SANDBOX_HASH - 1);
 
-    // Read the VM memory
     {
+        // Read the VM memory capacity and size
         wasm_size_t memory_capacity;
         if (!sandbox_deserialize(memory_capacity, data, max_size)) return false;
         wasm_size_t memory_size;
         if (!sandbox_deserialize(memory_size, data, max_size)) return false;
         RESERVE(memory_size);
-        sb()->copy_memory_from(data, memory_size, memory_capacity, deser_swap_bytes);
+        const void *memory = data;
         ADVANCE(memory_size);
-    }
 
-    // Read the sandbox state
-    {
-        wasm_ptr_t value;
-        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
-        sb()->set_machine_stack_pointer(value);
-    }
-    {
-        uint8_t value;
-        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
-        sb()->set_asyncify_state(value);
-    }
-    {
-        wasm_ptr_t value;
-        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
-        sb()->set_asyncify_data(value);
-    }
-    if (!sandbox_deserialize(frame_count, data, max_size)) DESER_FAIL;
-    {
-        uint64_t value;
-        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
-        frame_time = value;
-    }
-    if (!sandbox_deserialize(frame_time_remainder, data, max_size)) DESER_FAIL;
-    if (!sandbox_deserialize(retro_run_count, data, max_size)) DESER_FAIL;
-
-    {
         // Read sandbox fibers
         wasm_size_t num_fibers;
         if (!sandbox_deserialize(num_fibers, data, max_size)) DESER_FAIL;
@@ -1907,7 +1880,35 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
 
             --num_fibers;
         }
+
+        // Read the VM memory
+        sb()->copy_memory_from(memory, memory_size, memory_capacity, deser_swap_bytes);
     }
+
+    // Read the sandbox state
+    {
+        wasm_ptr_t value;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
+        sb()->set_machine_stack_pointer(value);
+    }
+    {
+        uint8_t value;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
+        sb()->set_asyncify_state(value);
+    }
+    {
+        wasm_ptr_t value;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
+        sb()->set_asyncify_data(value);
+    }
+    if (!sandbox_deserialize(frame_count, data, max_size)) DESER_FAIL;
+    {
+        uint64_t value;
+        if (!sandbox_deserialize(value, data, max_size)) DESER_FAIL;
+        frame_time = value;
+    }
+    if (!sandbox_deserialize(frame_time_remainder, data, max_size)) DESER_FAIL;
+    if (!sandbox_deserialize(retro_run_count, data, max_size)) DESER_FAIL;
 
     // Read the pseudorandom number generator state and open WASI file descriptors
     if (!sb().sandbox_deserialize_wasi(data, max_size)) DESER_FAIL;
