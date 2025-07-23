@@ -1,4 +1,4 @@
-# This patch makes OpenAL Soft use mkxp-polyfill.cpp instead of POSIX threads and `std::mutex` for portability reasons.
+# This patch makes FluidSynth use mkxp-polyfill.cpp instead of POSIX threads and `std::mutex` for portability reasons.
 
 --- a/src/utils/fluid_sys.c
 +++ b/src/utils/fluid_sys.c
