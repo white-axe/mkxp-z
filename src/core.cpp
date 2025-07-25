@@ -1741,15 +1741,15 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         if (!sandbox_serialize(fiber.stack_index, data, max_size)) return false;
 
         // Write the number of frames in the fiber
-        if (!sandbox_serialize(std::max((wasm_size_t)fiber.get_stack().size(), (wasm_size_t)fiber.deser_stack.size()), data, max_size)) return false;
+        if (!sandbox_serialize(std::max((wasm_size_t)fiber.stack.size(), (wasm_size_t)fiber.deser_stack.size()), data, max_size)) return false;
 
         // Write the stack pointer and state of each frame
-        for (const auto &frame : fiber.get_stack()) {
+        for (const auto &frame : fiber.stack) {
             if (!sandbox_serialize(frame.get_stack_pointer(), data, max_size)) return false;
             if (!sandbox_serialize((int32_t)frame, data, max_size)) return false;
         }
-        if (fiber.deser_stack.size() > fiber.get_stack().size()) {
-            for (auto it = fiber.deser_stack.begin() + fiber.get_stack().size(); it != fiber.deser_stack.end(); ++it) {
+        if (fiber.deser_stack.size() > fiber.stack.size()) {
+            for (auto it = fiber.deser_stack.begin() + fiber.stack.size(); it != fiber.deser_stack.end(); ++it) {
                 if (!sandbox_serialize(it->stack_ptr, data, max_size)) return false;
                 if (!sandbox_serialize(it->state, data, max_size)) return false;
             }
@@ -1911,6 +1911,12 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
         wasm_size_t num_fibers;
         if (!sandbox_deserialize(num_fibers, data, max_size)) DESER_FAIL;
 
+        for (auto &fiber : sb()->fiber_list) {
+            for (auto &frame : fiber.stack) {
+                // Make sure the destructors of the existing stack frames don't run when we call `sb()->fiber_list.clear()` a few lines from now
+                frame.forget();
+            }
+        }
         sb()->fiber_map.clear();
         sb()->fiber_list.clear();
         sb()->fiber_map.reserve(num_fibers);
@@ -2019,7 +2025,7 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
             if (typenum > SANDBOX_NUM_TYPENUMS) DESER_OBJECTS_END_FAIL;
 
             bool should_be_disposed;
-            if (!sandbox_deserialize(should_be_disposed, data, max_size)) return false;
+            if (!sandbox_deserialize(should_be_disposed, data, max_size)) DESER_OBJECTS_END_FAIL;
 
             // Destroy and recreate objects that don't match the type in the save state, or are currently disposed but not disposed in the save state
             auto &object = sb()->objects[object_key - 1];

@@ -97,7 +97,10 @@ namespace mkxp_sandbox {
                 {
                     struct mkxp_sandbox::bindings::stack_frame_guard<T> frame = bindings->bind<T>();
                     auto result = frame()();
-                    if (frame().is_complete()) return result;
+                    if (frame().is_complete()) {
+                        assert(!yielding);
+                        return result;
+                    }
                 }
                 if (yielding) {
                     yielding = false;
