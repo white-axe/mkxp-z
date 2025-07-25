@@ -70,13 +70,15 @@ template <typename T> static typename std::enable_if<std::is_base_of<Disposable,
 
 template <typename T> static typename std::enable_if<!std::is_base_of<Disposable, T>::value>::type dispose(void *self) {}
 
-template <typename T> static typename std::enable_if<std::is_base_of<Disposable, T>::value, bool>::type disposed(void *self) {
+template <typename T> static typename std::enable_if<std::is_base_of<Disposable, T>::value, bool>::type is_disposed(void *self) {
     return self == nullptr || ((T *)self)->isDisposed();
 }
 
-template <typename T> static typename std::enable_if<!std::is_base_of<Disposable, T>::value, bool>::type disposed(void *self) {
+template <typename T> static typename std::enable_if<!std::is_base_of<Disposable, T>::value, bool>::type is_disposed(void *self) {
     return self == nullptr;
 }
+
+template <typename T> static constexpr bool is_disposable = std::is_base_of<Disposable, T>::value;
 
 template <typename T> static bool serialize(const void *self, void *&data, wasm_size_t &max_size) {
     return ((const T *)self)->sandbox_serialize(data, max_size);
@@ -124,7 +126,8 @@ template <typename T> static typename std::enable_if<!boost::is_detected<reinit_
     construct<T>, \
     destroy<T>, \
     dispose<T>, \
-    disposed<T>, \
+    is_disposed<T>, \
+    is_disposable<T>, \
     serialize<T>, \
     deserialize<T>, \
     deserialize_begin<T>, \

@@ -1785,9 +1785,13 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
                 num_free_objects = 0;
             }
             if (!sandbox_serialize(object.typenum, data, max_size)) SER_OBJECTS_END_FAIL;
-            bool disposed = typenum_table[object.typenum - 1].disposed(object.ptr);
-            if (!sandbox_serialize(disposed, data, max_size)) SER_OBJECTS_END_FAIL;
-            if (!disposed) {
+            if (typenum_table[object.typenum - 1].is_disposable) {
+                bool is_disposed = typenum_table[object.typenum - 1].is_disposed(object.ptr);
+                if (!sandbox_serialize(is_disposed, data, max_size)) SER_OBJECTS_END_FAIL;
+                if (!is_disposed) {
+                    if (!typenum_table[object.typenum - 1].serialize(object.ptr, data, max_size)) SER_OBJECTS_END_FAIL;
+                }
+            } else {
                 if (!typenum_table[object.typenum - 1].serialize(object.ptr, data, max_size)) SER_OBJECTS_END_FAIL;
             }
         }
@@ -2025,12 +2029,16 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
             if (typenum > SANDBOX_NUM_TYPENUMS) DESER_OBJECTS_END_FAIL;
 
             bool should_be_disposed;
-            if (!sandbox_deserialize(should_be_disposed, data, max_size)) DESER_OBJECTS_END_FAIL;
+            if (typenum_table[typenum - 1].is_disposable) {
+                if (!sandbox_deserialize(should_be_disposed, data, max_size)) DESER_OBJECTS_END_FAIL;
+            } else {
+                should_be_disposed = false;
+            }
 
             // Destroy and recreate objects that don't match the type in the save state, or are currently disposed but not disposed in the save state
             auto &object = sb()->objects[object_key - 1];
-            bool currently_disposed = object.typenum == 0 || typenum_table[object.typenum - 1].disposed(object.ptr);
-            bool should_create = object.typenum != typenum || (currently_disposed && !should_be_disposed);
+            bool is_currently_disposed = object.typenum == 0 || typenum_table[object.typenum - 1].is_disposed(object.ptr);
+            bool should_create = object.typenum != typenum || (is_currently_disposed && !should_be_disposed);
             bool should_destroy = should_create && object.typenum > 0;
             if (should_destroy) {
                 typenum_table[object.typenum - 1].destroy(object.ptr);
@@ -2039,14 +2047,14 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
                 object.typenum = typenum;
                 object.ptr = typenum_table[typenum - 1].construct();
                 if (object.ptr == nullptr) DESER_OBJECTS_END_FAIL;
-                currently_disposed = false;
+                is_currently_disposed = false;
                 typenum_table[typenum - 1].deserialize_begin(object.ptr, true);
             }
 
             // Deserialize the object
             if (!should_be_disposed) {
                 if (!typenum_table[typenum - 1].deserialize(object.ptr, data, max_size)) DESER_OBJECTS_END_FAIL;
-            } else if (!currently_disposed) {
+            } else if (!is_currently_disposed) {
                 typenum_table[typenum - 1].dispose(object.ptr);
             }
 

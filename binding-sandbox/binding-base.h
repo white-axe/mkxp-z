@@ -258,7 +258,8 @@ namespace mkxp_sandbox {
         void *(*construct)();
         void (*destroy)(void *self);
         void (*dispose)(void *self);
-        bool (*disposed)(void *self);
+        bool (*is_disposed)(void *self);
+        bool is_disposable;
         bool (*serialize)(const void *self, void *&data, wasm_size_t &max_size);
         bool (*deserialize)(void *self, const void *&data, wasm_size_t &max_size);
         void (*deserialize_begin)(void *self, bool is_new);
