@@ -30,20 +30,20 @@ using namespace mkxp_sandbox;
 
 binding_base::deser_stack_frame::deser_stack_frame(wasm_ptr_t stack_ptr, int32_t state) : stack_ptr(stack_ptr), state(state) {}
 
-binding_base::stack_frame::stack_frame(void *coroutine, void (*destructor)(void *coroutine), wasm_ptr_t stack_ptr) : coroutine(coroutine), destructor(destructor), stack_ptr(stack_ptr) {}
+binding_base::stack_frame::stack_frame(void *coroutine, void (*destroy)(void *coroutine), wasm_ptr_t stack_ptr) : coroutine(coroutine), destroy(destroy), stack_ptr(stack_ptr) {}
 
-binding_base::stack_frame::stack_frame(struct binding_base::stack_frame &&frame) noexcept : coroutine(std::exchange(frame.coroutine, nullptr)), destructor(std::exchange(frame.destructor, nullptr)), stack_ptr(std::exchange(frame.stack_ptr, 0)) {}
+binding_base::stack_frame::stack_frame(struct binding_base::stack_frame &&frame) noexcept : coroutine(std::exchange(frame.coroutine, nullptr)), destroy(std::exchange(frame.destroy, nullptr)), stack_ptr(std::exchange(frame.stack_ptr, 0)) {}
 
 struct binding_base::stack_frame &binding_base::stack_frame::operator=(struct binding_base::stack_frame &&frame) noexcept {
     coroutine = std::exchange(frame.coroutine, nullptr);
-    destructor = std::exchange(frame.destructor, nullptr);
+    destroy = std::exchange(frame.destroy, nullptr);
     stack_ptr = std::exchange(frame.stack_ptr, 0);
     return *this;
 }
 
 binding_base::stack_frame::~stack_frame() {
-    if (destructor != nullptr) {
-        destructor(coroutine);
+    if (destroy != nullptr) {
+        destroy(coroutine);
     }
 }
 

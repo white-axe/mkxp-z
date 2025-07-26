@@ -282,7 +282,7 @@ namespace mkxp_sandbox {
 
         struct stack_frame {
             friend struct binding_base;
-            stack_frame(void *coroutine, void (*destructor)(void *coroutine), wasm_ptr_t stack_ptr);
+            stack_frame(void *coroutine, void (*destroy)(void *coroutine), wasm_ptr_t stack_ptr);
             stack_frame(const struct stack_frame &frame) = delete;
             stack_frame(struct stack_frame &&frame) noexcept;
             struct stack_frame &operator=(const struct stack_frame &frame) = delete;
@@ -302,7 +302,7 @@ namespace mkxp_sandbox {
             }
         private:
             void *coroutine;
-            void (*destructor)(void *coroutine);
+            void (*destroy)(void *coroutine);
             wasm_ptr_t stack_ptr;
         };
 
@@ -425,8 +425,8 @@ namespace mkxp_sandbox {
             struct binding_base *bind;
             struct fiber *fiber;
 
-            static void coroutine_destructor(void *coroutine) {
-                ((T *)coroutine)->~T();
+            static void destroy_coroutine(void *coroutine) {
+                delete (T *)coroutine;
             }
 
             static struct fiber &init_fiber(struct binding_base &bind) {
@@ -443,11 +443,11 @@ namespace mkxp_sandbox {
                 }
             }
 
-            template <typename U> static typename std::enable_if<std::is_constructible<U, struct binding_base &>::value, U *>::type construct_frame(struct binding_base &bind) {
+            template <typename U> static typename std::enable_if<std::is_constructible<U, struct binding_base &>::value, U *>::type construct_coroutine(struct binding_base &bind) {
                 return new U(bind);
             }
 
-            template <typename U> static typename std::enable_if<!std::is_constructible<U, struct binding_base &>::value, U *>::type construct_frame(struct binding_base &bind) {
+            template <typename U> static typename std::enable_if<!std::is_constructible<U, struct binding_base &>::value, U *>::type construct_coroutine(struct binding_base &bind) {
                 return new U;
             }
 
@@ -470,10 +470,10 @@ namespace mkxp_sandbox {
                             MKXPZ_THROW(std::bad_alloc());
                         }
                         b.stack_ptr = deser_frame.stack_ptr;
-                        coroutine = construct_frame<T>(b);
+                        coroutine = construct_coroutine<T>(b);
                         fiber->stack.emplace_back(
                             coroutine,
-                            coroutine_destructor,
+                            destroy_coroutine,
                             b.stack_ptr
                         );
                         fiber->stack.back() = deser_frame.state;
@@ -512,10 +512,10 @@ namespace mkxp_sandbox {
                 if (declared_slots_size<T>::value != 0) {
                     w2c_ruby_rb_wasm_set_stack_pointer(&b.instance(), b.stack_ptr);
                 }
-                coroutine = construct_frame<T>(b);
+                coroutine = construct_coroutine<T>(b);
                 fiber->stack.emplace_back(
                     coroutine,
-                    coroutine_destructor,
+                    destroy_coroutine,
                     b.stack_ptr
                 );
             }
