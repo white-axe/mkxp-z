@@ -596,7 +596,7 @@ File.readlines('tags', chomp: true).each do |line|
 
   old_num_slots = num_slots
   coroutine_destructor = <<~HEREDOC
-    #{func_name}::~#{func_name}() {
+    void #{func_name}::end() noexcept {
     #{(0...args.length)
       .map do |i|
         i = args.length - 1 - i
@@ -633,7 +633,7 @@ File.readlines('tags', chomp: true).each do |line|
         typedef decl_slots<#{(['wasm_ptr_t'] * num_slots).join(', ')}> slots;
         #{coroutine_ret} operator()(#{declaration_args.join(', ')});
         #{func_name}(struct binding_base &b);
-        #{coroutine_destructor.empty? ? '' : "~#{func_name}();\n    "}private:
+        #{coroutine_destructor.empty? ? '' : "void end() noexcept;\n    "}private:
         struct binding_base &bind;
     };
   HEREDOC

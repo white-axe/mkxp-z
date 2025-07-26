@@ -282,7 +282,7 @@ namespace mkxp_sandbox {
 
         struct stack_frame {
             friend struct binding_base;
-            stack_frame(void *coroutine, void (*destroy)(void *coroutine), wasm_ptr_t stack_ptr);
+            stack_frame(void *coroutine, void (*end)(void *coroutine), void (*destroy)(void *coroutine), wasm_ptr_t stack_ptr);
             stack_frame(const struct stack_frame &frame) = delete;
             stack_frame(struct stack_frame &&frame) noexcept;
             struct stack_frame &operator=(const struct stack_frame &frame) = delete;
@@ -300,8 +300,12 @@ namespace mkxp_sandbox {
             inline wasm_ptr_t get_stack_pointer() const noexcept {
                 return stack_ptr;
             }
+            inline void forget_end() noexcept {
+                end = nullptr;
+            }
         private:
             void *coroutine;
+            void (*end)(void *coroutine);
             void (*destroy)(void *coroutine);
             wasm_ptr_t stack_ptr;
         };
@@ -309,14 +313,10 @@ namespace mkxp_sandbox {
         struct fiber {
             friend struct binding_base;
             fiber(key_t key) : key(key), stack_index(0) {};
-            inline const std::vector<struct stack_frame> &get_stack() const noexcept {
-                return stack;
-            }
         public:
             const key_t key;
             wasm_size_t stack_index;
             std::vector<struct deser_stack_frame> deser_stack;
-        private:
             std::vector<struct stack_frame> stack;
         };
 
@@ -418,12 +418,21 @@ namespace mkxp_sandbox {
 
         template <typename T> struct stack_frame_guard {
             static_assert(std::is_base_of<boost::asio::coroutine, T>::value, "`T` must be a subclass of `boost::asio::coroutine`");
+            static_assert(std::is_trivially_destructible<T>::value, "`T` must not have a custom destructor; define a `void end() noexcept` method instead, which will be run on stack frame destruction");
             friend struct binding_base;
 
         private:
             T *coroutine;
             struct binding_base *bind;
             struct fiber *fiber;
+
+            template <typename U> using coroutine_end_declaration = decltype(std::declval<U *>()->end());
+
+            template <typename U> static typename std::enable_if<boost::is_detected<coroutine_end_declaration, U>::value>::type end_coroutine(void *coroutine) {
+                ((U *)coroutine)->end();
+            }
+
+            template <typename U> static typename std::enable_if<!boost::is_detected<coroutine_end_declaration, U>::value>::type end_coroutine(void *coroutine) {}
 
             static void destroy_coroutine(void *coroutine) {
                 delete (T *)coroutine;
@@ -473,6 +482,7 @@ namespace mkxp_sandbox {
                         coroutine = construct_coroutine<T>(b);
                         fiber->stack.emplace_back(
                             coroutine,
+                            end_coroutine<T>,
                             destroy_coroutine,
                             b.stack_ptr
                         );
@@ -515,6 +525,7 @@ namespace mkxp_sandbox {
                 coroutine = construct_coroutine<T>(b);
                 fiber->stack.emplace_back(
                     coroutine,
+                    end_coroutine<T>,
                     destroy_coroutine,
                     b.stack_ptr
                 );

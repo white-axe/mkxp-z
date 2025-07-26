@@ -69,7 +69,7 @@ struct bitmap_array_binding_init : boost::asio::coroutine {
                 return self;
             }
 
-            ~coro() {
+            void end() noexcept {
                 GFX_UNLOCK;
             }
         };

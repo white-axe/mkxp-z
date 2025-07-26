@@ -48,7 +48,7 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
             return SANDBOX_NIL;
         }
 
-        ~coro() {
+        void end() noexcept {
             GFX_UNLOCK;
         }
     };

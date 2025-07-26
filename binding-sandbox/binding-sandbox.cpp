@@ -437,7 +437,7 @@ static VALUE to_utf8_bang(VALUE self) {
             return self;
         }
 
-        ~coro() {
+        void end() noexcept {
             sb().convert_string_buffer.clear();
         }
     };
@@ -676,6 +676,6 @@ void sandbox_run_rmxp_scripts::operator()() {
     }
 }
 
-sandbox_run_rmxp_scripts::~sandbox_run_rmxp_scripts() {
+void sandbox_run_rmxp_scripts::end() noexcept {
     sb().script_decode_buffer.clear();
 }

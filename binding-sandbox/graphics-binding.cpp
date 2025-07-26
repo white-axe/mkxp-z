@@ -126,7 +126,7 @@ static VALUE transition(int32_t argc, wasm_ptr_t argv, VALUE self) {
             return SANDBOX_NIL;
         }
 
-        ~coro() {
+        void end() noexcept {
             GFX_UNLOCK;
             sb().transitioning = false;
             if (sb().trans_map != nullptr) {
@@ -205,7 +205,7 @@ static VALUE wait_(VALUE self, VALUE value) {
             return SANDBOX_NIL;
         }
 
-        ~coro() {
+        void end() noexcept {
             GFX_UNLOCK;
         }
     };
@@ -233,7 +233,7 @@ static VALUE fadeout(VALUE self, VALUE value) {
             return SANDBOX_NIL;
         }
 
-        ~coro() {
+        void end() noexcept {
             GFX_UNLOCK;
         }
     };
@@ -261,7 +261,7 @@ static VALUE fadein(VALUE self, VALUE value) {
             return SANDBOX_NIL;
         }
 
-        ~coro() {
+        void end() noexcept {
             GFX_UNLOCK;
         }
     };
@@ -366,7 +366,7 @@ static VALUE play_movie(int32_t argc, wasm_ptr_t argv, VALUE self) {
             return SANDBOX_NIL;
         }
 
-        ~coro() {
+        void end() noexcept {
             sb().set_movie(nullptr);
             GFX_UNLOCK;
         }

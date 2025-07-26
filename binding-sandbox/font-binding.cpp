@@ -116,7 +116,7 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
             return SANDBOX_NIL;
         }
 
-        ~coro() {
+        void end() noexcept {
             sb().font_names_buffer.clear();
         }
     };
@@ -170,7 +170,7 @@ static VALUE set_name(VALUE self, VALUE value) {
             return value;
         }
 
-        ~coro() {
+        void end() noexcept {
             delete names;
         }
     };
@@ -224,7 +224,7 @@ static VALUE set_default_name(VALUE self, VALUE value) {
             return value;
         }
 
-        ~coro() {
+        void end() noexcept {
             delete names;
         }
     };
