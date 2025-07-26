@@ -300,9 +300,6 @@ namespace mkxp_sandbox {
             inline wasm_ptr_t get_stack_pointer() const noexcept {
                 return stack_ptr;
             }
-            inline void forget() noexcept {
-                destructor = nullptr;
-            }
         private:
             void *coroutine;
             void (*destructor)(void *coroutine);
@@ -312,10 +309,14 @@ namespace mkxp_sandbox {
         struct fiber {
             friend struct binding_base;
             fiber(key_t key) : key(key), stack_index(0) {};
+            inline const std::vector<struct stack_frame> &get_stack() const noexcept {
+                return stack;
+            }
         public:
             const key_t key;
             wasm_size_t stack_index;
             std::vector<struct deser_stack_frame> deser_stack;
+        private:
             std::vector<struct stack_frame> stack;
         };
 
