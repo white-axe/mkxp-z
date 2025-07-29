@@ -1806,7 +1806,19 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     if (!sandbox_serialize(sb().transitioning, data, max_size)) return false;
     if (!sandbox_serialize(sb().trans_map != nullptr, data, max_size)) return false;
     if (sb().trans_map != nullptr) {
-        if (!sandbox_serialize(*sb().trans_map, data, max_size)) return false;
+        if (sb().trans_map->isDisposed()) {
+            std::abort();
+        }
+        if (!sb().trans_map->sandbox_serialize_without_hires(data, max_size)) return false;
+        Exception e;
+        Bitmap *hires = sb().trans_map->getHires(e);
+        if (!e.is_ok()) {
+            std::abort();
+        }
+        if (!sandbox_serialize(hires != nullptr, data, max_size)) return false;
+        if (hires != nullptr) {
+            if (!hires->sandbox_serialize_without_hires(data, max_size)) return false;
+        }
     }
     if (!sandbox_serialize(sb().get_movie_from_main_thread() != nullptr, data, max_size)) return false;
     if (sb().get_movie_from_main_thread() != nullptr) {
@@ -2078,15 +2090,41 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
             if (!sb().transitioning) {
                 DESER_OBJECTS_END_FAIL;
             }
-            if (sb().trans_map == nullptr) {
-                Exception e;
-                sb().trans_map = new Bitmap(e);
+            Exception e;
+            bool is_new = sb().trans_map == nullptr;
+            if (is_new) {
+                sb().trans_map = new Bitmap(e, 1, 1, true);
                 if (e.is_error()) {
                     DESER_OBJECTS_END_FAIL;
                 }
                 sb().trans_map->sandbox_deserialize_begin(true);
             }
-            if (!sandbox_deserialize(*sb().trans_map, data, max_size)) DESER_OBJECTS_END_FAIL;
+            Bitmap *hires = sb().trans_map->getHires(e);
+            if (e.is_error()) {
+                DESER_OBJECTS_END_FAIL;
+            }
+            if (hires != nullptr) {
+                hires->sandbox_deserialize_begin(is_new);
+            }
+            if (!sb().trans_map->sandbox_deserialize_without_hires(data, max_size)) DESER_OBJECTS_END_FAIL;
+            bool have_trans_map_hires;
+            if (!sandbox_deserialize(have_trans_map_hires, data, max_size)) DESER_OBJECTS_END_FAIL;
+            if (e.is_error()) {
+                DESER_OBJECTS_END_FAIL;
+            }
+            if (have_trans_map_hires && hires == nullptr) {
+                hires = new Bitmap(e, 1, 1, true);
+                if (e.is_error()) {
+                    DESER_OBJECTS_END_FAIL;
+                }
+                hires->sandbox_deserialize_begin(true);
+            } else if (!have_trans_map_hires && hires != nullptr) {
+                delete hires;
+                hires = nullptr;
+            }
+            if (hires != nullptr) {
+                if (!hires->sandbox_deserialize_without_hires(data, max_size)) DESER_OBJECTS_END_FAIL;
+            }
         } else {
             if (sb().trans_map != nullptr) {
                 delete sb().trans_map;
@@ -2110,6 +2148,15 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
 
     if (sb().trans_map != nullptr) {
         sb().trans_map->sandbox_deserialize_end(false);
+        Exception e;
+        Bitmap *hires = sb().trans_map->getHires(e);
+        if (e.is_error()) {
+            DESER_OBJECTS_END_FAIL;
+        }
+        if (hires != nullptr) {
+            sb().trans_map->setHiresRaw(e, hires);
+            hires->sandbox_deserialize_end(false);
+        }
     }
     for (const auto &object : sb()->objects) {
         if (object.typenum > 0) {

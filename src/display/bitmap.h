@@ -88,7 +88,9 @@ public:
 	int getWidth(Exception &exception)  const;
 	int getHeight(Exception &exception) const;
 	bool getHasHires(Exception &exception) const;
+	void setHiresRaw(Exception &exception, Bitmap *hires);
 	DECL_ATTR(Hires, Bitmap*)
+	void setLoresRaw(Exception &exception, Bitmap *lores);
 	void setLores(Exception &exception, Bitmap *lores);
 	bool getIsMega(Exception &exception) const;
 	bool getIsAnimated(Exception &exception) const;
@@ -218,7 +220,9 @@ public:
     void assumeRubyGC(bool value = true);
 
 #ifdef MKXPZ_RETRO
+	bool sandbox_serialize_without_hires(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
 	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
+	bool sandbox_deserialize_without_hires(const void *&data, mkxp_sandbox::wasm_size_t &max_size);
 	bool sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size);
 	void sandbox_deserialize_begin(bool is_new);
 	void sandbox_deserialize_end(bool is_sandbox_object);

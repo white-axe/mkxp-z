@@ -1335,12 +1335,25 @@ Bitmap *Bitmap::getHires(Exception &exception) const {
     return p->selfHires;
 }
 
+void Bitmap::setHiresRaw(Exception &exception, Bitmap *hires) {
+    GUARD(guardDisposed(exception));
+
+    GUARD(hires->setLoresRaw(exception, this));
+    p->selfHires = hires;
+}
+
 void Bitmap::setHires(Exception &exception, Bitmap *hires) {
     GUARD(guardDisposed(exception));
 
     Debug() << "BUG: High-res Bitmap setHires not fully implemented, expect bugs";
     GUARD(hires->setLores(exception, this));
     p->selfHires = hires;
+}
+
+void Bitmap::setLoresRaw(Exception &exception, Bitmap *lores) {
+    GUARD(guardDisposed(exception));
+
+    p->selfLores = lores;
 }
 
 void Bitmap::setLores(Exception &exception, Bitmap *lores) {
@@ -3683,7 +3696,7 @@ void Bitmap::loresDisposal()
 }
 
 #ifdef MKXPZ_RETRO
-bool Bitmap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
+bool Bitmap::sandbox_serialize_without_hires(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
     if (!mkxp_sandbox::sandbox_serialize((int32_t)width(), data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize((int32_t)height(), data, max_size)) return false;
@@ -3712,9 +3725,15 @@ bool Bitmap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
     }
 
     if (!mkxp_sandbox::sandbox_serialize(p->font == &shState->defaultFont() ? nullptr : p->font, data, max_size)) return false;
+
+    return true;
+}
+
+bool Bitmap::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
+{
+    if (!sandbox_serialize_without_hires(data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->selfHires, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->selfLores, data, max_size)) return false;
-
     return true;
 }
 
@@ -3756,7 +3775,7 @@ bool Bitmap::sandbox_serialize_pixels(void *&data, mkxp_sandbox::wasm_size_t &ma
     return true;
 }
 
-bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
+bool Bitmap::sandbox_deserialize_without_hires(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
     int32_t old_width = width();
     int32_t old_height = height();
@@ -3994,9 +4013,15 @@ bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
     if (p->font == nullptr) {
         p->font = &shState->defaultFont();
     }
+
+    return true;
+}
+
+bool Bitmap::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
+{
+    if (!sandbox_deserialize_without_hires(data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_deserialize(p->selfHires, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_deserialize(p->selfLores, data, max_size)) return false;
-
     return true;
 }
 
