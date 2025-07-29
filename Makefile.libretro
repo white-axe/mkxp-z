@@ -37,9 +37,6 @@ else ifeq ($(platform),osx)
         MKXPZ_CPU_FAMILY = x86_64
         MKXPZ_CPU = x86_64
         MKXPZ_ENDIAN = little
-        # macOS 10.7 is the first version of macOS with support for thread-local storage, which we currently need
-        MKXPZ_CC = ['$(CC)', '--target=x86_64-apple-macos10.7']
-        MKXPZ_CXX = ['$(CXX)', '--target=x86_64-apple-macos10.7']
         # The build times out with LTO enabled
         MKXPZ_LTO = false
     endif
