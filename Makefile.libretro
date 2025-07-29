@@ -26,20 +26,20 @@ else ifeq ($(platform),unix)
     endif
 else ifeq ($(platform),osx)
     MKXPZ_SYSTEM = darwin
-    ifeq ($(ARCH),arm)
+    ifeq ($(arch),arm)
         MKXPZ_CPU_FAMILY = aarch64
         MKXPZ_CPU = generic-armv8-a
         MKXPZ_ENDIAN = little
         # macOS 11 is the first version of macOS with support for 64-bit ARM
-        MKXPZ_CC = ['xcrun', '--sdk', 'macosx', '$(CC)', '--target=arm64-apple-macos11.0']
-        MKXPZ_CXX = ['xcrun', '--sdk', 'macosx', '$(CXX)', '--target=arm64-apple-macos11.0']
+        MKXPZ_CC = ['xcrun', '--sdk', 'macosx', '$(CC)', '--target=arm64-apple-macosx11.0']
+        MKXPZ_CXX = ['xcrun', '--sdk', 'macosx', '$(CXX)', '--target=arm64-apple-macosx11.0']
     else
         MKXPZ_CPU_FAMILY = x86_64
         MKXPZ_CPU = x86_64
         MKXPZ_ENDIAN = little
         # macOS 10.7 is the first version of macOS with support for thread-local storage, which we currently need
-        MKXPZ_CC = ['xcrun', '--sdk', 'macosx', '$(CC)', '--target=x86_64-apple-macos10.7']
-        MKXPZ_CXX = ['xcrun', '--sdk', 'macosx', '$(CXX)', '--target=x86_64-apple-macos10.7']
+        MKXPZ_CC = ['xcrun', '--sdk', 'macosx', '$(CC)', '--target=x86_64-apple-macosx10.7']
+        MKXPZ_CXX = ['xcrun', '--sdk', 'macosx', '$(CXX)', '--target=x86_64-apple-macosx10.7']
         # The build times out with LTO enabled
         MKXPZ_LTO = false
     endif
@@ -108,9 +108,9 @@ else ifeq ($(platform),ios9)
     MKXPZ_CPU_FAMILY = arm
     MKXPZ_CPU = generic-armv7-a
     MKXPZ_ENDIAN = little
-    # iOS 8 is the first version of iOS with support for thread-local storage, which we currently need
-    MKXPZ_CC = ['xcrun', '--sdk', 'iphoneos', '$(CC)', '--target=armv7-apple-ios8.0']
-    MKXPZ_CXX = ['xcrun', '--sdk', 'iphoneos', '$(CXX)', '--target=armv7-apple-ios8.0']
+    # iOS 9 is the first version of iOS with support for thread-local storage, which we currently need
+    MKXPZ_CC = ['xcrun', '--sdk', 'iphoneos', '$(CC)', '--target=armv7-apple-ios9.0']
+    MKXPZ_CXX = ['xcrun', '--sdk', 'iphoneos', '$(CXX)', '--target=armv7-apple-ios9.0']
     # The build times out with LTO enabled
     MKXPZ_LTO = false
 else ifeq ($(platform),tvos-arm64)
