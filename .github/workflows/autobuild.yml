@@ -1068,7 +1068,7 @@ jobs:
             sdk: macosx
             suffix: ""
             arch_mkxpz: arm64
-            arch_llvm: arm64-apple-macosx11.0 # macOS 11 is the first version of macOS with support for 64-bit ARM
+            arch_llvm: arm64-apple-macos11.0 # macOS 11 is the first version of macOS with support for 64-bit ARM
             cpu_family: aarch64
             cpu: generic-armv8-a
             endian: little
@@ -1077,7 +1077,7 @@ jobs:
             sdk: macosx
             suffix: ""
             arch_mkxpz: x86_64
-            arch_llvm: x86_64-apple-macosx10.7 # macOS 10.7 is the first version of macOS with support for thread-local storage, which we currently need
+            arch_llvm: x86_64-apple-macos10.7 # macOS 10.7 is the first version of macOS with support for thread-local storage, which we currently need
             cpu_family: x86_64
             cpu: x86_64
             endian: little

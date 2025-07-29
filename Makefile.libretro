@@ -31,15 +31,15 @@ else ifeq ($(platform),osx)
         MKXPZ_CPU = generic-armv8-a
         MKXPZ_ENDIAN = little
         # macOS 11 is the first version of macOS with support for 64-bit ARM
-        MKXPZ_CC = ['xcrun', '--sdk', 'macosx', '$(CC)', '--target=arm64-apple-macosx11.0']
-        MKXPZ_CXX = ['xcrun', '--sdk', 'macosx', '$(CXX)', '--target=arm64-apple-macosx11.0']
+        MKXPZ_CC = ['xcrun', '--sdk', 'macosx', '$(CC)', '--target=arm64-apple-macos11.0']
+        MKXPZ_CXX = ['xcrun', '--sdk', 'macosx', '$(CXX)', '--target=arm64-apple-macos11.0']
     else
         MKXPZ_CPU_FAMILY = x86_64
         MKXPZ_CPU = x86_64
         MKXPZ_ENDIAN = little
         # macOS 10.7 is the first version of macOS with support for thread-local storage, which we currently need
-        MKXPZ_CC = ['xcrun', '--sdk', 'macosx', '$(CC)', '--target=x86_64-apple-macosx10.7']
-        MKXPZ_CXX = ['xcrun', '--sdk', 'macosx', '$(CXX)', '--target=x86_64-apple-macosx10.7']
+        MKXPZ_CC = ['xcrun', '--sdk', 'macosx', '$(CC)', '-arch=x86_64', '-mmacos-version-min=10.7']
+        MKXPZ_CXX = ['xcrun', '--sdk', 'macosx', '$(CXX)', '-arch=x86_64', '-mmacos-version-min=10.7']
         # The build times out with LTO enabled
         MKXPZ_LTO = false
     endif
