@@ -713,9 +713,9 @@ jobs:
       - name: Configure core
         run: |
           echo "[binaries]" | tee -a ${{ runner.temp }}/cross.ini
-          echo "c = ['clang', '-target=${{ matrix.arch_llvm }}', '--sysroot=${{ runner.temp }}/sysroot']" | tee -a ${{ runner.temp }}/cross.ini
+          echo "c = ['clang', '--target=${{ matrix.arch_llvm }}', '--sysroot=${{ runner.temp }}/sysroot']" | tee -a ${{ runner.temp }}/cross.ini
           echo "c_ld = 'lld'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "cpp = ['clang++', '-target=${{ matrix.arch_llvm }}', '--sysroot=${{ runner.temp }}/sysroot']" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpp = ['clang++', '--target=${{ matrix.arch_llvm }}', '--sysroot=${{ runner.temp }}/sysroot']" | tee -a ${{ runner.temp }}/cross.ini
           echo "cpp_ld = 'lld'" | tee -a ${{ runner.temp }}/cross.ini
           echo "ar = 'llvm-ar'" | tee -a ${{ runner.temp }}/cross.ini
           echo "strip = 'llvm-strip'" | tee -a ${{ runner.temp }}/cross.ini
@@ -858,9 +858,9 @@ jobs:
       - name: Configure core
         run: |
           echo "[binaries]" | tee -a ${{ runner.temp }}/cross.ini
-          echo "c = ['clang', '-target=${{ matrix.arch_llvm }}', '--sysroot=${{ steps.sysroot.outputs.root-path }}']" | tee -a ${{ runner.temp }}/cross.ini
+          echo "c = ['clang', '--target=${{ matrix.arch_llvm }}', '--sysroot=${{ steps.sysroot.outputs.root-path }}']" | tee -a ${{ runner.temp }}/cross.ini
           echo "c_ld = 'lld'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "cpp = ['clang++', '-target=${{ matrix.arch_llvm }}', '--sysroot=${{ steps.sysroot.outputs.root-path }}']" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpp = ['clang++', '--target=${{ matrix.arch_llvm }}', '--sysroot=${{ steps.sysroot.outputs.root-path }}']" | tee -a ${{ runner.temp }}/cross.ini
           echo "cpp_ld = 'lld'" | tee -a ${{ runner.temp }}/cross.ini
           echo "ar = 'llvm-ar'" | tee -a ${{ runner.temp }}/cross.ini
           echo "strip = 'llvm-strip'" | tee -a ${{ runner.temp }}/cross.ini
@@ -1122,8 +1122,8 @@ jobs:
       - name: Configure core
         run: |
           echo "[binaries]" | tee -a ${{ runner.temp }}/cross.ini
-          echo "c = ['xcrun', '--sdk', '${{ matrix.sdk }}', 'clang', '-target=${{ matrix.arch_llvm }}']" | tee -a ${{ runner.temp }}/cross.ini
-          echo "cpp = ['xcrun', '--sdk', '${{ matrix.sdk }}', 'clang++', '-target=${{ matrix.arch_llvm }}']" | tee -a ${{ runner.temp }}/cross.ini
+          echo "c = ['xcrun', '--sdk', '${{ matrix.sdk }}', 'clang', '--target=${{ matrix.arch_llvm }}']" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpp = ['xcrun', '--sdk', '${{ matrix.sdk }}', 'clang++', '--target=${{ matrix.arch_llvm }}']" | tee -a ${{ runner.temp }}/cross.ini
           echo "ar = 'ar'" | tee -a ${{ runner.temp }}/cross.ini
           echo "strip = 'strip'" | tee -a ${{ runner.temp }}/cross.ini
           echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
