@@ -46,6 +46,7 @@ sizeof = {'void*': compilers['cpp'].sizeof('void*'),
           'long': compilers['cpp'].sizeof('long')
          }
 win64 = (sizeof['void*'] != sizeof['long'])
+android_api_level = host_system == 'android' ? compilers['c'].get_define('__ANDROID_API__').to_int() : 0
 
 global_args += '-DMKXPZ_BUILD_MESON'
 global_args += '-DMKXPZ_VERSION="@0@"'.format(meson.project_version())
@@ -60,7 +61,12 @@ have_pthread_thread = true
 
 if is_libretro
     global_args += '-DMKXPZ_RETRO'
-    global_args += '-D_FILE_OFFSET_BITS=64'
+    # https://github.com/android/ndk/issues/442
+    if host_system == 'android' and sizeof['void*'] == 4 and android_api_level < 24
+        global_args += '-D_FILE_OFFSET_BITS=32'
+    else
+        global_args += '-D_FILE_OFFSET_BITS=64'
+    endif
 else
     global_args += '-DHAVE_NANOSLEEP'
 endif
