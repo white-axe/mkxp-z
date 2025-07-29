@@ -1086,7 +1086,7 @@ jobs:
             sdk: iphoneos
             suffix: _ios
             arch_mkxpz: arm64
-            arch_llvm: arm64-apple-ios11.0 # iOS 11 is the first version of iOS with support for 64-bit ARM
+            arch_llvm: arm64-apple-ios10.0 # iOS 10 is the first version of iOS with support for 64-bit ARM
             cpu_family: aarch64
             cpu: generic-armv8-a
             endian: little

@@ -99,9 +99,9 @@ else ifeq ($(platform),ios-arm64)
     MKXPZ_CPU_FAMILY = aarch64
     MKXPZ_CPU = generic-armv8-a
     MKXPZ_ENDIAN = little
-    # iOS 11 is the first version of iOS with support for 64-bit ARM
-    MKXPZ_CC = ['xcrun', '--sdk', 'iphoneos', '$(CC)', '-target=arm64-apple-ios11.0']
-    MKXPZ_CXX = ['xcrun', '--sdk', 'iphoneos', '$(CXX)', '-target=arm64-apple-ios11.0']
+    # iOS 10 is the first version of iOS with support for 64-bit ARM
+    MKXPZ_CC = ['xcrun', '--sdk', 'iphoneos', '$(CC)', '-target=arm64-apple-ios10.0']
+    MKXPZ_CXX = ['xcrun', '--sdk', 'iphoneos', '$(CXX)', '-target=arm64-apple-ios10.0']
 else ifeq ($(platform),ios9)
     MKXPZ_SYSTEM = darwin
     MKXPZ_SUFFIX = ios
