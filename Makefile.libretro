@@ -114,7 +114,7 @@ else ifeq ($(platform),tvos-arm64)
     MKXPZ_CC = ['xcrun', '--sdk', 'appletvos', '$(CC)', '-arch', 'arm64']
     MKXPZ_CXX = ['xcrun', '--sdk', 'appletvos', '$(CXX)', '-arch', 'arm64']
 else ifeq ($(platform),orbis)
-    MKXPZ_SYSTEM = bare
+    MKXPZ_SYSTEM = none
     MKXPZ_SUFFIX = orbis
     MKXPZ_CPU_FAMILY = x86_64
     MKXPZ_CPU = x86_64
@@ -126,7 +126,7 @@ else ifeq ($(platform),orbis)
     # LTO isn't supported by this toolchain
     MKXPZ_LTO = false
 else ifeq ($(platform),libnx)
-    MKXPZ_SYSTEM = bare
+    MKXPZ_SYSTEM = none
     MKXPZ_SUFFIX = libnx
     MKXPZ_CPU_FAMILY = aarch64
     MKXPZ_CPU = cortex-a57

@@ -9,7 +9,7 @@ is_clang = ['armclang', 'clang', 'emscripten', 'llvm'].contains(compilers['cpp']
 
 is_libretro = get_option('libretro')
 is_emscripten = host_system == 'emscripten'
-core_is_static = is_libretro and (is_emscripten or host_system == 'bare' or host_system == 'none')
+core_is_static = is_libretro and (is_emscripten or host_system == 'none' or host_system == 'bare')
 is_vitasdk = core_is_static and host_cpu_family == 'arm' and compilers['c'].has_header_symbol('sys/config.h', '__vita__')
 is_devkitarm = core_is_static and host_cpu_family == 'arm' and not is_vitasdk
 is_devkitppc = core_is_static and host_cpu_family == 'ppc'

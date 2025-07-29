@@ -4,7 +4,7 @@ cpp = ['/usr/local/orbisdev/bin/clang++', '-isystem/usr/local/orbisdev/usr/inclu
 ar = '/usr/local/orbisdev/bin/orbis-ar'
 
 [host_machine]
-system = 'bare'
+system = 'none'
 cpu_family = 'x86_64'
 cpu = 'x86_64'
 endian = 'little'

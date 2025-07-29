@@ -4,7 +4,7 @@ cpp = 'ppu-g++'
 ar = 'ppu-ar'
 
 [host_machine]
-system = 'bare'
+system = 'none'
 cpu_family = 'ppc64'
 cpu = 'ppc-cell-be'
 endian = 'big'

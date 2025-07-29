@@ -4,7 +4,7 @@ cpp = '/opt/devkitpro/devkitPPC/bin/powerpc-eabi-g++'
 ar = '/opt/devkitpro/devkitPPC/bin/powerpc-eabi-ar'
 
 [host_machine]
-system = 'bare'
+system = 'none'
 cpu_family = 'ppc'
 cpu = 'ppc750'
 endian = 'big'
