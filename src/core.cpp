@@ -2122,6 +2122,7 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
                 delete hires;
                 hires = nullptr;
             }
+            sb().trans_map->setHiresRaw(e, hires);
             if (hires != nullptr) {
                 if (!hires->sandbox_deserialize_without_hires(data, max_size)) DESER_OBJECTS_END_FAIL;
             }
@@ -2154,7 +2155,6 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
             DESER_OBJECTS_END_FAIL;
         }
         if (hires != nullptr) {
-            sb().trans_map->setHiresRaw(e, hires);
             hires->sandbox_deserialize_end(false);
         }
     }
