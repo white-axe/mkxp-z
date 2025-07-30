@@ -288,7 +288,7 @@ namespace std {
     inline int sprintf(char *buffer, const char *format, ...) {
         va_list vlist;
         va_start(vlist, format);
-        int result = vsprintf(buffer, buf_size, format, vlist);
+        int result = ::vsprintf(buffer, buf_size, format, vlist);
         va_end(vlist);
         return result;
     }
@@ -300,7 +300,7 @@ namespace std {
     inline int snprintf(char *buffer, size_t buf_size, const char *format, ...) {
         va_list vlist;
         va_start(vlist, format);
-        int result = vsnprintf(buffer, buf_size, format, vlist);
+        int result = ::vsnprintf(buffer, buf_size, format, vlist);
         va_end(vlist);
         return result;
     }
@@ -310,7 +310,7 @@ namespace std {
 #  ifdef MKXPZ_NO_STD_VSPRINTF
 namespace std {
     inline int vsprintf(char *buffer, const char *format, va_list vlist) {
-        return vsprintf(buffer, buf_size, format, vlist);
+        return ::vsprintf(buffer, buf_size, format, vlist);
     }
 }
 #  endif
@@ -318,7 +318,7 @@ namespace std {
 #  ifdef MKXPZ_NO_STD_VSNPRINTF
 namespace std {
     inline int vsnprintf(char *buffer, size_t buf_size, const char *format, va_list vlist) {
-        return vsnprintf(buffer, buf_size, format, vlist);
+        return ::vsnprintf(buffer, buf_size, format, vlist);
     }
 }
 #  endif
@@ -326,15 +326,15 @@ namespace std {
 #  ifdef MKXPZ_NO_STD_ROUND
 namespace std {
     inline constexpr float round(float x) {
-        return roundf(x);
+        return ::roundf(x);
     }
 
     inline constexpr double round(double x) {
-        return round(x);
+        return ::round(x);
     }
 
     inline constexpr long double round(long double x) {
-        return roundl(x);
+        return ::roundl(x);
     }
 }
 #  endif
@@ -342,15 +342,15 @@ namespace std {
 #  ifdef MKXPZ_NO_STD_LROUND
 namespace std {
     inline constexpr long lround(float x) {
-        return lroundf(x);
+        return ::lroundf(x);
     }
 
     inline constexpr long lround(double x) {
-        return lround(x);
+        return ::lround(x);
     }
 
     inline constexpr long lround(long double x) {
-        return lroundl(x);
+        return ::lroundl(x);
     }
 }
 #  endif
@@ -358,15 +358,15 @@ namespace std {
 #  ifdef MKXPZ_NO_STD_COPYSIGN
 namespace std {
     inline constexpr float copysign(float x, float y) {
-        return copysignf(x, y);
+        return ::copysignf(x, y);
     }
 
     inline constexpr double copysign(double x, double y) {
-        return copysign(x, y);
+        return ::copysign(x, y);
     }
 
     inline constexpr long double copysign(long double x, long double y) {
-        return copysignl(x, y);
+        return ::copysignl(x, y);
     }
 }
 #  endif
@@ -374,15 +374,15 @@ namespace std {
 #  ifdef MKXPZ_NO_STD_CBRT
 namespace std {
     inline constexpr float cbrt(float x) {
-        return cbrtf(x);
+        return ::cbrtf(x);
     }
 
     inline constexpr double cbrt(double x) {
-        return cbrt(x);
+        return ::cbrt(x);
     }
 
     inline constexpr long double cbrt(long double x) {
-        return cbrtl(x);
+        return ::cbrtl(x);
     }
 }
 #  endif
@@ -390,62 +390,62 @@ namespace std {
 #  ifdef MKXPZ_NO_STD_LOG2
 namespace std {
     inline constexpr float log2(float x) {
-        return log2f(x);
+        return ::log2f(x);
     }
 
     inline constexpr double log2(double x) {
-        return log2(x);
+        return ::log2(x);
     }
 }
 #  endif
 
 #  ifdef MKXPZ_NO_STD_TO_STRING
 namespace std {
-    inline std::string to_string(int x) {
-        std::array<char, 22> array;
-        std::sprintf(array.data(), "%d", x);
+    inline string to_string(int x) {
+        array<char, 22> array;
+        sprintf(array.data(), "%d", x);
         return array.data();
     }
 
-    inline std::string to_string(long x) {
-        std::array<char, 22> array;
-        std::sprintf(array.data(), "%ld", x);
+    inline string to_string(long x) {
+        array<char, 22> array;
+        sprintf(array.data(), "%ld", x);
         return array.data();
     }
 
-    inline std::string to_string(long long x) {
-        std::array<char, 22> array;
-        std::sprintf(array.data(), "%lld", x);
+    inline string to_string(long long x) {
+        array<char, 22> array;
+        sprintf(array.data(), "%lld", x);
         return array.data();
     }
 
-    inline std::string to_string(unsigned int x) {
-        std::array<char, 22> array;
-        std::sprintf(array.data(), "%u", x);
+    inline string to_string(unsigned int x) {
+        array<char, 22> array;
+        sprintf(array.data(), "%u", x);
         return array.data();
     }
 
-    inline std::string to_string(unsigned long x) {
-        std::array<char, 22> array;
-        std::sprintf(array.data(), "%lu", x);
+    inline string to_string(unsigned long x) {
+        array<char, 22> array;
+        sprintf(array.data(), "%lu", x);
         return array.data();
     }
 
-    inline std::string to_string(unsigned long long x) {
-        std::array<char, 22> array;
-        std::sprintf(array.data(), "%llu", x);
+    inline string to_string(unsigned long long x) {
+        array<char, 22> array;
+        sprintf(array.data(), "%llu", x);
         return array.data();
     }
 
-    inline std::string to_string(float x) {
-        std::array<char, 256> array;
-        std::sprintf(array.data(), "%f", x);
+    inline string to_string(float x) {
+        array<char, 256> array;
+        sprintf(array.data(), "%f", x);
         return array.data();
     }
 
-    inline std::string to_string(double x) {
-        std::array<char, 256> array;
-        std::sprintf(array.data(), "%f", x);
+    inline string to_string(double x) {
+        array<char, 256> array;
+        sprintf(array.data(), "%f", x);
         return array.data();
     }
 }
@@ -453,9 +453,9 @@ namespace std {
 
 #  ifdef MKXPZ_NO_STD_STOI
 namespace std {
-    inline int stoi(const std::string &str, size_t *pos = nullptr, int base = 10) {
+    inline int stoi(const string &str, size_t *pos = nullptr, int base = 10) {
         char *ptr;
-        int result = (int)strtol(str.c_str(), &ptr, base);
+        int result = (int)::strtol(str.c_str(), &ptr, base);
         if (pos != nullptr) {
             *pos = ptr - str.c_str();
         }
@@ -466,9 +466,9 @@ namespace std {
 
 #  ifdef MKXPZ_NO_STD_STOL
 namespace std {
-    inline long stol(const std::string &str, size_t *pos = nullptr, int base = 10) {
+    inline long stol(const string &str, size_t *pos = nullptr, int base = 10) {
         char *ptr;
-        long result = strtol(str.c_str(), &ptr, base);
+        long result = ::strtol(str.c_str(), &ptr, base);
         if (pos != nullptr) {
             *pos = ptr - str.c_str();
         }
@@ -479,9 +479,9 @@ namespace std {
 
 #  ifdef MKXPZ_NO_STD_STOLL
 namespace std {
-    inline long long stoll(const std::string &str, size_t *pos = nullptr, int base = 10) {
+    inline long long stoll(const string &str, size_t *pos = nullptr, int base = 10) {
         char *ptr;
-        long long result = strtoll(str.c_str(), &ptr, base);
+        long long result = ::strtoll(str.c_str(), &ptr, base);
         if (pos != nullptr) {
             *pos = ptr - str.c_str();
         }
@@ -492,9 +492,9 @@ namespace std {
 
 #  ifdef MKXPZ_NO_STD_STOUL
 namespace std {
-    inline unsigned long stoul(const std::string &str, size_t *pos = nullptr, int base = 10) {
+    inline unsigned long stoul(const string &str, size_t *pos = nullptr, int base = 10) {
         char *ptr;
-        unsigned long result = strtoul(str.c_str(), &ptr, base);
+        unsigned long result = ::strtoul(str.c_str(), &ptr, base);
         if (pos != nullptr) {
             *pos = ptr - str.c_str();
         }
@@ -505,9 +505,9 @@ namespace std {
 
 #  ifdef MKXPZ_NO_STD_STOULL
 namespace std {
-    inline unsigned long long stoull(const std::string &str, size_t *pos = nullptr, int base = 10) {
+    inline unsigned long long stoull(const string &str, size_t *pos = nullptr, int base = 10) {
         char *ptr;
-        unsigned long long result = strtoull(str.c_str(), &ptr, base);
+        unsigned long long result = ::strtoull(str.c_str(), &ptr, base);
         if (pos != nullptr) {
             *pos = ptr - str.c_str();
         }
@@ -518,9 +518,9 @@ namespace std {
 
 #  ifdef MKXPZ_NO_STD_STOF
 namespace std {
-    inline float stof(const std::string &str, size_t *pos = nullptr) {
+    inline float stof(const string &str, size_t *pos = nullptr) {
         char *ptr;
-        float result = strtof(str.c_str(), &ptr);
+        float result = ::strtof(str.c_str(), &ptr);
         if (pos != nullptr) {
             *pos = ptr - str.c_str();
         }
@@ -531,9 +531,9 @@ namespace std {
 
 #  ifdef MKXPZ_NO_STD_STOD
 namespace std {
-    inline double stod(const std::string &str, size_t *pos = nullptr) {
+    inline double stod(const string &str, size_t *pos = nullptr) {
         char *ptr;
-        double result = strtod(str.c_str(), &ptr);
+        double result = ::strtod(str.c_str(), &ptr);
         if (pos != nullptr) {
             *pos = ptr - str.c_str();
         }
@@ -544,9 +544,9 @@ namespace std {
 
 #  ifdef MKXPZ_NO_STD_STOLD
 namespace std {
-    inline long double stold(const std::string &str, size_t *pos = nullptr) {
+    inline long double stold(const string &str, size_t *pos = nullptr) {
         char *ptr;
-        long double result = strtold(str.c_str(), &ptr);
+        long double result = ::strtold(str.c_str(), &ptr);
         if (pos != nullptr) {
             *pos = ptr - str.c_str();
         }
