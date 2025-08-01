@@ -192,7 +192,7 @@ static void ctr_thread_launcher(void *data) {
 }
 #endif
 
-#if defined(MKXPZ_NO_SEMAPHORE_H) && !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
+#if defined(MKXPZ_NO_SEMAPHORE_H) && defined(MKXPZ_NO_DISPATCH_DISPATCH_H) && !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
 struct mkxp_sem_private {
     unsigned int value;
     mkxp_mutex_t mutex;
@@ -380,6 +380,8 @@ extern "C" int mkxp_cond_wait(mkxp_cond_t *cond, mkxp_mutex_t *mutex) {
 extern "C" int mkxp_sem_init(mkxp_sem_t *sem, unsigned int value) {
 #ifndef MKXPZ_NO_SEMAPHORE_H
     return sem_init(sem, 0, value);
+#elif !defined(MKXPZ_NO_DISPATCH_DISPATCH_H)
+    return (*sem = dispatch_semaphore_create(value)) == nullptr ? -1 : 0;
 #elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
     *sem = (void *)new mkxp_sem_private;
     int mutex_init_result = mkxp_mutex_init(&((struct mkxp_sem_private *)*sem)->mutex, false);
@@ -402,6 +404,9 @@ extern "C" int mkxp_sem_init(mkxp_sem_t *sem, unsigned int value) {
 extern "C" int mkxp_sem_destroy(mkxp_sem_t *sem) {
 #ifndef MKXPZ_NO_SEMAPHORE_H
     return sem_destroy(sem);
+#elif !defined(MKXPZ_NO_DISPATCH_DISPATCH_H)
+    dispatch_release(*sem);
+    return 0;
 #elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
     mkxp_cond_destroy(&((struct mkxp_sem_private *)*sem)->cond);
     mkxp_mutex_destroy(&((struct mkxp_sem_private *)*sem)->mutex);
@@ -415,6 +420,9 @@ extern "C" int mkxp_sem_destroy(mkxp_sem_t *sem) {
 extern "C" int mkxp_sem_post(mkxp_sem_t *sem) {
 #ifndef MKXPZ_NO_SEMAPHORE_H
     return sem_post(sem);
+#elif !defined(MKXPZ_NO_DISPATCH_DISPATCH_H)
+    dispatch_semaphore_signal(*sem);
+    return 0;
 #elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
     while (mkxp_mutex_lock(&((struct mkxp_sem_private *)*sem)->mutex)) {}
     ++((struct mkxp_sem_private *)*sem)->value;
@@ -430,6 +438,8 @@ extern "C" int mkxp_sem_post(mkxp_sem_t *sem) {
 extern "C" int mkxp_sem_wait(mkxp_sem_t *sem) {
 #ifndef MKXPZ_NO_SEMAPHORE_H
     return sem_wait(sem);
+#elif !defined(MKXPZ_NO_DISPATCH_DISPATCH_H)
+    return dispatch_semaphore_wait(*sem, DISPATCH_TIME_FOREVER);
 #elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
     while (mkxp_mutex_lock(&((struct mkxp_sem_private *)*sem)->mutex)) {}
     for (;;) {

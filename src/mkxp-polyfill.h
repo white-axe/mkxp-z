@@ -30,12 +30,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#if defined(__APPLE__) && !defined(MKXPZ_NO_SEMAPHORE_H)
+#  define MKXPZ_NO_SEMAPHORE_H
+#endif
+
 #if !defined(MKXPZ_NO_PTHREAD_H_MUTEX) || !defined(MKXPZ_NO_PTHREAD_H_THREAD)
 #  include <pthread.h>
 #endif
 
 #ifndef MKXPZ_NO_SEMAPHORE_H
 #  include <semaphore.h>
+#endif
+
+#ifndef MKXPZ_NO_DISPATCH_DISPATCH_H
+#  include <dispatch/dispatch.h>
 #endif
 
 #if !defined(__cplusplus) || defined(MKXPZ_NO_EXCEPTIONS)
@@ -76,6 +84,8 @@ typedef bool mkxp_cond_t;
 
 #ifndef MKXPZ_NO_SEMAPHORE_H
 typedef sem_t mkxp_sem_t;
+#elif !defined(MKXPZ_NO_DISPATCH_DISPATCH_H)
+typedef dispatch_semaphore_t mkxp_sem_t;
 #elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
 typedef void *mkxp_sem_t;
 #else
