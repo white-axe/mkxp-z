@@ -45,6 +45,12 @@ endif
 sizeof = {'void*': compilers['cpp'].sizeof('void*'),
           'long': compilers['cpp'].sizeof('long')
          }
+if sizeof['void*'] <= 0
+    error('Failed to detect size of void*')
+endif
+if sizeof['long'] <= 0
+    error('Failed to detect size of long')
+endif
 win64 = (sizeof['void*'] != sizeof['long'])
 android_api_level = host_system == 'android' ? compilers['c'].get_define('__ANDROID_API__').to_int() : 0
 
@@ -69,6 +75,10 @@ if is_libretro
     endif
 else
     global_args += '-DHAVE_NANOSLEEP'
+endif
+
+if sizeof['void*'] <= 4
+    global_args += '-DMKXPZ_32_BIT_POINTER'
 endif
 
 if (get_option('libretro_force_fat_lto') or (core_is_static and not is_emscripten)) and get_option('b_lto')
