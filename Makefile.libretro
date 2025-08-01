@@ -163,8 +163,8 @@ else ifeq ($(platform),emscripten)
     MKXPZ_CPU = wasm32
     MKXPZ_ENDIAN = little
     MKXPZ_CMAKE_TOOLCHAIN_FILE = $(shell em-config EMSCRIPTEN_ROOT)/cmake/Modules/Platform/Emscripten.cmake
-    # The build times out with full LTO
-    MKXPZ_LTO_MODE = thin
+    # The build times out with LTO enabled
+    MKXPZ_LTO = false
 else
     $(error unknown platform '$(platform)')
 endif
