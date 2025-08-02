@@ -284,34 +284,34 @@ if not compilers['cpp'].has_header('pthread.h') or not compilers['cpp'].links(''
         global_args += '-DMKXPZ_NO_PTHREAD_H_MUTEX'
     endif
     global_args += '-DMKXPZ_NO_SEMAPHORE_H'
-else
-    if host_system == 'darwin' or not compilers['cpp'].has_header('semaphore.h') or not compilers['cpp'].links('''
-        #include <semaphore.h>
-        int main(void) {
-            sem_t sem;
-            sem_init(&sem, 0, 0);
-            sem_post(&sem);
-            sem_wait(&sem);
-            sem_destroy(&sem);
-            return 0;
-        }
-    ''', args: link_test_args, name: 'semaphore.h sanity check')
-        global_args += '-DMKXPZ_NO_SEMAPHORE_H'
-    endif
+endif
 
-    if not compilers['cpp'].has_header('dispatch/dispatch.h') or not compilers['cpp'].links('''
-        #include <dispatch/dispatch.h>
-        int main(void) {
-            dispatch_semaphore_t sem;
-            sem = dispatch_semaphore_create(0);
-            dispatch_semaphore_signal(sem);
-            dispatch_semaphore_wait(sem, DISPATCH_TIME_FOREVER);
-            dispatch_release(sem);
-            return 0;
-        }
-    ''', args: link_test_args, name: 'dispatch/dispatch.h sanity check')
-        global_args += '-DMKXPZ_NO_DISPATCH_DISPATCH_H'
-    endif
+if host_system == 'darwin' or not compilers['cpp'].has_header('semaphore.h') or not compilers['cpp'].links('''
+    #include <semaphore.h>
+    int main(void) {
+        sem_t sem;
+        sem_init(&sem, 0, 0);
+        sem_post(&sem);
+        sem_wait(&sem);
+        sem_destroy(&sem);
+        return 0;
+    }
+''', args: link_test_args, name: 'semaphore.h sanity check')
+    global_args += '-DMKXPZ_NO_SEMAPHORE_H'
+endif
+
+if not compilers['cpp'].has_header('dispatch/dispatch.h') or not compilers['cpp'].links('''
+    #include <dispatch/dispatch.h>
+    int main(void) {
+        dispatch_semaphore_t sem;
+        sem = dispatch_semaphore_create(0);
+        dispatch_semaphore_signal(sem);
+        dispatch_semaphore_wait(sem, DISPATCH_TIME_FOREVER);
+        dispatch_release(sem);
+        return 0;
+    }
+''', args: link_test_args, name: 'dispatch/dispatch.h sanity check')
+    global_args += '-DMKXPZ_NO_DISPATCH_DISPATCH_H'
 endif
 
 if not compilers['cpp'].has_header('pthread.h') or not compilers['cpp'].links('''
