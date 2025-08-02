@@ -108,9 +108,17 @@ return __VA_ARGS__; \
 #define OUTLINE_SIZE 1
 
 #ifdef MKXPZ_RETRO
-#define DIFF_TILE_SIZE (size_t)64
-#define FLOOR_DIV_DIFF_TILE_SIZE(x) ((size_t)(x) / DIFF_TILE_SIZE)
-#define CEIL_DIV_DIFF_TILE_SIZE(x) ((((size_t)(x) - 1) / DIFF_TILE_SIZE) + 1)
+#  define DIFF_TILE_SIZE (size_t)64
+#  define FLOOR_DIV_DIFF_TILE_SIZE(x) ((size_t)(x) / DIFF_TILE_SIZE)
+#  define CEIL_DIV_DIFF_TILE_SIZE(x) ((((size_t)(x) - 1) / DIFF_TILE_SIZE) + 1)
+
+// This formula is from SDL_ttf (licensed MIT); we may want to adjust it for better accuracy with RPG Maker
+#  define GET_BOLD_WIDTH(ft_face) ((ft_face)->size->metrics.y_ppem / 10)
+
+// This formula is from SDL_ttf (licensed MIT); we may want to adjust it for better accuracy with RPG Maker
+static const FT_Matrix ITALIC_TRANSFORM = (FT_Matrix){1 << 16, 0x0366a, 0, 1 << 16};
+#  define GET_ITALIC_WIDTH(ft_face) (((uint32_t)ITALIC_TRANSFORM.xy * (uint32_t)(((int32_t)(ft_face)->ascender - (int32_t)(ft_face)->descender)) / 64) >> 16)
+
 static uint64_t next_id = 1;
 #endif // MKXPZ_RETRO
 
@@ -2752,7 +2760,8 @@ IntRect Bitmap::textRect(Exception &exception, const char *str, bool solid)
     FT_Face font;
     GUARD_V(IntRect(), font = p->font->getSdlFont(exception));
 
-    // TODO: handle kerning
+    const unsigned short bold_width = p->font->getBold() ? GET_BOLD_WIDTH(font) : 0;
+    const unsigned short italic_width = p->font->getItalic() ? GET_ITALIC_WIDTH(font) : 0;
     int bitmap_left = 0;
     int bitmap_right = 0;
     int bitmap_top = -font->size->metrics.ascender / 64;
@@ -2787,11 +2796,11 @@ IntRect Bitmap::textRect(Exception &exception, const char *str, bool solid)
                 continue;
 
             int glyph_left = glyph_x + font->glyph->bitmap_left;
-            int glyph_right = glyph_left + font->glyph->bitmap.width;
+            int glyph_right = glyph_left + font->glyph->bitmap.width + bold_width + italic_width;
             int glyph_top = glyph_y - font->glyph->bitmap_top;
             int glyph_bottom = glyph_top + font->glyph->bitmap.rows;
 
-            glyph_x += font->glyph->advance.x / 64;
+            glyph_x += font->glyph->advance.x / 64 + bold_width;
             glyph_y += font->glyph->advance.y / 64;
 
             bitmap_left = std::min(bitmap_left, std::min(glyph_left, glyph_x));
@@ -2807,8 +2816,10 @@ IntRect Bitmap::textRect(Exception &exception, const char *str, bool solid)
 
 SDL_Surface *Bitmap::drawTextInner(Exception &exception, FT_Face font, const char *str, SDL_Color &c, size_t outline)
 {
-    // TODO: handle kerning
     const bool solid = p->font->isSolid();
+    const unsigned short bold_width = p->font->getBold() ? GET_BOLD_WIDTH(font) : 0;
+    const bool italic = p->font->getItalic();
+    const bool needs_transform = italic || outline > 0;
     IntRect bitmapRect;
     GUARD_V(nullptr, bitmapRect = textRect(exception, str, solid));
     bitmapRect.x -= outline;
@@ -2850,12 +2861,15 @@ SDL_Surface *Bitmap::drawTextInner(Exception &exception, FT_Face font, const cha
             else
                 break;
 
-            if (outline > 0)
+            if (needs_transform)
             {
                 if (FT_Load_Char(font, charcode, solid ? (FT_LOAD_DEFAULT | FT_LOAD_TARGET_MONO) : (FT_LOAD_DEFAULT | FT_LOAD_TARGET_NORMAL)))
                     continue;
+                if (italic)
+                    FT_Outline_Transform(&font->glyph->outline, &ITALIC_TRANSFORM);
                 if (FT_Get_Glyph(font->glyph, &glyph))
                     continue;
+                if (outline > 0)
                 {
                     FT_Stroker stroker;
                     if (FT_Stroker_New(shState->fontState().getLibrary(), &stroker))
@@ -2884,32 +2898,43 @@ SDL_Surface *Bitmap::drawTextInner(Exception &exception, FT_Face font, const cha
                     continue;
             }
 
-            int glyph_left = glyph_x + (outline > 0 ? ((FT_BitmapGlyph)glyph)->left : font->glyph->bitmap_left);
-            int glyph_top = glyph_y - (outline > 0 ? ((FT_BitmapGlyph)glyph)->top : font->glyph->bitmap_top);
-            FT_Bitmap *bitmap = outline > 0 ? &((FT_BitmapGlyph)glyph)->bitmap : &font->glyph->bitmap;
+            int glyph_left = glyph_x + (needs_transform ? ((FT_BitmapGlyph)glyph)->left : font->glyph->bitmap_left);
+            int glyph_top = glyph_y - (needs_transform ? ((FT_BitmapGlyph)glyph)->top : font->glyph->bitmap_top);
+            FT_Bitmap *bitmap = needs_transform ? &((FT_BitmapGlyph)glyph)->bitmap : &font->glyph->bitmap;
             unsigned int glyph_width = bitmap->width;
             unsigned int glyph_height = bitmap->rows;
 
             if (solid)
                 for (unsigned int y = 0; y < glyph_height; ++y)
                 {
-                    for (unsigned int x = 0; x < glyph_width; ++x)
+                    for (unsigned int x = 0; x < glyph_width + bold_width; ++x)
                     {
-                        if (((uint8_t *)bitmap->buffer)[bitmap->pitch * y + x / 8] & (1 << (7 - (x % 8))))
+                        for (unsigned int i = x < glyph_width ? 0 : x - glyph_width + 1; i <= bold_width && i <= x; ++i)
                         {
-                            ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x)] = c.r;
-                            ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 1] = c.g;
-                            ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 2] = c.b;
-                            ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 3] = 255;
+                            if (((uint8_t *)bitmap->buffer)[bitmap->pitch * y + (x - i) / 8] & (1 << (7 - ((x - i) % 8))))
+                            {
+                                ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x)] = c.r;
+                                ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 1] = c.g;
+                                ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 2] = c.b;
+                                ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x) + 3] = -1;
+                                break;
+                            }
                         }
                     }
                 }
             else
                 for (unsigned int y = 0; y < glyph_height; ++y)
                 {
-                    for (unsigned int x = 0; x < glyph_width; ++x)
+                    for (unsigned int x = 0; x < glyph_width + bold_width; ++x)
                     {
-                        uint8_t alpha = ((uint8_t *)bitmap->buffer)[bitmap->pitch * y + x];
+                        uint8_t alpha = 0;
+                        for (unsigned int i = x < glyph_width ? 0 : x - glyph_width + 1; i <= bold_width && i <= x; ++i)
+                        {
+                            uint8_t new_alpha = alpha + ((uint8_t *)bitmap->buffer)[bitmap->pitch * y + x - i];
+                            if (new_alpha < alpha)
+                                new_alpha = -1;
+                            alpha = new_alpha;
+                        }
                         if (alpha > 0)
                         {
                             ((uint8_t *)txtSurf->pixels)[4 * (bitmapRect.w * (glyph_top + y) + glyph_left + x)] = c.r;
@@ -2920,10 +2945,10 @@ SDL_Surface *Bitmap::drawTextInner(Exception &exception, FT_Face font, const cha
                     }
                 }
 
-            glyph_x += font->glyph->advance.x / 64;
+            glyph_x += font->glyph->advance.x / 64 + bold_width;
             glyph_y += font->glyph->advance.y / 64;
 
-            if (outline > 0)
+            if (needs_transform)
                 FT_Done_Glyph(glyph);
         }
     }
