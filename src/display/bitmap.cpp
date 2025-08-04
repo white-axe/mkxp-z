@@ -112,10 +112,10 @@ return __VA_ARGS__; \
 #  define FLOOR_DIV_DIFF_TILE_SIZE(x) ((size_t)(x) / DIFF_TILE_SIZE)
 #  define CEIL_DIV_DIFF_TILE_SIZE(x) ((((size_t)(x) - 1) / DIFF_TILE_SIZE) + 1)
 
-// This formula is from SDL_ttf (licensed MIT); we may want to adjust it for better accuracy with RPG Maker
+// This formula is from SDL_ttf (licensed under zlib license); we may want to adjust it for better accuracy with RPG Maker
 #  define GET_BOLD_WIDTH(ft_face) ((ft_face)->size->metrics.y_ppem / 10)
 
-// This formula is from SDL_ttf (licensed MIT); we may want to adjust it for better accuracy with RPG Maker
+// This formula is from SDL_ttf (licensed under zlib license); we may want to adjust it for better accuracy with RPG Maker
 static const FT_Matrix ITALIC_TRANSFORM = (FT_Matrix){1 << 16, 0x0366a, 0, 1 << 16};
 #  define GET_ITALIC_WIDTH(ft_face) (((uint32_t)ITALIC_TRANSFORM.xy * (uint32_t)(((int32_t)(ft_face)->ascender - (int32_t)(ft_face)->descender)) / 64) >> 16)
 
