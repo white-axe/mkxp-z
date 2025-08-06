@@ -29,7 +29,7 @@ WASI_CXXFLAGS ?= -Oz -DNDEBUG
 WASI_LDFLAGS ?=
 WASM_OPT_FLAGS ?= -Oz
 
-BUILD_PREFIX := ${PWD}/build
+BUILD_PREFIX := $(PWD)/build
 OUTDIR := $(BUILD_PREFIX)/libretro-stage1
 LIBDIR := $(BUILD_PREFIX)/lib
 DOWNLOADS := $(BUILD_PREFIX)/downloads
@@ -108,7 +108,7 @@ $(LIBDIR)/Dist/bin/ruby: $(DOWNLOADS)/ruby/Makefile ruby-bindings.h
 
 $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.h &: sandbox-bindgen.rb $(LIBDIR)/tags
 	mkdir -p $(OUTDIR)/sandbox-bindgen
-	cd $(LIBDIR) && $(RUBY) ${PWD}/sandbox-bindgen.rb
+	cd $(LIBDIR) && $(RUBY) $(PWD)/sandbox-bindgen.rb
 	mv $(LIBDIR)/mkxp-sandbox-bindgen.h $(OUTDIR)/sandbox-bindgen
 	mv $(LIBDIR)/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sandbox-bindgen
 
@@ -148,11 +148,11 @@ $(DOWNLOADS)/ruby/configure: $(DOWNLOADS)/ruby/configure.ac
 $(DOWNLOADS)/ruby/configure.ac:
 	mkdir -p $(DOWNLOADS)
 	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/ruby -b v$(subst .,_,$(RUBY_VERSION))
-	cd $(DOWNLOADS)/ruby && $(GIT) apply ${PWD}/ruby-stack-pointer.patch
-	cd $(DOWNLOADS)/ruby && $(GIT) apply ${PWD}/ruby-jump-buffer.patch
-	cd $(DOWNLOADS)/ruby && $(GIT) apply ${PWD}/ruby-compat.patch
-	cd $(DOWNLOADS)/ruby && $(GIT) apply ${PWD}/ruby-prng-time.patch
-	echo '#include "${PWD}/ruby-bindings.h"' >> $(DOWNLOADS)/ruby/gc.c
+	cd $(DOWNLOADS)/ruby && $(GIT) apply $(PWD)/ruby-stack-pointer.patch
+	cd $(DOWNLOADS)/ruby && $(GIT) apply $(PWD)/ruby-jump-buffer.patch
+	cd $(DOWNLOADS)/ruby && $(GIT) apply $(PWD)/ruby-compat.patch
+	cd $(DOWNLOADS)/ruby && $(GIT) apply $(PWD)/ruby-prng-time.patch
+	echo '#include "$(PWD)/ruby-bindings.h"' >> $(DOWNLOADS)/ruby/gc.c
 
 # WABT (targets the build machine)
 
@@ -239,6 +239,7 @@ $(DOWNLOADS)/wabt/include/wabt/config.h: $(DOWNLOADS)/wabt/src/config.h.in
 $(WASM2C_SRC) $(DOWNLOADS)/wabt/src/config.h.in &:
 	mkdir -p $(DOWNLOADS)
 	$(CLONE) $(GITHUB)/WebAssembly/wabt $(DOWNLOADS)/wabt -b $(WABT_VERSION)
+	cd $(DOWNLOADS)/wabt && $(GIT) apply $(PWD)/wasm2c-data-segments.patch
 
 $(DOWNLOADS)/picosha2/picosha2.h:
 	mkdir -p $(DOWNLOADS)/picosha2

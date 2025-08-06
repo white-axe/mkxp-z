@@ -1279,7 +1279,7 @@ jobs:
       - name: Configure core
         run: |
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-ps3.txt --buildtype release -Db_lto=false -Druby_lto=true -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-ps3.txt --buildtype release -Db_lto=false -Dlibretro=true
 
       - name: Build core
         run: |
