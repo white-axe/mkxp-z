@@ -37,7 +37,7 @@
      size_t num_imports,
      size_t num_streams) {
    std::vector<size_t> result;
-@@ -218,6 +219,15 @@ static std::vector<size_t> default_name_to_output_file_index(
+@@ -218,6 +219,14 @@ static std::vector<size_t> default_name_to_output_file_index(
    return result;
  }
  
@@ -45,15 +45,14 @@
 +    typename std::vector<DataSegment*>::const_iterator data_segment_begin,
 +    typename std::vector<DataSegment*>::const_iterator data_segment_end,
 +    size_t num_streams) {
-+  return default_name_to_output_file_index<DataSegment>(data_segment_begin,
-+                                                        data_segment_end,
-+                                                        0, num_streams);
++  return default_name_to_output_file_index<DataSegment>(
++      data_segment_begin, data_segment_end, 0, num_streams);
 +}
 +
  class CWriter {
   public:
    CWriter(std::vector<Stream*>&& c_streams,
-@@ -236,7 +246,15 @@ class CWriter {
+@@ -236,7 +245,15 @@ class CWriter {
      if (c_streams_.size() != 1 && options.name_to_output_file_index) {
        name_to_output_file_index_ = options.name_to_output_file_index;
      } else {
@@ -70,7 +69,7 @@
      }
    }
  
-@@ -407,7 +425,9 @@ class CWriter {
+@@ -407,7 +424,9 @@ class CWriter {
    void WriteElemInstances();
    void WriteGlobalInitializers();
    void WriteDataInitializerDecls();
@@ -80,7 +79,7 @@
    void WriteElemInitializerDecls();
    void WriteElemInitializers();
    void WriteFuncRefWrappers();
-@@ -540,6 +560,11 @@ class CWriter {
+@@ -540,6 +559,11 @@ class CWriter {
                                      size_t)>
        name_to_output_file_index_;
  
@@ -92,13 +91,12 @@
    bool simd_used_in_header_;
  
    bool in_tail_callee_;
-@@ -2218,28 +2243,35 @@ void CWriter::WriteDataInitializerDecls() {
+@@ -2218,28 +2242,34 @@ void CWriter::WriteDataInitializerDecls() {
    }
  }
  
 +void CWriter::WriteDataInitializer(const DataSegment* data_segment) {
-+  Write(Newline(), InternalSymbolScope(),
-+        "const u8 data_segment_data_",
++  Write(Newline(), InternalSymbolScope(), "const u8 data_segment_data_",
 +        GlobalName(ModuleFieldType::DataSegment, data_segment->name),
 +        "[] = ", OpenBrace());
 +  size_t i = 0;
@@ -143,7 +141,7 @@
    }
  
    Write(Newline(), "static void init_memories(", ModuleInstanceTypeName(),
-@@ -2299,6 +2331,32 @@ void CWriter::WriteDataInitializers() {
+@@ -2299,6 +2329,36 @@ void CWriter::WriteDataInitializers() {
    }
  }
  
@@ -167,6 +165,10 @@
 +
 +    stream_ = c_streams_.at(c_stream_assignment.at(data_segment_index));
 +
++    if (stream_->offset() == 0) {
++      WriteMultiCTop();
++    }
++
 +    WriteDataInitializer(data_segment);
 +
 +    ++data_segment_index;
@@ -176,7 +178,7 @@
  void CWriter::WriteElemInstances() {
    for (const ElemSegment* elem_segment : module_->elem_segments) {
      std::string name =
-@@ -6099,6 +6157,12 @@ void CWriter::WriteCSource() {
+@@ -6099,6 +6159,12 @@ void CWriter::WriteCSource() {
    /* Write function bodies across the different output streams */
    WriteFuncs();
  
