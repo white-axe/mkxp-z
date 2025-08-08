@@ -45,11 +45,11 @@ static std::string convertString(std::string &str) {
     size_t inLen = str.size();
     size_t outLen = inLen * 4;
     std::string buf(outLen, '\0');
-    char *inPtr = const_cast<char*>(str.c_str());
-    char *outPtr = const_cast<char*>(buf.c_str());
+    const char *inPtr = str.c_str();
+    char *outPtr = &buf[0];
     
     errno = 0;
-    size_t result = iconv(cd, &inPtr, &inLen, &outPtr, &outLen);
+    size_t result = iconv(cd, const_cast<char **>(&inPtr), &inLen, &outPtr, &outLen);
     
     iconv_close(cd);
     
