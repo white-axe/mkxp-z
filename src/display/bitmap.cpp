@@ -2898,11 +2898,11 @@ SDL_Surface *Bitmap::drawTextInner(Exception &exception, FT_Face font, const cha
                     continue;
             }
 
-            int glyph_left = glyph_x + (needs_transform ? ((FT_BitmapGlyph)glyph)->left : font->glyph->bitmap_left);
-            int glyph_top = glyph_y - (needs_transform ? ((FT_BitmapGlyph)glyph)->top : font->glyph->bitmap_top);
+            int glyph_left = std::max(0, glyph_x + (needs_transform ? ((FT_BitmapGlyph)glyph)->left : font->glyph->bitmap_left));
+            int glyph_top = std::max(0, glyph_y - (needs_transform ? ((FT_BitmapGlyph)glyph)->top : font->glyph->bitmap_top));
             FT_Bitmap *bitmap = needs_transform ? &((FT_BitmapGlyph)glyph)->bitmap : &font->glyph->bitmap;
-            unsigned int glyph_width = bitmap->width;
-            unsigned int glyph_height = bitmap->rows;
+            unsigned int glyph_width = std::min((unsigned int)(bitmapRect.w - glyph_left), bitmap->width);
+            unsigned int glyph_height = std::min((unsigned int)(bitmapRect.h - glyph_top), bitmap->rows);
 
             if (solid)
                 for (unsigned int y = 0; y < glyph_height; ++y)
