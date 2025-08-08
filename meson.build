@@ -664,7 +664,7 @@ if is_libretro
     libretro_stage1_path = get_option('libretro_stage1_path')
 
     libretro_ruby_sources = []
-    foreach i : range(8)
+    foreach i : range(import('fs').read(libretro_stage1_path / 'ruby/mkxp-sandbox-ruby-num-outputs.txt').to_int())
         libretro_ruby_sources += libretro_stage1_path / 'ruby/mkxp-sandbox-ruby_@0@.c'.format(i)
     endforeach
 

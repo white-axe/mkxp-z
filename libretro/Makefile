@@ -45,9 +45,11 @@ WASI_RANLIB := $(WASI_SDK)/bin/llvm-ranlib
 NATIVE_TOOLCHAIN := CC=$(NATIVE_CC) CXX=$(NATIVE_CXX) LD=$(NATIVE_LD) AR=$(NATIVE_AR) RANLIB=$(NATIVE_RANLIB)
 WASI_TOOLCHAIN := CC=$(WASI_CC) CXX=$(WASI_CXX) LD=$(WASI_LD) AR=$(WASI_AR) RANLIB=$(WASI_RANLIB)
 
+RUBY_NUM_OUTPUTS ?= 8
+
 all default: ruby-dist ruby-bindings
 
-ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h $(OUTDIR)/ruby/mkxp-sandbox-ruby_0.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_1.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_2.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_3.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_4.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_5.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_6.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_7.c
+ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt
 
 ruby-bindings: $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.h
 
@@ -66,9 +68,10 @@ clean-ruby-bindings:
 
 # Ruby (targets WASI)
 
-$(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby_0.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_1.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_2.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_3.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_4.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_5.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_6.c $(OUTDIR)/ruby/mkxp-sandbox-ruby_7.c &: $(WASM2C) $(LIBDIR)/Dist/bin/ruby
+$(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt &: $(WASM2C) $(LIBDIR)/Dist/bin/ruby
 	mkdir -p $(OUTDIR)/ruby
-	$(WASM2C) $(LIBDIR)/Dist/bin/ruby -n ruby --num-outputs=8 -o $(OUTDIR)/ruby/mkxp-sandbox-ruby.c
+	echo "$(RUBY_NUM_OUTPUTS)" > $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt
+	$(WASM2C) $(LIBDIR)/Dist/bin/ruby -n ruby --num-outputs=$(RUBY_NUM_OUTPUTS) -o $(OUTDIR)/ruby/mkxp-sandbox-ruby.c
 	# Find all the function types declared using `FUNC_TYPE_DECL_EXTERN_T` and redeclare them as macros to fix the "initializer element is not constant" compilation error that occurs when using GCC versions earlier than 8.1.0
 	rm -f $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h
 	for func_type in $$($(GREP) -r 'FUNC_TYPE_DECL_EXTERN_T *([^()]*)' $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h | $(GREP) -v '# *define' | $(SED) -e 's/FUNC_TYPE_DECL_EXTERN_T *( *\(.*\) *).*/\1/'); do \
