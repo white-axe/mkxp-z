@@ -2181,12 +2181,12 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
         }
     }
     {
-        int32_t window_width;
-        int32_t window_height;
+        uint32_t window_width;
+        uint32_t window_height;
         if (!sandbox_deserialize(window_width, data, max_size)) DESER_FAIL;
         if (!sandbox_deserialize(window_height, data, max_size)) DESER_FAIL;
-        window_width = std::max((int32_t)1, window_width);
-        window_height = std::max((int32_t)1, window_height);
+        window_width = std::max((uint32_t)1, window_width);
+        window_height = std::max((uint32_t)1, window_height);
         if (window_width != av_info.geometry.base_width || window_height != av_info.geometry.base_height) {
             shState->graphics().resizeWindow(window_width, window_height, false);
         }

@@ -514,8 +514,8 @@ struct BitmapPrivate
             {
                 size_t tile_width = std::min(DIFF_TILE_SIZE, image_width - DIFF_TILE_SIZE * tile_col);
                 size_t tile_height = std::min(DIFF_TILE_SIZE, image_height - DIFF_TILE_SIZE * tile_row);
-                size_t x_start = rect.x > DIFF_TILE_SIZE * tile_col ? rect.x - DIFF_TILE_SIZE * tile_col : 0;
-                size_t y_start = rect.y > DIFF_TILE_SIZE * tile_row ? rect.y - DIFF_TILE_SIZE * tile_row : 0;
+                size_t x_start = (size_t)rect.x > DIFF_TILE_SIZE * tile_col ? rect.x - DIFF_TILE_SIZE * tile_col : 0;
+                size_t y_start = (size_t)rect.y > DIFF_TILE_SIZE * tile_row ? rect.y - DIFF_TILE_SIZE * tile_row : 0;
                 size_t x_end = std::min(DIFF_TILE_SIZE, rect.x + rect.w - DIFF_TILE_SIZE * tile_col);
                 size_t y_end = std::min(DIFF_TILE_SIZE, rect.y + rect.h - DIFF_TILE_SIZE * tile_row);
 
@@ -600,7 +600,7 @@ struct BitmapPrivate
 
         if (megaSurface != nullptr)
         {
-            for (size_t y = 0; y < expanded_rect.h; ++y)
+            for (size_t y = 0; y < (size_t)expanded_rect.h; ++y)
                 std::memcpy(pixels + expanded_rect.w * y, (const uint32_t *)megaSurface->pixels + megaSurface->w * (expanded_rect.y + y) + expanded_rect.x, expanded_rect.w);
         }
         else
@@ -1475,8 +1475,8 @@ static bool shrinkRects(float &sourcePos, float &sourceLen, const int &sBitmapLe
     else
     {
         // Ensure the source rect has positive dimensions, for blitting from mega surfaces
-        destPos = (destLen > 0 == sourceLen > 0) ? dStart : dEnd;
-        destLen = (destLen > 0 == sourceLen > 0) ? dLength : -dLength;
+        destPos = ((destLen > 0) == (sourceLen > 0)) ? dStart : dEnd;
+        destLen = ((destLen > 0) == (sourceLen > 0)) ? dLength : -dLength;
         sourcePos = sStart;
         sourceLen = sLength;
     }
@@ -1848,7 +1848,7 @@ void Bitmap::fillRect(Exception &exception, const IntRect &rect, const Vec4 &col
         (uint8_t)clamp(color.z * 255.0f, 0.0f, 255.0f),
         (uint8_t)clamp(color.w * 255.0f, 0.0f, 255.0f),
     };
-    for (size_t i = 0; i < rect.w * rect.h; ++i)
+    for (size_t i = 0; i < (size_t)rect.w * (size_t)rect.h; ++i)
         std::memcpy(pixels + i, pixel, 4);
     p->pushDiff(pixels, rect);
     stbi_image_free(pixels);
@@ -2383,20 +2383,19 @@ void Bitmap::saveToFile(Exception &exception, const char *filename)
         Debug() << "GAME BUG: Game is calling saveToFile on low-res Bitmap; you may want to patch the game to improve graphics quality.";
     }
 
+#ifndef MKXPZ_RETRO // TODO: implement
     SDL_Surface *surf;
     
     if (p->surface || p->megaSurface) {
         surf = (p->surface) ? p->surface : p->megaSurface;
     }
     else {
-#ifndef MKXPZ_RETRO
         surf = SDL_CreateRGBSurface(0, width(), height(),p->format->BitsPerPixel, p->format->Rmask,p->format->Gmask,p->format->Bmask,p->format->Amask);
         
         if (!surf)
             MKXPZ_THROW(std::bad_alloc());
         
         GUARD(getRaw(exception, surf->pixels, surf->w * surf->h * 4));
-#endif // MKXPZ_RETRO
     }
     
     // Try and determine the intended image format from the filename extension
@@ -2417,7 +2416,6 @@ void Bitmap::saveToFile(Exception &exception, const char *filename)
         }
     }
     
-#ifndef MKXPZ_RETRO
     std::string fn_normalized = shState->fileSystem().normalize(filename, 1, 1);
     int rc;
     switch (filetype) {
@@ -3054,9 +3052,9 @@ void Bitmap::drawText(Exception &exception, const IntRect &rect, const char *str
             delete txtSurf;
             return;
         }
-        for (size_t y = 0; y < txtSurf->h; ++y)
+        for (size_t y = 0; y < (size_t)txtSurf->h; ++y)
         {
-            for (size_t x = 0; x < txtSurf->w; ++x)
+            for (size_t x = 0; x < (size_t)txtSurf->w; ++x)
             {
                 uint8_t *src = (uint8_t *)&((uint32_t *)txtSurf->pixels)[txtSurf->w * y + x];
                 uint8_t *dst = (uint8_t *)&((uint32_t *)outline->pixels)[(txtSurf->w + 2 * scaledOutlineSize) * (y + scaledOutlineSize) + (x + scaledOutlineSize)];
@@ -3137,6 +3135,7 @@ void Bitmap::drawText(Exception &exception, const IntRect &rect, const char *str
     GUARD(stretchBlt(exception, destRect, txtBitmap, sourceRect, fontColor.alpha, smooth));
 }
 
+#ifndef MKXPZ_RETRO
 /* http://www.lemoda.net/c/utf8-to-ucs2/index.html */
 static uint16_t utf8_to_ucs2(const char *_input,
                              const char **end_ptr)
@@ -3180,6 +3179,7 @@ static uint16_t utf8_to_ucs2(const char *_input,
     
     return -1;
 }
+#endif // MKXPZ_RETRO
 
 IntRect Bitmap::textSize(Exception &exception, const char *str)
 {
@@ -3841,7 +3841,7 @@ bool Bitmap::sandbox_deserialize_without_hires(const void *&data, mkxp_sandbox::
                 }
                 mkxp_sandbox::wasm_size_t index;
                 if (!mkxp_sandbox::sandbox_deserialize(index, tmp_data, tmp_max_size)) return false;
-                if (index != frame.originalFrameIndex) {
+                if (index != (mkxp_sandbox::wasm_size_t)frame.originalFrameIndex) {
                     need_reload = true;
                     break;
                 }
@@ -3950,7 +3950,7 @@ bool Bitmap::sandbox_deserialize_without_hires(const void *&data, mkxp_sandbox::
         if (!sandbox_deserialize_pixels_check_need_reload(data, max_size, p->diff, need_reload, need_reload_if_path_not_empty, false)) return false;
 
         // Reload bitmap if its path has changed, or its size has changed, or if it needs to be reloaded based on the diff in the save state
-        if (deserSizeChanged || need_reload || (need_reload_if_path_not_empty && !p->path.empty()) || p->originalFrameIndex != old_index || p->path != old_path) {
+        if (deserSizeChanged || need_reload || (need_reload_if_path_not_empty && !p->path.empty()) || (mkxp_sandbox::wasm_size_t)p->originalFrameIndex != old_index || p->path != old_path) {
             if (p->path.empty()) {
                 delete p;
                 {
@@ -3975,7 +3975,7 @@ bool Bitmap::sandbox_deserialize_without_hires(const void *&data, mkxp_sandbox::
                 // If the newly reloaded bitmap is animated but the save state has a non-animated bitmap,
                 // turn it into a non-animated one
                 if (p->animation.enabled && !new_animation_enabled) {
-                    if (p->originalFrameIndex < 0 || p->originalFrameIndex >= p->animation.frames.size()) {
+                    if (p->originalFrameIndex < 0 || (size_t)p->originalFrameIndex >= p->animation.frames.size()) {
                         return false;
                     }
                     p->animation.enabled = false;
@@ -4189,7 +4189,7 @@ bool Bitmap::sandbox_deserialize_pixels(const void *&data, mkxp_sandbox::wasm_si
                 std::memcpy(tile.data(), data, 4 * tile_width * tile_height);
 
                 if (isMega()) {
-                    for (size_t y = 0; y < rect.h; ++y) {
+                    for (size_t y = 0; y < (size_t)rect.h; ++y) {
                         std::memcpy((uint32_t *)p->megaSurface + p->megaSurface->w * (rect.y + y) + rect.x, (const uint32_t *)data + rect.w * y, 4 * rect.w);
                     }
                 } else {
@@ -4265,7 +4265,7 @@ void Bitmap::sandbox_reinit()
 
             TEXFBO *src_texfbo;
             if (source->isAnimated()) {
-                if (frame.originalFrameIndex < 0 || frame.originalFrameIndex >= source->p->animation.frames.size()) {
+                if (frame.originalFrameIndex < 0 || (size_t)frame.originalFrameIndex >= source->p->animation.frames.size()) {
                     delete source;
                     return;
                 }
@@ -4346,7 +4346,7 @@ void Bitmap::sandbox_reinit()
             }
 
             if (isMega()) {
-                for (size_t y = 0; y < rect.h; ++y) {
+                for (size_t y = 0; y < (size_t)rect.h; ++y) {
                     std::memcpy((uint32_t *)p->megaSurface + p->megaSurface->w * (rect.y + y) + rect.x, tile.data() + rect.w * y, 4 * rect.w);
                 }
             } else {
