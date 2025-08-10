@@ -1811,7 +1811,7 @@ int Graphics::displayHeight() const {
 #endif // MKXPZ_RETRO
 }
 
-void Graphics::resizeScreen(int width, int height) {
+void Graphics::resizeScreen(int width, int height, bool resizeWindow) {
 #ifndef MKXPZ_RETRO
     p->threadData->rqWindowAdjust.wait();
 #endif // MKXPZ_RETRO
@@ -1845,14 +1845,17 @@ void Graphics::resizeScreen(int width, int height) {
     
     glState.scissorBox.set(IntRect(0, 0, p->scRes.x, p->scRes.y));
     
+    if (resizeWindow)
+    {
 #ifdef MKXPZ_RETRO
-    p->winSize = Vec2i(width, height);
-    p->recalculateScreenSize(p->threadData->config.fixedAspectRatio);
-    p->updateScreenResoRatio(p->threadData);
-    mkxp_retro::request_resize(width, height);
+        p->winSize = Vec2i(width, height);
+        p->recalculateScreenSize(p->threadData->config.fixedAspectRatio);
+        p->updateScreenResoRatio(p->threadData);
+        mkxp_retro::request_resize(width, height);
 #else
-    shState->eThread().requestWindowResize(width, height);
+        shState->eThread().requestWindowResize(width, height);
 #endif // MKXPZ_RETRO
+    }
 }
 
 void Graphics::resizeWindow(int width, int height, bool center) {

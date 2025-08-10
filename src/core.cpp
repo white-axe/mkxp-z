@@ -1830,6 +1830,8 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     // Write the graphics state
     if (!sandbox_serialize((int32_t)shState->graphics().width(), data, max_size)) return false;
     if (!sandbox_serialize((int32_t)shState->graphics().height(), data, max_size)) return false;
+    if (!sandbox_serialize((uint32_t)av_info.geometry.base_width, data, max_size)) return false;
+    if (!sandbox_serialize((uint32_t)av_info.geometry.base_height, data, max_size)) return false;
     if (!sandbox_serialize((int32_t)shState->graphics().getFrameRate(), data, max_size)) return false;
     if (!sandbox_serialize((int32_t)shState->graphics().getFrameCount(), data, max_size)) return false;
     if (!sandbox_serialize((int32_t)shState->graphics().getBrightness(), data, max_size)) return false;
@@ -2168,14 +2170,25 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
 
     // Read the graphics state
     {
-        int32_t width;
-        int32_t height;
-        if (!sandbox_deserialize(width, data, max_size)) DESER_FAIL;
-        if (!sandbox_deserialize(height, data, max_size)) DESER_FAIL;
-        width = std::max((int32_t)1, width);
-        height = std::max((int32_t)1, height);
-        if (width != shState->graphics().width() || height != shState->graphics().height()) {
-            shState->graphics().resizeScreen(width, height);
+        int32_t screen_width;
+        int32_t screen_height;
+        if (!sandbox_deserialize(screen_width, data, max_size)) DESER_FAIL;
+        if (!sandbox_deserialize(screen_height, data, max_size)) DESER_FAIL;
+        screen_width = std::max((int32_t)1, screen_width);
+        screen_height = std::max((int32_t)1, screen_height);
+        if (screen_width != shState->graphics().width() || screen_height != shState->graphics().height()) {
+            shState->graphics().resizeScreen(screen_width, screen_height, false);
+        }
+    }
+    {
+        int32_t window_width;
+        int32_t window_height;
+        if (!sandbox_deserialize(window_width, data, max_size)) DESER_FAIL;
+        if (!sandbox_deserialize(window_height, data, max_size)) DESER_FAIL;
+        window_width = std::max((int32_t)1, window_width);
+        window_height = std::max((int32_t)1, window_height);
+        if (window_width != av_info.geometry.base_width || window_height != av_info.geometry.base_height) {
+            shState->graphics().resizeWindow(window_width, window_height, false);
         }
     }
     {
