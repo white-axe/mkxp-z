@@ -35,13 +35,16 @@ namespace mkxp_sandbox {
                     SANDBOX_AWAIT_S(2, rb_obj_alloc, klass);
                     SANDBOX_AWAIT_S(0, rb_string_value_ptr, &src);
                     SANDBOX_AWAIT_S(1, get_bytesize, src);
+                    if (SANDBOX_SLOT(1) > 0) {
+                        sb()->check_bounds(SANDBOX_SLOT(0), SANDBOX_SLOT(1));
 #ifdef MKXPZ_BIG_ENDIAN
-                    std::reverse(&sb()->ref<char>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(1), (wasm_size_t)1) - 1), &sb()->ref<char>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(1), (wasm_size_t)1) - 1) + SANDBOX_SLOT(1));
-                    SANDBOX_GUARD(set_private_data(sb().e, SANDBOX_SLOT(2), C::deserialize(sb().e, &sb()->ref<char>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(1), (wasm_size_t)1) - 1), SANDBOX_SLOT(1))));
-                    std::reverse(&sb()->ref<char>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(1), (wasm_size_t)1) - 1), &sb()->ref<char>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(1), (wasm_size_t)1) - 1) + SANDBOX_SLOT(1));
+                        std::reverse(&sb()->ref<char>(SANDBOX_SLOT(0), SANDBOX_SLOT(1) - 1), &sb()->ref<char>(SANDBOX_SLOT(0), SANDBOX_SLOT(1) - 1) + SANDBOX_SLOT(1));
+                        SANDBOX_GUARD(set_private_data(sb().e, SANDBOX_SLOT(2), C::deserialize(sb().e, &sb()->ref<char>(SANDBOX_SLOT(0), SANDBOX_SLOT(1) - 1), SANDBOX_SLOT(1))));
+                        std::reverse(&sb()->ref<char>(SANDBOX_SLOT(0), SANDBOX_SLOT(1) - 1), &sb()->ref<char>(SANDBOX_SLOT(0), SANDBOX_SLOT(1) - 1) + SANDBOX_SLOT(1));
 #else
-                    SANDBOX_GUARD(set_private_data(sb().e, SANDBOX_SLOT(2), C::deserialize(sb().e, &sb()->ref<char>(SANDBOX_SLOT(0)), SANDBOX_SLOT(1))));
+                        SANDBOX_GUARD(set_private_data(sb().e, SANDBOX_SLOT(2), C::deserialize(sb().e, &sb()->ref<char>(SANDBOX_SLOT(0)), SANDBOX_SLOT(1))));
 #endif // MKXPZ_BIG_ENDIAN
+                    }
                 }
 
                 return SANDBOX_SLOT(2);
@@ -61,12 +64,15 @@ namespace mkxp_sandbox {
                     SANDBOX_AWAIT_S(2, rb_str_new_cstr, "");
                     SANDBOX_AWAIT(rb_str_resize, SANDBOX_SLOT(2), SANDBOX_SLOT(1));
                     SANDBOX_AWAIT_S(0, rb_string_value_ptr, &SANDBOX_SLOT(2));
+                    if (SANDBOX_SLOT(1) > 0) {
+                        sb()->check_bounds(SANDBOX_SLOT(0), SANDBOX_SLOT(1));
 #ifdef MKXPZ_BIG_ENDIAN
-                    get_private_data<C>(self)->serialize(&sb()->ref<char>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(1), (wasm_size_t)1) - 1));
-                    std::reverse(&sb()->ref<char>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(1), (wasm_size_t)1) - 1), &sb()->ref<char>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(1), (wasm_size_t)1) - 1) + SANDBOX_SLOT(1));
+                        get_private_data<C>(self)->serialize(&sb()->ref<char>(SANDBOX_SLOT(0), SANDBOX_SLOT(1) - 1));
+                        std::reverse(&sb()->ref<char>(SANDBOX_SLOT(0), SANDBOX_SLOT(1) - 1), &sb()->ref<char>(SANDBOX_SLOT(0), SANDBOX_SLOT(1) - 1) + SANDBOX_SLOT(1));
 #else
-                    get_private_data<C>(self)->serialize(&sb()->ref<char>(SANDBOX_SLOT(0)));
+                        get_private_data<C>(self)->serialize(&sb()->ref<char>(SANDBOX_SLOT(0)));
 #endif // MKXPZ_BIG_ENDIAN
+                    }
                 }
 
                 return SANDBOX_SLOT(2);

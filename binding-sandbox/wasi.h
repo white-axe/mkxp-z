@@ -233,6 +233,10 @@ typedef struct w2c_wasi__snapshot__preview1 {
         return ref<T>(array_address + array_index * sizeof(T));
     }
 
+    // Checks if the array with the given address and size in bytes is within the bounds of sandbox memory.
+    // If it isn't, aborts. Otherwise, does nothing.
+    void check_bounds(mkxp_sandbox::wasm_ptr_t address, mkxp_sandbox::wasm_size_t size) const noexcept;
+
     // Gets a string stored at a given address in sandbox memory.
     struct mkxp_sandbox::sandbox_str_guard str(mkxp_sandbox::wasm_ptr_t address) const noexcept;
 

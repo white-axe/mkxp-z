@@ -126,6 +126,12 @@ void binding_base::copy_memory_from(const void *ptr, wasm_size_t size, wasm_size
     }
 }
 
+void mkxp_sandbox::sandbox_check_bounds(struct w2c_ruby &instance, wasm_ptr_t address, wasm_size_t size) noexcept {
+    if (address >= instance.w2c_memory.size || instance.w2c_memory.size - address < size) {
+        std::abort();
+    }
+}
+
 wasm_size_t mkxp_sandbox::sandbox_strlen(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {
     const char *ptr = &sandbox_ref<char>(instance, address);
 #ifdef MKXPZ_BIG_ENDIAN
@@ -169,6 +175,10 @@ void mkxp_sandbox::sandbox_strcpy(struct w2c_ruby &instance, wasm_ptr_t dst_addr
 
 void mkxp_sandbox::sandbox_strncpy_s(struct w2c_ruby &instance, wasm_ptr_t dst_address, const char *src, wasm_size_t max_size) noexcept {
     sandbox_arycpy(instance, dst_address, src, std::min((wasm_size_t)std::strlen(src) + 1, max_size));
+}
+
+void binding_base::check_bounds(wasm_ptr_t address, wasm_size_t size) const noexcept {
+    return sandbox_check_bounds(instance(), address, size);
 }
 
 wasm_size_t binding_base::strlen(wasm_ptr_t address) const noexcept {

@@ -407,12 +407,15 @@ static VALUE get_raw_data(VALUE self) {
                 SANDBOX_AWAIT_S(1, rb_str_new_cstr, "");
                 SANDBOX_AWAIT(rb_str_resize, SANDBOX_SLOT(1), SANDBOX_SLOT(2));
                 SANDBOX_AWAIT_S(0, rb_string_value_ptr, &SANDBOX_SLOT(1));
+                if (SANDBOX_SLOT(2) > 0) {
+                    sb()->check_bounds(SANDBOX_SLOT(0), SANDBOX_SLOT(2));
 #ifdef MKXPZ_BIG_ENDIAN
-                SANDBOX_GUARD_L(bitmap->getRaw(sb().e, &sb()->ref<uint8_t>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(2), (int32_t)1) - 1), SANDBOX_SLOT(2)));
-                std::reverse(&sb()->ref<uint8_t>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(2), (int32_t)1) - 1), &sb()->ref<uint8_t>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(2), (int32_t)1) - 1) + SANDBOX_SLOT(2));
+                    SANDBOX_GUARD_L(bitmap->getRaw(sb().e, &sb()->ref<uint8_t>(SANDBOX_SLOT(0), SANDBOX_SLOT(2) - 1), SANDBOX_SLOT(2)));
+                    std::reverse(&sb()->ref<uint8_t>(SANDBOX_SLOT(0), SANDBOX_SLOT(2) - 1), &sb()->ref<uint8_t>(SANDBOX_SLOT(0), SANDBOX_SLOT(2) - 1) + SANDBOX_SLOT(2));
 #else
-                SANDBOX_GUARD_L(bitmap->getRaw(sb().e, &sb()->ref<uint8_t>(SANDBOX_SLOT(0)), SANDBOX_SLOT(2)));
+                    SANDBOX_GUARD_L(bitmap->getRaw(sb().e, &sb()->ref<uint8_t>(SANDBOX_SLOT(0)), SANDBOX_SLOT(2)));
 #endif // MKXPZ_BIG_ENDIAN
+                }
             }
 
             return SANDBOX_SLOT(1);
@@ -430,12 +433,15 @@ static VALUE set_raw_data(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_S(0, rb_string_value_ptr, &value);
                 SANDBOX_AWAIT_S(1, get_bytesize, value);
+                if (SANDBOX_SLOT(1) > 0) {
+                    sb()->check_bounds(SANDBOX_SLOT(0), SANDBOX_SLOT(1));
 #ifdef MKXPZ_BIG_ENDIAN
-                SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->replaceRaw(sb().e, &sb()->ref<uint8_t>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(1), (int32_t)1) - 1), SANDBOX_SLOT(1)));
-                std::reverse(&sb()->ref<uint8_t>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(1), (int32_t)1) - 1), &sb()->ref<uint8_t>(SANDBOX_SLOT(0), std::max(SANDBOX_SLOT(1), (int32_t)1) - 1) + SANDBOX_SLOT(1));
+                    SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->replaceRaw(sb().e, &sb()->ref<uint8_t>(SANDBOX_SLOT(0), SANDBOX_SLOT(1) - 1), SANDBOX_SLOT(1)));
+                    std::reverse(&sb()->ref<uint8_t>(SANDBOX_SLOT(0), SANDBOX_SLOT(1) - 1), &sb()->ref<uint8_t>(SANDBOX_SLOT(0), SANDBOX_SLOT(1) - 1) + SANDBOX_SLOT(1));
 #else
-                SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->replaceRaw(sb().e, &sb()->ref<uint8_t>(SANDBOX_SLOT(0)), SANDBOX_SLOT(1)));
+                    SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->replaceRaw(sb().e, &sb()->ref<uint8_t>(SANDBOX_SLOT(0)), SANDBOX_SLOT(1)));
 #endif // MKXPZ_BIG_ENDIAN
+                }
             }
 
             return self;

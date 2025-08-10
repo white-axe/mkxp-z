@@ -138,6 +138,10 @@ void wasi_t::deallocate_file_descriptor(uint32_t fd) {
     }
 }
 
+void wasi_t::check_bounds(mkxp_sandbox::wasm_ptr_t address, mkxp_sandbox::wasm_size_t size) const noexcept {
+    sandbox_check_bounds(*ruby, address, size);
+}
+
 wasm_size_t wasi_t::strlen(wasm_ptr_t address) const noexcept {
     return sandbox_strlen(*ruby, address);
 }
@@ -541,6 +545,12 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_filestat_set_size(wasi_t *wa
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_pread(wasi_t *wasi, uint32_t fd, wasm_ptr_t iovs, uint32_t iovs_len, uint64_t offset, wasm_ptr_t result) {
     WASI_DEBUG("fd_pread(%u, 0x%08x (%u), %lu)\n", fd, iovs, iovs_len, offset);
+
+    if (8 * (wasm_size_t)iovs_len <= (wasm_size_t)iovs_len) {
+        std::abort();
+    }
+    wasi->check_bounds(iovs, 8 * (wasm_size_t)iovs_len);
+
     return WASI_ENOSYS;
 }
 
@@ -599,11 +609,22 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_prestat_get(wasi_t *wasi, ui
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_pwrite(wasi_t *wasi, uint32_t fd, wasm_ptr_t iovs, uint32_t iovs_len, uint64_t offset, wasm_ptr_t result) {
     WASI_DEBUG("fd_pwrite(%u, 0x%08x (%u), %lu)\n", fd, iovs, iovs_len, offset);
+
+    if (8 * (wasm_size_t)iovs_len <= (wasm_size_t)iovs_len) {
+        std::abort();
+    }
+    wasi->check_bounds(iovs, 8 * (wasm_size_t)iovs_len);
+
     return WASI_ENOSYS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_read(wasi_t *wasi, uint32_t fd, wasm_ptr_t iovs, uint32_t iovs_len, wasm_ptr_t result) {
     WASI_DEBUG("fd_read(%u, 0x%08x (%u))\n", fd, iovs, iovs_len);
+
+    if (8 * (wasm_size_t)iovs_len <= (wasm_size_t)iovs_len) {
+        std::abort();
+    }
+    wasi->check_bounds(iovs, 8 * (wasm_size_t)iovs_len);
 
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
@@ -630,6 +651,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_read(wasi_t *wasi, uint32_t 
                     uint32_t ptr = wasi->ref<uint32_t>(iovs);
                     uint32_t length = wasi->ref<uint32_t>(iovs + 4);
                     if (length > 0) {
+                        wasi->check_bounds(ptr, length);
 #ifdef MKXPZ_BIG_ENDIAN
                         uint8_t *buffer = &wasi->ref<uint8_t>(ptr, length - 1);
 #else
@@ -655,6 +677,8 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_read(wasi_t *wasi, uint32_t 
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_readdir(wasi_t *wasi, uint32_t fd, wasm_ptr_t buf, uint32_t buf_len, uint64_t cookie, wasm_ptr_t result) {
     WASI_DEBUG("fd_readdir(%u, 0x%08x (%u), %lu)\n", fd, buf, buf_len, cookie);
+
+    wasi->check_bounds(buf, buf_len);
 
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
@@ -850,6 +874,11 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_tell(wasi_t *wasi, uint32_t 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_write(wasi_t *wasi, uint32_t fd, wasm_ptr_t iovs, uint32_t iovs_len, wasm_ptr_t result) {
     WASI_DEBUG("fd_write(%u, 0x%08x (%u))\n", fd, iovs, iovs_len);
 
+    if (8 * (wasm_size_t)iovs_len <= (wasm_size_t)iovs_len) {
+        std::abort();
+    }
+    wasi->check_bounds(iovs, 8 * (wasm_size_t)iovs_len);
+
     if (fd >= wasi->fdtable.size()) {
         return WASI_EBADF;
     }
@@ -897,6 +926,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_write(wasi_t *wasi, uint32_t
                     uint32_t ptr = wasi->ref<uint32_t>(iovs);
                     uint32_t length = wasi->ref<uint32_t>(iovs + 4);
                     if (length > 0) {
+                        wasi->check_bounds(ptr, length);
 #ifdef MKXPZ_BIG_ENDIAN
                         uint8_t *buffer = &wasi->ref<uint8_t>(ptr, length - 1);
                         std::reverse(buffer, buffer + length);
@@ -1102,6 +1132,9 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, uint32_
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_readlink(wasi_t *wasi, uint32_t fd, wasm_ptr_t path, uint32_t path_len, wasm_ptr_t buf, uint32_t buf_len, wasm_ptr_t result) {
     WASI_DEBUG("path_readlink(%u, \"%.*s\", 0x%08x (%u))\n", fd, path_len, (const char *)wasi->str(path), buf, buf_len);
+
+    wasi->check_bounds(buf, buf_len);
+
     return WASI_ENOSYS;
 }
 
@@ -1259,6 +1292,8 @@ extern "C" void w2c_wasi__snapshot__preview1_proc_exit(wasi_t *wasi, uint32_t rv
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_random_get(wasi_t *wasi, wasm_ptr_t buf, uint32_t buf_len) {
     WASI_DEBUG("random_get(0x%08x (%u))\n", buf, buf_len);
+
+    wasi->check_bounds(buf, buf_len);
 
     while (buf_len > 0) {
         if (wasi->prng_buffer_size == 0) {

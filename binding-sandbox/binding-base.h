@@ -196,6 +196,10 @@ namespace mkxp_sandbox {
         return sandbox_ref<T>(array_address + array_index * sizeof(T));
     }
 
+    // Checks if the array with the given address and size in bytes is within the bounds of sandbox memory.
+    // If it isn't, aborts. Otherwise, does nothing.
+    void sandbox_check_bounds(struct w2c_ruby &instance, wasm_ptr_t address, wasm_size_t size) noexcept;
+
     // Gets the length of a string stored at a given address in sandbox memory.
     wasm_size_t sandbox_strlen(struct w2c_ruby &instance, wasm_ptr_t address) noexcept;
 
@@ -386,6 +390,10 @@ namespace mkxp_sandbox {
         template <typename T> T &ref(wasm_ptr_t array_address, wasm_size_t array_index) const noexcept {
             return ref<T>(array_address + array_index * sizeof(T));
         }
+
+        // Checks if the array with the given address and size in bytes is within the bounds of sandbox memory.
+        // If it isn't, aborts. Otherwise, does nothing.
+        void check_bounds(wasm_ptr_t address, wasm_size_t size) const noexcept;
 
         // Gets the length of a string stored at a given address in sandbox memory.
         wasm_size_t strlen(wasm_ptr_t address) const noexcept;
