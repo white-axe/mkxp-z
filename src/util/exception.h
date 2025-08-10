@@ -81,7 +81,7 @@ struct Exception
 
 	const char *what() const
 	{
-		static std::string buf;
+		static thread_local std::string buf;
 		buf.clear();
 		switch (type)
 		{
