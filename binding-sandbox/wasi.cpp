@@ -546,7 +546,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_filestat_set_size(wasi_t *wa
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_pread(wasi_t *wasi, uint32_t fd, wasm_ptr_t iovs, uint32_t iovs_len, uint64_t offset, wasm_ptr_t result) {
     WASI_DEBUG("fd_pread(%u, 0x%08x (%u), %lu)\n", fd, iovs, iovs_len, offset);
 
-    if (8 * (wasm_size_t)iovs_len <= (wasm_size_t)iovs_len) {
+    if (8 * (wasm_size_t)iovs_len < (wasm_size_t)iovs_len) {
         std::abort();
     }
     wasi->check_bounds(iovs, 8 * (wasm_size_t)iovs_len);
@@ -610,7 +610,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_prestat_get(wasi_t *wasi, ui
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_pwrite(wasi_t *wasi, uint32_t fd, wasm_ptr_t iovs, uint32_t iovs_len, uint64_t offset, wasm_ptr_t result) {
     WASI_DEBUG("fd_pwrite(%u, 0x%08x (%u), %lu)\n", fd, iovs, iovs_len, offset);
 
-    if (8 * (wasm_size_t)iovs_len <= (wasm_size_t)iovs_len) {
+    if (8 * (wasm_size_t)iovs_len < (wasm_size_t)iovs_len) {
         std::abort();
     }
     wasi->check_bounds(iovs, 8 * (wasm_size_t)iovs_len);
@@ -621,7 +621,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_pwrite(wasi_t *wasi, uint32_
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_read(wasi_t *wasi, uint32_t fd, wasm_ptr_t iovs, uint32_t iovs_len, wasm_ptr_t result) {
     WASI_DEBUG("fd_read(%u, 0x%08x (%u))\n", fd, iovs, iovs_len);
 
-    if (8 * (wasm_size_t)iovs_len <= (wasm_size_t)iovs_len) {
+    if (8 * (wasm_size_t)iovs_len < (wasm_size_t)iovs_len) {
         std::abort();
     }
     wasi->check_bounds(iovs, 8 * (wasm_size_t)iovs_len);
@@ -874,7 +874,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_tell(wasi_t *wasi, uint32_t 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_write(wasi_t *wasi, uint32_t fd, wasm_ptr_t iovs, uint32_t iovs_len, wasm_ptr_t result) {
     WASI_DEBUG("fd_write(%u, 0x%08x (%u))\n", fd, iovs, iovs_len);
 
-    if (8 * (wasm_size_t)iovs_len <= (wasm_size_t)iovs_len) {
+    if (8 * (wasm_size_t)iovs_len < (wasm_size_t)iovs_len) {
         std::abort();
     }
     wasi->check_bounds(iovs, 8 * (wasm_size_t)iovs_len);
