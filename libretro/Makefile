@@ -137,9 +137,9 @@ $(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.
 		$(WASI_TOOLCHAIN) \
 		LDFLAGS='-Wl,--export-dynamic,--stack-first,-z,stack-size=2097152 $(WASI_LDFLAGS)' \
 		XCFLAGS='-DWASM_SETJMP_STACK_BUFFER_SIZE=24576 -DWASM_FIBER_STACK_BUFFER_SIZE=24576 -DWASM_SCAN_STACK_BUFFER_SIZE=24576' \
-		cppflags='$(WASI_CXXFLAGS)' \
-		optflags='$(WASI_CFLAGS) -fno-fast-math' \
-		wasmoptflags='$(WASM_OPT_FLAGS) --pass-arg=asyncify-ignore-imports' \
+		cppflags='-mbulk-memory $(WASI_CXXFLAGS)' \
+		optflags='-mbulk-memory $(WASI_CFLAGS) -fno-fast-math' \
+		wasmoptflags='--enable-bulk-memory $(WASM_OPT_FLAGS) --pass-arg=asyncify-ignore-imports' \
 		$(shell $(RUBY) -e 'puts "ac_cv_func_dlopen=no" if "$(RUBY_VERSION)".split(".")[..1].join(".").to_f < 3.3') \
 		--disable-rubygems \
 		--disable-install-doc
@@ -254,7 +254,7 @@ $(LIBDIR)/usr/local/lib/libyaml.a: $(DOWNLOADS)/libyaml/Makefile
 	cd $(DOWNLOADS)/libyaml && $(MAKE) install DESTDIR=$(LIBDIR)
 
 $(DOWNLOADS)/libyaml/Makefile: $(DOWNLOADS)/libyaml/configure
-	cd $(DOWNLOADS)/libyaml && ./configure --host $(TARGET) $(WASI_TOOLCHAIN) CFLAGS='$(WASI_CFLAGS)' CXXFLAGS='$(WASI_CXXFLAGS)' LDFLAGS='$(WASI_LDFLAGS)'
+	cd $(DOWNLOADS)/libyaml && ./configure --host $(TARGET) $(WASI_TOOLCHAIN) CFLAGS='-mbulk-memory $(WASI_CFLAGS)' CXXFLAGS='-mbulk-memory $(WASI_CXXFLAGS)' LDFLAGS='$(WASI_LDFLAGS)'
 
 $(DOWNLOADS)/libyaml/configure: $(DOWNLOADS)/libyaml/configure.ac
 	cd $(DOWNLOADS)/libyaml && $(AUTORECONF) -i
@@ -269,7 +269,7 @@ $(LIBDIR)/usr/local/lib/libz.a: $(DOWNLOADS)/zlib/Makefile
 	cd $(DOWNLOADS)/zlib && $(MAKE) install DESTDIR=$(LIBDIR)
 
 $(DOWNLOADS)/zlib/Makefile: $(DOWNLOADS)/zlib/configure
-	cd $(DOWNLOADS)/zlib && CHOST=linux $(WASI_TOOLCHAIN) CFLAGS='$(WASI_CFLAGS)' CXXFLAGS='$(WASI_CXXFLAGS)' LDFLAGS='$(WASI_LDFLAGS)' ./configure --static
+	cd $(DOWNLOADS)/zlib && CHOST=linux $(WASI_TOOLCHAIN) CFLAGS='-mbulk-memory $(WASI_CFLAGS)' CXXFLAGS='-mbulk-memory $(WASI_CXXFLAGS)' LDFLAGS='$(WASI_LDFLAGS)' ./configure --static
 
 $(DOWNLOADS)/zlib/configure:
 	mkdir -p $(DOWNLOADS)
