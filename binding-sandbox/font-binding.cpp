@@ -200,10 +200,10 @@ static VALUE set_size(VALUE self, VALUE value) {
 
 SANDBOX_DEF_PROP_B(Font, Bold, bold);
 SANDBOX_DEF_PROP_B(Font, Italic, italic);
-SANDBOX_DEF_PROP_OBJ_VAL(Font, Color, Color, color);
+SANDBOX_DEF_PROP_OBJ_VAL(Font, Color, color_class, Color, color);
 SANDBOX_DEF_PROP_B(Font, Shadow, shadow);
 SANDBOX_DEF_PROP_B(Font, Outline, outline);
-SANDBOX_DEF_PROP_OBJ_VAL(Font, Color, OutColor, out_color);
+SANDBOX_DEF_PROP_OBJ_VAL(Font, Color, color_class, OutColor, out_color);
 
 static VALUE get_default_name(VALUE self) {
     return sb()->bind<struct rb_iv_get>()()(self, "default_name");
@@ -235,10 +235,10 @@ static VALUE set_default_name(VALUE self, VALUE value) {
 SANDBOX_DEF_CLASS_PROP_I(Font, DefaultSize, default_size);
 SANDBOX_DEF_CLASS_PROP_B(Font, DefaultBold, default_bold);
 SANDBOX_DEF_CLASS_PROP_B(Font, DefaultItalic, default_italic);
-SANDBOX_DEF_CLASS_PROP_OBJ_VAL(Font, Color, DefaultColor, default_color);
+SANDBOX_DEF_CLASS_PROP_OBJ_VAL(Font, Color, color_class, DefaultColor, default_color);
 SANDBOX_DEF_CLASS_PROP_B(Font, DefaultShadow, default_shadow);
 SANDBOX_DEF_CLASS_PROP_B(Font, DefaultOutline, default_outline);
-SANDBOX_DEF_CLASS_PROP_OBJ_VAL(Font, Color, DefaultOutColor, default_out_color);
+SANDBOX_DEF_CLASS_PROP_OBJ_VAL(Font, Color, color_class, DefaultOutColor, default_out_color);
 
 static VALUE exist(VALUE self, VALUE value) {
     struct coro : boost::asio::coroutine {

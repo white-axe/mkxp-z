@@ -20,6 +20,7 @@
 */
 
 #include "window-binding.h"
+#include "bitmap-binding.h"
 #include "disposable-binding.h"
 #include "etc-binding.h"
 #include "viewportelement-binding.h"
@@ -67,10 +68,10 @@ static VALUE update(VALUE self) {
     return sb()->bind<struct coro>()()(self);
 }
 
-SANDBOX_DEF_GFX_PROP_OBJ_REF(Window, Bitmap, Windowskin, windowskin);
-SANDBOX_DEF_GFX_PROP_OBJ_REF(Window, Bitmap, Contents, contents);
+SANDBOX_DEF_GFX_PROP_OBJ_REF(Window, Bitmap, bitmap_class, Windowskin, windowskin);
+SANDBOX_DEF_GFX_PROP_OBJ_REF(Window, Bitmap, bitmap_class, Contents, contents);
 SANDBOX_DEF_GFX_PROP_B(Window, Stretch, stretch);
-SANDBOX_DEF_GFX_PROP_OBJ_VAL(Window, Rect, CursorRect, cursor_rect);
+SANDBOX_DEF_GFX_PROP_OBJ_VAL(Window, Rect, rect_class, CursorRect, cursor_rect);
 SANDBOX_DEF_GFX_PROP_B(Window, Active, active);
 SANDBOX_DEF_GFX_PROP_B(Window, Pause, pause);
 SANDBOX_DEF_GFX_PROP_I(Window, X, x);

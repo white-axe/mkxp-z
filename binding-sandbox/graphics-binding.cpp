@@ -315,7 +315,8 @@ static VALUE resize_window(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                // TODO: require at least 2 arguments
+                SANDBOX_AWAIT(check_arity, argc, 2, -1);
+
                 SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
                 SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
                 GFX_LOCK;
@@ -349,7 +350,8 @@ static VALUE play_movie(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 GFX_LOCK;
 
-                // TODO: require at least 1 argument
+                SANDBOX_AWAIT(check_arity, argc, 1, -1);
+
                 SANDBOX_AWAIT_S(0, rb_string_value_cstr, &sb()->ref<VALUE>(argv, 0));
                 if (argc >= 2) {
                     SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));

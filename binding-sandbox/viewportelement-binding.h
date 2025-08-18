@@ -24,6 +24,7 @@
 
 #include "binding-util.h"
 #include "sceneelement-binding.h"
+#include "viewport-binding.h"
 #include "viewport.h"
 
 namespace mkxp_sandbox {
@@ -33,6 +34,10 @@ namespace mkxp_sandbox {
         void operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_SLOT(0) = SANDBOX_NIL;
+
+                if (argc > 0) {
+                    SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 0), viewport_class);
+                }
 
                 {
                     Viewport *viewport = nullptr;
@@ -59,13 +64,34 @@ namespace mkxp_sandbox {
 
     template <class C> struct viewportelement_binding_init : boost::asio::coroutine {
     private:
-        SANDBOX_DEF_PROP_OBJ_REF(C, Viewport, Viewport, viewport);
+        SANDBOX_DEF_PROP_OBJ_REF(C, Viewport, viewport_class, Viewport, viewport);
+
+        static VALUE viewport(VALUE self) {
+            struct coro : boost::asio::coroutine {
+                typedef decl_slots<VALUE> slots;
+
+                VALUE operator()(VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        if (get_private_data<Tilemap>(self)->isDisposed()) {
+                            SANDBOX_AWAIT(raise_disposed_access, self);
+                        }
+
+                        SANDBOX_AWAIT_S(0, rb_iv_get, self, "viewport");
+                    }
+
+                    return SANDBOX_SLOT(0);
+                }
+            };
+
+            return sb()->bind<struct coro>()()(self);
+        }
 
     public:
         void operator()(VALUE klass) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT(sceneelement_binding_init<C>, klass);
-                SANDBOX_INIT_PROP_BIND(klass, viewport);
+                SANDBOX_AWAIT(rb_define_method, klass, "viewport", (VALUE (*)(ANYARGS))viewport, 0); \
+                SANDBOX_AWAIT(rb_define_method, klass, "viewport=", (VALUE (*)(ANYARGS))set_viewport, 1); \
             }
         }
     };

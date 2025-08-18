@@ -47,6 +47,7 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                         viewport = new Viewport;
                     } else if (argc == 1) {
                         GFX_LOCK;
+                        SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 0), rect_class);
                         viewport = new Viewport(get_private_data<Rect>(sb()->ref<VALUE>(argv, 0)));
                     } else {
                         SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
@@ -76,11 +77,11 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     return sb()->bind<struct coro>()()(argc, argv, self);
 }
 
-SANDBOX_DEF_GFX_PROP_OBJ_VAL(Viewport, Rect, Rect, rect);
+SANDBOX_DEF_GFX_PROP_OBJ_VAL(Viewport, Rect, rect_class, Rect, rect);
 SANDBOX_DEF_GFX_PROP_I(Viewport, OX, ox);
 SANDBOX_DEF_GFX_PROP_I(Viewport, OY, oy);
-SANDBOX_DEF_GFX_PROP_OBJ_VAL(Viewport, Color, Color, color);
-SANDBOX_DEF_GFX_PROP_OBJ_VAL(Viewport, Tone, Tone, tone);
+SANDBOX_DEF_GFX_PROP_OBJ_VAL(Viewport, Color, color_class, Color, color);
+SANDBOX_DEF_GFX_PROP_OBJ_VAL(Viewport, Tone, tone_class, Tone, tone);
 
 void viewport_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {

@@ -20,8 +20,11 @@
 */
 
 #include "tilemap-binding.h"
+#include "bitmap-binding.h"
 #include "disposable-binding.h"
 #include "etc-binding.h"
+#include "table-binding.h"
+#include "viewport-binding.h"
 #include "tilemap.h"
 
 using namespace mkxp_sandbox;
@@ -62,6 +65,7 @@ struct tilemap_autotiles_binding_init : boost::asio::coroutine {
 
                     SANDBOX_AWAIT_S(0, rb_num2ulong, i);
 
+                    SANDBOX_AWAIT(check_type, obj, bitmap_class);
                     get_private_data<Tilemap::Autotiles>(self)->set(SANDBOX_SLOT(0), get_private_data<Bitmap>(obj));
                     SANDBOX_AWAIT_S(1, rb_iv_get, self, "array");
                     SANDBOX_AWAIT(rb_ary_store, SANDBOX_SLOT(1), SANDBOX_SLOT(0), obj);
@@ -99,6 +103,10 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 GFX_LOCK;
+
+                if (argc > 0) {
+                    SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 0), viewport_class);
+                }
 
                 {
                     SANDBOX_SLOT(0) = SANDBOX_NIL;
@@ -171,21 +179,37 @@ static VALUE update(VALUE self) {
 }
 
 static VALUE viewport(VALUE self) {
-    return sb()->bind<struct rb_iv_get>()()(self, "viewport");
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE> slots;
+
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                if (get_private_data<Tilemap>(self)->isDisposed()) {
+                    SANDBOX_AWAIT(raise_disposed_access, self);
+                }
+
+                SANDBOX_AWAIT_S(0, rb_iv_get, self, "viewport");
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
 }
 
-SANDBOX_DEF_GFX_PROP_OBJ_REF(Tilemap, Bitmap, Tileset, tileset);
-SANDBOX_DEF_GFX_PROP_OBJ_REF(Tilemap, Table, MapData, map_data);
-SANDBOX_DEF_GFX_PROP_OBJ_REF(Tilemap, Table, FlashData, flash_data);
-SANDBOX_DEF_GFX_PROP_OBJ_REF(Tilemap, Table, Priorities, priorities);
+SANDBOX_DEF_GFX_PROP_OBJ_REF(Tilemap, Bitmap, bitmap_class, Tileset, tileset);
+SANDBOX_DEF_GFX_PROP_OBJ_REF(Tilemap, Table, table_class, MapData, map_data);
+SANDBOX_DEF_GFX_PROP_OBJ_REF(Tilemap, Table, table_class, FlashData, flash_data);
+SANDBOX_DEF_GFX_PROP_OBJ_REF(Tilemap, Table, table_class, Priorities, priorities);
 SANDBOX_DEF_GFX_PROP_B(Tilemap, Visible, visible);
 SANDBOX_DEF_GFX_PROP_I(Tilemap, OX, ox);
 SANDBOX_DEF_GFX_PROP_I(Tilemap, OY, oy);
 
 SANDBOX_DEF_GFX_PROP_I(Tilemap, Opacity, opacity);
 SANDBOX_DEF_GFX_PROP_I(Tilemap, BlendType, blend_type);
-SANDBOX_DEF_GFX_PROP_OBJ_VAL(Tilemap, Color, Color, color);
-SANDBOX_DEF_GFX_PROP_OBJ_VAL(Tilemap, Tone, Tone, tone);
+SANDBOX_DEF_GFX_PROP_OBJ_VAL(Tilemap, Color, color_class, Color, color);
+SANDBOX_DEF_GFX_PROP_OBJ_VAL(Tilemap, Tone, tone_class, Tone, tone);
 
 void tilemap_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {

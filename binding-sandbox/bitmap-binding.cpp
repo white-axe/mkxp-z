@@ -19,7 +19,6 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <algorithm>
 #include "bitmap-binding.h"
 #include "disposable-binding.h"
 #include "etc-binding.h"
@@ -62,6 +61,8 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT(check_arity, argc, 1, -1);
+
                 if (argc == 1) {
                     SANDBOX_AWAIT_S(0, rb_string_value_cstr, &sb()->ref<VALUE>(argv, 0));
                 } else {
@@ -142,7 +143,7 @@ static VALUE height(VALUE self) {
     return sb()->bind<struct coro>()()(self);
 }
 
-SANDBOX_DEF_GFX_PROP_OBJ_REF(Bitmap, Bitmap, Hires, hires);
+SANDBOX_DEF_GFX_PROP_OBJ_REF(Bitmap, Bitmap, bitmap_class, Hires, hires);
 
 static VALUE rect(VALUE self) {
     struct coro : boost::asio::coroutine {
@@ -167,7 +168,8 @@ static VALUE blt(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                // TODO: require at least 4 arguments
+                SANDBOX_AWAIT(check_arity, argc, 4, -1);
+
                 SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 0));
                 SANDBOX_AWAIT_S(3, rb_num2int, sb()->ref<VALUE>(argv, 1));
                 SANDBOX_SLOT(0) = sb()->ref<VALUE>(argv, 2);
@@ -176,7 +178,9 @@ static VALUE blt(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     SANDBOX_AWAIT_S(4, rb_num2int, sb()->ref<VALUE>(argv, 4));
                 }
 
+                SANDBOX_AWAIT(check_type, SANDBOX_SLOT(0), bitmap_class);
                 if (get_private_data<Bitmap>(SANDBOX_SLOT(0)) != nullptr) {
+                    SANDBOX_AWAIT(check_type, SANDBOX_SLOT(1), rect_class);
                     if (argc > 4) {
                         SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->blt(sb().e, SANDBOX_SLOT(2), SANDBOX_SLOT(3), *get_private_data<Bitmap>(SANDBOX_SLOT(0)), get_private_data<Rect>(SANDBOX_SLOT(1))->toIntRect(), SANDBOX_SLOT(4)));
                     } else {
@@ -198,6 +202,8 @@ static VALUE stretch_blt(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT(check_arity, argc, 3, -1);
+
                 SANDBOX_SLOT(0) = sb()->ref<VALUE>(argv, 0);
                 SANDBOX_SLOT(1) = sb()->ref<VALUE>(argv, 1);
                 SANDBOX_SLOT(2) = sb()->ref<VALUE>(argv, 2);
@@ -205,7 +211,9 @@ static VALUE stretch_blt(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     SANDBOX_AWAIT_S(3, rb_num2int, sb()->ref<VALUE>(argv, 3));
                 }
 
+                SANDBOX_AWAIT(check_type, SANDBOX_SLOT(1), bitmap_class);
                 if (get_private_data<Bitmap>(SANDBOX_SLOT(1)) != nullptr) {
+                    SANDBOX_AWAIT(check_type, SANDBOX_SLOT(2), rect_class);
                     if (argc > 4) {
                         SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->stretchBlt(sb().e, get_private_data<Rect>(SANDBOX_SLOT(0))->toIntRect(), *get_private_data<Bitmap>(SANDBOX_SLOT(1)), get_private_data<Rect>(SANDBOX_SLOT(2))->toIntRect(), SANDBOX_SLOT(3)););
                     } else {
@@ -228,12 +236,17 @@ static VALUE fill_rect(int32_t argc, wasm_ptr_t argv, VALUE self) {
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 if (argc == 2) {
+                    SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 0), rect_class);
+                    SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 1), color_class);
                     SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->fillRect(sb().e, get_private_data<Rect>(sb()->ref<VALUE>(argv, 0))->toIntRect(), get_private_data<Color>(sb()->ref<VALUE>(argv, 1))->norm));
                 } else {
+                    SANDBOX_AWAIT(check_arity, argc, 5, -1);
+
                     SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
                     SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
                     SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 2));
                     SANDBOX_AWAIT_S(3, rb_num2int, sb()->ref<VALUE>(argv, 3));
+                    SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 4), color_class);
                     SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->fillRect(sb().e, SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3), get_private_data<Color>(sb()->ref<VALUE>(argv, 4))->norm));
                 }
             }
@@ -298,6 +311,7 @@ static VALUE set_pixel(VALUE self, VALUE x, VALUE y, VALUE colorObj) {
                 SANDBOX_AWAIT_S(0, rb_num2int, x);
                 SANDBOX_AWAIT_S(1, rb_num2int, y);
 
+                SANDBOX_AWAIT(check_type, colorObj, color_class);
                 SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->setPixel(sb().e, SANDBOX_SLOT(0), SANDBOX_SLOT(1), *get_private_data<Color>(colorObj)));
             }
 
@@ -339,6 +353,7 @@ static VALUE draw_text(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     } else {
                         SANDBOX_AWAIT_S(0, rb_string_value_cstr, &sb()->ref<VALUE>(argv, 1));
                     }
+                    SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 0), rect_class);
                     if (argc == 2) {
                         SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->drawText(sb().e, get_private_data<Rect>(sb()->ref<VALUE>(argv, 0))->toIntRect(), sb()->str(SANDBOX_SLOT(0))););
                     } else {
@@ -346,6 +361,8 @@ static VALUE draw_text(int32_t argc, wasm_ptr_t argv, VALUE self) {
                         SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->drawText(sb().e, get_private_data<Rect>(sb()->ref<VALUE>(argv, 0))->toIntRect(), sb()->str(SANDBOX_SLOT(0)), SANDBOX_SLOT(2)););
                     }
                 } else {
+                    SANDBOX_AWAIT(check_arity, argc, 5, -1);
+
                     SANDBOX_AWAIT_S(3, rb_num2int, sb()->ref<VALUE>(argv, 0));
                     SANDBOX_AWAIT_S(4, rb_num2int, sb()->ref<VALUE>(argv, 1));
                     SANDBOX_AWAIT_S(5, rb_num2int, sb()->ref<VALUE>(argv, 2));
@@ -474,12 +491,7 @@ static VALUE snap_to_bitmap(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                // TODO: require at least 1 argument
-                if (argc < 1) {
-                    SANDBOX_SLOT(1) = -1;
-                } else {
-                    SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 0));
-                }
+                SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 0));
 
                 SANDBOX_AWAIT_S(0, rb_obj_alloc, bitmap_class);
 
@@ -507,8 +519,13 @@ static VALUE gradient_fill_rect(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     } else {
                         SANDBOX_SLOT(4) = false;
                     }
+                    SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 0), rect_class);
+                    SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 1), color_class);
+                    SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 2), color_class);
                     SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->gradientFillRect(sb().e, get_private_data<Rect>(sb()->ref<VALUE>(argv, 0))->toIntRect(), get_private_data<Color>(sb()->ref<VALUE>(argv, 1))->norm, get_private_data<Color>(sb()->ref<VALUE>(argv, 2))->norm, SANDBOX_SLOT(4)));
                 } else {
+                    SANDBOX_AWAIT(check_arity, argc, 6, -1);
+
                     SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
                     SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
                     SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 2));
@@ -518,6 +535,8 @@ static VALUE gradient_fill_rect(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     } else {
                         SANDBOX_SLOT(4) = false;
                     }
+                    SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 4), color_class);
+                    SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 5), color_class);
                     SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->gradientFillRect(sb().e, SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2), SANDBOX_SLOT(3), get_private_data<Color>(sb()->ref<VALUE>(argv, 4))->norm, get_private_data<Color>(sb()->ref<VALUE>(argv, 5))->norm, SANDBOX_SLOT(4)));
                 }
             }
@@ -536,8 +555,11 @@ static VALUE clear_rect(int32_t argc, wasm_ptr_t argv, VALUE self) {
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 if (argc == 1) {
+                    SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 0), rect_class);
                     SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->clearRect(sb().e, get_private_data<Rect>(sb()->ref<VALUE>(argv, 0))->toIntRect()));
                 } else {
+                    SANDBOX_AWAIT(check_arity, argc, 4, -1);
+
                     SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
                     SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
                     SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 2));
@@ -715,7 +737,7 @@ static VALUE add_frame(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                // TODO: require at least 1 argument
+                SANDBOX_AWAIT(check_arity, argc, 1, -1);
                 if (argc < 2) {
                     SANDBOX_SLOT(1) = -1;
                 } else {
@@ -725,6 +747,10 @@ static VALUE add_frame(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     }
                 }
                 if (argc >= 1) {
+                    SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 0), bitmap_class);
+                    if (!has_private_data<Bitmap>(sb()->ref<VALUE>(argv, 0))) {
+                        SANDBOX_AWAIT(raise_disposed_access, sb()->ref<VALUE>(argv, 0));
+                    }
                     SANDBOX_GUARD_L(SANDBOX_SLOT(1) = get_private_data<Bitmap>(self)->addFrame(sb().e, *get_private_data<Bitmap>(sb()->ref<VALUE>(argv, 0)), SANDBOX_SLOT(1)));
                 }
                 SANDBOX_AWAIT_S(0, rb_ll2inum, SANDBOX_SLOT(1));
@@ -743,7 +769,7 @@ static VALUE remove_frame(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                if (argc < 2) {
+                if (argc < 1) {
                     SANDBOX_SLOT(0) = -1;
                 } else {
                     SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
@@ -795,7 +821,23 @@ SANDBOX_DEF_GFX_PROP_F(Bitmap, AnimationFPS, frame_rate);
 SANDBOX_DEF_GFX_PROP_B(Bitmap, Looping, looping);
 
 static VALUE get_font(VALUE self) {
-    return sb()->bind<struct rb_iv_get>()()(self, "font");
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE> slots;
+
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                if (get_private_data<Bitmap>(self)->isDisposed()) {
+                    SANDBOX_AWAIT(raise_disposed_access, self);
+                }
+
+                SANDBOX_AWAIT_S(0, rb_iv_get, self, "font");
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
 }
 
 static VALUE set_font(VALUE self, VALUE value) {
@@ -804,6 +846,7 @@ static VALUE set_font(VALUE self, VALUE value) {
 
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT(check_type, value, font_class);
                 if (get_private_data<Font>(value) != nullptr) {
                     SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->setFont(sb().e, *get_private_data<Font>(value)));
 

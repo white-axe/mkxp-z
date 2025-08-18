@@ -36,9 +36,10 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT(check_arity, argc, 1, 3);
+
                 SANDBOX_SLOT(1) = SANDBOX_SLOT(2) = 1;
 
-                // TODO: throw error if too many or too few arguments
                 SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
                 SANDBOX_SLOT(0) = std::max(SANDBOX_SLOT(0), (int32_t)0);
                 if (argc >= 2) {
@@ -89,9 +90,10 @@ static VALUE resize(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT(check_arity, argc, 1, 3);
+
                 SANDBOX_SLOT(1) = SANDBOX_SLOT(2) = 1;
 
-                // TODO: throw error if too many or too few arguments
                 SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
                 SANDBOX_SLOT(0) = std::max(SANDBOX_SLOT(0), (int32_t)0);
                 if (argc >= 2) {
@@ -131,6 +133,8 @@ static VALUE get(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT(check_arity, argc, 1, 3);
+
                 SANDBOX_SLOT(2) = SANDBOX_SLOT(3) = 0;
 
                 SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 0));
@@ -138,7 +142,6 @@ static VALUE get(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 1));
                     if (argc >= 3) {
                         SANDBOX_AWAIT_S(3, rb_num2int, sb()->ref<VALUE>(argv, 2));
-                        // TODO: throw error if too many arguments
                     }
                 }
 
@@ -162,9 +165,9 @@ static VALUE set(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_SLOT(1) = SANDBOX_SLOT(2) = 0;
+                SANDBOX_AWAIT(check_arity, argc, 2, 4);
 
-                // TODO: throw error if too few arguments
+                SANDBOX_SLOT(1) = SANDBOX_SLOT(2) = 0;
 
                 SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
                 if (argc >= 3) {

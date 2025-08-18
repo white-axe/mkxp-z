@@ -23,6 +23,7 @@
 #define MKXPZ_SANDBOX_FLASHABLE_BINDING_H
 
 #include "binding-util.h"
+#include "etc-binding.h"
 #include "etc.h"
 
 namespace mkxp_sandbox {
@@ -35,6 +36,9 @@ namespace mkxp_sandbox {
                 VALUE operator()(VALUE self, VALUE obj, VALUE value) {
                     BOOST_ASIO_CORO_REENTER (this) {
                         SANDBOX_AWAIT_S(0, rb_num2int, value);
+                        if (obj != SANDBOX_NIL) {
+                            SANDBOX_AWAIT(check_type, obj, color_class);
+                        }
                         get_private_data<C>(self)->flash(obj == SANDBOX_NIL ? nullptr : &get_private_data<Color>(obj)->norm, SANDBOX_SLOT(0));
                     }
 

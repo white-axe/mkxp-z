@@ -46,7 +46,7 @@ struct color_binding_init : boost::asio::coroutine {
                     if (argc == 0) {
                         set_private_data(self, new Color);
                     } else {
-                        // TODO: make these optional
+                        SANDBOX_AWAIT(check_arity, argc, 3, -1);
                         SANDBOX_AWAIT_S(0, rb_num2dbl, sb()->ref<VALUE>(argv, 0));
                         SANDBOX_AWAIT_S(1, rb_num2dbl, sb()->ref<VALUE>(argv, 1));
                         SANDBOX_AWAIT_S(2, rb_num2dbl, sb()->ref<VALUE>(argv, 2));
@@ -90,9 +90,10 @@ struct color_binding_init : boost::asio::coroutine {
             VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 BOOST_ASIO_CORO_REENTER (this) {
                     if (argc == 1) {
+                        SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 0), color_class);
                         *get_private_data<Color>(self) = *get_private_data<Color>(sb()->ref<VALUE>(argv, 0));
                     } else {
-                        // TODO: make these optional
+                        SANDBOX_AWAIT(check_arity, argc, 3, -1);
                         SANDBOX_AWAIT_S(0, rb_num2dbl, sb()->ref<VALUE>(argv, 0));
                         SANDBOX_AWAIT_S(1, rb_num2dbl, sb()->ref<VALUE>(argv, 1));
                         SANDBOX_AWAIT_S(2, rb_num2dbl, sb()->ref<VALUE>(argv, 2));
@@ -179,7 +180,7 @@ struct tone_binding_init : boost::asio::coroutine {
                     if (argc == 0) {
                         set_private_data(self, new Tone);
                     } else {
-                        // TODO: make these optional
+                        SANDBOX_AWAIT(check_arity, argc, 3, -1);
                         SANDBOX_AWAIT_S(0, rb_num2dbl, sb()->ref<VALUE>(argv, 0));
                         SANDBOX_AWAIT_S(1, rb_num2dbl, sb()->ref<VALUE>(argv, 1));
                         SANDBOX_AWAIT_S(2, rb_num2dbl, sb()->ref<VALUE>(argv, 2));
@@ -223,9 +224,10 @@ struct tone_binding_init : boost::asio::coroutine {
             VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 BOOST_ASIO_CORO_REENTER (this) {
                     if (argc == 1) {
+                        SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 0), tone_class);
                         *get_private_data<Tone>(self) = *get_private_data<Tone>(sb()->ref<VALUE>(argv, 0));
                     } else {
-                        // TODO: make these optional
+                        SANDBOX_AWAIT(check_arity, argc, 3, -1);
                         SANDBOX_AWAIT_S(0, rb_num2dbl, sb()->ref<VALUE>(argv, 0));
                         SANDBOX_AWAIT_S(1, rb_num2dbl, sb()->ref<VALUE>(argv, 1));
                         SANDBOX_AWAIT_S(2, rb_num2dbl, sb()->ref<VALUE>(argv, 2));
@@ -312,7 +314,7 @@ struct rect_binding_init : boost::asio::coroutine {
                     if (argc == 0) {
                         set_private_data(self, new Rect);
                     } else {
-                        // TODO: make these optional
+                        SANDBOX_AWAIT(check_arity, argc, 4, -1);
                         SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
                         SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
                         SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 2));
@@ -352,9 +354,10 @@ struct rect_binding_init : boost::asio::coroutine {
             VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 BOOST_ASIO_CORO_REENTER (this) {
                     if (argc == 1) {
+                        SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 0), rect_class);
                         *get_private_data<Rect>(self) = *get_private_data<Rect>(sb()->ref<VALUE>(argv, 0));
                     } else {
-                        // TODO: make these optional
+                        SANDBOX_AWAIT(check_arity, argc, 4, -1);
                         SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
                         SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
                         SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 2));

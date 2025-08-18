@@ -136,7 +136,7 @@
 #define SANDBOX_DEF_CLASS_PROP_F(S, prop, name) SANDBOX_DEF_CLASS_PROP(float, rb_float_new, rb_num2dbl, S, prop, name)
 #define SANDBOX_DEF_CLASS_PROP_D(S, prop, name) SANDBOX_DEF_CLASS_PROP(double, rb_float_new, rb_num2dbl, S, prop, name)
 
-#define SANDBOX_DEF_CLASS_PROP_OBJ_REF(S, V, prop, name) \
+#define SANDBOX_DEF_CLASS_PROP_OBJ_REF(S, V, klass, prop, name) \
     static VALUE get_##name(VALUE self) { \
         using namespace ::mkxp_sandbox; \
         return sb()->bind<struct rb_iv_get>()()(self, #name); \
@@ -146,6 +146,9 @@
         struct coro : boost::asio::coroutine { \
             VALUE operator()(VALUE self, VALUE value) { \
                 BOOST_ASIO_CORO_REENTER (this) { \
+                    if (value != SANDBOX_NIL) { \
+                        SANDBOX_AWAIT(check_type, value, klass); \
+                    } \
                     { \
                         V *v = value == SANDBOX_NIL ? nullptr : get_private_data<V>(value); \
                         S::set##prop(v); \
@@ -158,16 +161,24 @@
         return sb()->bind<struct coro>()()(self, value); \
     }
 
-#define SANDBOX_DEF_CLASS_PROP_OBJ_VAL(S, V, prop, name) \
+#define SANDBOX_DEF_CLASS_PROP_OBJ_VAL(S, V, klass, prop, name) \
     static VALUE get_##name(VALUE self) { \
         using namespace ::mkxp_sandbox; \
         return sb()->bind<struct rb_iv_get>()()(self, #name); \
     } \
     static VALUE set_##name(VALUE self, VALUE value) { \
         using namespace ::mkxp_sandbox; \
-        V *v = get_private_data<V>(value); \
-        S::set##prop(*v); \
-        return value; \
+        struct coro : boost::asio::coroutine { \
+            VALUE operator()(VALUE self, VALUE value) { \
+                BOOST_ASIO_CORO_REENTER (this) { \
+                    SANDBOX_AWAIT(check_type, value, klass); \
+                    V *v = get_private_data<V>(value); \
+                    S::set##prop(*v); \
+                } \
+                return value; \
+            } \
+        }; \
+        return sb()->bind<struct coro>()()(self, value); \
     }
 
 #define SANDBOX_DEF_PROP_B(S, prop, name) \
@@ -209,7 +220,7 @@
 #define SANDBOX_DEF_PROP_F(S, prop, name) SANDBOX_DEF_PROP(float, rb_float_new, rb_num2dbl, S, prop, name)
 #define SANDBOX_DEF_PROP_D(S, prop, name) SANDBOX_DEF_PROP(double, rb_float_new, rb_num2dbl, S, prop, name)
 
-#define SANDBOX_DEF_PROP_OBJ_REF(S, V, prop, name) \
+#define SANDBOX_DEF_PROP_OBJ_REF(S, V, klass, prop, name) \
     static VALUE get_##name(VALUE self) { \
         using namespace ::mkxp_sandbox; \
         return sb()->bind<struct rb_iv_get>()()(self, #name); \
@@ -219,6 +230,9 @@
         struct coro : boost::asio::coroutine { \
             VALUE operator()(VALUE self, VALUE value) { \
                 BOOST_ASIO_CORO_REENTER (this) { \
+                    if (value != SANDBOX_NIL) { \
+                        SANDBOX_AWAIT(check_type, value, klass); \
+                    } \
                     { \
                         S *s = get_private_data<S>(self); \
                         V *v = value == SANDBOX_NIL ? nullptr : get_private_data<V>(value); \
@@ -232,17 +246,25 @@
         return sb()->bind<struct coro>()()(self, value); \
     }
 
-#define SANDBOX_DEF_PROP_OBJ_VAL(S, V, prop, name) \
+#define SANDBOX_DEF_PROP_OBJ_VAL(S, V, klass, prop, name) \
     static VALUE get_##name(VALUE self) { \
         using namespace ::mkxp_sandbox; \
         return sb()->bind<struct rb_iv_get>()()(self, #name); \
     } \
     static VALUE set_##name(VALUE self, VALUE value) { \
         using namespace ::mkxp_sandbox; \
-        S *s = get_private_data<S>(self); \
-        V *v = get_private_data<V>(value); \
-        s->set##prop(*v); \
-        return value; \
+        struct coro : boost::asio::coroutine { \
+            VALUE operator()(VALUE self, VALUE value) { \
+                BOOST_ASIO_CORO_REENTER (this) { \
+                    SANDBOX_AWAIT(check_type, value, klass); \
+                    S *s = get_private_data<S>(self); \
+                    V *v = get_private_data<V>(value); \
+                    s->set##prop(*v); \
+                } \
+                return value; \
+            } \
+        }; \
+        return sb()->bind<struct coro>()()(self, value); \
     }
 
 #define SANDBOX_DEF_GFX_PROP_B(S, prop, name) \
@@ -305,7 +327,7 @@
 #define SANDBOX_DEF_GFX_PROP_F(S, prop, name) SANDBOX_DEF_GFX_PROP(float, rb_float_new, rb_num2dbl, S, prop, name)
 #define SANDBOX_DEF_GFX_PROP_D(S, prop, name) SANDBOX_DEF_GFX_PROP(double, rb_float_new, rb_num2dbl, S, prop, name)
 
-#define SANDBOX_DEF_GFX_PROP_OBJ_REF(S, V, prop, name) \
+#define SANDBOX_DEF_GFX_PROP_OBJ_REF(S, V, klass, prop, name) \
     static VALUE get_##name(VALUE self) { \
         using namespace ::mkxp_sandbox; \
         return sb()->bind<struct rb_iv_get>()()(self, #name); \
@@ -315,6 +337,9 @@
         struct coro : boost::asio::coroutine { \
             VALUE operator()(VALUE self, VALUE value) { \
                 BOOST_ASIO_CORO_REENTER (this) { \
+                    if (value != SANDBOX_NIL) { \
+                        SANDBOX_AWAIT(check_type, value, klass); \
+                    } \
                     SANDBOX_GUARD_L(get_private_data<S>(self)->set##prop(sb().e, value == SANDBOX_NIL ? nullptr : get_private_data<V>(value))); \
                     SANDBOX_AWAIT(rb_iv_set, self, #name, value); \
                 } \
@@ -324,7 +349,7 @@
         return sb()->bind<struct coro>()()(self, value); \
     }
 
-#define SANDBOX_DEF_GFX_PROP_OBJ_VAL(S, V, prop, name) \
+#define SANDBOX_DEF_GFX_PROP_OBJ_VAL(S, V, klass, prop, name) \
     static VALUE get_##name(VALUE self) { \
         using namespace ::mkxp_sandbox; \
         return sb()->bind<struct rb_iv_get>()()(self, #name); \
@@ -334,6 +359,7 @@
         struct coro : boost::asio::coroutine { \
             VALUE operator()(VALUE self, VALUE value) { \
                 BOOST_ASIO_CORO_REENTER (this) { \
+                    SANDBOX_AWAIT(check_type, value, klass); \
                     SANDBOX_GUARD_L(get_private_data<S>(self)->set##prop(sb().e, *get_private_data<V>(value))); \
                 } \
                 return value; \
@@ -382,7 +408,7 @@
 #define SANDBOX_DEF_GRA_PROP_F(prop, name) SANDBOX_DEF_GRA_PROP(float, rb_float_new, rb_num2dbl, prop, name)
 #define SANDBOX_DEF_GRA_PROP_D(prop, name) SANDBOX_DEF_GRA_PROP(double, rb_float_new, rb_num2dbl, prop, name)
 
-#define SANDBOX_DEF_GRA_PROP_OBJ_REF(V, prop, name) \
+#define SANDBOX_DEF_GRA_PROP_OBJ_REF(V, klass, prop, name) \
     static VALUE get_##name(VALUE self) { \
         using namespace ::mkxp_sandbox; \
         return sb()->bind<struct rb_iv_get>()()(self, #name); \
@@ -392,6 +418,9 @@
         struct coro : boost::asio::coroutine { \
             VALUE operator()(VALUE self, VALUE value) { \
                 BOOST_ASIO_CORO_REENTER (this) { \
+                    if (value != SANDBOX_NIL) { \
+                        SANDBOX_AWAIT(check_type, value, klass); \
+                    } \
                     { \
                         V *v = value == SANDBOX_NIL ? nullptr : get_private_data<V>(value); \
                         GFX_LOCK; \
@@ -406,18 +435,26 @@
         return sb()->bind<struct coro>()()(self, value); \
     }
 
-#define SANDBOX_DEF_GRA_PROP_OBJ_VAL(V, prop, name) \
+#define SANDBOX_DEF_GRA_PROP_OBJ_VAL(V, klass, prop, name) \
     static VALUE get_##name(VALUE self) { \
         using namespace ::mkxp_sandbox; \
         return sb()->bind<struct rb_iv_get>()()(self, #name); \
     } \
     static VALUE set_##name(VALUE self, VALUE value) { \
         using namespace ::mkxp_sandbox; \
-        V *v = get_private_data<V>(value); \
-        GFX_LOCK; \
-        shState->graphics().set##prop(*v); \
-        GFX_UNLOCK; \
-        return value; \
+        struct coro : boost::asio::coroutine { \
+            VALUE operator()(VALUE self, VALUE value) { \
+                BOOST_ASIO_CORO_REENTER (this) { \
+                    SANDBOX_AWAIT(check_type, value, klass); \
+                    V *v = get_private_data<V>(value); \
+                    GFX_LOCK; \
+                    shState->graphics().set##prop(*v); \
+                    GFX_UNLOCK; \
+                } \
+                return value; \
+            } \
+        }; \
+        return sb()->bind<struct coro>()()(self, value); \
     }
 
 #define SANDBOX_INIT_FUNC_PROP_BIND(func, target, name) do { \
@@ -560,6 +597,20 @@ namespace mkxp_sandbox {
     struct exception_raise : boost::asio::coroutine {
         typedef decl_slots<VALUE> slots;
         void operator()(const Exception &exception);
+    };
+
+    struct check_arity : boost::asio::coroutine {
+        void operator()(int32_t argc, int32_t min_argc, int32_t max_argc);
+    };
+
+    struct check_type : boost::asio::coroutine {
+        typedef decl_slots<VALUE, VALUE> slots;
+        void operator()(VALUE obj, VALUE klass);
+    };
+
+    struct raise_disposed_access : boost::asio::coroutine {
+        typedef decl_slots<VALUE, VALUE, ID> slots;
+        void operator()(VALUE klass);
     };
 }
 

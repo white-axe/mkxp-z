@@ -95,9 +95,9 @@ static VALUE update(VALUE self) {
     return sb()->bind<struct coro>()()(self);
 }
 
-SANDBOX_DEF_GFX_PROP_OBJ_REF(WindowVX, Bitmap, Windowskin, windowskin);
-SANDBOX_DEF_GFX_PROP_OBJ_REF(WindowVX, Bitmap, Contents, contents);
-SANDBOX_DEF_GFX_PROP_OBJ_VAL(WindowVX, Rect, CursorRect, cursor_rect);
+SANDBOX_DEF_GFX_PROP_OBJ_REF(WindowVX, Bitmap, bitmap_class, Windowskin, windowskin);
+SANDBOX_DEF_GFX_PROP_OBJ_REF(WindowVX, Bitmap, bitmap_class, Contents, contents);
+SANDBOX_DEF_GFX_PROP_OBJ_VAL(WindowVX, Rect, rect_class, CursorRect, cursor_rect);
 SANDBOX_DEF_GFX_PROP_B(WindowVX, Active, active);
 SANDBOX_DEF_GFX_PROP_B(WindowVX, Pause, pause);
 SANDBOX_DEF_GFX_PROP_I(WindowVX, X, x);
@@ -166,7 +166,7 @@ static VALUE is_closed(VALUE self) {
 SANDBOX_DEF_GFX_PROP_B(WindowVX, ArrowsVisible, arrows_visible);
 SANDBOX_DEF_GFX_PROP_I(WindowVX, Padding, padding);
 SANDBOX_DEF_GFX_PROP_I(WindowVX, PaddingBottom, padding_bottom);
-SANDBOX_DEF_GFX_PROP_OBJ_VAL(WindowVX, Tone, Tone, tone);
+SANDBOX_DEF_GFX_PROP_OBJ_VAL(WindowVX, Tone, tone_class, Tone, tone);
 
 void windowvx_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {

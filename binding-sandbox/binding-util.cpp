@@ -118,3 +118,41 @@ void exception_raise::operator()(const Exception &exception) {
         SANDBOX_AWAIT(rb_exc_raise, SANDBOX_SLOT(0));
     }
 }
+
+void check_arity::operator()(int32_t argc, int32_t min_argc, int32_t max_argc) {
+    BOOST_ASIO_CORO_REENTER (this) {
+        if (argc < min_argc || (max_argc != -1 && argc > max_argc)) {
+            SANDBOX_AWAIT(rb_error_arity, argc, min_argc, max_argc);
+        }
+    }
+}
+
+void check_type::operator()(VALUE obj, VALUE klass) {
+    BOOST_ASIO_CORO_REENTER (this) {
+        SANDBOX_AWAIT_S(0, rb_obj_is_kind_of, obj, klass);
+        if (!SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(0))) {
+            SANDBOX_AWAIT_S(0, rb_str_new_cstr, "no implicit conversion of ");
+            SANDBOX_AWAIT_S(1, rb_obj_class, obj);
+            SANDBOX_AWAIT_S(1, rb_class_name, SANDBOX_SLOT(1));
+            SANDBOX_AWAIT(rb_str_append, SANDBOX_SLOT(0), SANDBOX_SLOT(1));
+            SANDBOX_AWAIT(rb_str_cat_cstr, SANDBOX_SLOT(0), " into ");
+            SANDBOX_AWAIT_S(1, rb_class_name, klass);
+            SANDBOX_AWAIT(rb_str_append, SANDBOX_SLOT(0), SANDBOX_SLOT(1));
+            SANDBOX_AWAIT_S(0, rb_class_new_instance, 1, &SANDBOX_SLOT(0), sb()->rb_eTypeError());
+            SANDBOX_AWAIT(rb_exc_raise, SANDBOX_SLOT(0));
+        }
+    }
+}
+
+void raise_disposed_access::operator()(VALUE obj) {
+    BOOST_ASIO_CORO_REENTER (this) {
+        SANDBOX_AWAIT_S(1, rb_obj_class, obj);
+        SANDBOX_AWAIT_S(1, rb_class_name, SANDBOX_SLOT(1));
+        SANDBOX_AWAIT_S(2, rb_intern, "downcase!");
+        SANDBOX_AWAIT(rb_funcall, SANDBOX_SLOT(1), SANDBOX_SLOT(2), 0);
+        SANDBOX_AWAIT_S(0, rb_str_new_cstr, "disposed ");
+        SANDBOX_AWAIT(rb_str_append, SANDBOX_SLOT(0), SANDBOX_SLOT(1));
+        SANDBOX_AWAIT_S(0, rb_class_new_instance, 1, &SANDBOX_SLOT(0), rgss_error_class);
+        SANDBOX_AWAIT(rb_exc_raise, SANDBOX_SLOT(0));
+    }
+}

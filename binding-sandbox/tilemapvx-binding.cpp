@@ -20,7 +20,10 @@
 */
 
 #include "tilemapvx-binding.h"
+#include "bitmap-binding.h"
 #include "disposable-binding.h"
+#include "table-binding.h"
+#include "viewport-binding.h"
 #include "tilemapvx.h"
 
 using namespace mkxp_sandbox;
@@ -61,6 +64,7 @@ struct bitmap_array_binding_init : boost::asio::coroutine {
 
                     SANDBOX_AWAIT_S(0, rb_num2ulong, i);
 
+                    SANDBOX_AWAIT(check_type, obj, bitmap_class);
                     get_private_data<TilemapVX::BitmapArray>(self)->set(SANDBOX_SLOT(0), get_private_data<Bitmap>(obj));
                     SANDBOX_AWAIT_S(1, rb_iv_get, self, "array");
                     SANDBOX_AWAIT(rb_ary_store, SANDBOX_SLOT(1), SANDBOX_SLOT(0), obj);
@@ -97,6 +101,10 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
+                if (argc > 0) {
+                    SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 0), viewport_class);
+                }
+
                 {
                     SANDBOX_SLOT(0) = SANDBOX_NIL;
                     Viewport *viewport = nullptr;
@@ -159,15 +167,15 @@ static VALUE update(VALUE self) {
     return sb()->bind<struct coro>()()(self);
 }
 
-SANDBOX_DEF_GFX_PROP_OBJ_REF(TilemapVX, Viewport, Viewport, viewport);
-SANDBOX_DEF_GFX_PROP_OBJ_REF(TilemapVX, Table, MapData, map_data);
-SANDBOX_DEF_GFX_PROP_OBJ_REF(TilemapVX, Table, FlashData, flash_data);
+SANDBOX_DEF_GFX_PROP_OBJ_REF(TilemapVX, Viewport, viewport_class, Viewport, viewport);
+SANDBOX_DEF_GFX_PROP_OBJ_REF(TilemapVX, Table, table_class, MapData, map_data);
+SANDBOX_DEF_GFX_PROP_OBJ_REF(TilemapVX, Table, table_class, FlashData, flash_data);
 SANDBOX_DEF_GFX_PROP_B(TilemapVX, Visible, visible);
 SANDBOX_DEF_GFX_PROP_I(TilemapVX, OX, ox);
 SANDBOX_DEF_GFX_PROP_I(TilemapVX, OY, oy);
 
-SANDBOX_DEF_GFX_PROP_OBJ_REF(TilemapVX, Table, Flags, flags);
-SANDBOX_DEF_GFX_PROP_OBJ_REF(TilemapVX, Table, Flags, passages);
+SANDBOX_DEF_GFX_PROP_OBJ_REF(TilemapVX, Table, table_class, Flags, flags);
+SANDBOX_DEF_GFX_PROP_OBJ_REF(TilemapVX, Table, table_class, Flags, passages);
 
 void tilemapvx_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {

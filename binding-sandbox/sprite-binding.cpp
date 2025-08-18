@@ -20,6 +20,7 @@
 */
 
 #include "sprite-binding.h"
+#include "bitmap-binding.h"
 #include "disposable-binding.h"
 #include "etc-binding.h"
 #include "flashable-binding.h"
@@ -56,8 +57,8 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     return sb()->bind<struct coro>()()(argc, argv, self);
 }
 
-SANDBOX_DEF_GFX_PROP_OBJ_REF(Sprite, Bitmap, Bitmap, bitmap);
-SANDBOX_DEF_GFX_PROP_OBJ_VAL(Sprite, Rect, SrcRect, src_rect);
+SANDBOX_DEF_GFX_PROP_OBJ_REF(Sprite, Bitmap, bitmap_class, Bitmap, bitmap);
+SANDBOX_DEF_GFX_PROP_OBJ_VAL(Sprite, Rect, rect_class, SrcRect, src_rect);
 SANDBOX_DEF_GFX_PROP_I(Sprite, X, x);
 SANDBOX_DEF_GFX_PROP_I(Sprite, Y, y);
 SANDBOX_DEF_GFX_PROP_I(Sprite, OX, ox);
@@ -69,8 +70,8 @@ SANDBOX_DEF_GFX_PROP_B(Sprite, Mirror, mirror);
 SANDBOX_DEF_GFX_PROP_I(Sprite, BushDepth, bush_depth);
 SANDBOX_DEF_GFX_PROP_I(Sprite, Opacity, opacity);
 SANDBOX_DEF_GFX_PROP_I(Sprite, BlendType, blend_type);
-SANDBOX_DEF_GFX_PROP_OBJ_VAL(Sprite, Color, Color, color);
-SANDBOX_DEF_GFX_PROP_OBJ_VAL(Sprite, Tone, Tone, tone);
+SANDBOX_DEF_GFX_PROP_OBJ_VAL(Sprite, Color, color_class, Color, color);
+SANDBOX_DEF_GFX_PROP_OBJ_VAL(Sprite, Tone, tone_class, Tone, tone);
 
 static VALUE width(VALUE self) {
     struct coro : boost::asio::coroutine {
@@ -106,7 +107,7 @@ static VALUE height(VALUE self) {
 
 SANDBOX_DEF_GFX_PROP_I(Sprite, BushOpacity, bush_opacity);
 
-SANDBOX_DEF_GFX_PROP_OBJ_REF(Sprite, Bitmap, Pattern, pattern);
+SANDBOX_DEF_GFX_PROP_OBJ_REF(Sprite, Bitmap, bitmap_class, Pattern, pattern);
 SANDBOX_DEF_GFX_PROP_I(Sprite, PatternBlendType, pattern_blend_type);
 SANDBOX_DEF_GFX_PROP_B(Sprite, PatternTile, pattern_tile);
 SANDBOX_DEF_GFX_PROP_I(Sprite, PatternOpacity, pattern_opacity);

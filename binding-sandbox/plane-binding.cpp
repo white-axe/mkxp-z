@@ -20,6 +20,7 @@
 */
 
 #include "plane-binding.h"
+#include "bitmap-binding.h"
 #include "disposable-binding.h"
 #include "etc-binding.h"
 #include "viewportelement-binding.h"
@@ -55,9 +56,9 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     return sb()->bind<struct coro>()()(argc, argv, self);
 }
 
-SANDBOX_DEF_GFX_PROP_OBJ_REF(Plane, Bitmap, Bitmap, bitmap);
-SANDBOX_DEF_GFX_PROP_OBJ_VAL(Plane, Color, Color, color);
-SANDBOX_DEF_GFX_PROP_OBJ_VAL(Plane, Tone, Tone, tone);
+SANDBOX_DEF_GFX_PROP_OBJ_REF(Plane, Bitmap, bitmap_class, Bitmap, bitmap);
+SANDBOX_DEF_GFX_PROP_OBJ_VAL(Plane, Color, color_class, Color, color);
+SANDBOX_DEF_GFX_PROP_OBJ_VAL(Plane, Tone, tone_class, Tone, tone);
 SANDBOX_DEF_GFX_PROP_I(Plane, OX, ox);
 SANDBOX_DEF_GFX_PROP_I(Plane, OY, oy);
 SANDBOX_DEF_GFX_PROP_F(Plane, ZoomX, zoom_x);

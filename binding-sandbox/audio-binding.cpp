@@ -38,6 +38,8 @@ static VALUE bgm_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT(check_arity, argc, 1, -1);
+
                 SANDBOX_SLOT(0) = 0.0;
                 SANDBOX_SLOT(2) = 100;
                 SANDBOX_SLOT(3) = 100;
@@ -92,6 +94,8 @@ static VALUE bgm_fade(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT(check_arity, argc, 1, -1);
+
                 SANDBOX_SLOT(1) = -127;
                 SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
                 if (argc >= 2) {
@@ -155,6 +159,8 @@ static VALUE bgm_set_volume(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT(check_arity, argc, 1, -1);
+
                 SANDBOX_SLOT(1) = -127;
                 SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
                 if (argc >= 2) {
@@ -176,6 +182,8 @@ static VALUE bgs_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT(check_arity, argc, 1, -1);
+
                 SANDBOX_SLOT(0) = 0.0;
                 SANDBOX_SLOT(2) = 100;
                 SANDBOX_SLOT(3) = 100;
@@ -246,6 +254,8 @@ static VALUE me_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT(check_arity, argc, 1, -1);
+
                 SANDBOX_SLOT(1) = 100;
                 SANDBOX_SLOT(2) = 100;
 
@@ -295,6 +305,8 @@ static VALUE se_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT(check_arity, argc, 1, -1);
+
                 SANDBOX_SLOT(1) = 100;
                 SANDBOX_SLOT(2) = 100;
 
