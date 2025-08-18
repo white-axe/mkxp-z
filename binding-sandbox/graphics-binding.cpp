@@ -57,7 +57,9 @@ static VALUE update(VALUE self) {
     struct coro : boost::asio::coroutine {
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                if (shState->graphics().update(sb().e)) {
+                bool needs_yield;
+                SANDBOX_GUARD(needs_yield = shState->graphics().update(sb().e));
+                if (needs_yield) {
                     SANDBOX_YIELD;
                 }
             }
