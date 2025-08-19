@@ -610,7 +610,7 @@ namespace mkxp_sandbox {
 
     struct raise_disposed_access : boost::asio::coroutine {
         typedef decl_slots<VALUE, VALUE, ID> slots;
-        void operator()(VALUE klass);
+        void operator()(VALUE obj);
     };
 }
 
