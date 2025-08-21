@@ -65,7 +65,11 @@
         sb()._end_yield(); \
     } while (0)
 
-#define SANDBOX_VALUE_TO_BOOL(value) ((value) != SANDBOX_FALSE && (value) != SANDBOX_NIL)
+#ifdef __GNUC__
+#  define SANDBOX_VALUE_TO_BOOL(value) ({ auto _value = (value); _value != SANDBOX_FALSE && _value != SANDBOX_NIL; })
+#else
+#  define SANDBOX_VALUE_TO_BOOL(value) ([=]() { auto _value = (value); return _value != SANDBOX_FALSE && _value != SANDBOX_NIL; }())
+#endif // __GNUC__
 
 #define SANDBOX_BOOL_TO_VALUE(boolean) ((boolean) ? SANDBOX_TRUE : SANDBOX_FALSE)
 
