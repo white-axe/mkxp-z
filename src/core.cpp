@@ -1431,7 +1431,6 @@ extern "C" RETRO_API void retro_set_input_state(retro_input_state_t cb) {
 
 extern "C" RETRO_API void retro_init() {
     initialized = true;
-    frame_buf = (uint32_t *)std::calloc(640 * 480, sizeof *frame_buf);
 
     save_state_size = (size_t)std::strtoul(get_core_option("mkxp-z_saveStateSize"), nullptr, 10) * (size_t)0x100000;
     if (save_state_size == 0) {
@@ -1441,7 +1440,6 @@ extern "C" RETRO_API void retro_init() {
 }
 
 extern "C" RETRO_API void retro_deinit() {
-    std::free(frame_buf);
     initialized = false;
 }
 
