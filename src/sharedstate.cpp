@@ -496,10 +496,15 @@ void SharedState::sandbox_reinit()
 {
 	p->texPool.clear();
 	TEXFBO::clear(p->atlasTex);
-	new(_globalIBO) GlobalIBO;
+
+	_globalIBO->forget(); // The buffer doesn't exist anymore since the graphics context was reinitialized, so this makes sure we don't try to delete it when `delete _globalIBO` is called in the next line
+	delete _globalIBO;
+	_globalIBO = new GlobalIBO;
 	_globalIBO->ensureSize(1);
+
 	p->gpQuad.reinit();
 	p->reinit();
+
 	{
 		// Ignore errors
 		Exception e;
