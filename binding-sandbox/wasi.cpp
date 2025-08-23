@@ -493,9 +493,9 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_filestat_get(wasi_t *wasi, u
                 wasi->ref<uint8_t>(result + 16) = WASI_IFDIR; // filetype
                 wasi->ref<uint32_t>(result + 24) = 1; // nlink
                 wasi->ref<uint64_t>(result + 32) = stat.filesize; // size
-                wasi->ref<uint64_t>(result + 40) = stat.accesstime * 1000000000L; // atim
-                wasi->ref<uint64_t>(result + 48) = stat.modtime * 1000000000L; // mtim
-                wasi->ref<uint64_t>(result + 56) = stat.createtime * 1000000000L; // ctim
+                wasi->ref<uint64_t>(result + 40) = (uint64_t)stat.accesstime * (uint64_t)1000000000U; // atim
+                wasi->ref<uint64_t>(result + 48) = (uint64_t)stat.modtime * (uint64_t)1000000000U; // mtim
+                wasi->ref<uint64_t>(result + 56) = (uint64_t)stat.createtime * (uint64_t)1000000000U; // ctim
                 return WASI_ESUCCESS;
             }
 
@@ -513,9 +513,9 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_filestat_get(wasi_t *wasi, u
                 wasi->ref<uint8_t>(result + 16) = WASI_IFREG; // filetype
                 wasi->ref<uint32_t>(result + 24) = 1; // nlink
                 wasi->ref<uint64_t>(result + 32) = stat.filesize; // size
-                wasi->ref<uint64_t>(result + 40) = stat.accesstime * 1000000000L; // atim
-                wasi->ref<uint64_t>(result + 48) = stat.modtime * 1000000000L; // mtim
-                wasi->ref<uint64_t>(result + 56) = stat.createtime * 1000000000L; // ctim
+                wasi->ref<uint64_t>(result + 40) = (uint64_t)stat.accesstime * (uint64_t)1000000000U; // atim
+                wasi->ref<uint64_t>(result + 48) = (uint64_t)stat.modtime * (uint64_t)1000000000U; // mtim
+                wasi->ref<uint64_t>(result + 56) = (uint64_t)stat.createtime * (uint64_t)1000000000U; // ctim
                 return WASI_ESUCCESS;
             }
     }
@@ -999,9 +999,9 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_filestat_get(wasi_t *wasi,
                 wasi->ref<uint8_t>(result + 16) = stat.filetype == PHYSFS_FILETYPE_DIRECTORY ? WASI_IFDIR : WASI_IFREG; // filetype
                 wasi->ref<uint32_t>(result + 24) = 1; // nlink
                 wasi->ref<uint64_t>(result + 32) = stat.filetype; // size
-                wasi->ref<uint64_t>(result + 40) = stat.accesstime * 1000000000L; // atim
-                wasi->ref<uint64_t>(result + 48) = stat.modtime * 1000000000L; // mtim
-                wasi->ref<uint64_t>(result + 56) = stat.createtime * 1000000000L; // ctim
+                wasi->ref<uint64_t>(result + 40) = (uint64_t)stat.accesstime * (uint64_t)1000000000U; // atim
+                wasi->ref<uint64_t>(result + 48) = (uint64_t)stat.modtime * (uint64_t)1000000000U; // mtim
+                wasi->ref<uint64_t>(result + 56) = (uint64_t)stat.createtime * (uint64_t)1000000000U; // ctim
                 return WASI_ESUCCESS;
             }
     }
