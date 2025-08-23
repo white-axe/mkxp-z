@@ -67,7 +67,7 @@ static VALUE load_data(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                // TODO: require at least one argument
+                SANDBOX_AWAIT(check_arity, argc, 1, -1);
                 SANDBOX_AWAIT_S(0, rb_string_value_cstr, &sb()->ref<VALUE>(argv, 0));
                 SANDBOX_AWAIT_S(1, rb_file_open, sb()->str(SANDBOX_SLOT(0)), "rb");
                 if (argc < 2 || !SANDBOX_VALUE_TO_BOOL(sb()->ref<VALUE>(argv, 1))) {
