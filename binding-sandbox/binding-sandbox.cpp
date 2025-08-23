@@ -180,7 +180,20 @@ static VALUE rgss_stop(VALUE self) {
 }
 
 static VALUE delta(VALUE self) {
-    return sb()->bind<struct rb_float_new>()()(shState->runTime());
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<double, VALUE> slots;
+
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_SLOT(0) = shState->runTime();
+                SANDBOX_AWAIT_S(1, rb_float_new, SANDBOX_SLOT(0));
+            }
+
+            return SANDBOX_SLOT(1);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
 }
 
 static VALUE data_directory(VALUE self) {

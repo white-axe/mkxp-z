@@ -37,16 +37,17 @@ void graphics_reset::operator()() {
 
 static VALUE delta(VALUE self) {
     struct coro : boost::asio::coroutine {
-        typedef decl_slots<VALUE> slots;
+        typedef decl_slots<double, VALUE> slots;
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 GFX_LOCK;
-                SANDBOX_AWAIT_S(0, rb_ll2inum, shState->graphics().getDelta());
+                SANDBOX_SLOT(0) = shState->graphics().getDelta();
                 GFX_UNLOCK;
+                SANDBOX_AWAIT_S(1, rb_float_new, SANDBOX_SLOT(0));
             }
 
-            return SANDBOX_SLOT(0);
+            return SANDBOX_SLOT(1);
         }
     };
 
