@@ -1036,7 +1036,7 @@ Bitmap::Bitmap(Exception &exception, void *pixeldata, int width, int height, boo
         MKXPZ_THROW(std::bad_alloc());
     
     memcpy(surface->pixels, pixeldata, width*height*(p->format->BitsPerPixel/8));
-#endif // MKXPZ_RERTRO
+#endif // MKXPZ_RETRO
     
     if (surface->w > glState.caps.maxTexSize || surface->h > glState.caps.maxTexSize)
     {

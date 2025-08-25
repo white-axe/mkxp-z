@@ -616,4 +616,4 @@ namespace mkxp_sandbox {
     };
 }
 
-#endif // MKXPZ_SANDBOX_BINDING_BASE
+#endif // MKXPZ_SANDBOX_BINDING_BASE_H
