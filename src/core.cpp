@@ -2434,9 +2434,17 @@ extern "C" RETRO_API unsigned int retro_get_region() {
 }
 
 extern "C" RETRO_API void *retro_get_memory_data(unsigned int id) {
+#ifdef MKXPZ_BIG_ENDIAN
     return nullptr;
+#else
+    return (id & RETRO_MEMORY_MASK) == RETRO_MEMORY_SYSTEM_RAM && mkxp_retro::sandbox.has_value() ? sb()->instance().w2c_memory.data : nullptr;
+#endif // MKXPZ_BIG_ENDIAN
 }
 
 extern "C" RETRO_API size_t retro_get_memory_size(unsigned int id) {
+#ifdef MKXPZ_BIG_ENDIAN
     return 0;
+#else
+    return (id & RETRO_MEMORY_MASK) == RETRO_MEMORY_SYSTEM_RAM && mkxp_retro::sandbox.has_value() ? sb()->memory_size() : 0;
+#endif // MKXPZ_BIG_ENDIAN
 }
