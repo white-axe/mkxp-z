@@ -67,6 +67,10 @@ if is_libretro
     else
         global_args += '-D_FILE_OFFSET_BITS=64'
     endif
+
+    if not get_option('libretro_save_states')
+        global_args += '-DMKXPZ_RETRO_NO_SAVE_STATES'
+    endif
 else
     global_args += '-DHAVE_NANOSLEEP'
 endif

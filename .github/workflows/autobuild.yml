@@ -583,7 +583,7 @@ jobs:
           echo "endian = '${{ matrix.endian }}'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dlibretro_force_fat_lto=true -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dlibretro_force_fat_lto=true -Dlibretro=true -Dlibretro_save_states=true
 
       - name: Build core
         run: |
@@ -736,7 +736,7 @@ jobs:
           else
             lto=true
           fi
-          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=$lto -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=$lto -Dlibretro=true -Dlibretro_save_states=true
 
       - name: Build core
         run: |
@@ -881,7 +881,7 @@ jobs:
           else
             lto=true
           fi
-          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=$lto -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=$lto -Dlibretro=true -Dlibretro_save_states=true
 
       - name: Build core
         run: |
@@ -948,7 +948,7 @@ jobs:
       - name: Configure core
         run: |
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-${{ matrix.target }}.txt --buildtype release -Db_lto=true -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-${{ matrix.target }}.txt --buildtype release -Db_lto=true -Dlibretro=true -Dlibretro_save_states=true
 
       - name: Build core
         run: |
@@ -1039,7 +1039,7 @@ jobs:
           echo "[cmake]" | tee -a ${{ runner.temp }}/cross.ini
           echo "CMAKE_SYSTEM_PROCESSOR = '${{ matrix.arch_cmake }}'" | tee -a ${{ runner.temp }}/cross.ini
           echo '--------------------------------------------------------------------------------'
-          ANDROID_NDK=${{ steps.ndk.outputs.ndk-path }} CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dlibretro=true
+          ANDROID_NDK=${{ steps.ndk.outputs.ndk-path }} CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dlibretro=true -Dlibretro_save_states=true
 
       - name: Build core
         run: |
@@ -1134,7 +1134,7 @@ jobs:
           echo "[cmake]" | tee -a ${{ runner.temp }}/cross.ini
           echo "CMAKE_OSX_SYSROOT = '/nonexistent'" | tee -a ${{ runner.temp }}/cross.ini
           echo '--------------------------------------------------------------------------------'
-          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dlibretro=true -Dlibretro_save_states=true
 
       - name: Build core
         run: |
@@ -1206,7 +1206,7 @@ jobs:
           else
             threaded=false
           fi
-          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dlibretro=true -Demscripten_threaded=$threaded
+          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dlibretro=true -Dlibretro_save_states=true -Demscripten_threaded=$threaded
 
       - name: Build core
         run: |
@@ -1279,7 +1279,7 @@ jobs:
       - name: Configure core
         run: |
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-ps3.txt --buildtype release -Db_lto=false -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-ps3.txt --buildtype release -Db_lto=false -Dlibretro=true -Dlibretro_save_states=true
 
       - name: Build core
         run: |
@@ -1341,7 +1341,7 @@ jobs:
       - name: Configure core
         run: |
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-3ds.txt --buildtype release -Db_lto=true -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-3ds.txt --buildtype release -Db_lto=true -Dlibretro=true -Dlibretro_save_states=true
 
       - name: Build core
         run: |
@@ -1404,7 +1404,7 @@ jobs:
       - name: Configure core
         run: |
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-vita.txt --buildtype release -Db_lto=true -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-vita.txt --buildtype release -Db_lto=true -Dlibretro=true -Dlibretro_save_states=true
 
       - name: Build core
         run: |
@@ -1489,7 +1489,7 @@ jobs:
       - name: Configure core
         run: |
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-wiiu.txt --buildtype release -Db_lto=true -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-wiiu.txt --buildtype release -Db_lto=true -Dlibretro=true -Dlibretro_save_states=true
 
       - name: Build core
         run: |
@@ -1545,7 +1545,7 @@ jobs:
       - name: Configure core
         run: |
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-ps4.txt --buildtype release -Db_lto=false -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-ps4.txt --buildtype release -Db_lto=false -Dlibretro=true -Dlibretro_save_states=true
 
       - name: Build core
         run: |
@@ -1607,7 +1607,7 @@ jobs:
       - name: Configure core
         run: |
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-switch.txt --buildtype release -Db_lto=true -Dlibretro=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-switch.txt --buildtype release -Db_lto=true -Dlibretro=true -Dlibretro_save_states=true
 
       - name: Build core
         run: |

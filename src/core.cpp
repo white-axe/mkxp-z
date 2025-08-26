@@ -1648,7 +1648,11 @@ extern "C" RETRO_API void retro_run() {
 }
 
 extern "C" RETRO_API size_t retro_serialize_size() {
+#ifdef MKXPZ_RETRO_NO_SAVE_STATES
+    return 0;
+#else
     return save_state_size;
+#endif // MKXPZ_RETRO_NO_SAVE_STATES
 }
 
 #define RESERVE(bytes) do { \
@@ -1676,6 +1680,9 @@ extern "C" RETRO_API size_t retro_serialize_size() {
 #define DESER_OBJECTS_END_FAIL do { DESER_OBJECTS_END; sb()->vacant_object_keys.clear(); sb()->objects.clear(); DESER_FAIL; } while (0)
 
 extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
+#ifdef MKXPZ_RETRO_NO_SAVE_STATES
+    return false;
+#else
     if (mkxp_retro::sandbox.has_value() && !shared_state_initialized.load_relaxed()) {
         init_shared_state();
     }
@@ -1854,9 +1861,13 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
 
     std::memset(data, 0, max_size);
     return true;
+#endif // MKXPZ_RETRO_NO_SAVE_STATES
 }
 
 extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
+#ifdef MKXPZ_RETRO_NO_SAVE_STATES
+    return false;
+#else
     if (mkxp_retro::sandbox.has_value() && !shared_state_initialized.load_relaxed()) {
         init_shared_state();
     }
@@ -2290,6 +2301,7 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     if (!audio->sandbox_deserialize(data, max_size)) DESER_FAIL;
 
     return true;
+#endif // MKXPZ_RETRO_NO_SAVE_STATES
 }
 
 extern "C" RETRO_API void retro_cheat_reset() {
