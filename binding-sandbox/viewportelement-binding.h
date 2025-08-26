@@ -72,7 +72,7 @@ namespace mkxp_sandbox {
 
                 VALUE operator()(VALUE self) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        if (get_private_data<Tilemap>(self)->isDisposed()) {
+                        if (get_private_data<C>(self)->isDisposed()) {
                             SANDBOX_AWAIT(raise_disposed_access, self);
                         }
 
