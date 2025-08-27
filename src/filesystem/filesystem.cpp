@@ -680,7 +680,15 @@ openReadEnumCB(void *d, const char *dirpath, const char *filename) {
 }
 
 void FileSystem::openRead(OpenHandler &handler, const char *filename) {
-  std::string filename_nm = normalize(filename, false, true);
+  std::string filename_nm = normalize(
+    filename,
+    false,
+#ifdef MKXPZ_RETRO
+    true
+#else
+    false
+#endif // MKXPZ_RETRO
+  );
   char buffer[512];
   size_t len = strcpySafe(buffer, filename_nm.c_str(), sizeof(buffer), -1);
   char *delim;
