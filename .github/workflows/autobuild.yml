@@ -1102,6 +1102,7 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
+          brew uninstall -f --ignore-dependencies git meson cmake
           brew install -q git meson cmake
 
       - id: short-sha
