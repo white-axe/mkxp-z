@@ -129,6 +129,8 @@ VAR_TYPE_TABLE = {
   u64: 'uint64_t',
   f32: 'float',
   f64: 'double',
+  void: 'void',
+  value: 'VALUE',
 }
 
 FUNC_TYPE_TABLE = {
@@ -343,47 +345,73 @@ func_names = []
 globals = []
 consts = []
 
+# Create a `_sbindgen_call_` function for each possible call signature of every function pointer that can be passed to the Ruby C API:
+# - `void (*)(VALUE)` (for dmark, dfree and dcompact)
+# - `size_t (*)(VALUE)` (for dsize)
+# - `VALUE (*)(int, VALUE *, VALUE)` (for rb_define_method with argc = -1)
+# - `VALUE (*)(void)` (for rb_define_method with argc = 0)
+# - `VALUE (*)(VALUE)` (for rb_define_method with argc = 1)
+# - `VALUE (*)(VALUE, VALUE)` (for rb_define_method with argc = 2 or argc = -2)
+# - `VALUE (*)(VALUE, VALUE, VALUE)` (for rb_define_method with argc = 3)
+# - Similarly for argc = 4 through argc = 16
 for call_type in CALL_TYPES
+  call_return_type = VAR_TYPE_TABLE[call_type[0]]
+  call_arg_types = call_type[1].map { |t| VAR_TYPE_TABLE[t] }
   call_bindings.append(
     <<~HEREDOC
-      static #{call_type[0] == :void ? 'void' : call_type[0] == :value ? 'VALUE' : VAR_TYPE_TABLE[call_type[0]]} _sbindgen_call_#{call_type_hash(call_type)}(#{(["#{call_type[0] == :void ? 'void' : call_type[0] == :value ? 'VALUE' : VAR_TYPE_TABLE[call_type[0]]} (*func)(#{(0...call_type[1].length).map { |i| call_type[1][i] == :value ? 'VALUE' : VAR_TYPE_TABLE[call_type[1][i]] }.join(', ')})"] + (0...call_type[1].length).map { |i| "#{call_type[1][i] == :value ? 'VALUE' : VAR_TYPE_TABLE[call_type[1][i]]} a#{i}" }).join(', ')}) {
-          #{call_type[0] == :void ? '' : 'return '}func(#{(0...call_type[1].length).map { |i| "a#{i}" }.join(', ')});
+      static #{call_return_type} _sbindgen_call_#{call_type_hash(call_type)}(#{(["#{call_return_type} (*func)(#{call_arg_types.join(', ')})"] + (0...call_arg_types.length).map { |i| "#{call_arg_types[i]} a#{i}" }).join(', ')}) {
+          #{call_type[0] == :void ? '' : 'return '}func(#{(0...call_arg_types.length).map { |i| "a#{i}" }.join(', ')});
       }
     HEREDOC
   )
 end
 
+# Find all `RUBY_Q` values defined in the Ruby headers (e.g. `RUBY_Qnil`, `RUBY_Qfalse`)
 File.readlines('tags', chomp: true).each do |line|
   line = line.split("\t")
+
+  # Skip tags that are not enumerators (the values inside of an `enum` declaration)
   next unless line[3] == 'e'
 
+  # Skip enumerators whose name does not consist of "RUBY_Q" followed by a lowercase Latin letter
   const_name = line[0]
   next unless const_name.match?(/^RUBY_Q[a-z]/)
   const_name = const_name[6..]
 
-  signature = line[2].match(/(?<==) *(?:(?:[1-9][0-9]*)|(?:0x[0-9a-f]+))(?=[,;]?\$\/)/)
-  next if signature.nil?
+  # Extract the numerical value of this enumerator
+  match = line[2].match(/(?<==) *(?:(?:[1-9][0-9]*)|(?:0x[0-9A-Fa-f]+))(?=[,;]?\$\/)/)
+  next if match.nil?
+  value = match[0]
 
-  consts.append([const_name.upcase, signature[0].strip.to_i(signature[0].strip.start_with?('0x') ? 16 : 10)])
+  consts.append([const_name.upcase, value.strip.to_i(value.strip.start_with?('0x') ? 16 : 10)])
 end
 
+# Find all `rb_` global variable declarations in the Ruby headers
 File.readlines('tags', chomp: true).each do |line|
   line = line.split("\t")
+
+  # Skip tags that are not variable declarations
   next unless line[3] == 'x'
 
+  # Skip all variable declarations where the variable name does not start with "rb_"
   global_name = line[0]
   next unless global_name.match?(/^rb_[a-z][A-Z]/)
 
+  # Skip all variable declarations where the variable type is something other than `VALUE`
   signature = line[2]
   next unless signature.start_with?('/^extern VALUE ')
 
   globals.append(global_name)
 end
 
+# Find all `rb_` functions declared in the Ruby headers and generate bindings for them
 File.readlines('tags', chomp: true).each do |line|
   line = line.split("\t")
+
+  # Skip tags that are not function declarations
   next unless line[3] == 'p'
 
+  # Skip functions that do not begin with "rb_", that end with "_static" (our bindings are unable to handle functions that take static strings as arguments) or are in the list of functions that we want to exclude
   func_name = line[0]
   next unless func_name.start_with?('rb_')
   next if func_name.end_with?('_static')
