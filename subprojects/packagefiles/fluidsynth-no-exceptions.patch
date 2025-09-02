@@ -2,7 +2,7 @@
 
 --- a/src/midi/fluid_seq_queue.cpp
 +++ b/src/midi/fluid_seq_queue.cpp
-@@ -23,7 +23,7 @@
+@@ -22,7 +22,7 @@
  #include <deque>
  #include <algorithm>
  #include <limits>
@@ -11,7 +11,7 @@
  /*
   * This is an implementation of an event queue, sorted according to their timestamp.
   *
-@@ -119,7 +119,7 @@ int event_compare_for_test(const fluid_event_t* left, const fluid_event_t* right
+@@ -118,7 +118,7 @@ int event_compare_for_test(const fluid_event_t* left, const fluid_event_t* right
  
  void* new_fluid_seq_queue(int nb_events)
  {
@@ -20,7 +20,7 @@
      {
          // As workaround for a missing deque::reserve(), allocate a deque with a size of nb_events
          seq_queue_t* queue = new seq_queue_t(nb_events);
-@@ -130,7 +130,7 @@ void* new_fluid_seq_queue(int nb_events)
+@@ -129,7 +129,7 @@ void* new_fluid_seq_queue(int nb_events)
  
          return queue;
      }
@@ -29,7 +29,7 @@
      {
          return 0;
      }
-@@ -143,7 +143,7 @@ void delete_fluid_seq_queue(void *que)
+@@ -142,7 +142,7 @@ void delete_fluid_seq_queue(void *que)
  
  int fluid_seq_queue_push(void *que, const fluid_event_t *evt)
  {
@@ -38,7 +38,7 @@
      {
          seq_queue_t& queue = *static_cast<seq_queue_t*>(que);
  
-@@ -152,7 +152,7 @@ int fluid_seq_queue_push(void *que, const fluid_event_t *evt)
+@@ -151,7 +151,7 @@ int fluid_seq_queue_push(void *que, const fluid_event_t *evt)
  
          return FLUID_OK;
      }
@@ -49,7 +49,7 @@
      }
 --- a/src/midi/fluid_seqbind_notes.cpp
 +++ b/src/midi/fluid_seqbind_notes.cpp
-@@ -21,7 +21,7 @@
+@@ -20,7 +20,7 @@
  #include "fluid_seqbind_notes.h"
  
  #include <set>
@@ -58,7 +58,7 @@
  /*
   * This is a hash container allows us to detect overlapping notes, by storing a bunch of unique integers,
   * that allow us to track noteOn events.
-@@ -63,12 +63,12 @@ fluid_note_id_t fluid_note_compute_id(int chan, short key)
+@@ -62,12 +62,12 @@ fluid_note_id_t fluid_note_compute_id(int chan, short key)
  
  void* new_fluid_note_container()
  {
@@ -73,7 +73,7 @@
      {
          return 0;
      }
-@@ -83,14 +83,14 @@ void delete_fluid_note_container(void *cont)
+@@ -82,14 +82,14 @@ void delete_fluid_note_container(void *cont)
  // FLUID_FAILED in case of error.
  int fluid_note_container_insert(void* cont, fluid_note_id_t id)
  {
@@ -90,7 +90,7 @@
      {
          return FLUID_FAILED;
      }
-@@ -98,11 +98,11 @@ int fluid_note_container_insert(void* cont, fluid_note_id_t id)
+@@ -97,11 +97,11 @@ int fluid_note_container_insert(void* cont, fluid_note_id_t id)
  
  void fluid_note_container_remove(void* cont, fluid_note_id_t id)
  {

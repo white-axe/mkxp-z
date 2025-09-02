@@ -1,5 +1,5 @@
 [wrap-git]
-url = https://github.com/mkxp-z/fluidsynth-sans-glib
-revision = 5c7716bda52f4f86271f32337c79f806f9402144
+url = https://github.com/FluidSynth/fluidsynth
+revision = a8c8a4f28c617ddda0519d51350901b75d75882e
 depth = 1
-diff_files = fluidsynth-cmake-policy.patch, fluidsynth-executable.patch, fluidsynth-linker-flags.patch, fluidsynth-mkxp-polyfill.patch, fluidsynth-no-exceptions.patch, fluidsynth-pic.patch, fluidsynth-pthreads.patch, fluidsynth-test-doc.patch
+diff_files = fluidsynth-android-log.patch, fluidsynth-executable.patch, fluidsynth-no-exceptions.patch, fluidsynth-pic.patch, fluidsynth-standard.patch, fluidsynth-test-doc.patch
