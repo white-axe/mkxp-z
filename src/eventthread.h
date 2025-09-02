@@ -92,6 +92,7 @@ public:
 	/* Called from RGSS thread */
 	void requestFullscreenMode(bool mode);
 	void requestWindowResize(int width, int height);
+	void requestGetWindowPosition(int *x, int *y);
     void requestWindowReposition(int x, int y);
     void requestWindowCenter();
     void requestWindowRename(const char *title);

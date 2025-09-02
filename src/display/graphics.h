@@ -98,6 +98,9 @@ public:
     void lock(bool force = false);
     void unlock(bool force = false);
 
+	void getWindowPosition(int *x, int *y);
+	void setWindowPosition(int x, int y);
+
 private:
 	Graphics(RGSSThreadData *data);
 	~Graphics();

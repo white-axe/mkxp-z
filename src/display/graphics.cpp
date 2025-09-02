@@ -1771,6 +1771,14 @@ void Graphics::unlock(bool force) {
     p->releaseLock(force);
 }
 
+void Graphics::getWindowPosition(int *x, int *y) {
+    shState->eThread().requestGetWindowPosition(x, y);
+}
+
+void Graphics::setWindowPosition(int x, int y) {
+    shState->eThread().requestWindowReposition(x, y);
+}
+
 void Graphics::addDisposable(Disposable *d) { p->dispList.append(d->link); }
 
 void Graphics::remDisposable(Disposable *d) { p->dispList.remove(d->link); }

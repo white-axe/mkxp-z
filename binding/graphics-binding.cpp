@@ -407,6 +407,33 @@ DEF_GRA_PROP_B(IntegerScaling)
 DEF_GRA_PROP_B(LastMileScaling)
 DEF_GRA_PROP_B(Threadsafe)
 
+RB_METHOD(graphicsGetWindowPosition)
+{
+    RB_UNUSED_PARAM;
+
+    int x, y;
+
+    GFX_LOCK;
+    shState->graphics().getWindowPosition(&x, &y);
+    GFX_UNLOCK;
+
+    return rb_ary_new_from_args(2, INT2NUM(x), INT2NUM(y));
+}
+
+RB_METHOD(graphicsSetWindowPosition)
+{
+    RB_UNUSED_PARAM;
+
+    int x, y;
+    rb_get_args(argc, argv, "ii", &x, &y RB_ARG_END);
+
+    GFX_LOCK;
+    shState->graphics().setWindowPosition(x, y);
+    GFX_UNLOCK;
+
+    return Qnil;
+}
+
 #define INIT_GRA_PROP_BIND(PropName, prop_name_s) \
 { \
 _rb_define_module_function(module, prop_name_s, graphics##Get##PropName); \
@@ -460,4 +487,7 @@ void graphicsBindingInit()
     INIT_GRA_PROP_BIND( IntegerScaling,   "integer_scaling"    );
     INIT_GRA_PROP_BIND( LastMileScaling,  "last_mile_scaling"  );
     INIT_GRA_PROP_BIND( Threadsafe,       "thread_safe"        );
+
+    _rb_define_module_function(module, "window_position", graphicsGetWindowPosition);
+    _rb_define_module_function(module, "set_window_position", graphicsSetWindowPosition);
 }

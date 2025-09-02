@@ -32,6 +32,7 @@
 #include <alc.h>
 #include <alext.h>
 #include <cmath>
+#include <tuple>
 
 #include "sharedstate.h"
 #include "graphics.h"
@@ -94,6 +95,7 @@ enum
 {
     REQUEST_SETFULLSCREEN = 0,
     REQUEST_WINRESIZE,
+    REQUEST_GETWINPOSITION,
     REQUEST_WINREPOSITION,
     REQUEST_WINRENAME,
     REQUEST_WINCENTER,
@@ -495,6 +497,20 @@ void EventThread::process(RGSSThreadData &rtData)
                         rtData.rqWindowAdjust.clear();
                         break;
                         
+                    case REQUEST_GETWINPOSITION :
+                    {
+                        auto tuple = (std::tuple<SDL_mutex *, SDL_cond *, int *, int *> *)event.user.data1;
+                        SDL_mutex *mutex = std::get<0>(*tuple);
+                        SDL_cond *cond = std::get<1>(*tuple);
+                        int *x = std::get<2>(*tuple);
+                        int *y = std::get<3>(*tuple);
+                        SDL_GetWindowPosition(win, x, y);
+                        SDL_LockMutex(mutex);
+                        SDL_CondSignal(cond);
+                        SDL_UnlockMutex(mutex);
+                        break;
+                    }
+
                     case REQUEST_WINREPOSITION :
                         SDL_SetWindowPosition(win, event.window.data1, event.window.data2);
                         rtData.rqWindowAdjust.clear();
@@ -733,6 +749,22 @@ void EventThread::requestWindowResize(int width, int height)
     event.window.data1 = width;
     event.window.data2 = height;
     SDL_PushEvent(&event);
+}
+
+void EventThread::requestGetWindowPosition(int *x, int *y)
+{
+    SDL_mutex *mutex = SDL_CreateMutex();
+    SDL_cond *cond = SDL_CreateCond();
+    std::tuple<SDL_mutex *, SDL_cond *, int *, int *> tuple(mutex, cond, x, y);
+    SDL_Event event;
+    event.type = usrIdStart + REQUEST_GETWINPOSITION;
+    event.user.data1 = &tuple;
+    SDL_LockMutex(mutex);
+    SDL_PushEvent(&event);
+    SDL_CondWait(cond, mutex);
+    SDL_UnlockMutex(mutex);
+    SDL_DestroyCond(cond);
+    SDL_DestroyMutex(mutex);
 }
 
 void EventThread::requestWindowReposition(int x, int y)
