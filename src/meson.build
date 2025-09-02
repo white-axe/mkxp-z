@@ -31,6 +31,14 @@ if is_libretro
     }
     global_dependencies += subproject('libiconv', default_options: libiconv_options).get_variable('libiconv')
 
+    libidn_options = {
+        'cflags': global_args,
+        'cppflags': global_args,
+        'default_library': 'static',
+        'b_staticpic': use_pic,
+    }
+    global_dependencies += subproject('libidn', default_options: libidn_options).get_variable('libidn')
+
     global_dependencies += [
         subproject('boost_asio').get_variable('boost_asio'),
         subproject('boost_container_hash').get_variable('boost_container_hash'),

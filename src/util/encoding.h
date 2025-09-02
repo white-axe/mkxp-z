@@ -60,6 +60,41 @@ static std::string convertString(const std::string &str) {
     
     return buf;
 }
+
+static std::string convertStringToUtf32(const std::string &str) {
+    
+    std::string charset = getCharset(str);
+    
+    iconv_t cd = iconv_open(
+#ifdef MKXPZ_BIG_ENDIAN
+        "UTF-32BE",
+#else
+        "UTF-32LE",
+#endif // MKXPZ_BIG_ENDIAN
+        charset.c_str()
+    );
+    
+    size_t inLen = str.size();
+    size_t outLen = inLen * 4;
+    std::string buf(outLen, '\0');
+    const char *inPtr = str.c_str();
+    char *outPtr = &buf[0];
+    
+    errno = 0;
+    size_t result = iconv(cd, const_cast<char **>(&inPtr), &inLen, &outPtr, &outLen);
+    
+    iconv_close(cd);
+    
+    if (result != (size_t)-1 && errno == 0)
+    {
+        buf.resize(buf.size()-outLen);
+    }
+    else {
+        buf.clear();
+    }
+    
+    return buf;
+}
 }
 
 #endif /* encoding_h */

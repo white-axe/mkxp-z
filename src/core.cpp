@@ -37,6 +37,7 @@
 #include <alc.h>
 #include <alext.h>
 #include <fluidsynth.h>
+#include <punycode.h>
 
 #include "mkxp-polyfill.h" // std::mutex, std::strtoul
 #include "git-hash.h"
@@ -44,6 +45,7 @@
 
 #include "al-util.h"
 #include "audio.h"
+#include "encoding.h"
 #include "eventthread.h"
 #include "filesystem.h"
 #include "gl-fun.h"
@@ -1171,19 +1173,47 @@ static bool init_sandbox() {
                 save_path_subdir.append("Game");
             }
 
-            // Sanitize forbidden characters in the game name
-            for (size_t i = std::strlen(save_path) + (sizeof "/mkxp-z/Saves/" - 1); i < save_path_subdir.length(); ++i) {
-                if (save_path_subdir[i] < 32 || save_path_subdir[i] == '/' || save_path_subdir[i] == '\\' || save_path_subdir[i] == '*' || save_path_subdir[i] == '?' || save_path_subdir[i] == '|' || ((save_path_subdir[i] == ' ' || save_path_subdir[i] == '.') && i + 1 == save_path_subdir.length())) {
-                    save_path_subdir[i] = '_';
-                } else if (save_path_subdir[i] == '"') {
-                    save_path_subdir[i] = '\"';
-                } else if (save_path_subdir[i] == ':') {
-                    save_path_subdir[i] = ';';
-                } else if (save_path_subdir[i] == '<') {
-                    save_path_subdir[i] = '(';
-                } else if (save_path_subdir[i] == '>') {
-                    save_path_subdir[i] = ')';
+            save_path_subdir = Encoding::convertStringToUtf32(save_path_subdir);
+            assert(save_path_subdir.length() % 4 == 0);
+
+            {
+                std::vector<uint32_t> input(save_path_subdir.length() / 4);
+                std::memcpy(input.data(), save_path_subdir.c_str(), save_path_subdir.length());
+
+                // Sanitize forbidden characters in the game name
+                for (size_t i = std::strlen(save_path) + (sizeof "/mkxp-z/Saves/" - 1); i < input.size(); ++i) {
+                    if (input[i] < 32 || input[i] == '/' || input[i] == '\\' || input[i] == '*' || input[i] == '?' || input[i] == '|') {
+                        input[i] = '_';
+                    } else if (input[i] == '"') {
+                        input[i] = '\"';
+                    } else if (input[i] == ':') {
+                        input[i] = ';';
+                    } else if (input[i] == '<') {
+                        input[i] = '(';
+                    } else if (input[i] == '>') {
+                        input[i] = ')';
+                    }
                 }
+
+                // Convert to punycode
+                size_t output_length = input.size() * 4;
+                std::vector<char> output(output_length);
+                for (;;) {
+                    int result = punycode_encode(input.size(), input.data(), nullptr, &output_length, output.data());
+                    if (result == PUNYCODE_SUCCESS) {
+                        break;
+                    }
+                    if (result != PUNYCODE_BIG_OUTPUT) {
+                        std::abort();
+                    }
+                    if (output_length * 2 < output_length) {
+                        MKXPZ_THROW(std::bad_alloc());
+                    }
+                    output_length *= 2;
+                    output.resize(output_length);
+                }
+
+                save_path_subdir = std::string(output.data(), output_length);
             }
 
             // Create the subdirectory if needed
