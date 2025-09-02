@@ -1164,34 +1164,35 @@ static bool init_sandbox() {
             }
 #endif // _WIN32
             PHYSFS_setWriteDir(save_path_subdir.c_str());
-            save_path_subdir.append("/mkxp-z/Saves/");
-            if (!conf->windowTitle.empty()) {
-                save_path_subdir.append(conf->windowTitle);
-            } else if (!conf->game.title.empty()) {
-                save_path_subdir.append(conf->game.title);
-            } else {
-                save_path_subdir.append("Game");
-            }
-
-            save_path_subdir = Encoding::convertStringToUtf32(save_path_subdir);
-            assert(save_path_subdir.length() % 4 == 0);
 
             {
-                std::vector<uint32_t> input(save_path_subdir.length() / 4);
-                std::memcpy(input.data(), save_path_subdir.c_str(), save_path_subdir.length());
+                std::string game_title;
+                if (!conf->windowTitle.empty()) {
+                    game_title = conf->windowTitle;
+                } else if (!conf->game.title.empty()) {
+                    game_title = conf->game.title;
+                } else {
+                    game_title = "Game";
+                }
 
-                // Sanitize forbidden characters in the game name
-                for (size_t i = std::strlen(save_path) + (sizeof "/mkxp-z/Saves/" - 1); i < input.size(); ++i) {
-                    if (input[i] < 32 || input[i] == '/' || input[i] == '\\' || input[i] == '*' || input[i] == '?' || input[i] == '|') {
-                        input[i] = '_';
-                    } else if (input[i] == '"') {
-                        input[i] = '\"';
-                    } else if (input[i] == ':') {
-                        input[i] = ';';
-                    } else if (input[i] == '<') {
-                        input[i] = '(';
-                    } else if (input[i] == '>') {
-                        input[i] = ')';
+                game_title = Encoding::convertStringToUtf32(game_title);
+                assert(game_title.length() % 4 == 0);
+
+                std::vector<uint32_t> input(game_title.length() / 4);
+                std::memcpy(input.data(), game_title.c_str(), game_title.length());
+
+                // Sanitize forbidden characters in the game title
+                for (uint32_t &c : input) {
+                    if (c < 32 || c == '/' || c == '\\' || c == '*' || c == '?' || c == '|') {
+                        c = '_';
+                    } else if (c == '"') {
+                        c = '\"';
+                    } else if (c == ':') {
+                        c = ';';
+                    } else if (c == '<') {
+                        c = '(';
+                    } else if (c == '>') {
+                        c = ')';
                     }
                 }
 
@@ -1213,7 +1214,8 @@ static bool init_sandbox() {
                     output.resize(output_length);
                 }
 
-                save_path_subdir = std::string(output.data(), output_length);
+                save_path_subdir.append("/mkxp-z/Saves/");
+                save_path_subdir.append(output.data(), output_length);
             }
 
             // Create the subdirectory if needed
