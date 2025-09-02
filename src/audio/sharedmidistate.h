@@ -58,13 +58,13 @@ struct SharedMidiState
 		if (!inited || !HAVE_FLUID)
 			return;
 
-		fluid.delete_settings(flSettings);
-
 		for (size_t i = 0; i < synths.size(); ++i)
 		{
 			assert(!synths[i].inUse);
 			fluid.delete_synth(synths[i].synth);
 		}
+
+		fluid.delete_settings(flSettings);
 	}
 
 	void initIfNeeded(const Config &conf)
