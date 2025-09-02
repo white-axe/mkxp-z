@@ -37,7 +37,7 @@
 #include <alc.h>
 #include <alext.h>
 #include <fluidsynth.h>
-#include <lib/punycode.h>
+#include <punycode.h>
 
 #include "mkxp-polyfill.h" // std::mutex, std::strtoul
 #include "git-hash.h"

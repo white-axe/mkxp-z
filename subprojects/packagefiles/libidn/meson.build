@@ -1,7 +1,7 @@
 project('libidn', 'c', meson_version: '>=1.3.0')
 
 libidn = declare_dependency(
-    include_directories: '.',
+    include_directories: 'lib',
     link_with: library(
         'idn',
         c_args: get_option('cflags') + [
