@@ -276,7 +276,6 @@ if not compilers['cpp'].has_header('pthread.h') or not compilers['cpp'].links(''
         have_pthread_mutex = false
         global_args += '-DMKXPZ_NO_PTHREAD_H_MUTEX'
     endif
-    global_args += '-DMKXPZ_NO_SEMAPHORE_H'
 endif
 
 if host_system == 'darwin' or not compilers['cpp'].has_header('semaphore.h') or not compilers['cpp'].links('''
@@ -525,6 +524,7 @@ if not have_any_mutex or not have_std_thread and not have_pthread_thread
 endif
 
 if not have_any_mutex
+    global_args += '-DMKXPZ_NO_MUTEX'
     global_args += '-DMKXPZ_NO_THREADED_AUDIO'
 endif
 

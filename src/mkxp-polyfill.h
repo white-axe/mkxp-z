@@ -86,7 +86,7 @@ typedef bool mkxp_cond_t;
 typedef sem_t mkxp_sem_t;
 #elif !defined(MKXPZ_NO_DISPATCH_DISPATCH_H)
 typedef dispatch_semaphore_t mkxp_sem_t;
-#elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)
+#elif !defined(MKXPZ_NO_MUTEX)
 typedef void *mkxp_sem_t;
 #else
 typedef unsigned int mkxp_sem_t;
