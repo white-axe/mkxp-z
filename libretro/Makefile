@@ -135,6 +135,7 @@ $(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.
 		WASMOPT=$(WASM_OPT) \
 		WASI_SDK_PATH=$(WASI_SDK) \
 		$(WASI_TOOLCHAIN) \
+		CFLAGS='-std=gnu99' \
 		LDFLAGS='-Wl,--export-dynamic,--stack-first,-z,stack-size=2097152 $(WASI_LDFLAGS)' \
 		XCFLAGS='-DWASM_SETJMP_STACK_BUFFER_SIZE=24576 -DWASM_FIBER_STACK_BUFFER_SIZE=24576 -DWASM_SCAN_STACK_BUFFER_SIZE=24576' \
 		cppflags='-mbulk-memory $(WASI_CXXFLAGS)' \
