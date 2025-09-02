@@ -1176,7 +1176,10 @@ static bool init_sandbox() {
                 }
 
                 game_title = Encoding::convertStringToUtf32(game_title);
-                assert(game_title.length() % 4 == 0);
+                if (game_title.empty()) {
+                    game_title = Encoding::convertStringToUtf32("Game");
+                }
+                assert(!game_title.empty() && game_title.length() % 4 == 0);
 
                 std::vector<uint32_t> input(game_title.length() / 4);
                 std::memcpy(input.data(), game_title.c_str(), game_title.length());
