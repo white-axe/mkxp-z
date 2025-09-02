@@ -1,6 +1,7 @@
 project('libidn', 'c', meson_version: '>=1.3.0')
 
 configuration = {
+    'HAVE_STDBOOL_H': 1,
     'HAVE_VISIBILITY': meson.get_compiler('c').compiles('__attribute__((__visibility__("default"))) void f(void) {}', name: 'GNU visibility attribute support check') ? 1 : 0,
     'ICONV_CONST': '',
 }
