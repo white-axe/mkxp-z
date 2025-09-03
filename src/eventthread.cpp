@@ -759,6 +759,7 @@ void EventThread::requestGetWindowPosition(int *x, int *y)
     SDL_Event event;
     event.type = usrIdStart + REQUEST_GETWINPOSITION;
     event.user.data1 = &tuple;
+    shState->rtData().rqWindowAdjust.wait();
     SDL_LockMutex(mutex);
     SDL_PushEvent(&event);
     SDL_CondWait(cond, mutex);
