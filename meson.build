@@ -79,8 +79,12 @@ if sizeof['void*'] <= 4
     global_args += '-DMKXPZ_32_BIT_POINTER'
 endif
 
-if (get_option('libretro_force_fat_lto') or (core_is_static and not is_emscripten)) and get_option('b_lto')
+if (get_option('force_fat_lto') or (core_is_static and not is_emscripten)) and get_option('b_lto')
     global_args += '-ffat-lto-objects'
+endif
+
+if is_vitasdk or (host_cpu_family == 'arm' and get_option('neon') and compilers['c'].has_argument('-mfpu=neon'))
+    global_args += '-mfpu=neon'
 endif
 
 if is_vitasdk
@@ -90,10 +94,10 @@ endif
 if is_devkitarm
     global_args += '-march=armv6k'
     global_args += '-mtune=mpcore'
-endif
-
-if core_is_static and host_cpu_family == 'arm'
     global_args += '-mfloat-abi=hard'
+    global_args += '-marm'
+    global_args += '-mfpu=vfp'
+    global_args += '-mtp=soft'
 endif
 
 # The PlayStation 4 toolchain won't link most programs without either `-r` or `-Wl,--gc-sections`

@@ -583,7 +583,7 @@ jobs:
           echo "endian = '${{ matrix.endian }}'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dlibretro_force_fat_lto=true -Dlibretro=true -Dlibretro_save_states=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dforce_fat_lto=true -Dlibretro=true -Dlibretro_save_states=true
 
       - name: Build core
         run: |
@@ -736,7 +736,13 @@ jobs:
           else
             lto=true
           fi
-          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=$lto -Dlibretro=true -Dlibretro_save_states=true
+          if [ '${{ matrix.arch_mkxpz }}' = 'armv7-neon' ]
+          then
+            neon=true
+          else
+            neon=false
+          fi
+          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=$lto -Dneon=$neon -Dlibretro=true -Dlibretro_save_states=true
 
       - name: Build core
         run: |
@@ -881,7 +887,13 @@ jobs:
           else
             lto=true
           fi
-          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=$lto -Dlibretro=true -Dlibretro_save_states=true
+          if [ '${{ matrix.arch_mkxpz }}' = 'armv7-neon' ]
+          then
+            neon=true
+          else
+            neon=false
+          fi
+          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=$lto -Dneon=$neon -Dlibretro=true -Dlibretro_save_states=true
 
       - name: Build core
         run: |

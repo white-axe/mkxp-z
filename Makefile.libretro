@@ -222,7 +222,7 @@ else
 endif
 
 $(MKXPZ_BUILD_DIR)/build.ninja: $(MKXPZ_CROSS_FILE)
-	CLICOLOR_FORCE=1 meson setup $(MKXPZ_BUILD_DIR) --cross-file $(MKXPZ_CROSS_FILE) -Dlibretro=true -Dlibretro_save_states=true -Demscripten_threaded=false -Db_lto=$(MKXPZ_LTO) -Db_lto_mode=$(MKXPZ_LTO_MODE) -Dlibretro_force_fat_lto=$(MKXPZ_FORCE_FAT_LTO)
+	CLICOLOR_FORCE=1 meson setup $(MKXPZ_BUILD_DIR) --cross-file $(MKXPZ_CROSS_FILE) -Dlibretro=true -Dlibretro_save_states=true -Demscripten_threaded=false -Db_lto=$(MKXPZ_LTO) -Db_lto_mode=$(MKXPZ_LTO_MODE) -Dforce_fat_lto=$(MKXPZ_FORCE_FAT_LTO)
 
 $(MKXPZ_CROSS_FILE):
 	echo "[binaries]" > $(MKXPZ_CROSS_FILE)
