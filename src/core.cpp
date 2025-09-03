@@ -1189,7 +1189,7 @@ static bool init_sandbox() {
                     if (c < 32 || c == '/' || c == '\\' || c == '*' || c == '?' || c == '|') {
                         c = '_';
                     } else if (c == '"') {
-                        c = '\"';
+                        c = '\'';
                     } else if (c == ':') {
                         c = ';';
                     } else if (c == '<') {
