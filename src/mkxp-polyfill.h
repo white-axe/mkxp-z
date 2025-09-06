@@ -190,27 +190,10 @@ namespace std {
 
         mkxp_mutex_t inner;
 
-        inline mutex() noexcept {
-            if (mkxp_mutex_init(&inner, false)) {
-                abort();
-            }
-        }
-
-        inline ~mutex() noexcept {
-            mkxp_mutex_destroy(&inner);
-        }
-
-        inline void lock() noexcept {
-            if (mkxp_mutex_lock(&inner)) {
-                abort();
-            }
-        }
-
-        inline void unlock() noexcept {
-            if (mkxp_mutex_unlock(&inner)) {
-                abort();
-            }
-        }
+        mutex() noexcept;
+        ~mutex() noexcept;
+        void lock() noexcept;
+        void unlock() noexcept;
 
         inline native_handle_type native_handle() noexcept {
             return &inner;
@@ -227,27 +210,10 @@ namespace std {
 
         mkxp_mutex_t inner;
 
-        inline recursive_mutex() noexcept {
-            if (mkxp_mutex_init(&inner, true)) {
-                abort();
-            }
-        }
-
-        inline ~recursive_mutex() noexcept {
-            mkxp_mutex_destroy(&inner);
-        }
-
-        inline void lock() noexcept {
-            if (mkxp_mutex_lock(&inner)) {
-                abort();
-            }
-        }
-
-        inline void unlock() noexcept {
-            if (mkxp_mutex_unlock(&inner)) {
-                abort();
-            }
-        }
+        recursive_mutex() noexcept;
+        ~recursive_mutex() noexcept;
+        void lock() noexcept;
+        void unlock() noexcept;
 
         inline native_handle_type native_handle() noexcept {
             return &inner;
@@ -262,33 +228,11 @@ namespace std {
     public:
         mkxp_cond_t inner;
 
-        inline condition_variable_any() noexcept {
-            if (mkxp_cond_init(&inner)) {
-                abort();
-            }
-        }
-
-        inline ~condition_variable_any() noexcept {
-            mkxp_cond_destroy(&inner);
-        }
-
-        inline void notify_one() noexcept {
-            if (mkxp_cond_signal(&inner)) {
-                abort();
-            }
-        }
-
-        inline void notify_all() noexcept {
-            if (mkxp_cond_broadcast(&inner)) {
-                abort();
-            }
-        }
-
-        inline void wait(std::mutex &mutex) noexcept {
-            if (mkxp_cond_wait(&inner, &mutex.inner)) {
-                abort();
-            }
-        }
+        condition_variable_any() noexcept;
+        ~condition_variable_any() noexcept;
+        void notify_one() noexcept;
+        void notify_all() noexcept;
+        void wait(std::mutex &mutex) noexcept;
     };
 }
 #  endif

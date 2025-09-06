@@ -26,6 +26,7 @@
 #include "sharedstate.h"
 #include "sharedmidistate.h"
 #include "eventthread.h"
+#include "forced-assert.h"
 
 #include "mkxp-polyfill.h" // std::to_string
 
@@ -46,19 +47,16 @@
 AudioMutex::AudioMutex()
 {
 #ifdef MKXPZ_RETRO
-	if (mkxp_mutex_init(&mutex, false))
+	MKXPZ_FORCED_ASSERT(!mkxp_mutex_init(&mutex, false));
 #else
-	if ((mutex = SDL_CreateMutex()) == NULL)
+	MKXPZ_FORCED_ASSERT((mutex = SDL_CreateMutex()) != nullptr);
 #endif // MKXPZ_RETRO
-	{
-		std::abort();
-	}
 }
 
 AudioMutex::~AudioMutex()
 {
 #ifdef MKXPZ_RETRO
-	mkxp_mutex_destroy(&mutex);
+	MKXPZ_FORCED_ASSERT(!mkxp_mutex_destroy(&mutex));
 #else
 	SDL_DestroyMutex(mutex);
 #endif // MKXPZ_RETRO
@@ -67,24 +65,18 @@ AudioMutex::~AudioMutex()
 void AudioMutex::lock()
 {
 #ifdef MKXPZ_RETRO
-	if (mkxp_mutex_lock(&mutex))
-	{
-		std::abort();
-	}
+	MKXPZ_FORCED_ASSERT(!mkxp_mutex_lock(&mutex));
 #else
-	SDL_LockMutex(mutex);
+	MKXPZ_FORCED_ASSERT(!SDL_LockMutex(mutex));
 #endif // MKXPZ_RETRO
 }
 
 void AudioMutex::unlock()
 {
 #ifdef MKXPZ_RETRO
-	if (mkxp_mutex_unlock(&mutex))
-	{
-		std::abort();
-	}
+	MKXPZ_FORCED_ASSERT(!mkxp_mutex_unlock(&mutex));
 #else
-	SDL_UnlockMutex(mutex);
+	MKXPZ_FORCED_ASSERT(!SDL_UnlockMutex(mutex));
 #endif // MKXPZ_RETRO
 }
 

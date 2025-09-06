@@ -26,6 +26,7 @@
 
 #include "serial-util.h"
 #include "exception.h"
+#include "forced-assert.h"
 #include "util.h"
 
 #ifdef MKXPZ_RETRO
@@ -175,7 +176,7 @@ bool Table::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) 
 	if (!mkxp_sandbox::sandbox_serialize((int32_t)ys, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize((int32_t)zs, data, max_size)) return false;
 
-	if ((uint32_t)xs * (uint32_t)ys * (uint32_t)zs != this->data.size()) std::abort();
+	MKXPZ_FORCED_ASSERT((uint32_t)xs * (uint32_t)ys * (uint32_t)zs == this->data.size());
 	if (max_size < this->data.size() * sizeof(int16_t)) return false;
 
 	if (this->data.size() > 0) {

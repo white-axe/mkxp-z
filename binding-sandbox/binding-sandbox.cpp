@@ -472,9 +472,7 @@ void sandbox_binding_init::operator()() {
                 SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(1));
 
                 struct sandbox_str_guard str = sb()->str(SANDBOX_SLOT(0));
-                if (std::strlen(str) != 2 * sizeof mkxp_retro::ruby_revision) {
-                    std::abort();
-                }
+                MKXPZ_FORCED_ASSERT(std::strlen(str) == 2 * sizeof mkxp_retro::ruby_revision);
                 for (size_t i = 0; i < sizeof mkxp_retro::ruby_revision; ++i) {
                     mkxp_retro::ruby_revision[i] = std::strtol(std::string(str + 2 * i, 2).c_str(), nullptr, 16);
                 }
@@ -533,7 +531,7 @@ void sandbox_binding_init::operator()() {
         } else if (rgssVer == 3) {
             SANDBOX_AWAIT(rb_eval_string, module_rpg3);
         } else {
-            std::abort();
+            MKXPZ_FORCED_ASSERT_WITH_MESSAGE(false, "RGSS version is something other than 1, 2 or 3");
         }
 
         SANDBOX_AWAIT_R(system_module, rb_define_module, "System");
@@ -594,7 +592,7 @@ void sandbox_run_rmxp_scripts::operator()() {
         } else if (rgssVer == 3) {
             SANDBOX_AWAIT_S(0, rb_file_open, "Data/Scripts.rvdata2", "rb");
         } else {
-            std::abort();
+            MKXPZ_FORCED_ASSERT_WITH_MESSAGE(false, "RGSS version is something other than 1, 2 or 3");
         }
         SANDBOX_AWAIT_S(1, rb_marshal_load, SANDBOX_SLOT(0));
         SANDBOX_AWAIT(rb_io_close, SANDBOX_SLOT(0));

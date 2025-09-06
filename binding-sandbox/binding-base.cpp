@@ -127,9 +127,7 @@ void binding_base::copy_memory_from(const void *ptr, wasm_size_t size, wasm_size
 }
 
 void mkxp_sandbox::sandbox_check_bounds(struct w2c_ruby &instance, wasm_ptr_t address, wasm_size_t size) noexcept {
-    if (address >= instance.w2c_memory.size || instance.w2c_memory.size - address < size) {
-        std::abort();
-    }
+    MKXPZ_FORCED_ASSERT(address < instance.w2c_memory.size && instance.w2c_memory.size - address >= size);
 }
 
 wasm_size_t mkxp_sandbox::sandbox_strlen(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {
@@ -137,18 +135,14 @@ wasm_size_t mkxp_sandbox::sandbox_strlen(struct w2c_ruby &instance, wasm_ptr_t a
 #ifdef MKXPZ_BIG_ENDIAN
     wasm_size_t size = 0;
     while (*ptr) {
-        if ((uint8_t *)ptr == instance.w2c_memory.data) {
-            std::abort();
-        }
+        MKXPZ_FORCED_ASSERT((uint8_t *)ptr != instance.w2c_memory.data);
         ++size;
         --ptr;
     }
     return size;
 #else
     const char *end = (const char *)std::memchr(ptr, 0, instance.w2c_memory.size - address);
-    if (ptr == nullptr) {
-        std::abort();
-    }
+    MKXPZ_FORCED_ASSERT(ptr != nullptr);
     return end - ptr;
 #endif
 }
@@ -162,9 +156,7 @@ struct sandbox_str_guard mkxp_sandbox::sandbox_str(struct w2c_ruby &instance, wa
     }
     return str;
 #else
-    if (address >= instance.w2c_memory.size || instance.w2c_memory.size - address <= sandbox_strlen(instance, address)) {
-        std::abort();
-    }
+    MKXPZ_FORCED_ASSERT(address < instance.w2c_memory.size && instance.w2c_memory.size - address > sandbox_strlen(instance, address));
     return &sandbox_ref<char>(instance, address);
 #endif // MKXPZ_BIG_ENDIAN
 }
@@ -211,17 +203,13 @@ struct binding_base::object &binding_base::object::operator=(struct object &&obj
 
 binding_base::object::~object() {
     if (typenum != 0) {
-        if (typenum > typenum_table_size) {
-            std::abort();
-        }
+        MKXPZ_FORCED_ASSERT(typenum <= typenum_table_size);
         typenum_table[typenum - 1].destroy(ptr);
     }
 }
 
 wasm_objkey_t binding_base::create_object(wasm_size_t typenum, void *ptr) {
-    if (ptr == nullptr || typenum == 0 || typenum > typenum_table_size) {
-        std::abort();
-    }
+    MKXPZ_FORCED_ASSERT(ptr != nullptr && typenum != 0 && typenum <= typenum_table_size);
     if (vacant_object_keys.empty()) {
         objects.emplace_back(typenum, ptr);
         if ((size_t)(wasm_objkey_t)objects.size() < objects.size()) {
@@ -240,13 +228,9 @@ wasm_objkey_t binding_base::create_object(wasm_size_t typenum, void *ptr) {
 }
 
 void *binding_base::get_object(wasm_objkey_t key) const {
-    if (key == 0 || key > objects.size()) {
-        std::abort();
-    }
+    MKXPZ_FORCED_ASSERT(key != 0 && key <= objects.size());
     const struct object &object = objects[key - 1];
-    if (object.typenum == 0 || object.typenum > typenum_table_size) {
-        std::abort();
-    }
+    MKXPZ_FORCED_ASSERT(object.typenum != 0 && object.typenum <= typenum_table_size);
     return object.ptr;
 }
 
@@ -255,13 +239,9 @@ bool binding_base::check_object_type(wasm_objkey_t key, wasm_size_t typenum) con
 }
 
 void binding_base::destroy_object(wasm_objkey_t key) {
-    if (key == 0 || key > objects.size()) {
-        std::abort();
-    }
+    MKXPZ_FORCED_ASSERT(key != 0 && key <= objects.size());
     struct object &object = objects[key - 1];
-    if (object.typenum == 0 || object.typenum > typenum_table_size) {
-        std::abort();
-    }
+    MKXPZ_FORCED_ASSERT(object.typenum != 0 && object.typenum <= typenum_table_size);
     if (key == objects.size()) {
         objects.pop_back();
         while (!objects.empty() && objects.back().typenum == 0) {

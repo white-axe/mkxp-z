@@ -24,6 +24,7 @@
 #include "sharedstate.h"
 #include "filesystem.h"
 #include "exception.h"
+#include "forced-assert.h"
 #include "boost-hash.h"
 #include "util.h"
 #include "config.h"
@@ -191,12 +192,7 @@ struct SharedFontStatePrivate
 
 	SharedFontStatePrivate()
 	{
-		FT_Error ft_error = FT_Init_FreeType(&library);
-		if (ft_error)
-		{
-			mkxp_retro::log_printf(RETRO_LOG_ERROR, "FreeType error %d\n", ft_error);
-			std::abort();
-		}
+		MKXPZ_FORCED_ASSERT(!FT_Init_FreeType(&library));
 	}
 
 	~SharedFontStatePrivate()

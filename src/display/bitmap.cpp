@@ -43,6 +43,7 @@
 #include "quadarray.h"
 #include "transform.h"
 #include "exception.h"
+#include "forced-assert.h"
 
 #include "sharedstate.h"
 #include "glstate.h"
@@ -1591,8 +1592,7 @@ void Bitmap::stretchBlt(Exception &exception,
             if (srcRectTooBig || srcSurfTooBig)
             {
 #ifdef MKXPZ_RETRO // TODO
-                mkxp_retro::log_printf(RETRO_LOG_ERROR, "not implemented: stretchBlt for sources larger than the max texture size\n");
-                std::abort();
+                MKXPZ_FORCED_ASSERT_WITH_MESSAGE(false, "not implemented: stretchBlt for sources larger than the max texture size");
 #else
                 int error;
                 if (srcRectTooBig)
@@ -3781,9 +3781,7 @@ bool Bitmap::sandbox_serialize_pixels(void *&data, mkxp_sandbox::wasm_size_t &ma
             size_t tile_row = tile_number / CEIL_DIV_DIFF_TILE_SIZE(width());
             size_t tile_width = std::min(DIFF_TILE_SIZE, width() - DIFF_TILE_SIZE * tile_col);
             size_t tile_height = std::min(DIFF_TILE_SIZE, height() - DIFF_TILE_SIZE * tile_row);
-            if (tile.size() != tile_width * tile_height) {
-                std::abort();
-            }
+            MKXPZ_FORCED_ASSERT(tile.size() == tile_width * tile_height);
             if (max_size < 4 * tile_width * tile_height) return false;
             std::memcpy(data, tile.data(), 4 * tile_width * tile_height);
             data = (uint8_t *)data + 4 * tile_width * tile_height;

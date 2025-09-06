@@ -29,6 +29,8 @@ extern "C" int isascii(int c) {
 #include <cassert>
 #include <cstring>
 
+#include "forced-assert.h"
+
 #if defined(MKXPZ_NO_SPRINTF) || defined(MKXPZ_NO_SNPRINTF) || defined(MKXPZ_NO_VSPRINTF) || defined(MKXPZ_NO_VSNPRINTF)
 #  include <stb_sprintf.h>
 #endif
@@ -66,6 +68,64 @@ const char *std::bad_variant_access::what() const noexcept {
     return "std::bad_variant_access";
 }
 #endif
+
+#  ifdef MKXPZ_NO_STD_MUTEX
+std::mutex::mutex() noexcept {
+    MKXPZ_FORCED_ASSERT(!mkxp_mutex_init(&inner, false));
+}
+
+std::mutex::~mutex() noexcept {
+    MKXPZ_FORCED_ASSERT(!mkxp_mutex_destroy(&inner));
+}
+
+void std::mutex::lock() noexcept {
+    MKXPZ_FORCED_ASSERT(!mkxp_mutex_lock(&inner));
+}
+
+void std::mutex::unlock() noexcept {
+    MKXPZ_FORCED_ASSERT(!mkxp_mutex_unlock(&inner));
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_RECURSIVE_MUTEX
+std::recursive_mutex::recursive_mutex() noexcept {
+    MKXPZ_FORCED_ASSERT(!mkxp_mutex_init(&inner, true));
+}
+
+std::recursive_mutex::~recursive_mutex() noexcept {
+    MKXPZ_FORCED_ASSERT(!mkxp_mutex_destroy(&inner));
+}
+
+void std::recursive_mutex::lock() noexcept {
+    MKXPZ_FORCED_ASSERT(!mkxp_mutex_lock(&inner));
+}
+
+void std::recursive_mutex::unlock() noexcept {
+    MKXPZ_FORCED_ASSERT(!mkxp_mutex_unlock(&inner));
+}
+#  endif
+
+#  ifdef MKXPZ_NO_STD_CONDITION_VARIABLE_ANY
+std::condition_variable_any::condition_variable_any() noexcept {
+    MKXPZ_FORCED_ASSERT(!mkxp_cond_init(&inner));
+}
+
+std::condition_variable_any::~condition_variable_any() noexcept {
+    MKXPZ_FORCED_ASSERT(!mkxp_cond_destroy(&inner));
+}
+
+void std::condition_variable_any::notify_one() noexcept {
+    MKXPZ_FORCED_ASSERT(!mkxp_cond_signal(&inner));
+}
+
+void std::condition_variable_any::notify_all() noexcept {
+    MKXPZ_FORCED_ASSERT(!mkxp_cond_broadcast(&inner));
+}
+
+void std::condition_variable_any::wait(std::mutex &mutex) noexcept {
+    MKXPZ_FORCED_ASSERT(!mkxp_cond_wait(&inner, &mutex.inner));
+}
+#  endif
 
 #ifdef MKXPZ_NO_SPRINTF
 extern "C" int sprintf(char *buffer, const char *format, ...) {
@@ -365,9 +425,7 @@ extern "C" int mkxp_cond_wait(mkxp_cond_t *cond, mkxp_mutex_t *mutex) {
     }
     return 0;
 #elif defined(MKXPZ_DEVKITARM_NO_PTHREAD_H_MUTEX)
-    if (mutex->recursive) {
-        std::abort();
-    }
+    MKXPZ_FORCED_ASSERT(!mutex->recursive);
     CondVar_Wait(cond, &mutex->inner.light);
     return 0;
 #elif !defined(MKXPZ_NO_PTHREAD_H_MUTEX)

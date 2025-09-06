@@ -24,6 +24,7 @@
 #include "wasi.h"
 #include <mkxp-sandbox-ruby.h>
 #include "mkxp-polyfill.h"
+#include "forced-assert.h"
 #include "sandbox.h"
 
 #define RB (ruby.get())
@@ -100,9 +101,7 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
     if (valid) {
         AWAIT(state = w2c_ruby_ruby_exec_node(RB, node));
     }
-    if (!valid || state) {
-        std::abort();
-    }
+    MKXPZ_FORCED_ASSERT(valid && state == 0);
     sandbox_free(state_buf);
 
     // Set the default encoding to UTF-8

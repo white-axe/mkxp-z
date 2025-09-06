@@ -41,6 +41,7 @@
 #include <mkxp-sandbox-ruby.h>
 #include "wasm-types.h"
 #include "mkxp-polyfill.h"
+#include "forced-assert.h"
 
 // LLVM uses a stack alignment of 16 on WebAssembly targets
 #define WASMSTACKALIGN 16
@@ -154,9 +155,7 @@ namespace mkxp_sandbox {
     // Unlike `sandbox_ref`, the address does not need to be aligned.
     template <typename T> void *sandbox_ptr_unaligned(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {
         static_assert(std::is_arithmetic<T>::value, "can only get references to numeric values in the sandbox");
-        if (address + (wasm_ptr_t)sizeof(T) < address || address + (wasm_ptr_t)sizeof(T) > instance.w2c_memory.size) {
-            std::abort();
-        }
+        MKXPZ_FORCED_ASSERT(address + (wasm_ptr_t)sizeof(T) >= address && address + (wasm_ptr_t)sizeof(T) <= instance.w2c_memory.size);
 #ifdef MKXPZ_BIG_ENDIAN
         return instance.w2c_memory.data + (instance.w2c_memory.size - address - sizeof(T));
 #else
@@ -167,32 +166,20 @@ namespace mkxp_sandbox {
     // Gets a pointer to the given index in the array at a given address in sandbox memory.
     // Unlike `sandbox_ref`, the address does not need to be aligned.
     template <typename T> void *sandbox_ptr_unaligned(struct w2c_ruby &instance, wasm_ptr_t array_address, wasm_size_t array_index) noexcept {
-        if (array_address + array_index < array_address) {
-            std::abort();
-        }
+        MKXPZ_FORCED_ASSERT(array_address + array_index >= array_address);
         return sandbox_ptr_unaligned<T>(instance, array_address + array_index * sizeof(T));
     }
 
     // Gets a reference to the value stored at a given address in sandbox memory.
     // Make sure the address is aligned, or this function will abort.
     template <typename T> T &sandbox_ref(struct w2c_ruby &instance, wasm_ptr_t address) noexcept {
-        if (address % sizeof(T) != 0) {
-#ifdef MKXPZ_RETRO_MEMORY64
-            std::fprintf(stderr, "unaligned memory access of size %u at address 0x%016llx in `mkxp_sandbox::sandbox_ref()`\n", (unsigned int)sizeof(T), (unsigned long long)address);
-#else
-            std::fprintf(stderr, "unaligned memory access of size %u at address 0x%08llx in `mkxp_sandbox::sandbox_ref()`\n", (unsigned int)sizeof(T), (unsigned long long)address);
-#endif // MKXPZ_RETRO_MEMORY64
-            std::fflush(stderr);
-            std::abort();
-        }
+        MKXPZ_FORCED_ASSERT(address % sizeof(T) == 0);
         return *(T *)sandbox_ptr_unaligned<T>(instance, address);
     }
 
     // Gets a reference to the value stored at the given index in the array at a given address in sandbox memory.
     template <typename T> T &sandbox_ref(struct w2c_ruby &instance, wasm_ptr_t array_address, wasm_size_t array_index) noexcept {
-        if (array_address + array_index < array_address) {
-            std::abort();
-        }
+        MKXPZ_FORCED_ASSERT(array_address + array_index >= array_address);
         return sandbox_ref<T>(array_address + array_index * sizeof(T));
     }
 
@@ -244,9 +231,7 @@ namespace mkxp_sandbox {
 
     // Copies an array of length `num_elements` into a sandbox memory address.
     template <typename T> void sandbox_arycpy(struct w2c_ruby &instance, wasm_ptr_t dst_address, const T *src, wasm_size_t num_elements) noexcept {
-        if (dst_address >= instance.w2c_memory.size || instance.w2c_memory.size - dst_address < num_elements * sizeof(T)) {
-            std::abort();
-        }
+        MKXPZ_FORCED_ASSERT(dst_address < instance.w2c_memory.size && instance.w2c_memory.size - dst_address >= num_elements * sizeof(T));
 #ifdef MKXPZ_BIG_ENDIAN
         for (wasm_size_t i = 0; i < num_elements; ++i) {
             std::memcpy(sandbox_ptr_unaligned<T>(instance, dst_address, i), src + i, sizeof(T));
@@ -471,17 +456,13 @@ namespace mkxp_sandbox {
             stack_frame_guard(struct binding_base &b) : bind(&b), fiber(&init_fiber(b)) {
                 uint32_t state = w2c_ruby_asyncify_get_state(&b.instance());
 
-                if (fiber->stack_index > std::max(fiber->stack.size(), fiber->deser_stack.size())) {
-                    std::abort();
-                }
+                MKXPZ_FORCED_ASSERT(fiber->stack_index <= std::max(fiber->stack.size(), fiber->deser_stack.size()));
 
                 // If Asyncify is rewinding, restore the stack frame from before Asyncify started unwinding
                 if (state == 2) {
                     // Restore stack frame from the libretro save state if available
                     if (fiber->stack_index == fiber->stack.size()) {
-                        if (fiber->stack_index == fiber->deser_stack.size()) {
-                            std::abort();
-                        }
+                        MKXPZ_FORCED_ASSERT(fiber->stack_index != fiber->deser_stack.size());
                         struct deser_stack_frame &deser_frame = fiber->deser_stack[fiber->stack_index++];
                         if (fiber->stack_index == 0) {
                             MKXPZ_THROW(std::bad_alloc());
@@ -508,9 +489,7 @@ namespace mkxp_sandbox {
                 }
 
                 // Otherwise, create a new stack frame
-                if (state != 0) {
-                    std::abort();
-                }
+                MKXPZ_FORCED_ASSERT(state == 0);
 
                 while (fiber->deser_stack.size() > fiber->stack_index) {
                     fiber->deser_stack.pop_back();

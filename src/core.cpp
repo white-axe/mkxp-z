@@ -48,6 +48,7 @@
 #include "encoding.h"
 #include "eventthread.h"
 #include "filesystem.h"
+#include "forced-assert.h"
 #include "gl-fun.h"
 #include "glstate.h"
 #include "graphics.h"
@@ -1207,9 +1208,7 @@ static bool init_sandbox() {
                     if (result == PUNYCODE_SUCCESS) {
                         break;
                     }
-                    if (result != PUNYCODE_BIG_OUTPUT) {
-                        std::abort();
-                    }
+                    MKXPZ_FORCED_ASSERT(result == PUNYCODE_BIG_OUTPUT);
                     if (output_length * 2 < output_length) {
                         MKXPZ_THROW(std::bad_alloc());
                     }
@@ -1816,9 +1815,8 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     for (const auto &object : sb()->objects) {
         if (object.typenum == 0) {
             ++num_free_objects;
-        } else if (object.typenum > SANDBOX_NUM_TYPENUMS) {
-            std::abort();
         } else {
+            MKXPZ_FORCED_ASSERT(object.typenum <= SANDBOX_NUM_TYPENUMS);
             if (num_free_objects > 0) {
                 if (!sandbox_serialize((wasm_size_t)0, data, max_size)) SER_OBJECTS_END_FAIL;
                 if (!sandbox_serialize(num_free_objects, data, max_size)) SER_OBJECTS_END_FAIL;
@@ -1846,15 +1844,11 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     if (!sandbox_serialize(sb().transitioning, data, max_size)) return false;
     if (!sandbox_serialize(sb().trans_map != nullptr, data, max_size)) return false;
     if (sb().trans_map != nullptr) {
-        if (sb().trans_map->isDisposed()) {
-            std::abort();
-        }
+        MKXPZ_FORCED_ASSERT(!sb().trans_map->isDisposed());
         if (!sb().trans_map->sandbox_serialize_without_hires(data, max_size)) return false;
         Exception e;
         Bitmap *hires = sb().trans_map->getHires(e);
-        if (!e.is_ok()) {
-            std::abort();
-        }
+        MKXPZ_FORCED_ASSERT(e.is_ok());
         if (!sandbox_serialize(hires != nullptr, data, max_size)) return false;
         if (hires != nullptr) {
             if (!hires->sandbox_serialize_without_hires(data, max_size)) return false;
@@ -2073,9 +2067,7 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
             for (wasm_size_t i = object_key; i < object_key + num_free_objects; ++i) {
                 auto &object = sb()->objects[i - 1];
                 if (object.typenum > 0) {
-                    if (object.typenum > SANDBOX_NUM_TYPENUMS) {
-                        std::abort();
-                    }
+                    MKXPZ_FORCED_ASSERT(object.typenum <= SANDBOX_NUM_TYPENUMS);
                     typenum_table[object.typenum - 1].destroy(object.ptr);
                     object.typenum = 0;
                 }
@@ -2373,9 +2365,7 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
             shState->graphics().sandbox_reinit();
             for (const auto &object : sb()->objects) {
                 if (object.typenum > 0) {
-                    if (object.typenum > SANDBOX_NUM_TYPENUMS) {
-                        std::abort();
-                    }
+                    MKXPZ_FORCED_ASSERT(object.typenum <= SANDBOX_NUM_TYPENUMS);
                     typenum_table[object.typenum - 1].reinit(object.ptr);
                 }
             }

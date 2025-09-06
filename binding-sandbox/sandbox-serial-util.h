@@ -32,6 +32,8 @@
 #include <boost/preprocessor/seq/size.hpp>
 #include <boost/type_traits/is_detected.hpp>
 
+#include "forced-assert.h"
+
 #include "bitmap.h"
 #include "etc.h"
 #include "font.h"
@@ -150,9 +152,7 @@ namespace mkxp_sandbox {
         static void sandbox_serialize_begin() {
             using namespace mkxp_sandbox;
 
-            if (is_deserializing) {
-                std::abort();
-            }
+            MKXPZ_FORCED_ASSERT(!is_deserializing);
 
             if (is_serializing) {
                 return;
@@ -173,9 +173,7 @@ namespace mkxp_sandbox {
         static bool sandbox_serialize(const T *ptr, void *&data, wasm_size_t &max_size) {
             using namespace mkxp_sandbox;
 
-            if (is_deserializing) {
-                std::abort();
-            }
+            MKXPZ_FORCED_ASSERT(!is_deserializing);
 
             if (ptr != nullptr) {
                 const auto it = unswizzle_map.find(ptr);
@@ -193,9 +191,7 @@ namespace mkxp_sandbox {
         }
 
         static void sandbox_serialize_end() {
-            if (is_deserializing) {
-                std::abort();
-            }
+            MKXPZ_FORCED_ASSERT(!is_deserializing);
 
             is_serializing = false;
             unswizzle_map.clear();
@@ -204,9 +200,7 @@ namespace mkxp_sandbox {
         static void sandbox_deserialize_begin() {
             using namespace mkxp_sandbox;
 
-            if (is_serializing) {
-                std::abort();
-            }
+            MKXPZ_FORCED_ASSERT(!is_serializing);
 
             if (is_deserializing) {
                 return;
@@ -219,9 +213,7 @@ namespace mkxp_sandbox {
         static bool sandbox_deserialize(T *&ref, const void *&data, wasm_size_t &max_size) {
             using namespace mkxp_sandbox;
 
-            if (is_serializing) {
-                std::abort();
-            }
+            MKXPZ_FORCED_ASSERT(!is_serializing);
 
             bool is_not_null;
             if (!mkxp_sandbox::sandbox_deserialize(is_not_null, data, max_size)) return false;
@@ -243,9 +235,7 @@ namespace mkxp_sandbox {
         }
 
         static void sandbox_deserialize_end() {
-            if (is_serializing) {
-                std::abort();
-            }
+            MKXPZ_FORCED_ASSERT(!is_serializing);
 
             is_deserializing = false;
             swizzle_map.clear();

@@ -28,6 +28,7 @@
 #include "eventthread.h"
 #include "filesystem.h"
 #include "exception.h"
+#include "forced-assert.h"
 #include "aldatasource.h"
 #include "fluid-fun.h"
 #include "sdl-util.h"
@@ -452,11 +453,7 @@ void ALStream::render() {
 
 #ifndef MKXPZ_NO_EXCEPTIONS // `unqueueBuffer` will abort on error if C++ exceptions are disabled so we only need to check if `buf == AL::Buffer::ID(0)` if C++ exceptions are enabled
 #  ifdef MKXPZ_RETRO
-		if (buf == AL::Buffer::ID(0))
-		{
-			mkxp_retro::log_printf(RETRO_LOG_ERROR, "Error unqueueing OpenAL buffer\n");
-			std::abort();
-		}
+		MKXPZ_FORCED_ASSERT(!(buf == AL::Buffer::ID(0)));
 #  else
 		/* If something went wrong, try again later */
 		if (buf == AL::Buffer::ID(0))

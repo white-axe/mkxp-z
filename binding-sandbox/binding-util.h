@@ -24,6 +24,7 @@
 
 #include "sandbox-serial-util.h"
 #include "exception.h"
+#include "forced-assert.h"
 #include "sandbox.h"
 #include <type_traits>
 #include <boost/optional.hpp>
@@ -540,9 +541,7 @@ namespace mkxp_sandbox {
     // so make sure it's been set properly using `set_private_data` beforehand.
     template <typename T> inline T *get_private_data(VALUE val) {
         wasm_objkey_t key = sb()->ref<wasm_ptr_t>(sb()->rtypeddata_data(val));
-        if (!sb()->check_object_type(key, get_typenum<T>::value)) {
-            std::abort();
-        }
+        MKXPZ_FORCED_ASSERT(sb()->check_object_type(key, get_typenum<T>::value));
         return (T *)sb()->get_object(key);
     }
 

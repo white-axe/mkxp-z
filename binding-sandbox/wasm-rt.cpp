@@ -23,7 +23,10 @@
 #include <cstdlib>
 #include <vector>
 #include "core.h"
+#include "forced-assert.h"
 #include "wasm-rt.h"
+
+//#define WASM_RT_DEBUG
 
 #define WASM_PAGE_SIZE ((uint64_t)65536U)
 
@@ -34,36 +37,39 @@ extern "C" bool wasm_rt_is_initialized(void) {
 }
 
 extern "C" WASM_RT_NO_RETURN void wasm_rt_trap(wasm_rt_trap_t error) {
+#ifdef WASM_RT_DEBUG
     switch (error) {
         case WASM_RT_TRAP_OOB:
-            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error 1: OOB (out-of-bounds memory access)\n");
+            MKXPZ_FORCED_ASSERT_WITH_MESSAGE(false, "Sandbox error 1: OOB (out-of-bounds memory access)");
             break;
         case WASM_RT_TRAP_INT_OVERFLOW:
-            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error 2: INT_OVERFLOW (arithmetic overflow)\n");
+            MKXPZ_FORCED_ASSERT_WITH_MESSAGE(false, "Sandbox error 2: INT_OVERFLOW (arithmetic overflow)");
             break;
         case WASM_RT_TRAP_DIV_BY_ZERO:
-            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error 3: DIV_BY_ZERO (division by zero)\n");
+            MKXPZ_FORCED_ASSERT_WITH_MESSAGE(false, "Sandbox error 3: DIV_BY_ZERO (division by zero)");
             break;
         case WASM_RT_TRAP_INVALID_CONVERSION:
-            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error 4: INVALID_CONVERSION (invalid integer cast)\n");
+            MKXPZ_FORCED_ASSERT_WITH_MESSAGE(false, "Sandbox error 4: INVALID_CONVERSION (invalid integer cast)");
             break;
         case WASM_RT_TRAP_UNREACHABLE:
-            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error 5: UNREACHABLE (hit an `unreachable' instruction in WebAssembly)\n");
+            MKXPZ_FORCED_ASSERT_WITH_MESSAGE(false, "Sandbox error 5: UNREACHABLE (hit an `unreachable' instruction in WebAssembly)");
             break;
         case WASM_RT_TRAP_CALL_INDIRECT:
-            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error 6: CALL_INDIRECT (attempted to call a function pointer with the wrong call signature)\n");
+            MKXPZ_FORCED_ASSERT_WITH_MESSAGE(false, "Sandbox error 6: CALL_INDIRECT (attempted to call a function pointer with the wrong call signature)");
             break;
         case WASM_RT_TRAP_UNCAUGHT_EXCEPTION:
-            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error 7: UNCAUGHT_EXCEPTION (uncaught WebAssembly exception)\n");
+            MKXPZ_FORCED_ASSERT_WITH_MESSAGE(false, "Sandbox error 7: UNCAUGHT_EXCEPTION (uncaught WebAssembly exception)");
             break;
         case WASM_RT_TRAP_EXHAUSTION:
-            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error 8: EXHAUSTION (out of stack space)\n");
+            MKXPZ_FORCED_ASSERT_WITH_MESSAGE(false, "Sandbox error 8: EXHAUSTION (out of stack space)");
             break;
         default:
-            mkxp_retro::log_printf(RETRO_LOG_ERROR, "Sandbox error %d (unknown error)\n", error);
+            MKXPZ_FORCED_ASSERT_WITH_MESSAGE(false, "Unknown sandbox error");
             break;
     }
-    std::abort();
+#else
+    MKXPZ_FORCED_ASSERT_WITH_MESSAGE(false, "Sandbox trap");
+#endif // WASM_RT_DEBUG
 }
 
 extern "C" void wasm_rt_allocate_memory(wasm_rt_memory_t *memory, uint32_t initial_pages, uint32_t max_pages, bool is64, uint32_t page_size) {
