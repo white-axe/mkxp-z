@@ -90,8 +90,8 @@ namespace mkxp_sandbox {
         void operator()(VALUE klass) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT(sceneelement_binding_init<C>, klass);
-                SANDBOX_AWAIT(rb_define_method, klass, "viewport", (VALUE (*)(ANYARGS))viewport, 0); \
-                SANDBOX_AWAIT(rb_define_method, klass, "viewport=", (VALUE (*)(ANYARGS))set_viewport, 1); \
+                SANDBOX_AWAIT(rb_define_method, klass, "viewport", (VALUE (*)(ANYARGS))viewport, 0);
+                SANDBOX_AWAIT(rb_define_method, klass, "viewport=", (VALUE (*)(ANYARGS))set_viewport, 1);
             }
         }
     };
