@@ -34,20 +34,20 @@ namespace mkxp_retro {
 }
 #  define MKXPZ_FORCED_ASSERT_WITH_MESSAGE(condition, message) do { \
     if (!(condition)) { \
-	const char *s = "Fatal error (" __FILE__ ":" _MKXPZ_FORCED_ASSERT_DETAIL(__LINE__) "): " message "\n"; \
-	std::fputs(s, stderr); \
-	mkxp_retro::log_printf(RETRO_LOG_ERROR, "%s", s); \
-	std::fflush(stderr); \
-	std::abort(); \
+        const char *s = "Fatal error (" __FILE__ ":" _MKXPZ_FORCED_ASSERT_DETAIL(__LINE__) "): " message "\n"; \
+        std::fputs(s, stderr); \
+        mkxp_retro::log_printf(RETRO_LOG_ERROR, "%s", s); \
+        std::fflush(stderr); \
+        std::abort(); \
     } \
 } while (0)
 #else
 #  define MKXPZ_FORCED_ASSERT_WITH_MESSAGE(condition, message) do { \
     if (!(condition)) { \
-	const char *s = "Fatal error (" __FILE__ ":" _MKXPZ_FORCED_ASSERT_DETAIL(__LINE__) "): " message "\n"; \
-	std::fputs(s, stderr); \
-	std::fflush(stderr); \
-	std::abort(); \
+        const char *s = "Fatal error (" __FILE__ ":" _MKXPZ_FORCED_ASSERT_DETAIL(__LINE__) "): " message "\n"; \
+        std::fputs(s, stderr); \
+        std::fflush(stderr); \
+        std::abort(); \
     } \
 } while (0)
 #endif // MKXPZ_RETRO
