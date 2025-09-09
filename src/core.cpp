@@ -1232,7 +1232,7 @@ static bool init_sandbox() {
             Exception exception(Exception::Ok, "");
             fs->addPath(exception, save_path_subdir.c_str(), "/Save");
             if (exception.is_error()) {
-                log_printf(RETRO_LOG_ERROR, "%s\n", exception.what());
+                log_printf(RETRO_LOG_ERROR, "Failed to mount game save directory from \"%s\": %s\n", save_path_subdir.c_str(), exception.what());
                 deinit_sandbox();
                 return false;
             }
@@ -1243,10 +1243,12 @@ static bool init_sandbox() {
                 fs->addPath(exception, save_path_subdir.c_str(), "/Game");
             }
             if (exception.is_error()) {
-                log_printf(RETRO_LOG_ERROR, "%s\n", exception.what());
+                log_printf(RETRO_LOG_ERROR, "Failed to mount game save directory from \"%s\": %s\n", save_path_subdir.c_str(), exception.what());
                 deinit_sandbox();
                 return false;
             }
+
+            mkxp_retro::log_printf(RETRO_LOG_INFO, "Mounted game save directory from \"%s\"\n", save_path_subdir.c_str());
         }
     }
 

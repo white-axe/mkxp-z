@@ -65,14 +65,7 @@ static std::string convertStringToUtf32(const std::string &str) {
     
     std::string charset = getCharset(str);
     
-    iconv_t cd = iconv_open(
-#ifdef MKXPZ_BIG_ENDIAN
-        "UTF-32BE",
-#else
-        "UTF-32LE",
-#endif // MKXPZ_BIG_ENDIAN
-        charset.c_str()
-    );
+    iconv_t cd = iconv_open("UCS-4-INTERNAL", charset.c_str());
     
     size_t inLen = str.size();
     size_t outLen = inLen * 4;
