@@ -253,13 +253,14 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: benjlevesque/short-sha@v2.2
-        id: short-sha
-        with:
-          length: 7
-
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - id: short-sha
+        name: Get Git commit hash
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@v4
         with:
@@ -347,13 +348,14 @@ jobs:
             # Also probably an OpenSSL arch name issue, which might be fixed by now.
             experimental: true
     steps:
-      - uses: benjlevesque/short-sha@v2.2
-        id: short-sha
-        with:
-          length: 7
-
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - id: short-sha
+        name: Get Git commit hash
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@v4
         with:
@@ -593,12 +595,6 @@ jobs:
       - name: Checkout repository
         uses: taiki-e/checkout-action@v1
 
-      - id: short-sha
-        name: Get Git commit hash
-        run: |
-          sha=$(git rev-parse --short=7 HEAD)
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
-
       - name: Download stage 1
         run: |
           node --input-type=module -e '
@@ -638,10 +634,10 @@ jobs:
           node --input-type=module -e '
             import {DefaultArtifactClient} from "@actions/artifact";
             import fg from "fast-glob";
-            process.chdir(process.env["HOME"] + "/dist");
+            process.chdir(process.env.HOME + "/dist");
             const artifact = new DefaultArtifactClient();
             await artifact.uploadArtifact(
-              "mkxp-z_libretro.windows.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              "mkxp-z_libretro.windows.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ needs.build-libretro-stage1.outputs.sha }}",
               fg.globSync("**"),
               ".",
             );
@@ -750,12 +746,6 @@ jobs:
       - name: Checkout repository
         uses: taiki-e/checkout-action@v1
 
-      - id: short-sha
-        name: Get Git commit hash
-        run: |
-          sha=$(git rev-parse --short=7 HEAD)
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
-
       - name: Download stage 1
         run: |
           node --input-type=module -e '
@@ -816,7 +806,7 @@ jobs:
             process.chdir("${{ runner.temp }}/dist");
             const artifact = new DefaultArtifactClient();
             await artifact.uploadArtifact(
-              "mkxp-z_libretro.linux-gnu.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              "mkxp-z_libretro.linux-gnu.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ needs.build-libretro-stage1.outputs.sha }}",
               fg.globSync("**"),
               ".",
             );
@@ -917,12 +907,6 @@ jobs:
       - name: Checkout repository
         uses: taiki-e/checkout-action@v1
 
-      - id: short-sha
-        name: Get Git commit hash
-        run: |
-          sha=$(git rev-parse --short=7 HEAD)
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
-
       - name: Download stage 1
         run: |
           node --input-type=module -e '
@@ -983,7 +967,7 @@ jobs:
             process.chdir("${{ runner.temp }}/dist");
             const artifact = new DefaultArtifactClient();
             await artifact.uploadArtifact(
-              "mkxp-z_libretro.linux-musl.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              "mkxp-z_libretro.linux-musl.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ needs.build-libretro-stage1.outputs.sha }}",
               fg.globSync("**"),
               ".",
             );
@@ -1026,12 +1010,6 @@ jobs:
       - name: Checkout repository
         uses: taiki-e/checkout-action@v1
 
-      - id: short-sha
-        name: Get Git commit hash
-        run: |
-          sha=$(git rev-parse --short=7 HEAD)
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
-
       - name: Download stage 1
         run: |
           node --input-type=module -e '
@@ -1060,10 +1038,10 @@ jobs:
           node --input-type=module -e '
             import {DefaultArtifactClient} from "@actions/artifact";
             import fg from "fast-glob";
-            process.chdir(process.env["HOME"] + "/dist");
+            process.chdir(process.env.HOME + "/dist");
             const artifact = new DefaultArtifactClient();
             await artifact.uploadArtifact(
-              "mkxp-z_libretro.linux-opendingux.${{ matrix.target }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              "mkxp-z_libretro.linux-opendingux.${{ matrix.target }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ needs.build-libretro-stage1.outputs.sha }}",
               fg.globSync("**"),
               ".",
             );
@@ -1121,12 +1099,6 @@ jobs:
       - name: Checkout repository
         uses: taiki-e/checkout-action@v1
 
-      - id: short-sha
-        name: Get Git commit hash
-        run: |
-          sha=$(git rev-parse --short=7 HEAD)
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
-
       - name: Download stage 1
         run: |
           node --input-type=module -e '
@@ -1170,7 +1142,7 @@ jobs:
             process.chdir("${{ runner.temp }}/dist");
             const artifact = new DefaultArtifactClient();
             await artifact.uploadArtifact(
-              "mkxp-z_libretro.android.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              "mkxp-z_libretro.android.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ needs.build-libretro-stage1.outputs.sha }}",
               fg.globSync("**"),
               ".",
             );
@@ -1233,12 +1205,6 @@ jobs:
       - name: Checkout repository
         uses: taiki-e/checkout-action@v1
 
-      - id: short-sha
-        name: Get Git commit hash
-        run: |
-          sha=$(git rev-parse --short=7 HEAD)
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
-
       - name: Download stage 1
         run: |
           node --input-type=module -e '
@@ -1282,7 +1248,7 @@ jobs:
             process.chdir("${{ runner.temp }}/dist");
             const artifact = new DefaultArtifactClient();
             await artifact.uploadArtifact(
-              "mkxp-z_libretro.${{ matrix.system_mkxpz }}.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              "mkxp-z_libretro.${{ matrix.system_mkxpz }}.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ needs.build-libretro-stage1.outputs.sha }}",
               fg.globSync("**"),
               ".",
             );
@@ -1315,12 +1281,6 @@ jobs:
 
       - name: Checkout repository
         uses: taiki-e/checkout-action@v1
-
-      - id: short-sha
-        name: Get Git commit hash
-        run: |
-          sha=$(git rev-parse --short=7 HEAD)
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Download stage 1
         run: |
@@ -1389,7 +1349,7 @@ jobs:
             process.chdir("${{ runner.temp }}/dist");
             const artifact = new DefaultArtifactClient();
             await artifact.uploadArtifact(
-              "mkxp-z_libretro.emscripten.${{ matrix.threading }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              "mkxp-z_libretro.emscripten.${{ matrix.threading }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ needs.build-libretro-stage1.outputs.sha }}",
               fg.globSync("**"),
               ".",
             );
@@ -1418,12 +1378,6 @@ jobs:
 
       - name: Checkout repository
         uses: taiki-e/checkout-action@v1
-
-      - id: short-sha
-        name: Get Git commit hash
-        run: |
-          sha=$(git rev-parse --short=7 HEAD)
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Download stage 1
         run: |
@@ -1461,10 +1415,10 @@ jobs:
           node --input-type=module -e '
             import {DefaultArtifactClient} from "@actions/artifact";
             import fg from "fast-glob";
-            process.chdir(process.env["HOME"] + "/dist");
+            process.chdir(process.env.HOME + "/dist");
             const artifact = new DefaultArtifactClient();
             await artifact.uploadArtifact(
-              "mkxp-z_libretro.ps3.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              "mkxp-z_libretro.ps3.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ needs.build-libretro-stage1.outputs.sha }}",
               fg.globSync("**"),
               ".",
             );
@@ -1493,12 +1447,6 @@ jobs:
 
       - name: Checkout repository
         uses: taiki-e/checkout-action@v1
-
-      - id: short-sha
-        name: Get Git commit hash
-        run: |
-          sha=$(git rev-parse --short=7 HEAD)
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Download stage 1
         run: |
@@ -1537,10 +1485,10 @@ jobs:
           node --input-type=module -e '
             import {DefaultArtifactClient} from "@actions/artifact";
             import fg from "fast-glob";
-            process.chdir(process.env["HOME"] + "/dist");
+            process.chdir(process.env.HOME + "/dist");
             const artifact = new DefaultArtifactClient();
             await artifact.uploadArtifact(
-              "mkxp-z_libretro.3ds.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              "mkxp-z_libretro.3ds.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ needs.build-libretro-stage1.outputs.sha }}",
               fg.globSync("**"),
               ".",
             );
@@ -1569,12 +1517,6 @@ jobs:
 
       - name: Checkout repository
         uses: taiki-e/checkout-action@v1
-
-      - id: short-sha
-        name: Get Git commit hash
-        run: |
-          sha=$(git rev-parse --short=7 HEAD)
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Download stage 1
         run: |
@@ -1612,10 +1554,10 @@ jobs:
           node --input-type=module -e '
             import {DefaultArtifactClient} from "@actions/artifact";
             import fg from "fast-glob";
-            process.chdir(process.env["HOME"] + "/dist");
+            process.chdir(process.env.HOME + "/dist");
             const artifact = new DefaultArtifactClient();
             await artifact.uploadArtifact(
-              "mkxp-z_libretro.vita.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              "mkxp-z_libretro.vita.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ needs.build-libretro-stage1.outputs.sha }}",
               fg.globSync("**"),
               ".",
             );
@@ -1650,12 +1592,6 @@ jobs:
       - name: Checkout repository
         uses: taiki-e/checkout-action@v1
 
-      - id: short-sha
-        name: Get Git commit hash
-        run: |
-          sha=$(git rev-parse --short=7 HEAD)
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
-
       - name: Download stage 1
         run: |
           node --input-type=module -e '
@@ -1672,7 +1608,7 @@ jobs:
             import {DefaultArtifactClient} from "@actions/artifact";
             const artifact = new DefaultArtifactClient();
             await artifact.downloadArtifact(${{ needs.wiiurpxtool.outputs.artifact-id }}, {
-              path: process.env["HOME"],
+              path: process.env.HOME,
             });
           '
 
@@ -1714,10 +1650,10 @@ jobs:
           node --input-type=module -e '
             import {DefaultArtifactClient} from "@actions/artifact";
             import fg from "fast-glob";
-            process.chdir(process.env["HOME"] + "/dist");
+            process.chdir(process.env.HOME + "/dist");
             const artifact = new DefaultArtifactClient();
             await artifact.uploadArtifact(
-              "mkxp-z_libretro.wiiu.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              "mkxp-z_libretro.wiiu.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ needs.build-libretro-stage1.outputs.sha }}",
               fg.globSync("**"),
               ".",
             );
@@ -1743,12 +1679,6 @@ jobs:
 
       - name: Checkout repository
         uses: taiki-e/checkout-action@v1
-
-      - id: short-sha
-        name: Get Git commit hash
-        run: |
-          sha=$(git rev-parse --short=7 HEAD)
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Download stage 1
         run: |
@@ -1786,10 +1716,10 @@ jobs:
           node --input-type=module -e '
             import {DefaultArtifactClient} from "@actions/artifact";
             import fg from "fast-glob";
-            process.chdir(process.env["HOME"] + "/dist");
+            process.chdir(process.env.HOME + "/dist");
             const artifact = new DefaultArtifactClient();
             await artifact.uploadArtifact(
-              "mkxp-z_libretro.ps4.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              "mkxp-z_libretro.ps4.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ needs.build-libretro-stage1.outputs.sha }}",
               fg.globSync("**"),
               ".",
             );
@@ -1818,12 +1748,6 @@ jobs:
 
       - name: Checkout repository
         uses: taiki-e/checkout-action@v1
-
-      - id: short-sha
-        name: Get Git commit hash
-        run: |
-          sha=$(git rev-parse --short=7 HEAD)
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Download stage 1
         run: |
@@ -1861,10 +1785,10 @@ jobs:
           node --input-type=module -e '
             import {DefaultArtifactClient} from "@actions/artifact";
             import fg from "fast-glob";
-            process.chdir(process.env["HOME"] + "/dist");
+            process.chdir(process.env.HOME + "/dist");
             const artifact = new DefaultArtifactClient();
             await artifact.uploadArtifact(
-              "mkxp-z_libretro.switch.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              "mkxp-z_libretro.switch.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ needs.build-libretro-stage1.outputs.sha }}",
               fg.globSync("**"),
               ".",
             );
