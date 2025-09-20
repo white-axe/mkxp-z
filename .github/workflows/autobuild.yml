@@ -1216,7 +1216,7 @@ jobs:
             endian: little
     steps:
       - name: Expose Actions environment
-        uses: white-axe/expose-actions-environment@v1
+        uses: crazy-max/ghaction-github-runtime@v3
 
       - name: Install dependencies
         run: |
