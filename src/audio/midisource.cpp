@@ -29,7 +29,9 @@
 #include "debugwriter.h"
 #include "fluid-fun.h"
 
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+#  include "core.h"
+#else
 #  include <SDL_rwops.h>
 #endif // MKXPZ_RETRO
 
@@ -678,7 +680,7 @@ struct CCResetter
 
 struct MidiSource : ALDataSource, MidiReadHandler
 {
-	const uint16_t freq;
+	const uint32_t freq;
 	fluid_synth_t *synth;
 
 	int16_t synthBuf[BUF_TICKS*TICK_FRAMES*2];
@@ -716,7 +718,12 @@ struct MidiSource : ALDataSource, MidiReadHandler
 		SDL_RWops &ops,
 #endif // MKXPZ_RETRO
 	           bool looped)
-	    : freq(SYNTH_SAMPLERATE),
+	    :
+#ifdef MKXPZ_RETRO
+	      freq(mkxp_retro::sample_rate),
+#else
+	      freq(SYNTH_SAMPLERATE),
+#endif // MKXPZ_RETRO
 	      looped(looped),
 	      dpb(480),
 	      pitchShift(0),

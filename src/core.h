@@ -44,6 +44,7 @@ namespace mkxp_retro {
     extern struct retro_hw_render_callback hw_render;
     extern bool keyboard_state[RETROK_LAST];
     extern bool input_polled;
+    extern unsigned int sample_rate;
 
     extern uint8_t sub_image_fix_override;
     extern uint8_t enable_blitting_override;

@@ -452,7 +452,7 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
 };
 
-#define THREADED_AUDIO_SAMPLES (((size_t)SYNTH_SAMPLERATE * (size_t)AUDIO_SLEEP) / (size_t)1000)
+#define THREADED_AUDIO_SAMPLES (((size_t)sample_rate * (size_t)AUDIO_SLEEP) / (size_t)1000)
 
 using namespace mkxp_retro;
 using namespace mkxp_sandbox;
@@ -634,6 +634,7 @@ namespace mkxp_retro {
     struct retro_hw_render_callback hw_render;
     bool keyboard_state[RETROK_LAST];
     bool input_polled;
+    unsigned int sample_rate;
 
     uint8_t sub_image_fix_override;
     uint8_t enable_blitting_override;
@@ -1252,6 +1253,19 @@ static bool init_sandbox() {
         }
     }
 
+    {
+        float refresh_rate;
+        if (environment(RETRO_ENVIRONMENT_GET_TARGET_REFRESH_RATE, &refresh_rate) && refresh_rate > 0.0f) {
+            av_info.timing.fps = refresh_rate;
+        } else {
+            av_info.timing.fps = 60;
+        }
+    }
+
+    if (!environment(RETRO_ENVIRONMENT_GET_TARGET_SAMPLE_RATE, &sample_rate) || sample_rate == 0) {
+        sample_rate = SYNTH_SAMPLERATE;
+    }
+
     alcLoopbackOpenDeviceSOFT = (LPALCLOOPBACKOPENDEVICESOFT)alcGetProcAddress(nullptr, "alcLoopbackOpenDeviceSOFT");
     if (alcLoopbackOpenDeviceSOFT == nullptr) {
         log_printf(RETRO_LOG_ERROR, "OpenAL implementation does not support `alcLoopbackOpenDeviceSOFT`\n");
@@ -1273,13 +1287,13 @@ static bool init_sandbox() {
         return false;
     }
 
-    static const ALCint al_attrs[] = {
+    const ALCint al_attrs[] = {
         ALC_FORMAT_CHANNELS_SOFT,
         ALC_STEREO_SOFT,
         ALC_FORMAT_TYPE_SOFT,
         ALC_SHORT_SOFT,
         ALC_FREQUENCY,
-        SYNTH_SAMPLERATE,
+        (ALCint)sample_rate,
         0,
     };
     al_context = alcCreateContext(al_device, al_attrs);
@@ -1302,25 +1316,16 @@ static bool init_sandbox() {
     mkxp_retro::sandbox.emplace();
     Font::initDefaultDynAttribs();
 
-    {
-        float refresh_rate;
-        if (environment(RETRO_ENVIRONMENT_GET_TARGET_REFRESH_RATE, &refresh_rate)) {
-            av_info.timing.fps = refresh_rate;
-        } else {
-            refresh_rate = 60;
-        }
-    }
-
     av_info.geometry.base_width = screen_width = conf->defScreenW;
     av_info.geometry.base_height = screen_height = conf->defScreenH;
     av_info.geometry.max_width = av_info.geometry.base_width;
     av_info.geometry.max_height = av_info.geometry.base_height;
     av_info.geometry.aspect_ratio = (float)av_info.geometry.base_width / (float)av_info.geometry.base_height;
-    av_info.timing.sample_rate = (double)SYNTH_SAMPLERATE;
+    av_info.timing.sample_rate = sample_rate;
     frame_time_callback.reference = 1000000 / (rgssVer == 1 ? 40 : 60);
     frame_time_callback_enabled = environment(RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK, &frame_time_callback);
 
-    sound_buf = (int16_t *)mkxp_aligned_malloc(16, (threaded_audio_enabled ? THREADED_AUDIO_SAMPLES : (size_t)std::ceil((double)SYNTH_SAMPLERATE / av_info.timing.fps)) * 2 * sizeof(int16_t));
+    sound_buf = (int16_t *)mkxp_aligned_malloc(16, (threaded_audio_enabled ? THREADED_AUDIO_SAMPLES : (size_t)std::ceil(av_info.timing.sample_rate / av_info.timing.fps)) * 2 * sizeof(int16_t));
     if (sound_buf == nullptr) {
         MKXPZ_THROW(std::bad_alloc());
     }
@@ -1666,7 +1671,7 @@ extern "C" RETRO_API void retro_run() {
     video_refresh(fb, screen_width, screen_height, screen_width * 4);
 
     if (!threaded_audio_enabled && mkxp_retro::sandbox.has_value()) {
-        audio_render((uint64_t)std::ceil((double)((uint64_t)SYNTH_SAMPLERATE * (retro_run_count + 1)) / av_info.timing.fps) - (uint64_t)std::ceil((double)((uint64_t)SYNTH_SAMPLERATE * retro_run_count) / av_info.timing.fps));
+        audio_render((uint64_t)std::ceil((double)((uint64_t)sample_rate * (retro_run_count + 1)) / av_info.timing.fps) - (uint64_t)std::ceil((double)((uint64_t)sample_rate * retro_run_count) / av_info.timing.fps));
     }
 
     if (mkxp_retro::sandbox.has_value()) {

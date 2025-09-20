@@ -94,7 +94,7 @@ struct SharedMidiState
 
 		flSettings = fluid.new_settings();
 		fluid.settings_setnum(flSettings, "synth.gain", 1.0f);
-		fluid.settings_setnum(flSettings, "synth.sample-rate", SYNTH_SAMPLERATE);
+		fluid.settings_setnum(flSettings, "synth.sample-rate", mkxp_retro::sample_rate);
 		fluid.settings_setint(flSettings, "synth.chorus.active", mkxp_retro::midi_chorus_override == 1 || (mkxp_retro::midi_chorus_override != 0 && conf.midi.chorus));
 		fluid.settings_setint(flSettings, "synth.reverb.active", mkxp_retro::midi_reverb_override == 1 || (mkxp_retro::midi_reverb_override != 0 && conf.midi.reverb));
 
