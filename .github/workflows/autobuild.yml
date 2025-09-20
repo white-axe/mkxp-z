@@ -515,6 +515,9 @@ jobs:
     outputs:
       artifact-id: ${{ steps.upload-artifact.outputs.artifact-id }}
     steps:
+      - name: Expose Actions environment
+        uses: white-axe/expose-actions-environment@v1
+
       - name: Install dependencies
         run: |
           apk update
