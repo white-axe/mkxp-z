@@ -15,12 +15,6 @@ jobs:
     name: Windows
     runs-on: windows-latest
     steps:
-      - uses: benjlevesque/short-sha@v2.2
-        id: short-sha
-        name: Get Git commit hash
-        with:
-          length: 7
-
       - name: Set up MSYS2
         uses: msys2/setup-msys2@v2
         with:
@@ -36,6 +30,13 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - id: short-sha
+        name: Get Git commit hash
+        shell: msys2 {0}
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Restore cache
         uses: actions/cache@v4
@@ -84,14 +85,14 @@ jobs:
     name: Ubuntu 22.04 x86_64
     runs-on: ubuntu-22.04
     steps:
-      - uses: benjlevesque/short-sha@v2.2
-        id: short-sha
-        name: Get Git commit hash
-        with:
-          length: 7
-
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - id: short-sha
+        name: Get Git commit hash
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Restore cache
         uses: actions/cache@v4
@@ -178,14 +179,14 @@ jobs:
             # Also probably an OpenSSL arch name issue, which might be fixed by now.
             experimental: true
     steps:
-      - uses: benjlevesque/short-sha@v2.2
-        id: short-sha
-        name: Get Git commit hash
-        with:
-          length: 7
-
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - id: short-sha
+        name: Get Git commit hash
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Restore cache
         uses: actions/cache@v4
@@ -404,17 +405,17 @@ jobs:
     name: macOS
     runs-on: macos-latest
     steps:
-      - uses: benjlevesque/short-sha@v2.2
-        id: short-sha
-        name: Get Git commit hash
-        with:
-          length: 7
-
       - name: Remove pre-existing homebrew packages
         run: brew remove --force $(brew list)
 
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - id: short-sha
+        name: Get Git commit hash
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Restore cache
         uses: actions/cache@v4
@@ -456,20 +457,27 @@ jobs:
   build-libretro-stage1:
     name: LR stage 1
     runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.short-sha.outputs.sha }}
+      artifact-id: ${{ steps.upload-artifact.outputs.artifact-id }}
     steps:
-      - id: short-sha
-        name: Get Git commit hash
-        uses: benjlevesque/short-sha@v2.2
-        with:
-          length: 7
+      - name: Expose Actions environment
+        uses: white-axe/expose-actions-environment@v1
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: taiki-e/checkout-action@v1
+
+      - id: short-sha
+        name: Get Git commit hash
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y git curl build-essential automake libtool binaryen zip universal-ctags ruby
+          sudo apt install -y git curl build-essential automake libtool binaryen zip universal-ctags ruby nodejs npm
+          npm install @actions/artifact@2 fast-glob@3
 
       - name: Set up WASI SDK
         run: |
@@ -483,21 +491,35 @@ jobs:
           cd libretro
           CLICOLOR_FORCE=1 make -j $(nproc) WASI_SDK=${{ runner.temp }}/wasi-sdk
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: libretro/build/libretro-stage1
+      - id: upload-artifact
+        name: Upload artifact
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            import fg from "fast-glob";
+            import fs from "fs";
+            process.chdir("libretro/build/libretro-stage1");
+            const artifact = new DefaultArtifactClient();
+            const {id, size} = await artifact.uploadArtifact(
+              "stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              fg.globSync("**"),
+              ".",
+            );
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `artifact-id=${id}`);
+          '
 
   wiiurpxtool:
     name: wiiurpxtool
     runs-on: ubuntu-latest
     container: alpine:latest
+    outputs:
+      artifact-id: ${{ steps.upload-artifact.outputs.artifact-id }}
     steps:
       - name: Install dependencies
         run: |
           apk update
-          apk add build-base git zlib-dev zlib-static cmake ninja
+          apk add build-base git zlib-dev zlib-static cmake ninja nodejs npm
+          npm install @actions/artifact@2
 
       - name: Build wiiurpxtool
         run: |
@@ -514,11 +536,21 @@ jobs:
           mv /usr/lib/libz.so.backup /usr/lib/libz.so
           mv wiiurpxtool-ng wiiurpxtool
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: wiiurpxtool
-          path: wiiurpxtool-ng/wiiurpxtool
+      - id: upload-artifact
+        name: Upload artifact
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            import fs from "fs";
+            process.chdir("wiiurpxtool-ng");
+            const artifact = new DefaultArtifactClient();
+            const {id, size} = await artifact.uploadArtifact(
+              "wiiurpxtool",
+              ["wiiurpxtool"],
+              ".",
+            );
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `artifact-id=${id}`);
+          '
 
   build-libretro-windows:
     needs: build-libretro-stage1
@@ -527,8 +559,6 @@ jobs:
     container:
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-mxe-win-cross-cores:gcc11
       options: -u root
-      volumes:
-        - /tmp:/__e/node20
     strategy:
       fail-fast: false
       matrix:
@@ -544,30 +574,37 @@ jobs:
             cpu: x86_64
             endian: little
     steps:
+      - name: Expose Actions environment
+        uses: white-axe/expose-actions-environment@v1
+
       - name: Install dependencies
         shell: bash
         run: |
           wget -O ~/Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
-          conda install -y nodejs=20 git meson cmake
-          ln -s "$HOME/miniforge3/bin" /__e/node20/bin
+          conda install -y nodejs git meson cmake
+          PATH="$PATH:$HOME/miniforge3/bin" npm install @actions/artifact@2 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
+
+      - name: Checkout repository
+        uses: taiki-e/checkout-action@v1
 
       - id: short-sha
         name: Get Git commit hash
-        uses: benjlevesque/short-sha@v2.2
-        with:
-          length: 7
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Download stage 1
-        uses: actions/download-artifact@v4
-        with:
-          name: stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: libretro/build/libretro-stage1
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            const artifact = new DefaultArtifactClient();
+            await artifact.downloadArtifact(${{ needs.build-libretro-stage1.outputs.artifact-id }}, {
+              path: "libretro/build/libretro-stage1",
+            });
+          '
 
       - name: Configure core
         run: |
@@ -594,10 +631,18 @@ jobs:
           mv mkxp-z_libretro.dll ~/dist/mkxp-z_libretro.dll
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mkxp-z_libretro.windows.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: ~/dist
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            import fg from "fast-glob";
+            process.chdir(process.env["HOME"] + "/dist");
+            const artifact = new DefaultArtifactClient();
+            await artifact.uploadArtifact(
+              "mkxp-z_libretro.windows.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              fg.globSync("**"),
+              ".",
+            );
+          '
 
   build-libretro-linux-gnu:
     needs: build-libretro-stage1
@@ -662,6 +707,9 @@ jobs:
             cpu: x86_64
             endian: little
     steps:
+      - name: Expose Actions environment
+        uses: white-axe/expose-actions-environment@v1
+
       - name: Install dependencies
         run: |
           sudo apt update
@@ -695,20 +743,24 @@ jobs:
             cp /usr/lib/${{ matrix.arch_llvm }}/libm.so /usr/lib/${{ matrix.arch_llvm }}/libm.a
           '
 
+      - name: Checkout repository
+        uses: taiki-e/checkout-action@v1
+
       - id: short-sha
         name: Get Git commit hash
-        uses: benjlevesque/short-sha@v2.2
-        with:
-          length: 7
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Download stage 1
-        uses: actions/download-artifact@v4
-        with:
-          name: stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: libretro/build/libretro-stage1
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            const artifact = new DefaultArtifactClient();
+            await artifact.downloadArtifact(${{ needs.build-libretro-stage1.outputs.artifact-id }}, {
+              path: "libretro/build/libretro-stage1",
+            });
+          '
 
       - name: Configure core
         run: |
@@ -753,10 +805,18 @@ jobs:
           mv mkxp-z_libretro.so ${{ runner.temp }}/dist/mkxp-z_libretro.so
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mkxp-z_libretro.linux-gnu.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: ${{ runner.temp }}/dist
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            import fg from "fast-glob";
+            process.chdir("${{ runner.temp }}/dist");
+            const artifact = new DefaultArtifactClient();
+            await artifact.uploadArtifact(
+              "mkxp-z_libretro.linux-gnu.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              fg.globSync("**"),
+              ".",
+            );
+          '
 
   build-libretro-linux-musl:
     needs: build-libretro-stage1
@@ -833,6 +893,9 @@ jobs:
             cpu: x86_64
             endian: little
     steps:
+      - name: Expose Actions environment
+        uses: white-axe/expose-actions-environment@v1
+
       - name: Install dependencies
         run: |
           sudo apt update
@@ -846,20 +909,24 @@ jobs:
           branch: latest-stable
           packages: build-base
 
+      - name: Checkout repository
+        uses: taiki-e/checkout-action@v1
+
       - id: short-sha
         name: Get Git commit hash
-        uses: benjlevesque/short-sha@v2.2
-        with:
-          length: 7
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Download stage 1
-        uses: actions/download-artifact@v4
-        with:
-          name: stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: libretro/build/libretro-stage1
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            const artifact = new DefaultArtifactClient();
+            await artifact.downloadArtifact(${{ needs.build-libretro-stage1.outputs.artifact-id }}, {
+              path: "libretro/build/libretro-stage1",
+            });
+          '
 
       - name: Configure core
         run: |
@@ -904,10 +971,18 @@ jobs:
           mv mkxp-z_libretro.so ${{ runner.temp }}/dist/mkxp-z_libretro.so
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mkxp-z_libretro.linux-musl.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: ${{ runner.temp }}/dist
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            import fg from "fast-glob";
+            process.chdir("${{ runner.temp }}/dist");
+            const artifact = new DefaultArtifactClient();
+            await artifact.uploadArtifact(
+              "mkxp-z_libretro.linux-musl.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              fg.globSync("**"),
+              ".",
+            );
+          '
 
   build-libretro-linux-opendingux:
     needs: build-libretro-stage1
@@ -916,8 +991,6 @@ jobs:
     container:
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-dingux:${{ matrix.tag }}
       options: -u root
-      volumes:
-        - /tmp:/__e/node20
     strategy:
       fail-fast: false
       matrix:
@@ -932,30 +1005,37 @@ jobs:
             tag: odbeta
             strip: /opt/retrofw-toolchain/usr/bin/mipsel-linux-strip
     steps:
+      - name: Expose Actions environment
+        uses: white-axe/expose-actions-environment@v1
+
       - name: Install dependencies
         shell: bash
         run: |
           wget -O ~/Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
-          conda install -y nodejs=20 git meson cmake
-          ln -s "$HOME/miniforge3/bin" /__e/node20/bin
+          conda install -y nodejs git meson cmake
+          PATH="$PATH:$HOME/miniforge3/bin" npm install @actions/artifact@2 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
+
+      - name: Checkout repository
+        uses: taiki-e/checkout-action@v1
 
       - id: short-sha
         name: Get Git commit hash
-        uses: benjlevesque/short-sha@v2.2
-        with:
-          length: 7
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Download stage 1
-        uses: actions/download-artifact@v4
-        with:
-          name: stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: libretro/build/libretro-stage1
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            const artifact = new DefaultArtifactClient();
+            await artifact.downloadArtifact(${{ needs.build-libretro-stage1.outputs.artifact-id }}, {
+              path: "libretro/build/libretro-stage1",
+            });
+          '
 
       - name: Configure core
         run: |
@@ -971,10 +1051,18 @@ jobs:
           mv mkxp-z_libretro.so ~/dist/mkxp-z_libretro.so
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mkxp-z_libretro.linux-opendingux.${{ matrix.target }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: ~/dist
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            import fg from "fast-glob";
+            process.chdir(process.env["HOME"] + "/dist");
+            const artifact = new DefaultArtifactClient();
+            await artifact.uploadArtifact(
+              "mkxp-z_libretro.linux-opendingux.${{ matrix.target }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              fg.globSync("**"),
+              ".",
+            );
+          '
 
   build-libretro-android:
     needs: build-libretro-stage1
@@ -1009,6 +1097,9 @@ jobs:
             cpu: x86_64
             endian: little
     steps:
+      - name: Expose Actions environment
+        uses: white-axe/expose-actions-environment@v1
+
       - name: Install dependencies
         run: |
           sudo apt update
@@ -1021,20 +1112,24 @@ jobs:
           ndk-version: r27c
           add-to-path: false
 
+      - name: Checkout repository
+        uses: taiki-e/checkout-action@v1
+
       - id: short-sha
         name: Get Git commit hash
-        uses: benjlevesque/short-sha@v2.2
-        with:
-          length: 7
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Download stage 1
-        uses: actions/download-artifact@v4
-        with:
-          name: stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: libretro/build/libretro-stage1
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            const artifact = new DefaultArtifactClient();
+            await artifact.downloadArtifact(${{ needs.build-libretro-stage1.outputs.artifact-id }}, {
+              path: "libretro/build/libretro-stage1",
+            });
+          '
 
       - name: Configure core
         run: |
@@ -1062,10 +1157,18 @@ jobs:
           mv mkxp-z_libretro.so ${{ runner.temp }}/dist/mkxp-z_libretro_android.so
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mkxp-z_libretro.android.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: ${{ runner.temp }}/dist
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            import fg from "fast-glob";
+            process.chdir("${{ runner.temp }}/dist");
+            const artifact = new DefaultArtifactClient();
+            await artifact.uploadArtifact(
+              "mkxp-z_libretro.android.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              fg.globSync("**"),
+              ".",
+            );
+          '
 
   build-libretro-darwin:
     needs: build-libretro-stage1
@@ -1112,25 +1215,32 @@ jobs:
             cpu: generic-armv8-a
             endian: little
     steps:
+      - name: Expose Actions environment
+        uses: white-axe/expose-actions-environment@v1
+
       - name: Install dependencies
         run: |
           brew uninstall -f --ignore-dependencies git meson cmake
           brew install -q git meson cmake
 
+      - name: Checkout repository
+        uses: taiki-e/checkout-action@v1
+
       - id: short-sha
         name: Get Git commit hash
-        uses: benjlevesque/short-sha@v2.2
-        with:
-          length: 7
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Download stage 1
-        uses: actions/download-artifact@v4
-        with:
-          name: stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: libretro/build/libretro-stage1
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            const artifact = new DefaultArtifactClient();
+            await artifact.downloadArtifact(${{ needs.build-libretro-stage1.outputs.artifact-id }}, {
+              path: "libretro/build/libretro-stage1",
+            });
+          '
 
       - name: Configure core
         run: |
@@ -1158,10 +1268,18 @@ jobs:
           mv mkxp-z_libretro.dylib ${{ runner.temp }}/dist/mkxp-z_libretro${{ matrix.suffix }}.dylib
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mkxp-z_libretro.${{ matrix.system_mkxpz }}.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: ${{ runner.temp }}/dist
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            import fg from "fast-glob";
+            process.chdir("${{ runner.temp }}/dist");
+            const artifact = new DefaultArtifactClient();
+            await artifact.uploadArtifact(
+              "mkxp-z_libretro.${{ matrix.system_mkxpz }}.${{ matrix.arch_mkxpz }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              fg.globSync("**"),
+              ".",
+            );
+          '
 
   build-libretro-emscripten:
     needs: build-libretro-stage1
@@ -1174,6 +1292,9 @@ jobs:
           - threading: threaded
           - threading: unthreaded
     steps:
+      - name: Expose Actions environment
+        uses: white-axe/expose-actions-environment@v1
+
       - name: Install dependencies
         run: |
           sudo apt update
@@ -1184,20 +1305,24 @@ jobs:
         with:
           version: 4.0.8
 
+      - name: Checkout repository
+        uses: taiki-e/checkout-action@v1
+
       - id: short-sha
         name: Get Git commit hash
-        uses: benjlevesque/short-sha@v2.2
-        with:
-          length: 7
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Download stage 1
-        uses: actions/download-artifact@v4
-        with:
-          name: stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: libretro/build/libretro-stage1
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            const artifact = new DefaultArtifactClient();
+            await artifact.downloadArtifact(${{ needs.build-libretro-stage1.outputs.artifact-id }}, {
+              path: "libretro/build/libretro-stage1",
+            });
+          '
 
       - name: Configure core
         run: |
@@ -1249,10 +1374,18 @@ jobs:
           mv mkxp-z_libretro.js ${{ runner.temp }}/dist/mkxp-z_libretro.js
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mkxp-z_libretro.emscripten.${{ matrix.threading }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: ${{ runner.temp }}/dist
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            import fg from "fast-glob";
+            process.chdir("${{ runner.temp }}/dist");
+            const artifact = new DefaultArtifactClient();
+            await artifact.uploadArtifact(
+              "mkxp-z_libretro.emscripten.${{ matrix.threading }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              fg.globSync("**"),
+              ".",
+            );
+          '
 
   build-libretro-ps3:
     needs: build-libretro-stage1
@@ -1261,33 +1394,38 @@ jobs:
     container:
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-psl1ght:latest
       options: -u root
-      volumes:
-        - /tmp:/__e/node20
     steps:
+      - name: Expose Actions environment
+        uses: white-axe/expose-actions-environment@v1
+
       - name: Install dependencies
         shell: bash
         run: |
           wget -O ~/Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
-          conda install -y nodejs=20 git jq meson cmake
-          ln -s "$HOME/miniforge3/bin" /__e/node20/bin
+          conda install -y nodejs git jq meson cmake
+          PATH="$PATH:$HOME/miniforge3/bin" npm install @actions/artifact@2 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
+
+      - name: Checkout repository
+        uses: taiki-e/checkout-action@v1
 
       - id: short-sha
         name: Get Git commit hash
-        uses: benjlevesque/short-sha@v2.2
-        with:
-          length: 7
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Download stage 1
-        uses: actions/download-artifact@v4
-        with:
-          name: stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: libretro/build/libretro-stage1
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            const artifact = new DefaultArtifactClient();
+            await artifact.downloadArtifact(${{ needs.build-libretro-stage1.outputs.artifact-id }}, {
+              path: "libretro/build/libretro-stage1",
+            });
+          '
 
       - name: Configure core
         run: |
@@ -1311,10 +1449,18 @@ jobs:
           mv retroarch_psl1ght.self ~/dist/mkxp-z_libretro_psl1ght.self
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mkxp-z_libretro.ps3.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: ~/dist
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            import fg from "fast-glob";
+            process.chdir(process.env["HOME"] + "/dist");
+            const artifact = new DefaultArtifactClient();
+            await artifact.uploadArtifact(
+              "mkxp-z_libretro.ps3.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              fg.globSync("**"),
+              ".",
+            );
+          '
 
   build-libretro-3ds:
     needs: build-libretro-stage1
@@ -1323,33 +1469,38 @@ jobs:
     container:
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-devkitpro:latest
       options: -u root
-      volumes:
-        - /tmp:/__e/node20
     steps:
+      - name: Expose Actions environment
+        uses: white-axe/expose-actions-environment@v1
+
       - name: Install dependencies
         shell: bash
         run: |
           wget -O ~/Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
-          conda install -y nodejs=20 git jq meson cmake
-          ln -s "$HOME/miniforge3/bin" /__e/node20/bin
+          conda install -y nodejs git jq meson cmake
+          PATH="$PATH:$HOME/miniforge3/bin" npm install @actions/artifact@2 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
+
+      - name: Checkout repository
+        uses: taiki-e/checkout-action@v1
 
       - id: short-sha
         name: Get Git commit hash
-        uses: benjlevesque/short-sha@v2.2
-        with:
-          length: 7
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Download stage 1
-        uses: actions/download-artifact@v4
-        with:
-          name: stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: libretro/build/libretro-stage1
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            const artifact = new DefaultArtifactClient();
+            await artifact.downloadArtifact(${{ needs.build-libretro-stage1.outputs.artifact-id }}, {
+              path: "libretro/build/libretro-stage1",
+            });
+          '
 
       - name: Configure core
         run: |
@@ -1374,10 +1525,18 @@ jobs:
           mv retroarch_3ds.3dsx ~/dist/mkxp-z_libretro.3dsx
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mkxp-z_libretro.3ds.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: ~/dist
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            import fg from "fast-glob";
+            process.chdir(process.env["HOME"] + "/dist");
+            const artifact = new DefaultArtifactClient();
+            await artifact.uploadArtifact(
+              "mkxp-z_libretro.3ds.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              fg.globSync("**"),
+              ".",
+            );
+          '
 
   build-libretro-vita:
     needs: build-libretro-stage1
@@ -1386,33 +1545,38 @@ jobs:
     container:
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-vita:latest
       options: -u root
-      volumes:
-        - /tmp:/__e/node20
     steps:
+      - name: Expose Actions environment
+        uses: white-axe/expose-actions-environment@v1
+
       - name: Install dependencies
         shell: bash
         run: |
           wget -O ~/Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
-          conda install -y nodejs=20 git jq meson cmake
-          ln -s "$HOME/miniforge3/bin" /__e/node20/bin
+          conda install -y nodejs git jq meson cmake
+          PATH="$PATH:$HOME/miniforge3/bin" npm install @actions/artifact@2 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
+
+      - name: Checkout repository
+        uses: taiki-e/checkout-action@v1
 
       - id: short-sha
         name: Get Git commit hash
-        uses: benjlevesque/short-sha@v2.2
-        with:
-          length: 7
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Download stage 1
-        uses: actions/download-artifact@v4
-        with:
-          name: stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: libretro/build/libretro-stage1
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            const artifact = new DefaultArtifactClient();
+            await artifact.downloadArtifact(${{ needs.build-libretro-stage1.outputs.artifact-id }}, {
+              path: "libretro/build/libretro-stage1",
+            });
+          '
 
       - name: Configure core
         run: |
@@ -1436,10 +1600,18 @@ jobs:
           mv retroarch_vita.self ~/dist/mkxp-z_libretro_vita.self
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mkxp-z_libretro.vita.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: ~/dist
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            import fg from "fast-glob";
+            process.chdir(process.env["HOME"] + "/dist");
+            const artifact = new DefaultArtifactClient();
+            await artifact.uploadArtifact(
+              "mkxp-z_libretro.vita.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              fg.globSync("**"),
+              ".",
+            );
+          '
 
   build-libretro-wiiu:
     needs:
@@ -1453,39 +1625,48 @@ jobs:
       # The libretro-build-devkitpro image that we're using here instead currently has a newer version of devkitPPC that supports C++17 but lacks wiiurpxtool, which is why we need to separately install wiiurpxtool.
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-devkitpro:latest
       options: -u root
-      volumes:
-        - /tmp:/__e/node20
     steps:
+      - name: Expose Actions environment
+        uses: white-axe/expose-actions-environment@v1
+
       - name: Install dependencies
         shell: bash
         run: |
           wget -O ~/Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
-          conda install -y nodejs=20 git jq meson cmake
-          ln -s "$HOME/miniforge3/bin" /__e/node20/bin
+          conda install -y nodejs git jq meson cmake
+          PATH="$PATH:$HOME/miniforge3/bin" npm install @actions/artifact@2 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
+
+      - name: Checkout repository
+        uses: taiki-e/checkout-action@v1
 
       - id: short-sha
         name: Get Git commit hash
-        uses: benjlevesque/short-sha@v2.2
-        with:
-          length: 7
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Download stage 1
-        uses: actions/download-artifact@v4
-        with:
-          name: stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: libretro/build/libretro-stage1
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            const artifact = new DefaultArtifactClient();
+            await artifact.downloadArtifact(${{ needs.build-libretro-stage1.outputs.artifact-id }}, {
+              path: "libretro/build/libretro-stage1",
+            });
+          '
 
       - name: Download wiiurpxtool
-        uses: actions/download-artifact@v4
-        with:
-          name: wiiurpxtool
-          path: '~'
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            const artifact = new DefaultArtifactClient();
+            await artifact.downloadArtifact(${{ needs.wiiurpxtool.outputs.artifact-id }}, {
+              path: process.env["HOME"],
+            });
+          '
 
       - name: Install wiiurpxtool
         run: |
@@ -1521,10 +1702,18 @@ jobs:
           mv retroarch_wiiu.rpx ~/dist/mkxp-z_libretro.rpx
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mkxp-z_libretro.wiiu.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: ~/dist
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            import fg from "fast-glob";
+            process.chdir(process.env["HOME"] + "/dist");
+            const artifact = new DefaultArtifactClient();
+            await artifact.uploadArtifact(
+              "mkxp-z_libretro.wiiu.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              fg.globSync("**"),
+              ".",
+            );
+          '
 
   build-libretro-ps4:
     needs: build-libretro-stage1
@@ -1534,26 +1723,34 @@ jobs:
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-orbis:latest
       options: -u root
     steps:
+      - name: Expose Actions environment
+        uses: white-axe/expose-actions-environment@v1
+
       - name: Install dependencies
         run: |
-          apk add git jq curl python3 gcc g++ ninja
+          apk add git jq curl python3 gcc g++ ninja nodejs npm
           python3 -m ensurepip
           python3 -m pip install meson cmake
+          npm install @actions/artifact@2 fast-glob@3
+
+      - name: Checkout repository
+        uses: taiki-e/checkout-action@v1
 
       - id: short-sha
         name: Get Git commit hash
-        uses: benjlevesque/short-sha@v2.2
-        with:
-          length: 7
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Download stage 1
-        uses: actions/download-artifact@v4
-        with:
-          name: stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: libretro/build/libretro-stage1
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            const artifact = new DefaultArtifactClient();
+            await artifact.downloadArtifact(${{ needs.build-libretro-stage1.outputs.artifact-id }}, {
+              path: "libretro/build/libretro-stage1",
+            });
+          '
 
       - name: Configure core
         run: |
@@ -1577,10 +1774,18 @@ jobs:
           mv retroarch_orbis.self ~/dist/mkxp-z_libretro_orbis.self
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mkxp-z_libretro.ps4.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: ~/dist
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            import fg from "fast-glob";
+            process.chdir(process.env["HOME"] + "/dist");
+            const artifact = new DefaultArtifactClient();
+            await artifact.uploadArtifact(
+              "mkxp-z_libretro.ps4.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              fg.globSync("**"),
+              ""
+            );
+          '
 
   build-libretro-switch:
     needs: build-libretro-stage1
@@ -1589,33 +1794,38 @@ jobs:
     container:
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-libnx-devkitpro:latest
       options: -u root
-      volumes:
-        - /tmp:/__e/node20
     steps:
+      - name: Expose Actions environment
+        uses: white-axe/expose-actions-environment@v1
+
       - name: Install dependencies
         shell: bash
         run: |
           wget -O ~/Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
-          conda install -y nodejs=20 git jq meson cmake
-          ln -s "$HOME/miniforge3/bin" /__e/node20/bin
+          conda install -y nodejs git jq meson cmake
+          PATH="$PATH:$HOME/miniforge3/bin" npm install @actions/artifact@2 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
+
+      - name: Checkout repository
+        uses: taiki-e/checkout-action@v1
 
       - id: short-sha
         name: Get Git commit hash
-        uses: benjlevesque/short-sha@v2.2
-        with:
-          length: 7
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Download stage 1
-        uses: actions/download-artifact@v4
-        with:
-          name: stage1.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: libretro/build/libretro-stage1
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            const artifact = new DefaultArtifactClient();
+            await artifact.downloadArtifact(${{ needs.build-libretro-stage1.outputs.artifact-id }}, {
+              path: "libretro/build/libretro-stage1",
+            });
+          '
 
       - name: Configure core
         run: |
@@ -1639,7 +1849,15 @@ jobs:
           mv retroarch_switch.nro ~/dist/mkxp-z_libretro_libnx.nro
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mkxp-z_libretro.switch.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}
-          path: ~/dist
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            import fg from "fast-glob";
+            process.chdir(process.env["HOME"] + "/dist");
+            const artifact = new DefaultArtifactClient();
+            await artifact.uploadArtifact(
+              "mkxp-z_libretro.switch.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ steps.short-sha.outputs.sha }}",
+              fg.globSync("**"),
+              ".",
+            );
+          '
