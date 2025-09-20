@@ -716,7 +716,8 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y qemu-user-static binfmt-support git build-essential clang llvm meson cmake
+          sudo apt install -y qemu-user-static binfmt-support git build-essential clang llvm meson cmake nodejs npm
+          npm install @actions/artifact@2 fast-glob@3
 
       - name: Set up sysroot
         run: |
@@ -902,7 +903,8 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y git build-essential clang llvm meson cmake
+          sudo apt install -y git build-essential clang llvm meson cmake nodejs npm
+          npm install @actions/artifact@2 fast-glob@3
 
       - name: Set up sysroot
         id: sysroot
@@ -1106,7 +1108,8 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y git build-essential llvm meson cmake
+          sudo apt install -y git build-essential llvm meson cmake nodejs npm
+          npm install @actions/artifact@2 fast-glob@3
 
       - id: ndk
         name: Set up Android NDK
@@ -1301,7 +1304,8 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y git build-essential meson cmake jq
+          sudo apt install -y git build-essential meson cmake jq nodejs npm
+          npm install @actions/artifact@2 fast-glob@3
 
       - name: Set up Emscripten SDK
         uses: mymindstorm/setup-emsdk@v14
