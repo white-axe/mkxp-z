@@ -1226,8 +1226,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew uninstall -f --ignore-dependencies git meson cmake
-          brew install -q git meson cmake
+          brew uninstall -f --ignore-dependencies git meson cmake node
+          brew install -q git meson cmake node
+          npm install @actions/artifact@2 fast-glob@3
 
       - name: Checkout repository
         uses: taiki-e/checkout-action@v1
