@@ -2,7 +2,7 @@
 
 --- a/ports/cmake/src/CMakeLists.txt
 +++ b/ports/cmake/src/CMakeLists.txt
-@@ -370,7 +370,7 @@ add_subdirectory("libmpg123")
+@@ -372,7 +372,7 @@ add_subdirectory("libmpg123")
  if(BUILD_LIBOUT123)
      add_subdirectory("libout123")
  endif()

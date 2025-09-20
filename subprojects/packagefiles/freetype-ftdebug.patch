@@ -3,7 +3,7 @@
 
 --- a/meson.build
 +++ b/meson.build
-@@ -236,10 +236,10 @@ endif
+@@ -237,10 +237,10 @@ endif
  # into `ftsystem.c` as well.
  
  if host_machine.system() == 'windows'

@@ -233,8 +233,8 @@ if is_libretro
     mpg123_options = cmake.subproject_options()
     mpg123_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
-        'CMAKE_C_FLAGS': ' '.join(global_args + '-Wno-macro-redefined'),
-        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args + '-Wno-macro-redefined'),
+        'CMAKE_C_FLAGS': ' '.join(global_args + '-DNO_CATCHSIGNAL' + '-Wno-macro-redefined'),
+        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args + '-DNO_CATCHSIGNAL' + '-Wno-macro-redefined'),
         'CMAKE_C_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
         'CMAKE_CXX_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
         'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,

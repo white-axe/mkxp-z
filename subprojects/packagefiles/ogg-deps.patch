@@ -1,15 +1,5 @@
 # Fixes compilation errors when building other subprojects have Ogg as a dependency (e.g. Vorbis).
 
---- a/CMakeLists.txt
-+++ b/CMakeLists.txt
-@@ -66,7 +66,6 @@ set(USIZE32 uint32_t)
- set(SIZE64 int64_t)
- set(USIZE64 uint64_t)
- 
--include(CheckSizes)
- 
- configure_file(include/ogg/config_types.h.in include/ogg/config_types.h @ONLY)
- 
 --- a/include/ogg/ogg.h
 +++ b/include/ogg/ogg.h
 @@ -21,7 +21,7 @@ extern "C" {
@@ -38,26 +28,6 @@
  
  #endif
  
---- a/ogg.m4
-+++ b/ogg.m4
-@@ -60,7 +60,7 @@ dnl
- #include <stdio.h>
- #include <stdlib.h>
- #include <string.h>
--#include <ogg/ogg.h>
-+#include "../ogg/include/ogg/ogg.h"
- 
- int main ()
- {
-@@ -89,7 +89,7 @@ int main ()
-        LIBS="$LIBS $OGG_LIBS"
-        AC_TRY_LINK([
- #include <stdio.h>
--#include <ogg/ogg.h>
-+#include "../ogg/include/ogg/ogg.h"
- ],     [ return 0; ],
-        [ echo "*** The test program compiled, but did not run. This usually means"
-        echo "*** that the run-time linker is not finding Ogg or finding the wrong"
 --- a/src/bitwise.c
 +++ b/src/bitwise.c
 @@ -20,7 +20,7 @@
