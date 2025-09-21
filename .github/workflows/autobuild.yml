@@ -264,6 +264,7 @@ jobs:
       - id: short-sha
         name: Get Git commit hash
         run: |
+          git config --global --add safe.directory "$(pwd)"
           sha=$(git rev-parse --short=7 HEAD)
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
@@ -362,6 +363,7 @@ jobs:
       - id: short-sha
         name: Get Git commit hash
         run: |
+          git config --global --add safe.directory "$(pwd)"
           sha=$(git rev-parse --short=7 HEAD)
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
