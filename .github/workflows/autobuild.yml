@@ -66,6 +66,7 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
+          cp /mingw64/bin/libgomp-1.dll .
           cp /mingw64/bin/zlib1.dll .
           cp ../../windows/build-mingw64/bin/x64-msvcrt-ruby310.dll .
           cp -r ../../windows/build-mingw64/lib/ruby/3.1.0 .
