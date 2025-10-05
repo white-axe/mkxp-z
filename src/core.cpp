@@ -759,7 +759,7 @@ struct init : boost::asio::coroutine {
 
     bool operator()() {
         BOOST_ASIO_CORO_REENTER (this) {
-            SANDBOX_AWAIT(rb_rescue2, func, SANDBOX_NIL, rescue, SANDBOX_NIL, sb()->rb_eException(), 0);
+            SANDBOX_AWAIT_S(0, rb_rescue2, func, SANDBOX_NIL, rescue, SANDBOX_NIL, sb()->rb_eException(), 0);
             return SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(0));
         }
 

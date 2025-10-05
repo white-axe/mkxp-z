@@ -51,13 +51,40 @@ extern const char module_rpg3[];
 static VALUE utf8_encoding;
 
 struct eval_script : boost::asio::coroutine {
-    typedef decl_slots<ID> slots;
+    typedef decl_slots<VALUE> slots;
 
-    void operator()(VALUE string, VALUE filename) {
+    static VALUE func(VALUE arg) {
+        struct coro : boost::asio::coroutine {
+            typedef decl_slots<VALUE, VALUE, ID> slots;
+
+            VALUE operator()(VALUE arg) {
+                BOOST_ASIO_CORO_REENTER (this) {
+                    SANDBOX_AWAIT_S(0, rb_ary_entry, arg, 0);
+                    SANDBOX_AWAIT_S(1, rb_ary_entry, arg, 1);
+                    SANDBOX_AWAIT_S(2, rb_intern, "eval");
+                    SANDBOX_AWAIT(rb_funcall, SANDBOX_NIL, SANDBOX_SLOT(2), 3, SANDBOX_SLOT(0), SANDBOX_NIL, SANDBOX_SLOT(1));
+                }
+
+                return SANDBOX_UNDEF;
+            }
+        };
+
+        return sb()->bind<struct coro>()()(arg);
+    }
+
+    static VALUE rescue(VALUE arg, VALUE exception) {
+        return exception;
+    }
+
+    VALUE operator()(VALUE string, VALUE filename) {
         BOOST_ASIO_CORO_REENTER (this) {
-            SANDBOX_AWAIT_S(0, rb_intern, "eval");
-            SANDBOX_AWAIT(rb_funcall, SANDBOX_NIL, SANDBOX_SLOT(0), 3, string, SANDBOX_NIL, filename);
+            SANDBOX_AWAIT_S(0, rb_ary_new_capa, 2);
+            SANDBOX_AWAIT(rb_ary_store, SANDBOX_SLOT(0), 0, string);
+            SANDBOX_AWAIT(rb_ary_store, SANDBOX_SLOT(0), 1, filename);
+            SANDBOX_AWAIT_S(0, rb_rescue2, func, SANDBOX_SLOT(0), rescue, SANDBOX_NIL, reset_class, 0);
         }
+
+        return SANDBOX_SLOT(0);
     }
 };
 
@@ -134,20 +161,15 @@ static VALUE rgss_main(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 while (true) {
                     SANDBOX_AWAIT_S(0, rb_block_proc);
-                    SANDBOX_AWAIT_S(1, rb_rescue2, func, SANDBOX_SLOT(0), rescue, SANDBOX_NIL, sb()->rb_eException(), 0);
+                    SANDBOX_AWAIT_S(1, rb_rescue2, func, SANDBOX_SLOT(0), rescue, SANDBOX_NIL, reset_class, 0);
 
+                    // Stop unless a reset was requested
                     if (SANDBOX_SLOT(1) == SANDBOX_UNDEF) {
                         return SANDBOX_NIL;
                     }
 
-                    SANDBOX_AWAIT_S(0, rb_gv_get, "$!");
-                    SANDBOX_AWAIT_S(0, rb_obj_class, SANDBOX_SLOT(0));
-                    if (SANDBOX_SLOT(0) == reset_class) {
-                        SANDBOX_AWAIT(audio_reset);
-                        SANDBOX_AWAIT(graphics_reset);
-                    } else {
-                        SANDBOX_AWAIT(rb_exc_raise, SANDBOX_SLOT(1));
-                    }
+                    SANDBOX_AWAIT(audio_reset);
+                    SANDBOX_AWAIT(graphics_reset);
                 }
             }
 
@@ -660,7 +682,7 @@ void sandbox_run_rmxp_scripts::operator()() {
         // TODO: preload scripts
 
         while (true) {
-            for (SANDBOX_SLOT(3) = 0; SANDBOX_SLOT(3) < SANDBOX_SLOT(2); ++SANDBOX_SLOT(3)) {
+            for (SANDBOX_SLOT(9) = SANDBOX_UNDEF, SANDBOX_SLOT(3) = 0; SANDBOX_SLOT(9) == SANDBOX_UNDEF && SANDBOX_SLOT(3) < SANDBOX_SLOT(2); ++SANDBOX_SLOT(3)) {
                 // Get the script into slot 4
                 SANDBOX_AWAIT_S(4, rb_ary_entry, SANDBOX_SLOT(1), SANDBOX_SLOT(3));
                 // Skip this script object if it's not an array
@@ -671,13 +693,11 @@ void sandbox_run_rmxp_scripts::operator()() {
 
                 SANDBOX_AWAIT_S(9, rb_ary_entry, SANDBOX_SLOT(4), 3);
                 SANDBOX_AWAIT_S(10, rb_ary_entry, SANDBOX_SLOT(4), 1);
-                SANDBOX_AWAIT(eval_script, SANDBOX_SLOT(9), SANDBOX_SLOT(10));
+                SANDBOX_AWAIT_S(9, eval_script, SANDBOX_SLOT(9), SANDBOX_SLOT(10));
             }
 
             // Stop unless a reset was requested
-            SANDBOX_AWAIT_S(0, rb_gv_get, "$!");
-            SANDBOX_AWAIT_S(0, rb_obj_class, SANDBOX_SLOT(0));
-            if (SANDBOX_SLOT(0) != reset_class) {
+            if (SANDBOX_SLOT(9) == SANDBOX_UNDEF) {
                 break;
             }
 
