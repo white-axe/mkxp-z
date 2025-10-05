@@ -791,7 +791,7 @@ struct main : boost::asio::coroutine {
             VALUE operator()(VALUE exception) {
                 BOOST_ASIO_CORO_REENTER (this) {
                     // Ignore SystemExit exceptions
-                    SANDBOX_AWAIT_S(0, rb_obj_is_kind_of, exception, system_exit_class);
+                    SANDBOX_AWAIT_S(0, rb_obj_is_kind_of, exception, sb()->rb_eSystemExit());
                     if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(0))) {
                         return SANDBOX_TRUE;
                     }
