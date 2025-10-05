@@ -243,8 +243,8 @@
     // (default: true if Apple Silicon, false if Intel)
     //
     // "preferMetalRenderer": true,
-    
-    
+
+
     // Work around buggy graphics drivers which don't
     // properly synchronize texture access, most
     // apparent when text doesn't show up or the map
@@ -298,8 +298,8 @@
     // (default: enabled)
     //
     // "integerScalingLastMile": true,
-    
-    
+
+
     // Set the base path of the game to '/path/to/game'
     // (default: executable directory)
     //
@@ -317,7 +317,7 @@
     // (default: enabled)
     //
     // "enableReset": true,
-    
+
     // Enable F1/keybinding menu
     // (default: enabled)
     //
@@ -368,7 +368,7 @@
     // ],
 
 
-    // Define raw scripts to be executed before the 
+    // Define raw scripts to be executed before the
     // rgss_main execution starts for RGSS 3.
     // (default: none)
     //
@@ -449,20 +449,20 @@
     // (default: false)
     //
     // "JITEnable": false,
-    
+
     // Determines what level of verbosity to use when
     // logging MJIT events. Starts at 0, which is next
     // to nothing. Set it higher to see more.
     // (default: 0)
     //
     // "JITVerboseLevel": 0,
-    
+
     // Determines how many compiled methods that Ruby
     // will keep in its MJIT cache.
     // (default: 100)
     //
     // "JITMaxCache": 100,
-    
+
     // Determines how many times a function has to be
     // called before it is compiled by MJIT.
     // (default: 10000)
@@ -498,7 +498,7 @@
     // this number. Maximum: 64.
     //
     // "SESourceCount": 6,
-    
+
     // Number of streams to open for BGM tracks. If the game
     // needs multitrack audio, this should be set to as many
     // available tracks as the game needs. Maximum: 16.
@@ -517,7 +517,7 @@
     // is a tiny bit less intrusive.
     //
     // "execName": "Game",
-    
+
     // You can define alternate terminology for the different
     // inputs recognized by RPG Maker. A, B, C, X, Y, Z, L, and R
     // can all be set using this dictionary, and will be displayed
