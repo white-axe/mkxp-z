@@ -62,6 +62,7 @@ void log_backtrace::operator()(VALUE exception) {
     }
 }
 
+VALUE mkxp_sandbox::system_exit_class;
 VALUE mkxp_sandbox::mkxp_error_class;
 VALUE mkxp_sandbox::physfs_error_class;
 VALUE mkxp_sandbox::sdl_error_class;
@@ -71,6 +72,8 @@ VALUE mkxp_sandbox::enoent_class;
 
 void exception_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
+        SANDBOX_AWAIT_S(0, rb_intern, "SystemExit");
+        SANDBOX_AWAIT_R(system_exit_class, rb_const_get, sb()->rb_cObject(), SANDBOX_SLOT(0));
         SANDBOX_AWAIT_R(mkxp_error_class, rb_define_class, "MKXPError", sb()->rb_eException());
         SANDBOX_AWAIT_R(physfs_error_class, rb_define_class, "PHYSFSError", sb()->rb_eException());
         SANDBOX_AWAIT_R(sdl_error_class, rb_define_class, "SDLError", sb()->rb_eException());

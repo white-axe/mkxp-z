@@ -585,6 +585,7 @@ namespace mkxp_sandbox {
         void operator()(VALUE exception);
     };
 
+    extern VALUE system_exit_class;
     extern VALUE mkxp_error_class;
     extern VALUE physfs_error_class;
     extern VALUE sdl_error_class;
