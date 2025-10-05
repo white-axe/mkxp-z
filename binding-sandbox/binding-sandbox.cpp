@@ -155,16 +155,16 @@ static VALUE rgss_main(VALUE self) {
             return exception;
         }
 
-        typedef decl_slots<VALUE, VALUE> slots;
+        typedef decl_slots<VALUE> slots;
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 while (true) {
                     SANDBOX_AWAIT_S(0, rb_block_proc);
-                    SANDBOX_AWAIT_S(1, rb_rescue2, func, SANDBOX_SLOT(0), rescue, SANDBOX_NIL, reset_class, 0);
+                    SANDBOX_AWAIT_S(0, rb_rescue2, func, SANDBOX_SLOT(0), rescue, SANDBOX_NIL, reset_class, 0);
 
                     // Stop unless a reset was requested
-                    if (SANDBOX_SLOT(1) == SANDBOX_UNDEF) {
+                    if (SANDBOX_SLOT(0) == SANDBOX_UNDEF) {
                         return SANDBOX_NIL;
                     }
 
