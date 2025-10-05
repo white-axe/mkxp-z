@@ -1021,7 +1021,7 @@ static bool init_sandbox() {
 
             // Create the RTP root directory if needed
             if (!PHYSFS_mkdir(rtp_root_path.c_str() + std::strlen(system_path) + 1)) {
-                mkxp_retro::log_printf(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", rtp_root_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+                log_printf(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", rtp_root_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
                 deinit_sandbox();
                 return false;
             }
@@ -1149,7 +1149,7 @@ static bool init_sandbox() {
 
             // Create the Fonts directory if needed
             if (!PHYSFS_mkdir(fonts_path.c_str() + std::strlen(system_path) + 1)) {
-                mkxp_retro::log_printf(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", fonts_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+                log_printf(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", fonts_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
                 deinit_sandbox();
                 return false;
             }
@@ -1231,7 +1231,7 @@ static bool init_sandbox() {
 
             // Create the subdirectory if needed
             if (!PHYSFS_mkdir(save_path_subdir.c_str() + std::strlen(save_path) + 1)) {
-                mkxp_retro::log_printf(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", save_path_subdir.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+                log_printf(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", save_path_subdir.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
                 deinit_sandbox();
                 return false;
             }
@@ -1257,7 +1257,7 @@ static bool init_sandbox() {
                 return false;
             }
 
-            mkxp_retro::log_printf(RETRO_LOG_INFO, "Mounted game save directory from \"%s\"\n", save_path_subdir.c_str());
+            log_printf(RETRO_LOG_INFO, "Mounted game save directory from \"%s\"\n", save_path_subdir.c_str());
         }
     }
 
