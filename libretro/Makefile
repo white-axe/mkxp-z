@@ -141,7 +141,8 @@ $(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.
 		cppflags='-mbulk-memory $(WASI_CXXFLAGS)' \
 		optflags='-mbulk-memory $(WASI_CFLAGS) -fno-fast-math' \
 		wasmoptflags='--enable-bulk-memory $(WASM_OPT_FLAGS) --pass-arg=asyncify-ignore-imports' \
-		$(shell $(RUBY) -e 'puts "ac_cv_func_dlopen=no" if "$(RUBY_VERSION)".split(".")[..1].join(".").to_f < 3.3') \
+		$(shell $(RUBY) -e 'puts "ac_cv_func_dlopen=no" if Gem::Version.new("$(RUBY_VERSION)") < Gem::Version.new("3.3")') \
+		$(shell $(RUBY) -e 'puts "--disable-jit-support" if Gem::Version.new("$(RUBY_VERSION)") < Gem::Version.new("3.3")') \
 		--disable-rubygems \
 		--disable-install-doc
 
@@ -152,9 +153,19 @@ $(DOWNLOADS)/ruby/configure: $(DOWNLOADS)/ruby/configure.ac
 $(DOWNLOADS)/ruby/configure.ac:
 	mkdir -p $(DOWNLOADS)
 	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/ruby -b v$(subst .,_,$(RUBY_VERSION))
-	cd $(DOWNLOADS)/ruby && $(GIT) apply $(PWD)/ruby-stack-pointer.patch
-	cd $(DOWNLOADS)/ruby && $(GIT) apply $(PWD)/ruby-jump-buffer.patch
+ifneq ($(shell $(RUBY) -e 'puts "1" if Gem::Version.new("$(RUBY_VERSION)") < Gem::Version.new("3.3")'),)
+	# Bug fix, only needed for Ruby < 3.3
+	cd $(DOWNLOADS)/ruby && $(GIT) apply $(PWD)/ruby-pr8902.patch
+endif
+ifneq ($(shell $(RUBY) -e 'puts "1" if Gem::Version.new("$(RUBY_VERSION)") < Gem::Version.new("3.5")'),)
+	# Bug fix, only needed for Ruby < 3.5
+	cd $(DOWNLOADS)/ruby && $(GIT) apply $(PWD)/ruby-21626.patch
+endif
+ifneq ($(shell $(RUBY) -e 'puts "1" if Gem::Version.new("$(RUBY_VERSION)") >= Gem::Version.new("3.4")'),)
+	cd $(DOWNLOADS)/ruby && $(GIT) apply $(PWD)/ruby-compat-3.4.patch
+else
 	cd $(DOWNLOADS)/ruby && $(GIT) apply $(PWD)/ruby-compat.patch
+endif
 	cd $(DOWNLOADS)/ruby && $(GIT) apply $(PWD)/ruby-prng-time.patch
 	echo '#include "$(PWD)/ruby-bindings.h"' >> $(DOWNLOADS)/ruby/gc.c
 

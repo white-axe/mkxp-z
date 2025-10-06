@@ -45,7 +45,7 @@ MKXP_SANDBOX_API char mkxp_sandbox_cwd[PATH_MAX] = {0};
 /* This function should be called immediately after initializing the sandbox to perform initialization, before calling any other functions.
  * The arguments to this function are the Ruby GC parameters.
  * Each one can be set to 0 to leave the corresponding GC parameters at the default value, or to anything else to set the parameter to the given value. */
-MKXP_SANDBOX_API void mkxp_sandbox_init(size_t heap_free_slots, double growth_factor, size_t growth_max_slots, double heap_free_slots_min_ratio, double heap_free_slots_goal_ratio, double heap_free_slots_max_ratio, double uncollectible_wb_unprotected_objects_limit_ratio, double oldobject_limit_factor, size_t malloc_limit_min, size_t malloc_limit_max, double malloc_limit_growth_factor, size_t oldmalloc_limit_min, size_t oldmalloc_limit_max, double oldmalloc_limit_growth_factor) {
+MKXP_SANDBOX_API void mkxp_sandbox_init(size_t heap_free_slots, double growth_factor, size_t growth_max_slots, double heap_free_slots_min_ratio, double heap_free_slots_goal_ratio, double heap_free_slots_max_ratio, double oldobject_limit_factor, size_t malloc_limit_min, size_t malloc_limit_max, double malloc_limit_growth_factor, size_t oldmalloc_limit_min, size_t oldmalloc_limit_max, double oldmalloc_limit_growth_factor) {
     void __wasm_call_ctors(void); /* Defined by the LLVM linker */
     __wasm_call_ctors();
 
@@ -58,7 +58,6 @@ MKXP_SANDBOX_API void mkxp_sandbox_init(size_t heap_free_slots, double growth_fa
     if (heap_free_slots_min_ratio != 0) gc_params.heap_free_slots_min_ratio = heap_free_slots_min_ratio;
     if (heap_free_slots_goal_ratio != 0) gc_params.heap_free_slots_goal_ratio = heap_free_slots_goal_ratio;
     if (heap_free_slots_max_ratio != 0) gc_params.heap_free_slots_max_ratio = heap_free_slots_max_ratio;
-    if (uncollectible_wb_unprotected_objects_limit_ratio != 0) gc_params.uncollectible_wb_unprotected_objects_limit_ratio = uncollectible_wb_unprotected_objects_limit_ratio;
     if (oldobject_limit_factor != 0) gc_params.oldobject_limit_factor = oldobject_limit_factor;
     if (malloc_limit_min != 0) gc_params.malloc_limit_min = malloc_limit_min;
     if (malloc_limit_max != 0) gc_params.malloc_limit_max = malloc_limit_max;

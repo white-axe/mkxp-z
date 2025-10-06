@@ -1,8 +1,10 @@
-# Fixes a memory leak in WASI builds of Ruby where VM jump buffers are sometimes not freed.
+# Fixes some severe memory leaks in the setjmp/longjmp implementation in WASI builds of Ruby.
+# Only needed for Ruby versions older than 3.5, since Ruby 3.5 has this patch upstreamed already.
+# Copied from https://bugs.ruby-lang.org/issues/21626.
 
 --- a/cont.c
 +++ b/cont.c
-@@ -1518,6 +1518,51 @@ cont_restore_thread(rb_context_t *cont)
+@@ -1509,6 +1509,51 @@ cont_restore_thread(rb_context_t *cont)
              rb_raise(rb_eRuntimeError, "can't call across trace_func");
          }
  
@@ -56,7 +58,7 @@
          MEMCPY(th->ec->vm_stack,
 --- a/signal.c
 +++ b/signal.c
-@@ -849,6 +849,7 @@ check_stack_overflow(int sig, const uintptr_t addr, const ucontext_t *ctx)
+@@ -854,6 +854,7 @@ check_stack_overflow(int sig, const uintptr_t addr, const ucontext_t *ctx)
               * otherwise it can cause stack overflow again at the same
               * place. */
              if ((crit = (!ec->tag->prev || !--uplevel)) != FALSE) break;
@@ -66,7 +68,7 @@
          reset_sigmask(sig);
 --- a/vm.c
 +++ b/vm.c
-@@ -2729,6 +2729,7 @@ vm_exec_handle_exception(rb_execution_context_t *ec, enum ruby_tag_type state, V
+@@ -2829,6 +2829,7 @@ vm_exec_handle_exception(rb_execution_context_t *ec, enum ruby_tag_type state, V
              if (VM_FRAME_FINISHED_P(ec->cfp)) {
                  rb_vm_pop_frame(ec);
                  ec->errinfo = (VALUE)err;
@@ -84,3 +86,45 @@
                          ec->tag = ec->tag->prev;
                      }
                      rb_vm_pop_frame(ec);
+--- a/wasm/setjmp.c
++++ b/wasm/setjmp.c
+@@ -143,9 +143,11 @@ rb_wasm_try_catch_init(struct rb_wasm_try_catch *try_catch,
+     try_catch->try_f = try_f;
+     try_catch->catch_f = catch_f;
+     try_catch->context = context;
++    try_catch->stack_pointer = NULL;
+ }
+ 
+ // NOTE: This function is not processed by Asyncify due to a call of asyncify_stop_rewind
++__attribute__((noinline))
+ void
+ rb_wasm_try_catch_loop_run(struct rb_wasm_try_catch *try_catch, rb_wasm_jmp_buf *target)
+ {
+@@ -154,4 +156,8 @@ rb_wasm_try_catch_loop_run(struct rb_wasm_try_catch *try_catch, rb_wasm_jmp_buf
+ 
+     target->state = JMP_BUF_STATE_CAPTURED;
+ 
++    if (try_catch->stack_pointer == NULL) {
++        try_catch->stack_pointer = rb_wasm_get_stack_pointer();
++    }
++
+     switch ((enum try_catch_phase)try_catch->state) {
+@@ -175,6 +181,8 @@ rb_wasm_try_catch_loop_run(struct rb_wasm_try_catch *try_catch, rb_wasm_jmp_buf
+             // stop unwinding
+             // (but call stop_rewind to update the asyncify state to "normal" from "unwind")
+             asyncify_stop_rewind();
++            // reset the stack pointer to what it was before the most recent call to try_f or catch_f
++            rb_wasm_set_stack_pointer(try_catch->stack_pointer);
+             // clear the active jmpbuf because it's already stopped
+             _rb_wasm_active_jmpbuf = NULL;
+             // reset jmpbuf state to be able to unwind again
+--- a/wasm/setjmp.h
++++ b/wasm/setjmp.h
+@@ -65,6 +65,7 @@ struct rb_wasm_try_catch {
+     rb_wasm_try_catch_func_t try_f;
+     rb_wasm_try_catch_func_t catch_f;
+     void *context;
++    void *stack_pointer;
+     int state;
+ };
+ 

@@ -59,7 +59,6 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
         0,              // heap_free_slots_min_ratio
         0,              // heap_free_slots_goal_ratio
         0,              // heap_free_slots_max_ratio
-        0,              // uncollectible_wb_unprotected_objects_limit_ratio
         0,              // oldobject_limit_factor
         1 * 0x100000,   // malloc_limit_min
         4 * 0x100000,   // malloc_limit_max
