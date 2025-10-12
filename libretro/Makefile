@@ -47,6 +47,13 @@ WASI_TOOLCHAIN := CC=$(WASI_CC) CXX=$(WASI_CXX) LD=$(WASI_LD) AR=$(WASI_AR) RANL
 
 RUBY_NUM_OUTPUTS ?= 8
 
+# We need a larger stack size for Ruby 3.2 due to the lack of the overhaul of the setjmp implementation in WASI builds of Ruby started in https://github.com/ruby/ruby/pull/8902
+ifneq ($(shell $(RUBY) -e 'puts "1" if Gem::Version.new("$(RUBY_VERSION)") < Gem::Version.new("3.3")'),)
+    RUBY_STACK_SIZE := 16777216
+else
+    RUBY_STACK_SIZE := 2097152
+endif
+
 all default: ruby-dist ruby-bindings
 
 ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt
@@ -136,7 +143,7 @@ $(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.
 		WASI_SDK_PATH=$(WASI_SDK) \
 		$(WASI_TOOLCHAIN) \
 		CFLAGS='-std=gnu99' \
-		LDFLAGS='-Wl,--export-dynamic,--stack-first,-z,stack-size=2097152 $(WASI_LDFLAGS)' \
+		LDFLAGS='-Wl,--export-dynamic,--stack-first,-z,stack-size=$(RUBY_STACK_SIZE) $(WASI_LDFLAGS)' \
 		XCFLAGS='-DWASM_SETJMP_STACK_BUFFER_SIZE=24576 -DWASM_FIBER_STACK_BUFFER_SIZE=24576 -DWASM_SCAN_STACK_BUFFER_SIZE=24576' \
 		cppflags='-mbulk-memory $(WASI_CXXFLAGS)' \
 		optflags='-mbulk-memory $(WASI_CFLAGS) -fno-fast-math' \
@@ -153,12 +160,8 @@ $(DOWNLOADS)/ruby/configure: $(DOWNLOADS)/ruby/configure.ac
 $(DOWNLOADS)/ruby/configure.ac:
 	mkdir -p $(DOWNLOADS)
 	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/ruby -b v$(subst .,_,$(RUBY_VERSION))
-ifneq ($(shell $(RUBY) -e 'puts "1" if Gem::Version.new("$(RUBY_VERSION)") < Gem::Version.new("3.3")'),)
-	# Bug fix, only needed for Ruby < 3.3
-	cd $(DOWNLOADS)/ruby && $(GIT) apply $(PWD)/ruby-pr8902.patch
-endif
-ifneq ($(shell $(RUBY) -e 'puts "1" if Gem::Version.new("$(RUBY_VERSION)") < Gem::Version.new("3.5")'),)
-	# Bug fix, only needed for Ruby < 3.5
+ifneq ($(shell $(RUBY) -e 'puts "1" if (Gem::Version.new("$(RUBY_VERSION)") >= Gem::Version.new("3.3.0") && Gem::Version.new("$(RUBY_VERSION)") <= Gem::Version.new("3.3.9")) || (Gem::Version.new("$(RUBY_VERSION)") >= Gem::Version.new("3.4.0") && Gem::Version.new("$(RUBY_VERSION)") <= Gem::Version.new("3.4.7"))'),)
+	# Bug fix for a severe memory leak in WASI builds of Ruby described in https://bugs.ruby-lang.org/issues/21626, only needed for Ruby >= 3.3.0, <= 3.3.9 and Ruby >= 3.4.0, <= 3.4.7
 	cd $(DOWNLOADS)/ruby && $(GIT) apply $(PWD)/ruby-21626.patch
 endif
 ifneq ($(shell $(RUBY) -e 'puts "1" if Gem::Version.new("$(RUBY_VERSION)") >= Gem::Version.new("3.4")'),)
