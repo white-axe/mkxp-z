@@ -54,6 +54,13 @@ else
     RUBY_STACK_SIZE := 2097152
 endif
 
+# These lists of native extensions are copied directly from ruby.wasm, but with the dbm, gdbm and openssl extensions removed
+ifneq ($(shell $(RUBY) -e 'puts "1" if Gem::Version.new("$(RUBY_VERSION)") < Gem::Version.new("3.4")'),)
+    RUBY_EXTS := bigdecimal,cgi/escape,continuation,coverage,date,digest/bubblebabble,digest,digest/md5,digest/rmd160,digest/sha1,digest/sha2,etc,fcntl,fiber,json,json/generator,json/parser,nkf,objspace,pathname,psych,racc/cparse,rbconfig/sizeof,ripper,stringio,strscan,monitor,zlib
+else
+    RUBY_EXTS := cgi/escape,continuation,coverage,date,digest/bubblebabble,digest,digest/md5,digest/rmd160,digest/sha1,digest/sha2,etc,fcntl,json,json/generator,json/parser,objspace,pathname,psych,rbconfig/sizeof,ripper,stringio,strscan,monitor,zlib
+endif
+
 all default: ruby-dist ruby-bindings
 
 ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt
@@ -135,7 +142,7 @@ $(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.
 		--host $(TARGET) \
 		--build $(shell $(RUBY) -e 'puts(RbConfig::CONFIG["host"])') \
 		--with-static-linked-ext \
-		--with-ext=bigdecimal,cgi/escape,continuation,coverage,date,digest/bubblebabble,digest,digest/md5,digest/rmd160,digest/sha1,digest/sha2,etc,fcntl,fiber,json,json/generator,json/parser,nkf,objspace,pathname,psych,racc/cparse,rbconfig/sizeof,ripper,stringio,strscan,monitor,zlib \
+		--with-ext=$(RUBY_EXTS) \
 		--with-libyaml-dir=$(LIBDIR)/usr/local \
 		--with-zlib-dir=$(LIBDIR)/usr/local \
 		--with-baseruby=$(RUBY) \
