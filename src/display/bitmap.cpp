@@ -2523,8 +2523,8 @@ static void applyShadow(SDL_Surface *&in, const SDL_PixelFormat &fm, const SDL_C
     if (out->pixels == nullptr) {
         MKXPZ_THROW(std::bad_alloc());
     }
-    const int inPitch = in->w;
-    const int outPitch = out->w;
+    const int inPitch = 4 * in->w;
+    const int outPitch = 4 * out->w;
 #else
     SDL_Surface *out = SDL_CreateRGBSurface
     (0, in->w+1, in->h+1, fm.BitsPerPixel, fm.Rmask, fm.Gmask, fm.Bmask, fm.Amask);
