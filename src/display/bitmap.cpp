@@ -3052,12 +3052,14 @@ void Bitmap::drawText(Exception &exception, const IntRect &rect, const char *str
             delete txtSurf;
             return;
         }
-        for (size_t y = 0; y < (size_t)txtSurf->h; ++y)
+        size_t blitW = (size_t)std::min(txtSurf->w, outline->w - scaledOutlineSize);
+        size_t blitH = (size_t)std::min(txtSurf->h, outline->h - scaledOutlineSize);
+        for (size_t y = 0; y < blitH; ++y)
         {
-            for (size_t x = 0; x < (size_t)txtSurf->w; ++x)
+            for (size_t x = 0; x < blitW; ++x)
             {
                 uint8_t *src = (uint8_t *)&((uint32_t *)txtSurf->pixels)[txtSurf->w * y + x];
-                uint8_t *dst = (uint8_t *)&((uint32_t *)outline->pixels)[(txtSurf->w + 2 * scaledOutlineSize) * (y + scaledOutlineSize) + (x + scaledOutlineSize)];
+                uint8_t *dst = (uint8_t *)&((uint32_t *)outline->pixels)[outline->w * (y + scaledOutlineSize) + (x + scaledOutlineSize)];
                 float srcAlpha = src[3] / 255.0f;
                 float dstAlpha = dst[3] / 255.0f;
                 float outAlpha = srcAlpha + (1 - srcAlpha) * dstAlpha;
