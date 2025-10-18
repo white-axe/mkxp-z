@@ -191,11 +191,7 @@ bool wasi_t::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
             if (!::sandbox_serialize(entry.file_handle()->file.path(), data, max_size)) return false;
             {
                 PHYSFS_File *file = entry.file_handle()->file.get();
-                if (!::sandbox_serialize(file == nullptr ? (int64_t)0 : std::max((int64_t)0, (int64_t)PHYSFS_tell(file)), data, max_size)) return false;
-            }
-            {
-                PHYSFS_File *file = entry.file_handle()->file.get_write();
-                if (!::sandbox_serialize(file == nullptr ? (int64_t)0 : std::max((int64_t)0, (int64_t)PHYSFS_tell(file)), data, max_size)) return false;
+                if (!::sandbox_serialize(file == nullptr ? (int64_t)0 : std::max((int64_t)0, (int64_t)PHYSFS_tell(entry.file_handle()->needs_read_seek && entry.file_handle()->file.is_write_open() ? entry.file_handle()->file.get_write() : file)), data, max_size)) return false;
             }
         } else {
             ++num_free_handles;
@@ -285,16 +281,16 @@ bool wasi_t::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
                 if (existing_handle) {
                     handle = fdtable[i].file_handle();
                 } else {
-                    handle = new fs_file {{*mkxp_retro::fs, path.c_str(), fdtable[root].dir_handle()->writable ? fdtable[root].dir_handle()->path.c_str() : nullptr, false}, root};
+                    handle = new fs_file {{*mkxp_retro::fs, path.c_str(), fdtable[root].dir_handle()->writable ? fdtable[root].dir_handle()->path.c_str() : nullptr, false}, root, false, false};
                     if (!handle->file.is_open() || (fdtable[root].dir_handle()->writable && !handle->file.is_write_open())) {
                         delete handle;
                         return false;
                     }
                     fdtable[i] = {handle, wasi_fd_type::FSFILE};
                 }
+                int64_t pos;
                 {
                     PHYSFS_File *file = handle->file.get();
-                    int64_t pos;
                     if (!::sandbox_deserialize(pos, data, max_size)) return false;
                     if (file != nullptr && (existing_handle || pos > 0)) {
                         PHYSFS_seek(file, pos);
@@ -302,8 +298,6 @@ bool wasi_t::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
                 }
                 {
                     PHYSFS_File *file = handle->file.get_write();
-                    int64_t pos;
-                    if (!::sandbox_deserialize(pos, data, max_size)) return false;
                     if (file != nullptr && (existing_handle || pos > 0)) {
                         PHYSFS_seek(file, pos);
                     }
@@ -412,7 +406,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_datasync(wasi_t *wasi, uint3
             return WASI_EINVAL;
 
         case wasi_fd_type::FSFILE:
-            if (PHYSFS_flush(wasi->fdtable[fd].file_handle()->file.get()) == 0) {
+            if (wasi->fdtable[fd].file_handle()->file.is_write_open() && PHYSFS_flush(wasi->fdtable[fd].file_handle()->file.get_write()) == 0) {
                 return WASI_EIO;
             } else {
                 return WASI_ESUCCESS;
@@ -593,6 +587,15 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_pread(wasi_t *wasi, uint32_t
 
         case wasi_fd_type::FSFILE:
             {
+                if (wasi->fdtable[fd].file_handle()->needs_read_seek) {
+                    wasi->fdtable[fd].file_handle()->needs_read_seek = false;
+                    if (wasi->fdtable[fd].file_handle()->file.is_write_open()) {
+                        uint64_t pos = PHYSFS_tell(wasi->fdtable[fd].file_handle()->file.get_write());
+                        if (pos == (uint64_t)-1 || PHYSFS_seek(wasi->fdtable[fd].file_handle()->file.get(), pos) == 0) {
+                            return WASI_EIO;
+                        }
+                    }
+                }
                 uint64_t offset = PHYSFS_tell(wasi->fdtable[fd].file_handle()->file.get());
                 if (offset == (uint64_t)-1) {
                     return WASI_EIO;
@@ -730,6 +733,13 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_pwrite(wasi_t *wasi, uint32_
                 if (!wasi->fdtable[fd].file_handle()->file.is_write_open()) {
                     return WASI_EROFS;
                 }
+                if (wasi->fdtable[fd].file_handle()->needs_write_seek) {
+                    wasi->fdtable[fd].file_handle()->needs_write_seek = false;
+                    uint64_t pos = PHYSFS_tell(wasi->fdtable[fd].file_handle()->file.get());
+                    if (pos == (uint64_t)-1 || PHYSFS_seek(wasi->fdtable[fd].file_handle()->file.get_write(), pos) == 0) {
+                        return WASI_EIO;
+                    }
+                }
                 uint64_t offset = PHYSFS_tell(wasi->fdtable[fd].file_handle()->file.get_write());
                 if (offset == (uint64_t)-1) {
                     return WASI_EIO;
@@ -794,12 +804,22 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_read(wasi_t *wasi, uint32_t 
 
         case wasi_fd_type::FSFILE:
             {
+                if (wasi->fdtable[fd].file_handle()->needs_read_seek) {
+                    wasi->fdtable[fd].file_handle()->needs_read_seek = false;
+                    if (wasi->fdtable[fd].file_handle()->file.is_write_open()) {
+                        uint64_t pos = PHYSFS_tell(wasi->fdtable[fd].file_handle()->file.get_write());
+                        if (pos == (uint64_t)-1 || PHYSFS_seek(wasi->fdtable[fd].file_handle()->file.get(), pos) == 0) {
+                            return WASI_EIO;
+                        }
+                    }
+                }
                 uint32_t size = 0;
                 while (iovs_len > 0) {
                     uint32_t ptr = wasi->ref<uint32_t>(iovs);
                     uint32_t length = wasi->ref<uint32_t>(iovs + 4);
                     if (length > 0) {
                         wasi->check_bounds(ptr, length);
+                        wasi->fdtable[fd].file_handle()->needs_write_seek = true;
 #ifdef MKXPZ_BIG_ENDIAN
                         uint8_t *buffer = &wasi->ref<uint8_t>(ptr, length - 1);
 #else
@@ -1025,7 +1045,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_seek(wasi_t *wasi, uint32_t 
                     default:
                         return WASI_EINVAL;
                 }
-                if (PHYSFS_seek(wasi->fdtable[fd].file_handle()->file.get(), offset) == 0) {
+                if (PHYSFS_seek(wasi->fdtable[fd].file_handle()->file.get(), offset) == 0 || (wasi->fdtable[fd].file_handle()->file.is_write_open() && PHYSFS_seek(wasi->fdtable[fd].file_handle()->file.get_write(), offset) == 0)) {
                     return WASI_EIO;
                 } else {
                     wasi->ref<uint64_t>(result) = offset;
@@ -1056,7 +1076,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_sync(wasi_t *wasi, uint32_t 
             return WASI_EINVAL;
 
         case wasi_fd_type::FSFILE:
-            if (PHYSFS_flush(wasi->fdtable[fd].file_handle()->file.get()) == 0) {
+            if (wasi->fdtable[fd].file_handle()->file.is_write_open() && PHYSFS_flush(wasi->fdtable[fd].file_handle()->file.get()) == 0) {
                 return WASI_EIO;
             } else {
                 return WASI_ESUCCESS;
@@ -1085,6 +1105,15 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_tell(wasi_t *wasi, uint32_t 
             return WASI_EINVAL;
 
         case wasi_fd_type::FSFILE:
+            if (wasi->fdtable[fd].file_handle()->needs_read_seek) {
+                wasi->fdtable[fd].file_handle()->needs_read_seek = false;
+                if (wasi->fdtable[fd].file_handle()->file.is_write_open()) {
+                    uint64_t pos = PHYSFS_tell(wasi->fdtable[fd].file_handle()->file.get_write());
+                    if (pos == (uint64_t)-1 || PHYSFS_seek(wasi->fdtable[fd].file_handle()->file.get(), pos) == 0) {
+                        return WASI_EIO;
+                    }
+                }
+            }
             wasi->ref<uint64_t>(result) = PHYSFS_tell(wasi->fdtable[fd].file_handle()->file.get());
             return WASI_ESUCCESS;
     }
@@ -1140,12 +1169,20 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_write(wasi_t *wasi, uint32_t
                 if (!wasi->fdtable[fd].file_handle()->file.is_write_open()) {
                     return WASI_EROFS;
                 }
+                if (wasi->fdtable[fd].file_handle()->needs_write_seek) {
+                    wasi->fdtable[fd].file_handle()->needs_write_seek = false;
+                    uint64_t pos = PHYSFS_tell(wasi->fdtable[fd].file_handle()->file.get());
+                    if (pos == (uint64_t)-1 || PHYSFS_seek(wasi->fdtable[fd].file_handle()->file.get_write(), pos) == 0) {
+                        return WASI_EIO;
+                    }
+                }
                 uint32_t size = 0;
                 while (iovs_len > 0) {
                     uint32_t ptr = wasi->ref<uint32_t>(iovs);
                     uint32_t length = wasi->ref<uint32_t>(iovs + 4);
                     if (length > 0) {
                         wasi->check_bounds(ptr, length);
+                        wasi->fdtable[fd].file_handle()->needs_read_seek = true;
 #ifdef MKXPZ_BIG_ENDIAN
                         uint8_t *buffer = &wasi->ref<uint8_t>(ptr, length - 1);
                         std::reverse(buffer, buffer + length);
@@ -1319,7 +1356,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_open(wasi_t *wasi, uint32_
                         write_path_prefix = nullptr;
                     }
 
-                    struct fs_file *handle = new fs_file {{*mkxp_retro::fs, new_path.c_str(), write_path_prefix, truncate, exists}, root};
+                    struct fs_file *handle = new fs_file {{*mkxp_retro::fs, new_path.c_str(), write_path_prefix, truncate, exists}, root, false, false};
 
                     // Check for errors opening the read handle and/or write handle
                     if (!handle->file.is_open() || (needs_write && writable && !handle->file.is_write_open())) {

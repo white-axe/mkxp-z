@@ -760,7 +760,7 @@ static std::string pop_last_path_element(const char *path) {
   return parent;
 }
 
-FileSystem::File::File(FileSystem &fs, const char *read_path, const char *write_path_prefix, bool truncate, unsigned char exists) {
+FileSystem::File::File(FileSystem &fs, const char *read_path, const char *write_path_prefix, bool truncate, unsigned char exists) : write_handle(nullptr), write_error(PHYSFS_ERR_READ_ONLY) {
   _path = fs.normalize(read_path, false, true);
 
   if (write_path_prefix != nullptr) {
@@ -793,11 +793,7 @@ FileSystem::File::File(FileSystem &fs, const char *read_path, const char *write_
       } else {
         write_error = PHYSFS_ERR_OK;
       }
-    } else {
-      write_error = PHYSFS_ERR_READ_ONLY;
     }
-  } else {
-    write_error = PHYSFS_ERR_READ_ONLY;
   }
 
   if ((read_handle = PHYSFS_openRead(_path.c_str())) == nullptr) {

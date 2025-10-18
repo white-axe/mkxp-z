@@ -169,6 +169,8 @@ struct fs_dir {
 struct fs_file {
     struct FileSystem::File file;
     uint32_t root; // The file descriptor of the preopened directory that contains this file.
+    bool needs_read_seek; // If this is true, then the read handle needs to be seeked to the same position as the write handle before performing any operations involving the read handle's position.
+    bool needs_write_seek; // If this is true, then the write handle needs to be seeked to the same position as the read handle before performing any operations involving the write handle's position.
 };
 
 enum wasi_fd_type {
