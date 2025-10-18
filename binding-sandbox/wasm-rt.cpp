@@ -94,7 +94,7 @@ extern "C" void wasm_rt_allocate_memory(wasm_rt_memory_t *memory, uint32_t initi
     std::memset(memory->data, 0, memory->size);
 }
 
-void wasm_rt_replace_memory(wasm_rt_memory_t *memory, size_t size, size_t capacity) {
+extern "C" void wasm_rt_replace_memory(wasm_rt_memory_t *memory, size_t size, size_t capacity) {
     size = size / WASM_PAGE_SIZE * WASM_PAGE_SIZE;
     capacity = capacity / WASM_PAGE_SIZE * WASM_PAGE_SIZE;
 
