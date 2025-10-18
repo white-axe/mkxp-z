@@ -364,7 +364,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_environ_sizes_get(wasi_t *wasi,
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_advise(wasi_t *wasi, uint32_t fd, uint64_t offset, uint64_t len, uint32_t advice) {
     WASI_DEBUG("fd_advise(%u, %lu, %lu, 0x%08x)\n", fd, offset, len, advice);
-    return WASI_ENOSYS;
+    return WASI_ESUCCESS;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_close(wasi_t *wasi, uint32_t fd) {
@@ -395,7 +395,31 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_close(wasi_t *wasi, uint32_t
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_datasync(wasi_t *wasi, uint32_t fd) {
     WASI_DEBUG("fd_datasync(%u)\n", fd);
-    return WASI_ENOSYS;
+
+    if (fd >= wasi->fdtable.size()) {
+        return WASI_EBADF;
+    }
+
+    switch (wasi->fdtable[fd].type) {
+        case wasi_fd_type::VACANT:
+            return WASI_EBADF;
+
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+        case wasi_fd_type::FS:
+        case wasi_fd_type::FSDIR:
+            return WASI_EINVAL;
+
+        case wasi_fd_type::FSFILE:
+            if (PHYSFS_flush(wasi->fdtable[fd].file_handle()->file.get()) == 0) {
+                return WASI_EIO;
+            } else {
+                return WASI_ESUCCESS;
+            }
+    }
+
+    return WASI_EBADF;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_fdstat_get(wasi_t *wasi, uint32_t fd, wasm_ptr_t result) {
@@ -549,7 +573,60 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_pread(wasi_t *wasi, uint32_t
     MKXPZ_FORCED_ASSERT(8 * (wasm_size_t)iovs_len >= (wasm_size_t)iovs_len);
     wasi->check_bounds(iovs, 8 * (wasm_size_t)iovs_len);
 
-    return WASI_ENOSYS;
+    if (fd >= wasi->fdtable.size()) {
+        return WASI_EBADF;
+    }
+
+    switch (wasi->fdtable[fd].type) {
+        case wasi_fd_type::VACANT:
+            return WASI_EBADF;
+
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+            wasi->ref<uint32_t>(result) = 0;
+            return WASI_ESUCCESS;
+
+        case wasi_fd_type::FS:
+        case wasi_fd_type::FSDIR:
+            return WASI_EINVAL;
+
+        case wasi_fd_type::FSFILE:
+            {
+                uint64_t offset = PHYSFS_tell(wasi->fdtable[fd].file_handle()->file.get());
+                if (offset == (uint64_t)-1) {
+                    return WASI_EIO;
+                }
+                uint32_t size = 0;
+                while (iovs_len > 0) {
+                    uint32_t ptr = wasi->ref<uint32_t>(iovs);
+                    uint32_t length = wasi->ref<uint32_t>(iovs + 4);
+                    if (length > 0) {
+                        wasi->check_bounds(ptr, length);
+#ifdef MKXPZ_BIG_ENDIAN
+                        uint8_t *buffer = &wasi->ref<uint8_t>(ptr, length - 1);
+#else
+                        uint8_t *buffer = &wasi->ref<uint8_t>(ptr);
+#endif // MKXPZ_BIG_ENDIAN
+                        PHYSFS_sint64 n = PHYSFS_readBytes(wasi->fdtable[fd].file_handle()->file.get(), buffer, length);
+#ifdef MKXPZ_BIG_ENDIAN
+                        std::reverse(buffer, buffer + length);
+#endif // MKXPZ_BIG_ENDIAN
+                        if (n < 0) return WASI_EIO;
+                        size += n;
+                    }
+                    iovs += 8;
+                    --iovs_len;
+                }
+                if (PHYSFS_seek(wasi->fdtable[fd].file_handle()->file.get(), offset) == 0) {
+                    return WASI_EIO;
+                }
+                wasi->ref<uint32_t>(result) = size;
+                return WASI_ESUCCESS;
+            }
+    }
+
+    return WASI_EBADF;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_prestat_dir_name(wasi_t *wasi, uint32_t fd, wasm_ptr_t path, uint32_t path_len) {
@@ -611,7 +688,84 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_pwrite(wasi_t *wasi, uint32_
     MKXPZ_FORCED_ASSERT(8 * (wasm_size_t)iovs_len >= (wasm_size_t)iovs_len);
     wasi->check_bounds(iovs, 8 * (wasm_size_t)iovs_len);
 
-    return WASI_ENOSYS;
+    if (fd >= wasi->fdtable.size()) {
+        return WASI_EBADF;
+    }
+
+    switch (wasi->fdtable[fd].type) {
+        case wasi_fd_type::VACANT:
+            return WASI_EBADF;
+
+        case wasi_fd_type::STDIN:
+            wasi->ref<uint32_t>(result) = 0;
+            return WASI_ESUCCESS;
+
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+            {
+                uint32_t size = 0;
+                std::string buf;
+                while (iovs_len > 0) {
+                    const char *str = wasi->str(wasi->ref<uint32_t>(iovs));
+                    buf.append(str, strlen_safe(str, wasi->ref<uint32_t>(iovs + 4)));
+                    size += wasi->ref<uint32_t>(iovs + 4);
+                    iovs += 8;
+                    --iovs_len;
+                }
+                std::string line;
+                std::istringstream stream(buf);
+                while (std::getline(stream, line)) {
+                    mkxp_retro::log_printf(wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? RETRO_LOG_INFO : RETRO_LOG_ERROR, "%s\n", line.c_str());
+                }
+                wasi->ref<uint32_t>(result) = size;
+                return WASI_ESUCCESS;
+            }
+
+        case wasi_fd_type::FS:
+        case wasi_fd_type::FSDIR:
+            return WASI_EINVAL;
+
+        case wasi_fd_type::FSFILE:
+            {
+                if (!wasi->fdtable[fd].file_handle()->file.is_write_open()) {
+                    return WASI_EROFS;
+                }
+                uint64_t offset = PHYSFS_tell(wasi->fdtable[fd].file_handle()->file.get_write());
+                if (offset == (uint64_t)-1) {
+                    return WASI_EIO;
+                }
+                uint32_t size = 0;
+                while (iovs_len > 0) {
+                    uint32_t ptr = wasi->ref<uint32_t>(iovs);
+                    uint32_t length = wasi->ref<uint32_t>(iovs + 4);
+                    if (length > 0) {
+                        wasi->check_bounds(ptr, length);
+#ifdef MKXPZ_BIG_ENDIAN
+                        uint8_t *buffer = &wasi->ref<uint8_t>(ptr, length - 1);
+                        std::reverse(buffer, buffer + length);
+#else
+                        uint8_t *buffer = &wasi->ref<uint8_t>(ptr);
+#endif // MKXPZ_BIG_ENDIAN
+                        PHYSFS_sint64 n = PHYSFS_writeBytes(wasi->fdtable[fd].file_handle()->file.get_write(), buffer, length);
+#ifdef MKXPZ_BIG_ENDIAN
+                        std::reverse(buffer, buffer + length);
+#endif // MKXPZ_BIG_ENDIAN
+                        if (n > 0) {
+                            size += n;
+                        }
+                    }
+                    iovs += 8;
+                    --iovs_len;
+                }
+                if (PHYSFS_seek(wasi->fdtable[fd].file_handle()->file.get_write(), offset) == 0) {
+                    return WASI_EIO;
+                }
+                wasi->ref<uint32_t>(result) = size;
+                return WASI_ESUCCESS;
+            }
+    }
+
+    return WASI_EBADF;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_read(wasi_t *wasi, uint32_t fd, wasm_ptr_t iovs, uint32_t iovs_len, wasm_ptr_t result) {
@@ -831,12 +985,85 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_renumber(wasi_t *wasi, uint3
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_seek(wasi_t *wasi, uint32_t fd, uint64_t offset, uint32_t whence, wasm_ptr_t result) {
     WASI_DEBUG("fd_seek(%u, %lu, %u)\n", fd, offset, whence);
-    return WASI_ENOSYS;
+
+    if (fd >= wasi->fdtable.size()) {
+        return WASI_EBADF;
+    }
+
+    switch (wasi->fdtable[fd].type) {
+        case wasi_fd_type::VACANT:
+            return WASI_EBADF;
+
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+        case wasi_fd_type::FS:
+        case wasi_fd_type::FSDIR:
+            return WASI_EINVAL;
+
+        case wasi_fd_type::FSFILE:
+            {
+                switch (whence) {
+                    case 0:
+                        break;
+                    case 1:
+                        {
+                            uint64_t pos = PHYSFS_tell(wasi->fdtable[fd].file_handle()->file.get());
+                            if (pos != (uint64_t)-1) {
+                                offset += pos;
+                            }
+                        }
+                        break;
+                    case 2:
+                        {
+                            uint64_t length = PHYSFS_fileLength(wasi->fdtable[fd].file_handle()->file.get());
+                            if (length != (uint64_t)-1) {
+                                offset += length;
+                            }
+                        }
+                        break;
+                    default:
+                        return WASI_EINVAL;
+                }
+                if (PHYSFS_seek(wasi->fdtable[fd].file_handle()->file.get(), offset) == 0) {
+                    return WASI_EIO;
+                } else {
+                    wasi->ref<uint64_t>(result) = offset;
+                }
+            }
+            return WASI_ESUCCESS;
+    }
+
+    return WASI_EBADF;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_sync(wasi_t *wasi, uint32_t fd) {
     WASI_DEBUG("fd_sync(%u)\n", fd);
-    return WASI_ENOSYS;
+
+    if (fd >= wasi->fdtable.size()) {
+        return WASI_EBADF;
+    }
+
+    switch (wasi->fdtable[fd].type) {
+        case wasi_fd_type::VACANT:
+            return WASI_EBADF;
+
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+        case wasi_fd_type::FS:
+        case wasi_fd_type::FSDIR:
+            return WASI_EINVAL;
+
+        case wasi_fd_type::FSFILE:
+            if (PHYSFS_flush(wasi->fdtable[fd].file_handle()->file.get()) == 0) {
+                return WASI_EIO;
+            } else {
+                return WASI_ESUCCESS;
+            }
+    }
+
+    return WASI_EBADF;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_tell(wasi_t *wasi, uint32_t fd, wasm_ptr_t result) {
