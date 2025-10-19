@@ -425,7 +425,7 @@ File.readlines('tags', chomp: true).each do |line|
   ret = ret[...-func_name.length].strip
   next unless RET_HANDLERS.include?(ret)
 
-  # Only bind functions whose arguments all match a return type we have a handler for
+  # Only bind functions whose arguments all match an argument type we have a handler for
   args = line[4]
   next unless args.start_with?('signature:(') && args.end_with?(')')
   args = args[11...-1]
