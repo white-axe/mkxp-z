@@ -15,14 +15,18 @@ else ifeq ($(platform),win32)
 else ifeq ($(platform),unix)
     MKXPZ_SYSTEM = linux
     MKXPZ_FORCE_FAT_LTO = true
-    ifeq ($(ARCH),x86)
-        MKXPZ_CPU_FAMILY = x86
+    MKXPZ_CPU_FAMILY = $(shell $(CC) -E -I libretro/build/libretro-stage1/boost_predef/include libretro/arch-test.h | tail -n 1)
+    MKXPZ_ENDIAN = $(shell $(CC) -E -I libretro/build/libretro-stage1/boost_predef/include libretro/endian-test.h | tail -n 1)
+    ifeq ($(MKXPZ_CPU_FAMILY),arm)
+        MKXPZ_CPU = generic-armv7-a
+    else ifeq ($(MKXPZ_CPU_FAMILY),aarch64)
+        MKXPZ_CPU = generic-armv8-a
+    else ifeq ($(MKXPZ_CPU_FAMILY),ppc64)
+        MKXPZ_CPU = power8
+    else ifeq ($(MKXPZ_CPU_FAMILY),x86)
         MKXPZ_CPU = i686
-        MKXPZ_ENDIAN = little
     else
-        MKXPZ_CPU_FAMILY = x86_64
-        MKXPZ_CPU = x86_64
-        MKXPZ_ENDIAN = little
+        MKXPZ_CPU = $(MKXPZ_CPU_FAMILY)
     endif
 else ifeq ($(platform),osx)
     MKXPZ_SYSTEM = darwin

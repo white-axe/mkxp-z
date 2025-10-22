@@ -5,6 +5,7 @@ WABT_VERSION ?= 1.0.37
 LIBYAML_VERSION ?= 0.2.5
 ZLIB_VERSION ?= 1.3.1
 PICOSHA2_VERSION ?= 27fcf6979298949e8a462e16d09a0351c18fcaf2
+BOOST_VERSION ?= 1.89.0
 TARGET ?= wasm32-wasip1
 WASI_SDK ?= /opt/wasi-sdk
 WASM_OPT ?= wasm-opt
@@ -296,3 +297,9 @@ $(DOWNLOADS)/zlib/Makefile: $(DOWNLOADS)/zlib/configure
 $(DOWNLOADS)/zlib/configure:
 	mkdir -p $(DOWNLOADS)
 	$(CLONE) $(GITHUB)/madler/zlib $(DOWNLOADS)/zlib -b v$(ZLIB_VERSION)
+
+# Boost
+
+$(OUTDIR)/boost_predef/include/boost/predef.h:
+	mkdir -p $(OUTDIR)/boost_predef
+	$(CLONE) $(GITHUB)/boostorg/predef $(OUTDIR)/boost_predef -b boost-$(BOOST_VERSION)
