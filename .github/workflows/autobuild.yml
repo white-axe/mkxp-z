@@ -739,7 +739,7 @@ jobs:
           rm -f sysroot/etc/resolv.conf
           cp /etc/resolv.conf sysroot/etc/
 
-          PATH=/usr/sbin:/usr/bin:/sbin:/bin sudo chroot sysroot /bin/bash -c '
+          PATH=/usr/sbin:/usr/bin:/sbin:/bin sudo chroot sysroot /bin/bash -e -c '
             add-apt-repository -y ppa:ubuntu-toolchain-r/test
             apt update
             apt install -y gcc-9 g++-9
