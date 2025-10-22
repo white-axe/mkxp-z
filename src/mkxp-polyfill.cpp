@@ -172,6 +172,17 @@ extern "C" void *memccpy(void *dest, const void *src, int c, size_t n) {
 }
 #endif
 
+#ifdef MKXPZ_NO_FSYNC
+#  ifdef _WIN32
+#    include <io.h>
+int fsync(int fd) {
+    return _commit(fd);
+}
+#  else
+#    error "no function for flushing a file descriptor"
+#  endif
+#endif
+
 extern "C" void *mkxp_aligned_malloc(size_t alignment, size_t size) {
 #if defined(MKXPZ_HAVE_POSIX_MEMALIGN) || defined(MKXPZ_BUILD_XCODE)
     void *mem;

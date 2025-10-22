@@ -50,6 +50,10 @@
 #  define EDQUOT 122
 #endif
 
+#if defined(_WIN32) && !defined(S_ISLNK)
+#  define S_ISLNK(x) 0
+#endif
+
 #if !defined(__cplusplus) || defined(MKXPZ_NO_EXCEPTIONS)
 #  define MKXPZ_THROW(...) do { fprintf(stderr, "Exception thrown: %s\n", (__VA_ARGS__).what()); fflush(stderr); abort(); } while (0)
 #  define MKXPZ_RETHROW do { } while (0)
@@ -141,6 +145,10 @@ int vsnprintf(char *buffer, size_t buf_size, const char *format, va_list vlist);
 
 #ifdef MKXPZ_NO_MEMCCPY
 void *memccpy(void *dest, const void *src, int c, size_t n);
+#endif
+
+#ifdef MKXPZ_NO_FSYNC
+int fsync(int);
 #endif
 
 void *mkxp_aligned_malloc(size_t alignment, size_t size);

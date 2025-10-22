@@ -376,15 +376,13 @@ else
     error('No aligned memory allocation function found.')
 endif
 
-if compilers['cpp'].has_header('sys/stat.h') and (not compilers['cpp'].has_header_symbol('sys/stat.h', 'lstat') or not compilers['cpp'].links('''
-    #include <sys/stat.h>
+if not compilers['cpp'].has_header_symbol('unistd.h', 'fsync') or not compilers['cpp'].links('''
+    #include <unistd.h>
     int main(void) {
-        struct stat stat;
-        lstat("/", &stat);
-        return 0;
+        return fsync(1);
     }
-''', args: link_test_args, name: 'lstat sanity check'))
-    global_args += '-DMKXPZ_NO_LSTAT'
+''', args: link_test_args, name: 'fsync sanity check')
+    global_args += '-DMKXPZ_NO_FSYNC'
 endif
 
 if is_orbisdev or not compilers['cpp'].links('''
