@@ -46,6 +46,10 @@
 #  include <dispatch/dispatch.h>
 #endif
 
+#if defined(_WIN32) && !defined(EDQUOT)
+#  define EDQUOT 122
+#endif
+
 #if !defined(__cplusplus) || defined(MKXPZ_NO_EXCEPTIONS)
 #  define MKXPZ_THROW(...) do { fprintf(stderr, "Exception thrown: %s\n", (__VA_ARGS__).what()); fflush(stderr); abort(); } while (0)
 #  define MKXPZ_RETHROW do { } while (0)

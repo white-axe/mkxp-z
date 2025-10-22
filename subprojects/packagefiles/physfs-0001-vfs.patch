@@ -49,7 +49,15 @@
  if(PHYSFS_CPP_SRCS)
 --- a/src/physfs_platform_posix.c
 +++ b/src/physfs_platform_posix.c
-@@ -22,8 +22,8 @@
+@@ -15,15 +15,15 @@
+ #include <ctype.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
+-#include <pwd.h>
++
+ #include <dirent.h>
+ #include <errno.h>
+ #include <fcntl.h>
  #include <pthread.h>
  
  #include "physfs_internal.h"
@@ -60,6 +68,56 @@
  static PHYSFS_ErrorCode errcodeFromErrnoError(const int err)
  {
      switch (err)
+@@ -58,28 +58,28 @@ static inline PHYSFS_ErrorCode errcodeFromErrno(void)
+ 
+ static char *getUserDirByUID(void)
+ {
+-    uid_t uid = getuid();
+-    struct passwd *pw;
+-    char *retval = NULL;
+ 
+-    pw = getpwuid(uid);
+-    if ((pw != NULL) && (pw->pw_dir != NULL) && (*pw->pw_dir != '\0'))
+-    {
+-        const size_t dlen = strlen(pw->pw_dir);
+-        const size_t add_dirsep = (pw->pw_dir[dlen-1] != '/') ? 1 : 0;
+-        retval = (char *) allocator.Malloc(dlen + 1 + add_dirsep);
+-        if (retval != NULL)
+-        {
+-            strcpy(retval, pw->pw_dir);
+-            if (add_dirsep)
+-            {
+-                retval[dlen] = '/';
+-                retval[dlen+1] = '\0';
+-            } /* if */
+-        } /* if */
+-    } /* if */
+-    
+-    return retval;
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++    return NULL;
+ } /* getUserDirByUID */
+ 
+ 
 @@ -120,16 +120,16 @@ PHYSFS_EnumerateCallbackResult __PHYSFS_platformEnumerate(const char *dirname,
                                 PHYSFS_EnumerateCallback callback,
                                 const char *origdir, void *callbackdata)
@@ -83,7 +141,7 @@
          if (name[0] == '.')  /* ignore "." and ".." */
          {
              if ((name[1] == '\0') || ((name[1] == '.') && (name[2] == '\0')))
-@@ -141,7 +141,7 @@ PHYSFS_EnumerateCallbackResult __PHYSFS_platformEnumerate(const char *dirname,
+@@ -141,20 +141,20 @@ PHYSFS_EnumerateCallbackResult __PHYSFS_platformEnumerate(const char *dirname,
              PHYSFS_setErrorCode(PHYSFS_ERR_APP_CALLBACK);
      } /* while */
  
@@ -92,17 +150,25 @@
  
      return retval;
  } /* __PHYSFS_platformEnumerate */
-@@ -149,8 +149,8 @@ PHYSFS_EnumerateCallbackResult __PHYSFS_platformEnumerate(const char *dirname,
- 
+-
+-
  int __PHYSFS_platformMkDir(const char *path)
  {
 -    const int rc = mkdir(path, S_IRWXU);
 -    BAIL_IF(rc == -1, errcodeFromErrno(), 0);
++#ifdef _WIN32
++    const int rc = mkxp_vfs.required_interface_version >= 3 ? mkxp_vfs.iface->mkdir(path) : mkdir(path);
++#else
 +    const int rc = mkxp_vfs.required_interface_version >= 3 ? mkxp_vfs.iface->mkdir(path) : mkdir(path, S_IRWXU);
++#endif
 +    BAIL_IF(rc == -1, mkxp_vfs.required_interface_version >= 3 ? PHYSFS_ERR_IO : errcodeFromErrno(), 0);
      return 1;
  } /* __PHYSFS_platformMkDir */
- 
+-
+-
+ #if !defined(O_CLOEXEC) && defined(FD_CLOEXEC)
+ static inline void set_CLOEXEC(int fildes)
+ {
 @@ -168,7 +168,7 @@ static inline void set_CLOEXEC(int fildes)
  static void *doOpen(const char *filename, int mode)
  {
@@ -236,7 +302,7 @@
 +    const int fd = mkxp_vfs.required_interface_version >= 3 ? -1 : *((int *) opaque);
      int rc = -1;
 -    if ((fcntl(fd, F_GETFL) & O_ACCMODE) != O_RDONLY) {
-+    if (mkxp_vfs.required_interface_version >= 3 || (fcntl(fd, F_GETFL) & O_ACCMODE) != O_RDONLY) {
++    if (1) {
          do {
 -            rc = fsync(fd);
 -        } while ((rc == -1) && (errno == EINTR));
@@ -321,6 +387,17 @@
      return 1;
  } /* __PHYSFS_platformStat */
  
+--- a/src/physfs_platform_unix.c
++++ b/src/physfs_platform_unix.c
+@@ -15,7 +15,7 @@
+ #include <unistd.h>
+ #include <stdlib.h>
+ #include <sys/types.h>
+-#include <pwd.h>
++
+ #include <sys/stat.h>
+ #include <sys/param.h>
+ #include <dirent.h>
 --- a/src/physfs_platforms.h
 +++ b/src/physfs_platforms.h
 @@ -12,6 +12,11 @@
