@@ -355,44 +355,34 @@ void FileSystem::removePath(const char *path, bool reload) {
 struct CacheEnumData {
   FileSystemPrivate *p;
   std::stack<std::vector<std::string> *> fileLists;
+  CacheEnumData(FileSystemPrivate *p) : p(p) {}
+};
 
+void toNFC(char *input) {
 #ifdef __APPLE__
   iconv_t nfd2nfc;
   char buf[512];
-#endif
 
-  CacheEnumData(FileSystemPrivate *p) : p(p) {
-#ifdef __APPLE__
-    nfd2nfc = iconv_open("utf-8", "utf-8-mac");
-#endif
-  }
+  nfd2nfc = iconv_open("utf-8", "utf-8-mac");
+    
+  size_t srcSize = strlen(input);
+  size_t bufSize = sizeof(buf);
+  char *bufPtr = buf;
+  char *inoutPtr = input;
 
-  ~CacheEnumData() {
-#ifdef __APPLE__
-    iconv_close(nfd2nfc);
-#endif
-  }
+  /* Reserve room for null terminator */
+  --bufSize;
 
-  /* Converts in-place */
-  void toNFC(char *inout) {
-#ifdef __APPLE__
-    size_t srcSize = strlen(inout);
-    size_t bufSize = sizeof(buf);
-    char *bufPtr = buf;
-    char *inoutPtr = inout;
+  iconv(nfd2nfc, &inoutPtr, &srcSize, &bufPtr, &bufSize);
+  /* Null-terminate */
+  *bufPtr = 0;
+  strcpy(input, buf);
 
-    /* Reserve room for null terminator */
-    --bufSize;
-
-    iconv(nfd2nfc, &inoutPtr, &srcSize, &bufPtr, &bufSize);
-    /* Null-terminate */
-    *bufPtr = 0;
-    strcpy(inout, buf);
+  iconv_close(nfd2nfc);
 #else
-    (void)inout;
+  (void)input;
 #endif
-  }
-};
+}
 
 static PHYSFS_EnumerateCallbackResult cacheEnumCB(void *d, const char *origdir,
                                                   const char *fname) {
@@ -408,7 +398,7 @@ static PHYSFS_EnumerateCallbackResult cacheEnumCB(void *d, const char *origdir,
     snprintf(fullPath, sizeof(fullPath), "%s/%s", origdir, fname);
 
   /* Deal with OSX' weird UTF-8 standards */
-  data.toNFC(fullPath);
+  toNFC(fullPath);
 
   std::string mixedCase(fullPath);
   std::string lowerCase = mixedCase;
@@ -616,6 +606,9 @@ void FileSystem::openRead(OpenHandler &handler, const char *filename) {
   char buffer[512];
   size_t len = strcpySafe(buffer, filename_nm.c_str(), sizeof(buffer), -1);
   char *delim;
+    
+  toNFC(buffer);
+  len = strlen(buffer);
 
   if (p->havePathCache)
     for (size_t i = 0; i < len; ++i)
