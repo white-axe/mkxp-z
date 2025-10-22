@@ -10,7 +10,7 @@
 +#include "../../src/mkxp-polyfill.h"
  
  #include "physfs_internal.h"
- 
+ #include "../../subprojects/libretro-common/include/libretro.h"
 @@ -369,15 +369,15 @@ int __PHYSFS_platformStat(const char *fname, PHYSFS_Stat *st, const int follow)
  
  typedef struct

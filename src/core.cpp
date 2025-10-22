@@ -623,6 +623,8 @@ static std::string previous_frame_skip_value;
 static unsigned int screen_width;
 static unsigned int screen_height;
 
+struct retro_vfs_interface_info mkxp_vfs;
+
 namespace mkxp_retro {
     retro_log_printf_t log_printf;
     retro_video_refresh_t video_refresh;
@@ -1365,16 +1367,6 @@ extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
         log_printf = fallback_log;
     }
 
-    static const struct retro_keyboard_callback keyboard = {
-        [](bool down, unsigned int keycode, uint32_t character, uint16_t key_modifiers) {
-            if (keycode < RETROK_LAST) {
-                keyboard_state[keycode] = down;
-            }
-        }
-    };
-    std::memset(keyboard_state, 0, sizeof keyboard_state);
-    cb(RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK, (void *)&keyboard);
-
     perf = {
         nullptr,
         nullptr,
@@ -1385,6 +1377,22 @@ extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
         nullptr,
     };
     cb(RETRO_ENVIRONMENT_GET_PERF_INTERFACE, &perf);
+
+    mkxp_vfs.required_interface_version = 3;
+    if (!environment(RETRO_ENVIRONMENT_GET_VFS_INTERFACE, &mkxp_vfs)) {
+        mkxp_vfs.required_interface_version = 0;
+        mkxp_vfs.iface = nullptr;
+    }
+
+    static const struct retro_keyboard_callback keyboard = {
+        [](bool down, unsigned int keycode, uint32_t character, uint16_t key_modifiers) {
+            if (keycode < RETROK_LAST) {
+                keyboard_state[keycode] = down;
+            }
+        }
+    };
+    std::memset(keyboard_state, 0, sizeof keyboard_state);
+    cb(RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK, (void *)&keyboard);
 
     unsigned int core_options_version;
     if (!cb(RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION, &core_options_version)) {
