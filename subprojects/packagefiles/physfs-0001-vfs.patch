@@ -198,7 +198,7 @@
      if (appending)
      {
 -        if (lseek(fd, 0, SEEK_END) < 0)
-+        if ((mkxp_vfs.required_interface_version >= 3 ? mkxp_vfs.iface->seek(handle, 0, 2) : lseek(fd, 0, SEEK_END)) < 0)
++        if ((mkxp_vfs.required_interface_version >= 3 ? mkxp_vfs.iface->seek(handle, 0, RETRO_VFS_SEEK_POSITION_END) : lseek(fd, 0, SEEK_END)) < 0)
          {
 -            const int err = errno;
 -            close(fd);
@@ -264,7 +264,7 @@
 -    const off_t rc = lseek(fd, (off_t) pos, SEEK_SET);
 -    BAIL_IF(rc == -1, errcodeFromErrno(), 0);
 +    const int fd = mkxp_vfs.required_interface_version >= 3 ? -1 : *((int *) opaque);
-+    const PHYSFS_sint64 rc = mkxp_vfs.required_interface_version >= 3 ? (PHYSFS_sint64)mkxp_vfs.iface->seek(opaque, pos, 0) : (PHYSFS_sint64)lseek(fd, (off_t) pos, SEEK_SET);
++    const PHYSFS_sint64 rc = mkxp_vfs.required_interface_version >= 3 ? (PHYSFS_sint64)mkxp_vfs.iface->seek(opaque, pos, RETRO_VFS_SEEK_POSITION_START) : (PHYSFS_sint64)lseek(fd, (off_t) pos, SEEK_SET);
 +    BAIL_IF(rc == -1, mkxp_vfs.required_interface_version >= 3 ? PHYSFS_ERR_IO : errcodeFromErrno(), 0);
      return 1;
  } /* __PHYSFS_platformSeek */
@@ -383,7 +383,7 @@
 +    st->accesstime = mkxp_vfs.required_interface_version >= 3 ? 0 : statbuf.st_atime;
  
 -    st->readonly = (access(fname, W_OK) == -1);
-+    st->readonly = mkxp_vfs.required_interface_version >= 3 ? false : (access(fname, W_OK) == -1);
++    st->readonly = mkxp_vfs.required_interface_version >= 3 ? 0 : (access(fname, W_OK) == -1);
      return 1;
  } /* __PHYSFS_platformStat */
  
