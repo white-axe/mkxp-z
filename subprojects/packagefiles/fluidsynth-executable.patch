@@ -2,7 +2,7 @@
 
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -551,7 +551,7 @@ if ( MACOSX_FRAMEWORK )
+@@ -566,7 +566,7 @@ if ( MACOSX_FRAMEWORK )
      ARCHIVE DESTINATION "${FRAMEWORK_INSTALL_PREFIX}/${FRAMEWORK_INSTALL_DIR}"
  )
  else ( MACOSX_FRAMEWORK )

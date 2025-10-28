@@ -1,4 +1,4 @@
-# Allows FluidSynth to compile with C++ exceptions disabled.
+# Allows FluidSynth to compile with C++ exceptions and RTTI disabled.
 
 --- a/src/midi/fluid_seq_queue.cpp
 +++ b/src/midi/fluid_seq_queue.cpp
@@ -103,4 +103,24 @@
 +    MKXPZ_CATCH(...)
      {
          // should never happen
+     }
+--- a/src/sfloader/fluid_dls.cpp
++++ b/src/sfloader/fluid_dls.cpp
+@@ -74,7 +74,7 @@ static inline std::string string_format(const char (&format)[N], Args... args)
+ 
+ static inline void log_exception(int level, const std::exception &exc, int nest_level = 0)
+ {
+-    const auto &exc_type = typeid(exc);
++
+     std::string prefix;
+ 
+     if(nest_level > 0)
+@@ -82,7 +82,7 @@ static inline void log_exception(int level, const std::exception &exc, int nest_
+         prefix = std::string(1 * nest_level, ' ');
+     }
+ 
+-    if(exc_type == typeid(std::bad_alloc))
++    if(false)
+     {
+         FLUID_LOG(FLUID_PANIC, "%sOut of memory!!: %s", prefix.c_str(), exc.what());
      }

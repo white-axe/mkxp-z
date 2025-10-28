@@ -2,7 +2,7 @@
 
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -864,8 +864,8 @@ ENABLE_TESTING()
+@@ -887,8 +887,8 @@ endif ()
  
  # Process subdirectories
  add_subdirectory ( src )
