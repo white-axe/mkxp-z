@@ -145,6 +145,7 @@ if is_libretro
         'enable-threads': false,
         'enable-openmp': false,
         'enable-unicode': false,
+        'enable-native-dls': false,
         'enable-systemd': false,
         'enable-coreaudio': false,
         'enable-coremidi': false,
