@@ -1,6 +1,6 @@
 # Configure flags are based on the ones from https://github.com/ruby/ruby.wasm
 
-RUBY_VERSION ?= 3.3.9
+RUBY_VERSION ?= 3.3.10
 WABT_VERSION ?= 1.0.37
 LIBYAML_VERSION ?= 0.2.5
 ZLIB_VERSION ?= 1.3.1
@@ -168,10 +168,6 @@ $(DOWNLOADS)/ruby/configure: $(DOWNLOADS)/ruby/configure.ac
 $(DOWNLOADS)/ruby/configure.ac:
 	mkdir -p $(DOWNLOADS)
 	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/ruby -b v$(subst .,_,$(RUBY_VERSION))
-ifneq ($(shell $(RUBY) -e 'puts "1" if (Gem::Version.new("$(RUBY_VERSION)") >= Gem::Version.new("3.3.0") && Gem::Version.new("$(RUBY_VERSION)") <= Gem::Version.new("3.3.9")) || (Gem::Version.new("$(RUBY_VERSION)") >= Gem::Version.new("3.4.0") && Gem::Version.new("$(RUBY_VERSION)") <= Gem::Version.new("3.4.7"))'),)
-	# Bug fix for a severe memory leak in WASI builds of Ruby described in https://bugs.ruby-lang.org/issues/21626, only needed for Ruby >= 3.3.0, <= 3.3.9 and Ruby >= 3.4.0, <= 3.4.7
-	cd $(DOWNLOADS)/ruby && $(GIT) apply $(PWD)/ruby-21626.patch
-endif
 ifneq ($(shell $(RUBY) -e 'puts "1" if Gem::Version.new("$(RUBY_VERSION)") >= Gem::Version.new("3.4")'),)
 	cd $(DOWNLOADS)/ruby && $(GIT) apply $(PWD)/ruby-compat-3.4.patch
 else
