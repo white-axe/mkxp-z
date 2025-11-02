@@ -32,7 +32,7 @@ jobs:
             mingw-w64-x86_64-gcc
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - uses: actions/cache@v4
         with:
@@ -86,7 +86,7 @@ jobs:
           length: 7
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - uses: actions/cache@v4
         with:
@@ -176,7 +176,7 @@ jobs:
           length: 7
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - uses: actions/cache@v4
         with:
@@ -246,7 +246,7 @@ jobs:
           length: 7
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - uses: actions/cache@v4
         with:
@@ -340,7 +340,7 @@ jobs:
           length: 7
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - uses: actions/cache@v4
         with:
@@ -401,7 +401,7 @@ jobs:
         run: brew remove --force $(brew list)
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - uses: actions/cache@v4
         with:
