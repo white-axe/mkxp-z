@@ -625,6 +625,8 @@ static unsigned int screen_height;
 
 struct retro_vfs_interface_info mkxp_vfs;
 
+static unsigned int message_interface_version;
+
 namespace mkxp_retro {
     retro_log_printf_t log_printf;
     retro_video_refresh_t video_refresh;
@@ -674,6 +676,35 @@ namespace mkxp_retro {
             environment(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO, &av_info);
         }
     }
+
+    void display_message(enum retro_log_level log_level, const char *msg) noexcept {
+        switch (message_interface_version) {
+            default:
+                {
+                    const struct retro_message_ext message {
+                        msg,
+                        8000,
+                        log_level == RETRO_LOG_ERROR ? 3U : log_level == RETRO_LOG_WARN ? 2U : log_level == RETRO_LOG_INFO ? 1U : 0U,
+                        log_level,
+                        RETRO_MESSAGE_TARGET_OSD,
+                        RETRO_MESSAGE_TYPE_NOTIFICATION,
+                        -1,
+                    };
+                    environment(RETRO_ENVIRONMENT_SET_MESSAGE_EXT, (void *)&message);
+                }
+                break;
+
+            case 0:
+                {
+                    const struct retro_message message {
+                        msg,
+                        480,
+                    };
+                    environment(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
+                }
+                break;
+        }
+    }
 }
 
 static void fallback_log(enum retro_log_level level, const char *fmt, ...) {
@@ -686,19 +717,19 @@ static void fallback_log(enum retro_log_level level, const char *fmt, ...) {
 static void fluid_log(int level, const char *message, void *data) {
     switch (level) {
         case FLUID_PANIC:
-            log_printf(RETRO_LOG_ERROR, "fluidsynth: panic: %s\n", message);
+            LOG_PRINTF(RETRO_LOG_ERROR, "fluidsynth: panic: %s\n", message);
             break;
         case FLUID_ERR:
-            log_printf(RETRO_LOG_ERROR, "fluidsynth: error: %s\n", message);
+            LOG_PRINTF(RETRO_LOG_ERROR, "fluidsynth: error: %s\n", message);
             break;
         case FLUID_WARN:
-            log_printf(RETRO_LOG_WARN, "fluidsynth: warning: %s\n", message);
+            LOG_PRINTF(RETRO_LOG_WARN, "fluidsynth: warning: %s\n", message);
             break;
         case FLUID_INFO:
-            log_printf(RETRO_LOG_INFO, "fluidsynth: %s\n", message);
+            LOG_PRINTF(RETRO_LOG_INFO, "fluidsynth: %s\n", message);
             break;
         case FLUID_DBG:
-            log_printf(RETRO_LOG_DEBUG, "fluidsynth: debug: %s\n", message);
+            LOG_PRINTF(RETRO_LOG_DEBUG, "fluidsynth: debug: %s\n", message);
             break;
     }
 }
@@ -857,7 +888,8 @@ static bool init_shared_state() {
     Exception e;
     SharedState::initInstance(e, &thread_data.get());
     if (e.is_error()) {
-        log_printf(RETRO_LOG_ERROR, "Error initializing shared state: %s\n", e.what());
+        LOG_PRINTF(RETRO_LOG_ERROR, "Error initializing shared state: %s\n", e.what());
+        display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Error initializing shared state: ") + e.what()).c_str());
         deinit_sandbox();
         return false;
     } else {
@@ -900,7 +932,8 @@ static bool init_sandbox() {
         Exception exception(Exception::Ok, "");
         fs->addPath(exception, parsed_game_path.c_str(), "/Game");
         if (exception.is_error()) {
-            log_printf(RETRO_LOG_ERROR, "%s\n", exception.what());
+            LOG_PRINTF(RETRO_LOG_ERROR, "%s\n", exception.what());
+            display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: ") + exception.what()).c_str());
             deinit_sandbox();
             return false;
         }
@@ -1023,7 +1056,8 @@ static bool init_sandbox() {
 
             // Create the RTP root directory if needed
             if (!PHYSFS_mkdir(rtp_root_path.c_str() + std::strlen(system_path) + 1)) {
-                log_printf(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", rtp_root_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+                LOG_PRINTF(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", rtp_root_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+                display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Failed to create directory at \"") + rtp_root_path + "\": " + PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode())).c_str());
                 deinit_sandbox();
                 return false;
             }
@@ -1035,7 +1069,8 @@ static bool init_sandbox() {
                 std::string path(fs->normalize(rtp.c_str(), false, true, "/System/RTP"));
 
                 if (path != "/System" && std::strncmp(path.c_str(), "/System/", sizeof "/System/" - 1)) {
-                    log_printf(RETRO_LOG_ERROR, "Failed to mount RTP \"%s\" because mounting RTPs from outside of the libretro system directory is not supported\n", rtp.c_str());
+                    LOG_PRINTF(RETRO_LOG_WARN, "Failed to mount RTP \"%s\" because mounting RTPs from outside of the libretro system directory is not supported\n", rtp.c_str());
+                    display_message(RETRO_LOG_WARN, (std::string("Failed to locate run time package \"") + rtp + "\" required by the game").c_str());
                     continue;
                 }
 
@@ -1066,11 +1101,12 @@ static bool init_sandbox() {
                     }
                 }
 
-                log_printf(RETRO_LOG_INFO, "Mounted RTP \"%s\" from \"%s\"\n", rtp.c_str(), rtp_path.c_str());
+                LOG_PRINTF(RETRO_LOG_INFO, "Mounted RTP \"%s\" from \"%s\"\n", rtp.c_str(), rtp_path.c_str());
                 continue;
 
             fail:
-                log_printf(RETRO_LOG_ERROR, "Failed to mount RTP \"%s\" because \"%s\" was not found\n", rtp.c_str(), rtp_path.c_str());
+                LOG_PRINTF(RETRO_LOG_WARN, "Failed to mount RTP \"%s\" because \"%s\" was not found\n", rtp.c_str(), rtp_path.c_str());
+                display_message(RETRO_LOG_WARN, (std::string("Failed to locate run time package \"") + rtp + "\" required by the game").c_str());
                 continue;
             }
 
@@ -1137,12 +1173,13 @@ static bool init_sandbox() {
                     }
 
                     data.found = true;
-                    log_printf(RETRO_LOG_INFO, "Mounted RTP \"%s\" from \"%s\"\n", data.rtp.c_str(), rtp_path.c_str());
+                    LOG_PRINTF(RETRO_LOG_INFO, "Mounted RTP \"%s\" from \"%s\"\n", data.rtp.c_str(), rtp_path.c_str());
                     return PHYSFS_ENUM_STOP;
                 }, &data);
 
                 if (!data.found) {
-                    log_printf(RETRO_LOG_ERROR, "Failed to mount RTP \"%s\" because \"%s/%s\" was not found\n", rtp.c_str(), rtp_root_path.c_str(), rtp.c_str());
+                    LOG_PRINTF(RETRO_LOG_ERROR, "Failed to mount RTP \"%s\" because \"%s/%s\" was not found\n", rtp.c_str(), rtp_root_path.c_str(), rtp.c_str());
+                    display_message(RETRO_LOG_WARN, (std::string("Failed to locate run time package \"") + rtp + "\" required by the game").c_str());
                 }
             }
 
@@ -1151,7 +1188,8 @@ static bool init_sandbox() {
 
             // Create the Fonts directory if needed
             if (!PHYSFS_mkdir(fonts_path.c_str() + std::strlen(system_path) + 1)) {
-                log_printf(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", fonts_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+                LOG_PRINTF(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", fonts_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+                display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Failed to create directory at \"") + fonts_path + "\": " + PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode())).c_str());
                 deinit_sandbox();
                 return false;
             }
@@ -1233,7 +1271,8 @@ static bool init_sandbox() {
 
             // Create the subdirectory if needed
             if (!PHYSFS_mkdir(save_path_subdir.c_str() + std::strlen(save_path) + 1)) {
-                log_printf(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", save_path_subdir.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+                LOG_PRINTF(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", save_path_subdir.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+                display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Failed to create directory at \"") + save_path_subdir + "\": " + PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode())).c_str());
                 deinit_sandbox();
                 return false;
             }
@@ -1243,7 +1282,8 @@ static bool init_sandbox() {
             Exception exception(Exception::Ok, "");
             fs->addPath(exception, save_path_subdir.c_str(), "/Save");
             if (exception.is_error()) {
-                log_printf(RETRO_LOG_ERROR, "Failed to mount game save directory from \"%s\": %s\n", save_path_subdir.c_str(), exception.what());
+                LOG_PRINTF(RETRO_LOG_ERROR, "Failed to mount game save directory from \"%s\": %s\n", save_path_subdir.c_str(), exception.what());
+                display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Failed to mount game save directory from \"") + save_path_subdir + "\": " + exception.what()).c_str());
                 deinit_sandbox();
                 return false;
             }
@@ -1254,12 +1294,13 @@ static bool init_sandbox() {
                 fs->addPath(exception, save_path_subdir.c_str(), "/Game");
             }
             if (exception.is_error()) {
-                log_printf(RETRO_LOG_ERROR, "Failed to mount game save directory from \"%s\": %s\n", save_path_subdir.c_str(), exception.what());
+                LOG_PRINTF(RETRO_LOG_ERROR, "Failed to mount game save directory from \"%s\": %s\n", save_path_subdir.c_str(), exception.what());
+                display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Failed to mount game save directory from \"") + save_path_subdir + "\": " + exception.what()).c_str());
                 deinit_sandbox();
                 return false;
             }
 
-            log_printf(RETRO_LOG_INFO, "Mounted game save directory from \"%s\"\n", save_path_subdir.c_str());
+            LOG_PRINTF(RETRO_LOG_INFO, "Mounted game save directory from \"%s\"\n", save_path_subdir.c_str());
         }
     }
 
@@ -1278,21 +1319,24 @@ static bool init_sandbox() {
 
     alcLoopbackOpenDeviceSOFT = (LPALCLOOPBACKOPENDEVICESOFT)alcGetProcAddress(nullptr, "alcLoopbackOpenDeviceSOFT");
     if (alcLoopbackOpenDeviceSOFT == nullptr) {
-        log_printf(RETRO_LOG_ERROR, "OpenAL implementation does not support `alcLoopbackOpenDeviceSOFT`\n");
+        LOG_PRINT(RETRO_LOG_ERROR, "OpenAL implementation does not support `alcLoopbackOpenDeviceSOFT`\n");
+        display_message(RETRO_LOG_ERROR, "Failed to initialize the mkxp-z game engine: OpenAL implementation does not support `alcLoopbackOpenDeviceSOFT`");
         deinit_sandbox();
         return false;
     }
 
     alcRenderSamplesSOFT = (LPALCRENDERSAMPLESSOFT)alcGetProcAddress(nullptr, "alcRenderSamplesSOFT");
     if (alcRenderSamplesSOFT == nullptr) {
-        log_printf(RETRO_LOG_ERROR, "OpenAL implementation does not support `alcRenderSamplesSOFT`\n");
+        LOG_PRINT(RETRO_LOG_ERROR, "OpenAL implementation does not support `alcRenderSamplesSOFT`\n");
+        display_message(RETRO_LOG_ERROR, "Failed to initialize the mkxp-z game engine: OpenAL implementation does not support `alcRenderSamplesSOFT`");
         deinit_sandbox();
         return false;
     }
 
     al_device = alcLoopbackOpenDeviceSOFT(nullptr);
     if (al_device == nullptr) {
-        log_printf(RETRO_LOG_ERROR, "Failed to initialize OpenAL loopback device\n");
+        LOG_PRINT(RETRO_LOG_ERROR, "Failed to initialize OpenAL loopback device\n");
+        display_message(RETRO_LOG_ERROR, "Failed to initialize the mkxp-z game engine: Failed to initialize OpenAL loopback device");
         deinit_sandbox();
         return false;
     }
@@ -1308,7 +1352,8 @@ static bool init_sandbox() {
     };
     al_context = alcCreateContext(al_device, al_attrs);
     if (al_context == nullptr || alcMakeContextCurrent(al_context) == AL_FALSE) {
-        log_printf(RETRO_LOG_ERROR, "Failed to create OpenAL context\n");
+        LOG_PRINT(RETRO_LOG_ERROR, "Failed to create OpenAL context\n");
+        display_message(RETRO_LOG_ERROR, "Failed to initialize the mkxp-z game engine: Failed to create OpenAL context");
         deinit_sandbox();
         return false;
     }
@@ -1361,10 +1406,14 @@ extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
     }
 
     struct retro_log_callback log;
-    if (cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log)) {
+    if (environment(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log)) {
         log_printf = log.log;
     } else {
         log_printf = fallback_log;
+    }
+
+    if (!environment(RETRO_ENVIRONMENT_GET_MESSAGE_INTERFACE_VERSION, &message_interface_version)) {
+        message_interface_version = 0;
     }
 
     perf = {
@@ -1376,7 +1425,7 @@ extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
         nullptr,
         nullptr,
     };
-    cb(RETRO_ENVIRONMENT_GET_PERF_INTERFACE, &perf);
+    environment(RETRO_ENVIRONMENT_GET_PERF_INTERFACE, &perf);
 
     mkxp_vfs.required_interface_version = 3;
     if (!environment(RETRO_ENVIRONMENT_GET_VFS_INTERFACE, &mkxp_vfs)) {
@@ -1392,10 +1441,10 @@ extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
         }
     };
     std::memset(keyboard_state, 0, sizeof keyboard_state);
-    cb(RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK, (void *)&keyboard);
+    environment(RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK, (void *)&keyboard);
 
     unsigned int core_options_version;
-    if (!cb(RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION, &core_options_version)) {
+    if (!environment(RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION, &core_options_version)) {
         core_options_version = 0;
     }
     switch (core_options_version) {
@@ -1405,7 +1454,7 @@ extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
                     (struct retro_core_option_v2_category *)core_option_categories,
                     (struct retro_core_option_v2_definition *)core_option_definitions,
                 };
-                if (cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2, (void *)&core_options)) {
+                if (environment(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2, (void *)&core_options)) {
                     break;
                 }
             }
@@ -1424,7 +1473,7 @@ extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
                     std::memcpy(core_options[i].values, core_option_definitions[i].values, (1 + num_values) * sizeof *core_option_definitions[i].values);
                     core_options[i].default_value = core_option_definitions[i].default_value;
                 }
-                if (cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS, (void *)&core_options)) {
+                if (environment(RETRO_ENVIRONMENT_SET_CORE_OPTIONS, (void *)&core_options)) {
                     break;
                 }
             }
@@ -1461,7 +1510,7 @@ extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
                 }
                 core_options[i].key = nullptr;
                 core_options[i].value = nullptr;
-                cb(RETRO_ENVIRONMENT_SET_VARIABLES, (void *)&core_options);
+                environment(RETRO_ENVIRONMENT_SET_VARIABLES, (void *)&core_options);
             }
     }
 }
@@ -1632,10 +1681,10 @@ extern "C" RETRO_API void retro_run() {
         boost::optional<bool> result = sb().run<struct main>();
         if (result.has_value()) {
             if (*result) {
-                log_printf(RETRO_LOG_INFO, "Game exited; terminating\n");
+                LOG_PRINT(RETRO_LOG_INFO, "Game exited; terminating\n");
                 environment(RETRO_ENVIRONMENT_SHUTDOWN, nullptr);
             } else {
-                log_printf(RETRO_LOG_ERROR, "Game threw an exception; terminating\n");
+                LOG_PRINT(RETRO_LOG_ERROR, "Game threw an exception; terminating\n");
             }
             deinit_sandbox();
             should_render = false;
@@ -1963,7 +2012,8 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     // Make sure the Ruby revision matches that of that version of mkxp-z, since save state compatibility breaks when the Ruby version changes
     RESERVE(sizeof ruby_revision);
     if (std::memcmp(data, ruby_revision, sizeof ruby_revision)) {
-        log_printf(RETRO_LOG_ERROR, "Failed to load save state because it uses a different Ruby version than the current version of mkxp-z; try using mkxp-z version %s to load this save state instead\n", mkxpz_version.c_str());
+        LOG_PRINTF(RETRO_LOG_ERROR, "Failed to load save state because it uses a different Ruby version than the current version of mkxp-z; try using mkxp-z version %s to load this save state instead\n", mkxpz_version.c_str());
+        display_message(RETRO_LOG_ERROR, (std::string("Incompatible save state; use mkxp-z version ") + mkxpz_version + " to load this save state instead").c_str());
         return false;
     }
     ADVANCE(sizeof ruby_revision);
@@ -1971,7 +2021,8 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     // Make sure the hash of the binding-sandbox source files matches that of that version of mkxp-z, since save state compatibility breaks when the sandbox bindings are modified
     RESERVE(sizeof MKXPZ_BINDING_SANDBOX_HASH - 1);
     if (std::memcmp(data, MKXPZ_BINDING_SANDBOX_HASH, sizeof MKXPZ_BINDING_SANDBOX_HASH - 1)) {
-        log_printf(RETRO_LOG_ERROR, "Failed to load save state because the sandbox bindings used are incompatible with the current version of mkxp-z; try using mkxp-z version %s to load this save state instead\n", mkxpz_version.c_str());
+        LOG_PRINTF(RETRO_LOG_ERROR, "Failed to load save state because the sandbox bindings used are incompatible with the current version of mkxp-z; try using mkxp-z version %s to load this save state instead\n", mkxpz_version.c_str());
+        display_message(RETRO_LOG_ERROR, (std::string("Incompatible save state; use mkxp-z version ") + mkxpz_version + " to load this save state instead").c_str());
         return false;
     }
     ADVANCE(sizeof MKXPZ_BINDING_SANDBOX_HASH - 1);
@@ -2364,14 +2415,14 @@ extern "C" RETRO_API void retro_cheat_set(unsigned int index, bool enabled, cons
 
 extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
     if (info == nullptr || info->path == nullptr) {
-        log_printf(RETRO_LOG_ERROR, "This core cannot start without a game\n");
+        LOG_PRINT(RETRO_LOG_ERROR, "This core cannot start without a game\n");
         return false;
     }
     game_path = info->path;
 
     enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
     if (!environment(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt)) {
-        log_printf(RETRO_LOG_ERROR, "XRGB8888 is not supported\n");
+        LOG_PRINT(RETRO_LOG_ERROR, "XRGB8888 is not supported\n");
         return false;
     }
 
@@ -2380,7 +2431,8 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
         Exception e;
         initGLFunctions(e);
         if (e.is_error()) {
-            log_printf(RETRO_LOG_ERROR, "%s\n", e.what());
+            LOG_PRINTF(RETRO_LOG_ERROR, "%s\n", e.what());
+            display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: ") + e.what()).c_str());
             deinit_sandbox();
         } else if (shared_state_initialized.load_relaxed()) {
             glState.refresh();
@@ -2398,41 +2450,41 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
     hw_render.cache_context = true;
     hw_render.bottom_left_origin = false;
     if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 6, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
-        log_printf(RETRO_LOG_INFO, "Using OpenGL 4.6 graphics driver\n");
+        LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL 4.6 graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 5, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
-        log_printf(RETRO_LOG_INFO, "Using OpenGL 4.5 graphics driver\n");
+        LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL 4.5 graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 4, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
-        log_printf(RETRO_LOG_INFO, "Using OpenGL 4.4 graphics driver\n");
+        LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL 4.4 graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 3, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
-        log_printf(RETRO_LOG_INFO, "Using OpenGL 4.3 graphics driver\n");
+        LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL 4.3 graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 2, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
-        log_printf(RETRO_LOG_INFO, "Using OpenGL 4.2 graphics driver\n");
+        LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL 4.2 graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 1, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
-        log_printf(RETRO_LOG_INFO, "Using OpenGL 4.1 graphics driver\n");
+        LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL 4.1 graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 0, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
-        log_printf(RETRO_LOG_INFO, "Using OpenGL 4.0 graphics driver\n");
+        LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL 4.0 graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 3, hw_render.version_minor = 2, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
-        log_printf(RETRO_LOG_INFO, "Using OpenGL 3.2 graphics driver\n");
+        LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL 3.2 graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGLES_VERSION, hw_render.version_major = 3, hw_render.version_minor = 2, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
-        log_printf(RETRO_LOG_INFO, "Using OpenGL ES 3.2 graphics driver\n");
+        LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL ES 3.2 graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 3, hw_render.version_minor = 1, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
-        log_printf(RETRO_LOG_INFO, "Using OpenGL 3.1 graphics driver\n");
+        LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL 3.1 graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGLES_VERSION, hw_render.version_major = 3, hw_render.version_minor = 1, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
-        log_printf(RETRO_LOG_INFO, "Using OpenGL ES 3.1 graphics driver\n");
+        LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL ES 3.1 graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 3, hw_render.version_minor = 0, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
-        log_printf(RETRO_LOG_INFO, "Using OpenGL 3.0 graphics driver\n");
+        LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL 3.0 graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGLES3, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
-        log_printf(RETRO_LOG_INFO, "Using OpenGL ES 3.x graphics driver\n");
+        LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL ES 3.x graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
-        log_printf(RETRO_LOG_INFO, "Using OpenGL 2.x graphics driver\n");
+        LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL 2.x graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGLES2, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
-        log_printf(RETRO_LOG_INFO, "Using OpenGL ES 2.0 graphics driver\n");
+        LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL ES 2.0 graphics driver\n");
     } else {
         // TODO: Support software rendering again
-        //log_printf(RETRO_LOG_WARN, "Hardware-accelerated graphics not supported; falling back to software rendering\n");
+        //LOG_PRINT(RETRO_LOG_WARN, "Hardware-accelerated graphics not supported; falling back to software rendering\n");
         //hw_render.context_type = RETRO_HW_CONTEXT_NONE;
         //environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render);
-        log_printf(RETRO_LOG_ERROR, "Error: Hardware-accelerated graphics not supported\n");
+        LOG_PRINT(RETRO_LOG_ERROR, "Error: Hardware-accelerated graphics not supported\n");
         return false;
     }
 
@@ -2462,13 +2514,13 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
     }
     if (threaded_audio_allowed) {
         threaded_audio_enabled = environment(RETRO_ENVIRONMENT_SET_AUDIO_CALLBACK, &audio_callback);
-        log_printf(RETRO_LOG_INFO, threaded_audio_enabled ? "Using threaded audio driver\n" : "Not using threaded audio driver because the frontend does not support it\n");
+        LOG_PRINT(RETRO_LOG_INFO, threaded_audio_enabled ? "Using threaded audio driver\n" : "Not using threaded audio driver because the frontend does not support it\n");
     } else {
         threaded_audio_enabled = false;
-        log_printf(RETRO_LOG_INFO, "Not using threaded audio driver because threaded audio is disabled in the core options\n");
+        LOG_PRINT(RETRO_LOG_INFO, "Not using threaded audio driver because threaded audio is disabled in the core options\n");
     }
 #else
-    log_printf(RETRO_LOG_INFO, "Not using threaded audio driver because multithreading is not supported on this platform\n");
+    LOG_PRINT(RETRO_LOG_INFO, "Not using threaded audio driver because multithreading is not supported on this platform\n");
 #endif // MKXPZ_NO_THREADED_AUDIO
 
     {

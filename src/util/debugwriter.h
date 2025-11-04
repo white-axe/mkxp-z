@@ -64,7 +64,7 @@ public:
 	~Debug()
 	{
 #ifdef MKXPZ_RETRO
-		mkxp_retro::log_printf(RETRO_LOG_INFO, "%s\n", buf.str().c_str());
+		LOG_PRINTF(RETRO_LOG_INFO, "%s\n", buf.str().c_str());
 #elif defined(__ANDROID__)
 		__android_log_write(ANDROID_LOG_DEBUG, "mkxp", buf.str().c_str());
 #else

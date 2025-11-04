@@ -58,6 +58,13 @@ namespace mkxp_retro {
     double get_refresh_rate() noexcept;
     bool using_threaded_audio() noexcept;
     void request_resize(unsigned int width, unsigned int height) noexcept;
+    void display_message(enum retro_log_level log_level, const char *msg) noexcept;
 }
+
+#define _LOG_PRINTF_DETAIL2(x) #x
+#define _LOG_PRINTF_DETAIL(x) _LOG_PRINTF_DETAIL2(x)
+
+#define LOG_PRINT(log_level, str) ::mkxp_retro::log_printf(log_level, "[mkxp-z @ " __FILE__ ":" _LOG_PRINTF_DETAIL(__LINE__) "] %s", str)
+#define LOG_PRINTF(log_level, fmt, ...) ::mkxp_retro::log_printf(log_level, "[mkxp-z @ " __FILE__ ":" _LOG_PRINTF_DETAIL(__LINE__) "] " fmt, __VA_ARGS__)
 
 #endif // MKXPZ_CORE_H

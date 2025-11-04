@@ -36,7 +36,7 @@
 
 using namespace mkxp_sandbox;
 
-//#define WASI_DEBUG(...) mkxp_retro::log_printf(RETRO_LOG_INFO, __VA_ARGS__)
+//#define WASI_DEBUG(...) LOG_PRINTF(RETRO_LOG_INFO, __VA_ARGS__)
 #define WASI_DEBUG(...)
 
 static inline size_t strlen_safe(const char *str, size_t max_length) {
@@ -718,7 +718,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_pwrite(wasi_t *wasi, uint32_
                 std::string line;
                 std::istringstream stream(buf);
                 while (std::getline(stream, line)) {
-                    mkxp_retro::log_printf(wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? RETRO_LOG_INFO : RETRO_LOG_ERROR, "%s\n", line.c_str());
+                    mkxp_retro::log_printf(wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? RETRO_LOG_INFO : RETRO_LOG_ERROR, "[mkxp-z] %s\n", line.c_str());
                 }
                 wasi->ref<uint32_t>(result) = size;
                 return WASI_ESUCCESS;
@@ -1154,7 +1154,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_write(wasi_t *wasi, uint32_t
                 std::string line;
                 std::istringstream stream(buf);
                 while (std::getline(stream, line)) {
-                    mkxp_retro::log_printf(wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? RETRO_LOG_INFO : RETRO_LOG_ERROR, "%s\n", line.c_str());
+                    mkxp_retro::log_printf(wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? RETRO_LOG_INFO : RETRO_LOG_ERROR, "[mkxp-z] %s\n", line.c_str());
                 }
                 wasi->ref<uint32_t>(result) = size;
                 return WASI_ESUCCESS;

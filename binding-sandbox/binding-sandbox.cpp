@@ -668,7 +668,7 @@ void sandbox_run_rmxp_scripts::operator()() {
                 }
 
                 if (zlib_result != Z_OK) {
-                    mkxp_retro::log_printf(RETRO_LOG_ERROR, "Error decoding script %zu: '%s'\n", SANDBOX_SLOT(3), (const char *)sb()->str(SANDBOX_SLOT(5)));
+                    LOG_PRINTF(RETRO_LOG_ERROR, "Error decoding script %zu: '%s'\n", SANDBOX_SLOT(3), (const char *)sb()->str(SANDBOX_SLOT(5)));
                     break;
                 }
             }
