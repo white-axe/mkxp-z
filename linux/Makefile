@@ -138,7 +138,7 @@ $(DOWNLOADS)/libiconv-1.18/configure: $(DOWNLOADS)/libiconv-1.18.tar.gz
 	tar -xzf libiconv-1.18.tar.gz;
 
 $(DOWNLOADS)/libiconv-1.18.tar.gz:
-	wget https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.18.tar.gz -P $(DOWNLOADS)
+	wget https://ftpmirror.gnu.org/libiconv/libiconv-1.18.tar.gz -P $(DOWNLOADS)
 
 # uchardet
 uchardet: init_dirs $(LIBDIR)/libuchardet.a
