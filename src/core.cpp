@@ -597,7 +597,6 @@ static uint64_t retro_run_count;
 extern const uint8_t dist_zip[];
 extern const size_t dist_zip_len;
 
-static bool initialized = false;
 static ALCdevice *al_device = nullptr;
 static ALCcontext *al_context = nullptr;
 static LPALCRENDERSAMPLESSOFT alcRenderSamplesSOFT = nullptr;
@@ -1397,20 +1396,39 @@ static bool init_sandbox() {
 
 extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
     environment = cb;
+}
 
-    // Bug in RetroArch:
-    // retro_set_environment is called multiple times and only the first time
-    // callbacks will work and return true.
-    if (initialized) {
-        return;
+extern "C" RETRO_API void retro_set_video_refresh(retro_video_refresh_t cb) {
+    video_refresh = cb;
+}
+
+extern "C" RETRO_API void retro_set_audio_sample(retro_audio_sample_t cb) {
+
+}
+
+extern "C" RETRO_API void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb) {
+    audio_sample_batch = cb;
+}
+
+extern "C" RETRO_API void retro_set_input_poll(retro_input_poll_t cb) {
+    input_poll = cb;
+}
+
+extern "C" RETRO_API void retro_set_input_state(retro_input_state_t cb) {
+    input_state = cb;
+}
+
+extern "C" RETRO_API void retro_init() {
+    {
+        struct retro_log_callback log;
+        if (environment(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log)) {
+            log_printf = log.log;
+        } else {
+            log_printf = fallback_log;
+        }
     }
 
-    struct retro_log_callback log;
-    if (environment(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log)) {
-        log_printf = log.log;
-    } else {
-        log_printf = fallback_log;
-    }
+    LOG_PRINT(RETRO_LOG_INFO, "mkxp-z version " MKXPZ_VERSION "/" MKXPZ_GIT_HASH "\n");
 
     if (!environment(RETRO_ENVIRONMENT_GET_MESSAGE_INTERFACE_VERSION, &message_interface_version)) {
         message_interface_version = 0;
@@ -1513,32 +1531,6 @@ extern "C" RETRO_API void retro_set_environment(retro_environment_t cb) {
                 environment(RETRO_ENVIRONMENT_SET_VARIABLES, (void *)&core_options);
             }
     }
-}
-
-extern "C" RETRO_API void retro_set_video_refresh(retro_video_refresh_t cb) {
-    video_refresh = cb;
-}
-
-extern "C" RETRO_API void retro_set_audio_sample(retro_audio_sample_t cb) {
-
-}
-
-extern "C" RETRO_API void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb) {
-    audio_sample_batch = cb;
-}
-
-extern "C" RETRO_API void retro_set_input_poll(retro_input_poll_t cb) {
-    input_poll = cb;
-}
-
-extern "C" RETRO_API void retro_set_input_state(retro_input_state_t cb) {
-    input_state = cb;
-}
-
-extern "C" RETRO_API void retro_init() {
-    LOG_PRINT(RETRO_LOG_INFO, "mkxp-z version " MKXPZ_VERSION "/" MKXPZ_GIT_HASH "\n");
-
-    initialized = true;
 
     save_state_size = (size_t)std::strtoul(get_core_option("mkxp-z_saveStateSize"), nullptr, 10) * (size_t)0x100000;
     if (save_state_size == 0) {
@@ -1548,7 +1540,7 @@ extern "C" RETRO_API void retro_init() {
 }
 
 extern "C" RETRO_API void retro_deinit() {
-    initialized = false;
+
 }
 
 extern "C" RETRO_API unsigned int retro_api_version() {
