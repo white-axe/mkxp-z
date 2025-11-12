@@ -1536,6 +1536,8 @@ extern "C" RETRO_API void retro_set_input_state(retro_input_state_t cb) {
 }
 
 extern "C" RETRO_API void retro_init() {
+    LOG_PRINT(RETRO_LOG_INFO, "mkxp-z version " MKXPZ_VERSION "/" MKXPZ_GIT_HASH "\n");
+
     initialized = true;
 
     save_state_size = (size_t)std::strtoul(get_core_option("mkxp-z_saveStateSize"), nullptr, 10) * (size_t)0x100000;

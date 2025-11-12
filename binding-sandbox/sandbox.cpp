@@ -92,6 +92,9 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings
     wasm_ptr_t node;
     AWAIT(node = w2c_ruby_ruby_options(RB, args.size(), argv_buf));
 
+    // Print the Ruby version to the log
+    AWAIT(w2c_ruby_ruby_show_version(RB));
+
     // Start up Ruby executable node
     bool valid;
     u32 state;
