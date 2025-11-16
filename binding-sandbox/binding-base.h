@@ -199,14 +199,9 @@ namespace mkxp_sandbox {
 
     public:
 #ifdef MKXPZ_BIG_ENDIAN
-        inline sandbox_str_guard(std::string &&str) : str(str) {}
+        inline sandbox_str_guard(std::string &&str) : str(str), ptr(nullptr) {}
 #endif // MKXPZ_BIG_ENDIAN
-        inline sandbox_str_guard(const char *str) :
-#ifdef MKXPZ_BIG_ENDIAN
-            str(str), ptr(nullptr) {}
-#else
-            ptr(str) {}
-#endif // MKXPZ_BIG_ENDIAN
+        inline sandbox_str_guard(const char *str) : ptr(str) {}
         inline operator const char *() const {
 #ifdef MKXPZ_BIG_ENDIAN
             if (ptr == nullptr) {
