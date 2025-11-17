@@ -1,5 +1,7 @@
 # Configure flags are based on the ones from https://github.com/ruby/ruby.wasm
 
+.PHONY: all default clean
+
 RUBY_VERSION ?= 3.3.10
 WABT_VERSION ?= 1.0.37
 LIBYAML_VERSION ?= 0.2.5
@@ -60,6 +62,12 @@ ifneq ($(shell $(RUBY) -e 'puts "1" if Gem::Version.new("$(RUBY_VERSION)") < Gem
     RUBY_EXTS := bigdecimal,cgi/escape,continuation,coverage,date,digest/bubblebabble,digest,digest/md5,digest/rmd160,digest/sha1,digest/sha2,etc,fcntl,fiber,json,json/generator,json/parser,nkf,objspace,pathname,psych,racc/cparse,rbconfig/sizeof,ripper,stringio,strscan,monitor,zlib
 else
     RUBY_EXTS := cgi/escape,continuation,coverage,date,digest/bubblebabble,digest,digest/md5,digest/rmd160,digest/sha1,digest/sha2,etc,fcntl,json,json/generator,json/parser,objspace,pathname,psych,rbconfig/sizeof,ripper,stringio,strscan,monitor,zlib
+endif
+
+WASI_SDK_VERSION_EXPECTED := 28.0
+WASI_SDK_VERSION_ACTUAL := $(shell head -n 1 $(WASI_SDK)/VERSION)
+ifneq ($(WASI_SDK_VERSION_EXPECTED),$(WASI_SDK_VERSION_ACTUAL))
+    $(error incorrect WASI SDK version: expected `$(WASI_SDK_VERSION_EXPECTED)', got `$(WASI_SDK_VERSION_ACTUAL)')
 endif
 
 all default: ruby-dist ruby-bindings $(OUTDIR)/boost_predef/include/boost/predef.h
@@ -150,12 +158,13 @@ $(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.
 		WASMOPT=$(WASM_OPT) \
 		WASI_SDK_PATH=$(WASI_SDK) \
 		$(WASI_TOOLCHAIN) \
-		CFLAGS='-std=gnu99' \
+		CFLAGS='-std=gnu99 -Dmprotect=mkxp_sandbox_mprotect' \
 		LDFLAGS='-Wl,--export-dynamic,--stack-first,-z,stack-size=$(RUBY_STACK_SIZE) $(WASI_LDFLAGS)' \
 		XCFLAGS='-DWASM_SETJMP_STACK_BUFFER_SIZE=24576 -DWASM_FIBER_STACK_BUFFER_SIZE=24576 -DWASM_SCAN_STACK_BUFFER_SIZE=24576' \
 		cppflags='-mbulk-memory $(WASI_CXXFLAGS)' \
 		optflags='-mbulk-memory $(WASI_CFLAGS) -fno-fast-math' \
 		wasmoptflags='--enable-bulk-memory $(WASM_OPT_FLAGS) --pass-arg=asyncify-ignore-imports' \
+		ac_cv_func_realpath=no \
 		$(shell $(RUBY) -e 'puts "ac_cv_func_dlopen=no" if Gem::Version.new("$(RUBY_VERSION)") < Gem::Version.new("3.3")') \
 		$(shell $(RUBY) -e 'puts "--disable-jit-support" if Gem::Version.new("$(RUBY_VERSION)") < Gem::Version.new("3.3")') \
 		--disable-rubygems \

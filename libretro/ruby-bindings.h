@@ -175,4 +175,10 @@ MKXP_SANDBOX_API bool mkxp_sandbox_yield(void) {
     return false;
 }
 
+/* WASK SDK versions later than 21 ship a broken version of mprotect() that causes Ruby to crash on startup.
+ * This function replaces the normal mprotect() so that Ruby continues to function when using newer WASI SDK versions. */
+int mkxp_sandbox_mprotect(void *addr, size_t len, int prot) {
+    return 0;
+}
+
 #endif /* SANDBOX_RUBY_BINDINGS_H */

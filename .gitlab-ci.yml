@@ -181,7 +181,7 @@ stage1:
     - !reference [.miniforge, before_script]
     - if [ ! -e /usr/bin/grep ]; then ln -s /bin/grep /usr/bin/grep; fi
     - if [ ! -e /usr/bin/sed ]; then ln -s /bin/sed /usr/bin/sed; fi
-    - curl -Lo ~/wasi-sdk.tar.gz https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-21/wasi-sdk-21.0-linux.tar.gz
+    - curl -Lo ~/wasi-sdk.tar.gz https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-28/wasi-sdk-28.0-$(uname -m)-linux.tar.gz
     - mkdir ~/wasi-sdk
     - tar xzf ~/wasi-sdk.tar.gz -C ~/wasi-sdk --strip-components=1
     - rm ~/wasi-sdk.tar.gz
