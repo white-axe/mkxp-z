@@ -12,7 +12,7 @@ Required software:
 * [Git](https://git-scm.com)
 * [curl](https://curl.se)
 * [Info-ZIP's Zip](https://infozip.sourceforge.net/Zip.html) (the `zip` package found in many package managers)
-* [WASI SDK](https://github.com/WebAssembly/wasi-sdk) version 28
+* [WASI SDK](https://github.com/WebAssembly/wasi-sdk) version 29
 * [Binaryen](https://github.com/WebAssembly/binaryen)
 * Either [Universal Ctags](https://github.com/universal-ctags/ctags) or [Exuberant Ctags](https://ctags.sourceforge.net)
 * Ruby (any reasonably recent version)

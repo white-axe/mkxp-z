@@ -64,7 +64,7 @@ else
     RUBY_EXTS := cgi/escape,continuation,coverage,date,digest/bubblebabble,digest,digest/md5,digest/rmd160,digest/sha1,digest/sha2,etc,fcntl,json,json/generator,json/parser,objspace,pathname,psych,rbconfig/sizeof,ripper,stringio,strscan,monitor,zlib
 endif
 
-WASI_SDK_VERSION_EXPECTED := 28.0
+WASI_SDK_VERSION_EXPECTED := 29.0
 WASI_SDK_VERSION_ACTUAL := $(shell head -n 1 $(WASI_SDK)/VERSION)
 ifneq ($(WASI_SDK_VERSION_EXPECTED),$(WASI_SDK_VERSION_ACTUAL))
     $(error incorrect WASI SDK version: expected `$(WASI_SDK_VERSION_EXPECTED)', got `$(WASI_SDK_VERSION_ACTUAL)')
