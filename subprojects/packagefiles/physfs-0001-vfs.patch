@@ -183,7 +183,7 @@
      mode |= O_CLOEXEC;
  #endif
 -
-+    if (mkxp_vfs.required_interface_version >= 3) { handle = mkxp_vfs.iface->open(filename, ((mode & O_ACCMODE) == O_RDONLY || (mode & O_ACCMODE) == O_RDWR ? RETRO_VFS_FILE_ACCESS_READ : 0) | ((mode & O_ACCMODE) == O_WRONLY || (mode & O_ACCMODE) == O_RDWR ? RETRO_VFS_FILE_ACCESS_WRITE : 0) | (((mode & O_ACCMODE) == O_WRONLY || (mode & O_ACCMODE) == O_RDWR) && !(mode & O_TRUNC) ? RETRO_VFS_FILE_ACCESS_UPDATE_EXISTING : 0), RETRO_VFS_FILE_ACCESS_HINT_NONE); } else
++    if (mkxp_vfs.required_interface_version >= 3) { handle = mkxp_vfs.iface->open(filename, ((mode & O_ACCMODE) == O_RDONLY || (mode & O_ACCMODE) == O_RDWR ? RETRO_VFS_FILE_ACCESS_READ : 0) | ((mode & O_ACCMODE) == O_WRONLY || (mode & O_ACCMODE) == O_RDWR ? RETRO_VFS_FILE_ACCESS_WRITE : 0) | (((mode & O_ACCMODE) == O_WRONLY || (mode & O_ACCMODE) == O_RDWR) && !(mode & O_TRUNC) && mkxp_vfs.iface->stat(filename, NULL) & RETRO_VFS_STAT_IS_VALID ? RETRO_VFS_FILE_ACCESS_UPDATE_EXISTING : 0), RETRO_VFS_FILE_ACCESS_HINT_NONE); } else
      do {
          fd = open(filename, mode, S_IRUSR | S_IWUSR);
      } while ((fd < 0) && (errno == EINTR));
