@@ -379,6 +379,7 @@ bool wasi_instance::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_si
                 struct fs_file *handle;
                 if (existing_handle) {
                     handle = fdtable[i].file_handle();
+                    handle->streams.clear();
                 } else {
                     handle = new fs_file {{*mkxp_retro::fs, path.c_str(), is_write_open ? fdtable[root].dir_handle()->path.c_str() : nullptr, false, is_read_open, true}, {}, offset, root};
                     if ((is_read_open && !handle->file.is_read_open()) || (is_write_open && !handle->file.is_write_open())) {
@@ -402,6 +403,7 @@ bool wasi_instance::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_si
                 uint32_t root;
                 if (!::sandbox_deserialize(root, data, max_size)) return false;
                 if (root >= fdtable.size() || fdtable[root].type != wasi_fd_type::FSFILE) return false;
+                fdtable[root].file_handle()->streams.insert(i);
                 fdtable[i] = {new fs_file_stream {offset, root}, wasi_fd_type::FSFILESTREAM};
             } else {
                 return false;
