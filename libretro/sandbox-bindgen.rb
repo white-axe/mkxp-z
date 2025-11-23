@@ -40,7 +40,7 @@ ARG_HANDLERS = {
   'ID' => { keep: true, primitive: :size },
   'int' => { primitive: :s32 },
   'unsigned int' => { primitive: :u32 },
-  'long' => { primitive: :size },
+  'long' => { primitive: :ssize },
   'unsigned long' => { primitive: :size },
   'long long' => { primitive: :s64 },
   'unsigned long long' => { primitive: :u64 },
@@ -519,14 +519,14 @@ File.readlines('tags', chomp: true).each do |line|
     when 'rb_funcall'
       coroutine_initializer += <<~HEREDOC
         {
-            wasm_ptr_t fp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance());
+            wasm_ptr_t fp = w2c_#{MODULE_NAME}_rb_wasm_get_stack_pointer(&bind.instance());
             wasm_ptr_t sp = fp - CEIL_WASMSTACKALIGN(a#{args.length - 2} * sizeof(VALUE));
             if (sp > fp) {
                 MKXPZ_THROW(std::bad_alloc());
             }
             _SBINDGEN_SLOT(#{num_slots}) = sp;
             _SBINDGEN_SLOT(#{num_slots + 1}) = fp;
-            w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), sp);
+            w2c_#{MODULE_NAME}_rb_wasm_set_stack_pointer(&bind.instance(), sp);
             std::va_list a;
             va_start(a, a#{args.length - 2});
             for (long i = 0; i < a#{args.length - 2}; ++i) {
@@ -546,14 +546,14 @@ File.readlines('tags', chomp: true).each do |line|
             wasm_size_t n = 0;
             do ++n; while (va_arg(b, VALUE));
             va_end(b);
-            wasm_ptr_t fp = w2c_ruby_rb_wasm_get_stack_pointer(&bind.instance());
+            wasm_ptr_t fp = w2c_#{MODULE_NAME}_rb_wasm_get_stack_pointer(&bind.instance());
             wasm_ptr_t sp = fp - CEIL_WASMSTACKALIGN(n * sizeof(VALUE));
             if (sp > fp) {
                 MKXPZ_THROW(std::bad_alloc());
             }
             _SBINDGEN_SLOT(#{num_slots}) = sp;
             _SBINDGEN_SLOT(#{num_slots + 1}) = fp;
-            w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), sp);
+            w2c_#{MODULE_NAME}_rb_wasm_set_stack_pointer(&bind.instance(), sp);
             for (wasm_size_t i = 0; i < n; ++i) {
                 bind.ref<VALUE>(sp, i) = va_arg(a, VALUE);
             }
@@ -631,7 +631,7 @@ File.readlines('tags', chomp: true).each do |line|
         arg = args[i]
         if arg == '...'
           num_slots -= 2
-          "    if (_SBINDGEN_SLOT(#{num_slots + 1}) != 0) w2c_ruby_rb_wasm_set_stack_pointer(&bind.instance(), _SBINDGEN_SLOT(#{num_slots + 1}));"
+          "    if (_SBINDGEN_SLOT(#{num_slots + 1}) != 0) w2c_#{MODULE_NAME}_rb_wasm_set_stack_pointer(&bind.instance(), _SBINDGEN_SLOT(#{num_slots + 1}));"
         elsif transformed_args.include?(i)
           num_slots -= 1
           "    if (_SBINDGEN_SLOT(#{num_slots}) != 0) bind.sandbox_free(_SBINDGEN_SLOT(#{num_slots}));"
