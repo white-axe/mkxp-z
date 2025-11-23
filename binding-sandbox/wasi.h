@@ -22,141 +22,252 @@
 #ifndef MKXPZ_SANDBOX_WASI_H
 #define MKXPZ_SANDBOX_WASI_H
 
+#include <deque>
 #include <memory>
 #include <string>
 #include <vector>
 #include <priority_deque.hpp>
+#include <unordered_set>
 #include "filesystem.h"
 #include "wasm-types.h"
 #include "binding-base.h"
 
-// WASI error numbers
-#define WASI_ESUCCESS 0 // No error occurred. System call completed successfully.
-#define WASI_E2BIG 1 // Argument list too long.
-#define WASI_EACCES 2 // Permission denied.
-#define WASI_EADDRINUSE 3 // Address in use.
-#define WASI_EADDRNOTAVAIL 4 // Address not available.
-#define WASI_EAFNOSUPPORT 5 // Address family not supported.
-#define WASI_EAGAIN 6 // Resource unavailable, or operation would block.
-#define WASI_EALREADY 7 // Connection already in progress.
-#define WASI_EBADF 8 // Bad file descriptor.
-#define WASI_EBADMSG 9 // Bad message.
-#define WASI_EBUSY 10 // Device or resource busy.
-#define WASI_ECANCELED 11 // Operation canceled.
-#define WASI_ECHILD 12 // No child processes.
-#define WASI_ECONNABORTED 13 // Connection aborted.
-#define WASI_ECONNREFUSED 14 // Connection refused.
-#define WASI_ECONNRESET 15 // Connection reset.
-#define WASI_EDEADLK 16 // Resource deadlock would occur.
-#define WASI_EDESTADDRREQ 17 // Destination address required.
-#define WASI_EDOM 18 // Mathematics argument out of domain of function.
-#define WASI_EDQUOT 19 // Reserved.
-#define WASI_EEXIST 20 // File exists.
-#define WASI_EFAULT 21 // Bad address.
-#define WASI_EFBIG 22 // File too large.
-#define WASI_EHOSTUNREACH 23 // Host is unreachable.
-#define WASI_EIDRM 24 // Identifier removed.
-#define WASI_EILSEQ 25 // Illegal byte sequence.
-#define WASI_EINPROGRESS 26 // Operation in progress.
-#define WASI_EINTR 27 // Interrupted function.
-#define WASI_EINVAL 28 // Invalid argument.
-#define WASI_EIO 29 // I/O error.
-#define WASI_EISCONN 30 // Socket is connected.
-#define WASI_EISDIR 31 // Is a directory.
-#define WASI_ELOOP 32 // Too many levels of symbolic links.
-#define WASI_EMFILE 33 // File descriptor value too large.
-#define WASI_EMLINK 34 // Too many links.
-#define WASI_EMSGSIZE 35 // Message too large.
-#define WASI_EMULTIHOP 36 // Reserved.
-#define WASI_ENAMETOOLONG 37 // Filename too long.
-#define WASI_ENETDOWN 38 // Network is down.
-#define WASI_ENETRESET 39 // Connection aborted by network.
-#define WASI_ENETUNREACH 40 // Network unreachable.
-#define WASI_ENFILE 41 // Too many files open in system.
-#define WASI_ENOBUFS 42 // No buffer space available.
-#define WASI_ENODEV 43 // No such device.
-#define WASI_ENOENT 44 // No such file or directory.
-#define WASI_ENOEXEC 45 // Executable file format error.
-#define WASI_ENOLCK 46 // No locks available.
-#define WASI_ENOLINK 47 // Reserved.
-#define WASI_ENOMEM 48 // Not enough space.
-#define WASI_ENOMSG 49 // No message of the desired type.
-#define WASI_ENOPROTOOPT 50 // Protocol not available.
-#define WASI_ENOSPC 51 // No space left on device.
-#define WASI_ENOSYS 52 // Function not supported.
-#define WASI_ENOTCONN 53 // The socket is not connected.
-#define WASI_ENOTDIR 54 // Not a directory or a symbolic link to a directory.
-#define WASI_ENOTEMPTY 55 // Directory not empty.
-#define WASI_ENOTRECOVERABLE 56 // State not recoverable.
-#define WASI_ENOTSOCK 57 // Not a socket.
-#define WASI_ENOTSUP 58 // Not supported, or operation not supported on socket.
-#define WASI_ENOSTDIO 59 // Inappropriate I/O control operation.
-#define WASI_ENXIO 60 // No such device or address.
-#define WASI_EOVERFLOW 61 // Value too large to be stored in data type.
-#define WASI_EOWNERDEAD 62 // Previous owner died.
-#define WASI_EPERM 63 // Operation not permitted.
-#define WASI_EPIPE 64 // Broken pipe.
-#define WASI_EPROTO 65 // Protocol error.
-#define WASI_EPROTONOSUPPORT 66 // Protocol not supported.
-#define WASI_EPROTOTYPE 67 // Protocol wrong type for socket.
-#define WASI_ERANGE 68 // Result too large.
-#define WASI_EROFS 69 // Read-only file system.
-#define WASI_ESPIPE 70 // Invalid seek.
-#define WASI_ESRCH 71 // No such process.
-#define WASI_ESTALE 72 // Reserved.
-#define WASI_ETIMEDOUT 73 // Connection timed out.
-#define WASI_ETXTBSY 74 // Text file busy.
-#define WASI_EXDEV 75 // Cross-device link.
-#define WASI_ENOTCAPABLE 76 // Extension: Capabilities insufficient.
+// WASI Preview 1 error numbers
+#define WASIP1_ESUCCESS 0 // No error occurred. System call completed successfully.
+#define WASIP1_E2BIG 1 // Argument list too long.
+#define WASIP1_EACCES 2 // Permission denied.
+#define WASIP1_EADDRINUSE 3 // Address in use.
+#define WASIP1_EADDRNOTAVAIL 4 // Address not available.
+#define WASIP1_EAFNOSUPPORT 5 // Address family not supported.
+#define WASIP1_EAGAIN 6 // Resource unavailable, or operation would block.
+#define WASIP1_EALREADY 7 // Connection already in progress.
+#define WASIP1_EBADF 8 // Bad file descriptor.
+#define WASIP1_EBADMSG 9 // Bad message.
+#define WASIP1_EBUSY 10 // Device or resource busy.
+#define WASIP1_ECANCELED 11 // Operation canceled.
+#define WASIP1_ECHILD 12 // No child processes.
+#define WASIP1_ECONNABORTED 13 // Connection aborted.
+#define WASIP1_ECONNREFUSED 14 // Connection refused.
+#define WASIP1_ECONNRESET 15 // Connection reset.
+#define WASIP1_EDEADLK 16 // Resource deadlock would occur.
+#define WASIP1_EDESTADDRREQ 17 // Destination address required.
+#define WASIP1_EDOM 18 // Mathematics argument out of domain of function.
+#define WASIP1_EDQUOT 19 // Reserved.
+#define WASIP1_EEXIST 20 // File exists.
+#define WASIP1_EFAULT 21 // Bad address.
+#define WASIP1_EFBIG 22 // File too large.
+#define WASIP1_EHOSTUNREACH 23 // Host is unreachable.
+#define WASIP1_EIDRM 24 // Identifier removed.
+#define WASIP1_EILSEQ 25 // Illegal byte sequence.
+#define WASIP1_EINPROGRESS 26 // Operation in progress.
+#define WASIP1_EINTR 27 // Interrupted function.
+#define WASIP1_EINVAL 28 // Invalid argument.
+#define WASIP1_EIO 29 // I/O error.
+#define WASIP1_EISCONN 30 // Socket is connected.
+#define WASIP1_EISDIR 31 // Is a directory.
+#define WASIP1_ELOOP 32 // Too many levels of symbolic links.
+#define WASIP1_EMFILE 33 // File descriptor value too large.
+#define WASIP1_EMLINK 34 // Too many links.
+#define WASIP1_EMSGSIZE 35 // Message too large.
+#define WASIP1_EMULTIHOP 36 // Reserved.
+#define WASIP1_ENAMETOOLONG 37 // Filename too long.
+#define WASIP1_ENETDOWN 38 // Network is down.
+#define WASIP1_ENETRESET 39 // Connection aborted by network.
+#define WASIP1_ENETUNREACH 40 // Network unreachable.
+#define WASIP1_ENFILE 41 // Too many files open in system.
+#define WASIP1_ENOBUFS 42 // No buffer space available.
+#define WASIP1_ENODEV 43 // No such device.
+#define WASIP1_ENOENT 44 // No such file or directory.
+#define WASIP1_ENOEXEC 45 // Executable file format error.
+#define WASIP1_ENOLCK 46 // No locks available.
+#define WASIP1_ENOLINK 47 // Reserved.
+#define WASIP1_ENOMEM 48 // Not enough space.
+#define WASIP1_ENOMSG 49 // No message of the desired type.
+#define WASIP1_ENOPROTOOPT 50 // Protocol not available.
+#define WASIP1_ENOSPC 51 // No space left on device.
+#define WASIP1_ENOSYS 52 // Function not supported.
+#define WASIP1_ENOTCONN 53 // The socket is not connected.
+#define WASIP1_ENOTDIR 54 // Not a directory or a symbolic link to a directory.
+#define WASIP1_ENOTEMPTY 55 // Directory not empty.
+#define WASIP1_ENOTRECOVERABLE 56 // State not recoverable.
+#define WASIP1_ENOTSOCK 57 // Not a socket.
+#define WASIP1_ENOTSUP 58 // Not supported, or operation not supported on socket.
+#define WASIP1_ENOSTDIO 59 // Inappropriate I/O control operation.
+#define WASIP1_ENXIO 60 // No such device or address.
+#define WASIP1_EOVERFLOW 61 // Value too large to be stored in data type.
+#define WASIP1_EOWNERDEAD 62 // Previous owner died.
+#define WASIP1_EPERM 63 // Operation not permitted.
+#define WASIP1_EPIPE 64 // Broken pipe.
+#define WASIP1_EPROTO 65 // Protocol error.
+#define WASIP1_EPROTONOSUPPORT 66 // Protocol not supported.
+#define WASIP1_EPROTOTYPE 67 // Protocol wrong type for socket.
+#define WASIP1_ERANGE 68 // Result too large.
+#define WASIP1_EROFS 69 // Read-only file system.
+#define WASIP1_ESPIPE 70 // Invalid seek.
+#define WASIP1_ESRCH 71 // No such process.
+#define WASIP1_ESTALE 72 // Reserved.
+#define WASIP1_ETIMEDOUT 73 // Connection timed out.
+#define WASIP1_ETXTBSY 74 // Text file busy.
+#define WASIP1_EXDEV 75 // Cross-device link.
+#define WASIP1_ENOTCAPABLE 76 // Extension: Capabilities insufficient.
 
-// WASI file types
-#define WASI_IFUNK 0 // Unknown
-#define WASI_IFBLK 1 // Block device
-#define WASI_IFCHR 2 // Character device
-#define WASI_IFDIR 3 // Directory
-#define WASI_IFREG 4 // Regular file
-#define WASI_IFSOCKD 5 // Datagram socket
-#define WASI_IFSOCKS 6 // Stream socket
-#define WASI_IFLNK 7 // Symbolic link
+// WASI Preview 1 file types
+#define WASIP1_IFUNK 0 // Unknown
+#define WASIP1_IFBLK 1 // Block device
+#define WASIP1_IFCHR 2 // Character device
+#define WASIP1_IFDIR 3 // Directory
+#define WASIP1_IFREG 4 // Regular file
+#define WASIP1_IFSOCKD 5 // Datagram socket
+#define WASIP1_IFSOCKS 6 // Stream socket
+#define WASIP1_IFLNK 7 // Symbolic link
 
-// WASI file flags
-#define WASI_APPEND (1 << 0)
-#define WASI_DSYNC (1 << 1)
-#define WASI_NONBLOCK (1 << 2)
-#define WASI_RSYNC (1 << 3)
-#define WASI_SYNC (1 << 4)
+// WASI Preview 1 file flags
+#define WASIP1_APPEND (1 << 0)
+#define WASIP1_DSYNC (1 << 1)
+#define WASIP1_NONBLOCK (1 << 2)
+#define WASIP1_RSYNC (1 << 3)
+#define WASIP1_SYNC (1 << 4)
 
-// WASI rights flags
-#define WASI_FD_DATASYNC (1 << 0)
-#define WASI_FD_READ (1 << 1)
-#define WASI_FD_SEEK (1 << 2)
-#define WASI_FD_FDSTAT_SET_FLAGS (1 << 3)
-#define WASI_FD_SYNC (1 << 4)
-#define WASI_FD_TELL (1 << 5)
-#define WASI_FD_WRITE (1 << 6)
-#define WASI_FD_ADVISE (1 << 7)
-#define WASI_FD_ALLOCATE (1 << 8)
-#define WASI_PATH_CREATE_DIRECTORY (1 << 9)
-#define WASI_PATH_CREATE_FILE (1 << 10)
-#define WASI_PATH_LINK_SOURCE (1 << 11)
-#define WASI_PATH_LINK_TARGET (1 << 12)
-#define WASI_PATH_OPEN (1 << 13)
-#define WASI_FD_READDIR (1 << 14)
-#define WASI_PATH_READLINK (1 << 15)
-#define WASI_PATH_RENAME_SOURCE (1 << 16)
-#define WASI_PATH_RENAME_TARGET (1 << 17)
-#define WASI_PATH_FILESTAT_GET (1 << 18)
-#define WASI_PATH_FILESTAT_SET_SIZE (1 << 19)
-#define WASI_PATH_FILESTAT_SET_TIMES (1 << 20)
-#define WASI_FD_FILESTAT_GET (1 << 21)
-#define WASI_FD_FILESTAT_SET_SIZE (1 << 22)
-#define WASI_FD_FILESTAT_SET_TIMES (1 << 23)
-#define WASI_PATH_SYMLINK (1 << 24)
-#define WASI_PATH_REMOVE_DIRECTORY (1 << 25)
-#define WASI_PATH_UNLINK_FILE (1 << 26)
-#define WASI_POLL_FD_READWRITE (1 << 27)
-#define WASI_SOCK_SHUTDOWN (1 << 28)
-#define WASI_SOCK_ACCEPT (1 << 29)
+// WASI Preview 1 rights flags
+#define WASIP1_FD_DATASYNC (1 << 0)
+#define WASIP1_FD_READ (1 << 1)
+#define WASIP1_FD_SEEK (1 << 2)
+#define WASIP1_FD_FDSTAT_SET_FLAGS (1 << 3)
+#define WASIP1_FD_SYNC (1 << 4)
+#define WASIP1_FD_TELL (1 << 5)
+#define WASIP1_FD_WRITE (1 << 6)
+#define WASIP1_FD_ADVISE (1 << 7)
+#define WASIP1_FD_ALLOCATE (1 << 8)
+#define WASIP1_PATH_CREATE_DIRECTORY (1 << 9)
+#define WASIP1_PATH_CREATE_FILE (1 << 10)
+#define WASIP1_PATH_LINK_SOURCE (1 << 11)
+#define WASIP1_PATH_LINK_TARGET (1 << 12)
+#define WASIP1_PATH_OPEN (1 << 13)
+#define WASIP1_FD_READDIR (1 << 14)
+#define WASIP1_PATH_READLINK (1 << 15)
+#define WASIP1_PATH_RENAME_SOURCE (1 << 16)
+#define WASIP1_PATH_RENAME_TARGET (1 << 17)
+#define WASIP1_PATH_FILESTAT_GET (1 << 18)
+#define WASIP1_PATH_FILESTAT_SET_SIZE (1 << 19)
+#define WASIP1_PATH_FILESTAT_SET_TIMES (1 << 20)
+#define WASIP1_FD_FILESTAT_GET (1 << 21)
+#define WASIP1_FD_FILESTAT_SET_SIZE (1 << 22)
+#define WASIP1_FD_FILESTAT_SET_TIMES (1 << 23)
+#define WASIP1_PATH_SYMLINK (1 << 24)
+#define WASIP1_PATH_REMOVE_DIRECTORY (1 << 25)
+#define WASIP1_PATH_UNLINK_FILE (1 << 26)
+#define WASIP1_POLL_FD_READWRITE (1 << 27)
+#define WASIP1_SOCK_SHUTDOWN (1 << 28)
+#define WASIP1_SOCK_ACCEPT (1 << 29)
+
+// WASI Preview 2 filesystem descriptor types
+#define WASI_FILESYSTEM_DESCRIPTOR_TYPE_UNKNOWN 0 // The type of the descriptor or file is unknown or is different from any of the other types specified.
+#define WASI_FILESYSTEM_DESCRIPTOR_TYPE_BLOCK_DEVICE 1 // The descriptor refers to a block device inode.
+#define WASI_FILESYSTEM_DESCRIPTOR_TYPE_CHARACTER_DEVICE 2 // The descriptor refers to a character device inode.
+#define WASI_FILESYSTEM_DESCRIPTOR_TYPE_DIRECTORY 3 // The descriptor refers to a directory inode.
+#define WASI_FILESYSTEM_DESCRIPTOR_TYPE_FIFO 4 // The descriptor refers to a named pipe.
+#define WASI_FILESYSTEM_DESCRIPTOR_TYPE_SYMBOLIC_LINK 5 // The file refers to a symbolic link inode.
+#define WASI_FILESYSTEM_DESCRIPTOR_TYPE_REGULAR_FILE 6 // The descriptor refers to a regular file inode.
+#define WASI_FILESYSTEM_DESCRIPTOR_TYPE_SOCKET 7 // The descriptor refers to a socket.
+
+// WASI Preview 2 filesystem descriptor flags
+
+// Read mode: Data can be read.
+#define WASI_FILESYSTEM_DESCRIPTOR_READ (1 << 0)
+// Write mode: Data can be written to.
+#define WASI_FILESYSTEM_DESCRIPTOR_WRITE (1 << 1)
+// Request that writes be performed according to synchronized I/O file
+// integrity completion. The data stored in the file and the file's
+// metadata are synchronized. This is similar to `O_SYNC` in POSIX.
+//
+// The precise semantics of this operation have not yet been defined for
+// WASI. At this time, it should be interpreted as a request, and not a
+// requirement.
+#define WASI_FILESYSTEM_DESCRIPTOR_FILE_INTEGRITY_SYNC (1 << 2)
+// Request that writes be performed according to synchronized I/O data
+// integrity completion. Only the data stored in the file is
+// synchronized. This is similar to `O_DSYNC` in POSIX.
+//
+// The precise semantics of this operation have not yet been defined for
+// WASI. At this time, it should be interpreted as a request, and not a
+// requirement.
+#define WASI_FILESYSTEM_DESCRIPTOR_DATA_INTEGRITY_SYNC (1 << 3)
+// Requests that reads be performed at the same level of integrety
+// requested for writes. This is similar to `O_RSYNC` in POSIX.
+//
+// The precise semantics of this operation have not yet been defined for
+// WASI. At this time, it should be interpreted as a request, and not a
+// requirement.
+#define WASI_FILESYSTEM_DESCRIPTOR_REQUESTED_WRITE_SYNC (1 << 4)
+// Mutating directories mode: Directory contents may be mutated.
+//
+// When this flag is unset on a descriptor, operations using the
+// descriptor which would create, rename, delete, modify the data or
+// metadata of filesystem objects, or obtain another handle which
+// would permit any of those, shall fail with `error-code::read-only` if
+// they would otherwise succeed.
+//
+// This may only be set on directories.
+#define WASI_FILESYSTEM_DESCRIPTOR_MUTATE_DIRECTORY (1 << 5)
+
+// WASI Preview 2 filesystem open flags
+#define WASI_FILESYSTEM_OPEN_CREATE (1 << 0) // Create file if it does not exist, similar to `O_CREAT` in POSIX.
+#define WASI_FILESYSTEM_OPEN_DIRECTORY (1 << 1) // Fail if not a directory, similar to `O_DIRECTORY` in POSIX.
+#define WASI_FILESYSTEM_OPEN_EXCLUSIVE (1 << 2) // Fail if file already exists, similar to `O_EXCL` in POSIX.
+#define WASI_FILESYSTEM_OPEN_TRUNCATE (1 << 3) // Truncate file to size 0, similar to `O_TRUNC` in POSIX.
+
+// WASI Preview 2 filesystem error codes
+#define WASI_FILESYSTEM_ERROR_ACCESS 0 // Permission denied, similar to `EACCES` in POSIX.
+#define WASI_FILESYSTEM_ERROR_WOULD_BLOCK 1 // Resource unavailable, or operation would block, similar to `EAGAIN` and `EWOULDBLOCK` in POSIX.
+#define WASI_FILESYSTEM_ERROR_ALREADY 2 // Connection already in progress, similar to `EALREADY` in POSIX.
+#define WASI_FILESYSTEM_ERROR_BAD_DESCRIPTOR 3 // Bad descriptor, similar to `EBADF` in POSIX.
+#define WASI_FILESYSTEM_ERROR_BUSY 4 // Device or resource busy, similar to `EBUSY` in POSIX.
+#define WASI_FILESYSTEM_ERROR_DEADLOCK 5 // Resource deadlock would occur, similar to `EDEADLK` in POSIX.
+#define WASI_FILESYSTEM_ERROR_QUOTA 6 // Storage quota exceeded, similar to `EDQUOT` in POSIX.
+#define WASI_FILESYSTEM_ERROR_EXIST 7 // File exists, similar to `EEXIST` in POSIX.
+#define WASI_FILESYSTEM_ERROR_FILE_TOO_LARGE 8 // File too large, similar to `EFBIG` in POSIX.
+#define WASI_FILESYSTEM_ERROR_ILLEGAL_BYTE_SEQUENCE 9 // Illegal byte sequence, similar to `EILSEQ` in POSIX.
+#define WASI_FILESYSTEM_ERROR_IN_PROGRESS 10 // Operation in progress, similar to `EINPROGRESS` in POSIX.
+#define WASI_FILESYSTEM_ERROR_INTERRUPTED 11 // Interrupted function, similar to `EINTR` in POSIX.
+#define WASI_FILESYSTEM_ERROR_INVALID 12 // Invalid argument, similar to `EINVAL` in POSIX.
+#define WASI_FILESYSTEM_ERROR_IO 13 // I/O error, similar to `EIO` in POSIX.
+#define WASI_FILESYSTEM_ERROR_IS_DIRECTORY 14 // Is a directory, similar to `EISDIR` in POSIX.
+#define WASI_FILESYSTEM_ERROR_LOOP 15 // Too many levels of symbolic links, similar to `ELOOP` in POSIX.
+#define WASI_FILESYSTEM_ERROR_TOO_MANY_LINKS 16 // Too many links, similar to `EMLINK` in POSIX.
+#define WASI_FILESYSTEM_ERROR_MESSAGE_SIZE 17 // Message too large, similar to `EMSGSIZE` in POSIX.
+#define WASI_FILESYSTEM_ERROR_NAME_TOO_LONG 18 // Filename too long, similar to `ENAMETOOLONG` in POSIX.
+#define WASI_FILESYSTEM_ERROR_NO_DEVICE 19 // No such device, similar to `ENODEV` in POSIX.
+#define WASI_FILESYSTEM_ERROR_NO_ENTRY 20 // No such file or directory, similar to `ENOENT` in POSIX.
+#define WASI_FILESYSTEM_ERROR_NO_LOCK 21 // No locks available, similar to `ENOLCK` in POSIX.
+#define WASI_FILESYSTEM_ERROR_INSUFFICIENT_MEMORY 22 // Not enough space, similar to `ENOMEM` in POSIX.
+#define WASI_FILESYSTEM_ERROR_INSUFFICIENT_SPACE 23 // No space left on device, similar to `ENOSPC` in POSIX.
+#define WASI_FILESYSTEM_ERROR_NOT_DIRECTORY 24 // Not a directory or a symbolic link to a directory, similar to `ENOTDIR` in POSIX.
+#define WASI_FILESYSTEM_ERROR_NOT_EMPTY 25 // Directory not empty, similar to `ENOTEMPTY` in POSIX.
+#define WASI_FILESYSTEM_ERROR_NOT_RECOVERABLE 26 // State not recoverable, similar to `ENOTRECOVERABLE` in POSIX.
+#define WASI_FILESYSTEM_ERROR_UNSUPPORTED 27 // Not supported, similar to `ENOTSUP` and `ENOSYS` in POSIX.
+#define WASI_FILESYSTEM_ERROR_NO_TTY 28 // Inappropriate I/O control operation, similar to `ENOTTY` in POSIX.
+#define WASI_FILESYSTEM_ERROR_NO_SUCH_DEVICE 29 // No such device or address, similar to `ENXIO` in POSIX.
+#define WASI_FILESYSTEM_ERROR_OVERFLOW 30 // Value too large to be stored in data type, similar to `EOVERFLOW` in POSIX.
+#define WASI_FILESYSTEM_ERROR_NOT_PERMITTED 31 // Operation not permitted, similar to `EPERM` in POSIX.
+#define WASI_FILESYSTEM_ERROR_PIPE 32 // Broken pipe, similar to `EPIPE` in POSIX.
+#define WASI_FILESYSTEM_ERROR_READ_ONLY 33 // Read-only file system, similar to `EROFS` in POSIX.
+#define WASI_FILESYSTEM_ERROR_INVALID_SEEK 34 // Invalid seek, similar to `ESPIPE` in POSIX.
+#define WASI_FILESYSTEM_ERROR_TEXT_FILE_BUSY 35 // Text file busy, similar to `ETXTBSY` in POSIX.
+#define WASI_FILESYSTEM_ERROR_CROSS_DEVICE 36 // Cross-device link, similar to `EXDEV` in POSIX.
+
+// WASI Preview 2 stream errors
+
+// The last operation (a write or flush) failed before completion.
+//
+// More information is available in the `error` payload.
+//
+// After this, the stream will be closed. All future operations return
+// `stream-error::closed`.
+#define WASI_STREAMS_ERROR_LAST_OPERATION_FAILED 0
+// The stream is closed: no more input will be accepted by the
+// stream. A closed output-stream will return this error on all
+// future operations.
+#define WASI_STREAMS_ERROR_CLOSED 1
 
 typedef std::pair<uint32_t, std::string> path_cache_entry_t;
 
@@ -168,9 +279,18 @@ struct fs_dir {
 
 struct fs_file {
     struct FileSystem::File file;
+    std::unordered_set<uint32_t> streams; // Set of all FSFILESTREAM file descriptors that refer to this file.
+    uint64_t offset; // The seek position of this file.
     uint32_t root; // The file descriptor of the preopened directory that contains this file.
-    bool needs_read_seek; // If this is true, then the read handle needs to be seeked to the same position as the write handle before performing any operations involving the read handle's position.
-    bool needs_write_seek; // If this is true, then the write handle needs to be seeked to the same position as the read handle before performing any operations involving the write handle's position.
+};
+
+struct fs_dir_stream {
+    std::deque<std::pair<std::string, enum PHYSFS_FileType>> entries; // List of remaining directory entries.
+};
+
+struct fs_file_stream {
+    uint64_t offset; // The seek position of this stream.
+    uint32_t root; // If this is nonzero, the stream is open and backed by the FSFILE with this file descriptor. If this is zero, the stream is closed. The stream will auto-close when the backing file is closed.
 };
 
 enum wasi_fd_type {
@@ -179,7 +299,9 @@ enum wasi_fd_type {
     STDERR, // This file descriptor is standard error. The `handle` field is null.
     FS, // This file descriptor is a preopened directory handled by PhysFS. The `handle` field is a `struct fs_dir *`.
     FSDIR, // This file descriptor is a directory handled by PhysFS. The `handle` field is a `struct fs_dir *`.
+    FSDIRSTREAM, // This file descriptor is a directory stream for listing the entries in a directory. The `handle` field is a `struct fs_dir_stream *`.
     FSFILE, // This file descriptor is a file handled by PhysFS. The `handle` field is a `struct fs_file *`.
+    FSFILESTREAM, // This file descriptor is a file stream backed by a FSFILE. The `handle` field is a `struct fs_file_stream *`.
     VACANT, // Indicates this is a vacant file descriptor that doesn't correspond to a file. The `handle` field is null.
 };
 
@@ -190,24 +312,28 @@ struct wasi_file_entry {
     wasi_fd_type type;
 
     struct fs_dir *dir_handle() const noexcept;
+    struct fs_dir_stream *dir_stream() const noexcept;
     struct fs_file *file_handle() const noexcept;
+    struct fs_file_stream *file_stream() const noexcept;
 };
 
-typedef struct w2c_wasi__snapshot__preview1 {
+struct wasi_instance {
     std::shared_ptr<struct w2c_ruby> ruby;
 
     // WASI file descriptor table. Maps WASI file descriptors (unsigned 32-bit integers) to file handles.
-    std::vector<wasi_file_entry> fdtable;
+    std::vector<struct wasi_file_entry> fdtable;
 
     // List of vacant WASI file descriptors so that we can reallocate vacant WASI file descriptors quickly.
     boost::container::priority_deque<uint32_t> vacant_fds;
+
+    uint64_t monotonic_clock_start_time;
 
     uint64_t prng_state;
     uint8_t prng_buffer[4];
     uint32_t prng_buffer_size;
 
-    w2c_wasi__snapshot__preview1(std::shared_ptr<struct w2c_ruby> ruby);
-    ~w2c_wasi__snapshot__preview1();
+    wasi_instance(std::shared_ptr<struct w2c_ruby> ruby);
+    ~wasi_instance();
     uint32_t allocate_file_descriptor(enum wasi_fd_type type, void *handle = nullptr);
     void deallocate_file_descriptor(uint32_t fd);
 
@@ -256,9 +382,39 @@ typedef struct w2c_wasi__snapshot__preview1 {
         mkxp_sandbox::sandbox_arycpy(*ruby, dst_address, src, num_elements);
     }
 
+    // Uses `cabi_realloc()` from the Canonical ABI (see https://github.com/WebAssembly/component-model/blob/main/design/mvp/CanonicalABI.md)
+    // to allocate a given amount of memory suitable for storing objects of the given type,
+    // which is required to implement WASI functions in WASI Preview 2 and later that return a variable-length list or a string.
+    // `cabi_realloc()` traps if allocation fails, so this will always return a valid pointer.
+    template <typename T> mkxp_sandbox::wasm_ptr_t cabi_alloc(mkxp_sandbox::wasm_size_t size_in_bytes) const noexcept {
+        return cabi_alloc_impl(sizeof(T), size_in_bytes);
+    }
+
     bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
 
     bool sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size);
-} wasi_t;
+
+private:
+    mkxp_sandbox::wasm_ptr_t cabi_alloc_impl(mkxp_sandbox::wasm_size_t alignment, mkxp_sandbox::wasm_size_t size) const noexcept;
+};
+
+struct w2c_wasi__snapshot__preview1 : wasi_instance {};
+struct w2c_wasi0x3Acli0x2Fenvironment0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Acli0x2Fexit0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Acli0x2Fstderr0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Acli0x2Fstdin0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Acli0x2Fstdout0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Acli0x2Fterminal0x2Dinput0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Acli0x2Fterminal0x2Doutput0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Acli0x2Fterminal0x2Dstderr0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Acli0x2Fterminal0x2Dstdin0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Acli0x2Fterminal0x2Dstdout0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Aclocks0x2Fmonotonic0x2Dclock0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Aclocks0x2Fwall0x2Dclock0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Afilesystem0x2Fpreopens0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Aio0x2Fpoll0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Arandom0x2Frandom0x4000x2E20x2E0 : wasi_instance {};
 
 #endif /* MKXPZ_SANDBOX_WASI_H */

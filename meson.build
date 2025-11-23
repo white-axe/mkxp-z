@@ -60,6 +60,8 @@ have_std_thread = true
 have_pthread_thread = true
 
 if is_libretro
+    libretro_stage1_path = get_option('libretro_stage1_path')
+
     global_args += '-DMKXPZ_RETRO'
     # https://github.com/android/ndk/issues/442
     if host_system == 'android' and sizeof['void*'] == 4 and android_api_level < 24
@@ -71,6 +73,18 @@ if is_libretro
     if not get_option('libretro_save_states')
         global_args += '-DMKXPZ_RETRO_NO_SAVE_STATES'
     endif
+
+    wasi_target = import('fs').read(libretro_stage1_path / 'ruby/mkxp-sandbox-ruby-target.txt').strip()
+    if wasi_target.endswith('-wasip1') or wasi_target.endswith('-wasip1-threads') or wasi_target.endswith('-wasi') or wasi_target.endswith('-wasi-threads')
+        global_args += '-DMKXPZ_WASI_VERSION_MAJOR=0'
+        global_args += '-DMKXPZ_WASI_VERSION_MINOR=1'
+    elif wasi_target.endswith('-wasip2')
+        global_args += '-DMKXPZ_WASI_VERSION_MAJOR=0'
+        global_args += '-DMKXPZ_WASI_VERSION_MINOR=2'
+    else
+        error('Unrecognized WASI target "' + wasi_target + '".')
+    endif
+    message('WASI target: "' + wasi_target + '"')
 else
     global_args += '-DHAVE_NANOSLEEP'
 endif
@@ -667,8 +681,6 @@ global_dependencies += declare_dependency(
 )
 
 if is_libretro
-    libretro_stage1_path = get_option('libretro_stage1_path')
-
     libretro_ruby_sources = []
     foreach i : range(import('fs').read(libretro_stage1_path / 'ruby/mkxp-sandbox-ruby-num-outputs.txt').to_int())
         libretro_ruby_sources += libretro_stage1_path / 'ruby/mkxp-sandbox-ruby_@0@.c'.format(i)

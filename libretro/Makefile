@@ -8,7 +8,7 @@ LIBYAML_VERSION ?= 0.2.5
 ZLIB_VERSION ?= 1.3.1
 PICOSHA2_VERSION ?= 27fcf6979298949e8a462e16d09a0351c18fcaf2
 BOOST_VERSION ?= 1.89.0
-TARGET ?= wasm32-wasip1
+TARGET ?= wasm32-wasip2
 WASI_SDK ?= /opt/wasi-sdk
 WASM_OPT ?= wasm-opt
 CTAGS ?= ctags
@@ -72,7 +72,7 @@ endif
 
 all default: ruby-dist ruby-bindings $(OUTDIR)/boost_predef/include/boost/predef.h
 
-ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt
+ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt
 
 ruby-bindings: $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.h
 
@@ -91,9 +91,10 @@ clean-ruby-bindings:
 
 # Ruby (targets WASI)
 
-$(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt &: $(WASM2C) $(LIBDIR)/Dist/bin/ruby
+$(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt &: $(WASM2C) $(LIBDIR)/Dist/bin/ruby
 	mkdir -p $(OUTDIR)/ruby
-	echo "$(RUBY_NUM_OUTPUTS)" > $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt
+	echo '$(RUBY_NUM_OUTPUTS)' > $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt
+	echo '$(TARGET)' > $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt
 	$(WASM2C) $(LIBDIR)/Dist/bin/ruby -n ruby --num-outputs=$(RUBY_NUM_OUTPUTS) -o $(OUTDIR)/ruby/mkxp-sandbox-ruby.c
 	# Find all the function types declared using `FUNC_TYPE_DECL_EXTERN_T` and redeclare them as macros to fix the "initializer element is not constant" compilation error that occurs when using GCC versions earlier than 8.1.0
 	rm -f $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h
@@ -158,8 +159,8 @@ $(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.
 		WASMOPT=$(WASM_OPT) \
 		WASI_SDK_PATH=$(WASI_SDK) \
 		$(WASI_TOOLCHAIN) \
-		CFLAGS='-std=gnu99 -Dmprotect=mkxp_sandbox_mprotect' \
-		LDFLAGS='-Wl,--export-dynamic,--stack-first,-z,stack-size=$(RUBY_STACK_SIZE) $(WASI_LDFLAGS)' \
+		CFLAGS='--target=$(TARGET) -std=gnu99 -Dmprotect=mkxp_sandbox_mprotect' \
+		LDFLAGS='-fuse-ld=$(WASI_SDK)/bin/wasm-ld -Wl,--export-dynamic,--stack-first,-z,stack-size=$(RUBY_STACK_SIZE) $(WASI_LDFLAGS)' \
 		XCFLAGS='-DWASM_SETJMP_STACK_BUFFER_SIZE=24576 -DWASM_FIBER_STACK_BUFFER_SIZE=24576 -DWASM_SCAN_STACK_BUFFER_SIZE=24576' \
 		cppflags='-mbulk-memory $(WASI_CXXFLAGS)' \
 		optflags='-mbulk-memory $(WASI_CFLAGS) -fno-fast-math' \
@@ -282,7 +283,7 @@ $(LIBDIR)/usr/local/lib/libyaml.a: $(DOWNLOADS)/libyaml/Makefile
 	cd $(DOWNLOADS)/libyaml && $(MAKE) install DESTDIR=$(LIBDIR)
 
 $(DOWNLOADS)/libyaml/Makefile: $(DOWNLOADS)/libyaml/configure
-	cd $(DOWNLOADS)/libyaml && ./configure --host $(TARGET) $(WASI_TOOLCHAIN) CFLAGS='-mbulk-memory $(WASI_CFLAGS)' CXXFLAGS='-mbulk-memory $(WASI_CXXFLAGS)' LDFLAGS='$(WASI_LDFLAGS)'
+	cd $(DOWNLOADS)/libyaml && ./configure --host $(TARGET) $(WASI_TOOLCHAIN) CFLAGS='--target=$(TARGET) -mbulk-memory $(WASI_CFLAGS)' CXXFLAGS='--target=$(TARGET) -mbulk-memory $(WASI_CXXFLAGS)' LDFLAGS='$(WASI_LDFLAGS)'
 
 $(DOWNLOADS)/libyaml/configure: $(DOWNLOADS)/libyaml/configure.ac
 	cd $(DOWNLOADS)/libyaml && $(AUTORECONF) -i
@@ -297,7 +298,7 @@ $(LIBDIR)/usr/local/lib/libz.a: $(DOWNLOADS)/zlib/Makefile
 	cd $(DOWNLOADS)/zlib && $(MAKE) install DESTDIR=$(LIBDIR)
 
 $(DOWNLOADS)/zlib/Makefile: $(DOWNLOADS)/zlib/configure
-	cd $(DOWNLOADS)/zlib && CHOST=linux $(WASI_TOOLCHAIN) CFLAGS='-mbulk-memory $(WASI_CFLAGS)' CXXFLAGS='-mbulk-memory $(WASI_CXXFLAGS)' LDFLAGS='$(WASI_LDFLAGS)' ./configure --static
+	cd $(DOWNLOADS)/zlib && CHOST=linux $(WASI_TOOLCHAIN) CFLAGS='--target=$(TARGET) -mbulk-memory $(WASI_CFLAGS)' CXXFLAGS='--target=$(TARGET) -mbulk-memory $(WASI_CXXFLAGS)' LDFLAGS='$(WASI_LDFLAGS)' ./configure --static
 
 $(DOWNLOADS)/zlib/configure:
 	mkdir -p $(DOWNLOADS)

@@ -48,9 +48,33 @@ void sandbox::sandbox_free(wasm_ptr_t ptr) {
     w2c_ruby_mkxp_sandbox_free(RB, ptr);
 }
 
-sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_t(ruby)), bindings(ruby), movie(nullptr), yielding(false), trans_map(nullptr), transitioning(false) {
+sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_instance(ruby)), bindings(ruby), movie(nullptr), yielding(false), trans_map(nullptr), transitioning(false) {
     // Initialize the sandbox
-    wasm2c_ruby_instantiate(RB, wasi.get());
+#if MKXPZ_WASI_VERSION_MAJOR == 0 && MKXPZ_WASI_VERSION_MINOR <= 1
+    wasm2c_ruby_instantiate(RB, (struct w2c_wasi__snapshot__preview1 *)wasi.get());
+#else
+    wasm2c_ruby_instantiate(
+        RB,
+        (struct w2c_wasi0x3Acli0x2Fenvironment0x4000x2E20x2E0 *)wasi.get(),
+        (struct w2c_wasi0x3Acli0x2Fexit0x4000x2E20x2E0 *)wasi.get(),
+        (struct w2c_wasi0x3Acli0x2Fstderr0x4000x2E20x2E0 *)wasi.get(),
+        (struct w2c_wasi0x3Acli0x2Fstdin0x4000x2E20x2E0 *)wasi.get(),
+        (struct w2c_wasi0x3Acli0x2Fstdout0x4000x2E20x2E0 *)wasi.get(),
+        (struct w2c_wasi0x3Acli0x2Fterminal0x2Dinput0x4000x2E20x2E0 *)wasi.get(),
+        (struct w2c_wasi0x3Acli0x2Fterminal0x2Doutput0x4000x2E20x2E0 *)wasi.get(),
+        (struct w2c_wasi0x3Acli0x2Fterminal0x2Dstderr0x4000x2E20x2E0 *)wasi.get(),
+        (struct w2c_wasi0x3Acli0x2Fterminal0x2Dstdin0x4000x2E20x2E0 *)wasi.get(),
+        (struct w2c_wasi0x3Acli0x2Fterminal0x2Dstdout0x4000x2E20x2E0 *)wasi.get(),
+        (struct w2c_wasi0x3Aclocks0x2Fmonotonic0x2Dclock0x4000x2E20x2E0 *)wasi.get(),
+        (struct w2c_wasi0x3Aclocks0x2Fwall0x2Dclock0x4000x2E20x2E0 *)wasi.get(),
+        (struct w2c_wasi0x3Afilesystem0x2Fpreopens0x4000x2E20x2E0 *)wasi.get(),
+        (struct w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0 *)wasi.get(),
+        (struct w2c_wasi0x3Aio0x2Ferror0x4000x2E20x2E0 *)wasi.get(),
+        (struct w2c_wasi0x3Aio0x2Fpoll0x4000x2E20x2E0 *)wasi.get(),
+        (struct w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0 *)wasi.get(),
+        (struct w2c_wasi0x3Arandom0x2Frandom0x4000x2E20x2E0 *)wasi.get()
+    );
+#endif
     w2c_ruby_mkxp_sandbox_init(
         RB,
         0,              // heap_free_slots

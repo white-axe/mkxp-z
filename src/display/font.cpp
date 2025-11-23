@@ -159,11 +159,11 @@ struct SharedFontStatePrivate
 			{},
 			{},
 			[](FT_Stream stream, unsigned long offset, unsigned char *buffer, unsigned long count) {
-				if (!PHYSFS_seek(((std::shared_ptr<struct FileSystem::File> *)stream->descriptor.pointer)->get()->get(), offset))
+				if (!PHYSFS_seek(((std::shared_ptr<struct FileSystem::File> *)stream->descriptor.pointer)->get()->get_read(), offset))
 					return (unsigned long)(count == 0);
 				if (count == 0)
 					return 0UL;
-				PHYSFS_uint64 n = PHYSFS_readBytes(((std::shared_ptr<struct FileSystem::File> *)stream->descriptor.pointer)->get()->get(), buffer, count);
+				PHYSFS_uint64 n = PHYSFS_readBytes(((std::shared_ptr<struct FileSystem::File> *)stream->descriptor.pointer)->get()->get_read(), buffer, count);
 				return n < 0 ? 0UL : (unsigned long)n;
 			},
 			[](FT_Stream stream) {

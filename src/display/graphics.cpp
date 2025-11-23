@@ -99,7 +99,7 @@ static long readMovie(THEORAPLAY_Io *io, void *buf, long buflen)
 {
 #ifdef MKXPZ_RETRO
     std::shared_ptr<struct FileSystem::File> *f = (std::shared_ptr<struct FileSystem::File> *) io->userdata;
-    return (long) PHYSFS_readBytes((*f)->get(), buf, buflen);
+    return (long) PHYSFS_readBytes((*f)->get_read(), buf, buflen);
 #else
     SDL_RWops *f = (SDL_RWops *) io->userdata;
     return (long) SDL_RWread(f, buf, 1, buflen);

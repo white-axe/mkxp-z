@@ -31,7 +31,7 @@
 static size_t vfRead(void *ptr, size_t size, size_t nmemb, void *ops)
 {
 #ifdef MKXPZ_RETRO
-	return PHYSFS_readBytes(static_cast<struct FileSystem::File*>(ops)->get(), ptr, size * nmemb) / size;
+	return PHYSFS_readBytes(static_cast<struct FileSystem::File*>(ops)->get_read(), ptr, size * nmemb) / size;
 #else
 	return SDL_RWread(static_cast<SDL_RWops*>(ops), ptr, size, nmemb);
 #endif // MKXPZ_RETRO
@@ -43,7 +43,7 @@ static int vfSeek(void *ops, ogg_int64_t offset, int whence)
 	switch (whence) {
 		case SEEK_CUR:
 			{
-				ogg_int64_t pos = PHYSFS_tell(static_cast<struct FileSystem::File*>(ops)->get());
+				ogg_int64_t pos = PHYSFS_tell(static_cast<struct FileSystem::File*>(ops)->get_read());
 				if (pos >= 0) {
 					offset += pos;
 				}
@@ -51,11 +51,11 @@ static int vfSeek(void *ops, ogg_int64_t offset, int whence)
 			break;
 		case SEEK_END:
 			{
-				offset += PHYSFS_fileLength(static_cast<struct FileSystem::File*>(ops)->get());
+				offset += PHYSFS_fileLength(static_cast<struct FileSystem::File*>(ops)->get_read());
 			}
 			break;
 	}
-	PHYSFS_seek(static_cast<struct FileSystem::File*>(ops)->get(), offset);
+	PHYSFS_seek(static_cast<struct FileSystem::File*>(ops)->get_read(), offset);
 	return offset;
 #else
 	return SDL_RWseek(static_cast<SDL_RWops*>(ops), offset, whence);
@@ -65,7 +65,7 @@ static int vfSeek(void *ops, ogg_int64_t offset, int whence)
 static long vfTell(void *ops)
 {
 #ifdef MKXPZ_RETRO
-	return PHYSFS_tell(static_cast<struct FileSystem::File*>(ops)->get());
+	return PHYSFS_tell(static_cast<struct FileSystem::File*>(ops)->get_read());
 #else
 	return SDL_RWtell(static_cast<SDL_RWops*>(ops));
 #endif // MKXPZ_RETRO

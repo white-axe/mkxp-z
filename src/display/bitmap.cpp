@@ -651,8 +651,8 @@ struct BitmapOpenHandler : FileSystem::OpenHandler
     {
 #ifdef MKXPZ_RETRO
         uint8_t header_buffer[6];
-        PHYSFS_seek(ops->get(), 0);
-        if (PHYSFS_readBytes(ops->get(), header_buffer, 6) == 6 && (!std::memcmp(header_buffer, "GIF87a", 6) || !std::memcmp(header_buffer, "GIF89a", 6))) {
+        PHYSFS_seek(ops->get_read(), 0);
+        if (PHYSFS_readBytes(ops->get_read(), header_buffer, 6) == 6 && (!std::memcmp(header_buffer, "GIF87a", 6) || !std::memcmp(header_buffer, "GIF89a", 6))) {
 #else
         if (IMG_isGIF(&ops)) {
 #endif // MKXPZ_RETRO
@@ -671,15 +671,15 @@ struct BitmapOpenHandler : FileSystem::OpenHandler
             gif_create(gif, &gif_bitmap_callbacks);
             
 #ifdef MKXPZ_RETRO
-            gif_data_size = PHYSFS_fileLength(ops->get());
+            gif_data_size = PHYSFS_fileLength(ops->get_read());
 #else
             gif_data_size = ops.size(&ops);
 #endif // MKXPZ_RETRO
             
             gif_data = new unsigned char[gif_data_size];
 #ifdef MKXPZ_RETRO
-            PHYSFS_seek(ops->get(), 0);
-            PHYSFS_readBytes(ops->get(), gif_data, gif_data_size);
+            PHYSFS_seek(ops->get_read(), 0);
+            PHYSFS_readBytes(ops->get_read(), gif_data, gif_data_size);
 #else
             ops.seek(&ops, 0, RW_SEEK_SET);
             ops.read(&ops, gif_data, gif_data_size, 1);
@@ -708,7 +708,7 @@ struct BitmapOpenHandler : FileSystem::OpenHandler
             }
         } else {
 #ifdef MKXPZ_RETRO
-            PHYSFS_seek(ops->get(), 0);
+            PHYSFS_seek(ops->get_read(), 0);
 
             struct file {
                 struct FileSystem::File *handle;
@@ -718,7 +718,7 @@ struct BitmapOpenHandler : FileSystem::OpenHandler
             const static stbi_io_callbacks callbacks = {
                 [](void *handle, char *buf, int size) {
                     assert(size >= 0);
-                    int n = PHYSFS_readBytes(((struct file *)handle)->handle->get(), buf, size);
+                    int n = PHYSFS_readBytes(((struct file *)handle)->handle->get_read(), buf, size);
                     assert(((struct file *)handle)->offset + (uint64_t)n >= ((struct file *)handle)->offset);
                     ((struct file *)handle)->offset += n;
                     return n;
@@ -726,10 +726,10 @@ struct BitmapOpenHandler : FileSystem::OpenHandler
                 [](void *handle, int size) {
                     assert(size >= 0);
                     assert(((struct file *)handle)->offset + (uint64_t)size >= ((struct file *)handle)->offset);
-                    PHYSFS_seek(((struct file *)handle)->handle->get(), (((struct file *)handle)->offset += (uint64_t)size));
+                    PHYSFS_seek(((struct file *)handle)->handle->get_read(), (((struct file *)handle)->offset += (uint64_t)size));
                 },
                 [](void *handle) {
-                    return PHYSFS_eof(((struct file *)handle)->handle->get());
+                    return PHYSFS_eof(((struct file *)handle)->handle->get_read());
                 },
             };
 

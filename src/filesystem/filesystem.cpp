@@ -530,7 +530,7 @@ static PHYSFS_EnumerateCallbackResult fontSetEnumCB(void *data, const char *dir,
 #endif // MKXPZ_RETRO
 
 #ifdef MKXPZ_RETRO
-  if (!handle->is_open())
+  if (!handle->is_read_open())
 #else
   if (!handle)
 #endif // MKXPZ_RETRO
@@ -760,7 +760,7 @@ static std::string pop_last_path_element(const char *path) {
   return parent;
 }
 
-FileSystem::File::File(FileSystem &fs, const char *read_path, const char *write_path_prefix, bool truncate, unsigned char exists) : write_handle(nullptr), write_error(PHYSFS_ERR_READ_ONLY) {
+FileSystem::File::File(FileSystem &fs, const char *read_path, const char *write_path_prefix, bool truncate, bool open_read, unsigned char exists) : read_handle(nullptr), write_handle(nullptr), read_error(PHYSFS_ERR_PERMISSION), write_error(PHYSFS_ERR_PERMISSION) {
   _path = fs.normalize(read_path, false, true);
 
   if (write_path_prefix != nullptr) {
@@ -769,10 +769,14 @@ FileSystem::File::File(FileSystem &fs, const char *read_path, const char *write_
     if (_path.length() >= prefix_length && !strncmp(_path.c_str(), write_path_prefix, prefix_length)) {
       const char *suffix = _path.c_str() + prefix_length;
 
+      if (exists > 1) {
+        exists = PHYSFS_exists(read_path) ? 1 : 0;
+      }
+
       // If the path doesn't exist but its parent does,
       // create the parent directory in the PhysFS write directory
       // since it might only exist in PhysFS's read-only search path
-      if (exists == 0 || (exists != 1 && !PHYSFS_exists(read_path))) {
+      if (!exists) {
         std::string suffix_parent = pop_last_path_element(suffix);
         if (suffix_parent.empty() || suffix_parent.front() != '/') {
           suffix_parent = '/' + suffix_parent;
@@ -782,24 +786,30 @@ FileSystem::File::File(FileSystem &fs, const char *read_path, const char *write_
         }
       }
 
-      if (truncate) {
-        write_handle = PHYSFS_openWrite(suffix);
-      } else {
-        write_handle = PHYSFS_openAppend(suffix);
-      }
+      // If the path exists but not in the PhysFS write directory (mounted at "/Save"),
+      // then the file is read-only, so don't allow writing to it
+      if (!exists || PHYSFS_exists((std::string("/Save/") + suffix).c_str())) {
+        if (truncate) {
+          write_handle = PHYSFS_openWrite(suffix);
+        } else {
+          write_handle = PHYSFS_openAppend(suffix);
+        }
 
-      if (write_handle == nullptr) {
-        write_error = PHYSFS_getLastErrorCode();
-      } else {
-        write_error = PHYSFS_ERR_OK;
+        if (write_handle == nullptr) {
+          write_error = PHYSFS_getLastErrorCode();
+        } else {
+          write_error = PHYSFS_ERR_OK;
+        }
       }
     }
   }
 
-  if ((read_handle = PHYSFS_openRead(_path.c_str())) == nullptr) {
-    read_error = PHYSFS_getLastErrorCode();
-  } else {
-    read_error = PHYSFS_ERR_OK;
+  if (open_read) {
+    if ((read_handle = PHYSFS_openRead(_path.c_str())) == nullptr) {
+      read_error = PHYSFS_getLastErrorCode();
+    } else {
+      read_error = PHYSFS_ERR_OK;
+    }
   }
 }
 

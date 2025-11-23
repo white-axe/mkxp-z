@@ -30,7 +30,7 @@
 SF_VIRTUAL_IO sfvirtual = {
 	[](void *handle) {
 #ifdef MKXPZ_RETRO
-		return (sf_count_t)std::max((PHYSFS_sint64)0, PHYSFS_fileLength(((struct FileSystem::File *)handle)->get()));
+		return (sf_count_t)std::max((PHYSFS_sint64)0, PHYSFS_fileLength(((struct FileSystem::File *)handle)->get_read()));
 #else
 		Sint64 size = 0;
 		Sint64 pos = SDL_RWtell((SDL_RWops *)handle);
@@ -47,7 +47,7 @@ SF_VIRTUAL_IO sfvirtual = {
 		switch (whence) {
 			case SF_SEEK_CUR:
 				{
-					sf_count_t pos = PHYSFS_tell(((struct FileSystem::File *)handle)->get());
+					sf_count_t pos = PHYSFS_tell(((struct FileSystem::File *)handle)->get_read());
 					if (pos >= 0) {
 						offset += pos;
 					}
@@ -55,11 +55,11 @@ SF_VIRTUAL_IO sfvirtual = {
 				break;
 			case SF_SEEK_END:
 				{
-					offset += std::max((PHYSFS_sint64)0, PHYSFS_fileLength(((struct FileSystem::File *)handle)->get()));
+					offset += std::max((PHYSFS_sint64)0, PHYSFS_fileLength(((struct FileSystem::File *)handle)->get_read()));
 				}
 				break;
 		}
-		PHYSFS_seek(((struct FileSystem::File *)handle)->get(), offset);
+		PHYSFS_seek(((struct FileSystem::File *)handle)->get_read(), offset);
 		return offset;
 #else
 		return (sf_count_t)SDL_RWseek((SDL_RWops *)handle, offset, whence);
@@ -68,7 +68,7 @@ SF_VIRTUAL_IO sfvirtual = {
 
 	[](void *ptr, sf_count_t count, void *handle) {
 #ifdef MKXPZ_RETRO
-		return (sf_count_t)PHYSFS_readBytes(((struct FileSystem::File *)handle)->get(), ptr, count);
+		return (sf_count_t)PHYSFS_readBytes(((struct FileSystem::File *)handle)->get_read(), ptr, count);
 #else
 		return (sf_count_t)SDL_RWread((SDL_RWops *)handle, ptr, 1, count);
 #endif // MKXPZ_RETRO
@@ -80,7 +80,7 @@ SF_VIRTUAL_IO sfvirtual = {
 
 	[](void *handle) {
 #ifdef MKXPZ_RETRO
-		return (sf_count_t)PHYSFS_tell(((struct FileSystem::File *)handle)->get());
+		return (sf_count_t)PHYSFS_tell(((struct FileSystem::File *)handle)->get_read());
 #else
 		return (sf_count_t)SDL_RWtell((SDL_RWops *)handle);
 #endif // MKXPZ_RETRO

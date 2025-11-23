@@ -60,8 +60,9 @@ public:
 		// read_path: Path to open the read handle for the file from.
 		// write_path_prefix: Null to skip opening a write handle for the file, otherwise the write handle will be opened from the path corresponding to read_path with write_path_prefix removed from the beginning.
 		// truncate: Whether or not to delete the contents of the file after opening it. Does nothing unless write_path_prefix is non-null.
+		// open_read: Whether or not to open a read handle on this file.
 		// exists: If you already know whether or not the file you're opening exists, you can set this to 1 if it exists or 0 if it doesn't exist to reduce the amount of file system calls needed. Any values other than 1 or 0 mean you don't know.
-		File(FileSystem &fs, const char *read_path, const char *write_path_prefix = nullptr, bool truncate = false, unsigned char exists = -1);
+		File(FileSystem &fs, const char *read_path, const char *write_path_prefix = nullptr, bool truncate = false, bool open_read = true, unsigned char exists = -1);
 		File(const struct File &) = delete;
 		File(struct File &&) noexcept = delete;
 		struct File operator=(const struct File &) = delete;
@@ -70,19 +71,19 @@ public:
 		inline const char *path() const noexcept {
 			return _path.c_str();
 		}
-		inline PHYSFS_File *get() const noexcept {
+		inline PHYSFS_File *get_read() const noexcept {
 			return read_handle;
 		}
 		inline PHYSFS_File *get_write() const noexcept {
 			return write_handle;
 		}
 		inline PHYSFS_File *operator->() const noexcept {
-			return get();
+			return get_read();
 		}
 		inline PHYSFS_File &operator*() const noexcept {
-			return *get();
+			return *get_read();
 		}
-		inline bool is_open() const noexcept {
+		inline bool is_read_open() const noexcept {
 			return read_handle != nullptr;
 		}
 		inline bool is_write_open() const noexcept {
@@ -93,6 +94,18 @@ public:
 		}
 		inline PHYSFS_ErrorCode get_write_error() const noexcept {
 			return write_error;
+		}
+		inline void close_read() noexcept {
+			if (read_handle != nullptr) {
+				PHYSFS_close(read_handle);
+				read_handle = nullptr;
+			}
+		}
+		inline void close_write() noexcept {
+			if (write_handle != nullptr) {
+				PHYSFS_close(write_handle);
+				write_handle = nullptr;
+			}
 		}
 	};
 

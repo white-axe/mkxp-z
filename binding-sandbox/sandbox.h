@@ -29,6 +29,7 @@
 #include <mkxp-sandbox-bindgen.h>
 #include <boost/optional.hpp>
 #include <libretro.h>
+#include "wasi.h"
 #include "wasm-types.h"
 #include "audio.h"
 #include "etc.h"
@@ -46,7 +47,7 @@ namespace mkxp_sandbox {
     struct sandbox {
         private:
         std::shared_ptr<struct w2c_ruby> ruby;
-        std::unique_ptr<struct w2c_wasi__snapshot__preview1> wasi;
+        std::unique_ptr<struct wasi_instance> wasi;
         boost::optional<struct mkxp_sandbox::bindings> bindings;
         std::atomic<Movie *> movie;
         bool yielding;

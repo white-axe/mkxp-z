@@ -117,7 +117,7 @@ static json::value readConfFile(const char *path) {
 
 #ifdef MKXPZ_RETRO
     FileSystem::File file(*mkxp_retro::fs, path);
-    if (!file.is_open())
+    if (!file.is_read_open())
 #else
     if (!mkxp_fs::fileExists(path))
 #endif // MKXPZ_RETRO
@@ -129,7 +129,7 @@ static json::value readConfFile(const char *path) {
     std::vector<uint8_t> buf(16);
     size_t size = 0;
     for (;;) {
-        PHYSFS_sint64 n = PHYSFS_readBytes(file.get(), buf.data() + size, buf.size() - size);
+        PHYSFS_sint64 n = PHYSFS_readBytes(file.get_read(), buf.data() + size, buf.size() - size);
         if (n <= 0) {
             break;
         }
@@ -447,7 +447,7 @@ void Config::readGameINI() {
     
     bool convSuccess = true;
 #ifdef MKXPZ_RETRO
-    if (iniFile->is_open())
+    if (iniFile->is_read_open())
 #else
     if (iniFile)
 #endif // MKXPZ_RETRO

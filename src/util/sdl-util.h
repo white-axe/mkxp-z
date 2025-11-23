@@ -91,7 +91,7 @@ class PHYSFSRead
 public:
 	static size_t read(std::shared_ptr<struct FileSystem::File> ops, void *buf, size_t size)
 	{
-		return std::max((PHYSFS_sint64)0, PHYSFS_readBytes(ops->get(), buf, size));
+		return std::max((PHYSFS_sint64)0, PHYSFS_readBytes(ops->get_read(), buf, size));
 	}
 };
 

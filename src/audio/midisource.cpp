@@ -731,7 +731,7 @@ struct MidiSource : ALDataSource, MidiReadHandler
 	      curTrack(-1)
 	{
 #ifdef MKXPZ_RETRO
-		size_t dataLen = std::max((PHYSFS_sint64)0, PHYSFS_fileLength(ops->get()));
+		size_t dataLen = std::max((PHYSFS_sint64)0, PHYSFS_fileLength(ops->get_read()));
 #else
 		size_t dataLen = SDL_RWsize(&ops);
 #endif // MKXPZ_RETRO
@@ -739,7 +739,7 @@ struct MidiSource : ALDataSource, MidiReadHandler
 
 		if (
 #ifdef MKXPZ_RETRO
-			PHYSFS_readBytes(ops->get(), &data[0], dataLen) < dataLen
+			PHYSFS_readBytes(ops->get_read(), &data[0], dataLen) < dataLen
 #else
 			SDL_RWread(&ops, &data[0], 1, dataLen) < dataLen
 #endif // MKXPZ_RETRO

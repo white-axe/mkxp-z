@@ -280,7 +280,12 @@ namespace mkxp_sandbox {
     }
 
     template <typename T> typename std::enable_if<!std::is_const<T>::value && std::is_enum<T>::value, bool>::type sandbox_deserialize(T &value, const void *&data, wasm_size_t &max_size) {
-        return sandbox_deserialize((int32_t &)value, data, max_size);
+        int32_t v;
+        bool result = sandbox_deserialize(v, data, max_size);
+        if (result) {
+            value = (T)v;
+        }
+        return result;
     }
 
     template <typename T> typename std::enable_if<std::is_class<T>::value && boost::is_detected<sandbox_serialize_member_declaration, T>::value, bool>::type sandbox_serialize(const T &value, void *&data, wasm_size_t &max_size) {

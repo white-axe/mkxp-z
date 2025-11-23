@@ -216,8 +216,8 @@ struct ALStreamOpenHandler : FileSystem::OpenHandler
 		/* Try to read ogg file signature */
 		char sig[5] = { 0 };
 #ifdef MKXPZ_RETRO
-		PHYSFS_readBytes(ops->get(), sig, 4);
-		PHYSFS_seek(ops->get(), 0);
+		PHYSFS_readBytes(ops->get_read(), sig, 4);
+		PHYSFS_seek(ops->get_read(), 0);
 #else
 		SDL_RWread(&ops, sig, 1, 4);
 		SDL_RWseek(&ops, 0, RW_SEEK_SET);
