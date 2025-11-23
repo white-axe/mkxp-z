@@ -1106,7 +1106,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
                 std::reverse(buf, buf + buffer_len);
 #endif // MKXPZ_BIG_ENDIAN
                 if (n == (uint64_t)-1) {
-                    wasi->ref<uint8_t>(result) = false;
+                    wasi->ref<uint8_t>(result) = true;
                     wasi->ref<uint8_t>(result + 8) = WASI_FILESYSTEM_ERROR_IO;
                 } else {
                     wasi->ref<uint8_t>(result) = false;
