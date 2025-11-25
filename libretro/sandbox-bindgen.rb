@@ -146,6 +146,22 @@ FUNC_TYPE_TABLE = {
   f64: 'WASI_RT_F64',
 }
 
+def convert_type_to_unsigned(type)
+  if type == 'wasm_ssize_t'
+    'wasm_size_t'
+  elsif type == 'int8_t'
+    'uint8_t'
+  elsif type == 'int16_t'
+    'uint16_t'
+  elsif type == 'int32_t'
+    'uint32_t'
+  elsif type == 'int64_t'
+    'uint64_t'
+  else
+    type
+  end
+end
+
 ################################################################################
 
 CALL_TYPES = [
@@ -164,7 +180,7 @@ def call_type_hash(call_type)
   if h.start_with?('-')
     h = h[1..]
   end
-  return h
+  h
 end
 
 while CALL_TYPES.map { |call_type| call_type_hash(call_type) }.uniq.length < CALL_TYPES.length
@@ -359,8 +375,8 @@ for call_type in CALL_TYPES
   call_arg_types = call_type[1].map { |t| VAR_TYPE_TABLE[t] }
   call_bindings.append(
     <<~HEREDOC
-      static #{call_return_type} _sbindgen_call_#{call_type_hash(call_type)}(#{(["#{call_return_type} (*func)(#{call_arg_types.join(', ')})"] + (0...call_arg_types.length).map { |i| "#{call_arg_types[i]} a#{i}" }).join(', ')}) {
-          #{call_type[0] == :void ? '' : 'return '}func(#{(0...call_arg_types.length).map { |i| "a#{i}" }.join(', ')});
+      static #{convert_type_to_unsigned(call_return_type)} _sbindgen_call_#{call_type_hash(call_type)}(#{(["#{call_return_type} (*func)(#{call_arg_types.join(', ')})"] + (0...call_arg_types.length).map { |i| "#{convert_type_to_unsigned(call_arg_types[i])} a#{i}" }).join(', ')}) {
+          #{call_type[0] == :void ? '' : "return (#{convert_type_to_unsigned(call_return_type)})"}func(#{(0...call_arg_types.length).map { |i| "(#{call_arg_types[i]})a#{i}" }.join(', ')});
       }
     HEREDOC
   )
