@@ -731,14 +731,16 @@ static uint32_t flush_impl1(const struct wasi_instance *wasi, uint32_t fd) noexc
         case wasi_fd_type::VACANT:
             return WASIP1_EBADF;
 
-        case wasi_fd_type::STDIN:
-        case wasi_fd_type::STDOUT:
-        case wasi_fd_type::STDERR:
         case wasi_fd_type::FS:
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
             return WASIP1_EINVAL;
+
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+            return WASIP1_ESUCCESS;
 
         case wasi_fd_type::FSFILE:
             if (!wasi->fdtable[fd].file_handle()->file.is_write_open()) {
@@ -3638,14 +3640,17 @@ extern "C" void w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0_0x5Bmethod0x5Doutput0x2
     switch (wasi->fdtable[fd].type) {
         case wasi_fd_type::VACANT:
         case wasi_fd_type::STDIN:
-        case wasi_fd_type::STDOUT:
-        case wasi_fd_type::STDERR:
         case wasi_fd_type::FS:
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 4) = WASI_STREAMS_ERROR_CLOSED;
+            return;
+
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+            wasi->ref<uint8_t>(result) = false;
             return;
 
         case wasi_fd_type::FSFILESTREAM:
