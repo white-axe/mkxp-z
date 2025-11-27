@@ -2,19 +2,16 @@
 
 ifeq ($(platform),win64)
     MKXPZ_SYSTEM = windows
-    MKXPZ_FORCE_FAT_LTO = true
     MKXPZ_CPU_FAMILY = x86_64
     MKXPZ_CPU = x86_64
     MKXPZ_ENDIAN = little
 else ifeq ($(platform),win32)
     MKXPZ_SYSTEM = windows
-    MKXPZ_FORCE_FAT_LTO = true
     MKXPZ_CPU_FAMILY = x86
     MKXPZ_CPU = i686
     MKXPZ_ENDIAN = little
 else ifeq ($(platform),unix)
     MKXPZ_SYSTEM = linux
-    MKXPZ_FORCE_FAT_LTO = true
     MKXPZ_CPU_FAMILY = $(shell $(CC) -E -I libretro/build/libretro-stage1/boost_predef/include libretro/arch-test.h | tail -n 1)
     MKXPZ_ENDIAN = $(shell $(CC) -E -I libretro/build/libretro-stage1/boost_predef/include libretro/endian-test.h | tail -n 1)
     ifeq ($(MKXPZ_CPU_FAMILY),arm)
@@ -151,7 +148,6 @@ else ifeq ($(platform),gcw0)
     MKXPZ_ENDIAN = little
 else ifeq ($(platform),miyoo)
     MKXPZ_SYSTEM = linux
-    MKXPZ_FORCE_FAT_LTO = true
     MKXPZ_CPU_FAMILY = arm
     MKXPZ_CPU = cortex-a7
     MKXPZ_ENDIAN = little
@@ -179,10 +175,6 @@ endif
 
 ifeq ($(MKXPZ_LTO_MODE),)
     MKXPZ_LTO_MODE = default
-endif
-
-ifeq ($(MKXPZ_FORCE_FAT_LTO),)
-    MKXPZ_FORCE_FAT_LTO = false
 endif
 
 ifeq ($(MKXPZ_SYSTEM),windows)
@@ -226,7 +218,7 @@ else
 endif
 
 $(MKXPZ_BUILD_DIR)/build.ninja: $(MKXPZ_CROSS_FILE)
-	CFLAGS= CXXFLAGS= LDFLAGS= CC= CXX= LD= AR= AS= NM= OBJCOPY= OBJDUMP= RANLIB= STRIP= STRINGS= CLICOLOR_FORCE=1 meson setup $(MKXPZ_BUILD_DIR) --cross-file $(MKXPZ_CROSS_FILE) -Dlibretro=true -Dlibretro_save_states=true -Demscripten_threaded=false -Db_lto=$(MKXPZ_LTO) -Db_lto_mode=$(MKXPZ_LTO_MODE) -Dforce_fat_lto=$(MKXPZ_FORCE_FAT_LTO)
+	CFLAGS= CXXFLAGS= LDFLAGS= CC= CXX= LD= AR= AS= NM= OBJCOPY= OBJDUMP= RANLIB= STRIP= STRINGS= CLICOLOR_FORCE=1 meson setup $(MKXPZ_BUILD_DIR) --cross-file $(MKXPZ_CROSS_FILE) -Dlibretro=true -Dlibretro_save_states=true -Demscripten_threaded=false -Db_lto=$(MKXPZ_LTO) -Db_lto_mode=$(MKXPZ_LTO_MODE)
 
 $(MKXPZ_CROSS_FILE):
 	echo "[binaries]" > $(MKXPZ_CROSS_FILE)

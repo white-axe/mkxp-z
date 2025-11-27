@@ -27,5 +27,4 @@ option('libretro_stage1_path', type: 'string', value: 'libretro/build/libretro-s
 option('libretro_save_states', type: 'boolean', value: true, description: 'Enable support for save states in libretro builds')
 
 option('emscripten_threaded', type: 'boolean', value: true, description: 'Enable multithreading support in libretro Emscripten builds')
-option('force_fat_lto', type: 'boolean', value: false, description: 'Always use -ffat-lto-objects for builds with link-time optimization')
 option('neon', type: 'boolean', value: false, description: 'Enable NEON support in 32-bit ARM cross builds')

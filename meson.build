@@ -93,7 +93,10 @@ if sizeof['void*'] <= 4
     global_args += '-DMKXPZ_32_BIT_POINTER'
 endif
 
-if (get_option('force_fat_lto') or (core_is_static and not is_emscripten)) and get_option('b_lto')
+# A lot of toolchains cannot build a libretro core with LTO enabled without also passing `-ffat-lto-objects`,
+# so enable it for all compilers when building with LTO unless building for Android, Darwin or Emscripten,
+# since toolchains for those platforms are known to support LTO without `-ffat-lto-objects`
+if is_libretro and get_option('b_lto') and host_system != 'android' and host_system != 'darwin' and not is_emscripten and compilers['c'].has_argument('-ffat-lto-objects')
     global_args += '-ffat-lto-objects'
 endif
 

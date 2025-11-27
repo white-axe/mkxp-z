@@ -622,7 +622,7 @@ jobs:
           echo "endian = '${{ matrix.endian }}'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dforce_fat_lto=true -Dlibretro=true -Dlibretro_save_states=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file ~/cross.ini --buildtype release -Db_lto=true -Dlibretro=true -Dlibretro_save_states=true
 
       - name: Build core
         run: |
