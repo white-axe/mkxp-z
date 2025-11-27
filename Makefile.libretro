@@ -198,8 +198,6 @@ else ifeq ($(MKXPZ_SYSTEM),linux)
     MKXPZ_EXTENSION = so
 else ifeq ($(MKXPZ_SYSTEM),android)
     MKXPZ_EXTENSION = so
-else ifeq ($(MKXPZ_SYSTEM),webos)
-    MKXPZ_EXTENSION = so
 else ifeq ($(MKXPZ_SYSTEM),darwin)
     MKXPZ_EXTENSION = dylib
 else
