@@ -89,6 +89,13 @@ else ifeq ($(platform),android-x86_64)
     MKXPZ_AR = $(ANDROID_NDK_LLVM)/bin/llvm-ar
     # The build times out with full LTO
     MKXPZ_LTO_MODE = thin
+else ifeq ($(platform),webos)
+    MKXPZ_SYSTEM = linux
+    MKXPZ_STATIC_LIBSTDCPP = true
+    MKXPZ_NEON = true
+    MKXPZ_CPU_FAMILY = arm
+    MKXPZ_CPU = generic-armv7-a+neon
+    MKXPZ_ENDIAN = little
 else ifeq ($(platform),ios-arm64)
     MKXPZ_SYSTEM = darwin
     MKXPZ_SUFFIX = ios
@@ -177,11 +184,21 @@ ifeq ($(MKXPZ_LTO_MODE),)
     MKXPZ_LTO_MODE = default
 endif
 
+ifeq ($(MKXPZ_STATIC_LIBSTDCPP),)
+    MKXPZ_STATIC_LIBSTDCPP = false
+endif
+
+ifeq ($(MKXPZ_NEON),)
+    MKXPZ_NEON = false
+endif
+
 ifeq ($(MKXPZ_SYSTEM),windows)
     MKXPZ_EXTENSION = dll
 else ifeq ($(MKXPZ_SYSTEM),linux)
     MKXPZ_EXTENSION = so
 else ifeq ($(MKXPZ_SYSTEM),android)
+    MKXPZ_EXTENSION = so
+else ifeq ($(MKXPZ_SYSTEM),webos)
     MKXPZ_EXTENSION = so
 else ifeq ($(MKXPZ_SYSTEM),darwin)
     MKXPZ_EXTENSION = dylib
@@ -218,7 +235,7 @@ else
 endif
 
 $(MKXPZ_BUILD_DIR)/build.ninja: $(MKXPZ_CROSS_FILE)
-	CFLAGS= CXXFLAGS= LDFLAGS= CC= CXX= LD= AR= AS= NM= OBJCOPY= OBJDUMP= RANLIB= STRIP= STRINGS= CLICOLOR_FORCE=1 meson setup $(MKXPZ_BUILD_DIR) --cross-file $(MKXPZ_CROSS_FILE) -Dlibretro=true -Dlibretro_save_states=true -Demscripten_threaded=false -Db_lto=$(MKXPZ_LTO) -Db_lto_mode=$(MKXPZ_LTO_MODE)
+	CFLAGS= CXXFLAGS= LDFLAGS= CC= CXX= LD= AR= AS= NM= OBJCOPY= OBJDUMP= RANLIB= STRIP= STRINGS= CLICOLOR_FORCE=1 meson setup $(MKXPZ_BUILD_DIR) --cross-file $(MKXPZ_CROSS_FILE) -Dlibretro=true -Dlibretro_save_states=true -Demscripten_threaded=false -Db_lto=$(MKXPZ_LTO) -Db_lto_mode=$(MKXPZ_LTO_MODE) -Dstatic_libstdcpp=$(MKXPZ_STATIC_LIBSTDCPP) -Dneon=$(MKXPZ_NEON)
 
 $(MKXPZ_CROSS_FILE):
 	echo "[binaries]" > $(MKXPZ_CROSS_FILE)

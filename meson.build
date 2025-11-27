@@ -499,10 +499,8 @@ if is_libretro
     # We need to statically link the C++ standard library (libstdc++/libc++), the compiler runtime library (libgcc/compiler-rt) and libpthread in MSYS2 libretro builds for Windows because those are not part of the operating system
     if host_system == 'windows'
         global_link_args += ['-static-libgcc', '-static-libstdc++', '-Wl,-Bstatic', '-lgcc', '-lstdc++', '-lpthread', '-Wl,-Bdynamic']
-    endif
-
     # Android doesn't have a built-in C++ standard library, so we need to statically link against the C++ standard library
-    if host_system == 'android'
+    elif host_system == 'android' or get_option('static_libstdcpp')
         compilers['cpp'].has_link_argument('-static-libstdc++', required: true)
         global_link_args += '-static-libstdc++'
     endif

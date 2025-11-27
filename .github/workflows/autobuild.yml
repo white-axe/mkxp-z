@@ -1151,6 +1151,78 @@ jobs:
             );
           '
 
+  build-libretro-webos:
+    needs: build-libretro-stage1
+    name: LR webOS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Expose Actions environment
+        uses: white-axe/expose-actions-environment@v1
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git build-essential meson cmake nodejs npm
+          npm install @actions/artifact@2 fast-glob@3
+
+      - name: Set up webOS SDK
+        run: |
+          tag_name=$(curl -s https://api.github.com/repos/openlgtv/buildroot-nc4/releases/latest -H 'Authorization: Bearer ${{ github.token }}' -H 'X-GitHub-Api-Version: 2022-11-28' | jq -r '.tag_name')
+          curl -Lo ${{ runner.temp }}/webos-sdk.tar.gz https://github.com/openlgtv/buildroot-nc4/releases/download/$tag_name/arm-webos-linux-gnueabi_sdk-buildroot-x86_64.tar.gz
+          mkdir ${{ runner.temp }}/webos-sdk
+          tar -xzf ${{ runner.temp }}/webos-sdk.tar.gz -C ${{ runner.temp }}/webos-sdk --strip-components=1
+          rm ${{ runner.temp }}/webos-sdk.tar.gz
+
+      - name: Checkout repository
+        uses: taiki-e/checkout-action@v1
+
+      - name: Download stage 1
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            const artifact = new DefaultArtifactClient();
+            await artifact.downloadArtifact(${{ needs.build-libretro-stage1.outputs.artifact-id }}, {
+              path: "libretro/build/libretro-stage1",
+            });
+          '
+
+      - name: Configure core
+        run: |
+          echo "[binaries]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "c = '${{ runner.temp }}/webos-sdk/bin/arm-webos-linux-gnueabi-gcc'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpp = '${{ runner.temp }}/webos-sdk/bin/arm-webos-linux-gnueabi-g++'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "ar = '${{ runner.temp }}/webos-sdk/bin/arm-webos-linux-gnueabi-ar'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "strip = '${{ runner.temp }}/webos-sdk/bin/arm-webos-linux-gnueabi-strip'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "system = 'linux'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpu_family = 'arm'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpu = 'generic-armv7-a+neon'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "endian = 'little'" | tee -a ${{ runner.temp }}/cross.ini
+          echo '--------------------------------------------------------------------------------'
+          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dstatic_libstdcpp=true -Dneon=true -Dlibretro=true -Dlibretro_save_states=true
+
+      - name: Build core
+        run: |
+          mkdir ${{ runner.temp }}/dist
+          cd build
+          CLICOLOR_FORCE=1 ninja -v
+          ${{ runner.temp }}/webos-sdk/bin/arm-webos-linux-gnueabi-strip mkxp-z_libretro.so
+          mv mkxp-z_libretro.so ${{ runner.temp }}/dist/mkxp-z_libretro.so
+
+      - name: Upload artifact
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            import fg from "fast-glob";
+            process.chdir("${{ runner.temp }}/dist");
+            const artifact = new DefaultArtifactClient();
+            await artifact.uploadArtifact(
+              "mkxp-z_libretro.webos.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ needs.build-libretro-stage1.outputs.sha }}",
+              fg.globSync("**"),
+              ".",
+            );
+          '
+
   build-libretro-darwin:
     needs: build-libretro-stage1
     name: LR ${{ matrix.system_name }} ${{ matrix.arch_mkxpz }}
