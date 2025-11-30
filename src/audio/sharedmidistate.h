@@ -35,7 +35,11 @@
 #include <string>
 
 #define SYNTH_INIT_COUNT 2
-#define SYNTH_SAMPLERATE 44100
+#ifdef MKXPZ_RETRO
+#  define SYNTH_SAMPLERATE 48000
+#else
+#  define SYNTH_SAMPLERATE 44100
+#endif
 
 struct Synth
 {
