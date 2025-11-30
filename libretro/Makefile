@@ -70,6 +70,12 @@ ifneq ($(WASI_SDK_VERSION_EXPECTED),$(WASI_SDK_VERSION_ACTUAL))
     $(error incorrect WASI SDK version: expected `$(WASI_SDK_VERSION_EXPECTED)', got `$(WASI_SDK_VERSION_ACTUAL)')
 endif
 
+WASI_TARGET_FLAGS := --target=$(TARGET) -mbulk-memory
+WASI_C_STANDARD := -std=gnu99
+WASI_CXX_STANDARD := -std=gnu++11
+WASI_CFLAGS := $(WASI_TARGET_FLAGS) $(WASI_C_STANDARD) $(WASI_CFLAGS)
+WASI_CXXFLAGS := $(WASI_TARGET_FLAGS) $(WASI_CXX_STANDARD) $(WASI_CXXFLAGS)
+
 all default: ruby-dist ruby-bindings $(OUTDIR)/boost_predef/include/boost/predef.h
 
 ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt
@@ -159,11 +165,11 @@ $(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.
 		WASMOPT=$(WASM_OPT) \
 		WASI_SDK_PATH=$(WASI_SDK) \
 		$(WASI_TOOLCHAIN) \
-		CFLAGS='--target=$(TARGET) -std=gnu99 -Dmprotect=mkxp_sandbox_mprotect' \
+		CFLAGS='$(WASI_CFLAGS) -Dmprotect=mkxp_sandbox_mprotect' \
+		CXXFLAGS='$(WASI_CXXFLAGS) -Dmprotect=mkxp_sandbox_mprotect' \
 		LDFLAGS='-fuse-ld=$(WASI_SDK)/bin/wasm-ld -Wl,--export-dynamic,--stack-first,-z,stack-size=$(RUBY_STACK_SIZE) $(WASI_LDFLAGS)' \
 		XCFLAGS='-DWASM_SETJMP_STACK_BUFFER_SIZE=24576 -DWASM_FIBER_STACK_BUFFER_SIZE=24576 -DWASM_SCAN_STACK_BUFFER_SIZE=24576' \
-		cppflags='--target=$(TARGET) -Dmprotect=mkxp_sandbox_mprotect -mbulk-memory $(WASI_CXXFLAGS)' \
-		optflags='-mbulk-memory $(WASI_CFLAGS) -fno-fast-math' \
+		optflags='-fno-fast-math' \
 		wasmoptflags='--enable-bulk-memory $(WASM_OPT_FLAGS) --pass-arg=asyncify-ignore-imports' \
 		ac_cv_func_realpath=no \
 		$(shell $(RUBY) -e 'puts "ac_cv_func_dlopen=no" if Gem::Version.new("$(RUBY_VERSION)") < Gem::Version.new("3.3")') \
@@ -250,13 +256,13 @@ $(INDEXER): $(addsuffix .o,$(WABT_SRC)) $(DOWNLOADS)/wabt/src/indexer.o
 	$(NATIVE_CXX) $(NATIVE_LDFLAGS) -o $@ $^
 
 $(DOWNLOADS)/wabt/src/%.c.o: $(DOWNLOADS)/wabt/src/%.c $(DOWNLOADS)/wabt/include/wabt/config.h $(DOWNLOADS)/picosha2/picosha2.h
-	$(NATIVE_CC) $(NATIVE_CFLAGS) -I$(DOWNLOADS)/wabt/include -I$(DOWNLOADS)/picosha2 -c -o $@ $<
+	$(NATIVE_CC) -std=gnu17 $(NATIVE_CFLAGS) -I$(DOWNLOADS)/wabt/include -I$(DOWNLOADS)/picosha2 -c -o $@ $<
 
 $(DOWNLOADS)/wabt/src/%.cc.o: $(DOWNLOADS)/wabt/src/%.cc $(DOWNLOADS)/wabt/include/wabt/config.h $(DOWNLOADS)/picosha2/picosha2.h
-	$(NATIVE_CXX) $(NATIVE_CXXFLAGS) -I$(DOWNLOADS)/wabt/include -I$(DOWNLOADS)/picosha2 -c -o $@ $<
+	$(NATIVE_CXX) -std=gnu++17 $(NATIVE_CXXFLAGS) -I$(DOWNLOADS)/wabt/include -I$(DOWNLOADS)/picosha2 -c -o $@ $<
 
 $(DOWNLOADS)/wabt/src/indexer.o: indexer.cpp $(DOWNLOADS)/wabt/include/wabt/config.h
-	$(NATIVE_CXX) $(NATIVE_CXXFLAGS) -I$(DOWNLOADS)/wabt/include -c -o $@ $<
+	$(NATIVE_CXX) -std=gnu++17 $(NATIVE_CXXFLAGS) -I$(DOWNLOADS)/wabt/include -c -o $@ $<
 
 $(DOWNLOADS)/wabt/include/wabt/config.h: $(DOWNLOADS)/wabt/src/config.h.in
 	$(SED) \
@@ -283,7 +289,7 @@ $(LIBDIR)/usr/local/lib/libyaml.a: $(DOWNLOADS)/libyaml/Makefile
 	cd $(DOWNLOADS)/libyaml && $(MAKE) install DESTDIR=$(LIBDIR)
 
 $(DOWNLOADS)/libyaml/Makefile: $(DOWNLOADS)/libyaml/configure
-	cd $(DOWNLOADS)/libyaml && ./configure --host $(TARGET) $(WASI_TOOLCHAIN) CFLAGS='--target=$(TARGET) -mbulk-memory $(WASI_CFLAGS)' CXXFLAGS='--target=$(TARGET) -mbulk-memory $(WASI_CXXFLAGS)' LDFLAGS='$(WASI_LDFLAGS)'
+	cd $(DOWNLOADS)/libyaml && ./configure --host $(TARGET) $(WASI_TOOLCHAIN) CFLAGS='$(WASI_CFLAGS)' CXXFLAGS='$(WASI_CXXFLAGS)' LDFLAGS='$(WASI_LDFLAGS)'
 
 $(DOWNLOADS)/libyaml/configure: $(DOWNLOADS)/libyaml/configure.ac
 	cd $(DOWNLOADS)/libyaml && $(AUTORECONF) -i
@@ -298,7 +304,7 @@ $(LIBDIR)/usr/local/lib/libz.a: $(DOWNLOADS)/zlib/Makefile
 	cd $(DOWNLOADS)/zlib && $(MAKE) install DESTDIR=$(LIBDIR)
 
 $(DOWNLOADS)/zlib/Makefile: $(DOWNLOADS)/zlib/configure
-	cd $(DOWNLOADS)/zlib && CHOST=linux $(WASI_TOOLCHAIN) CFLAGS='--target=$(TARGET) -mbulk-memory $(WASI_CFLAGS)' CXXFLAGS='--target=$(TARGET) -mbulk-memory $(WASI_CXXFLAGS)' LDFLAGS='$(WASI_LDFLAGS)' ./configure --static
+	cd $(DOWNLOADS)/zlib && CHOST=linux $(WASI_TOOLCHAIN) CFLAGS='$(WASI_CFLAGS)' CXXFLAGS='$(WASI_CXXFLAGS)' LDFLAGS='$(WASI_LDFLAGS)' ./configure --static
 
 $(DOWNLOADS)/zlib/configure:
 	mkdir -p $(DOWNLOADS)
