@@ -1434,16 +1434,17 @@ extern "C" RETRO_API void retro_init() {
         message_interface_version = 0;
     }
 
-    perf = {
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-    };
-    environment(RETRO_ENVIRONMENT_GET_PERF_INTERFACE, &perf);
+    if (!environment(RETRO_ENVIRONMENT_GET_PERF_INTERFACE, &perf)) {
+        perf = {
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+        };
+    }
 
     mkxp_vfs.required_interface_version = 3;
     if (!environment(RETRO_ENVIRONMENT_GET_VFS_INTERFACE, &mkxp_vfs)) {
