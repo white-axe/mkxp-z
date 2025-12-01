@@ -482,7 +482,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y git curl build-essential automake libtool binaryen zip universal-ctags ruby nodejs npm
-          npm install @actions/artifact@2 fast-glob@3
+          npm install @actions/artifact@4 fast-glob@3
 
       - name: Set up WASI SDK
         run: |
@@ -527,7 +527,7 @@ jobs:
         run: |
           apk update
           apk add build-base git zlib-dev zlib-static cmake ninja nodejs npm
-          npm install @actions/artifact@2
+          npm install @actions/artifact@4
 
       - name: Build wiiurpxtool
         run: |
@@ -592,7 +592,7 @@ jobs:
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
           conda install -y nodejs=22 git meson cmake
-          PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@2 fast-glob@3
+          PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@4 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
 
       - name: Checkout repository
@@ -716,7 +716,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y qemu-user-static binfmt-support git build-essential clang llvm meson cmake nodejs npm
-          npm install @actions/artifact@2 fast-glob@3
+          npm install @actions/artifact@4 fast-glob@3
 
       - name: Set up sysroot
         run: |
@@ -897,7 +897,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y git build-essential clang llvm meson cmake nodejs npm
-          npm install @actions/artifact@2 fast-glob@3
+          npm install @actions/artifact@4 fast-glob@3
 
       - name: Set up sysroot
         id: sysroot
@@ -1007,7 +1007,7 @@ jobs:
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
           conda install -y nodejs=22 git meson cmake
-          PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@2 fast-glob@3
+          PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@4 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
 
       - name: Checkout repository
@@ -1090,7 +1090,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y git build-essential llvm meson cmake nodejs npm
-          npm install @actions/artifact@2 fast-glob@3
+          npm install @actions/artifact@4 fast-glob@3
 
       - id: ndk
         name: Set up Android NDK
@@ -1163,7 +1163,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y git build-essential meson cmake nodejs npm
-          npm install @actions/artifact@2 fast-glob@3
+          npm install @actions/artifact@4 fast-glob@3
 
       - name: Set up webOS SDK
         run: |
@@ -1275,7 +1275,7 @@ jobs:
         run: |
           brew uninstall -f --ignore-dependencies git meson cmake node
           brew install -q git meson cmake node
-          npm install @actions/artifact@2 fast-glob@3
+          npm install @actions/artifact@4 fast-glob@3
 
       - name: Checkout repository
         uses: taiki-e/checkout-action@v1
@@ -1347,7 +1347,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y git build-essential meson cmake jq nodejs npm
-          npm install @actions/artifact@2 fast-glob@3
+          npm install @actions/artifact@4 fast-glob@3
 
       - name: Set up Emscripten SDK
         uses: mymindstorm/setup-emsdk@v14
@@ -1445,7 +1445,7 @@ jobs:
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
           conda install -y nodejs=22 git jq meson cmake
-          PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@2 fast-glob@3
+          PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@4 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
 
       - name: Checkout repository
@@ -1514,7 +1514,7 @@ jobs:
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
           conda install -y nodejs=22 git jq meson cmake
-          PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@2 fast-glob@3
+          PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@4 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
 
       - name: Checkout repository
@@ -1584,7 +1584,7 @@ jobs:
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
           conda install -y nodejs=22 git jq meson cmake
-          PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@2 fast-glob@3
+          PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@4 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
 
       - name: Checkout repository
@@ -1658,7 +1658,7 @@ jobs:
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
           conda install -y nodejs=22 git jq meson cmake
-          PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@2 fast-glob@3
+          PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@4 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
 
       - name: Checkout repository
@@ -1747,7 +1747,7 @@ jobs:
           apk add git jq curl python3 gcc g++ ninja nodejs npm
           python3 -m ensurepip
           python3 -m pip install meson cmake
-          npm install @actions/artifact@2 fast-glob@3
+          npm install @actions/artifact@4 fast-glob@3
 
       - name: Checkout repository
         uses: taiki-e/checkout-action@v1
@@ -1815,7 +1815,7 @@ jobs:
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
           conda install -y nodejs=22 git jq meson cmake
-          PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@2 fast-glob@3
+          PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@4 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
 
       - name: Checkout repository
