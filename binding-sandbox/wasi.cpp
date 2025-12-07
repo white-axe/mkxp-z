@@ -52,7 +52,7 @@ static std::string dir_path_join(const struct wasi_instance *wasi, uint32_t fd, 
 
     std::string joined_path(wasi->fdtable[fd].dir_handle()->path);
     joined_path.push_back('/');
-    joined_path.append(wasi->str(path), path_len);
+    joined_path.append(wasi->str(path, path_len), path_len);
     joined_path = mkxp_retro::fs->normalize(joined_path.c_str(), false, true);
 
     // Verify that the joined path is a descendant of the directory corresponding to `fd`
@@ -195,8 +195,8 @@ void wasi_instance::strncpy_s(wasm_ptr_t dst_address, const char *src, wasm_size
     sandbox_strncpy_s(*ruby, dst_address, src, max_size);
 }
 
-struct mkxp_sandbox::sandbox_str_guard wasi_instance::str(wasm_ptr_t address) const noexcept {
-    return sandbox_str(*ruby, address);
+struct mkxp_sandbox::sandbox_str_guard wasi_instance::str(wasm_ptr_t address, wasm_size_t max_size) const noexcept {
+    return sandbox_str(*ruby, address, max_size);
 }
 
 wasm_ptr_t wasi_instance::cabi_alloc_impl(wasm_size_t alignment, wasm_size_t size) const noexcept {
@@ -1402,7 +1402,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_sync(struct w2c_wasi__snapsh
 
 extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddescriptor0x2Ecreate0x2Ddirectory0x2Dat(struct w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t path, wasm_size_t path_len, wasm_ptr_t result) {
     wasi->check_bounds(path, path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.create-directory-at(%u, \"%.*s\")\n", (unsigned int)fd, (int)std::min(path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(path));
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.create-directory-at(%u, \"%.*s\")\n", (unsigned int)fd, (int)std::min(path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(path, path_len));
 
     wasi->check_bounds(result, 2);
 
@@ -1460,7 +1460,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_create_directory(struct w2c_wasi__snapshot__preview1 *wasi, uint32_t fd, wasm_ptr_t path, uint32_t path_len) {
     wasi->check_bounds(path, path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_create_directory(%u, \"%.*s\")\n", (unsigned int)fd, (int)std::min(path_len, (uint32_t)INT_MAX), (const char *)wasi->str(path));
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_create_directory(%u, \"%.*s\")\n", (unsigned int)fd, (int)std::min(path_len, (uint32_t)INT_MAX), (const char *)wasi->str(path, path_len));
 
     if (fd >= wasi->fdtable.size()) {
         return WASIP1_EBADF;
@@ -1682,7 +1682,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_filestat_get(struct w2c_wasi
 
 extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddescriptor0x2Estat0x2Dat(struct w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint32_t path_flags, wasm_ptr_t path, wasm_size_t path_len, wasm_ptr_t result) {
     wasi->check_bounds(path, path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.stat-at(%u, %u, \"%.*s\")\n", (unsigned int)fd, (unsigned int)path_flags, (int)std::min(path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(path));
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.stat-at(%u, %u, \"%.*s\")\n", (unsigned int)fd, (unsigned int)path_flags, (int)std::min(path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(path, path_len));
 
     wasi->check_bounds(result, 104);
 
@@ -1751,7 +1751,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_filestat_get(struct w2c_wasi__snapshot__preview1 *wasi, uint32_t fd, uint32_t flags, wasm_ptr_t path, uint32_t path_len, wasm_ptr_t result) {
     wasi->check_bounds(path, path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_filestat_get(%u, %u, \"%.*s\")\n", (unsigned int)fd, (unsigned int)flags, (int)std::min(path_len, (uint32_t)INT_MAX), (const char *)wasi->str(path));
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_filestat_get(%u, %u, \"%.*s\")\n", (unsigned int)fd, (unsigned int)flags, (int)std::min(path_len, (uint32_t)INT_MAX), (const char *)wasi->str(path, path_len));
 
     wasi->check_bounds(result, 64);
 
@@ -1804,7 +1804,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_filestat_get(struct w2c_wa
 
 extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddescriptor0x2Eset0x2Dtimes0x2Dat(struct w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint32_t path_flags, wasm_ptr_t path, wasm_size_t path_len, uint32_t data_access_timestamp, uint64_t data_access_timestamp_seconds, uint32_t data_access_timestamp_nanoseconds, uint32_t data_modification_timestamp, uint64_t data_modification_timestamp_seconds, uint32_t data_modification_timestamp_nanoseconds, uint32_t result) {
     wasi->check_bounds(path, path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.set-times-at(%u, %u, \"%.*s\", (%u, %llu, %u), (%u, %llu, %u))\n", (unsigned int)fd, (unsigned int)path_flags, (int)std::min(path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(path), (unsigned int)data_access_timestamp, (unsigned long long)data_access_timestamp_seconds, (unsigned int)data_access_timestamp_nanoseconds, (unsigned int)data_modification_timestamp, (unsigned long long)data_modification_timestamp_seconds, (unsigned int)data_modification_timestamp_nanoseconds);
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.set-times-at(%u, %u, \"%.*s\", (%u, %llu, %u), (%u, %llu, %u))\n", (unsigned int)fd, (unsigned int)path_flags, (int)std::min(path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(path, path_len), (unsigned int)data_access_timestamp, (unsigned long long)data_access_timestamp_seconds, (unsigned int)data_access_timestamp_nanoseconds, (unsigned int)data_modification_timestamp, (unsigned long long)data_modification_timestamp_seconds, (unsigned int)data_modification_timestamp_nanoseconds);
 
     if (fd >= wasi->fdtable.size()) {
         wasi->ref<uint8_t>(result) = true;
@@ -1841,7 +1841,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_filestat_set_times(struct w2c_wasi__snapshot__preview1 *wasi, uint32_t fd, uint32_t flags, wasm_ptr_t path, uint32_t path_len, uint64_t atim, uint64_t ntim, uint32_t fst_flags) {
     wasi->check_bounds(path, path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_filestat_set_times(%u, %u, \"%.*s\", %llu, %llu, %u)\n", (unsigned int)fd, (unsigned int)flags, (int)std::min(path_len, (uint32_t)INT_MAX), (const char *)wasi->str(path), (unsigned long long)atim, (unsigned long long)ntim, (unsigned int)fst_flags);
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_filestat_set_times(%u, %u, \"%.*s\", %llu, %llu, %u)\n", (unsigned int)fd, (unsigned int)flags, (int)std::min(path_len, (uint32_t)INT_MAX), (const char *)wasi->str(path, path_len), (unsigned long long)atim, (unsigned long long)ntim, (unsigned int)fst_flags);
 
     if (fd >= wasi->fdtable.size()) {
         return WASIP1_EBADF;
@@ -1876,7 +1876,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_filestat_set_times(struct 
 extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddescriptor0x2Elink0x2Dat(struct w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint32_t old_path_flags, wasm_ptr_t old_path, wasm_size_t old_path_len, wasm_resource_t new_descriptor, wasm_ptr_t new_path, wasm_size_t new_path_len, wasm_ptr_t result) {
     wasi->check_bounds(old_path, old_path_len);
     wasi->check_bounds(new_path, new_path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.link-at(%u, %u, \"%.*s\", %u, \"%.*s\")\n", (unsigned int)fd, (unsigned int)old_path_flags, (int)std::min(old_path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(old_path), (unsigned int)new_descriptor, (int)std::min(new_path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(new_path));
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.link-at(%u, %u, \"%.*s\", %u, \"%.*s\")\n", (unsigned int)fd, (unsigned int)old_path_flags, (int)std::min(old_path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(old_path, old_path_len), (unsigned int)new_descriptor, (int)std::min(new_path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(new_path, new_path_len));
 
     wasi->check_bounds(result, 2);
 
@@ -1916,7 +1916,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_link(struct w2c_wasi__snapshot__preview1 *wasi, uint32_t old_fd, uint32_t old_flags, wasm_ptr_t old_path, uint32_t old_path_len, uint32_t new_fd, wasm_ptr_t new_path, uint32_t new_path_len) {
     wasi->check_bounds(old_path, old_path_len);
     wasi->check_bounds(new_path, new_path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_link(%u, %u, \"%.*s\", %u, \"%.*s\")\n", (unsigned int)old_fd, (unsigned int)old_flags, (int)std::min(old_path_len, (uint32_t)INT_MAX), (const char *)wasi->str(old_path), (unsigned int)new_fd, (int)std::min(new_path_len, (uint32_t)INT_MAX), (const char *)wasi->str(new_path));
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_link(%u, %u, \"%.*s\", %u, \"%.*s\")\n", (unsigned int)old_fd, (unsigned int)old_flags, (int)std::min(old_path_len, (uint32_t)INT_MAX), (const char *)wasi->str(old_path, old_path_len), (unsigned int)new_fd, (int)std::min(new_path_len, (uint32_t)INT_MAX), (const char *)wasi->str(new_path, new_path_len));
     return WASIP1_ENOTSUP;
 }
 
@@ -1983,7 +1983,7 @@ static std::pair<uint32_t, enum PHYSFS_ErrorCode> open_impl(struct wasi_instance
 
 extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddescriptor0x2Eopen0x2Dat(struct w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint32_t path_flags, wasm_ptr_t path, wasm_size_t path_len, uint32_t open_flags, uint32_t flags, wasm_ptr_t result) {
     wasi->check_bounds(path, path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.open-at(%u, %u, \"%.*s\", %u, %u)\n", (unsigned int)fd, (unsigned int)path_flags, (int)std::min(path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(path), (unsigned int)open_flags, (unsigned int)flags);
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.open-at(%u, %u, \"%.*s\", %u, %u)\n", (unsigned int)fd, (unsigned int)path_flags, (int)std::min(path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(path, path_len), (unsigned int)open_flags, (unsigned int)flags);
 
     wasi->check_bounds(result, 8);
 
@@ -2090,7 +2090,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_open(struct w2c_wasi__snapshot__preview1 *wasi, uint32_t fd, uint32_t dirflags, wasm_ptr_t path, uint32_t path_len, uint32_t oflags, uint64_t fs_base_rights, uint64_t fs_rights_inheriting, uint32_t fdflags, wasm_ptr_t result) {
     wasi->check_bounds(path, path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_open(%u, %u, \"%.*s\", %u, %llu, %llu, %u)\n", (unsigned int)fd, (unsigned int)dirflags, (int)std::min(path_len, (uint32_t)INT_MAX), (const char *)wasi->str(path), (unsigned int)oflags, (unsigned long long)fs_base_rights, (unsigned long long)fs_rights_inheriting, (unsigned int)fdflags);
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_open(%u, %u, \"%.*s\", %u, %llu, %llu, %u)\n", (unsigned int)fd, (unsigned int)dirflags, (int)std::min(path_len, (uint32_t)INT_MAX), (const char *)wasi->str(path, path_len), (unsigned int)oflags, (unsigned long long)fs_base_rights, (unsigned long long)fs_rights_inheriting, (unsigned int)fdflags);
 
     wasi->check_bounds(result, 4);
 
@@ -2173,7 +2173,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_open(struct w2c_wasi__snap
 
 extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddescriptor0x2Ereadlink0x2Dat(struct w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t path, wasm_size_t path_len, wasm_ptr_t result) {
     wasi->check_bounds(path, path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.readlink-at(%u, \"%.*s\")\n", (unsigned int)fd, (int)std::min(path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(path));
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.readlink-at(%u, \"%.*s\")\n", (unsigned int)fd, (int)std::min(path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(path, path_len));
 
     wasi->check_bounds(result, 3 * sizeof(wasm_ptr_t));
 
@@ -2220,7 +2220,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_readlink(struct w2c_wasi__snapshot__preview1 *wasi, uint32_t fd, wasm_ptr_t path, uint32_t path_len, wasm_ptr_t buf, uint32_t buf_len, wasm_ptr_t result) {
     wasi->check_bounds(path, path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_readlink(%u, \"%.*s\", 0x%08llx (%u))\n", (unsigned int)fd, (int)std::min(path_len, (uint32_t)INT_MAX), (const char *)wasi->str(path), (unsigned long long)buf, (unsigned int)buf_len);
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_readlink(%u, \"%.*s\", 0x%08llx (%u))\n", (unsigned int)fd, (int)std::min(path_len, (uint32_t)INT_MAX), (const char *)wasi->str(path, path_len), (unsigned long long)buf, (unsigned int)buf_len);
 
     wasi->check_bounds(buf, buf_len);
     wasi->check_bounds(result, 4);
@@ -2257,7 +2257,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_readlink(struct w2c_wasi__
 
 extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddescriptor0x2Eremove0x2Ddirectory0x2Dat(struct w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t path, wasm_size_t path_len, wasm_ptr_t result) {
     wasi->check_bounds(path, path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.remove-directory-at(%u, \"%.*s\")\n", (unsigned int)fd, (int)std::min(path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(path));
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.remove-directory-at(%u, \"%.*s\")\n", (unsigned int)fd, (int)std::min(path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(path, path_len));
 
     wasi->check_bounds(result, 2);
 
@@ -2352,7 +2352,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_remove_directory(struct w2c_wasi__snapshot__preview1 *wasi, uint32_t fd, wasm_ptr_t path, uint32_t path_len) {
     wasi->check_bounds(path, path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_remove_directory(%u, \"%.*s\")\n", (unsigned int)fd, (int)std::min(path_len, (uint32_t)INT_MAX), (const char *)wasi->str(path));
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_remove_directory(%u, \"%.*s\")\n", (unsigned int)fd, (int)std::min(path_len, (uint32_t)INT_MAX), (const char *)wasi->str(path, path_len));
 
     if (fd >= wasi->fdtable.size()) {
         return WASIP1_EBADF;
@@ -2420,7 +2420,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_remove_directory(struct w2
 extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddescriptor0x2Erename0x2Dat(struct w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t old_path, wasm_size_t old_path_len, wasm_resource_t new_descriptor, wasm_ptr_t new_path, wasm_size_t new_path_len, wasm_ptr_t result) {
     wasi->check_bounds(old_path, old_path_len);
     wasi->check_bounds(new_path, new_path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.rename-at(%u, \"%.*s\", %u, \"%.*s\")\n", (unsigned int)fd, (int)std::min(old_path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(old_path), (unsigned int)new_descriptor, (int)std::min(new_path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(new_path));
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.rename-at(%u, \"%.*s\", %u, \"%.*s\")\n", (unsigned int)fd, (int)std::min(old_path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(old_path, old_path_len), (unsigned int)new_descriptor, (int)std::min(new_path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(new_path, new_path_len));
 
     wasi->check_bounds(result, 2);
 
@@ -2460,7 +2460,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_rename(struct w2c_wasi__snapshot__preview1 *wasi, uint32_t fd, wasm_ptr_t old_path, uint32_t old_path_len, uint32_t new_fd, wasm_ptr_t new_path, uint32_t new_path_len) {
     wasi->check_bounds(old_path, old_path_len);
     wasi->check_bounds(new_path, new_path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_rename(%u, \"%.*s\", %u, \"%.*s\")\n", (unsigned int)fd, (int)std::min(old_path_len, (uint32_t)INT_MAX), (const char *)wasi->str(old_path), (unsigned int)new_fd, (int)std::min(new_path_len, (uint32_t)INT_MAX), (const char *)wasi->str(new_path));
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_rename(%u, \"%.*s\", %u, \"%.*s\")\n", (unsigned int)fd, (int)std::min(old_path_len, (uint32_t)INT_MAX), (const char *)wasi->str(old_path, old_path_len), (unsigned int)new_fd, (int)std::min(new_path_len, (uint32_t)INT_MAX), (const char *)wasi->str(new_path, new_path_len));
 
     if (fd >= wasi->fdtable.size()) {
         return WASIP1_EBADF;
@@ -2489,7 +2489,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_rename(struct w2c_wasi__sn
 extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddescriptor0x2Esymlink0x2Dat(struct w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t old_path, wasm_size_t old_path_len, wasm_ptr_t new_path, wasm_size_t new_path_len, wasm_ptr_t result) {
     wasi->check_bounds(old_path, old_path_len);
     wasi->check_bounds(new_path, new_path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.symlink-at(%u, \"%.*s\", \"%.*s\")\n", (unsigned int)fd, (int)std::min(old_path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(old_path), (int)std::min(new_path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(new_path));
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.symlink-at(%u, \"%.*s\", \"%.*s\")\n", (unsigned int)fd, (int)std::min(old_path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(old_path, old_path_len), (int)std::min(new_path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(new_path, new_path_len));
 
     wasi->check_bounds(result, 2);
 
@@ -2529,7 +2529,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_symlink(struct w2c_wasi__snapshot__preview1 *wasi, wasm_ptr_t old_path, uint32_t old_path_len, uint32_t fd, wasm_ptr_t new_path, uint32_t new_path_len) {
     wasi->check_bounds(old_path, old_path_len);
     wasi->check_bounds(new_path, new_path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_symlink(\"%.*s\", %u, \"%.*s\")\n", (int)std::min(old_path_len, (uint32_t)INT_MAX), (const char *)wasi->str(old_path), (unsigned int)fd, (int)std::min(new_path_len, (uint32_t)INT_MAX), (const char *)wasi->str(new_path));
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_symlink(\"%.*s\", %u, \"%.*s\")\n", (int)std::min(old_path_len, (uint32_t)INT_MAX), (const char *)wasi->str(old_path, old_path_len), (unsigned int)fd, (int)std::min(new_path_len, (uint32_t)INT_MAX), (const char *)wasi->str(new_path, new_path_len));
 
     if (fd >= wasi->fdtable.size()) {
         return WASIP1_EBADF;
@@ -2557,7 +2557,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_symlink(struct w2c_wasi__s
 
 extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddescriptor0x2Eunlink0x2Dfile0x2Dat(struct w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t path, wasm_size_t path_len, wasm_ptr_t result) {
     wasi->check_bounds(path, path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.unlink-file-at(%u, \"%.*s\")\n", (unsigned int)fd, (int)std::min(path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(path));
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.unlink-file-at(%u, \"%.*s\")\n", (unsigned int)fd, (int)std::min(path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(path, path_len));
 
     wasi->check_bounds(result, 2);
 
@@ -2646,7 +2646,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_path_unlink_file(struct w2c_wasi__snapshot__preview1 *wasi, uint32_t fd, wasm_ptr_t path, uint32_t path_len) {
     wasi->check_bounds(path, path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_unlink_file(%u, \"%.*s\")\n", (unsigned int)fd, (int)std::min(path_len, (uint32_t)INT_MAX), (const char *)wasi->str(path));
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::path_unlink_file(%u, \"%.*s\")\n", (unsigned int)fd, (int)std::min(path_len, (uint32_t)INT_MAX), (const char *)wasi->str(path, path_len));
 
     if (fd >= wasi->fdtable.size()) {
         return WASIP1_EBADF;
@@ -2766,7 +2766,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
 
 extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddescriptor0x2Emetadata0x2Dhash0x2Dat(struct w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint32_t path_flags, wasm_ptr_t path, wasm_size_t path_len, wasm_ptr_t result) {
     wasi->check_bounds(path, path_len);
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.metadata-hash-at(%u, %u, \"%.*s\")\n", (unsigned int)fd, (unsigned int)path_flags, (int)std::min(path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(path));
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:filesystem/types@0.2.0::[method]descriptor.metadata-hash-at(%u, %u, \"%.*s\")\n", (unsigned int)fd, (unsigned int)path_flags, (int)std::min(path_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(path, path_len));
 
     wasi->check_bounds(result, 24);
 

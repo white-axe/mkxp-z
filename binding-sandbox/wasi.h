@@ -366,7 +366,7 @@ struct wasi_instance {
     void check_bounds(mkxp_sandbox::wasm_ptr_t address, mkxp_sandbox::wasm_size_t size) const noexcept;
 
     // Gets a string stored at a given address in sandbox memory.
-    struct mkxp_sandbox::sandbox_str_guard str(mkxp_sandbox::wasm_ptr_t address) const noexcept;
+    struct mkxp_sandbox::sandbox_str_guard str(mkxp_sandbox::wasm_ptr_t address, mkxp_sandbox::wasm_size_t max_size) const noexcept;
 
     // Gets the length of a string stored at a given address in sandbox memory.
     mkxp_sandbox::wasm_size_t strlen(mkxp_sandbox::wasm_ptr_t address) const noexcept;

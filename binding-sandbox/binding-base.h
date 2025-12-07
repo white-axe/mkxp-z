@@ -218,6 +218,9 @@ namespace mkxp_sandbox {
     // Gets a string stored at a given address in sandbox memory.
     struct sandbox_str_guard sandbox_str(struct w2c_ruby &instance, wasm_ptr_t address) noexcept;
 
+    // Gets a string stored at a given address in sandbox memory.
+    struct sandbox_str_guard sandbox_str(struct w2c_ruby &instance, wasm_ptr_t address, wasm_size_t max_size) noexcept;
+
     // Copies a string into a sandbox memory address.
     void sandbox_strcpy(struct w2c_ruby &instance, wasm_ptr_t dst_address, const char *src) noexcept;
 
@@ -380,6 +383,9 @@ namespace mkxp_sandbox {
 
         // Gets a string stored at a given address in sandbox memory.
         struct sandbox_str_guard str(wasm_ptr_t address) const noexcept;
+
+        // Gets a string stored at a given address in sandbox memory.
+        struct sandbox_str_guard str(wasm_ptr_t address, wasm_size_t max_size) const noexcept;
 
         // Copies a string into a sandbox memory address.
         void strcpy(wasm_ptr_t dst_address, const char *src) const noexcept;
