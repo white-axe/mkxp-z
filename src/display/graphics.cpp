@@ -1022,7 +1022,9 @@ struct GraphicsPrivate {
 #endif // MKXPZ_RETRO
     
     Vec2i integerScaleFactor;
+#ifndef MKXPZ_RETRO
     TEXFBO integerScaleBuffer;
+#endif // MKXPZ_RETRO
     bool integerScaleActive;
     bool integerLastMileScaling;
     
@@ -1071,7 +1073,6 @@ struct GraphicsPrivate {
 #endif // MKXPZ_RETRO
         
         if (integerScaleActive) {
-            integerScaleFactor = Vec2i(0, 0);
             rebuildIntegerScaleBuffer();
         }
         
@@ -1090,8 +1091,8 @@ struct GraphicsPrivate {
     
     ~GraphicsPrivate() {
         TEXFBO::fini(frozenScene);
-        TEXFBO::fini(integerScaleBuffer);
 #ifndef MKXPZ_RETRO
+        TEXFBO::fini(integerScaleBuffer);
         SDL_DestroyMutex(avgFPSLock);
         SDL_DestroyMutex(glResourceLock);
 #endif // MKXPZ_RETRO
@@ -1123,12 +1124,16 @@ struct GraphicsPrivate {
         scSize = winSize;
         
         if (!fixedAspectRatio) {
-            if (!integerScaleActive || (integerScaleActive && integerLastMileScaling)) {
+#ifndef MKXPZ_RETRO
+            if (!integerScaleActive || (integerScaleActive && integerLastMileScaling))
+#endif // MKXPZ_RETRO
+            {
                 scOffset = Vec2i(0, 0);
                 return;
             }
         }
         
+#ifndef MKXPZ_RETRO
         if (integerScaleActive && !integerLastMileScaling) {
             scOffset.x = ((winSize.x / 2) - (scRes.x / 2) * integerScaleFactor.x);
             scOffset.y = ((winSize.y / 2) - (scRes.y / 2) * integerScaleFactor.y);
@@ -1136,6 +1141,7 @@ struct GraphicsPrivate {
             scSize = Vec2i(scRes.x * integerScaleFactor.x, scRes.y * integerScaleFactor.y);
             return;
         }
+#endif // MKXPZ_RETRO
         
         float resRatio = (float)scRes.x / scRes.y;
         float winRatio = (float)winSize.x / winSize.y;
@@ -1179,15 +1185,20 @@ struct GraphicsPrivate {
     
     void rebuildIntegerScaleBuffer()
     {
+#ifndef MKXPZ_RETRO
         TEXFBO::fini(integerScaleBuffer);
         TEXFBO::init(integerScaleBuffer);
         TEXFBO::allocEmpty(integerScaleBuffer, scRes.x * integerScaleFactor.x,
                            scRes.y * integerScaleFactor.y);
         TEXFBO::linkFBO(integerScaleBuffer);
+#endif // MKXPZ_RETRO
     }
     
     bool integerScaleStepApplicable() const
     {
+#ifdef MKXPZ_RETRO
+        return false;
+#else
         if (!integerScaleActive)
             return false;
         
@@ -1195,6 +1206,7 @@ struct GraphicsPrivate {
             return false;
         
         return true;
+#endif // MKXPZ_RETRO
     }
     
     void checkResize(bool skipIntScaleBuffer = false) {
@@ -1293,6 +1305,7 @@ struct GraphicsPrivate {
     void redrawScreen(Exception &exception) {
         GUARD(screen.composite(exception));
         
+#ifndef MKXPZ_RETRO
         // maybe unspaghetti this later
         if (integerScaleStepApplicable() && !integerLastMileScaling)
         {
@@ -1323,29 +1336,37 @@ struct GraphicsPrivate {
             
             GLMeta::blitEnd();
         }
-        
+#endif // MKXPZ_RETRO
 
         Vec2i sourceSize;
 
+#ifndef MKXPZ_RETRO
         if (integerScaleActive)
         {
             sourceSize = Vec2i(integerScaleBuffer.width, integerScaleBuffer.height);
         }
         else
+#endif // MKXPZ_RETRO
         {
             sourceSize = scRes;
         }
 
+#ifdef MKXPZ_RETRO
+        int scaleIsSpecial = 0;
+#else
         int scaleIsSpecial = GLMeta::blitScaleIsSpecial(integerScaleBuffer, false, IntRect(0, 0, scSize.x, scSize.y), integerScaleActive ? integerScaleBuffer : screen.getPP().frontBuffer(), IntRect(0, 0, sourceSize.x, sourceSize.y));
+#endif // MKXPZ_RETRO
 
         GLMeta::blitBeginScreen(winSize, scaleIsSpecial);
         //GLMeta::blitSource(screen.getPP().frontBuffer(), scaleIsSpecial);
 
+#ifndef MKXPZ_RETRO
         if (integerScaleActive)
         {
             GLMeta::blitSource(integerScaleBuffer, scaleIsSpecial);
         }
         else
+#endif // MKXPZ_RETRO
         {
             GLMeta::blitSource(screen.getPP().frontBuffer(), scaleIsSpecial);
         }
@@ -1632,7 +1653,11 @@ void Graphics::transition(Exception &exception, int duration, Bitmap *transMap, 
         FBO::unbind();
         FBO::clear();
         
+#ifdef MKXPZ_RETRO
+        int scaleIsSpecial = 0;
+#else
         int scaleIsSpecial = GLMeta::blitScaleIsSpecial(p->integerScaleBuffer, false, IntRect(0, 0, p->scSize.x, p->scSize.y), transBuffer, IntRect(0, 0, p->scRes.x, p->scRes.y));
+#endif // MKXPZ_RETRO
 
         GLMeta::blitBeginScreen(Vec2i(p->winSize), scaleIsSpecial);
         GLMeta::blitSource(transBuffer, scaleIsSpecial);
@@ -1701,7 +1726,11 @@ void Graphics::fadeout(Exception &exception, int duration, int start, int stop, 
         setBrightness(diff + (curr / duration) * (duration - ++i));
         
         if (p->frozen) {
+#ifdef MKXPZ_RETRO
+            int scaleIsSpecial = 0;
+#else
             int scaleIsSpecial = GLMeta::blitScaleIsSpecial(p->integerScaleBuffer, false, IntRect(0, 0, p->scSize.x, p->scSize.y), p->frozenScene, IntRect(0, 0, p->scRes.x, p->scRes.y));
+#endif // MKXPZ_RETRO
 
             GLMeta::blitBeginScreen(p->scSize, scaleIsSpecial);
             GLMeta::blitSource(p->frozenScene, scaleIsSpecial);
@@ -1728,7 +1757,11 @@ void Graphics::fadein(Exception &exception, int duration, int start, int stop, i
         setBrightness(curr + (diff / duration) * ++i);
         
         if (p->frozen) {
+#ifdef MKXPZ_RETRO
+            int scaleIsSpecial = 0;
+#else
             int scaleIsSpecial = GLMeta::blitScaleIsSpecial(p->integerScaleBuffer, false, IntRect(0, 0, p->scSize.x, p->scSize.y), p->frozenScene, IntRect(0, 0, p->scRes.x, p->scRes.y));
+#endif // MKXPZ_RETRO
 
             GLMeta::blitBeginScreen(p->scSize, scaleIsSpecial);
             GLMeta::blitSource(p->frozenScene, scaleIsSpecial);
@@ -2234,7 +2267,11 @@ void Graphics::repaint(bool useBackBuffer) {
     /* Repaint the screen with the last good frame we drew */
     TEXFBO &lastFrame = useBackBuffer ? p->screen.getPP().backBuffer() : p->screen.getPP().frontBuffer();
 
+#ifdef MKXPZ_RETRO
+    int scaleIsSpecial = 0;
+#else
     int scaleIsSpecial = GLMeta::blitScaleIsSpecial(p->integerScaleBuffer, false, IntRect(0, 0, p->scSize.x, p->scSize.y), lastFrame, IntRect(0, 0, p->scRes.x, p->scRes.y));
+#endif // MKXPZ_RETRO
 
     GLMeta::blitBeginScreen(p->winSize, scaleIsSpecial);
     GLMeta::blitSource(lastFrame, scaleIsSpecial);
@@ -2258,7 +2295,11 @@ void Graphics::repaintWait(const AtomicFlag &exitCond, bool checkReset) {
     /* Repaint the screen with the last good frame we drew */
     TEXFBO &lastFrame = p->screen.getPP().frontBuffer();
 
+#ifdef MKXPZ_RETRO
+    int scaleIsSpecial = 0;
+#else
     int scaleIsSpecial = GLMeta::blitScaleIsSpecial(p->integerScaleBuffer, false, IntRect(0, 0, p->scSize.x, p->scSize.y), lastFrame, IntRect(0, 0, p->scRes.x, p->scRes.y));
+#endif // MKXPZ_RETRO
 
     GLMeta::blitBeginScreen(p->winSize, scaleIsSpecial);
     GLMeta::blitSource(lastFrame, scaleIsSpecial);
