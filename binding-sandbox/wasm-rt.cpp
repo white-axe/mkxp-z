@@ -32,6 +32,8 @@
 
 #define WASM_MIN_PAGES ((uint32_t)1536U)
 
+#define WASM_MAX_SIZE std::min((uint64_t)(mkxp_sandbox::wasm_size_t)-1, (uint64_t)SIZE_MAX)
+
 extern "C" bool wasm_rt_is_initialized(void) {
     return true;
 }
@@ -76,10 +78,12 @@ extern "C" void wasm_rt_allocate_memory(wasm_rt_memory_t *memory, uint32_t initi
     if (page_size != WASM_PAGE_SIZE) {
         MKXPZ_THROW(std::bad_alloc());
     }
-    if ((memory->size = (uint64_t)initial_pages * WASM_PAGE_SIZE) > SIZE_MAX) {
+    if ((memory->size = (uint64_t)initial_pages * WASM_PAGE_SIZE) > WASM_MAX_SIZE) {
         MKXPZ_THROW(std::bad_alloc());
     }
-    memory->capacity = (uint64_t)WASM_MIN_PAGES * (uint64_t)WASM_PAGE_SIZE;
+    if ((memory->capacity = (uint64_t)WASM_MIN_PAGES * (uint64_t)WASM_PAGE_SIZE) > WASM_MAX_SIZE) {
+        MKXPZ_THROW(std::bad_alloc());
+    }
     LOG_PRINTF(RETRO_LOG_DEBUG, "VM memory initialized with capacity %llu bytes (%u pages)\n", (unsigned long long)memory->capacity, (unsigned int)WASM_MIN_PAGES);
     memory->private_data = (uint8_t *)std::malloc(std::max((size_t)memory->size, (size_t)WASM_MIN_PAGES * (size_t)WASM_PAGE_SIZE));
     if (memory->private_data == nullptr) {
@@ -98,7 +102,7 @@ extern "C" void wasm_rt_replace_memory(wasm_rt_memory_t *memory, size_t size, si
     size = size / WASM_PAGE_SIZE * WASM_PAGE_SIZE;
     capacity = capacity / WASM_PAGE_SIZE * WASM_PAGE_SIZE;
 
-    if (size > capacity) {
+    if (size > capacity || capacity > WASM_MAX_SIZE) {
         MKXPZ_THROW(std::bad_alloc());
     }
 
@@ -127,7 +131,7 @@ extern "C" uint32_t wasm_rt_grow_memory(wasm_rt_memory_t *memory, uint32_t pages
     }
 
     uint64_t new_size = (uint64_t)new_pages * WASM_PAGE_SIZE;
-    if (new_size > SIZE_MAX) {
+    if (new_size > WASM_MAX_SIZE) {
         return -1;
     }
 
