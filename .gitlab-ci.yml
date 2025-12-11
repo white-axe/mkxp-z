@@ -31,7 +31,7 @@
   extends:
     - .miniforge
   variables:
-    MINIFORGE_PACKAGES: git meson cmake
+    MINIFORGE_PACKAGES: git meson=1.9.2 cmake=4.2.0
   before_script:
     - !reference [.miniforge, before_script]
     - git config --global --add safe.directory "$(pwd)"

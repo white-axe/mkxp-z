@@ -591,7 +591,7 @@ jobs:
           curl -Lo ~/Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
-          conda install -y nodejs=22 git meson cmake
+          conda install -y nodejs=22 git meson=1.9.2 cmake=4.2.0
           PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@4 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
 
@@ -1006,7 +1006,7 @@ jobs:
           curl -Lo ~/Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
-          conda install -y nodejs=22 git meson cmake
+          conda install -y nodejs=22 git meson=1.9.2 cmake=4.2.0
           PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@4 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
 
@@ -1444,7 +1444,7 @@ jobs:
           curl -Lo ~/Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
-          conda install -y nodejs=22 git jq meson cmake
+          conda install -y nodejs=22 git jq meson=1.9.2 cmake=4.2.0
           PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@4 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
 
@@ -1513,7 +1513,7 @@ jobs:
           curl -Lo ~/Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
-          conda install -y nodejs=22 git jq meson cmake
+          conda install -y nodejs=22 git jq meson=1.9.2 cmake=4.2.0
           PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@4 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
 
@@ -1583,7 +1583,7 @@ jobs:
           curl -Lo ~/Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
-          conda install -y nodejs=22 git jq meson cmake
+          conda install -y nodejs=22 git jq meson=1.9.2 cmake=4.2.0
           PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@4 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
 
@@ -1657,7 +1657,7 @@ jobs:
           curl -Lo ~/Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
-          conda install -y nodejs=22 git jq meson cmake
+          conda install -y nodejs=22 git jq meson=1.9.2 cmake=4.2.0
           PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@4 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
 
@@ -1814,7 +1814,7 @@ jobs:
           curl -Lo ~/Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
           bash ~/Miniforge3.sh -b -p ~/miniforge3
           source ~/miniforge3/etc/profile.d/conda.sh
-          conda install -y nodejs=22 git jq meson cmake
+          conda install -y nodejs=22 git jq meson=1.9.2 cmake=4.2.0
           PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@4 fast-glob@3
           echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
 
