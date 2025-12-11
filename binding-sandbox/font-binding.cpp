@@ -43,8 +43,7 @@ struct collect_strings : boost::asio::coroutine {
             } else {
                 SANDBOX_AWAIT_S(3, rb_obj_is_kind_of, obj, sb()->rb_cArray());
                 if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(3))) {
-                    SANDBOX_AWAIT_S(3, get_length, obj);
-                    SANDBOX_AWAIT_S(2, rb_num2ulong, SANDBOX_SLOT(3));
+                    SANDBOX_AWAIT_S(2, get_length, obj);
                     for (SANDBOX_SLOT(1) = 0; SANDBOX_SLOT(1) < SANDBOX_SLOT(2); ++SANDBOX_SLOT(1)) {
                         SANDBOX_AWAIT_S(4, rb_ary_entry, obj, SANDBOX_SLOT(1));
                         /* Non-string objects are tolerated (ignored) */
@@ -217,7 +216,7 @@ static VALUE set_default_name(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
                 names = new std::vector<std::string>;
                 SANDBOX_AWAIT(collect_strings, value, *names);
-                get_private_data<Font>(self)->setName(*names);
+                Font::setDefaultName(*names, shState->fontState());
                 SANDBOX_AWAIT(rb_iv_set, self, "default_name", value);
             }
 
