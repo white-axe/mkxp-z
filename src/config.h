@@ -118,6 +118,11 @@ struct Config {
     std::vector<std::string> patches;
     
     std::vector<std::string> fontSubs;
+    float fontScale;
+    bool fontKerning;
+    int fontHinting;
+    int fontHeightReporting;
+    bool fontOutlineCrop;
     
     std::vector<std::string> rubyLoadpaths;
 

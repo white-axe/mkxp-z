@@ -274,12 +274,15 @@ $(LIBDIR)/libfluidsynth.a: $(DOWNLOADS)/fluidsynth/cmakebuild/Makefile
 	cd $(DOWNLOADS)/fluidsynth/cmakebuild; \
 	make -j$(NPROC); make install
 
-$(DOWNLOADS)/fluidsynth/cmakebuild/Makefile: $(DOWNLOADS)/fluidsynth/CMakeLists.txt
+$(DOWNLOADS)/fluidsynth/cmakebuild/Makefile: $(DOWNLOADS)/fluidsynth/CMakeLists.txt $(LIBDIR)/libgomp.a
 	cd $(DOWNLOADS)/fluidsynth; mkdir cmakebuild; cd cmakebuild; \
 	$(CMAKE) -DBUILD_SHARED_LIBS=no -Denable-sdl3=no -Denable-readline=no -Dosal=embedded -Denable-libinstpatch=no -Denable-jack=no -Denable-portaudio=no -Denable-libsndfile=no -Denable-systemd=no -Denable-dbus=no
 
 $(DOWNLOADS)/fluidsynth/CMakeLists.txt:
 	$(CLONE) $(GITHUB)/FluidSynth/fluidsynth -b v2.5.0 --recurse-submodules $(DOWNLOADS)/fluidsynth
+
+$(LIBDIR)/libgomp.a: $(shell $(CC) --print-file-name=libgomp.a) init_dirs
+	cp $< $(LIBDIR)/libgomp.a
 
 # OpenSSL
 openssl: init_dirs $(LIBDIR)/libssl.a

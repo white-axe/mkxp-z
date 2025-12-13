@@ -428,6 +428,42 @@
     //     "Times New Roman>Liberation Serif",
     // ],
 
+    // Scales the sizes of all fonts.
+    // If you think text tends to be too large or too small,
+    // try fiddling with this.
+    // (default: 1.0)
+    // "fontScale": 1.0,
+
+    // Kerning adjusts the spacing between individual letters or characters.
+    // Enabling it generally looks nicer, but RGSS doesn't use it,
+    // so disabling it should make text appearance more accurate.
+    // (default: true)
+    // "fontKerning": true,
+
+    // Hinting adjusts the rendering of individual letters or characters.
+    // Enabling it may look nicer (especially on low-resolution displays), but
+    // RGSS doesn't use it, so disabling it should make text appearance more
+    // accurate. Documentation can be found at:
+    // https://pysdl2.readthedocs.io/en/latest/modules/sdl2_sdlttf.html#sdl2.sdlttf.TTF_HINTING_NORMAL
+    // 0: Normal
+    // 1: Light
+    // 2: Mono
+    // 3: None
+    // (default: 3)
+    // "fontHinting": 3,
+
+    // Controls the algorithm for reporting the height of rendered text.
+    // 0: Nominal (TTF_FontHeight); matches RGSS behavior; may cut off bottoms of some characters.
+    // 1: Rendered (TTF_SizeUTF8); deviates from RGSS; may look better.
+    // (default: 0)
+    // "fontHeightReporting": 0,
+
+    // Crops top row and left column of text that has an outline.
+    // Disabling it generally looks nicer, but RGSS enables it, so enabling it
+    // should make text appearance more accurate.
+    // (default: true)
+    // "fontOutlineCrop": true,
+
 
     // Because mkxp is usually distributed as a stand alone
     // build, no predefined load paths are initialized
