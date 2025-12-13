@@ -1774,7 +1774,7 @@ jobs:
         run: |
           apk add git jq curl python3 gcc g++ ninja nodejs npm
           python3 -m ensurepip
-          python3 -m pip install meson cmake
+          python3 -m pip install meson==1.9.2 cmake==4.2.0
           npm install @actions/artifact@4 fast-glob@3
 
       - name: Checkout repository
