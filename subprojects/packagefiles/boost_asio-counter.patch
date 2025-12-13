@@ -3,12 +3,12 @@
 
 --- a/include/boost/asio/coroutine.hpp
 +++ b/include/boost/asio/coroutine.hpp
-@@ -319,7 +319,7 @@ private:
-     } \
-     else
+@@ -291,7 +291,7 @@ private:
+ } // namespace boost
  
--#if defined(_MSC_VER)
-+#if true
- # define BOOST_ASIO_CORO_YIELD BOOST_ASIO_CORO_YIELD_IMPL(__COUNTER__ + 1)
- # define BOOST_ASIO_CORO_FORK BOOST_ASIO_CORO_FORK_IMPL(__COUNTER__ + 1)
- #else // defined(_MSC_VER)
+ #if !defined(BOOST_ASIO_CORO_VALUE_INIT)
+-# if defined(_MSC_VER)
++# if true
+ #  define BOOST_ASIO_CORO_VALUE_INIT __COUNTER__
+ # else // defined(_MSC_VER)
+ #  define BOOST_ASIO_CORO_VALUE_INIT __LINE__
