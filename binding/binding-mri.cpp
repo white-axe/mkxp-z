@@ -72,6 +72,8 @@ extern const char module_rpg1[];
 extern const char module_rpg2[];
 extern const char module_rpg3[];
 
+static VALUE topSelf;
+
 static void mriBindingExecute();
 static void mriBindingTerminate();
 static void mriBindingReset();
@@ -857,7 +859,7 @@ struct evalArg {
 
 static VALUE evalHelper(evalArg *arg) {
     VALUE argv[] = {arg->string, Qnil, arg->filename};
-    return rb_funcall2(Qnil, rb_intern("eval"), ARRAY_SIZE(argv), argv);
+    return rb_funcall2(topSelf, rb_intern("eval"), ARRAY_SIZE(argv), argv);
 }
 
 static VALUE evalString(VALUE string, VALUE filename, int *state) {
@@ -1280,6 +1282,8 @@ static void mriBindingExecute() {
     }
 #endif
 #endif
+    
+    topSelf = rb_eval_string("self");
     
     VALUE rbArgv = rb_get_argv();
     for (const auto &str : conf.launchArgs)

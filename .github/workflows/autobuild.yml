@@ -66,7 +66,6 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          cp /mingw64/bin/libgomp-1.dll .
           cp /mingw64/bin/zlib1.dll .
           cp ../../windows/build-mingw64/bin/x64-msvcrt-ruby310.dll .
           cp -r ../../windows/build-mingw64/lib/ruby/3.1.0 .
@@ -75,6 +74,35 @@ jobs:
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
+
+      - name: Check for DLLs missing from the artifact
+        shell: msys2 {0}
+        run: |
+          cd build/artifact
+          error_flag=
+
+          for file in *.exe *.dll
+          do
+            ldd_output="$(ldd "$file")"
+            echo "$file"
+            echo "$ldd_output"
+
+            while IFS= read -r line
+            do
+              dll_name="$(echo "$line" | sed -e 's/=>/|/g' | cut -d '|' -f 1 | sed -e 's/^[ \t]*//g' -e 's/[ \t]*$//g')"
+              dll_location="$(echo "$line" | sed -e 's/=>/|/g' | cut -d '|' -f 2 | sed -e 's/^[ \t]*//g' -e 's/[ \t]*$//g')"
+              if [[ "$dll_location" = 'not found'* ]] || [[ "$dll_location" = '/mingw64/bin/'* ]] || [[ "$dll_location" = '/mingw64/lib/'* ]] || [[ "$dll_location" = '/mingw64/usr/bin/'* ]] || [[ "$dll_location" = '/mingw64/usr/lib/'* ]]
+              then
+                error_flag=1
+                echo "::error::$dll_name is missing from the artifact"
+              fi
+            done <<< "$ldd_output"
+          done
+
+          if [ -n "$error_flag" ]
+          then
+            exit 1
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

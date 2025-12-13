@@ -170,7 +170,7 @@ RB_METHOD_GUARD(FontSetSize) {
   Font *k = getPrivateData<Font>(self);
   int value;
   rb_int_arg(*argv, &value);
-  BINDING_GUARD(k->setSizeCheck(e, value));
+  BINDING_GUARD(k->setSize(e, value));
   return *argv;
 }
 

@@ -188,7 +188,7 @@ static VALUE set_size(VALUE self, VALUE value) {
 
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_S(0, rb_num2int, value);
-                SANDBOX_GUARD(get_private_data<Font>(self)->setSizeCheck(sb().e, SANDBOX_SLOT(0)));
+                SANDBOX_GUARD(get_private_data<Font>(self)->setSize(sb().e, SANDBOX_SLOT(0)));
             }
             return value;
         }

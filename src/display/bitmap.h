@@ -160,7 +160,8 @@ public:
 
 	IntRect textSize(Exception &exception, const char *str);
 
-	DECL_ATTR(Font, Font&)
+	Font &getFont(Exception &exception) const;
+	void setFont(Font &value);
 
 	/* Sets initial reference without copying by value,
 	 * use at construction */
@@ -248,8 +249,7 @@ private:
 	void loresDisposal();
 
 #ifdef MKXPZ_RETRO
-	IntRect textRect(Exception &exception, const char *str, bool solid);
-	SDL_Surface *drawTextInner(Exception &exception, FT_Face font, const char *str, SDL_Color &c, size_t outline);
+	SDL_Surface *drawTextInner(FT_Face font, const char *str, SDL_Color &c, size_t outline);
 	bool sandbox_serialize_pixels(void *&data, mkxp_sandbox::wasm_size_t &max_size, const std::vector<std::vector<uint32_t>> &diff) const;
 	bool sandbox_deserialize_pixels_check_need_reload(const void *&data, mkxp_sandbox::wasm_size_t &max_size, const std::vector<std::vector<uint32_t>> &diff, bool &need_reload, bool &need_reload_if_path_not_empty, bool modify_data_and_max_size) const;
 	bool sandbox_deserialize_pixels(const void *&data, mkxp_sandbox::wasm_size_t &max_size, std::vector<std::vector<uint32_t>> &diff, mkxp_sandbox::wasm_size_t frame_number = 0);

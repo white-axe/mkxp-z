@@ -64,10 +64,8 @@ public:
 #else
 	_TTF_Font *
 #endif // MKXPZ_RETRO
-	getFont(
-	                   Exception &exception,
-	                   std::string family,
-	                   int size);
+	getFont(Exception &exception, std::string family,
+	                   int size, float hiresMult, int outline_size = 0);
 
 	bool fontPresent(std::string family) const;
 
@@ -103,7 +101,8 @@ public:
 
 	int getSize() const;
 	void setSizeNoCheck(int value);
-	void setSizeCheck(Exception &exception, int value);
+	void setSize(Exception &exception, int value, bool checkIllegal=true);
+	void setHiresMult(float value);
 
 	DECL_ATTR_NOEXCEPT( Bold,     bool   )
 	DECL_ATTR_NOEXCEPT( Italic,   bool   )
@@ -147,7 +146,7 @@ public:
 #else
 	_TTF_Font *
 #endif // MKXPZ_RETRO
-	getSdlFont(Exception &exception);
+	getSdlFont(Exception &exception, int outline_size);
 
 #ifdef MKXPZ_RETRO
 	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;

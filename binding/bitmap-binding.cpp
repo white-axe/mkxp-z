@@ -352,7 +352,7 @@ RB_METHOD_GUARD(BitmapSetFont) {
     
     Font *prop = getPrivateDataCheck<Font>(propObj, FontType);
     if (prop) {
-        BINDING_GUARD_L(b->setFont(e, *prop));
+        b->setFont(*prop);
         
         VALUE f = rb_iv_get(self, "font");
         if (f) {
@@ -839,7 +839,7 @@ RB_METHOD_GUARD(bitmapInitializeCopy) {
     bitmapInitProps(b, self);
     Font *font;
     BINDING_GUARD(font = &orig->getFont(e));
-    BINDING_GUARD(b->setFont(e, *font));
+    b->setFont(*font);
     setPrivateData(self, b);
     
     return self;

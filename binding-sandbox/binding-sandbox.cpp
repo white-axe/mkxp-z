@@ -48,6 +48,7 @@ extern const char module_rpg1[];
 extern const char module_rpg2[];
 extern const char module_rpg3[];
 
+static VALUE top_self;
 static VALUE utf8_encoding;
 
 struct eval_script : boost::asio::coroutine {
@@ -62,7 +63,7 @@ struct eval_script : boost::asio::coroutine {
                     SANDBOX_AWAIT_S(0, rb_ary_entry, arg, 0);
                     SANDBOX_AWAIT_S(1, rb_ary_entry, arg, 1);
                     SANDBOX_AWAIT_S(2, rb_intern, "eval");
-                    SANDBOX_AWAIT(rb_funcall, SANDBOX_NIL, SANDBOX_SLOT(2), 3, SANDBOX_SLOT(0), SANDBOX_NIL, SANDBOX_SLOT(1));
+                    SANDBOX_AWAIT(rb_funcall, top_self, SANDBOX_SLOT(2), 3, SANDBOX_SLOT(0), SANDBOX_NIL, SANDBOX_SLOT(1));
                 }
 
                 return SANDBOX_UNDEF;
@@ -515,6 +516,7 @@ void sandbox_binding_init::operator()() {
 
     BOOST_ASIO_CORO_REENTER (this) {
         SANDBOX_AWAIT(register_ruby_revision);
+        SANDBOX_AWAIT_R(top_self, rb_eval_string, "self");
         SANDBOX_AWAIT(register_utf8_encoding);
         SANDBOX_AWAIT(exception_binding_init);
 

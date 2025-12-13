@@ -101,7 +101,7 @@ static VALUE initialize_copy(VALUE self, VALUE value) {
                 SANDBOX_AWAIT(bitmap_init_props, self);
                 Font *font;
                 SANDBOX_GUARD(font = &get_private_data<Bitmap>(value)->getFont(sb().e));
-                SANDBOX_GUARD(get_private_data<Bitmap>(self)->setFont(sb().e, *font));
+                get_private_data<Bitmap>(self)->setFont(*font);
             }
 
             return self;
@@ -848,7 +848,7 @@ static VALUE set_font(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT(check_type, value, font_class);
                 if (get_private_data<Font>(value) != nullptr) {
-                    SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->setFont(sb().e, *get_private_data<Font>(value)));
+                    get_private_data<Bitmap>(self)->setFont(*get_private_data<Font>(value));
 
                     SANDBOX_AWAIT_S(0, rb_iv_get, self, "font");
                     SANDBOX_AWAIT_S(1, rb_iv_get, value, "name");

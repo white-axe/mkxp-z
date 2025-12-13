@@ -1319,6 +1319,7 @@ struct GraphicsPrivate {
             GLMeta::blitEnd();
             
             swapGLBuffer();
+            updateAvgFPS();
             return;
         }
         
