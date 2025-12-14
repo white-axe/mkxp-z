@@ -39,7 +39,7 @@
 #include <fluidsynth.h>
 #include <punycode.h>
 
-#include "mkxp-polyfill.h" // std::mutex, std::strtoul
+#include "mkxp-polyfill.h" // std::mutex, std::stof, std::strtoul
 #include "git-hash.h"
 #include "binding-sandbox-hash.h"
 
@@ -1133,7 +1133,7 @@ static void update_simple_core_options() {
     }
 
     {
-        float value_num = std::strtof(get_core_option("mkxp-z_fontScale"), nullptr);
+        float value_num = std::stof(get_core_option("mkxp-z_fontScale"));
         if (std::isnormal(value_num) && value_num > 0.0f) {
             conf->fontScale.setOverride(value_num);
         } else {
