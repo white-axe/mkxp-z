@@ -1580,11 +1580,7 @@ void Bitmap::stretchBlt(Exception &exception,
         if (srcSurf)
         {
             SDL_Rect srcRect = sourceRect;
-#ifdef MKXPZ_RETRO
-            bool subImageFix = mkxp_retro::sub_image_fix_override == 1 || (mkxp_retro::sub_image_fix_override != 0 && shState->config().subImageFix);
-#else
             bool subImageFix = shState->config().subImageFix;
-#endif // MKXPZ_RETRO
             bool srcRectTooBig = srcRect.w > glState.caps.maxTexSize ||
                                  srcRect.h > glState.caps.maxTexSize;
             bool srcSurfTooBig = !unpack_subimage && (

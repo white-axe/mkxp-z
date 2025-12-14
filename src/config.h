@@ -26,7 +26,64 @@
 
 #include <set>
 #include <string>
+#include <type_traits>
 #include <vector>
+
+template <typename T> struct OverridableConfigOptionOperatorSet {
+    static inline T apply(T value, T override) {
+        return override;
+    }
+};
+
+template <typename T> struct OverridableConfigOptionOperatorMaximum {
+    static inline T apply(T value, T override) {
+        return std::max(value, override);
+    }
+};
+
+template <typename T> struct OverridableConfigOptionOperatorMultiply {
+    static inline T apply(T value, T override) {
+        return value * override;
+    }
+};
+
+template <typename T, template <typename U> class Operator = OverridableConfigOptionOperatorSet> struct OverridableConfigOption {
+    static_assert(std::is_arithmetic<T>::value, "overridable config options must be numeric");
+
+    OverridableConfigOption() noexcept : overrideActive(false) {};
+
+    OverridableConfigOption(T value) noexcept : value(value), overrideActive(false) {};
+
+    T get() const noexcept {
+        return overrideActive ? Operator<T>::apply(value, override) : value;
+    }
+
+    void set(T value) noexcept {
+        this->value = value;
+    }
+
+    void setOverride(T override) noexcept {
+        this->override = override;
+        this->overrideActive = true;
+    }
+
+    void clearOverride() noexcept {
+        this->overrideActive = false;
+    }
+
+    inline operator T() const noexcept {
+        return get();
+    }
+
+    inline void operator=(T value) noexcept {
+        set(value);
+    }
+
+private:
+    T value;
+    T override;
+    bool overrideActive;
+};
 
 struct Config {
     // Used for sending the JSON data to Ruby as System::CONFIG
@@ -65,13 +122,13 @@ struct Config {
     std::string windowTitle;
     
     int fixedFramerate;
-    bool frameSkip;
+    OverridableConfigOption<bool> frameSkip;
     bool syncToRefreshrate;
     
     std::vector<std::string> solidFonts;
     
-    bool subImageFix;
-    bool enableBlitting;
+    OverridableConfigOption<bool> subImageFix;
+    OverridableConfigOption<bool> enableBlitting;
     int maxTextureSize;
     
     struct {
@@ -99,12 +156,12 @@ struct Config {
     
     struct {
         std::string soundFont;
-        bool chorus;
-        bool reverb;
+        OverridableConfigOption<bool> chorus;
+        OverridableConfigOption<bool> reverb;
     } midi;
     
     struct {
-        int sourceCount;
+        OverridableConfigOption<int, OverridableConfigOptionOperatorMaximum> sourceCount;
     } SE;
     
     struct {

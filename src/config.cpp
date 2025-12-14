@@ -397,7 +397,7 @@ void Config::read(int argc, char *argv[], int forceRgssVersion) {
     BINDING_NAME(r);
     
     rgssVersion = clamp(rgssVersion, 0, 3);
-    SE.sourceCount = clamp(SE.sourceCount, 1, 64);
+    SE.sourceCount = clamp<int>(SE.sourceCount, 1, 64);
     BGM.trackCount = clamp(BGM.trackCount, 1, 16);
     
 #ifndef MKXPZ_RETRO

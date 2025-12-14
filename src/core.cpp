@@ -617,7 +617,6 @@ static std::mutex threaded_audio_mutex;
 static bool threaded_audio_enabled = false;
 static bool frame_time_callback_enabled = false;
 static struct atomic<bool> shared_state_initialized(false);
-static std::string previous_frame_skip_value;
 
 static unsigned int screen_width;
 static unsigned int screen_height;
@@ -638,11 +637,6 @@ namespace mkxp_retro {
     bool keyboard_state[RETROK_LAST];
     bool input_polled;
     unsigned int sample_rate;
-
-    uint8_t sub_image_fix_override;
-    uint8_t enable_blitting_override;
-    uint8_t midi_chorus_override;
-    uint8_t midi_reverb_override;
 
     uint8_t ruby_revision[20];
 
@@ -954,24 +948,25 @@ static bool init_sandbox() {
 
         {
             const char *value = get_core_option("mkxp-z_frameSkip");
-            previous_frame_skip_value = value;
             if (!std::strcmp(value, "enabled")) {
-                conf->frameSkip = true;
+                conf->frameSkip.setOverride(true);
             } else if (!std::strcmp(value, "disabled")) {
-                conf->frameSkip = false;
+                conf->frameSkip.setOverride(false);
+            } else {
+                conf->frameSkip.clearOverride();
             }
         }
 
         {
             const char *value = get_core_option("mkxp-z_subImageFix");
             if (!std::strcmp(value, "default")) {
-                sub_image_fix_override = hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES2 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES3 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES_VERSION ? 1 : 0;
+                conf->subImageFix.setOverride(hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES2 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES3 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES_VERSION);
             } else if (!std::strcmp(value, "enabled")) {
-                sub_image_fix_override = 1;
+                conf->subImageFix.setOverride(true);
             } else if (!std::strcmp(value, "disabled")) {
-                sub_image_fix_override = 0;
+                conf->subImageFix.setOverride(false);
             } else {
-                sub_image_fix_override = -1;
+                conf->subImageFix.clearOverride();
             }
         }
 
@@ -979,45 +974,47 @@ static bool init_sandbox() {
             const char *value = get_core_option("mkxp-z_enableBlitting");
             if (!std::strcmp(value, "default")) {
 #ifdef _WIN32
-                enable_blitting_override = 0;
+                conf->enableBlitting.setOverride(false);
 #else
-                enable_blitting_override = 1;
+                conf->enableBlitting.setOverride(true);
 #endif // _WIN32
             } else if (!std::strcmp(value, "enabled")) {
-                enable_blitting_override = 1;
+                conf->enableBlitting.setOverride(true);
             } else if (!std::strcmp(value, "disabled")) {
-                enable_blitting_override = 0;
+                conf->enableBlitting.setOverride(false);
             } else {
-                enable_blitting_override = -1;
+                conf->enableBlitting.clearOverride();
             }
         }
 
         {
             const char *value = get_core_option("mkxp-z_midiChorus");
             if (!std::strcmp(value, "enabled")) {
-                midi_chorus_override = 1;
+                conf->midi.chorus.setOverride(true);
             } else if (!std::strcmp(value, "disabled")) {
-                midi_chorus_override = 0;
+                conf->midi.chorus.setOverride(false);
             } else {
-                midi_chorus_override = -1;
+                conf->midi.chorus.clearOverride();
             }
         }
 
         {
             const char *value = get_core_option("mkxp-z_midiReverb");
             if (!std::strcmp(value, "enabled")) {
-                midi_reverb_override = 1;
+                conf->midi.reverb.setOverride(true);
             } else if (!std::strcmp(value, "disabled")) {
-                midi_reverb_override = 0;
+                conf->midi.reverb.setOverride(false);
             } else {
-                midi_reverb_override = -1;
+                conf->midi.reverb.clearOverride();
             }
         }
 
         {
             unsigned long value_num = std::strtoul(get_core_option("mkxp-z_SESourceCount"), nullptr, 10);
             if (value_num >= 6 && value_num <= 64) {
-                conf->SE.sourceCount = std::max(conf->SE.sourceCount, (int)value_num);
+                conf->SE.sourceCount.setOverride(value_num);
+            } else {
+                conf->SE.sourceCount.clearOverride();
             }
         }
 
@@ -1600,26 +1597,28 @@ extern "C" RETRO_API void retro_run() {
         if (mkxp_retro::sandbox.has_value() && environment(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &core_options_updated) && core_options_updated) {
             {
                 const char *value = get_core_option("mkxp-z_frameSkip");
-                if (previous_frame_skip_value != value) {
-                    previous_frame_skip_value = value;
-                    if (!std::strcmp(value, "enabled")) {
-                        shState->graphics().setFrameskip(true);
-                    } else if (!std::strcmp(value, "disabled")) {
-                        shState->graphics().setFrameskip(false);
-                    }
+                if (!std::strcmp(value, "enabled")) {
+                    conf->frameSkip.setOverride(true);
+                } else if (!std::strcmp(value, "disabled")) {
+                    conf->frameSkip.setOverride(false);
+                } else {
+                    conf->frameSkip.clearOverride();
+                }
+                if (mkxp_retro::sandbox.has_value() && conf->frameSkip != shState->graphics().getFrameskip()) {
+                    shState->graphics().setFrameskip(conf->frameSkip);
                 }
             }
 
             {
                 const char *value = get_core_option("mkxp-z_subImageFix");
                 if (!std::strcmp(value, "default")) {
-                    sub_image_fix_override = hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES2 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES3 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES_VERSION ? 1 : 0;
+                    conf->subImageFix.setOverride(hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES2 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES3 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES_VERSION);
                 } else if (!std::strcmp(value, "enabled")) {
-                    sub_image_fix_override = 1;
+                    conf->subImageFix.setOverride(true);
                 } else if (!std::strcmp(value, "disabled")) {
-                    sub_image_fix_override = 0;
+                    conf->subImageFix.setOverride(false);
                 } else {
-                    sub_image_fix_override = -1;
+                    conf->subImageFix.clearOverride();
                 }
             }
 
@@ -1627,46 +1626,44 @@ extern "C" RETRO_API void retro_run() {
                 const char *value = get_core_option("mkxp-z_enableBlitting");
                 if (!std::strcmp(value, "default")) {
     #ifdef _WIN32
-                    enable_blitting_override = 0;
+                    conf->enableBlitting.setOverride(false);
     #else
-                    enable_blitting_override = 1;
+                    conf->enableBlitting.setOverride(true);
     #endif // _WIN32
                 } else if (!std::strcmp(value, "enabled")) {
-                    enable_blitting_override = 1;
+                    conf->enableBlitting.setOverride(true);
                 } else if (!std::strcmp(value, "disabled")) {
-                    enable_blitting_override = 0;
+                    conf->enableBlitting.setOverride(false);
                 } else {
-                    enable_blitting_override = -1;
+                    conf->enableBlitting.clearOverride();
                 }
             }
 
             {
                 const char *value = get_core_option("mkxp-z_midiChorus");
                 if (!std::strcmp(value, "enabled")) {
-                    midi_chorus_override = true;
-                    if (shState->midiState().inited) {
-                        fluid.settings_setint(shState->midiState().flSettings, "synth.chorus.active", midi_chorus_override == 1 || (midi_chorus_override != 0 && conf->midi.chorus));
-                    }
+                    conf->midi.chorus.setOverride(true);
                 } else if (!std::strcmp(value, "disabled")) {
-                    midi_chorus_override = false;
-                    if (shState->midiState().inited) {
-                        fluid.settings_setint(shState->midiState().flSettings, "synth.chorus.active", midi_chorus_override == 1 || (midi_chorus_override != 0 && conf->midi.chorus));
-                    }
+                    conf->midi.chorus.setOverride(false);
+                } else {
+                    conf->midi.chorus.clearOverride();
+                }
+                if (shState->midiState().inited) {
+                    fluid.settings_setint(shState->midiState().flSettings, "synth.chorus.active", conf->midi.chorus);
                 }
             }
 
             {
                 const char *value = get_core_option("mkxp-z_midiReverb");
                 if (!std::strcmp(value, "enabled")) {
-                    midi_reverb_override = true;
-                    if (shState->midiState().inited) {
-                        fluid.settings_setint(shState->midiState().flSettings, "synth.reverb.active", midi_reverb_override == 1 || (midi_reverb_override != 0 && conf->midi.reverb));
-                    }
+                    conf->midi.reverb.setOverride(true);
                 } else if (!std::strcmp(value, "disabled")) {
-                    midi_reverb_override = false;
-                    if (shState->midiState().inited) {
-                        fluid.settings_setint(shState->midiState().flSettings, "synth.reverb.active", midi_reverb_override == 1 || (midi_reverb_override != 0 && conf->midi.reverb));
-                    }
+                    conf->midi.reverb.setOverride(false);
+                } else {
+                    conf->midi.reverb.clearOverride();
+                }
+                if (shState->midiState().inited) {
+                    fluid.settings_setint(shState->midiState().flSettings, "synth.reverb.active", conf->midi.reverb);
                 }
             }
         }

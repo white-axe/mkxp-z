@@ -144,7 +144,7 @@ void vaoUnbind(VAO &vao)
 }
 
 #ifdef MKXPZ_RETRO
-#  define HAVE_NATIVE_BLIT (gl.BlitFramebuffer && (mkxp_retro::enable_blitting_override == 1 || (mkxp_retro::enable_blitting_override != 0 && shState->config().enableBlitting)))
+#  define HAVE_NATIVE_BLIT (gl.BlitFramebuffer && shState->config().enableBlitting)
 #else
 #  define HAVE_NATIVE_BLIT (gl.BlitFramebuffer && shState->config().smoothScaling <= Bilinear && shState->config().smoothScalingDown <= Bilinear)
 #endif // MKXPZ_RETRO

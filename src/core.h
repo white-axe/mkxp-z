@@ -46,11 +46,6 @@ namespace mkxp_retro {
     extern bool input_polled;
     extern unsigned int sample_rate;
 
-    extern uint8_t sub_image_fix_override;
-    extern uint8_t enable_blitting_override;
-    extern uint8_t midi_chorus_override;
-    extern uint8_t midi_reverb_override;
-
     extern uint8_t ruby_revision[20];
 
     uint64_t get_ticks_ms() noexcept;
