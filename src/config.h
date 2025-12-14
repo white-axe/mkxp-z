@@ -30,19 +30,19 @@
 #include <vector>
 
 template <typename T> struct OverridableConfigOptionOperatorSet {
-    static inline T apply(T value, T override) {
+    static inline T apply(T value, T override) noexcept {
         return override;
     }
 };
 
 template <typename T> struct OverridableConfigOptionOperatorMaximum {
-    static inline T apply(T value, T override) {
+    static inline T apply(T value, T override) noexcept {
         return std::max(value, override);
     }
 };
 
 template <typename T> struct OverridableConfigOptionOperatorMultiply {
-    static inline T apply(T value, T override) {
+    static inline T apply(T value, T override) noexcept {
         return value * override;
     }
 };
