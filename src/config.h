@@ -179,11 +179,11 @@ struct Config {
     std::vector<std::string> patches;
     
     std::vector<std::string> fontSubs;
-    float fontScale;
-    bool fontKerning;
-    int fontHinting;
-    int fontHeightReporting;
-    bool fontOutlineCrop;
+    OverridableConfigOption<float, OverridableConfigOptionOperatorMultiply> fontScale;
+    OverridableConfigOption<bool> fontKerning;
+    OverridableConfigOption<int> fontHinting;
+    OverridableConfigOption<int> fontHeightReporting;
+    OverridableConfigOption<bool> fontOutlineCrop;
     
     std::vector<std::string> rubyLoadpaths;
 

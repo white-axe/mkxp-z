@@ -234,7 +234,7 @@ void Config::read(int argc, char *argv[], int forceRgssVersion) {
         {"RTP", json::array({})},
         {"patches", json::array({})},
         {"fontSub", json::array({})},
-        {"fontScale", 0.0f},
+        {"fontScale", 1.0f},
         {"fontKerning", true},
         {"fontHinting", 3}, // TTF_HINTING_NONE
         {"fontHeightReporting", 0},

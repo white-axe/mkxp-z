@@ -72,6 +72,11 @@ static const struct retro_core_option_v2_category core_option_categories[] = {
         nullptr,
     },
     {
+        "text",
+        "Text",
+        nullptr,
+    },
+    {
         nullptr,
         nullptr,
         nullptr,
@@ -439,6 +444,211 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
             {nullptr, nullptr},
         },
         "6",
+    },
+    {
+        "mkxp-z_fontScale",
+        "Font Scale",
+        nullptr,
+        (
+
+            "Scales the sizes of all fonts."
+            " If you think text tends to be too large or too small,"
+            " try fiddling with this."
+            " (if this value is also set in the game's mkxp.json,"
+            " the product of the value set here and the value in"
+            " mkxp.json will be used)"
+        ),
+        nullptr,
+        "text",
+        {
+            {"0.2", "0.2"},
+            {"0.25", "0.25"},
+            {"0.3", "0.3"},
+            {"0.35", "0.35"},
+            {"0.4", "0.4"},
+            {"0.45", "0.45"},
+            {"0.5", "0.5"},
+            {"0.55", "0.55"},
+            {"0.6", "0.6"},
+            {"0.65", "0.65"},
+            {"0.7", "0.7"},
+            {"0.75", "0.75"},
+            {"0.8", "0.8"},
+            {"0.85", "0.85"},
+            {"0.9", "0.9"},
+            {"0.95", "0.95"},
+            {"1.0", "1.0"},
+            {"1.05", "1.05"},
+            {"1.1", "1.1"},
+            {"1.15", "1.15"},
+            {"1.2", "1.2"},
+            {"1.25", "1.25"},
+            {"1.3", "1.3"},
+            {"1.35", "1.35"},
+            {"1.4", "1.4"},
+            {"1.45", "1.45"},
+            {"1.5", "1.5"},
+            {"1.55", "1.55"},
+            {"1.6", "1.6"},
+            {"1.65", "1.65"},
+            {"1.7", "1.7"},
+            {"1.75", "1.75"},
+            {"1.8", "1.8"},
+            {"1.85", "1.85"},
+            {"1.9", "1.9"},
+            {"1.95", "1.95"},
+            {"2.0", "2.0"},
+            {"2.05", "2.05"},
+            {"2.1", "2.1"},
+            {"2.15", "2.15"},
+            {"2.2", "2.2"},
+            {"2.25", "2.25"},
+            {"2.3", "2.3"},
+            {"2.35", "2.35"},
+            {"2.4", "2.4"},
+            {"2.45", "2.45"},
+            {"2.5", "2.5"},
+            {"2.55", "2.55"},
+            {"2.6", "2.6"},
+            {"2.65", "2.65"},
+            {"2.7", "2.7"},
+            {"2.75", "2.75"},
+            {"2.8", "2.8"},
+            {"2.85", "2.85"},
+            {"2.9", "2.9"},
+            {"2.95", "2.95"},
+            {"3.0", "3.0"},
+            {"3.05", "3.05"},
+            {"3.1", "3.1"},
+            {"3.15", "3.15"},
+            {"3.2", "3.2"},
+            {"3.25", "3.25"},
+            {"3.3", "3.3"},
+            {"3.35", "3.35"},
+            {"3.4", "3.4"},
+            {"3.45", "3.45"},
+            {"3.5", "3.5"},
+            {"3.55", "3.55"},
+            {"3.6", "3.6"},
+            {"3.65", "3.65"},
+            {"3.7", "3.7"},
+            {"3.75", "3.75"},
+            {"3.8", "3.8"},
+            {"3.85", "3.85"},
+            {"3.9", "3.9"},
+            {"3.95", "3.95"},
+            {"4.0", "4.0"},
+            {"4.05", "4.05"},
+            {"4.1", "4.1"},
+            {"4.15", "4.15"},
+            {"4.2", "4.2"},
+            {"4.25", "4.25"},
+            {"4.3", "4.3"},
+            {"4.35", "4.35"},
+            {"4.4", "4.4"},
+            {"4.45", "4.45"},
+            {"4.5", "4.5"},
+            {"4.55", "4.55"},
+            {"4.6", "4.6"},
+            {"4.65", "4.65"},
+            {"4.7", "4.7"},
+            {"4.75", "4.75"},
+            {"4.8", "4.8"},
+            {"4.85", "4.85"},
+            {"4.9", "4.9"},
+            {"4.95", "4.95"},
+            {"5.0", "5.0"},
+            {nullptr, nullptr},
+        },
+        "1.0",
+    },
+    {
+        "mkxp-z_fontKerning",
+        "Kerning",
+        nullptr,
+        (
+            "Kerning adjusts the spacing between individual letters or characters."
+            " Enabling it generally looks nicer, but RGSS doesn't use it,"
+            " so disabling it should make text appearance more accurate."
+            " (default: enabled)"
+        ),
+        nullptr,
+        "text",
+        {
+            {"inherit", "Inherit from mkxp.json"},
+            {"default", "Default"},
+            {"enabled", "Enabled"},
+            {"disabled", "Disabled"},
+            {nullptr, nullptr},
+        },
+        "inherit",
+    },
+    {
+        "mkxp-z_fontHinting",
+        "Font Hinting",
+        nullptr,
+        (
+            "Hinting adjusts the rendering of individual letters or characters."
+            " Enabling it may look nicer (especially on low-resolution displays), but"
+            " RGSS doesn't use it, so disabling it should make text appearance more"
+            " accurate. Documentation can be found at:"
+            " https://pysdl2.readthedocs.io/en/latest/modules/sdl2_sdlttf.html#sdl2.sdlttf.TTF_HINTING_NORMAL"
+            " (default: 3)"
+        ),
+        nullptr,
+        "text",
+        {
+            {"inherit", "Inherit from mkxp.json"},
+            {"default", "Default"},
+            {"0", "0 (Normal)"},
+            {"1", "1 (Light)"},
+            {"2", "2 (Mono)"},
+            {"3", "3 (None)"},
+            {nullptr, nullptr},
+        },
+        "inherit",
+    },
+    {
+        "mkxp-z_fontHeightReporting",
+        "Font Height Reporting",
+        nullptr,
+        (
+            "Controls the algorithm for reporting the height of rendered text."
+            " 0: Nominal (TTF_FontHeight); matches RGSS behavior; may cut off bottoms of some characters."
+            " 1: Rendered (TTF_SizeUTF8); deviates from RGSS; may look better."
+            " (default: 0)"
+        ),
+        nullptr,
+        "text",
+        {
+            {"inherit", "Inherit from mkxp.json"},
+            {"default", "Default"},
+            {"0", "0 (Nominal)"},
+            {"1", "1 (Rendered)"},
+            {nullptr, nullptr},
+        },
+        "inherit",
+    },
+    {
+        "mkxp-z_fontOutlineCrop",
+        "Outline Crop",
+        nullptr,
+        (
+            "Crops top row and left column of text that has an outline."
+            " Disabling it generally looks nicer, but RGSS enables it, so enabling it"
+            " should make text appearance more accurate."
+            " (default: enabled)"
+        ),
+        nullptr,
+        "text",
+        {
+            {"inherit", "Inherit from mkxp.json"},
+            {"default", "Default"},
+            {"enabled", "Enabled"},
+            {"disabled", "Disabled"},
+            {nullptr, nullptr},
+        },
+        "inherit",
     },
     {
         nullptr,
@@ -891,6 +1101,105 @@ static bool init_shared_state() {
     }
 }
 
+static void update_simple_core_options() {
+    {
+        const char *value = get_core_option("mkxp-z_subImageFix");
+        if (!std::strcmp(value, "default")) {
+            conf->subImageFix.setOverride(hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES2 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES3 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES_VERSION);
+        } else if (!std::strcmp(value, "enabled")) {
+            conf->subImageFix.setOverride(true);
+        } else if (!std::strcmp(value, "disabled")) {
+            conf->subImageFix.setOverride(false);
+        } else {
+            conf->subImageFix.clearOverride();
+        }
+    }
+
+    {
+        const char *value = get_core_option("mkxp-z_enableBlitting");
+        if (!std::strcmp(value, "default")) {
+#ifdef _WIN32
+            conf->enableBlitting.setOverride(false);
+#else
+            conf->enableBlitting.setOverride(true);
+#endif // _WIN32
+        } else if (!std::strcmp(value, "enabled")) {
+            conf->enableBlitting.setOverride(true);
+        } else if (!std::strcmp(value, "disabled")) {
+            conf->enableBlitting.setOverride(false);
+        } else {
+            conf->enableBlitting.clearOverride();
+        }
+    }
+
+    {
+        float value_num = std::strtof(get_core_option("mkxp-z_fontScale"), nullptr);
+        if (std::isnormal(value_num) && value_num > 0.0f) {
+            conf->fontScale.setOverride(value_num);
+        } else {
+            conf->fontScale.clearOverride();
+        }
+    }
+
+    {
+        const char *value = get_core_option("mkxp-z_fontKerning");
+        if (!std::strcmp(value, "default")) {
+            conf->fontKerning.setOverride(true);
+        } else if (!std::strcmp(value, "enabled")) {
+            conf->fontKerning.setOverride(true);
+        } else if (!std::strcmp(value, "disabled")) {
+            conf->fontKerning.setOverride(false);
+        } else {
+            conf->fontKerning.clearOverride();
+        }
+    }
+
+    {
+        const char *value = get_core_option("mkxp-z_fontHinting");
+        if (!std::strcmp(value, "inherit")) {
+            conf->fontHinting.clearOverride();
+        } else if (!std::strcmp(value, "default")) {
+            conf->fontHinting.setOverride(3);
+        } else {
+            unsigned long value_num = std::strtoul(value, nullptr, 10);
+            if (value_num >= 0 && value_num <= 3) {
+                conf->fontHinting.setOverride(value_num);
+            } else {
+                conf->fontHinting.clearOverride();
+            }
+        }
+    }
+
+    {
+        const char *value = get_core_option("mkxp-z_fontHeightReporting");
+        if (!std::strcmp(value, "inherit")) {
+            conf->fontHeightReporting.clearOverride();
+        } else if (!std::strcmp(value, "default")) {
+            conf->fontHeightReporting.setOverride(0);
+        } else {
+            unsigned long value_num = std::strtoul(value, nullptr, 10);
+            if (value_num >= 0 && value_num <= 1) {
+                conf->fontHeightReporting.setOverride(value_num);
+            } else {
+                conf->fontHeightReporting.clearOverride();
+            }
+        }
+    }
+
+    {
+        const char *value = get_core_option("mkxp-z_fontOutlineCrop");
+        if (!std::strcmp(value, "default")) {
+            conf->fontOutlineCrop.setOverride(true);
+        } else if (!std::strcmp(value, "enabled")) {
+            conf->fontOutlineCrop.setOverride(true);
+        } else if (!std::strcmp(value, "disabled")) {
+            conf->fontOutlineCrop.setOverride(false);
+        } else {
+            conf->fontOutlineCrop.clearOverride();
+        }
+    }
+}
+
 static bool init_sandbox() {
     deinit_sandbox();
 
@@ -958,36 +1267,6 @@ static bool init_sandbox() {
         }
 
         {
-            const char *value = get_core_option("mkxp-z_subImageFix");
-            if (!std::strcmp(value, "default")) {
-                conf->subImageFix.setOverride(hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES2 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES3 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES_VERSION);
-            } else if (!std::strcmp(value, "enabled")) {
-                conf->subImageFix.setOverride(true);
-            } else if (!std::strcmp(value, "disabled")) {
-                conf->subImageFix.setOverride(false);
-            } else {
-                conf->subImageFix.clearOverride();
-            }
-        }
-
-        {
-            const char *value = get_core_option("mkxp-z_enableBlitting");
-            if (!std::strcmp(value, "default")) {
-#ifdef _WIN32
-                conf->enableBlitting.setOverride(false);
-#else
-                conf->enableBlitting.setOverride(true);
-#endif // _WIN32
-            } else if (!std::strcmp(value, "enabled")) {
-                conf->enableBlitting.setOverride(true);
-            } else if (!std::strcmp(value, "disabled")) {
-                conf->enableBlitting.setOverride(false);
-            } else {
-                conf->enableBlitting.clearOverride();
-            }
-        }
-
-        {
             const char *value = get_core_option("mkxp-z_midiChorus");
             if (!std::strcmp(value, "enabled")) {
                 conf->midi.chorus.setOverride(true);
@@ -1017,6 +1296,8 @@ static bool init_sandbox() {
                 conf->SE.sourceCount.clearOverride();
             }
         }
+
+        update_simple_core_options();
 
         SharedState::rgssVersion = conf->rgssVersion;
         thread_data.emplace(nullptr, nullptr, nullptr, nullptr, 60, 1, *conf);
@@ -1604,38 +1885,8 @@ extern "C" RETRO_API void retro_run() {
                 } else {
                     conf->frameSkip.clearOverride();
                 }
-                if (mkxp_retro::sandbox.has_value() && conf->frameSkip != shState->graphics().getFrameskip()) {
+                if (conf->frameSkip != shState->graphics().getFrameskip()) {
                     shState->graphics().setFrameskip(conf->frameSkip);
-                }
-            }
-
-            {
-                const char *value = get_core_option("mkxp-z_subImageFix");
-                if (!std::strcmp(value, "default")) {
-                    conf->subImageFix.setOverride(hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES2 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES3 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES_VERSION);
-                } else if (!std::strcmp(value, "enabled")) {
-                    conf->subImageFix.setOverride(true);
-                } else if (!std::strcmp(value, "disabled")) {
-                    conf->subImageFix.setOverride(false);
-                } else {
-                    conf->subImageFix.clearOverride();
-                }
-            }
-
-            {
-                const char *value = get_core_option("mkxp-z_enableBlitting");
-                if (!std::strcmp(value, "default")) {
-    #ifdef _WIN32
-                    conf->enableBlitting.setOverride(false);
-    #else
-                    conf->enableBlitting.setOverride(true);
-    #endif // _WIN32
-                } else if (!std::strcmp(value, "enabled")) {
-                    conf->enableBlitting.setOverride(true);
-                } else if (!std::strcmp(value, "disabled")) {
-                    conf->enableBlitting.setOverride(false);
-                } else {
-                    conf->enableBlitting.clearOverride();
                 }
             }
 
@@ -1666,6 +1917,8 @@ extern "C" RETRO_API void retro_run() {
                     fluid.settings_setint(shState->midiState().flSettings, "synth.reverb.active", conf->midi.reverb);
                 }
             }
+
+            update_simple_core_options();
         }
     }
 
