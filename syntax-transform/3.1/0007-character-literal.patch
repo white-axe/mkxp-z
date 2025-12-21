@@ -1,0 +1,50 @@
+# syntax-transform/3.1/0007-character-literal.patch
+#
+# This file is part of mkxp.
+#
+# Copyright (C) 2013 - 2021 Amaryllis Kulla <ancurio@mapleshrine.eu>
+#
+# mkxp is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# mkxp is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
+
+# In Ruby 1.8, character literals behave differently: they evaluate to the
+# character code of the character in the current script encoding instead of
+# evaluating to a string containing only that character. Thus, assuming the
+# script encoding is ASCII-compatible, this code snippet prints `97` in Ruby
+# 1.8 and `"a"` in Ruby versions newer than 1.8.
+#
+#   p ?a
+
+--- a/parse.y
++++ b/parse.y
+@@ -8973,10 +8973,16 @@ parse_qmark(struct parser_params *p, int space_seen)
+ 	tokadd(p, c);
+     }
+     tokfix(p);
+-    lit = STR_NEW3(tok(p), toklen(p), enc, 0);
+-    set_yylval_str(lit);
+-    SET_LEX_STATE(EXPR_END);
+-    return tCHAR;
++    if (mkxp_is_syntax_transform_active(p, 1, 8)) {
++        set_yylval_literal(INT2FIX((unsigned char)*tok(p)));
++        SET_LEX_STATE(EXPR_END);
++        return tINTEGER;
++    } else {
++        lit = STR_NEW3(tok(p), toklen(p), enc, 0);
++        set_yylval_str(lit);
++        SET_LEX_STATE(EXPR_END);
++        return tCHAR;
++    }
+ }
+ 
+ static enum yytokentype

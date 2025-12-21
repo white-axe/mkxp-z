@@ -68,6 +68,11 @@ extern const char module_rpg1[];
 extern const char module_rpg2[];
 extern const char module_rpg3[];
 
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+extern unsigned int mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor;
+extern thread_local int mkxp_syntax_transform_enabled_for_next_eval;
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+
 static VALUE topSelf;
 
 static void mriBindingExecute();
@@ -1089,7 +1094,20 @@ static void runRMXPScripts(BacktraceData &btData) {
             
             int state;
             
-            evalString(string, fname, &state);
+            {
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+                struct SyntaxTransformGuard {
+                    SyntaxTransformGuard() {
+                        mkxp_syntax_transform_enabled_for_next_eval = 1;
+                    }
+                    ~SyntaxTransformGuard() {
+                        mkxp_syntax_transform_enabled_for_next_eval = 0;
+                    }
+                };
+                SyntaxTransformGuard guard;
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+                evalString(string, fname, &state);
+            }
             if (state)
                 break;
         }
@@ -1290,6 +1308,27 @@ static void mriBindingExecute() {
     BacktraceData btData;
     
     mriBindingInit();
+    
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+    {
+        int syntaxTransform = shState->config().syntaxTransform;
+        if (syntaxTransform >= 100) {
+            mkxp_syntax_transform_target_ruby_version_major = syntaxTransform / 100;
+            mkxp_syntax_transform_target_ruby_version_minor = syntaxTransform % 100;
+        } else {
+            switch (syntaxTransform) {
+                case 1:
+                    mkxp_syntax_transform_target_ruby_version_major = 1;
+                    mkxp_syntax_transform_target_ruby_version_minor = rgssVer >= 3 ? 9 : 8;
+                    break;
+                default:
+                    mkxp_syntax_transform_target_ruby_version_major = -1;
+                    mkxp_syntax_transform_target_ruby_version_minor = -1;
+                    break;
+            }
+        }
+    }
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
     
     std::string &customScript = conf.customScript;
     if (!customScript.empty())
