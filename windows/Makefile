@@ -54,7 +54,7 @@ RUBY_SRC := $(DOWNLOADS)/ruby
 
 default: everything
 
-+include $(SYNTAX_TRANSFORM_DIR)/Makefile
+include $(SYNTAX_TRANSFORM_DIR)/Makefile
 
 # Theora
 libtheora: init_dirs libvorbis libogg $(LIBDIR)/libtheora.a
