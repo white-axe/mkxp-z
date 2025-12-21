@@ -74,7 +74,7 @@
  top_compstmt	: top_stmts opt_terms
  		    {
  			$$ = void_stmts(p, $1);
-@@ -3182,6 +3209,14 @@ primary		: literal
+@@ -3181,6 +3208,14 @@ primary		: literal
  		    /*% %*/
  		    /*% ripper: hash!(escape_Qundef($2)) %*/
  		    }
@@ -89,7 +89,7 @@
  		| k_return
  		    {
  		    /*%%%*/
-@@ -4414,7 +4449,7 @@ p_expr_basic	: p_value
+@@ -4413,7 +4448,7 @@ p_expr_basic	: p_value
  			$$ = new_array_pattern_tail(p, Qnone, 0, 0, Qnone, &@$);
  			$$ = new_array_pattern(p, Qnone, Qnone, $$, &@$);
  		    }
@@ -98,7 +98,7 @@
  		    {
  			$<tbl>$ = push_pktbl(p);
  			$<ctxt>1 = p->ctxt;
-@@ -4426,7 +4461,7 @@ p_expr_basic	: p_value
+@@ -4425,7 +4460,7 @@ p_expr_basic	: p_value
  			p->ctxt.in_kwarg = $<ctxt>1.in_kwarg;
  			$$ = new_hash_pattern(p, Qnone, $3, &@$);
  		    }
@@ -107,7 +107,7 @@
  		    {
  			$$ = new_hash_pattern_tail(p, Qnone, 0, &@$);
  			$$ = new_hash_pattern(p, Qnone, $$, &@$);
-@@ -10081,7 +10116,7 @@ parser_yylex(struct parser_params *p)
+@@ -10080,7 +10115,7 @@ parser_yylex(struct parser_params *p)
  	++p->lex.paren_nest;  /* after lambda_beginning_p() */
  	COND_PUSH(0);
  	CMDARG_PUSH(0);

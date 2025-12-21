@@ -84,7 +84,7 @@
  		    {
  		    /*%%%*/
  			value_expr($1);
-@@ -3670,11 +3675,13 @@ k_return	: keyword_return
+@@ -3669,11 +3674,13 @@ k_return	: keyword_return
  		;
  
  then		: term
@@ -98,7 +98,7 @@
  		| keyword_do_cond
  		;
  
-@@ -9975,7 +9982,7 @@ parser_yylex(struct parser_params *p)
+@@ -9974,7 +9981,7 @@ parser_yylex(struct parser_params *p)
  	    pushback(p, c);
  	    c = warn_balanced(':', ":", "symbol literal");
  	    SET_LEX_STATE(EXPR_BEG);
