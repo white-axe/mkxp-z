@@ -36,7 +36,7 @@
     // in modern Ruby. If this is enabled, the syntax transform is only applied
     // to the game scripts in Scripts.rxdata, Scripts.rvdata or Scripts.rvdata2.
     // Any `eval` or `instance_eval` calls made from code with syntax transform
-    // enabled also enables syntax transform for the evaluated code. The syntax
+    // enabled also enable syntax transform for the evaluated code. The syntax
     // transform is not applied to any other Ruby scripts, such as preload
     // scripts, postload scripts, the `customScript` specified in mkxp.json, the
     // Ruby standard library, or scripts imported using `require` or
