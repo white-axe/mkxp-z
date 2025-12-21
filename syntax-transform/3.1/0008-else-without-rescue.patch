@@ -33,7 +33,7 @@
 
 --- a/parse.y
 +++ b/parse.y
-@@ -1527,7 +1527,7 @@ begin_block	: '{' top_compstmt '}'
+@@ -1572,7 +1572,7 @@ begin_block	: '{' top_compstmt '}'
  
  bodystmt	: compstmt
  		  opt_rescue

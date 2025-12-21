@@ -34,15 +34,15 @@
  %type <id>   keyword_variable user_variable sym operation operation2 operation3
  %type <id>   cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg f_bad_arg
  %type <id>   f_kwrest f_label f_arg_asgn call_op call_op2 reswords relop dot_or_colon
-@@ -1313,6 +1314,7 @@ static int looking_at_eol_p(struct parser_params *p);
- %token tSTRING_DEND	"'}'"
+@@ -1314,6 +1315,7 @@ static int looking_at_eol_p(struct parser_params *p);
  %token tSTRING_DBEG tSTRING_DVAR tLAMBEG tLABEL_END
  %token tMKXP_LEGACY_LPAREN_ARG	"( arg"
+ %token tMKXP_LEGACY_STAR	"*"
 +%token tMKXP_LEGACY_LBRACE	"{"
  
  /*
   *	precedence table
-@@ -1442,6 +1444,31 @@ mkxp_open_args  : call_args
+@@ -1487,6 +1489,31 @@ mkxp_open_args  : call_args
                      }
                  ;
  
@@ -74,7 +74,7 @@
  top_compstmt	: top_stmts opt_terms
  		    {
  			$$ = void_stmts(p, $1);
-@@ -3127,6 +3154,14 @@ primary		: literal
+@@ -3182,6 +3209,14 @@ primary		: literal
  		    /*% %*/
  		    /*% ripper: hash!(escape_Qundef($2)) %*/
  		    }
@@ -89,7 +89,7 @@
  		| k_return
  		    {
  		    /*%%%*/
-@@ -4359,7 +4394,7 @@ p_expr_basic	: p_value
+@@ -4414,7 +4449,7 @@ p_expr_basic	: p_value
  			$$ = new_array_pattern_tail(p, Qnone, 0, 0, Qnone, &@$);
  			$$ = new_array_pattern(p, Qnone, Qnone, $$, &@$);
  		    }
@@ -98,7 +98,7 @@
  		    {
  			$<tbl>$ = push_pktbl(p);
  			$<ctxt>1 = p->ctxt;
-@@ -4371,7 +4406,7 @@ p_expr_basic	: p_value
+@@ -4426,7 +4461,7 @@ p_expr_basic	: p_value
  			p->ctxt.in_kwarg = $<ctxt>1.in_kwarg;
  			$$ = new_hash_pattern(p, Qnone, $3, &@$);
  		    }
@@ -107,7 +107,7 @@
  		    {
  			$$ = new_hash_pattern_tail(p, Qnone, 0, &@$);
  			$$ = new_hash_pattern(p, Qnone, $$, &@$);
-@@ -10026,7 +10061,7 @@ parser_yylex(struct parser_params *p)
+@@ -10081,7 +10116,7 @@ parser_yylex(struct parser_params *p)
  	++p->lex.paren_nest;  /* after lambda_beginning_p() */
  	COND_PUSH(0);
  	CMDARG_PUSH(0);
