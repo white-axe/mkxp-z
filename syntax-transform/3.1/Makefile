@@ -13,5 +13,9 @@ HAVE_SYNTAX_TRANSFORM ?= 1
 
 syntax-transform: $(RUBY_SRC)/configure.ac $(SYNTAX_TRANSFORM_PATCHES)
 ifeq ($(HAVE_SYNTAX_TRANSFORM),1)
-	cd $(RUBY_SRC) && for patch in $(SYNTAX_TRANSFORM_PATCHES); do $(GIT) apply $(PWD)/$$patch; done
+ifeq ($(patsubst MINGW%,,$(firstword $(shell uname))),)
+	cd $(RUBY_SRC) && for patch in $(SYNTAX_TRANSFORM_PATCHES); do echo "Applying $$patch"; unix2dos < $(PWD)/$$patch | $(GIT) apply; done
+else
+	cd $(RUBY_SRC) && for patch in $(SYNTAX_TRANSFORM_PATCHES); do echo "Applying $$patch"; $(GIT) apply $(PWD)/$$patch; done
+endif
 endif
