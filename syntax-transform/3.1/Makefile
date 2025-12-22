@@ -10,6 +10,9 @@ SYNTAX_TRANSFORM_PATCHES := \
 	$(SYNTAX_TRANSFORM_DIR)/0008-else-without-rescue.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0009-module-constants.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0010-nil-true-false-constants.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0011-variables-array.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0012-hash-select.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0013-numeric-div.patch \
 
 HAVE_SYNTAX_TRANSFORM ?= 1
 
