@@ -9,6 +9,7 @@ SYNTAX_TRANSFORM_PATCHES := \
 	$(SYNTAX_TRANSFORM_DIR)/0007-multiple-values-for-a-block-parameter.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0008-else-without-rescue.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0009-module-constants.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0010-nil-true-false-constants.patch \
 
 HAVE_SYNTAX_TRANSFORM ?= 1
 
