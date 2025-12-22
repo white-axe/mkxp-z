@@ -105,6 +105,17 @@
  #undef RUBY_UNTYPED_DATA_WARNING
  #define RUBY_UNTYPED_DATA_WARNING 0
  
+--- a/include/ruby/ruby.h
++++ b/include/ruby/ruby.h
+@@ -306,6 +306,8 @@ __extension__({ \
+ # include "ruby/backward.h"
+ #endif
+ 
++bool mkxp_ec_is_syntax_transform_active(unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny);
++
+ RBIMPL_SYMBOL_EXPORT_END()
+ 
+ #endif /* RUBY_RUBY_H */
 --- a/iseq.c
 +++ b/iseq.c
 @@ -613,6 +613,8 @@ prepare_iseq_build(rb_iseq_t *iseq,
@@ -205,13 +216,6 @@
  	} flags;
  
  	unsigned int size;
-@@ -2114,4 +2116,6 @@ RUBY_EXTERN VALUE rb_eRactorIsolationError;
- 
- RUBY_SYMBOL_EXPORT_END
- 
-+bool mkxp_ec_is_syntax_transform_active(unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny);
-+
- #endif /* RUBY_VM_CORE_H */
 --- a/vm_eval.c
 +++ b/vm_eval.c
 @@ -1,3 +1,13 @@

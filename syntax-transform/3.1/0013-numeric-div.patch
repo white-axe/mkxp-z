@@ -26,8 +26,6 @@
 #
 #   p (-1.0).div(2)
 
-diff --git a/numeric.c b/numeric.c
-index a4f75edf88..accbe0792f 100644
 --- a/numeric.c
 +++ b/numeric.c
 @@ -653,7 +653,7 @@ static VALUE
