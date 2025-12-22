@@ -27,6 +27,37 @@
 #   p Module.constants.map(&:to_sym).include? :TRUE
 #   p Module.constants.map(&:to_sym).include? :FALSE
 
+--- a/eval.c
++++ b/eval.c
+@@ -409,7 +409,27 @@ rb_mod_s_constants(int argc, VALUE *argv, VALUE mod)
+     if (cbase) {
+ 	data = rb_mod_const_of(cbase, data);
+     }
+-    return rb_const_list(data);
++    {
++        VALUE ary = rb_const_list(data);
++
++        /* If syntax transform is active and targeting Ruby <= 2.7, make sure the constants `NIL`, `TRUE` and `FALSE` are listed in the output of `Module::constants` */
++        if (mkxp_ec_is_syntax_transform_active(2, 7)) {
++            VALUE symbol = RB_ID2SYM(rb_intern("NIL"));
++            if (!rb_ary_includes(ary, symbol)) {
++                rb_ary_push(ary, symbol);
++            }
++            symbol = RB_ID2SYM(rb_intern("TRUE"));
++            if (!rb_ary_includes(ary, symbol)) {
++                rb_ary_push(ary, symbol);
++            }
++            symbol = RB_ID2SYM(rb_intern("FALSE"));
++            if (!rb_ary_includes(ary, symbol)) {
++                rb_ary_push(ary, symbol);
++            }
++        }
++
++        return ary;
++    }
+ }
+ 
+ /*!
 --- a/variable.c
 +++ b/variable.c
 @@ -2651,6 +2651,16 @@ rb_const_get_0(VALUE klass, ID id, int exclude, int recurse, int visibility)
@@ -46,41 +77,7 @@
      return rb_const_missing(klass, ID2SYM(id));
  }
  
-@@ -2951,10 +2961,29 @@ rb_const_list(void *data)
-     st_table *tbl = data;
-     VALUE ary;
- 
--    if (!tbl) return rb_ary_new2(0);
--    ary = rb_ary_new2(tbl->num_entries);
--    st_foreach_safe(tbl, list_i, ary);
--    st_free_table(tbl);
-+    if (!tbl) {
-+        ary = rb_ary_new2(0);
-+    } else {
-+        ary = rb_ary_new2(tbl->num_entries);
-+        st_foreach_safe(tbl, list_i, ary);
-+        st_free_table(tbl);
-+    }
-+
-+    /* If syntax transform is active and targeting Ruby <= 2.7, make sure the constants `NIL`, `TRUE` and `FALSE` are listed in the output of `Module::constants` and `Module#constants` */
-+    if (mkxp_ec_is_syntax_transform_active(2, 7)) {
-+        VALUE symbol = RB_ID2SYM(rb_intern("NIL"));
-+        if (!rb_ary_includes(ary, symbol)) {
-+            rb_ary_push(ary, symbol);
-+        }
-+        symbol = RB_ID2SYM(rb_intern("TRUE"));
-+        if (!rb_ary_includes(ary, symbol)) {
-+            rb_ary_push(ary, symbol);
-+        }
-+        symbol = RB_ID2SYM(rb_intern("FALSE"));
-+        if (!rb_ary_includes(ary, symbol)) {
-+            rb_ary_push(ary, symbol);
-+        }
-+    }
- 
-     return ary;
- }
-@@ -2999,6 +3028,11 @@ rb_const_defined_0(VALUE klass, ID id, int exclude, int recurse, int visibility)
+@@ -2999,6 +3009,11 @@ rb_const_defined_0(VALUE klass, ID id, int exclude, int recurse, int visibility)
      int mod_retry = 0;
      rb_const_entry_t *ce;
  
