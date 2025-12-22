@@ -35,7 +35,7 @@
 -    set_yylval_str(lit);
 -    SET_LEX_STATE(EXPR_END);
 -    return tCHAR;
-+    if (mkxp_is_syntax_transform_active(p, 1, 8)) {
++    if (mkxp_parser_is_syntax_transform_active(p, 1, 8)) {
 +        set_yylval_literal(INT2FIX((unsigned char)*tok(p)));
 +        SET_LEX_STATE(EXPR_END);
 +        return tINTEGER;

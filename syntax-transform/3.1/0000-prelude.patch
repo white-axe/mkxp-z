@@ -48,7 +48,7 @@
 
 --- a/compile.c
 +++ b/compile.c
-@@ -44,6 +44,23 @@
+@@ -44,6 +44,56 @@
  #include "insns.inc"
  #include "insns_info.inc"
  
@@ -58,8 +58,8 @@
 + * the version given by `maximum_target_ruby_version_major` and
 + * `maximum_target_ruby_version_minor`
 + */
-+static bool
-+mkxp_is_syntax_transform_active(const rb_iseq_t *iseq, unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor)
++bool
++mkxp_iseq_is_syntax_transform_active(const rb_iseq_t *iseq, unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor)
 +{
 +    extern unsigned int mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor;
 +    if (mkxp_syntax_transform_target_ruby_version_major > maximum_target_ruby_version_major || (mkxp_syntax_transform_target_ruby_version_major == maximum_target_ruby_version_major && mkxp_syntax_transform_target_ruby_version_minor > maximum_target_ruby_version_minor)) {
@@ -67,6 +67,39 @@
 +    }
 +
 +    return iseq->body->param.flags.mkxp_syntax_transform_flag;
++}
++
++/**
++ * Check if mkxp syntax transform is active in the current execution context
++ * and is currently targeting a Ruby version that is less than or equal to
++ * the version given by `maximum_target_ruby_version_major` and
++ * `maximum_target_ruby_version_minor`
++ */
++bool
++mkxp_ec_is_syntax_transform_active(unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor)
++{
++    extern unsigned int mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor;
++    if (mkxp_syntax_transform_target_ruby_version_major > maximum_target_ruby_version_major || (mkxp_syntax_transform_target_ruby_version_major == maximum_target_ruby_version_major && mkxp_syntax_transform_target_ruby_version_minor > maximum_target_ruby_version_minor)) {
++        return FALSE;
++    }
++
++    {
++        const rb_execution_context_t *ec = GET_EC();
++        const rb_control_frame_t *cfp, *end_cfp;
++        if (ec == NULL) {
++            return FALSE;
++        }
++        cfp = ec->cfp;
++        if (cfp == NULL) {
++            return FALSE;
++        }
++        for (end_cfp = RUBY_VM_END_CONTROL_FRAME(ec); RUBY_VM_VALID_CONTROL_FRAME_P(cfp, end_cfp); cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp)) {
++            if (VM_FRAME_RUBYFRAME_P(cfp)) {
++                return cfp->iseq->body->param.flags.mkxp_syntax_transform_flag;
++            }
++        }
++        return FALSE;
++    }
 +}
 +
  #undef RUBY_UNTYPED_DATA_WARNING
@@ -101,6 +134,13 @@
      int debug_level;
  };
  
+@@ -319,4 +320,6 @@ VALUE rb_iseq_local_variables(const rb_iseq_t *iseq);
+ 
+ RUBY_SYMBOL_EXPORT_END
+ 
++bool mkxp_iseq_is_syntax_transform_active(const rb_iseq_t *iseq, unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor);
++
+ #endif /* RUBY_ISEQ_H */
 --- a/parse.y
 +++ b/parse.y
 @@ -330,6 +330,8 @@ struct parser_params {
@@ -123,7 +163,7 @@
 + * `maximum_target_ruby_version_minor`
 + */
 +static bool
-+mkxp_is_syntax_transform_active(struct parser_params *p, unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor)
++mkxp_parser_is_syntax_transform_active(const struct parser_params *p, unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor)
 +{
 +    extern unsigned int mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor;
 +    if (mkxp_syntax_transform_target_ruby_version_major > maximum_target_ruby_version_major || (mkxp_syntax_transform_target_ruby_version_major == maximum_target_ruby_version_major && mkxp_syntax_transform_target_ruby_version_minor > maximum_target_ruby_version_minor)) {
@@ -165,6 +205,13 @@
  	} flags;
  
  	unsigned int size;
+@@ -2114,4 +2116,6 @@ RUBY_EXTERN VALUE rb_eRactorIsolationError;
+ 
+ RUBY_SYMBOL_EXPORT_END
+ 
++bool mkxp_ec_is_syntax_transform_active(unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor);
++
+ #endif /* RUBY_VM_CORE_H */
 --- a/vm_eval.c
 +++ b/vm_eval.c
 @@ -1,3 +1,13 @@
@@ -201,29 +248,3 @@
      rb_parser_set_context(parser, parent, FALSE);
      ast = rb_parser_compile_string_path(parser, fname, src, line);
      if (ast->body.root) {
---- a/vm_insnhelper.c
-+++ b/vm_insnhelper.c
-@@ -31,6 +31,23 @@
- #include "insns_info.inc"
- #endif
- 
-+/**
-+ * Check if mkxp syntax transform is active in the scope that `iseq` is in
-+ * and is currently targeting a Ruby version that is less than or equal to
-+ * the version given by `maximum_target_ruby_version_major` and
-+ * `maximum_target_ruby_version_minor`
-+ */
-+static bool
-+mkxp_is_syntax_transform_active(const rb_iseq_t *iseq, unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor)
-+{
-+    extern unsigned int mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor;
-+    if (mkxp_syntax_transform_target_ruby_version_major > maximum_target_ruby_version_major || (mkxp_syntax_transform_target_ruby_version_major == maximum_target_ruby_version_major && mkxp_syntax_transform_target_ruby_version_minor > maximum_target_ruby_version_minor)) {
-+        return FALSE;
-+    }
-+
-+    return iseq->body->param.flags.mkxp_syntax_transform_flag;
-+}
-+
- extern rb_method_definition_t *rb_method_definition_create(rb_method_type_t type, ID mid);
- extern void rb_method_definition_set(const rb_method_entry_t *me, rb_method_definition_t *def, void *opts);
- extern int rb_method_definition_eq(const rb_method_definition_t *d1, const rb_method_definition_t *d2);

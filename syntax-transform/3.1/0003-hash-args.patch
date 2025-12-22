@@ -112,7 +112,7 @@
  	COND_PUSH(0);
  	CMDARG_PUSH(0);
 -	return c;
-+	return mkxp_is_syntax_transform_active(p, 1, 8) && c == tLBRACE ? tMKXP_LEGACY_LBRACE : c;
++	return mkxp_parser_is_syntax_transform_active(p, 1, 8) && c == tLBRACE ? tMKXP_LEGACY_LBRACE : c;
  
        case '\\':
  	c = nextc(p);

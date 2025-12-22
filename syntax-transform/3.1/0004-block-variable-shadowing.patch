@@ -34,8 +34,8 @@
 
 --- a/compile.c
 +++ b/compile.c
-@@ -61,6 +61,8 @@ mkxp_is_syntax_transform_active(const rb_iseq_t *iseq, unsigned int maximum_targ
-     return iseq->body->param.flags.mkxp_syntax_transform_flag;
+@@ -94,6 +94,8 @@ mkxp_ec_is_syntax_transform_active(unsigned int maximum_target_ruby_version_majo
+     }
  }
  
 +static int get_dyna_var_idx(const rb_iseq_t *iseq, ID id, int *level, int *ls);
@@ -43,11 +43,11 @@
  #undef RUBY_UNTYPED_DATA_WARNING
  #define RUBY_UNTYPED_DATA_WARNING 0
  
-@@ -787,6 +789,17 @@ rb_iseq_compile_node(rb_iseq_t *iseq, const NODE *node)
+@@ -820,6 +822,17 @@ rb_iseq_compile_node(rb_iseq_t *iseq, const NODE *node)
  		ADD_TRACE(ret, RUBY_EVENT_B_CALL);
                  NODE dummy_line_node = generate_dummy_line_node(FIX2INT(iseq->body->location.first_lineno), -1);
  		ADD_INSN (ret, &dummy_line_node, nop);
-+                if (mkxp_is_syntax_transform_active(iseq, 1, 8)) {
++                if (mkxp_iseq_is_syntax_transform_active(iseq, 1, 8)) {
 +                    /* If syntax transform is active and targeting Ruby <= 1.8, for every block parameter with the same name as a local variable outside the block, generate code to set that local variable's value to the block parameter's value when the block is called to simulate the Ruby 1.8 shadowing behavior of block parameters */
 +                    unsigned int i;
 +                    for (i = 0; i < iseq->body->param.lead_num; i++) {
@@ -61,7 +61,7 @@
  		ADD_LABEL(ret, start);
  		CHECK(COMPILE(ret, "block body", node->nd_body));
  		ADD_LABEL(ret, end);
-@@ -1589,11 +1602,11 @@ get_lvar_level(const rb_iseq_t *iseq)
+@@ -1622,11 +1635,11 @@ get_lvar_level(const rb_iseq_t *iseq)
  }
  
  static int
@@ -75,7 +75,7 @@
  	if (iseq->body->local_table[i] == id) {
  	    return (int)i;
  	}
-@@ -1601,6 +1614,12 @@ get_dyna_var_idx_at_raw(const rb_iseq_t *iseq, ID id)
+@@ -1634,6 +1647,12 @@ get_dyna_var_idx_at_raw(const rb_iseq_t *iseq, ID id)
      return -1;
  }
  
@@ -88,7 +88,7 @@
  static int
  get_local_var_idx(const rb_iseq_t *iseq, ID id)
  {
-@@ -1620,13 +1639,25 @@ get_dyna_var_idx(const rb_iseq_t *iseq, ID id, int *level, int *ls)
+@@ -1653,13 +1672,25 @@ get_dyna_var_idx(const rb_iseq_t *iseq, ID id, int *level, int *ls)
      int lv = 0, idx = -1;
      const rb_iseq_t *const topmost_iseq = iseq;
  
@@ -99,7 +99,7 @@
 -	}
 -	iseq = iseq->body->parent_iseq;
 -	lv++;
-+    bool syntax_transform = mkxp_is_syntax_transform_active(iseq, 1, 8);
++    bool syntax_transform = mkxp_iseq_is_syntax_transform_active(iseq, 1, 8);
 +
 +    for (;;) {
 +        while (iseq) {

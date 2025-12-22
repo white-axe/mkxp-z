@@ -429,7 +429,7 @@
  	}
  	SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG);
 -	return c;
-+	return mkxp_is_syntax_transform_active(p, 1, 8) && c == tSTAR ? tMKXP_LEGACY_STAR : c;
++	return mkxp_parser_is_syntax_transform_active(p, 1, 8) && c == tSTAR ? tMKXP_LEGACY_STAR : c;
  
        case '!':
  	c = nextc(p);
@@ -437,7 +437,7 @@
  	return '~';
  
        case '(':
-+	if (mkxp_is_syntax_transform_active(p, 1, 8)) {
++	if (mkxp_parser_is_syntax_transform_active(p, 1, 8)) {
 +	    p->command_start = TRUE;
 +	}
  	if (IS_BEG()) {
@@ -446,7 +446,7 @@
  	else if (!space_seen) {
  	    /* foo( ... ) => method call, no ambiguity */
  	}
-+	else if (mkxp_is_syntax_transform_active(p, 1, 8) && IS_lex_state(EXPR_ARG)) {
++	else if (mkxp_parser_is_syntax_transform_active(p, 1, 8) && IS_lex_state(EXPR_ARG)) {
 +	    rb_warn0("don't put space before argument parentheses");
 +	}
  	else if (IS_ARG() || IS_lex_state_all(EXPR_END|EXPR_LABEL)) {
@@ -457,7 +457,7 @@
  	CMDARG_PUSH(0);
  	SET_LEX_STATE(EXPR_BEG|EXPR_LABEL);
 -	return c;
-+	return mkxp_is_syntax_transform_active(p, 1, 8) && c == tLPAREN_ARG ? tMKXP_LEGACY_LPAREN_ARG : c;
++	return mkxp_parser_is_syntax_transform_active(p, 1, 8) && c == tLPAREN_ARG ? tMKXP_LEGACY_LPAREN_ARG : c;
  
        case '[':
  	p->lex.paren_nest++;

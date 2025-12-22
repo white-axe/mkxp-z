@@ -103,7 +103,7 @@
  	    c = warn_balanced(':', ":", "symbol literal");
  	    SET_LEX_STATE(EXPR_BEG);
 -	    return c;
-+	    return mkxp_is_syntax_transform_active(p, 1, 8) && c == ':' ? tMKXP_LEGACY_COLON : c;
++	    return mkxp_parser_is_syntax_transform_active(p, 1, 8) && c == ':' ? tMKXP_LEGACY_COLON : c;
  	}
  	switch (c) {
  	  case '\'':

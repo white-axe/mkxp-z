@@ -38,7 +38,7 @@
  bodystmt	: compstmt
  		  opt_rescue
 -		  k_else {if (!$2) {yyerror1(&@3, "else without rescue is useless");}}
-+		  k_else {if (!$2) {if (mkxp_is_syntax_transform_active(p, 2, 5)) rb_warn0("else without rescue is useless"); else yyerror1(&@3, "else without rescue is useless");}}
++		  k_else {if (!$2) {if (mkxp_parser_is_syntax_transform_active(p, 2, 5)) rb_warn0("else without rescue is useless"); else yyerror1(&@3, "else without rescue is useless");}}
  		  compstmt
  		  opt_ensure
  		    {
