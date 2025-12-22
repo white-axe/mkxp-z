@@ -38,7 +38,7 @@
 +        VALUE ary = rb_const_list(data);
 +
 +        /* If syntax transform is active and targeting Ruby <= 2.7, make sure the constants `NIL`, `TRUE` and `FALSE` are listed in the output of `Module::constants` */
-+        if (mkxp_ec_is_syntax_transform_active(2, 7)) {
++        if (mkxp_ec_is_syntax_transform_active(2, 7, -1)) {
 +            VALUE symbol = RB_ID2SYM(rb_intern("NIL"));
 +            if (!rb_ary_includes(ary, symbol)) {
 +                rb_ary_push(ary, symbol);
@@ -65,7 +65,7 @@
          return c;
      }
 +    /* If syntax transform is active and targeting Ruby <= 2.7, make sure the constants `NIL`, `TRUE` and `FALSE` are defined as `nil`, `true` and `false` by default */
-+    if (mkxp_ec_is_syntax_transform_active(2, 7)) {
++    if (mkxp_ec_is_syntax_transform_active(2, 7, -1)) {
 +        if (id == rb_intern("NIL")) {
 +            return Qnil;
 +        } else if (id == rb_intern("TRUE")) {
@@ -82,7 +82,7 @@
      rb_const_entry_t *ce;
  
 +    /* If syntax transform is active and targeting Ruby <= 2.7, make sure the constants `NIL`, `TRUE` and `FALSE` are always considered to be defined */
-+    if (mkxp_ec_is_syntax_transform_active(2, 7) && (id == rb_intern("NIL") || id == rb_intern("TRUE") || id == rb_intern("FALSE"))) {
++    if (mkxp_ec_is_syntax_transform_active(2, 7, -1) && (id == rb_intern("NIL") || id == rb_intern("TRUE") || id == rb_intern("FALSE"))) {
 +        return (int)Qtrue;
 +    }
 +

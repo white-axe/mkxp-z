@@ -38,7 +38,7 @@
            rb_attr_get(klass, id_attached) == obj)) {
  	rb_serial_t serial = RCLASS_SERIAL(klass);
 -	klass = rb_make_metaclass(obj, klass);
-+        if (mkxp_ec_is_syntax_transform_active(1, 8)) {
++        if (mkxp_ec_is_syntax_transform_active(1, 8, -1)) {
 +            VALUE metaclass = rb_class_boot(klass);
 +            FL_SET(metaclass, FL_SINGLETON);
 +            rb_singleton_class_attached(metaclass, obj);

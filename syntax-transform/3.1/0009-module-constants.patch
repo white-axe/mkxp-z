@@ -40,7 +40,7 @@
      void *data = 0;
  
 -    if (argc > 0 || mod != rb_cModule) {
-+    if (argc > 0 || (!mkxp_ec_is_syntax_transform_active(1, 8) && mod != rb_cModule)) {
++    if (argc > 0 || (!mkxp_ec_is_syntax_transform_active(1, 8, -1) && mod != rb_cModule)) {
  	return rb_mod_constants(argc, argv, mod);
      }
  

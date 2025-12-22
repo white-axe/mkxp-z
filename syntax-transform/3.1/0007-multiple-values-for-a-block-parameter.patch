@@ -42,7 +42,7 @@
          CALLER_REMOVE_EMPTY_KW_SPLAT(cfp, calling, ci);
  
 +        /* If syntax transform is active and targeting Ruby <= 1.8, if a block that takes one parameter declared without a comma at the end of the parameter list is called with more than one parameter, collect the passed parameters into an array and pass this array as the parameter instead */
-+        if (mkxp_iseq_is_syntax_transform_active(iseq, 1, 8) && arg_setup_type == arg_setup_block && calling->argc != 1 && calling->kw_splat == 0 && iseq->body->param.lead_num == 1 && iseq->body->param.flags.ambiguous_param0) {
++        if (mkxp_iseq_is_syntax_transform_active(iseq, 1, 8, -1) && arg_setup_type == arg_setup_block && calling->argc != 1 && calling->kw_splat == 0 && iseq->body->param.lead_num == 1 && iseq->body->param.flags.ambiguous_param0) {
 +            rb_warn("multiple values for a block parameter (%d for 1)", calling->argc);
 +            if (calling->argc > 1) {
 +                VALUE ary = rb_ary_new_from_values(calling->argc, cfp->sp - calling->argc);

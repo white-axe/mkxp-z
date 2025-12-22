@@ -69,7 +69,7 @@ extern const char module_rpg2[];
 extern const char module_rpg3[];
 
 #ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
-extern unsigned int mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor;
+extern unsigned int mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor, mkxp_syntax_transform_target_ruby_version_teeny;
 extern thread_local int mkxp_syntax_transform_enabled_for_next_eval;
 #endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
 
@@ -1312,18 +1312,25 @@ static void mriBindingExecute() {
 #ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
     {
         int syntaxTransform = shState->config().syntaxTransform;
-        if (syntaxTransform >= 100) {
+        if (syntaxTransform >= 200) {
             mkxp_syntax_transform_target_ruby_version_major = syntaxTransform / 100;
             mkxp_syntax_transform_target_ruby_version_minor = syntaxTransform % 100;
+            mkxp_syntax_transform_target_ruby_version_teeny = 0;
+        } else if (syntaxTransform >= 100) {
+            mkxp_syntax_transform_target_ruby_version_major = 1;
+            mkxp_syntax_transform_target_ruby_version_minor = (syntaxTransform - 100) / 10;
+            mkxp_syntax_transform_target_ruby_version_teeny = syntaxTransform % 10;
         } else {
             switch (syntaxTransform) {
                 case 1:
                     mkxp_syntax_transform_target_ruby_version_major = 1;
                     mkxp_syntax_transform_target_ruby_version_minor = rgssVer >= 3 ? 9 : 8;
+                    mkxp_syntax_transform_target_ruby_version_teeny = 1;
                     break;
                 default:
                     mkxp_syntax_transform_target_ruby_version_major = -1;
                     mkxp_syntax_transform_target_ruby_version_minor = -1;
+                    mkxp_syntax_transform_target_ruby_version_teeny = -1;
                     break;
             }
         }
