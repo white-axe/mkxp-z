@@ -170,6 +170,47 @@ static void printRgssVersion(int ver) {
   Debug() << buf;
 }
 
+static void initSyntaxTransform(const Config &conf) {
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+  extern unsigned int mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor, mkxp_syntax_transform_target_ruby_version_teeny;
+
+  char buf[128];
+  int syntaxTransform = conf.syntaxTransform;
+
+  if (syntaxTransform >= 100) {
+    if (syntaxTransform >= 200) {
+      mkxp_syntax_transform_target_ruby_version_major = syntaxTransform / 100;
+      mkxp_syntax_transform_target_ruby_version_minor = syntaxTransform % 100;
+      mkxp_syntax_transform_target_ruby_version_teeny = 0;
+    } else {
+      mkxp_syntax_transform_target_ruby_version_major = 1;
+      mkxp_syntax_transform_target_ruby_version_minor = (syntaxTransform - 100) / 10;
+      mkxp_syntax_transform_target_ruby_version_teeny = syntaxTransform % 10;
+    }
+    snprintf(buf, sizeof(buf), "Ruby %u.%u.%u", mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor, mkxp_syntax_transform_target_ruby_version_teeny);
+  } else {
+    switch (syntaxTransform) {
+      case 1:
+        mkxp_syntax_transform_target_ruby_version_major = 1;
+        mkxp_syntax_transform_target_ruby_version_minor = conf.rgssVersion >= 3 ? 9 : 8;
+        mkxp_syntax_transform_target_ruby_version_teeny = 1;
+        snprintf(buf, sizeof(buf), "Compatibility mode (Ruby %u.%u.%u)", mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor, mkxp_syntax_transform_target_ruby_version_teeny);
+        break;
+      default:
+        mkxp_syntax_transform_target_ruby_version_major = -1;
+        mkxp_syntax_transform_target_ruby_version_minor = -1;
+        mkxp_syntax_transform_target_ruby_version_teeny = -1;
+        snprintf(buf, sizeof(buf), "Disabled");
+        break;
+    }
+  }
+
+  Debug() << "Syntax transform:" << buf;
+#else
+  Debug() << "Syntax transform support was disabled at build time";
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+}
+
 static void rgssThreadError(RGSSThreadData *rtData, const std::string &msg) {
   rtData->rgssErrorMsg = msg;
   rtData->ethread->requestTerminate();
@@ -267,6 +308,8 @@ int main(int argc, char *argv[]) {
 
     assert(conf.rgssVersion >= 1 && conf.rgssVersion <= 3);
     printRgssVersion(conf.rgssVersion);
+
+    initSyntaxTransform(conf);
 
     int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;
     if (IMG_Init(imgFlags) != imgFlags) {
