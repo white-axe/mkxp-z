@@ -321,7 +321,7 @@ $(RUBY_SRC)/Makefile: $(RUBY_SRC)/configure
 	export LDFLAGS="-flto $$LDFLAGS"; \
 	./configure $(CONFIGURE_ARGS) $(RUBY_CONFIGURE_ARGS) $(RUBY_FLAGS)
 
-$(RUBY_SRC)/configure: $(RUBY_SRC)/configure.ac syntax-transform
+$(RUBY_SRC)/configure: $(RUBY_SRC)/configure.ac $(RUBY_SRC)/syntax-transform
 	cd $(RUBY_SRC); autoreconf -i
 
 $(RUBY_SRC)/configure.ac:
