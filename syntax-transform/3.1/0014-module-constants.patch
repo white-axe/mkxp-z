@@ -1,4 +1,4 @@
-# syntax-transform/3.1/0015-module-constants.patch
+# syntax-transform/3.1/0014-module-constants.patch
 #
 # This file is part of mkxp.
 #
@@ -17,14 +17,15 @@
 # You should have received a copy of the GNU General Public License
 # along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 
-# In Ruby 1.8, if the class method `Module::constants` is called without
-# arguments, it returns all constants that are visible in the current scope.
-# In Ruby versions later than 1.8, it only does this if the class is equal to
-# `Module`; if the class is not equal to `Module`, it instead calls the instance
-# method `Module#constants` on the class, which returns the constants defined
-# in the class. As a result, after running this code snippet, the values `true`,
-# `true` and `true` will be printed in Ruby 1.8 and `true`, `true` and `false`
-# will be printed in later Ruby versions.
+# In Ruby versions up to and including Ruby 1.9.2, if the class method
+# `Module::constants` is called without arguments, it returns all constants
+# that are visible in the current scope. In Ruby versions later than 1.9.2, it
+# only does this if the class is equal to `Module`; if the class is not equal to
+# `Module`, it instead calls the instance method `Module#constants` on the
+# class, which returns the constants defined in the class. As a result, after
+# running this code snippet, the values `true`, `true` and `true` will be
+# printed in Ruby 1.9.2 and `true`, `true` and `false` will be printed in later
+# Ruby versions.
 #
 #   class A
 #     B = nil
@@ -35,12 +36,13 @@
 
 --- a/eval.c
 +++ b/eval.c
-@@ -390,7 +390,7 @@ rb_mod_s_constants(int argc, VALUE *argv, VALUE mod)
+@@ -390,6 +390,9 @@ rb_mod_s_constants(int argc, VALUE *argv, VALUE mod)
      VALUE cbase = 0;
      void *data = 0;
  
--    if (argc > 0 || mod != rb_cModule) {
-+    if (argc > 0 || (!mkxp_ec_is_syntax_transform_active(1, 8, -1) && mod != rb_cModule)) {
++    if (mkxp_ec_is_syntax_transform_active(1, 9, 2)) {
++        mod = rb_cModule;
++    }
+     if (argc > 0 || mod != rb_cModule) {
  	return rb_mod_constants(argc, argv, mod);
      }
- 
