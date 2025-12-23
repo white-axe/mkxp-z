@@ -31,25 +31,32 @@
 #     p self.superclass == Class
 #   end
 
---- a/class.c
-+++ b/class.c
-@@ -2055,7 +2055,18 @@ singleton_class_of(VALUE obj)
-     if (!(FL_TEST(klass, FL_SINGLETON) &&
-           rb_attr_get(klass, id_attached) == obj)) {
- 	rb_serial_t serial = RCLASS_SERIAL(klass);
--	klass = rb_make_metaclass(obj, klass);
-+        if (mkxp_ec_is_syntax_transform_active(1, 8, -1)) {
-+            VALUE metaclass = rb_class_boot(klass);
-+            FL_SET(metaclass, FL_SINGLETON);
-+            rb_singleton_class_attached(metaclass, obj);
-+            SET_METACLASS_OF(obj, metaclass);
-+            SET_METACLASS_OF(metaclass, metaclass);
-+            RCLASS_SET_SUPER(metaclass, RBASIC(rb_class_real(klass))->klass);
-+            klass = metaclass;
-+        }
-+        else {
-+           klass = rb_make_metaclass(obj, klass);
-+        }
- 	RCLASS_SERIAL(klass) = serial;
+--- a/object.c
++++ b/object.c
+@@ -800,6 +800,13 @@ rb_obj_is_kind_of(VALUE obj, VALUE c)
+ static VALUE
+ class_search_ancestor(VALUE cl, VALUE c)
+ {
++    /* If syntax transform is active and targeting Ruby <= 1.8, change the superclass of singleton classes to be consistent with the Ruby 1.8 behavior when whether or not some class is a superclass of a singleton class is queried with the `<=` operator or similar ancestry-checking operators */
++    if (mkxp_ec_is_syntax_transform_active(1, 8, -1) && FL_TEST(cl, FL_SINGLETON)) {
++        if (cl == c || RCLASS_M_TBL(cl) == RCLASS_M_TBL(c))
++            return cl;
++        cl = RBASIC_CLASS(cl);
++    }
++
+     while (cl) {
+ 	if (cl == c || RCLASS_M_TBL(cl) == RCLASS_M_TBL(c))
+ 	    return cl;
+@@ -2053,6 +2060,12 @@ rb_class_superclass(VALUE klass)
+ 	if (klass == rb_cBasicObject) return Qnil;
+ 	rb_raise(rb_eTypeError, "uninitialized class");
      }
- 
++
++    /* If syntax transform is active and targeting Ruby <= 1.8, change the superclass of singleton classes to be consistent with the Ruby 1.8 behavior when calling the `superclass` method of the singleton class */
++    if (mkxp_ec_is_syntax_transform_active(1, 8, -1) && FL_TEST(klass, FL_SINGLETON)) {
++        super = RBASIC_CLASS(klass);
++    }
++
+     while (RB_TYPE_P(super, T_ICLASS)) {
+ 	super = RCLASS_SUPER(super);
+     }
