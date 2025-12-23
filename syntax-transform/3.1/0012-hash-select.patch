@@ -26,7 +26,7 @@
 
 --- a/hash.c
 +++ b/hash.c
-@@ -2771,6 +2771,16 @@ keep_if_i(VALUE key, VALUE value, VALUE hash)
+@@ -2771,8 +2771,18 @@ keep_if_i(VALUE key, VALUE value, VALUE hash)
   *    e.each {|key, value| value < 2 } # => {:foo=>0, :bar=>1}
   */
  
@@ -41,18 +41,30 @@
 +}
 +
  static VALUE
- rb_hash_select(VALUE hash)
+-rb_hash_select(VALUE hash)
++mkxp_rb_hash_select(VALUE hash)
  {
-@@ -2782,6 +2792,12 @@ rb_hash_select(VALUE hash)
- 	rb_hash_foreach(result, keep_if_i, result);
-         compact_after_delete(result);
-     }
+     VALUE result;
+ 
+@@ -2804,6 +2814,21 @@ rb_hash_select(VALUE hash)
+  *    e.each { |key, value| value < 2 } # => {:foo=>0, :bar=>1}
+  */
+ 
++static VALUE
++rb_hash_select(VALUE hash)
++{
++    VALUE result = rb_hash_select(hash);
++
 +    /* If syntax transform is active and targeting Ruby <= 1.8, convert the output of `Hash#select` from a hash to an array of two-element arrays */
 +    if (mkxp_ec_is_syntax_transform_active(1, 8, -1)) {
 +        VALUE ary = rb_ary_new_capa(RHASH_SIZE(result));
 +        rb_hash_foreach(result, mkxp_hash_select_legacy_convert, ary);
 +        return ary;
 +    }
-     return result;
- }
- 
++
++    return result;
++}
++
+ static VALUE
+ rb_hash_select_bang(VALUE hash)
+ {

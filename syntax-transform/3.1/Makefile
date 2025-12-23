@@ -21,8 +21,8 @@ HAVE_SYNTAX_TRANSFORM ?= 1
 syntax-transform: $(RUBY_SRC)/configure.ac $(SYNTAX_TRANSFORM_PATCHES)
 ifeq ($(HAVE_SYNTAX_TRANSFORM),1)
 ifeq ($(patsubst MINGW%,,$(firstword $(shell uname))),)
-	cd $(RUBY_SRC) && for patch in $(SYNTAX_TRANSFORM_PATCHES); do echo "Applying $$patch"; patch -i $(PWD)/$$patch; done
+	cd $(RUBY_SRC) && for patch in $(SYNTAX_TRANSFORM_PATCHES); do echo "Applying $$patch"; patch -p1 -i $(PWD)/$$patch || exit 1; done
 else
-	cd $(RUBY_SRC) && for patch in $(SYNTAX_TRANSFORM_PATCHES); do echo "Applying $$patch"; $(GIT) apply $(PWD)/$$patch; done
+	cd $(RUBY_SRC) && for patch in $(SYNTAX_TRANSFORM_PATCHES); do echo "Applying $$patch"; $(GIT) apply $(PWD)/$$patch || exit 1; done
 endif
 endif
