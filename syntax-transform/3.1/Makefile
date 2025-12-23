@@ -13,6 +13,8 @@ SYNTAX_TRANSFORM_PATCHES := \
 	$(SYNTAX_TRANSFORM_DIR)/0011-variables-array.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0012-hash-select.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0013-numeric-div.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0014-class-variable-access-from-toplevel.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0015-class-variable-overtaken.patch \
 
 HAVE_SYNTAX_TRANSFORM ?= 1
 
