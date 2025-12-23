@@ -42,6 +42,24 @@
      return ary;
  }
  
+@@ -1921,6 +1932,17 @@ rb_obj_singleton_methods(int argc, const VALUE *argv, VALUE obj)
+     st_foreach(me_arg.list, ins_methods_i, ary);
+     st_free_table(me_arg.list);
+ 
++    /* If syntax transform is active and targeting Ruby <= 1.8, convert the output of `Object#singleton_methods` from an array of symbols to an array of strings */
++    if (mkxp_ec_is_syntax_transform_active(1, 8, -1)) {
++        long length = RARRAY_LEN(ary);
++        long i;
++        for (i = 0; i < length; ++i) {
++            VALUE value = rb_ary_entry(ary, i);
++            value = rb_sym2str(value);
++            rb_ary_store(ary, i, value);
++        }
++    }
++
+     return ary;
+ }
+ 
 --- a/eval.c
 +++ b/eval.c
 @@ -428,6 +428,17 @@ rb_mod_s_constants(int argc, VALUE *argv, VALUE mod)
