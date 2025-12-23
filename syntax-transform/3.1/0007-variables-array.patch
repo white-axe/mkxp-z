@@ -1,4 +1,4 @@
-# syntax-transform/3.1/0011-variables-array.patch
+# syntax-transform/3.1/0007-variables-array.patch
 #
 # This file is part of mkxp.
 #
@@ -62,10 +62,14 @@
  
 --- a/eval.c
 +++ b/eval.c
-@@ -428,6 +428,17 @@ rb_mod_s_constants(int argc, VALUE *argv, VALUE mod)
-             }
-         }
- 
+@@ -409,7 +409,22 @@ rb_mod_s_constants(int argc, VALUE *argv, VALUE mod)
+     if (cbase) {
+ 	data = rb_mod_const_of(cbase, data);
+     }
+-    return rb_const_list(data);
++    {
++        VALUE ary = rb_const_list(data);
++
 +        /* If syntax transform is active and targeting Ruby <= 1.8, convert the output of `Module::constants` from an array of symbols to an array of strings */
 +        if (mkxp_ec_is_syntax_transform_active(1, 8, -1)) {
 +            long length = RARRAY_LEN(ary);
@@ -77,10 +81,12 @@
 +            }
 +        }
 +
-         return ary;
-     }
++        return ary;
++    }
  }
-@@ -1896,7 +1907,20 @@ f_current_dirname(VALUE _)
+ 
+ /*!
+@@ -1876,7 +1891,20 @@ f_current_dirname(VALUE _)
  static VALUE
  f_global_variables(VALUE _)
  {
@@ -123,7 +129,7 @@
      return ary;
  }
  
-@@ -2991,15 +3003,29 @@ VALUE
+@@ -2981,15 +2993,29 @@ VALUE
  rb_mod_constants(int argc, const VALUE *argv, VALUE mod)
  {
      bool inherit = true;
@@ -155,7 +161,7 @@
  }
  
  static int
-@@ -3712,7 +3738,22 @@ rb_mod_class_variables(int argc, const VALUE *argv, VALUE mod)
+@@ -3697,7 +3723,22 @@ rb_mod_class_variables(int argc, const VALUE *argv, VALUE mod)
      else {
  	tbl = mod_cvar_at(mod, 0);
      }

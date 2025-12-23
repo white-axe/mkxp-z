@@ -1,4 +1,4 @@
-# syntax-transform/3.1/0010-nil-true-false-constants.patch
+# syntax-transform/3.1/0009-nil-true-false-constants.patch
 #
 # This file is part of mkxp.
 #
@@ -29,14 +29,10 @@
 
 --- a/eval.c
 +++ b/eval.c
-@@ -409,7 +409,27 @@ rb_mod_s_constants(int argc, VALUE *argv, VALUE mod)
-     if (cbase) {
- 	data = rb_mod_const_of(cbase, data);
-     }
--    return rb_const_list(data);
-+    {
-+        VALUE ary = rb_const_list(data);
-+
+@@ -412,6 +412,22 @@ rb_mod_s_constants(int argc, VALUE *argv, VALUE mod)
+     {
+         VALUE ary = rb_const_list(data);
+ 
 +        /* If syntax transform is active and targeting Ruby <= 2.7, make sure the constants `NIL`, `TRUE` and `FALSE` are listed in the output of `Module::constants` */
 +        if (mkxp_ec_is_syntax_transform_active(2, 7, -1)) {
 +            VALUE symbol = RB_ID2SYM(rb_intern("NIL"));
@@ -53,14 +49,12 @@
 +            }
 +        }
 +
-+        return ary;
-+    }
- }
- 
- /*!
+         /* If syntax transform is active and targeting Ruby <= 1.8, convert the output of `Module::constants` from an array of symbols to an array of strings */
+         if (mkxp_ec_is_syntax_transform_active(1, 8, -1)) {
+             long length = RARRAY_LEN(ary);
 --- a/variable.c
 +++ b/variable.c
-@@ -2651,6 +2651,16 @@ rb_const_get_0(VALUE klass, ID id, int exclude, int recurse, int visibility)
+@@ -2663,6 +2663,16 @@ rb_const_get_0(VALUE klass, ID id, int exclude, int recurse, int visibility)
          }
          return c;
      }
@@ -77,7 +71,7 @@
      return rb_const_missing(klass, ID2SYM(id));
  }
  
-@@ -2999,6 +3009,11 @@ rb_const_defined_0(VALUE klass, ID id, int exclude, int recurse, int visibility)
+@@ -3025,6 +3035,11 @@ rb_const_defined_0(VALUE klass, ID id, int exclude, int recurse, int visibility)
      int mod_retry = 0;
      rb_const_entry_t *ce;
  
