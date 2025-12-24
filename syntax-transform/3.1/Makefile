@@ -13,8 +13,9 @@ SYNTAX_TRANSFORM_PATCHES := \
 	$(SYNTAX_TRANSFORM_DIR)/0011-hash-select.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0012-multiple-values-for-a-block-parameter.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0013-class-variable-access-from-toplevel.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0014-module-constants.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0015-numeric-div.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0014-kernel-match.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0015-module-constants.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0016-numeric-div.patch \
 
 HAVE_SYNTAX_TRANSFORM ?= 1
 

@@ -157,7 +157,121 @@ json5pp::value rb2json(VALUE v);
 
 RB_METHOD(mkxpParseCSV);
 
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+#if RAPI_MAJOR > 1 || RAPI_MINOR > 8
+static VALUE legacy_array_indexes(int argc, VALUE *argv, VALUE self) {
+    if (!mkxp_ec_is_syntax_transform_active(1, 8, -1))
+        mkxp_raise_no_method_exception(self, "indexes");
+    rb_warn("Array#indexes is deprecated; use Array#values_at");
+    return rb_funcallv(self, rb_intern("values_at"), argc, argv);
+}
+
+static VALUE legacy_array_indices(int argc, VALUE *argv, VALUE self) {
+    if (!mkxp_ec_is_syntax_transform_active(1, 8, -1))
+        mkxp_raise_no_method_exception(self, "indices");
+    rb_warn("Array#indices is deprecated; use Array#values_at");
+    return rb_funcallv(self, rb_intern("values_at"), argc, argv);
+}
+
+static VALUE legacy_hash_indexes(int argc, VALUE *argv, VALUE self) {
+    if (!mkxp_ec_is_syntax_transform_active(1, 8, -1))
+        mkxp_raise_no_method_exception(self, "indexes");
+    rb_warn("Hash#indexes is deprecated; use Hash#values_at");
+    return rb_funcallv(self, rb_intern("values_at"), argc, argv);
+}
+
+static VALUE legacy_hash_indices(int argc, VALUE *argv, VALUE self) {
+    if (!mkxp_ec_is_syntax_transform_active(1, 8, -1))
+        mkxp_raise_no_method_exception(self, "indices");
+    rb_warn("Hash#indices is deprecated; use Hash#values_at");
+    return rb_funcallv(self, rb_intern("values_at"), argc, argv);
+}
+
+static VALUE legacy_kernel_id(VALUE self) {
+    if (!mkxp_ec_is_syntax_transform_active(1, 8, -1))
+        mkxp_raise_no_method_exception(self, "id");
+    rb_warn("Object#id will be deprecated; use Object#object_id");
+    return rb_obj_id(self);
+}
+
+static VALUE legacy_kernel_to_a(VALUE self) {
+    if (!mkxp_ec_is_syntax_transform_active(1, 8, -1))
+        mkxp_raise_no_method_exception(self, "to_a");
+    rb_warn("default `to_a' will be obsolete");
+    return rb_ary_new_from_args(1, self);
+}
+
+static VALUE legacy_kernel_type(VALUE self) {
+    if (!mkxp_ec_is_syntax_transform_active(1, 8, -1))
+        mkxp_raise_no_method_exception(self, "type");
+    rb_warn("Object#type is deprecated; use Object#class");
+    return rb_obj_class(self);
+}
+
+static VALUE legacy_symbol_to_i(VALUE self) {
+    if (!mkxp_ec_is_syntax_transform_active(1, 8, -1))
+        mkxp_raise_no_method_exception(self, "to_i");
+    return RB_LONG2FIX(rb_sym2id(self));
+}
+
+static VALUE legacy_symbol_to_int(VALUE self) {
+    if (!mkxp_ec_is_syntax_transform_active(1, 8, -1))
+        mkxp_raise_no_method_exception(self, "to_int");
+    rb_warning("treating Symbol as an integer");
+    return RB_LONG2FIX(rb_sym2id(self));
+}
+#endif // RAPI_MAJOR > 1 || RAPI_MINOR > 8
+
+#if RAPI_MAJOR > 3 || RAPI_MINOR > 1
+static VALUE legacy_dir_exists(VALUE self, VALUE path) {
+    if (!mkxp_ec_is_syntax_transform_active(3, 1, -1))
+        mkxp_raise_no_method_exception(self, "exists?");
+    return rb_funcall(rb_cDir, rb_intern("exist?"), 1, path);
+}
+
+static VALUE legacy_file_exists(VALUE self, VALUE path) {
+    if (!mkxp_ec_is_syntax_transform_active(3, 1, -1))
+        mkxp_raise_no_method_exception(self, "exists?");
+    return rb_funcall(rb_cFile, rb_intern("exist?"), 1, path);
+}
+
+static VALUE legacy_file_test_exists(VALUE self, VALUE path) {
+    if (!mkxp_ec_is_syntax_transform_active(3, 1, -1))
+        mkxp_raise_no_method_exception(self, "exists?");
+    return rb_funcall(rb_mFileTest, rb_intern("exist?"), 1, path);
+}
+
+static VALUE legacy_kernel_match(VALUE self, VALUE other) {
+    if (mkxp_ec_is_syntax_transform_active(1, 8, -1))
+        return Qfalse;
+    else if (!mkxp_ec_is_syntax_transform_active(3, 1, -1))
+        mkxp_raise_no_method_exception(self, "=~");
+    return Qnil;
+}
+#endif // RAPI_MAJOR > 3 || RAPI_MINOR > 1
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+
 static void mriBindingInit() {
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+#if RAPI_MAJOR > 1 || RAPI_MINOR > 8
+    rb_define_method(rb_cArray, "indexes", legacy_array_indexes, -1);
+    rb_define_method(rb_cArray, "indices", legacy_array_indices, -1);
+    rb_define_method(rb_cHash, "indexes", legacy_hash_indexes, -1);
+    rb_define_method(rb_cHash, "indices", legacy_hash_indices, -1);
+    rb_define_method(rb_mKernel, "id", legacy_kernel_id, 0);
+    rb_define_method(rb_mKernel, "to_a", legacy_kernel_to_a, 0);
+    rb_define_method(rb_mKernel, "type", legacy_kernel_type, 0);
+    rb_define_method(rb_cSymbol, "to_i", legacy_symbol_to_i, 0);
+    rb_define_method(rb_cSymbol, "to_int", legacy_symbol_to_int, 0);
+#endif // RAPI_MAJOR > 1 || RAPI_MINOR > 8
+#if RAPI_MAJOR > 3 || RAPI_MINOR > 1
+    rb_define_singleton_method(rb_cDir, "exists?", legacy_dir_exists, 1);
+    rb_define_singleton_method(rb_cFile, "exists?", legacy_file_exists, 1);
+    rb_define_module_function(rb_mFileTest, "exists?", legacy_file_test_exists, 1);
+    rb_define_method(rb_mKernel, "=~", legacy_kernel_match, 1);
+#endif // RAPI_MAJOR > 3 || RAPI_MINOR > 1
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+
     tableBindingInit();
     etcBindingInit();
     fontBindingInit();

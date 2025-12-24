@@ -48,10 +48,19 @@
 
 --- a/compile.c
 +++ b/compile.c
-@@ -44,6 +44,56 @@
+@@ -44,6 +44,65 @@
  #include "insns.inc"
  #include "insns_info.inc"
  
++void
++mkxp_raise_no_method_exception(VALUE receiver, const char *method_name)
++{
++    VALUE rb_make_no_method_exception(VALUE, VALUE, VALUE, int, const VALUE *, int);
++    VALUE method_name_value = rb_str_new_cstr(method_name);
++    VALUE exc = rb_make_no_method_exception(rb_eNoMethodError, 0, receiver, 1, &method_name_value, 0);
++    rb_exc_raise(exc);
++}
++
 +/**
 + * Check if mkxp syntax transform is active in the scope that `iseq` is in
 + * and is currently targeting a Ruby version that is less than or equal to
@@ -107,11 +116,13 @@
  
 --- a/include/ruby/ruby.h
 +++ b/include/ruby/ruby.h
-@@ -306,6 +306,8 @@ __extension__({ \
+@@ -306,6 +306,10 @@ __extension__({ \
  # include "ruby/backward.h"
  #endif
  
 +bool mkxp_ec_is_syntax_transform_active(unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny);
++
++void mkxp_raise_no_method_exception(VALUE receiver, const char *method_name);
 +
  RBIMPL_SYMBOL_EXPORT_END()
  
