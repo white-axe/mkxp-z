@@ -53,7 +53,7 @@
 +static VALUE
 +rb_hash_select(VALUE hash)
 +{
-+    VALUE result = rb_hash_select(hash);
++    VALUE result = mkxp_rb_hash_select(hash);
 +
 +    /* If syntax transform is active and targeting Ruby <= 1.8, convert the output of `Hash#select` from a hash to an array of two-element arrays */
 +    if (mkxp_ec_is_syntax_transform_active(1, 8, -1)) {
