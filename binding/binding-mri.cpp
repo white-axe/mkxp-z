@@ -173,6 +173,12 @@ static VALUE legacy_array_indices(int argc, VALUE *argv, VALUE self) {
     return rb_funcallv(self, rb_intern("values_at"), argc, argv);
 }
 
+static VALUE legacy_exception_to_str(VALUE self) {
+    if (!mkxp_ec_is_syntax_transform_active(1, 8, -1))
+        mkxp_raise_no_method_exception(self, "to_str");
+    return rb_obj_as_string(self);
+}
+
 static VALUE legacy_hash_indexes(int argc, VALUE *argv, VALUE self) {
     if (!mkxp_ec_is_syntax_transform_active(1, 8, -1))
         mkxp_raise_no_method_exception(self, "indexes");
@@ -256,6 +262,7 @@ static void mriBindingInit() {
 #if RAPI_MAJOR > 1 || (RAPI_MAJOR == 1 && RAPI_MINOR > 8)
     rb_define_method(rb_cArray, "indexes", legacy_array_indexes, -1);
     rb_define_method(rb_cArray, "indices", legacy_array_indices, -1);
+    rb_define_method(rb_eException, "to_str", legacy_exception_to_str, 0);
     rb_define_method(rb_cHash, "indexes", legacy_hash_indexes, -1);
     rb_define_method(rb_cHash, "indices", legacy_hash_indices, -1);
     rb_define_method(rb_mKernel, "id", legacy_kernel_id, 0);
