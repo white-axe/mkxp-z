@@ -23,7 +23,7 @@
 # backtraces are equal. This code snippet prints `false` in Ruby 1.8 but `true`
 # in later versions of Ruby.
 #
-# p Exception.new == Exception.new
+#   p Exception.new == Exception.new
 
 --- a/error.c
 +++ b/error.c

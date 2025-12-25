@@ -18,8 +18,8 @@ SYNTAX_TRANSFORM_PATCHES := \
 	$(SYNTAX_TRANSFORM_DIR)/0016-kernel-match.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0017-module-constants.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0018-exception-equal.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0019-numeric-div.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0020-kernel-proc.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0019-kernel-proc.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0020-numeric-div.patch \
 
 HAVE_SYNTAX_TRANSFORM ?= 1
 
