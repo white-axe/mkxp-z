@@ -27,7 +27,7 @@
 
 --- a/parse.y
 +++ b/parse.y
-@@ -9035,10 +9035,17 @@ parse_qmark(struct parser_params *p, int space_seen)
+@@ -9039,10 +9039,17 @@ parse_qmark(struct parser_params *p, int space_seen)
  	tokadd(p, c);
      }
      tokfix(p);

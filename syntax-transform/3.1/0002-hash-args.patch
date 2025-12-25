@@ -107,7 +107,7 @@
  		    {
  			$$ = new_hash_pattern_tail(p, Qnone, 0, &@$);
  			$$ = new_hash_pattern(p, Qnone, $$, &@$);
-@@ -10080,7 +10115,7 @@ parser_yylex(struct parser_params *p)
+@@ -10084,7 +10119,7 @@ parser_yylex(struct parser_params *p)
  	++p->lex.paren_nest;  /* after lambda_beginning_p() */
  	COND_PUSH(0);
  	CMDARG_PUSH(0);
