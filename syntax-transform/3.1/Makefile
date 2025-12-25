@@ -12,14 +12,15 @@ SYNTAX_TRANSFORM_PATCHES := \
 	$(SYNTAX_TRANSFORM_DIR)/0010-nil-true-false-constants.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0011-singleton-class-superclass.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0012-hash-select.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0013-array-hash-to-s.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0014-multiple-values-for-a-block-parameter.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0015-class-variable-access-from-toplevel.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0016-kernel-match.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0017-module-constants.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0018-exception-equal.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0019-kernel-proc.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0020-numeric-div.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0013-multiple-values-for-a-block-parameter.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0014-array-hash-to-s.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0015-toplevel-constant.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0016-class-variable-access-from-toplevel.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0017-kernel-match.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0018-module-constants.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0019-exception-equal.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0020-kernel-proc.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0021-numeric-div.patch \
 
 HAVE_SYNTAX_TRANSFORM ?= 1
 

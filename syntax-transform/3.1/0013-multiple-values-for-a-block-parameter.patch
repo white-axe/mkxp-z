@@ -1,4 +1,4 @@
-# syntax-transform/3.1/0014-multiple-values-for-a-block-parameter.patch
+# syntax-transform/3.1/0013-multiple-values-for-a-block-parameter.patch
 #
 # This file is part of mkxp.
 #
@@ -49,11 +49,11 @@
 # in Ruby 1.8, the lambda only receives one argument (the array `[1, 2]`)
 # whereas in later Ruby versions the lambda receives two arguments.
 #
-# lambda {|a| p a}.call(1, 2)
+#   lambda {|a| p a}.call(1, 2)
 #
 # This code snippet also works in Ruby 1.8 but not later versions.
 #
-# lambda {|a| p a}.call
+#   lambda {|a| p a}.call
 
 --- a/vm_insnhelper.c
 +++ b/vm_insnhelper.c
