@@ -3,8 +3,8 @@ SYNTAX_TRANSFORM_PATCHES := \
 	$(SYNTAX_TRANSFORM_DIR)/0001-space-before-argument-parentheses.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0002-hash-args.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0003-then-do-colon.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0004-character-literal.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0005-block-without-parameter-definition.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0004-block-without-parameter-definition.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0005-character-literal.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0006-else-without-rescue.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0007-block-variable-shadowing.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0008-variables-array.patch \

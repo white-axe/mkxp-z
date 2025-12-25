@@ -1,4 +1,4 @@
-# syntax-transform/3.1/0004-character-literal.patch
+# syntax-transform/3.1/0005-character-literal.patch
 #
 # This file is part of mkxp.
 #
@@ -27,7 +27,7 @@
 
 --- a/parse.y
 +++ b/parse.y
-@@ -9027,10 +9027,16 @@ parse_qmark(struct parser_params *p, int space_seen)
+@@ -9035,10 +9035,17 @@ parse_qmark(struct parser_params *p, int space_seen)
  	tokadd(p, c);
      }
      tokfix(p);
@@ -39,7 +39,8 @@
 +        set_yylval_literal(INT2FIX((unsigned char)*tok(p)));
 +        SET_LEX_STATE(EXPR_END);
 +        return tINTEGER;
-+    } else {
++    }
++    else {
 +        lit = STR_NEW3(tok(p), toklen(p), enc, 0);
 +        set_yylval_str(lit);
 +        SET_LEX_STATE(EXPR_END);
