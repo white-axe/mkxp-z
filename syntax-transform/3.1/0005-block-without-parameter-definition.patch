@@ -31,12 +31,19 @@
 
 --- a/compile.c
 +++ b/compile.c
-@@ -1912,7 +1912,11 @@ iseq_set_arguments(rb_iseq_t *iseq, LINK_ANCHOR *const optargs, const NODE *cons
+@@ -1907,12 +1907,18 @@ iseq_set_arguments_keywords(rb_iseq_t *iseq, LINK_ANCHOR *const optargs,
+     return arg_size;
+ }
+ 
++NODE mkxp_block_without_parameter_definition_dummy_node;
++
+ static int
+ iseq_set_arguments(rb_iseq_t *iseq, LINK_ANCHOR *const optargs, const NODE *const node_args)
  {
      debugs("iseq_set_arguments: %s\n", node_args ? "" : "0");
  
 -    if (node_args) {
-+    if (node_args == (const NODE *)-1) {
++    if (node_args == &mkxp_block_without_parameter_definition_dummy_node) {
 +        /* This code block will be reached only if mkxp syntax transform is active, targeting Ruby <= 1.8 and a block was defined without a parameter definition (e.g. `lambda {}` rather than `lambda {||}`) and makes it so that such blocks take an unlimited number of arguments instead of zero arguments as in later Ruby versions */
 +        iseq->body->param.flags.has_rest = TRUE;
 +    }
@@ -46,14 +53,15 @@
  	ID rest_id = 0;
 --- a/parse.y
 +++ b/parse.y
-@@ -3906,6 +3906,13 @@ block_param	: f_arg ',' f_block_optarg ',' f_rest_arg opt_block_args_tail
+@@ -3906,6 +3906,14 @@ block_param	: f_arg ',' f_block_optarg ',' f_rest_arg opt_block_args_tail
  		;
  
  opt_block_param	: none
 +                    {
 +                    /*%%%*/
 +                        if (mkxp_parser_is_syntax_transform_active(p, 1, 8, -1)) {
-+                            $$ = (NODE *)-1;
++                            extern NODE mkxp_block_without_parameter_definition_dummy_node;
++                            $$ = &mkxp_block_without_parameter_definition_dummy_node;
 +                        }
 +                    /*% %*/
 +                    }
