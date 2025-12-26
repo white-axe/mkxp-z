@@ -8,19 +8,20 @@ SYNTAX_TRANSFORM_PATCHES := \
 	$(SYNTAX_TRANSFORM_DIR)/0006-else-without-rescue.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0007-block-variable-shadowing.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0008-variables-array.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0009-class-variable-overtaken.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0010-nil-true-false-constants.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0011-singleton-class-superclass.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0012-hash-select.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0013-multiple-values-for-a-block-parameter.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0014-array-hash-to-s.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0015-toplevel-constant.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0016-class-variable-access-from-toplevel.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0017-kernel-match.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0018-module-constants.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0019-exception-equal.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0020-kernel-proc.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0021-numeric-div.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0009-separation-of-positional-and-keyword-arguments.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0010-class-variable-overtaken.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0011-nil-true-false-constants.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0012-singleton-class-superclass.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0013-hash-select.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0014-multiple-values-for-a-block-parameter.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0015-array-hash-to-s.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0016-toplevel-constant.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0017-class-variable-access-from-toplevel.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0018-kernel-match.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0019-module-constants.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0020-exception-equal.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0021-kernel-proc.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0022-numeric-div.patch \
 
 HAVE_SYNTAX_TRANSFORM ?= 1
 
