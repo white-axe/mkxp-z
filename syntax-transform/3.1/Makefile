@@ -18,10 +18,11 @@ SYNTAX_TRANSFORM_PATCHES := \
 	$(SYNTAX_TRANSFORM_DIR)/0016-toplevel-constant.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0017-class-variable-access-from-toplevel.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0018-kernel-match.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0019-module-constants.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0020-exception-equal.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0021-kernel-proc.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0022-numeric-div.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0019-integer-fixnum-bignum.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0020-module-constants.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0021-exception-equal.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0022-kernel-proc.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0023-numeric-div.patch \
 
 HAVE_SYNTAX_TRANSFORM ?= 1
 
