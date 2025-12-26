@@ -33,6 +33,9 @@ struct Config {
     json5pp::value raw;
     
     int syntaxTransform;
+    int syntaxTransformCustomVersionMajor;
+    int syntaxTransformCustomVersionMinor;
+    int syntaxTransformCustomVersionTeeny;
     int rgssVersion;
     
     bool debugMode;

@@ -175,34 +175,26 @@ static void initSyntaxTransform(const Config &conf) {
   extern unsigned int mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor, mkxp_syntax_transform_target_ruby_version_teeny;
 
   char buf[128];
-  int syntaxTransform = conf.syntaxTransform;
 
-  if (syntaxTransform >= 100) {
-    if (syntaxTransform >= 200) {
-      mkxp_syntax_transform_target_ruby_version_major = syntaxTransform / 100;
-      mkxp_syntax_transform_target_ruby_version_minor = syntaxTransform % 100;
-      mkxp_syntax_transform_target_ruby_version_teeny = 0;
-    } else {
+  switch (conf.syntaxTransform) {
+    default:
+      mkxp_syntax_transform_target_ruby_version_major = -1;
+      mkxp_syntax_transform_target_ruby_version_minor = -1;
+      mkxp_syntax_transform_target_ruby_version_teeny = -1;
+      snprintf(buf, sizeof(buf), "Disabled");
+      break;
+    case 1:
+      mkxp_syntax_transform_target_ruby_version_major = std::max(0, conf.syntaxTransformCustomVersionMajor);
+      mkxp_syntax_transform_target_ruby_version_minor = std::max(0, conf.syntaxTransformCustomVersionMinor);
+      mkxp_syntax_transform_target_ruby_version_teeny = std::max(0, conf.syntaxTransformCustomVersionTeeny);
+      snprintf(buf, sizeof(buf), "Ruby %u.%u.%u", mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor, mkxp_syntax_transform_target_ruby_version_teeny);
+      break;
+    case 2:
       mkxp_syntax_transform_target_ruby_version_major = 1;
-      mkxp_syntax_transform_target_ruby_version_minor = (syntaxTransform - 100) / 10;
-      mkxp_syntax_transform_target_ruby_version_teeny = syntaxTransform % 10;
-    }
-    snprintf(buf, sizeof(buf), "Ruby %u.%u.%u", mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor, mkxp_syntax_transform_target_ruby_version_teeny);
-  } else {
-    switch (syntaxTransform) {
-      case 1:
-        mkxp_syntax_transform_target_ruby_version_major = 1;
-        mkxp_syntax_transform_target_ruby_version_minor = conf.rgssVersion >= 3 ? 9 : 8;
-        mkxp_syntax_transform_target_ruby_version_teeny = conf.rgssVersion >= 3 ? 2 : 1;
-        snprintf(buf, sizeof(buf), "Compatibility mode (Ruby %u.%u.%u)", mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor, mkxp_syntax_transform_target_ruby_version_teeny);
-        break;
-      default:
-        mkxp_syntax_transform_target_ruby_version_major = -1;
-        mkxp_syntax_transform_target_ruby_version_minor = -1;
-        mkxp_syntax_transform_target_ruby_version_teeny = -1;
-        snprintf(buf, sizeof(buf), "Disabled");
-        break;
-    }
+      mkxp_syntax_transform_target_ruby_version_minor = conf.rgssVersion >= 3 ? 9 : 8;
+      mkxp_syntax_transform_target_ruby_version_teeny = conf.rgssVersion >= 3 ? 2 : 1;
+      snprintf(buf, sizeof(buf), "Compatibility mode (Ruby %u.%u.%u)", mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor, mkxp_syntax_transform_target_ruby_version_teeny);
+      break;
   }
 
   Debug() << "Syntax transform:" << buf;

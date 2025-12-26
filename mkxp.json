@@ -42,35 +42,19 @@
     // Ruby standard library, or scripts imported using `require` or
     // `require_relative`.
     // 0: Disabled (use modern Ruby syntax for all Ruby scripts)
-    // 1: Compatibility mode (equivalent to Ruby 1.9.2 if the RGSS version is 3, or Ruby 1.8.1 otherwise)
-    // 181: Ruby 1.8.1
-    // 182: Ruby 1.8.2
-    // 183: Ruby 1.8.3
-    // 184: Ruby 1.8.4
-    // 185: Ruby 1.8.5
-    // 186: Ruby 1.8.6
-    // 187: Ruby 1.8.7
-    // 190: Ruby 1.9.0
-    // 191: Ruby 1.9.1
-    // 192: Ruby 1.9.2
-    // 193: Ruby 1.9.3
-    // 200: Ruby 2.0.0
-    // 201: Ruby 2.1
-    // 202: Ruby 2.2
-    // 203: Ruby 2.3
-    // 204: Ruby 2.4
-    // 205: Ruby 2.5
-    // 206: Ruby 2.6
-    // 207: Ruby 2.7
-    // 300: Ruby 3.0
-    // 301: Ruby 3.1
-    // 302: Ruby 3.2
-    // 303: Ruby 3.3
-    // 304: Ruby 3.4
-    // 305: Ruby 3.5
+    // 1: Custom (use the Ruby version specified by `syntaxTransformCustomVersionMajor`, `syntaxTransformCustomVersionMinor` and `syntaxTransformCustomVersionTeeny`)
+    // 2: Compatibility mode (equivalent to Ruby 1.9.2 if the RGSS version is 3, or Ruby 1.8.1 otherwise)
     // (default: 0)
     //
     // "syntaxTransform": 0,
+
+
+    // When syntax transform is set to 1, these settings control the targeted
+    // Ruby version.
+    //
+    // "syntaxTransformCustomVersionMajor": 1,
+    // "syntaxTransformCustomVersionMinor": 0,
+    // "syntaxTransformCustomVersionTeeny": 0,
 
 
     // Specify the RGSS version to run under.
