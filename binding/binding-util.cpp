@@ -52,6 +52,9 @@ RbData::RbData() {
   exc[ArgumentError] = rb_eArgError;
   exc[SystemExit] = rb_eSystemExit;
   exc[RuntimeError] = rb_eRuntimeError;
+
+  if (rgssVer == 1)
+    rb_define_class("Hangup", rb_eException);
 }
 
 RbData::~RbData() {}
