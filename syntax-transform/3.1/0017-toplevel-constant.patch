@@ -1,4 +1,4 @@
-# syntax-transform/3.1/0016-toplevel-constant.patch
+# syntax-transform/3.1/0017-toplevel-constant.patch
 #
 # This file is part of mkxp.
 #
@@ -49,7 +49,7 @@
 
 --- a/variable.c
 +++ b/variable.c
-@@ -2719,7 +2719,11 @@ rb_const_search_from(VALUE klass, ID id, int exclude, int recurse, int visibilit
+@@ -2734,7 +2734,11 @@ rb_const_search_from(VALUE klass, ID id, int exclude, int recurse, int visibilit
  		continue;
  	    }
              if (exclude && tmp == rb_cObject) {
@@ -62,7 +62,7 @@
  	    }
  	    return value;
  	}
-@@ -3051,7 +3055,8 @@ rb_const_defined_0(VALUE klass, ID id, int exclude, int recurse, int visibility)
+@@ -3066,7 +3070,8 @@ rb_const_defined_0(VALUE klass, ID id, int exclude, int recurse, int visibility)
  		!rb_autoloading_value(tmp, id, NULL, NULL))
  		return (int)Qfalse;
  

@@ -11,18 +11,19 @@ SYNTAX_TRANSFORM_PATCHES := \
 	$(SYNTAX_TRANSFORM_DIR)/0009-separation-of-positional-and-keyword-arguments.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0010-class-variable-overtaken.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0011-nil-true-false-constants.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0012-singleton-class-superclass.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0013-hash-select.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0014-multiple-values-for-a-block-parameter.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0015-array-hash-to-s.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0016-toplevel-constant.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0017-class-variable-access-from-toplevel.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0018-kernel-match.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0019-integer-fixnum-bignum.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0020-module-constants.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0021-exception-equal.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0022-kernel-proc.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0023-numeric-div.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0012-ruby-version.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0013-singleton-class-superclass.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0014-hash-select.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0015-multiple-values-for-a-block-parameter.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0016-array-hash-to-s.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0017-toplevel-constant.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0018-class-variable-access-from-toplevel.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0019-kernel-match.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0020-integer-fixnum-bignum.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0021-module-constants.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0022-exception-equal.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0023-kernel-proc.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0024-numeric-div.patch \
 
 HAVE_SYNTAX_TRANSFORM ?= 1
 
