@@ -42,7 +42,7 @@
     // Ruby standard library, or scripts imported using `require` or
     // `require_relative`.
     // 0: Disabled (use modern Ruby syntax for all Ruby scripts)
-    // 1: Compatibility mode (equivalent to Ruby 1.9.1 if the RGSS version is 3, or Ruby 1.8.1 otherwise)
+    // 1: Compatibility mode (equivalent to Ruby 1.9.2 if the RGSS version is 3, or Ruby 1.8.1 otherwise)
     // 181: Ruby 1.8.1
     // 182: Ruby 1.8.2
     // 183: Ruby 1.8.3

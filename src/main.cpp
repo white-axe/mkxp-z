@@ -193,7 +193,7 @@ static void initSyntaxTransform(const Config &conf) {
       case 1:
         mkxp_syntax_transform_target_ruby_version_major = 1;
         mkxp_syntax_transform_target_ruby_version_minor = conf.rgssVersion >= 3 ? 9 : 8;
-        mkxp_syntax_transform_target_ruby_version_teeny = 1;
+        mkxp_syntax_transform_target_ruby_version_teeny = conf.rgssVersion >= 3 ? 2 : 1;
         snprintf(buf, sizeof(buf), "Compatibility mode (Ruby %u.%u.%u)", mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor, mkxp_syntax_transform_target_ruby_version_teeny);
         break;
       default:
