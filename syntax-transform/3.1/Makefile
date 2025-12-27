@@ -16,14 +16,15 @@ SYNTAX_TRANSFORM_PATCHES := \
 	$(SYNTAX_TRANSFORM_DIR)/0014-hash-select.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0015-multiple-values-for-a-block-parameter.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0016-array-hash-to-s.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0017-toplevel-constant.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0018-class-variable-access-from-toplevel.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0019-kernel-match.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0020-integer-fixnum-bignum.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0021-module-constants.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0022-exception-equal.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0023-kernel-proc.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0024-numeric-div.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0017-to-proc.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0018-toplevel-constant.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0019-class-variable-access-from-toplevel.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0020-kernel-match.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0021-integer-fixnum-bignum.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0022-module-constants.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0023-exception-equal.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0024-kernel-proc.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0025-numeric-div.patch \
 
 HAVE_SYNTAX_TRANSFORM ?= 1
 
