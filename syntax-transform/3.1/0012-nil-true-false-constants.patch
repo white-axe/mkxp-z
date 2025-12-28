@@ -1,4 +1,4 @@
-# syntax-transform/3.1/0011-nil-true-false-constants.patch
+# syntax-transform/3.1/0012-nil-true-false-constants.patch
 #
 # This file is part of mkxp.
 #
@@ -54,7 +54,7 @@
              long length = RARRAY_LEN(ary);
 --- a/variable.c
 +++ b/variable.c
-@@ -2663,6 +2663,16 @@ rb_const_get_0(VALUE klass, ID id, int exclude, int recurse, int visibility)
+@@ -2674,6 +2674,16 @@ rb_const_get_0(VALUE klass, ID id, int exclude, int recurse, int visibility)
          }
          return c;
      }
@@ -71,7 +71,7 @@
      return rb_const_missing(klass, ID2SYM(id));
  }
  
-@@ -3025,6 +3035,11 @@ rb_const_defined_0(VALUE klass, ID id, int exclude, int recurse, int visibility)
+@@ -3036,6 +3046,11 @@ rb_const_defined_0(VALUE klass, ID id, int exclude, int recurse, int visibility)
      int mod_retry = 0;
      rb_const_entry_t *ce;
  

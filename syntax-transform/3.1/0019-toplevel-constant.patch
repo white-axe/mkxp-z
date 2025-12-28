@@ -49,7 +49,7 @@
 
 --- a/variable.c
 +++ b/variable.c
-@@ -2734,7 +2734,11 @@ rb_const_search_from(VALUE klass, ID id, int exclude, int recurse, int visibilit
+@@ -2745,7 +2745,11 @@ rb_const_search_from(VALUE klass, ID id, int exclude, int recurse, int visibilit
  		continue;
  	    }
              if (exclude && tmp == rb_cObject) {
@@ -62,7 +62,7 @@
  	    }
  	    return value;
  	}
-@@ -3066,7 +3070,8 @@ rb_const_defined_0(VALUE klass, ID id, int exclude, int recurse, int visibility)
+@@ -3077,7 +3081,8 @@ rb_const_defined_0(VALUE klass, ID id, int exclude, int recurse, int visibility)
  		!rb_autoloading_value(tmp, id, NULL, NULL))
  		return (int)Qfalse;
  

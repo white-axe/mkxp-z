@@ -1,4 +1,4 @@
-# syntax-transform/3.1/0010-class-variable-overtaken.patch
+# syntax-transform/3.1/0011-class-variable-overtaken.patch
 #
 # This file is part of mkxp.
 #
@@ -76,7 +76,7 @@
 
 --- a/variable.c
 +++ b/variable.c
-@@ -3447,12 +3447,24 @@ cvar_overtaken(VALUE front, VALUE target, ID id)
+@@ -3458,12 +3458,24 @@ cvar_overtaken(VALUE front, VALUE target, ID id)
  	st_data_t did = (st_data_t)id;
  
          if (original_module(front) != original_module(target)) {
@@ -106,7 +106,7 @@
  	    st_delete(RCLASS_IV_TBL(front), &did, 0);
  	}
      }
-@@ -3461,21 +3473,28 @@ cvar_overtaken(VALUE front, VALUE target, ID id)
+@@ -3472,21 +3484,28 @@ cvar_overtaken(VALUE front, VALUE target, ID id)
  static VALUE
  find_cvar(VALUE klass, VALUE * front, VALUE * target, ID id)
  {
@@ -138,7 +138,7 @@
          }
      }
  
-@@ -3518,6 +3537,9 @@ rb_cvar_set(VALUE klass, ID id, VALUE val)
+@@ -3529,6 +3548,9 @@ rb_cvar_set(VALUE klass, ID id, VALUE val)
      CVAR_LOOKUP(0, {if (!front) front = klass; target = klass;});
      if (target) {
  	cvar_overtaken(front, target, id);

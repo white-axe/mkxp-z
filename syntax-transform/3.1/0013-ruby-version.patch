@@ -1,4 +1,4 @@
-# syntax-transform/3.1/0012-ruby-version.patch
+# syntax-transform/3.1/0013-ruby-version.patch
 #
 # This file is part of mkxp.
 #
@@ -46,7 +46,7 @@
              long length = RARRAY_LEN(ary);
 --- a/variable.c
 +++ b/variable.c
-@@ -2673,6 +2673,21 @@ rb_const_get_0(VALUE klass, ID id, int exclude, int recurse, int visibility)
+@@ -2684,6 +2684,21 @@ rb_const_get_0(VALUE klass, ID id, int exclude, int recurse, int visibility)
              return Qfalse;
          }
      }

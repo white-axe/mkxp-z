@@ -1376,7 +1376,6 @@ static void mriBindingExecute() {
     }
 #else
     ruby_init();
-    rb_eval_string("$KCODE='U'");
 #ifdef __WIN32__
     if (!conf.winConsole) {
         VALUE iostr = rb_str_new2("NUL");
@@ -1386,6 +1385,10 @@ static void mriBindingExecute() {
     }
 #endif
 #endif
+
+    // Set the default encoding for regular expressions to UTF-8 when using syntax transform targeting Ruby <= 1.8
+    rb_gv_set("$KCODE", rb_str_new_cstr("UTF8"));
+    rb_gv_set("$-K", rb_str_new_cstr("UTF8"));
     
     topSelf = rb_eval_string("self");
     
