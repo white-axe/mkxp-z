@@ -24,7 +24,7 @@
 
 --- a/class.c
 +++ b/class.c
-@@ -1684,6 +1684,17 @@ class_instance_method_list(int argc, const VALUE *argv, VALUE mod, int obj, int
+@@ -1689,6 +1689,17 @@ class_instance_method_list(int argc, const VALUE *argv, VALUE mod, int obj, int
      st_foreach(me_arg.list, func, ary);
      st_free_table(me_arg.list);
  
@@ -42,7 +42,7 @@
      return ary;
  }
  
-@@ -1921,6 +1932,17 @@ rb_obj_singleton_methods(int argc, const VALUE *argv, VALUE obj)
+@@ -1926,6 +1937,17 @@ rb_obj_singleton_methods(int argc, const VALUE *argv, VALUE obj)
      st_foreach(me_arg.list, ins_methods_i, ary);
      st_free_table(me_arg.list);
  

@@ -25,8 +25,9 @@ SYNTAX_TRANSFORM_PATCHES := \
 	$(SYNTAX_TRANSFORM_DIR)/0023-integer-fixnum-bignum.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0024-module-constants.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0025-exception-equal.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0026-kernel-proc.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0027-numeric-div.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0026-superclass-mismatch.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0027-kernel-proc.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0028-numeric-div.patch \
 
 HAVE_SYNTAX_TRANSFORM ?= 1
 
