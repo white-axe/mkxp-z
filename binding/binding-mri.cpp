@@ -318,7 +318,7 @@ static void mriBindingInit() {
         _rb_define_module_function(rb_mKernel, "msgbox", mriPrint);
         _rb_define_module_function(rb_mKernel, "msgbox_p", mriP);
         
-        rb_define_global_const("RGSS_VERSION", rb_utf8_str_new_cstr("3.0.1"));
+        rb_define_global_const("RGSS_VERSION", rb_str_new_cstr("3.0.1"));
     } else {
         _rb_define_module_function(rb_mKernel, "print", mriPrint);
         _rb_define_module_function(rb_mKernel, "p", mriP);
@@ -398,9 +398,9 @@ static void mriBindingInit() {
     
 #ifdef MKXPZ_BUILD_XCODE
     std::string version = std::string(MKXPZ_VERSION "/") + getPlistValue("GIT_COMMIT_HASH");
-    VALUE vers = rb_utf8_str_new_cstr(version.c_str());
+    VALUE vers = rb_str_new_cstr(version.c_str());
 #else
-    VALUE vers = rb_utf8_str_new_cstr(MKXPZ_VERSION "/" MKXPZ_GIT_HASH);
+    VALUE vers = rb_str_new_cstr(MKXPZ_VERSION "/" MKXPZ_GIT_HASH);
 #endif
     rb_str_freeze(vers);
     rb_define_const(mod, "VERSION", vers);
@@ -479,7 +479,7 @@ RB_METHOD(mkxpDataDirectory) {
     const char *s = path.empty() ? "." : path.c_str();
     
     std::string s_nml = shState->fileSystem().normalize(s, 1, 1);
-    VALUE ret = rb_utf8_str_new_cstr(s_nml.c_str());
+    VALUE ret = rb_str_new_cstr(s_nml.c_str());
     
     return ret;
 }
@@ -500,7 +500,7 @@ RB_METHOD(mkxpGetTitle) {
     
     rb_check_argc(argc, 0);
     
-    return rb_utf8_str_new_cstr(SDL_GetWindowTitle(shState->sdlWindow()));
+    return rb_str_new_cstr(SDL_GetWindowTitle(shState->sdlWindow()));
 }
 
 RB_METHOD(mkxpDesensitize) {
@@ -510,8 +510,7 @@ RB_METHOD(mkxpDesensitize) {
     rb_scan_args(argc, argv, "1", &filename);
     SafeStringValue(filename);
     
-    return rb_utf8_str_new_cstr(
-                                shState->fileSystem().desensitize(RSTRING_PTR(filename)));
+    return rb_str_new_cstr(shState->fileSystem().desensitize(RSTRING_PTR(filename)));
 }
 
 RB_METHOD(mkxpPuts) {
@@ -552,7 +551,7 @@ RB_METHOD(mkxpPlatform) {
     std::string platform("Linux");
 #endif
     
-    return rb_utf8_str_new_cstr(platform.c_str());
+    return rb_str_new_cstr(platform.c_str());
 }
 
 RB_METHOD(mkxpIsMacHost) {
@@ -602,7 +601,7 @@ RB_METHOD(mkxpIsReallyWindowsHost) {
 RB_METHOD(mkxpUserLanguage) {
     RB_UNUSED_PARAM;
     
-    return rb_utf8_str_new_cstr(mkxp_sys::getSystemLanguage().c_str());
+    return rb_str_new_cstr(mkxp_sys::getSystemLanguage().c_str());
 }
 
 RB_METHOD(mkxpUserName) {
@@ -614,14 +613,14 @@ RB_METHOD(mkxpUserName) {
     VALUE env = rb_const_get(rb_mKernel, rb_intern("ENV"));
     return rb_funcall(env, rb_intern("[]"), 1, rb_str_new_cstr("USERNAME"));
 #else
-    return rb_utf8_str_new_cstr(mkxp_sys::getUserName().c_str());
+    return rb_str_new_cstr(mkxp_sys::getUserName().c_str());
 #endif
 }
 
 RB_METHOD(mkxpGameTitle) {
     RB_UNUSED_PARAM;
     
-    return rb_utf8_str_new_cstr(shState->config().game.title.c_str());
+    return rb_str_new_cstr(shState->config().game.title.c_str());
 }
 
 RB_METHOD(mkxpPowerState) {
@@ -831,7 +830,7 @@ RB_METHOD_GUARD(mkxpParseCSV) {
             VALUE col = rb_ary_new();
             for (int c = 0; c < doc.GetColumnCount(); c++) {
                 std::string str = doc.GetCell<std::string>(c, r);
-                rb_ary_push(col, rb_utf8_str_new(str.c_str(), str.length()));
+                rb_ary_push(col, rb_str_new(str.c_str(), str.length()));
             }
             rb_ary_push(ret, col);
         }
@@ -936,7 +935,7 @@ static bool processReset(bool rubyExc) {
 
 #if RAPI_FULL > 187
 static VALUE newStringUTF8(const char *string, long length) {
-    return rb_enc_str_new(string, length, rb_utf8_encoding());
+    return rb_enc_str_new(string, length, mkxpUsingRuby18Encoding() ? rb_ascii8bit_encoding() : rb_utf8_encoding());
 }
 #else
 #define newStringUTF8 rb_str_new
@@ -1042,7 +1041,7 @@ RB_METHOD(_kernelCaller) {
         return trace;
     
     /* RMXP does this, not sure if specific or 1.8 related */
-    VALUE args[] = {rb_utf8_str_new_cstr(":in `<main>'"), rb_utf8_str_new_cstr("")};
+    VALUE args[] = {rb_str_new_cstr(":in `<main>'"), rb_str_new_cstr("")};
     rb_funcall2(rb_ary_entry(trace, len - 1), rb_intern("gsub!"), 2, args);
     
     return trace;
@@ -1058,7 +1057,7 @@ struct BacktraceData {
 bool evalScript(VALUE string, const char *filename)
 {
     int state;
-    evalString(string, rb_utf8_str_new_cstr(filename), &state);
+    evalString(string, rb_str_new_cstr(filename), &state);
     if (state) return false;
     return true;
 }
@@ -1144,7 +1143,7 @@ static void runRMXPScripts(BacktraceData &btData) {
             break;
         }
         
-        rb_ary_store(script, 3, rb_utf8_str_new_cstr(decodeBuffer.c_str()));
+        rb_ary_store(script, 3, rb_str_new_cstr(decodeBuffer.c_str()));
     }
     
     /* Execute preloaded scripts */
@@ -1322,6 +1321,9 @@ static void mriBindingExecute() {
     
     std::vector<const char*> rubyArgsC{"mkxp-z"};
     rubyArgsC.push_back("-e ");
+#if RAPI_FULL >= 190
+    rubyArgsC.push_back(mkxpUsingRuby18Encoding() ? "-EASCII-8BIT:ASCII-8BIT" : "-EUTF-8:UTF-8");
+#endif // RAPI_FULL >= 190
     void *node;
     if (conf.jit.enabled) {
 #if RAPI_FULL >= 310
@@ -1372,8 +1374,6 @@ static void mriBindingExecute() {
         shState->rtData().rqTermAck.set();
         return;
     }
-    rb_enc_set_default_internal(rb_enc_from_encoding(rb_utf8_encoding()));
-    rb_enc_set_default_external(rb_enc_from_encoding(rb_utf8_encoding()));
 #else
     ruby_init();
     rb_eval_string("$KCODE='U'");
@@ -1410,7 +1410,7 @@ static void mriBindingExecute() {
         for (size_t i = 0; i < conf.rubyLoadpaths.size(); ++i) {
             std::string &path = conf.rubyLoadpaths[i];
             
-            VALUE pathv = rb_str_new(path.c_str(), path.size());
+            VALUE pathv = rb_utf8_str_new(path.c_str(), path.size());
             rb_ary_push(lpaths, pathv);
         }
     }

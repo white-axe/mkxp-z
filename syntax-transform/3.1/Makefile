@@ -17,14 +17,16 @@ SYNTAX_TRANSFORM_PATCHES := \
 	$(SYNTAX_TRANSFORM_DIR)/0015-multiple-values-for-a-block-parameter.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0016-array-hash-to-s.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0017-to-proc.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0018-toplevel-constant.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0019-class-variable-access-from-toplevel.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0020-kernel-match.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0021-integer-fixnum-bignum.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0022-module-constants.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0023-exception-equal.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0024-kernel-proc.patch \
-	$(SYNTAX_TRANSFORM_DIR)/0025-numeric-div.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0018-regexp-encoding.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0019-toplevel-constant.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0020-class-variable-access-from-toplevel.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0021-kernel-match.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0022-string-aref.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0023-integer-fixnum-bignum.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0024-module-constants.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0025-exception-equal.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0026-kernel-proc.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0027-numeric-div.patch \
 
 HAVE_SYNTAX_TRANSFORM ?= 1
 
@@ -33,7 +35,7 @@ ifeq ($(HAVE_SYNTAX_TRANSFORM),1)
 ifeq ($(patsubst MINGW%,,$(firstword $(shell uname))),)
 	cd $(RUBY_SRC) && for patch in $(SYNTAX_TRANSFORM_PATCHES); do echo "Applying $$patch"; patch -p1 -i $(PWD)/$$patch || exit 1; done
 else
-	cd $(RUBY_SRC) && for patch in $(SYNTAX_TRANSFORM_PATCHES); do echo "Applying $$patch"; $(GIT) apply $(PWD)/$$patch || exit 1; done
+	cd $(RUBY_SRC) && for patch in $(SYNTAX_TRANSFORM_PATCHES); do echo "Applying $$patch"; $(GIT) apply --whitespace=fix $(PWD)/$$patch || exit 1; done
 endif
 endif
 	touch $(RUBY_SRC)/syntax-transform

@@ -353,3 +353,12 @@ void *drop_gvl_guard(void *(*func)(void *), void *args,
 }
 
 #endif
+
+bool mkxpUsingRuby18Encoding() {
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+    extern unsigned int mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor;
+    return mkxp_syntax_transform_target_ruby_version_major < 1 || (mkxp_syntax_transform_target_ruby_version_major == 1 && mkxp_syntax_transform_target_ruby_version_minor <= 8);
+#else
+    return false;
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+}

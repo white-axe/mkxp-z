@@ -329,9 +329,9 @@ RB_METHOD(inputControllerName) {
     RB_UNUSED_PARAM;
     
     if (!shState->input().getControllerConnected())
-        return rb_utf8_str_new_cstr("");
+        return rb_str_new_cstr("");
     
-    return rb_utf8_str_new_cstr(shState->input().getControllerName());
+    return rb_str_new_cstr(shState->input().getControllerName());
 }
 
 RB_METHOD(inputControllerPowerLevel) {
@@ -511,7 +511,7 @@ RB_METHOD(inputSetMode) {
 RB_METHOD(inputGets) {
     RB_UNUSED_PARAM;
     shState->eThread().lockText(true);
-    VALUE ret = rb_utf8_str_new_cstr(shState->input().getText());
+    VALUE ret = rb_str_new_cstr(shState->input().getText());
     shState->input().clearText();
     shState->eThread().lockText(false);
     return ret;
@@ -519,7 +519,7 @@ RB_METHOD(inputGets) {
 
 RB_METHOD_GUARD(inputGetClipboard) {
     RB_UNUSED_PARAM;
-    return rb_utf8_str_new_cstr(shState->input().getClipboardText());
+    return rb_str_new_cstr(shState->input().getClipboardText());
 }
 RB_METHOD_GUARD_END
 
