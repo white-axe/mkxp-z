@@ -50,7 +50,7 @@
                                    ONIGENC_CONSTRUCT_MBCLEN_INVALID();
 --- a/re.c
 +++ b/re.c
-@@ -1503,6 +1503,35 @@ rb_reg_prepare_enc(VALUE re, VALUE str, int warn)
+@@ -1503,6 +1503,38 @@ rb_reg_prepare_enc(VALUE re, VALUE str, int warn)
      rb_encoding *enc = 0;
      int cr = str_coderange(str);
  
@@ -58,6 +58,9 @@
 +    if (mkxp_ec_is_syntax_transform_active(1, 8, -1)) {
 +        VALUE kcode;
 +        rb_reg_check(re);
++        if (RBOOL(FL_TEST(re, REG_ENCODING_NONE))) {
++            return rb_ascii8bit_encoding();
++        }
 +        if (rb_reg_fixed_encoding_p(re)) {
 +            return RREGEXP_PTR(re)->enc;
 +        }
@@ -86,7 +89,7 @@
      if (cr == ENC_CODERANGE_BROKEN) {
          rb_raise(rb_eArgError,
              "invalid byte sequence in %s",
-@@ -4089,6 +4118,30 @@ re_warn(const char *s)
+@@ -4089,6 +4121,30 @@ re_warn(const char *s)
   *  :include: doc/regexp.rdoc
   */
  
@@ -117,7 +120,7 @@
  void
  Init_Regexp(void)
  {
-@@ -4182,4 +4235,6 @@ Init_Regexp(void)
+@@ -4182,4 +4238,6 @@ Init_Regexp(void)
      rb_define_method(rb_cMatch, "hash", match_hash, 0);
      rb_define_method(rb_cMatch, "eql?", match_equal, 1);
      rb_define_method(rb_cMatch, "==", match_equal, 1);
