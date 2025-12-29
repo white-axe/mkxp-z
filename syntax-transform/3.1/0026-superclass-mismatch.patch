@@ -63,7 +63,7 @@
 
 --- a/vm_insnhelper.c
 +++ b/vm_insnhelper.c
-@@ -4589,6 +4589,9 @@ vm_define_class(ID id, rb_num_t flags, VALUE cbase, VALUE super)
+@@ -4590,6 +4590,9 @@ vm_define_class(ID id, rb_num_t flags, VALUE cbase, VALUE super)
      if ((klass = vm_const_get_under(id, flags, cbase)) != 0) {
          if (!vm_check_if_class(id, flags, super, klass))
              unmatched_redefinition("class", cbase, id, klass);

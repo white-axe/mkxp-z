@@ -57,7 +57,7 @@
 
 --- a/vm_insnhelper.c
 +++ b/vm_insnhelper.c
-@@ -4026,6 +4026,20 @@ vm_callee_setup_block_arg(rb_execution_context_t *ec, struct rb_calling_info *ca
+@@ -4026,6 +4026,21 @@ vm_callee_setup_block_arg(rb_execution_context_t *ec, struct rb_calling_info *ca
          CALLER_SETUP_ARG(cfp, calling, ci);
          CALLER_REMOVE_EMPTY_KW_SPLAT(cfp, calling, ci);
  
@@ -69,8 +69,9 @@
 +                (cfp->sp -= calling->argc - 1)[-1] = ary;
 +            }
 +            else {
-+                assert(calling->argc == 0);
-+                (cfp->sp -= calling->argc - 1)[-1] = Qnil;
++                VM_ASSERT(calling->argc == 0);
++                CHECK_VM_STACK_OVERFLOW(cfp, 1);
++                *cfp->sp++ = Qnil;
 +            }
 +            calling->argc = 1;
 +        }
