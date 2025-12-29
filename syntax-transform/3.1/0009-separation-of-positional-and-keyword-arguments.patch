@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 
-# In Ruby 2, there are three coercion rules for converting between positional
+# In Ruby 2, there are four coercion rules for converting between positional
 # arguments and keyword arguments that don't exist anymore in Ruby 3.
 #
 # If a method or block that takes keyword arguments is called without keyword
@@ -46,6 +46,20 @@
 #   end
 #   f(1 => 2)
 #
+# If a method or block is called with an empty keyword argument splat, an empty
+# hash is appended to the list of positional arguments. In Ruby 2.7 only, there
+# is an additional requirement that the method or block is called with exactly
+# one less than the minimum required number of positional arguments. This code
+# snippet prints `1` and `{}` in Ruby 2 and throws an `ArgumentError` in later
+# versions of Ruby.
+#
+#   def f(a, b)
+#     p a
+#     p b
+#   end
+#   a = {}
+#   f(1, **a)
+#
 # If a method or block that takes keyword arguments and does not have a
 # keyword argument splat (e.g. `**kwargs`) is called with keyword arguments,
 # with greater than or equal to the minimum required number of positional
@@ -64,7 +78,45 @@
 
 --- a/vm_args.c
 +++ b/vm_args.c
-@@ -614,6 +614,100 @@ setup_parameters_complex(rb_execution_context_t * const ec, const rb_iseq_t * co
+@@ -540,10 +540,15 @@ setup_parameters_complex(rb_execution_context_t * const ec, const rb_iseq_t * co
+ 
+         if (kw_flag & VM_CALL_KW_SPLAT) {
+             if (ignore_keyword_hash_p(rest_last, iseq, &kw_flag, &converted_keyword_hash)) {
+-                arg_rest_dup(args);
+-                rb_ary_pop(args->rest);
+-                given_argc--;
+-                kw_flag &= ~(VM_CALL_KW_SPLAT | VM_CALL_KW_SPLAT_MUT);
++                if (mkxp_ec_is_syntax_transform_active(2, 6, -1) || (mkxp_ec_is_syntax_transform_active(2, 7, -1) && given_argc == min_argc)) { /* If syntax transform is active and targeting Ruby <= 2.7, pass an empty hash as the last positional argument, along with the additional condition if targeting exactly Ruby 2.7 */
++                    rb_warn("Passing the keyword argument as the last hash parameter is deprecated");
++                }
++                else {
++                    arg_rest_dup(args);
++                    rb_ary_pop(args->rest);
++                    given_argc--;
++                    kw_flag &= ~(VM_CALL_KW_SPLAT | VM_CALL_KW_SPLAT_MUT);
++                }
+ 	    }
+             else {
+                 if (rest_last != converted_keyword_hash) {
+@@ -568,9 +573,14 @@ setup_parameters_complex(rb_execution_context_t * const ec, const rb_iseq_t * co
+         if (kw_flag & VM_CALL_KW_SPLAT) {
+             VALUE last_arg = args->argv[args->argc-1];
+             if (ignore_keyword_hash_p(last_arg, iseq, &kw_flag, &converted_keyword_hash)) {
+-                args->argc--;
+-                given_argc--;
+-                kw_flag &= ~(VM_CALL_KW_SPLAT | VM_CALL_KW_SPLAT_MUT);
++                if (mkxp_ec_is_syntax_transform_active(2, 6, -1) || (mkxp_ec_is_syntax_transform_active(2, 7, -1) && given_argc == min_argc)) { /* If syntax transform is active and targeting Ruby <= 2.7, pass an empty hash as the last positional argument, along with the additional condition if targeting exactly Ruby 2.7 */
++                    rb_warn("Passing the keyword argument as the last hash parameter is deprecated");
++                }
++                else {
++                    args->argc--;
++                    given_argc--;
++                    kw_flag &= ~(VM_CALL_KW_SPLAT | VM_CALL_KW_SPLAT_MUT);
++                }
+ 	    }
+             else {
+                 if (last_arg != converted_keyword_hash) {
+@@ -614,6 +624,100 @@ setup_parameters_complex(rb_execution_context_t * const ec, const rb_iseq_t * co
  	break;
      }
  
