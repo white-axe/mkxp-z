@@ -21,9 +21,26 @@
 # allowed to have a space between the function name and the `(` but shows the
 # warning "don't put space before argument parentheses". In Ruby versions
 # newer than 1.8, this syntax causes the expression after the function name to
-# be interpreted as a single argument instead. As a consequence, this code
-# snippet prints `12`, `22`, `12` and `22` in Ruby 1.8 but `22`, `22`, `22` and
-# `22` in Ruby versions newer than 1.8.
+# be interpreted as a single argument instead. As a result, this code snippet
+# works in Ruby 1.8 but results in a syntax error in Ruby versions newer than
+# 1.8 because the `(1, 2)` gets interpreted as a single argument.
+#
+#   def f(x, y)
+#     p x
+#     p y
+#   end
+#   f (1, 2)
+#
+# However, Ruby 1.8 uses the modern behavior for certain types of expressions,
+# non-recursively:
+#
+#   * The expressions on the inside of a pair of parentheses
+#   * The expressions inside of a block
+#   * The expressions inside of a class definition
+#   * The expressions inside of a function definition
+#
+# This snippet prints `12`, `22`, `12` and `22` in Ruby 1.8 but `22`, `22`, `22`
+# and `22` in Ruby versions newer than 1.8.
 #
 #   def f(x)
 #     x * 2
@@ -35,15 +52,96 @@
 #   a = (f (1) + 10)
 #   p a
 #
-# Also, this code snippet works in Ruby 1.8 but results in a syntax error in
-# Ruby versions newer than 1.8 because the `(1, 2)` gets interpreted as a single
-# argument.
+# Likewise, this code snippet gives a syntax error in all Ruby versions, even
+# Ruby 1.8.
 #
 #   def f(x, y)
-#     p x
-#     p y
+#     x
 #   end
-#   f (1, 2)
+#   (f (1, 2) + 3)
+#
+# This code snippet is a test of a bunch of edge cases in the parser to check
+# for consistency with the Ruby 1.8 behavior.
+#
+#   def f(x)
+#     not x
+#   end
+#   a = f (true) || true
+#   if a
+#     p 'test 1 ok'
+#   else
+#     p 'test 1 failed'
+#   end
+#   a = (f (true) || true)
+#   unless a
+#     p 'test 2 ok'
+#   else
+#     p 'test 2 failed'
+#   end
+#   unless (f (true) || true)
+#     p 'test 3 ok'
+#   else
+#     p 'test 3 failed'
+#   end
+#   unless lambda {f (true) || true}.call
+#     p 'test 4 ok'
+#   else
+#     p 'test 4 failed'
+#   end
+#   if lambda {return f (true) || true}.call
+#     p 'test 5 ok'
+#   else
+#     p 'test 5 failed'
+#   end
+#   if lambda {true and f (true) || true}.call
+#     p 'test 6 ok'
+#   else
+#     p 'test 6 failed'
+#   end
+#   unless lambda {f (true) || true and true}.call
+#     p 'test 7 ok'
+#   else
+#     p 'test 7 failed'
+#   end
+#   a = class << nil
+#     f (true) || true
+#   end
+#   unless a
+#     p 'test 8 ok'
+#   else
+#     p 'test 8 failed'
+#   end
+#   if f (true) || true # The behavior here is caused by Ruby bug #6347, fixed in Ruby 2.0
+#     p 'test 9 ok'
+#   else
+#     p 'test 9 failed'
+#   end
+#   if "#{f (true) || true}" == 'true' # The behavior here is caused by Ruby bug #6347, fixed in Ruby 2.0
+#     p 'test 10 ok'
+#   else
+#     p 'test 10 failed'
+#   end
+#   class << f (true) || true # The behavior here is caused by Ruby bug #6347, fixed in Ruby 2.0
+#     if self == TrueClass
+#       p 'test 11 ok'
+#     else
+#       p 'test 11 failed'
+#     end
+#   end
+#   begin
+#     class A < f (true) || true; end # The behavior here is caused by Ruby bug #6347, fixed in Ruby 2.0
+#   rescue TypeError => e
+#     if e.message.include? 'TrueClass'
+#       p 'test 12 ok'
+#     else
+#       p 'test 12 failed'
+#     end
+#   end
+#   unless lambda {not (true) || true}.call # Be careful: the expression type of the `not` keyword changed in Ruby 1.9
+#     p 'test 13 ok'
+#   else
+#     p 'test 13 failed'
+#   end
 
 --- a/parse.y
 +++ b/parse.y
