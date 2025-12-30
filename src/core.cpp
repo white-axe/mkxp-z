@@ -786,7 +786,7 @@ static bool init_sandbox() {
 
             // Create the Preload directory if needed
             std::string preload_path(system_path);
-            preload_path.append("/System/Scripts/Preload");
+            preload_path.append("/Scripts/Preload");
             if (!PHYSFS_mkdir(preload_path.c_str() + system_path.length() + 1)) {
                 LOG_PRINTF(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", preload_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
                 display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Failed to create directory at \"") + preload_path + "\": " + PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode())).c_str());
@@ -796,7 +796,7 @@ static bool init_sandbox() {
 
             // Create the Postload directory if needed
             std::string postload_path(system_path);
-            postload_path.append("/System/Scripts/Postload");
+            postload_path.append("/Scripts/Postload");
             if (!PHYSFS_mkdir(postload_path.c_str() + system_path.length() + 1)) {
                 LOG_PRINTF(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", postload_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
                 display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Failed to create directory at \"") + postload_path + "\": " + PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode())).c_str());
