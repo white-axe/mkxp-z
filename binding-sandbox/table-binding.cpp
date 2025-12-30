@@ -180,7 +180,7 @@ static VALUE set(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 SANDBOX_AWAIT_S(3, rb_num2int, sb()->ref<VALUE>(argv, std::min(argc, (int32_t)4) - 1));
                 get_private_data<Table>(self)->set(SANDBOX_SLOT(3), SANDBOX_SLOT(0), SANDBOX_SLOT(1), SANDBOX_SLOT(2));
 
-                return sb()->ref<VALUE>(std::min(argc, (int32_t)4) - 1);
+                return sb()->ref<VALUE>(argv, std::min(argc, (int32_t)4) - 1);
             }
 
             return SANDBOX_UNDEF;
