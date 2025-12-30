@@ -100,6 +100,7 @@ clean-ruby-bindings:
 $(OUTDIR)/preload.zip: ../scripts/preload/mkxp_wrap.rb ../scripts/preload/ruby_classic_wrap.rb ../scripts/preload/win32_wrap.rb
 	rm -rf $(LIBDIR)/preload
 	mkdir -p $(LIBDIR)/preload
+	mkdir -p $(OUTDIR)
 	cp $^ $(LIBDIR)/preload/
 	cd $(LIBDIR)/preload && $(ZIP) -r $@ *
 	rm -r $(LIBDIR)/preload
