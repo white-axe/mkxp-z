@@ -200,6 +200,8 @@ static uint64_t retro_run_count;
 
 extern const uint8_t dist_zip[];
 extern const size_t dist_zip_len;
+extern const uint8_t preload_zip[];
+extern const size_t preload_zip_len;
 
 static ALCdevice *al_device = nullptr;
 static ALCcontext *al_context = nullptr;
@@ -594,10 +596,238 @@ static void update_simple_core_options() {
     }
 }
 
+static std::string get_script_core_option_name(const char *script_name, bool is_postload) {
+    static const char hex[] = "0123456789abcdef";
+    std::string option_name(is_postload ? "mkxp-z_postload-" : "mkxp-z_preload-");
+    for (;; ++script_name) {
+        char c = *script_name;
+        if (c == 0) {
+            break;
+        }
+        option_name.push_back(hex[c / 16]);
+        option_name.push_back(hex[c % 16]);
+    }
+    return option_name;
+}
+
+static void set_script_core_option_definition(std::vector<std::string> &key_buffer, retro_core_option_v2_definition &definition, const char *script_name, bool is_postload) {
+    key_buffer.push_back(get_script_core_option_name(script_name, is_postload));
+    std::string &key = key_buffer.back();
+    definition.key = key.c_str();
+    definition.desc = script_name;
+    definition.desc_categorized = nullptr;
+    definition.info = nullptr;
+    definition.info_categorized = nullptr;
+    definition.category_key = is_postload ? "postload" : "preload";
+    definition.values[0] = {"default", "Default (disabled)"};
+    definition.values[1] = {"enabled", "Enabled"};
+    definition.values[2] = {"disabled", "Disabled"};
+    definition.values[3] = {nullptr, nullptr};
+    definition.default_value = "default";
+}
+
+static void set_core_options(Config &config, std::vector<std::string> &preload_scripts, std::vector<std::string> &postload_scripts) {
+    constexpr size_t num_core_option_definitions = sizeof core_option_definitions / sizeof *core_option_definitions;
+    size_t num_core_option_definitions_with_scripts = num_core_option_definitions + preload_scripts.size() + postload_scripts.size();
+
+    std::vector<struct retro_core_option_v2_definition> core_option_definitions_with_scripts(num_core_option_definitions_with_scripts);
+    std::memcpy(core_option_definitions_with_scripts.data(), core_option_definitions, sizeof core_option_definitions);
+    std::memcpy(&core_option_definitions_with_scripts.back(), &core_option_definitions[num_core_option_definitions - 1], sizeof *core_option_definitions);
+
+    // Fill out core options for preload and postload scripts
+    std::vector<std::string> key_buffer;
+    key_buffer.reserve(preload_scripts.size() + postload_scripts.size());
+    {
+        std::vector<struct retro_core_option_v2_definition>::iterator it = core_option_definitions_with_scripts.begin() + (num_core_option_definitions - 1);
+        for (const std::string &script_name : preload_scripts) {
+            set_script_core_option_definition(key_buffer, *it++, script_name.c_str(), false);
+        }
+        for (const std::string &script_name : postload_scripts) {
+            set_script_core_option_definition(key_buffer, *it++, script_name.c_str(), true);
+        }
+    }
+
+    // Convert the core options to the libretro frontend's maximum supported core options version
+    unsigned int core_options_version;
+    if (!environment(RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION, &core_options_version)) {
+        core_options_version = 0;
+    }
+    switch (core_options_version) {
+        default:
+            {
+                const struct retro_core_options_v2 core_options = {
+                    (struct retro_core_option_v2_category *)core_option_categories,
+                    core_option_definitions_with_scripts.data(),
+                };
+                if (environment(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2, (void *)&core_options)) {
+                    break;
+                }
+            }
+
+        case 1:
+            {
+                std::vector<struct retro_core_option_definition> core_options(num_core_option_definitions_with_scripts);
+                for (size_t i = 0; i < num_core_option_definitions_with_scripts; ++i) {
+                    core_options[i].key = core_option_definitions[i].key;
+                    core_options[i].desc = core_option_definitions[i].desc;
+                    core_options[i].info = core_option_definitions[i].info;
+                    size_t num_values = 0;
+                    for (const struct retro_core_option_value *value = core_option_definitions[i].values; value->value != nullptr; ++value) {
+                        ++num_values;
+                    }
+                    std::memcpy(core_options[i].values, core_option_definitions[i].values, (1 + num_values) * sizeof *core_option_definitions[i].values);
+                    core_options[i].default_value = core_option_definitions[i].default_value;
+                }
+                if (environment(RETRO_ENVIRONMENT_SET_CORE_OPTIONS, core_options.data())) {
+                    break;
+                }
+            }
+
+        case 0:
+            {
+                std::vector<struct retro_variable> core_options(num_core_option_definitions_with_scripts);
+                std::vector<std::string> values(num_core_option_definitions_with_scripts);
+                size_t i;
+                for (i = 0; i < num_core_option_definitions_with_scripts - 1; ++i) {
+                    core_options[i].key = core_option_definitions[i].key;
+                    size_t values_length = 0;
+                    for (const struct retro_core_option_value *value = core_option_definitions[i].values; value->value != nullptr; ++value) {
+                        values_length += 1 + std::strlen(value->value);
+                    }
+                    values[i].reserve(std::strlen(core_option_definitions[i].desc) + 1 + values_length);
+                    values[i] = core_option_definitions[i].desc;
+                    values[i].append("; ");
+                    for (const struct retro_core_option_value *value = core_option_definitions[i].values; value->value != nullptr; ++value) {
+                        if (std::strcmp(value->value, core_option_definitions[i].default_value)) {
+                            continue;
+                        }
+                        values[i].append(value->value);
+                        break;
+                    }
+                    for (const struct retro_core_option_value *value = core_option_definitions[i].values; value->value != nullptr; ++value) {
+                        if (!std::strcmp(value->value, core_option_definitions[i].default_value)) {
+                            continue;
+                        }
+                        values[i].push_back('|');
+                        values[i].append(value->value);
+                    }
+                    core_options[i].value = values[i].c_str();
+                }
+                core_options[i].key = nullptr;
+                core_options[i].value = nullptr;
+                environment(RETRO_ENVIRONMENT_SET_VARIABLES, core_options.data());
+            }
+    }
+
+    save_state_size = (size_t)std::strtoul(get_core_option("mkxp-z_saveStateSize"), nullptr, 10) * (size_t)0x100000;
+    if (save_state_size == 0) {
+        save_state_size = (size_t)(100 * 0x100000);
+    }
+    save_state_size = std::max(save_state_size, (size_t)(64 * 0x100000));
+
+    // Prepend the preload scripts enabled via core options to the list of preload scripts
+    std::vector<std::string> enabled_preload_scripts;
+    for (const std::string &script_name : preload_scripts) {
+        const char *value = get_core_option(get_script_core_option_name(script_name.c_str(), false).c_str());
+        if (!std::strcmp(value, "enabled")) {
+            enabled_preload_scripts.emplace_back(std::string("/System/Scripts/Preload/") + script_name);
+        }
+    }
+    enabled_preload_scripts.insert(enabled_preload_scripts.end(), std::make_move_iterator(config.preloadScripts.begin()), std::make_move_iterator(config.preloadScripts.end()));
+    config.preloadScripts = std::move(enabled_preload_scripts);
+
+    // Append the postload scripts enabled via core options to the list of postload scripts
+    for (const std::string &script_name : postload_scripts) {
+        const char *value = get_core_option(get_script_core_option_name(script_name.c_str(), false).c_str());
+        if (!std::strcmp(value, "enabled")) {
+            config.postloadScripts.emplace_back(std::string("/System/Scripts/Postload/") + script_name);
+        }
+    }
+}
+
 static bool init_sandbox() {
     deinit_sandbox();
 
     fs.emplace(nullptr, false);
+
+    std::string system_path;
+    std::vector<std::string> preload_scripts;
+    std::vector<std::string> postload_scripts;
+
+    // Mount /Dist
+    PHYSFS_mountMemory(dist_zip, dist_zip_len, nullptr, "/dist.zip", "/Dist", true);
+
+    // Mount /System
+    {
+        const char *path;
+        if (environment(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &path) && path != nullptr) {
+            system_path = path;
+#ifdef _WIN32
+            for (size_t i = 0; i < system_path.length(); ++i) {
+                if (system_path[i] == '\\') {
+                    system_path[i] = '/';
+                }
+            }
+#endif // _WIN32
+            PHYSFS_setWriteDir(system_path.c_str());
+
+            // Create the "/mkxp-z" subdirectory of the libretro system directory if it doesn't already exist
+            std::string system_path_subdir(system_path);
+            system_path_subdir.append("/mkxp-z");
+            if (!PHYSFS_mkdir(system_path_subdir.c_str() + system_path.length() + 1)) {
+                LOG_PRINTF(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", system_path_subdir.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+                display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Failed to create directory at \"") + system_path_subdir + "\": " + PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode())).c_str());
+                deinit_sandbox();
+                return false;
+            }
+
+            system_path = system_path_subdir;
+            PHYSFS_setWriteDir(system_path.c_str());
+
+            // Create the Preload directory if needed
+            std::string preload_path(system_path);
+            preload_path.append("/System/Scripts/Preload");
+            if (!PHYSFS_mkdir(preload_path.c_str() + system_path.length() + 1)) {
+                LOG_PRINTF(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", preload_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+                display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Failed to create directory at \"") + preload_path + "\": " + PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode())).c_str());
+                deinit_sandbox();
+                return false;
+            }
+
+            // Create the Postload directory if needed
+            std::string postload_path(system_path);
+            postload_path.append("/System/Scripts/Postload");
+            if (!PHYSFS_mkdir(postload_path.c_str() + system_path.length() + 1)) {
+                LOG_PRINTF(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", postload_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+                display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Failed to create directory at \"") + postload_path + "\": " + PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode())).c_str());
+                deinit_sandbox();
+                return false;
+            }
+
+            PHYSFS_mount(system_path.c_str(), "/System", true);
+            PHYSFS_mountMemory(preload_zip, preload_zip_len, nullptr, "/preload.zip", "/System/Scripts/Preload", true);
+
+            // Get the list of preload scripts
+            {
+                std::set<std::string> script_set;
+                PHYSFS_enumerate("/System/Scripts/Preload", [](void *data, const char *origdir, const char *fname) {
+                    ((std::set<std::string> *)data)->emplace(fname);
+                    return PHYSFS_ENUM_OK;
+                }, &script_set);
+                preload_scripts.insert(preload_scripts.end(), std::make_move_iterator(script_set.begin()), std::make_move_iterator(script_set.end()));
+            }
+
+            // Get the list of postload scripts
+            {
+                std::set<std::string> script_set;
+                PHYSFS_enumerate("/System/Scripts/Postload", [](void *data, const char *origdir, const char *fname) {
+                    ((std::set<std::string> *)data)->emplace(fname);
+                    return PHYSFS_ENUM_OK;
+                }, &script_set);
+                postload_scripts.insert(postload_scripts.end(), std::make_move_iterator(script_set.begin()), std::make_move_iterator(script_set.end()));
+            }
+        }
+    }
 
     {
         std::string parsed_game_path(game_path);
@@ -635,6 +865,8 @@ static bool init_sandbox() {
         }
 
         conf.emplace();
+        set_core_options(*conf, preload_scripts, postload_scripts);
+
         {
             const char *value = get_core_option("mkxp-z_rgssVersion");
             if (!std::strcmp(value, "default")) {
@@ -698,176 +930,158 @@ static bool init_sandbox() {
 
         PHYSFS_File *rgssad;
         if ((rgssad = PHYSFS_openRead(("/Game/" + conf->execName + ".rgssad").c_str())) != nullptr) {
-            PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgssad").c_str(), "/Game", 1);
+            PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgssad").c_str(), "/Game", true);
         } else if ((rgssad = PHYSFS_openRead(("/Game/" + conf->execName + ".rgss2a").c_str())) != nullptr) {
-            PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgss2a").c_str(), "/Game", 1);
+            PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgss2a").c_str(), "/Game", true);
         } else if ((rgssad = PHYSFS_openRead(("/Game/" + conf->execName + ".rgss3a").c_str())) != nullptr) {
-            PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgss3a").c_str(), "/Game", 1);
+            PHYSFS_mountHandle(rgssad, ('/' + conf->execName + ".rgss3a").c_str(), "/Game", true);
         }
-
-        PHYSFS_mountMemory(dist_zip, dist_zip_len, nullptr, "/dist.zip", "/Dist", 1);
     }
 
-    {
-        const char *system_path;
-        if (environment(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &system_path) && system_path != nullptr) {
-            std::string system_root_path(system_path);
-#ifdef _WIN32
-            for (size_t i = 0; i < system_root_path.length(); ++i) {
-                if (system_root_path[i] == '\\') {
-                    system_root_path[i] = '/';
-                }
-            }
-#endif // _WIN32
-            PHYSFS_setWriteDir(system_root_path.c_str());
-            system_root_path.append("/mkxp-z");
+    if (!system_path.empty()) {
+        std::string rtp_root_path(system_path);
+        rtp_root_path.append("/RTP");
 
-            std::string rtp_root_path(system_root_path);
-            rtp_root_path.append("/RTP");
+        // Create the RTP root directory if needed
+        if (!PHYSFS_mkdir(rtp_root_path.c_str() + system_path.length() + 1)) {
+            LOG_PRINTF(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", rtp_root_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+            display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Failed to create directory at \"") + rtp_root_path + "\": " + PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode())).c_str());
+            deinit_sandbox();
+            return false;
+        }
 
-            // Create the RTP root directory if needed
-            if (!PHYSFS_mkdir(rtp_root_path.c_str() + std::strlen(system_path) + 1)) {
-                LOG_PRINTF(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", rtp_root_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
-                display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Failed to create directory at \"") + rtp_root_path + "\": " + PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode())).c_str());
-                deinit_sandbox();
-                return false;
-            }
+        // Mount each RTP declared in mkxp.json to the game directory
+        for (const std::string &rtp : conf->rtps) {
+            std::string path(fs->normalize(rtp.c_str(), false, true, "/System/RTP"));
 
-            PHYSFS_mount(system_root_path.c_str(), "/System", true);
-
-            // Mount each RTP declared in mkxp.json to the game directory
-            for (const std::string &rtp : conf->rtps) {
-                std::string path(fs->normalize(rtp.c_str(), false, true, "/System/RTP"));
-
-                if (path != "/System" && std::strncmp(path.c_str(), "/System/", sizeof "/System/" - 1)) {
-                    LOG_PRINTF(RETRO_LOG_WARN, "Failed to mount RTP \"%s\" because mounting RTPs from outside of the libretro system directory is not supported\n", rtp.c_str());
-                    display_message(RETRO_LOG_WARN, (std::string("Failed to locate run time package \"") + rtp + "\" required by the game").c_str());
-                    continue;
-                }
-
-                std::string rtp_path(system_root_path.c_str());
-                rtp_path.push_back('/');
-                rtp_path.append(path.c_str() + sizeof "/System/" - 1);
-
-                // Check if this is a file or directory
-                PHYSFS_Stat stat;
-                if (!PHYSFS_stat(path.c_str(), &stat) || (stat.filetype != PHYSFS_FILETYPE_DIRECTORY && stat.filetype != PHYSFS_FILETYPE_REGULAR)) {
-                    goto fail;
-                }
-
-                if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
-                    // If it's a directory, just mount the path directly
-                    if (!PHYSFS_mount(rtp_path.c_str(), "/Game", true)) {
-                        goto fail;
-                    }
-                } else {
-                    // If it's a file, try to open it as an archive and then mount it
-                    PHYSFS_File *file = PHYSFS_openRead(path.c_str());
-                    if (file == nullptr) {
-                        goto fail;
-                    }
-                    if (!PHYSFS_mountHandle(file, path.c_str(), "/Game", true)) {
-                        PHYSFS_close(file);
-                        goto fail;
-                    }
-                }
-
-                LOG_PRINTF(RETRO_LOG_INFO, "Mounted RTP \"%s\" from \"%s\"\n", rtp.c_str(), rtp_path.c_str());
-                continue;
-
-            fail:
-                LOG_PRINTF(RETRO_LOG_WARN, "Failed to mount RTP \"%s\" because \"%s\" was not found\n", rtp.c_str(), rtp_path.c_str());
+            if (path != "/System" && std::strncmp(path.c_str(), "/System/", sizeof "/System/" - 1)) {
+                LOG_PRINTF(RETRO_LOG_WARN, "Failed to mount RTP \"%s\" because mounting RTPs from outside of the libretro system directory is not supported\n", rtp.c_str());
                 display_message(RETRO_LOG_WARN, (std::string("Failed to locate run time package \"") + rtp + "\" required by the game").c_str());
                 continue;
             }
 
-            // Mount each RTP declared in Game.ini to the game directory
-            for (const std::string &rtp : conf->game.rtps) {
-                struct data {
-                    std::string rtp_root_path;
-                    std::string rtp;
-                    std::string rtp_lowercase;
-                    bool found;
-                } data = {
-                    rtp_root_path,
-                    rtp,
-                    rtp,
-                    false,
-                };
-                for (char &c : data.rtp_lowercase) {
+            std::string rtp_path(system_path.c_str());
+            rtp_path.push_back('/');
+            rtp_path.append(path.c_str() + sizeof "/System/" - 1);
+
+            // Check if this is a file or directory
+            PHYSFS_Stat stat;
+            if (!PHYSFS_stat(path.c_str(), &stat) || (stat.filetype != PHYSFS_FILETYPE_DIRECTORY && stat.filetype != PHYSFS_FILETYPE_REGULAR)) {
+                goto fail;
+            }
+
+            if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
+                // If it's a directory, just mount the path directly
+                if (!PHYSFS_mount(rtp_path.c_str(), "/Game", true)) {
+                    goto fail;
+                }
+            } else {
+                // If it's a file, try to open it as an archive and then mount it
+                PHYSFS_File *file = PHYSFS_openRead(path.c_str());
+                if (file == nullptr) {
+                    goto fail;
+                }
+                if (!PHYSFS_mountHandle(file, path.c_str(), "/Game", true)) {
+                    PHYSFS_close(file);
+                    goto fail;
+                }
+            }
+
+            LOG_PRINTF(RETRO_LOG_INFO, "Mounted RTP \"%s\" from \"%s\"\n", rtp.c_str(), rtp_path.c_str());
+            continue;
+
+        fail:
+            LOG_PRINTF(RETRO_LOG_WARN, "Failed to mount RTP \"%s\" because \"%s\" was not found\n", rtp.c_str(), rtp_path.c_str());
+            display_message(RETRO_LOG_WARN, (std::string("Failed to locate run time package \"") + rtp + "\" required by the game").c_str());
+            continue;
+        }
+
+        // Mount each RTP declared in Game.ini to the game directory
+        for (const std::string &rtp : conf->game.rtps) {
+            struct data {
+                std::string rtp_root_path;
+                std::string rtp;
+                std::string rtp_lowercase;
+                bool found;
+            } data = {
+                rtp_root_path,
+                rtp,
+                rtp,
+                false,
+            };
+            for (char &c : data.rtp_lowercase) {
+                c = std::tolower(c);
+            }
+
+            PHYSFS_enumerate("/System/RTP", [](void *data_, const char *origdir, const char *fname) {
+                struct data &data = *(struct data *)data_;
+                std::string rtp(fname);
+                for (char &c : rtp) {
                     c = std::tolower(c);
                 }
 
-                PHYSFS_enumerate("/System/RTP", [](void *data_, const char *origdir, const char *fname) {
-                    struct data &data = *(struct data *)data_;
-                    std::string rtp(fname);
-                    for (char &c : rtp) {
-                        c = std::tolower(c);
-                    }
-
-                    // Make sure this file/directory has a filename that matches the one we're looking for (case-insensitive)
-                    if (std::strncmp(rtp.c_str(), data.rtp_lowercase.c_str(), data.rtp_lowercase.length()) || (rtp[data.rtp_lowercase.length()] != '.' && rtp[data.rtp_lowercase.length()] != 0)) {
-                        return PHYSFS_ENUM_OK;
-                    }
-
-                    // Check if this is a file or directory
-                    std::string fullpath(origdir);
-                    fullpath.push_back('/');
-                    fullpath.append(fname);
-                    PHYSFS_Stat stat;
-                    if (!PHYSFS_stat(fullpath.c_str(), &stat) || (stat.filetype != PHYSFS_FILETYPE_DIRECTORY && stat.filetype != PHYSFS_FILETYPE_REGULAR)) {
-                        return PHYSFS_ENUM_OK;
-                    }
-
-                    std::string rtp_path(data.rtp_root_path);
-                    rtp_path.push_back('/');
-                    rtp_path.append(fname);
-
-                    if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
-                        // If it's a directory, just mount the path directly
-                        if (!PHYSFS_mount(rtp_path.c_str(), "/Game", true)) {
-                            return PHYSFS_ENUM_OK;
-                        }
-                    } else {
-                        // If it's a file, try to open it as an archive and then mount it
-                        std::string path(origdir);
-                        path.push_back('/');
-                        path.append(fname);
-                        PHYSFS_File *file = PHYSFS_openRead(path.c_str());
-                        if (file == nullptr) {
-                            return PHYSFS_ENUM_OK;
-                        }
-                        if (!PHYSFS_mountHandle(file, path.c_str(), "/Game", true)) {
-                            PHYSFS_close(file);
-                            return PHYSFS_ENUM_OK;
-                        }
-                    }
-
-                    data.found = true;
-                    LOG_PRINTF(RETRO_LOG_INFO, "Mounted RTP \"%s\" from \"%s\"\n", data.rtp.c_str(), rtp_path.c_str());
-                    return PHYSFS_ENUM_STOP;
-                }, &data);
-
-                if (!data.found) {
-                    LOG_PRINTF(RETRO_LOG_ERROR, "Failed to mount RTP \"%s\" because \"%s/%s\" was not found\n", rtp.c_str(), rtp_root_path.c_str(), rtp.c_str());
-                    display_message(RETRO_LOG_WARN, (std::string("Failed to locate run time package \"") + rtp + "\" required by the game").c_str());
+                // Make sure this file/directory has a filename that matches the one we're looking for (case-insensitive)
+                if (std::strncmp(rtp.c_str(), data.rtp_lowercase.c_str(), data.rtp_lowercase.length()) || (rtp[data.rtp_lowercase.length()] != '.' && rtp[data.rtp_lowercase.length()] != 0)) {
+                    return PHYSFS_ENUM_OK;
                 }
+
+                // Check if this is a file or directory
+                std::string fullpath(origdir);
+                fullpath.push_back('/');
+                fullpath.append(fname);
+                PHYSFS_Stat stat;
+                if (!PHYSFS_stat(fullpath.c_str(), &stat) || (stat.filetype != PHYSFS_FILETYPE_DIRECTORY && stat.filetype != PHYSFS_FILETYPE_REGULAR)) {
+                    return PHYSFS_ENUM_OK;
+                }
+
+                std::string rtp_path(data.rtp_root_path);
+                rtp_path.push_back('/');
+                rtp_path.append(fname);
+
+                if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
+                    // If it's a directory, just mount the path directly
+                    if (!PHYSFS_mount(rtp_path.c_str(), "/Game", true)) {
+                        return PHYSFS_ENUM_OK;
+                    }
+                } else {
+                    // If it's a file, try to open it as an archive and then mount it
+                    std::string path(origdir);
+                    path.push_back('/');
+                    path.append(fname);
+                    PHYSFS_File *file = PHYSFS_openRead(path.c_str());
+                    if (file == nullptr) {
+                        return PHYSFS_ENUM_OK;
+                    }
+                    if (!PHYSFS_mountHandle(file, path.c_str(), "/Game", true)) {
+                        PHYSFS_close(file);
+                        return PHYSFS_ENUM_OK;
+                    }
+                }
+
+                data.found = true;
+                LOG_PRINTF(RETRO_LOG_INFO, "Mounted RTP \"%s\" from \"%s\"\n", data.rtp.c_str(), rtp_path.c_str());
+                return PHYSFS_ENUM_STOP;
+            }, &data);
+
+            if (!data.found) {
+                LOG_PRINTF(RETRO_LOG_ERROR, "Failed to mount RTP \"%s\" because \"%s/%s\" was not found\n", rtp.c_str(), rtp_root_path.c_str(), rtp.c_str());
+                display_message(RETRO_LOG_WARN, (std::string("Failed to locate run time package \"") + rtp + "\" required by the game").c_str());
             }
-
-            std::string fonts_path(system_root_path);
-            fonts_path.append("/Fonts");
-
-            // Create the Fonts directory if needed
-            if (!PHYSFS_mkdir(fonts_path.c_str() + std::strlen(system_path) + 1)) {
-                LOG_PRINTF(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", fonts_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
-                display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Failed to create directory at \"") + fonts_path + "\": " + PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode())).c_str());
-                deinit_sandbox();
-                return false;
-            }
-
-            // Mount the Fonts directory
-            PHYSFS_mount(fonts_path.c_str(), "/Game/Fonts", true);
         }
+
+        std::string fonts_path(system_path);
+        fonts_path.append("/Fonts");
+
+        // Create the Fonts directory if needed
+        if (!PHYSFS_mkdir(fonts_path.c_str() + system_path.length() + 1)) {
+            LOG_PRINTF(RETRO_LOG_ERROR, "Failed to create directory at \"%s\": %s\n", fonts_path.c_str(), PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
+            display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Failed to create directory at \"") + fonts_path + "\": " + PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode())).c_str());
+            deinit_sandbox();
+            return false;
+        }
+
+        // Mount the Fonts directory
+        PHYSFS_mount(fonts_path.c_str(), "/Game/Fonts", true);
     }
 
     fs->createPathCache();
@@ -1133,83 +1347,6 @@ extern "C" RETRO_API void retro_init() {
     };
     std::memset(keyboard_state, 0, sizeof keyboard_state);
     environment(RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK, (void *)&keyboard);
-
-    unsigned int core_options_version;
-    if (!environment(RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION, &core_options_version)) {
-        core_options_version = 0;
-    }
-    switch (core_options_version) {
-        default:
-            {
-                const struct retro_core_options_v2 core_options = {
-                    (struct retro_core_option_v2_category *)core_option_categories,
-                    (struct retro_core_option_v2_definition *)core_option_definitions,
-                };
-                if (environment(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2, (void *)&core_options)) {
-                    break;
-                }
-            }
-
-        case 1:
-            {
-                struct retro_core_option_definition core_options[sizeof core_option_definitions / sizeof *core_option_definitions];
-                for (size_t i = 0; i < sizeof core_options / sizeof *core_options; ++i) {
-                    core_options[i].key = core_option_definitions[i].key;
-                    core_options[i].desc = core_option_definitions[i].desc;
-                    core_options[i].info = core_option_definitions[i].info;
-                    size_t num_values = 0;
-                    for (const struct retro_core_option_value *value = core_option_definitions[i].values; value->value != nullptr; ++value) {
-                        ++num_values;
-                    }
-                    std::memcpy(core_options[i].values, core_option_definitions[i].values, (1 + num_values) * sizeof *core_option_definitions[i].values);
-                    core_options[i].default_value = core_option_definitions[i].default_value;
-                }
-                if (environment(RETRO_ENVIRONMENT_SET_CORE_OPTIONS, (void *)&core_options)) {
-                    break;
-                }
-            }
-
-        case 0:
-            {
-                struct retro_variable core_options[sizeof core_option_definitions / sizeof *core_option_definitions];
-                std::string values[sizeof core_options / sizeof *core_options];
-                size_t i;
-                for (i = 0; i < sizeof core_options / sizeof *core_options - 1; ++i) {
-                    core_options[i].key = core_option_definitions[i].key;
-                    size_t values_length = 0;
-                    for (const struct retro_core_option_value *value = core_option_definitions[i].values; value->value != nullptr; ++value) {
-                        values_length += 1 + std::strlen(value->value);
-                    }
-                    values[i].reserve(std::strlen(core_option_definitions[i].desc) + 1 + values_length);
-                    values[i] = core_option_definitions[i].desc;
-                    values[i].append("; ");
-                    for (const struct retro_core_option_value *value = core_option_definitions[i].values; value->value != nullptr; ++value) {
-                        if (std::strcmp(value->value, core_option_definitions[i].default_value)) {
-                            continue;
-                        }
-                        values[i].append(value->value);
-                        break;
-                    }
-                    for (const struct retro_core_option_value *value = core_option_definitions[i].values; value->value != nullptr; ++value) {
-                        if (!std::strcmp(value->value, core_option_definitions[i].default_value)) {
-                            continue;
-                        }
-                        values[i].push_back('|');
-                        values[i].append(value->value);
-                    }
-                    core_options[i].value = values[i].c_str();
-                }
-                core_options[i].key = nullptr;
-                core_options[i].value = nullptr;
-                environment(RETRO_ENVIRONMENT_SET_VARIABLES, (void *)&core_options);
-            }
-    }
-
-    save_state_size = (size_t)std::strtoul(get_core_option("mkxp-z_saveStateSize"), nullptr, 10) * (size_t)0x100000;
-    if (save_state_size == 0) {
-        save_state_size = (size_t)(100 * 0x100000);
-    }
-    save_state_size = std::max(save_state_size, (size_t)(64 * 0x100000));
 }
 
 extern "C" RETRO_API void retro_deinit() {
@@ -2129,6 +2266,17 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
         return false;
     }
 
+    {
+        bool value;
+        dupe_supported = environment(RETRO_ENVIRONMENT_GET_CAN_DUPE, &value) && value;
+    }
+
+    retro_framebuffer_supported = true;
+
+    if (!init_sandbox()) {
+        return false;
+    }
+
 #ifndef MKXPZ_NO_THREADED_AUDIO
     audio_callback.callback = []() {
         if (!shared_state_initialized) {
@@ -2164,14 +2312,7 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
     LOG_PRINT(RETRO_LOG_INFO, "Not using threaded audio driver because multithreading is not supported on this platform\n");
 #endif // MKXPZ_NO_THREADED_AUDIO
 
-    {
-        bool value;
-        dupe_supported = environment(RETRO_ENVIRONMENT_GET_CAN_DUPE, &value) && value;
-    }
-
-    retro_framebuffer_supported = true;
-
-    return init_sandbox();
+    return true;
 }
 
 extern "C" RETRO_API bool retro_load_game_special(unsigned int type, const struct retro_game_info *info, size_t num) {

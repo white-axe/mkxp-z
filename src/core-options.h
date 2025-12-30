@@ -46,6 +46,16 @@ static const struct retro_core_option_v2_category core_option_categories[] = {
         nullptr,
     },
     {
+        "preload",
+        "Preload Scripts",
+        nullptr,
+    },
+    {
+        "postload",
+        "Postload Scripts",
+        nullptr,
+    },
+    {
         nullptr,
         nullptr,
         nullptr,

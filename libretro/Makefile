@@ -76,7 +76,7 @@ WASI_CXX_STANDARD := -std=gnu++11
 WASI_CFLAGS := $(WASI_TARGET_FLAGS) $(WASI_C_STANDARD) $(WASI_CFLAGS)
 WASI_CXXFLAGS := $(WASI_TARGET_FLAGS) $(WASI_CXX_STANDARD) $(WASI_CXXFLAGS)
 
-all default: ruby-dist ruby-bindings $(OUTDIR)/boost_predef/include/boost/predef.h
+all default: ruby-dist ruby-bindings $(OUTDIR)/preload.zip $(OUTDIR)/boost_predef/include/boost/predef.h
 
 ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt
 
@@ -85,6 +85,8 @@ ruby-bindings: $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sand
 clean: clean-ruby-dist clean-ruby-bindings
 	rm -rf $(LIBDIR)/*
 	rm -rf $(DOWNLOADS)/*
+	rm -r $(OUTDIR)/preload.zip
+	rm -rf $(OUTDIR)/boost_predef
 
 clean-ruby-dist:
 	rm -f $(OUTDIR)/dist.zip
@@ -94,6 +96,13 @@ clean-ruby-bindings:
 	rm -rf $(OUTDIR)/sandbox-bindgen
 	rm -f $(LIBDIR)/tags.c
 	rm -f $(LIBDIR)/tags
+
+$(OUTDIR)/preload.zip: ../scripts/preload/mkxp_wrap.rb ../scripts/preload/ruby_classic_wrap.rb ../scripts/preload/win32_wrap.rb
+	rm -rf $(LIBDIR)/preload
+	mkdir -p $(LIBDIR)/preload
+	cp $^ $(LIBDIR)/preload/
+	cd $(LIBDIR)/preload && $(ZIP) -r $@ *
+	rm -r $(LIBDIR)/preload
 
 # Ruby (targets WASI)
 

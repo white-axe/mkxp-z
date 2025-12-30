@@ -50,44 +50,63 @@ extern const char module_rpg3[];
 
 static VALUE top_self;
 static VALUE utf8_encoding;
+static VALUE win32api_class;
 
-struct eval_script : boost::asio::coroutine {
-    typedef decl_slots<VALUE> slots;
+namespace mkxp_sandbox {
+    struct eval_script : boost::asio::coroutine {
+        typedef decl_slots<VALUE> slots;
 
-    static VALUE func(VALUE arg) {
-        struct coro : boost::asio::coroutine {
-            typedef decl_slots<VALUE, VALUE, ID> slots;
+        static VALUE func(VALUE arg) {
+            struct coro : boost::asio::coroutine {
+                typedef decl_slots<VALUE, VALUE, ID> slots;
 
-            VALUE operator()(VALUE arg) {
-                BOOST_ASIO_CORO_REENTER (this) {
-                    SANDBOX_AWAIT_S(0, rb_ary_entry, arg, 0);
-                    SANDBOX_AWAIT_S(1, rb_ary_entry, arg, 1);
-                    SANDBOX_AWAIT_S(2, rb_intern, "eval");
-                    SANDBOX_AWAIT(rb_funcall, top_self, SANDBOX_SLOT(2), 3, SANDBOX_SLOT(0), SANDBOX_NIL, SANDBOX_SLOT(1));
+                VALUE operator()(VALUE arg) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT_S(0, rb_ary_entry, arg, 0);
+                        SANDBOX_AWAIT_S(1, rb_ary_entry, arg, 1);
+                        SANDBOX_AWAIT_S(2, rb_intern, "eval");
+                        SANDBOX_AWAIT(rb_funcall, top_self, SANDBOX_SLOT(2), 3, SANDBOX_SLOT(0), SANDBOX_NIL, SANDBOX_SLOT(1));
+                    }
+
+                    return SANDBOX_UNDEF;
                 }
+            };
 
-                return SANDBOX_UNDEF;
-            }
-        };
-
-        return sb()->bind<struct coro>()()(arg);
-    }
-
-    static VALUE rescue(VALUE arg, VALUE exception) {
-        return exception;
-    }
-
-    VALUE operator()(VALUE string, VALUE filename) {
-        BOOST_ASIO_CORO_REENTER (this) {
-            SANDBOX_AWAIT_S(0, rb_ary_new_capa, 2);
-            SANDBOX_AWAIT(rb_ary_store, SANDBOX_SLOT(0), 0, string);
-            SANDBOX_AWAIT(rb_ary_store, SANDBOX_SLOT(0), 1, filename);
-            SANDBOX_AWAIT_S(0, rb_rescue2, func, SANDBOX_SLOT(0), rescue, SANDBOX_NIL, reset_class, 0);
+            return sb()->bind<struct coro>()()(arg);
         }
 
-        return SANDBOX_SLOT(0);
-    }
-};
+        static VALUE rescue(VALUE arg, VALUE exception) {
+            return exception;
+        }
+
+        VALUE operator()(VALUE string, VALUE filename) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, rb_ary_new_capa, 2);
+                SANDBOX_AWAIT(rb_ary_store, SANDBOX_SLOT(0), 0, string);
+                SANDBOX_AWAIT(rb_ary_store, SANDBOX_SLOT(0), 1, filename);
+                SANDBOX_AWAIT_S(0, rb_rescue2, func, SANDBOX_SLOT(0), rescue, SANDBOX_NIL, reset_class, 0);
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    struct run_custom_script : boost::asio::coroutine {
+        typedef decl_slots<VALUE, VALUE, ID> slots;
+
+        VALUE operator()(const char *filename) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, rb_str_new_cstr, mkxp_retro::fs->normalize(filename, false, true, "/Game").c_str());
+                SANDBOX_AWAIT_S(2, rb_intern, "read");
+                SANDBOX_AWAIT_S(0, rb_funcall, sb()->rb_cFile(), SANDBOX_SLOT(2), 1, SANDBOX_SLOT(0));
+                SANDBOX_AWAIT_S(1, rb_str_new_cstr, filename);
+                SANDBOX_AWAIT_S(0, eval_script, SANDBOX_SLOT(0), SANDBOX_SLOT(1));
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+}
 
 static VALUE load_data(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
@@ -156,10 +175,18 @@ static VALUE rgss_main(VALUE self) {
             return exception;
         }
 
-        typedef decl_slots<VALUE> slots;
+        typedef decl_slots<VALUE, VALUE> slots;
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
+                // Execute postload scripts
+                for (SANDBOX_SLOT(0) = 0; SANDBOX_SLOT(0) < shState->config().postloadScripts.size(); ++SANDBOX_SLOT(0)) {
+                    SANDBOX_AWAIT_S(1, run_custom_script, shState->config().postloadScripts[SANDBOX_SLOT(0)].c_str());
+                    if (SANDBOX_SLOT(1) != SANDBOX_UNDEF) {
+                        SANDBOX_AWAIT(rb_exc_raise, SANDBOX_SLOT(1));
+                    }
+                }
+
                 while (true) {
                     SANDBOX_AWAIT_S(0, rb_block_proc);
                     SANDBOX_AWAIT_S(0, rb_rescue2, func, SANDBOX_SLOT(0), rescue, SANDBOX_NIL, reset_class, 0);
@@ -481,6 +508,24 @@ static VALUE to_utf8_bang(VALUE self) {
     return sb()->bind<struct coro>()()(self);
 }
 
+static VALUE win32api_stub(int32_t argc, wasm_ptr_t argv, VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE> slots;
+
+        VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, rb_str_new_cstr, "Win32API is not supported in libretro builds of mkxp-z; try enabling the win32_wrap.rb preload script");
+                SANDBOX_AWAIT_S(0, rb_class_new_instance, 1, &SANDBOX_SLOT(0), sb()->rb_eRuntimeError());
+                SANDBOX_AWAIT(rb_exc_raise, SANDBOX_SLOT(0));
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(argc, argv, self);
+}
+
 void sandbox_binding_init::operator()() {
     static VALUE system_module;
     static VALUE cfg_module;
@@ -603,6 +648,11 @@ void sandbox_binding_init::operator()() {
         //SANDBOX_AWAIT(rb_define_module_function, cfg_module, "[]", (VALUE (*)(ANYARGS))get_json_setting, 1);
         //SANDBOX_AWAIT(rb_define_module_function, cfg_module, "[]=", (VALUE (*)(ANYARGS))set_json_setting, 2);
         //SANDBOX_AWAIT(rb_define_module_function, cfg_module, "to_hash", (VALUE (*)(ANYARGS))get_all_json_settings, 0);
+
+        SANDBOX_AWAIT_R(win32api_class, rb_define_class, "Win32API", sb()->rb_cObject());
+        SANDBOX_AWAIT(rb_define_method, win32api_class, "initialize", (VALUE (*)(ANYARGS))win32api_stub, -1);
+        SANDBOX_AWAIT(rb_define_method, win32api_class, "call", (VALUE (*)(ANYARGS))win32api_stub, -1);
+        SANDBOX_AWAIT(rb_define_alias, win32api_class, "Call", "call");
     }
 }
 
@@ -681,7 +731,13 @@ void sandbox_run_rmxp_scripts::operator()() {
 
         sb().script_decode_buffer.clear();
 
-        // TODO: preload scripts
+        // Execute preload scripts
+        for (SANDBOX_SLOT(3) = 0; SANDBOX_SLOT(3) < shState->config().preloadScripts.size(); ++SANDBOX_SLOT(3)) {
+            SANDBOX_AWAIT_S(9, run_custom_script, shState->config().preloadScripts[SANDBOX_SLOT(3)].c_str());
+            if (SANDBOX_SLOT(9) != SANDBOX_UNDEF) {
+                return;
+            }
+        }
 
         while (true) {
             for (SANDBOX_SLOT(9) = SANDBOX_UNDEF, SANDBOX_SLOT(3) = 0; SANDBOX_SLOT(9) == SANDBOX_UNDEF && SANDBOX_SLOT(3) < SANDBOX_SLOT(2); ++SANDBOX_SLOT(3)) {

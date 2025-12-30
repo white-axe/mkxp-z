@@ -729,6 +729,18 @@ if is_libretro
         ],
     )
 
+    global_sources += custom_target(
+        'preload-zip',
+        input: libretro_stage1_path / 'preload.zip',
+        output: 'preload.zip.cpp',
+        command: [
+            embedtool,
+            '@INPUT@',
+            '@OUTPUT@',
+            'preload_zip',
+        ],
+    )
+
     if core_is_static
         global_dependencies_processed = []
         foreach dep : global_dependencies
