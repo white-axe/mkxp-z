@@ -160,7 +160,7 @@ $(LIBDIR)/tags: $(LIBDIR)/tags.c
 
 $(LIBDIR)/tags.c: $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.h
 	mkdir -p $(LIBDIR)
-	echo '#include <ruby.h>' | $(WASI_CC) -E -I$(DOWNLOADS)/ruby/include -I$(DOWNLOADS)/ruby/.ext/include/$(TARGET) -o $(LIBDIR)/tags.c -
+	echo -e '#include <ruby.h>\n#include <ruby/encoding.h>' | $(WASI_CC) -E -I$(DOWNLOADS)/ruby/include -I$(DOWNLOADS)/ruby/.ext/include/$(TARGET) -o $(LIBDIR)/tags.c -
 
 $(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.h $(DOWNLOADS)/ruby/BSDL $(DOWNLOADS)/ruby/COPYING $(DOWNLOADS)/ruby/COPYING.ja &: $(DOWNLOADS)/ruby/configure $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a
 	cd $(DOWNLOADS)/ruby && ./configure \

@@ -50,6 +50,7 @@ extern const char module_rpg3[];
 
 static VALUE top_self;
 static VALUE utf8_encoding;
+static VALUE marshal_module;
 static VALUE win32api_class;
 
 namespace mkxp_sandbox {
@@ -108,6 +109,19 @@ namespace mkxp_sandbox {
     };
 }
 
+struct marshal_load : boost::asio::coroutine {
+    typedef decl_slots<VALUE, ID> slots;
+
+    VALUE operator()(VALUE obj) {
+        BOOST_ASIO_CORO_REENTER (this) {
+            SANDBOX_AWAIT_S(1, rb_intern, "load");
+            SANDBOX_AWAIT_S(0, rb_funcall, marshal_module, SANDBOX_SLOT(1), 1, obj);
+        }
+
+        return SANDBOX_SLOT(0);
+    }
+};
+
 static VALUE load_data(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
         typedef decl_slots<wasm_ptr_t, VALUE, VALUE, ID> slots;
@@ -118,7 +132,7 @@ static VALUE load_data(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 SANDBOX_AWAIT_S(0, rb_string_value_cstr, &sb()->ref<VALUE>(argv, 0));
                 SANDBOX_AWAIT_S(1, rb_file_open, sb()->str(SANDBOX_SLOT(0)), "rb");
                 if (argc < 2 || !SANDBOX_VALUE_TO_BOOL(sb()->ref<VALUE>(argv, 1))) {
-                    SANDBOX_AWAIT_S(2, rb_marshal_load, SANDBOX_SLOT(1));
+                    SANDBOX_AWAIT_S(2, marshal_load, SANDBOX_SLOT(1));
                 } else {
                     SANDBOX_AWAIT_S(3, rb_intern, "read");
                     SANDBOX_AWAIT_S(2, rb_funcall, SANDBOX_SLOT(1), SANDBOX_SLOT(3), 0);
@@ -559,6 +573,76 @@ void sandbox_binding_init::operator()() {
         }
     };
 
+    struct marshal_binding_init : boost::asio::coroutine {
+        static VALUE string_force_utf8(VALUE yielded_arg, VALUE callback_arg, int32_t argc, wasm_ptr_t argv, VALUE blockarg) {
+            struct coro : boost::asio::coroutine {
+                typedef decl_slots<VALUE, ID, int32_t, int32_t> slots;
+
+                VALUE operator()(VALUE yielded_arg, VALUE callback_arg, int32_t argc, wasm_ptr_t argv, VALUE blockarg) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT_S(0, rb_obj_is_kind_of, yielded_arg, sb()->rb_cString());
+                        if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(0))) {
+                            SANDBOX_AWAIT_S(2, rb_enc_get_index, yielded_arg);
+                            SANDBOX_AWAIT_S(3, rb_ascii8bit_encindex);
+                            if (SANDBOX_SLOT(2) == SANDBOX_SLOT(3)) {
+                                SANDBOX_AWAIT_S(2, rb_utf8_encindex);
+                                SANDBOX_AWAIT(rb_enc_associate_index, yielded_arg, SANDBOX_SLOT(2));
+                            }
+                        }
+                        if (callback_arg != SANDBOX_UNDEF) {
+                            SANDBOX_AWAIT_S(1, rb_intern, "call");
+                            SANDBOX_AWAIT_S(0, rb_funcall, callback_arg, SANDBOX_SLOT(1), 1, yielded_arg);
+                        } else {
+                            SANDBOX_SLOT(0) = yielded_arg;
+                        }
+                    }
+
+                    return SANDBOX_SLOT(0);
+                }
+            };
+
+            return sb()->bind<struct coro>()()(yielded_arg, callback_arg, argc, argv, blockarg);
+        }
+
+        static VALUE marshal_load(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            struct coro : boost::asio::coroutine {
+                typedef decl_slots<VALUE, ID> slots;
+
+                VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+                    BOOST_ASIO_CORO_REENTER (this) {
+                        SANDBOX_AWAIT(check_arity, argc, 1, 2);
+                        if (argc > 1) {
+                            SANDBOX_AWAIT_S(0, rb_proc_new, string_force_utf8, sb()->ref<VALUE>(argv, 0));
+                        } else {
+                            SANDBOX_AWAIT_S(0, rb_proc_new, string_force_utf8, SANDBOX_UNDEF);
+                        }
+                        SANDBOX_AWAIT_S(1, rb_intern, "_mkxp_load_alias");
+                        SANDBOX_AWAIT_S(0, rb_funcall, self, SANDBOX_SLOT(1), 2, sb()->ref<VALUE>(argv, 0), SANDBOX_SLOT(0));
+                    }
+
+                    return SANDBOX_SLOT(0);
+                }
+            };
+
+            return sb()->bind<struct coro>()()(argc, argv, self);
+        }
+
+        typedef decl_slots<VALUE, ID> slots;
+
+        void operator()() {
+            BOOST_ASIO_CORO_REENTER (this) {
+                /* We overload the built-in 'Marshal::load()' function to silently
+                 * insert our utf8proc that ensures all read strings will be
+                 * UTF-8 encoded */
+                SANDBOX_AWAIT_S(1, rb_intern, "Marshal");
+                SANDBOX_AWAIT_R(marshal_module, rb_const_get, sb()->rb_cObject(), SANDBOX_SLOT(1));
+                SANDBOX_AWAIT_S(0, rb_singleton_class, marshal_module);
+                SANDBOX_AWAIT(rb_define_alias, SANDBOX_SLOT(0), "_mkxp_load_alias", "load");
+                SANDBOX_AWAIT(rb_define_module_function, SANDBOX_SLOT(0), "load", (VALUE (*)(ANYARGS))marshal_load, -1);
+            }
+        }
+    };
+
     BOOST_ASIO_CORO_REENTER (this) {
         SANDBOX_AWAIT(register_ruby_revision);
         SANDBOX_AWAIT_R(top_self, rb_eval_string, "self");
@@ -585,8 +669,15 @@ void sandbox_binding_init::operator()() {
         SANDBOX_AWAIT(audio_binding_init);
         SANDBOX_AWAIT(graphics_binding_init);
 
+        SANDBOX_AWAIT(marshal_binding_init);
+
         SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "load_data", (VALUE (*)(ANYARGS))load_data, -1);
         SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "save_data", (VALUE (*)(ANYARGS))save_data, 2);
+
+        SANDBOX_AWAIT_R(win32api_class, rb_define_class, "Win32API", sb()->rb_cObject());
+        SANDBOX_AWAIT(rb_define_method, win32api_class, "initialize", (VALUE (*)(ANYARGS))win32api_stub, -1);
+        SANDBOX_AWAIT(rb_define_method, win32api_class, "call", (VALUE (*)(ANYARGS))win32api_stub, -1);
+        SANDBOX_AWAIT(rb_define_alias, win32api_class, "Call", "call");
 
         if (rgssVer >= 3) {
             SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "rgss_main", (VALUE (*)(ANYARGS))rgss_main, 0);
@@ -648,11 +739,6 @@ void sandbox_binding_init::operator()() {
         //SANDBOX_AWAIT(rb_define_module_function, cfg_module, "[]", (VALUE (*)(ANYARGS))get_json_setting, 1);
         //SANDBOX_AWAIT(rb_define_module_function, cfg_module, "[]=", (VALUE (*)(ANYARGS))set_json_setting, 2);
         //SANDBOX_AWAIT(rb_define_module_function, cfg_module, "to_hash", (VALUE (*)(ANYARGS))get_all_json_settings, 0);
-
-        SANDBOX_AWAIT_R(win32api_class, rb_define_class, "Win32API", sb()->rb_cObject());
-        SANDBOX_AWAIT(rb_define_method, win32api_class, "initialize", (VALUE (*)(ANYARGS))win32api_stub, -1);
-        SANDBOX_AWAIT(rb_define_method, win32api_class, "call", (VALUE (*)(ANYARGS))win32api_stub, -1);
-        SANDBOX_AWAIT(rb_define_alias, win32api_class, "Call", "call");
     }
 }
 
@@ -668,7 +754,7 @@ void sandbox_run_rmxp_scripts::operator()() {
         } else {
             MKXPZ_FORCED_ASSERT_WITH_MESSAGE(false, "RGSS version is something other than 1, 2 or 3");
         }
-        SANDBOX_AWAIT_S(1, rb_marshal_load, SANDBOX_SLOT(0));
+        SANDBOX_AWAIT_S(1, marshal_load, SANDBOX_SLOT(0));
         SANDBOX_AWAIT(rb_io_close, SANDBOX_SLOT(0));
 
         // Assign it to the "$RGSS_SCRIPTS" global variable

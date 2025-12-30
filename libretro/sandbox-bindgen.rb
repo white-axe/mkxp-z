@@ -101,6 +101,13 @@ ARG_HANDLERS = {
     formatter: lambda { |name| "VALUE (*#{name})(VALUE, VALUE)" },
     declaration: 'VALUE (*)(VALUE, VALUE)',
   },
+  'rb_block_call_func_t' => {
+    keep: true,
+    func_ptr_args: [:value, :value, :s32, :ptr, :value],
+    func_ptr_rets: [:value],
+    formatter: lambda { |name| "VALUE (*#{name})(VALUE, VALUE, int32_t, wasm_ptr_t, VALUE)" },
+    declaration: 'VALUE (*)(VALUE, VALUE, int32_t, wasm_ptr_t, VALUE)',
+  }
 }
 
 RET_HANDLERS = {
@@ -168,6 +175,7 @@ CALL_TYPES = [
   [:void, [:value]], # dmark, dfree, dcompact
   [:size, [:value]], # dsize
   [:value, [:s32, :ptr, :value]], # rb_define_method with argc = -1
+  [:value, [:value, :value, :s32, :ptr, :value]], # rb_block_call_func_t
 ]
 for i in 0..16
   CALL_TYPES.append([:value, [:value] * (i + 1)]) # rb_define_method with argc = i
