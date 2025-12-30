@@ -179,10 +179,10 @@ return Data_Wrap_Struct(klass, 0, free, 0);                                \
 
 #endif
 
-/* Equivalent to `rb_str_new()` if `mkxpUsingRuby18Encoding()` is true, otherwise equivalent to `mkxp_str_new()` */
+/* Equivalent to `rb_str_new()` if `mkxpUsingRuby18Encoding()` is true, otherwise equivalent to `rb_utf8_str_new()` */
 VALUE mkxp_str_new(const char *str, long size_in_bytes_not_including_null_terminator);
 
-/* Equivalent to `rb_str_new_cstr()` if `mkxpUsingRuby18Encoding()` is true, otherwise equivalent to `mkxp_str_new_cstr()` */
+/* Equivalent to `rb_str_new_cstr()` if `mkxpUsingRuby18Encoding()` is true, otherwise equivalent to `rb_utf8_str_new_cstr()` */
 VALUE mkxp_str_new_cstr(const char *str);
 
 // end
