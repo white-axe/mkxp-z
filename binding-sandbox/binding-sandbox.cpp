@@ -27,6 +27,7 @@
 #include "sharedstate.h"
 #include "core.h"
 #include "encoding.h"
+#include "git-hash.h"
 #include "audio-binding.h"
 #include "bitmap-binding.h"
 #include "etc-binding.h"
@@ -49,7 +50,6 @@ extern const char module_rpg2[];
 extern const char module_rpg3[];
 
 static VALUE top_self;
-static VALUE utf8_encoding;
 static VALUE marshal_module;
 static VALUE win32api_class;
 
@@ -100,7 +100,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT_S(0, rb_str_new_cstr, mkxp_retro::fs->normalize(filename, false, true, "/Game").c_str());
                 SANDBOX_AWAIT_S(2, rb_intern, "read");
                 SANDBOX_AWAIT_S(0, rb_funcall, sb()->rb_cFile(), SANDBOX_SLOT(2), 1, SANDBOX_SLOT(0));
-                SANDBOX_AWAIT_S(1, rb_str_new_cstr, filename);
+                SANDBOX_AWAIT_S(1, rb_utf8_str_new_cstr, filename);
                 SANDBOX_AWAIT_S(0, eval_script, SANDBOX_SLOT(0), SANDBOX_SLOT(1));
             }
 
@@ -265,7 +265,7 @@ static VALUE data_directory(VALUE self) {
 }
 
 static VALUE get_window_title(VALUE self) {
-    return sb()->bind<struct rb_str_new_cstr>()()("");
+    return sb()->bind<struct rb_utf8_str_new_cstr>()()("");
 }
 
 static VALUE set_window_title(VALUE self, VALUE value) {
@@ -283,7 +283,7 @@ static VALUE desensitize(VALUE self, VALUE value) {
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_S(0, rb_string_value_cstr, &value);
-                SANDBOX_AWAIT_S(1, rb_str_new_cstr, mkxp_retro::fs->desensitize(sb()->str(SANDBOX_SLOT(0))));
+                SANDBOX_AWAIT_S(1, rb_utf8_str_new_cstr, mkxp_retro::fs->desensitize(sb()->str(SANDBOX_SLOT(0))));
             }
 
             return SANDBOX_SLOT(1);
@@ -294,7 +294,7 @@ static VALUE desensitize(VALUE self, VALUE value) {
 }
 
 static VALUE platform(VALUE self) {
-    return sb()->bind<struct rb_str_new_cstr>()()("libretro");
+    return sb()->bind<struct rb_utf8_str_new_cstr>()()("libretro");
 }
 
 static VALUE is_not_libretro(VALUE self) {
@@ -351,7 +351,7 @@ static VALUE user_language(VALUE self) {
         case RETRO_LANGUAGE_IRISH: str = "ga_IE"; break;
     }
 
-    return sb()->bind<struct rb_str_new_cstr>()()(str);
+    return sb()->bind<struct rb_utf8_str_new_cstr>()()(str);
 }
 
 static VALUE user_name(VALUE self) {
@@ -361,11 +361,11 @@ static VALUE user_name(VALUE self) {
         str = "";
     }
 
-    return sb()->bind<struct rb_str_new_cstr>()()(str);
+    return sb()->bind<struct rb_utf8_str_new_cstr>()()(str);
 }
 
 static VALUE game_title(VALUE self) {
-    return sb()->bind<struct rb_str_new_cstr>()()(shState->config().game.title.c_str());
+    return sb()->bind<struct rb_utf8_str_new_cstr>()()(shState->config().game.title.c_str());
 }
 
 static VALUE power_state(VALUE self) {
@@ -486,7 +486,7 @@ static VALUE to_utf8(VALUE self) {
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_S(0, rb_string_value_cstr, &self);
-                SANDBOX_AWAIT_S(1, rb_str_new_cstr, Encoding::convertString((const char *)sb()->str(SANDBOX_SLOT(0))).c_str());
+                SANDBOX_AWAIT_S(1, rb_utf8_str_new_cstr, Encoding::convertString((const char *)sb()->str(SANDBOX_SLOT(0))).c_str());
             }
 
             return SANDBOX_SLOT(1);
@@ -498,7 +498,7 @@ static VALUE to_utf8(VALUE self) {
 
 static VALUE to_utf8_bang(VALUE self) {
     struct coro : boost::asio::coroutine {
-        typedef decl_slots<wasm_ptr_t, ID> slots;
+        typedef decl_slots<wasm_ptr_t, int32_t> slots;
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
@@ -507,8 +507,8 @@ static VALUE to_utf8_bang(VALUE self) {
                 SANDBOX_AWAIT(rb_str_resize, self, sb().convert_string_buffer.length());
                 SANDBOX_AWAIT_S(0, rb_string_value_cstr, &self);
                 sb()->strcpy(SANDBOX_SLOT(0), sb().convert_string_buffer.c_str());
-                SANDBOX_AWAIT_S(1, rb_intern, "force_encoding");
-                SANDBOX_AWAIT(rb_funcall, self, SANDBOX_SLOT(1), 1, utf8_encoding);
+                SANDBOX_AWAIT_S(1, rb_utf8_encindex);
+                SANDBOX_AWAIT(rb_enc_associate_index, self, SANDBOX_SLOT(1));
             }
 
             return self;
@@ -558,17 +558,6 @@ void sandbox_binding_init::operator()() {
                 for (size_t i = 0; i < sizeof mkxp_retro::ruby_revision; ++i) {
                     mkxp_retro::ruby_revision[i] = std::strtol(std::string(str + 2 * i, 2).c_str(), nullptr, 16);
                 }
-            }
-        }
-    };
-
-    struct register_utf8_encoding : boost::asio::coroutine {
-        typedef decl_slots<ID> slots;
-
-        void operator()() {
-            BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, rb_intern, "UTF_8");
-                SANDBOX_AWAIT_R(utf8_encoding, rb_const_get, sb()->rb_cEncoding(), SANDBOX_SLOT(0));
             }
         }
     };
@@ -646,7 +635,6 @@ void sandbox_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
         SANDBOX_AWAIT(register_ruby_revision);
         SANDBOX_AWAIT_R(top_self, rb_eval_string, "self");
-        SANDBOX_AWAIT(register_utf8_encoding);
         SANDBOX_AWAIT(exception_binding_init);
 
         SANDBOX_AWAIT(table_binding_init);
@@ -682,6 +670,9 @@ void sandbox_binding_init::operator()() {
         if (rgssVer >= 3) {
             SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "rgss_main", (VALUE (*)(ANYARGS))rgss_main, 0);
             SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "rgss_stop", (VALUE (*)(ANYARGS))rgss_stop, 0);
+
+            SANDBOX_AWAIT_S(0, rb_utf8_str_new_cstr, "3.0.1");
+            SANDBOX_AWAIT(rb_define_global_const, "RGSS_VERSION", SANDBOX_SLOT(0));
         }
 
         if (rgssVer == 1) {
@@ -739,6 +730,20 @@ void sandbox_binding_init::operator()() {
         //SANDBOX_AWAIT(rb_define_module_function, cfg_module, "[]", (VALUE (*)(ANYARGS))get_json_setting, 1);
         //SANDBOX_AWAIT(rb_define_module_function, cfg_module, "[]=", (VALUE (*)(ANYARGS))set_json_setting, 2);
         //SANDBOX_AWAIT(rb_define_module_function, cfg_module, "to_hash", (VALUE (*)(ANYARGS))get_all_json_settings, 0);
+
+        SANDBOX_AWAIT(rb_gv_set, "MKXP", SANDBOX_TRUE);
+
+        if (rgssVer == 1) {
+            SANDBOX_AWAIT(rb_gv_set, "DEBUG", SANDBOX_FALSE);
+        } else if (rgssVer >= 2) {
+            SANDBOX_AWAIT(rb_gv_set, "TEST", SANDBOX_FALSE);
+        }
+
+        SANDBOX_AWAIT(rb_gv_set, "BTEST", SANDBOX_FALSE);
+
+        SANDBOX_AWAIT_S(0, rb_utf8_str_new_cstr, MKXPZ_VERSION "/" MKXPZ_GIT_HASH);
+        SANDBOX_AWAIT(rb_str_freeze, SANDBOX_SLOT(0));
+        SANDBOX_AWAIT(rb_define_const, system_module, "VERSION", SANDBOX_SLOT(0));
     }
 }
 

@@ -100,6 +100,7 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_instance(ruby)), b
 
     // Determine Ruby command-line arguments
     std::vector<std::string> args{"mkxp-z"};
+    args.push_back("-EUTF-8"); // Sets the default external encoding to UTF-8
     args.push_back("/Dist/bin/mkxp-z");
 
     // Copy all the command-line arguments into the sandbox (sandboxed code can't access memory that's outside the sandbox!)
@@ -129,14 +130,6 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_instance(ruby)), b
     }
     MKXPZ_FORCED_ASSERT(valid && state == 0);
     sandbox_free(state_buf);
-
-    // Set the default encoding to UTF-8
-    VALUE encoding;
-    AWAIT(encoding = w2c_ruby_rb_utf8_encoding(RB));
-    VALUE enc;
-    AWAIT(enc = w2c_ruby_rb_enc_from_encoding(RB, encoding));
-    AWAIT(w2c_ruby_rb_enc_set_default_internal(RB, enc));
-    AWAIT(w2c_ruby_rb_enc_set_default_external(RB, enc));
 }
 
 sandbox::~sandbox() {

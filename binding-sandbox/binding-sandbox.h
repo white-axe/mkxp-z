@@ -26,6 +26,7 @@
 
 namespace mkxp_sandbox {
     struct sandbox_binding_init : boost::asio::coroutine {
+        typedef decl_slots<VALUE> slots;
         void operator()();
     };
 
