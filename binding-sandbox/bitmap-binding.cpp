@@ -491,7 +491,11 @@ static VALUE snap_to_bitmap(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 0));
+                if (argv > 0) {
+                    SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 0));
+                } else {
+                    SANDBOX_SLOT(1) = -1;
+                }
 
                 SANDBOX_AWAIT_S(0, rb_obj_alloc, bitmap_class);
 

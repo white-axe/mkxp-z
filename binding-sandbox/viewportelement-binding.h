@@ -35,7 +35,7 @@ namespace mkxp_sandbox {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_SLOT(0) = SANDBOX_NIL;
 
-                if (argc > 0) {
+                if (argc > 0 && sb()->ref<VALUE>(argv, 0) != SANDBOX_NIL) {
                     SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 0), viewport_class);
                 }
 
