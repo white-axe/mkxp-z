@@ -508,7 +508,7 @@ static VALUE to_utf8_bang(VALUE self) {
                 SANDBOX_AWAIT_S(0, rb_string_value_cstr, &self);
                 sb()->strcpy(SANDBOX_SLOT(0), sb().convert_string_buffer.c_str());
                 SANDBOX_AWAIT_S(1, rb_utf8_encindex);
-                SANDBOX_AWAIT(rb_enc_associate_index, self, SANDBOX_SLOT(1));
+                SANDBOX_AWAIT(rb_enc_set_index, self, SANDBOX_SLOT(1));
             }
 
             return self;
