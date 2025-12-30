@@ -356,9 +356,17 @@ void *drop_gvl_guard(void *(*func)(void *), void *args,
 
 bool mkxpUsingRuby18Encoding() {
 #ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
-    extern unsigned int mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor;
-    return mkxp_syntax_transform_target_ruby_version_major < 1 || (mkxp_syntax_transform_target_ruby_version_major == 1 && mkxp_syntax_transform_target_ruby_version_minor <= 8);
+  extern unsigned int mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor;
+  return mkxp_syntax_transform_target_ruby_version_major < 1 || (mkxp_syntax_transform_target_ruby_version_major == 1 && mkxp_syntax_transform_target_ruby_version_minor <= 8);
 #else
-    return false;
+  return false;
 #endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+}
+
+VALUE mkxp_str_new(const char *str, long size_in_bytes_not_including_null_terminator) {
+  return mkxpUsingRuby18Encoding() ? rb_str_new(str, size_in_bytes_not_including_null_terminator) : rb_utf8_str_new(str, size_in_bytes_not_including_null_terminator);
+}
+
+VALUE mkxp_str_new_cstr(const char *str) {
+  return mkxpUsingRuby18Encoding() ? rb_str_new_cstr(str) : rb_utf8_str_new_cstr(str);
 }
