@@ -515,7 +515,8 @@ extern "C" void w2c_wasi0x3Acli0x2Fterminal0x2Dstdout0x4000x2E20x2E0_get0x2Dterm
 
     wasi->check_bounds(result, 8);
 
-    wasi->ref<uint8_t>(result) = false;
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<wasm_resource_t>(result + 4) = 1;
 }
 
 extern "C" void w2c_wasi0x3Acli0x2Fterminal0x2Dstderr0x4000x2E20x2E0_get0x2Dterminal0x2Dstderr(struct w2c_wasi0x3Acli0x2Fterminal0x2Dstderr0x4000x2E20x2E0 *wasi, wasm_ptr_t result) {
@@ -523,7 +524,8 @@ extern "C" void w2c_wasi0x3Acli0x2Fterminal0x2Dstderr0x4000x2E20x2E0_get0x2Dterm
 
     wasi->check_bounds(result, 8);
 
-    wasi->ref<uint8_t>(result) = false;
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<wasm_resource_t>(result + 4) = 2;
 }
 
 extern "C" void w2c_wasi0x3Acli0x2Fterminal0x2Dinput0x4000x2E20x2E0_0x5Bresource0x2Ddrop0x5Dterminal0x2Dinput(struct w2c_wasi0x3Acli0x2Fterminal0x2Dinput0x4000x2E20x2E0 *wasi, wasm_resource_t self) {
