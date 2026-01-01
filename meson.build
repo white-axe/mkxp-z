@@ -82,7 +82,7 @@ if is_libretro
         global_args += '-DMKXPZ_WASI_VERSION_MAJOR=0'
         global_args += '-DMKXPZ_WASI_VERSION_MINOR=2'
     else
-        error('Unrecognized WASI target "' + wasi_target + '".')
+        error('Unsupported WASI target "' + wasi_target + '".')
     endif
     message('WASI target: "' + wasi_target + '"')
 else

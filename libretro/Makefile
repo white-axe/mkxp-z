@@ -8,7 +8,7 @@ LIBYAML_VERSION ?= 0.2.5
 ZLIB_VERSION ?= 1.3.1
 PICOSHA2_VERSION ?= 161cb3fc4170fa7a3eca9e582cebd27cc4d1fe29
 BOOST_VERSION ?= 1.90.0
-TARGET ?= wasm32-wasip2
+WASI_TARGET ?= wasm32-wasip2
 WASI_SDK ?= /opt/wasi-sdk
 WASM_OPT ?= wasm-opt
 CTAGS ?= ctags
@@ -70,7 +70,7 @@ ifneq ($(WASI_SDK_VERSION_EXPECTED),$(WASI_SDK_VERSION_ACTUAL))
     $(error incorrect WASI SDK version: expected `$(WASI_SDK_VERSION_EXPECTED)', got `$(WASI_SDK_VERSION_ACTUAL)')
 endif
 
-WASI_TARGET_FLAGS := --target=$(TARGET) -mbulk-memory
+WASI_TARGET_FLAGS := --target=$(WASI_TARGET) -mbulk-memory
 WASI_C_STANDARD := -std=gnu99
 WASI_CXX_STANDARD := -std=gnu++11
 WASI_CFLAGS := $(WASI_TARGET_FLAGS) $(WASI_C_STANDARD) $(WASI_CFLAGS)
@@ -110,7 +110,7 @@ $(OUTDIR)/preload.zip: ../scripts/preload/mkxp_wrap.rb ../scripts/preload/ruby_c
 $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt &: $(WASM2C) $(LIBDIR)/Dist/bin/ruby
 	mkdir -p $(OUTDIR)/ruby
 	echo '$(RUBY_NUM_OUTPUTS)' > $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt
-	echo '$(TARGET)' > $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt
+	echo '$(WASI_TARGET)' > $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt
 	$(WASM2C) $(LIBDIR)/Dist/bin/ruby -n ruby --num-outputs=$(RUBY_NUM_OUTPUTS) -o $(OUTDIR)/ruby/mkxp-sandbox-ruby.c
 	# Find all the function types declared using `FUNC_TYPE_DECL_EXTERN_T` and redeclare them as macros to fix the "initializer element is not constant" compilation error that occurs when using GCC versions earlier than 8.1.0
 	rm -f $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h
@@ -158,14 +158,14 @@ $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sandbox-bindgen/mkx
 $(LIBDIR)/tags: $(LIBDIR)/tags.c
 	$(CTAGS) --fields=kS --kinds-c=epx -o $(LIBDIR)/tags $(LIBDIR)/tags.c
 
-$(LIBDIR)/tags.c: $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.h
+$(LIBDIR)/tags.c: $(DOWNLOADS)/ruby/.ext/include/$(WASI_TARGET)/ruby/config.h
 	mkdir -p $(LIBDIR)
-	echo -e '#include <ruby.h>\n#include <ruby/encoding.h>' | $(WASI_CC) -E -I$(DOWNLOADS)/ruby/include -I$(DOWNLOADS)/ruby/.ext/include/$(TARGET) -o $(LIBDIR)/tags.c -
+	echo -e '#include <ruby.h>\n#include <ruby/encoding.h>' | $(WASI_CC) -E -I$(DOWNLOADS)/ruby/include -I$(DOWNLOADS)/ruby/.ext/include/$(WASI_TARGET) -o $(LIBDIR)/tags.c -
 
-$(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/$(TARGET)/ruby/config.h $(DOWNLOADS)/ruby/BSDL $(DOWNLOADS)/ruby/COPYING $(DOWNLOADS)/ruby/COPYING.ja &: $(DOWNLOADS)/ruby/configure $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a
+$(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/$(WASI_TARGET)/ruby/config.h $(DOWNLOADS)/ruby/BSDL $(DOWNLOADS)/ruby/COPYING $(DOWNLOADS)/ruby/COPYING.ja &: $(DOWNLOADS)/ruby/configure $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a
 	cd $(DOWNLOADS)/ruby && ./configure \
 		--prefix=/Dist \
-		--host $(TARGET) \
+		--host $(WASI_TARGET) \
 		--build $(shell $(RUBY) -e 'puts(RbConfig::CONFIG["host"])') \
 		--with-static-linked-ext \
 		--with-ext=$(RUBY_EXTS) \
@@ -299,7 +299,7 @@ $(LIBDIR)/usr/local/lib/libyaml.a: $(DOWNLOADS)/libyaml/Makefile
 	cd $(DOWNLOADS)/libyaml && $(MAKE) install DESTDIR=$(LIBDIR)
 
 $(DOWNLOADS)/libyaml/Makefile: $(DOWNLOADS)/libyaml/configure
-	cd $(DOWNLOADS)/libyaml && ./configure --host $(TARGET) $(WASI_TOOLCHAIN) CFLAGS='$(WASI_CFLAGS)' CXXFLAGS='$(WASI_CXXFLAGS)' LDFLAGS='$(WASI_LDFLAGS)'
+	cd $(DOWNLOADS)/libyaml && ./configure --host $(WASI_TARGET) $(WASI_TOOLCHAIN) CFLAGS='$(WASI_CFLAGS)' CXXFLAGS='$(WASI_CXXFLAGS)' LDFLAGS='$(WASI_LDFLAGS)'
 
 $(DOWNLOADS)/libyaml/configure: $(DOWNLOADS)/libyaml/configure.ac
 	cd $(DOWNLOADS)/libyaml && $(AUTORECONF) -i
