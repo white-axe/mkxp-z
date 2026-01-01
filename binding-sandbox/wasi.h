@@ -326,6 +326,9 @@ struct wasi_instance {
     // List of vacant WASI file descriptors so that we can reallocate vacant WASI file descriptors quickly.
     boost::container::priority_deque<uint32_t> vacant_fds;
 
+    // Line buffer for standard output and standard error, respectively.
+    std::string stdio_line_buffers[2];
+
     uint64_t monotonic_clock_start_time;
 
     uint64_t prng_state;

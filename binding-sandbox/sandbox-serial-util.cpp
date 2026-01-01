@@ -443,10 +443,6 @@ template <> bool mkxp_sandbox::sandbox_deserialize(std::string &value, const voi
     value.resize(size);
     char *str = &value[0];
     std::memcpy(str, data, size);
-    if (std::strlen(str) != size) {
-        value.clear();
-        return false;
-    }
     ADVANCE(size);
     return true;
 }

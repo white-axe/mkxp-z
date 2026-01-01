@@ -211,6 +211,10 @@ wasm_ptr_t wasi_instance::cabi_alloc_impl(wasm_size_t alignment, wasm_size_t siz
 }
 
 bool wasi_instance::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const {
+    for (size_t i = 0; i < 2; ++i) {
+        if (!::sandbox_serialize(stdio_line_buffers[i], data, max_size)) return false;
+    }
+
     if (!::sandbox_serialize(monotonic_clock_start_time, data, max_size)) return false;
 
     if (!::sandbox_serialize(prng_state, data, max_size)) return false;
@@ -282,6 +286,10 @@ bool wasi_instance::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &ma
 }
 
 bool wasi_instance::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size) {
+    for (size_t i = 0; i < 2; ++i) {
+        if (!::sandbox_deserialize(stdio_line_buffers[i], data, max_size)) return false;
+    }
+
     if (!::sandbox_deserialize(monotonic_clock_start_time, data, max_size)) return false;
 
     if (!::sandbox_deserialize(prng_state, data, max_size)) return false;
@@ -1167,11 +1175,23 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_pwrite(struct w2c_wasi__snap
                     iovs += 8;
                     --iovs_len;
                 }
-                std::string line;
-                std::istringstream stream(buf);
-                while (std::getline(stream, line)) {
-                    mkxp_retro::log_printf(wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? RETRO_LOG_INFO : RETRO_LOG_ERROR, wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? "[mkxp-z stdout] %s\n" : "[mkxp-z stderr] %s\n", line.c_str());
+                std::string &line_buffer = wasi->stdio_line_buffers[wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? 0 : 1];
+                size_t line_start_index = 0, i = 0;
+                for (char c : buf) {
+                    if (c == '\n') {
+                        mkxp_retro::log_printf(
+                            wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? RETRO_LOG_INFO : RETRO_LOG_ERROR,
+                            wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? "[mkxp-z stdout] %.*s\n" : "[mkxp-z stderr] %.*s\n",
+                            std::min(line_buffer.length() + (i - line_start_index), (size_t)INT_MAX),
+                            line_buffer.empty() ? buf.data() + line_start_index : line_buffer.append(buf.data() + line_start_index, i - line_start_index).c_str()
+                        );
+                        line_buffer.clear();
+                        line_start_index = i + 1;
+                    }
+                    ++i;
                 }
+                line_buffer.clear();
+                line_buffer.append(buf.begin() + line_start_index, buf.end());
                 wasi->ref<uint32_t>(result) = size;
                 return WASIP1_ESUCCESS;
             }
@@ -3459,21 +3479,33 @@ extern "C" void w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0_0x5Bmethod0x5Doutput0x2
         case wasi_fd_type::STDOUT:
         case wasi_fd_type::STDERR:
             {
-                std::istringstream stream;
 #ifdef MKXPZ_BIG_ENDIAN
+                std::string buf;
                 if (contents_len > 0) {
                     std::reverse(&wasi->ref<char>(contents) - (contents_len - 1), &wasi->ref<char>(contents) - 1);
-                    std::string buf(&wasi->ref<char>(contents) - (contents_len - 1), contents_len);
+                    buf.append(&wasi->ref<char>(contents) - (contents_len - 1), contents_len);
                     std::reverse(&wasi->ref<char>(contents) - (contents_len - 1), &wasi->ref<char>(contents) - 1);
-                    stream = std::istringstream(buf);
                 }
+                const char *str = buf.data();
 #else
-                stream = std::istringstream(std::string(&wasi->ref<char>(contents), contents_len));
+                const char *str = &wasi->ref<char>(contents);
 #endif // MKXPZ_BIG_ENDIAN
-                std::string line;
-                while (std::getline(stream, line)) {
-                    mkxp_retro::log_printf(wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? RETRO_LOG_INFO : RETRO_LOG_ERROR, wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? "[mkxp-z stdout] %s\n" : "[mkxp-z stderr] %s\n", line.c_str());
+                std::string &line_buffer = wasi->stdio_line_buffers[wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? 0 : 1];
+                size_t line_start_index = 0;
+                for (size_t i = 0; i < contents_len; ++i) {
+                    if (str[i] == '\n') {
+                        mkxp_retro::log_printf(
+                            wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? RETRO_LOG_INFO : RETRO_LOG_ERROR,
+                            wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? "[mkxp-z stdout] %.*s\n" : "[mkxp-z stderr] %.*s\n",
+                            std::min(line_buffer.length() + (i - line_start_index), (size_t)INT_MAX),
+                            line_buffer.empty() ? str + line_start_index : line_buffer.append(str + line_start_index, i - line_start_index).c_str()
+                        );
+                        line_buffer.clear();
+                        line_start_index = i + 1;
+                    }
                 }
+                line_buffer.clear();
+                line_buffer.append(str + line_start_index, contents_len - line_start_index);
                 wasi->ref<uint8_t>(result) = false;
                 return;
             }
@@ -3574,11 +3606,23 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_write(struct w2c_wasi__snaps
                     iovs += 8;
                     --iovs_len;
                 }
-                std::string line;
-                std::istringstream stream(buf);
-                while (std::getline(stream, line)) {
-                    mkxp_retro::log_printf(wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? RETRO_LOG_INFO : RETRO_LOG_ERROR, wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? "[mkxp-z stdout] %s\n" : "[mkxp-z stderr] %s\n", line.c_str());
+                std::string &line_buffer = wasi->stdio_line_buffers[wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? 0 : 1];
+                size_t line_start_index = 0, i = 0;
+                for (char c : buf) {
+                    if (c == '\n') {
+                        mkxp_retro::log_printf(
+                            wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? RETRO_LOG_INFO : RETRO_LOG_ERROR,
+                            wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? "[mkxp-z stdout] %.*s\n" : "[mkxp-z stderr] %.*s\n",
+                            std::min(line_buffer.length() + (i - line_start_index), (size_t)INT_MAX),
+                            line_buffer.empty() ? buf.data() + line_start_index : line_buffer.append(buf.data() + line_start_index, i - line_start_index).c_str()
+                        );
+                        line_buffer.clear();
+                        line_start_index = i + 1;
+                    }
+                    ++i;
                 }
+                line_buffer.clear();
+                line_buffer.append(buf.begin() + line_start_index, buf.end());
                 wasi->ref<uint32_t>(result) = size;
                 return WASIP1_ESUCCESS;
             }
