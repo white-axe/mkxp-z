@@ -1190,8 +1190,9 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_pwrite(struct w2c_wasi__snap
                     }
                     ++i;
                 }
-                line_buffer.clear();
-                line_buffer.append(buf.begin() + line_start_index, buf.end());
+                if ((wasm_ptr_t)line_buffer.size() + (wasm_ptr_t)(buf.size() - line_start_index) >= (wasm_ptr_t)line_buffer.size()) {
+                    line_buffer.append(buf.begin() + line_start_index, buf.end());
+                }
                 wasi->ref<uint32_t>(result) = size;
                 return WASIP1_ESUCCESS;
             }
@@ -3504,8 +3505,9 @@ extern "C" void w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0_0x5Bmethod0x5Doutput0x2
                         line_start_index = i + 1;
                     }
                 }
-                line_buffer.clear();
-                line_buffer.append(str + line_start_index, contents_len - line_start_index);
+                if ((wasm_ptr_t)line_buffer.size() + (wasm_ptr_t)(contents_len - line_start_index) >= (wasm_ptr_t)line_buffer.size()) {
+                    line_buffer.append(str + line_start_index, contents_len - line_start_index);
+                }
                 wasi->ref<uint8_t>(result) = false;
                 return;
             }
@@ -3621,8 +3623,9 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_write(struct w2c_wasi__snaps
                     }
                     ++i;
                 }
-                line_buffer.clear();
-                line_buffer.append(buf.begin() + line_start_index, buf.end());
+                if ((wasm_ptr_t)line_buffer.size() + (wasm_ptr_t)(buf.size() - line_start_index) >= (wasm_ptr_t)line_buffer.size()) {
+                    line_buffer.append(buf.begin() + line_start_index, buf.end());
+                }
                 wasi->ref<uint32_t>(result) = size;
                 return WASIP1_ESUCCESS;
             }
