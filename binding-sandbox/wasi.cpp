@@ -26,7 +26,6 @@
 #include <cstring>
 #include <functional>
 #include <random>
-#include <sstream>
 #include <utility>
 #include <mkxp-sandbox-ruby.h>
 #include "filesystem.h"
@@ -92,6 +91,9 @@ wasi_instance::wasi_instance(std::shared_ptr<struct w2c_ruby> ruby) : ruby(ruby)
     std::memset(prng_buffer, 0, 4);
 
     // Initialize WASI file descriptor table
+#if MKXPZ_WASI_VERSION_MAJOR > 0 || MKXPZ_WASI_VERSION_MINOR >= 2
+    fdtable.push_back({nullptr, wasi_fd_type::STDIN}); // Push a dummy file descriptor as FD 0 when targeting WASI preview 2 and later because resource 0 is considered to be null
+#endif
     fdtable.push_back({nullptr, wasi_fd_type::STDIN});
     fdtable.push_back({nullptr, wasi_fd_type::STDOUT});
     fdtable.push_back({nullptr, wasi_fd_type::STDERR});
@@ -497,17 +499,20 @@ extern "C" void w2c_wasi__snapshot__preview1_proc_exit(struct w2c_wasi__snapshot
 
 extern "C" wasm_resource_t w2c_wasi0x3Acli0x2Fstdin0x4000x2E20x2E0_get0x2Dstdin(struct w2c_wasi0x3Acli0x2Fstdin0x4000x2E20x2E0 *wasi) {
     LOG_PRINT(RETRO_LOG_DEBUG, "wasi:cli/stdin@0.2.0::get-stdin()\n");
-    return 0;
+    LOG_PRINT(RETRO_LOG_DEBUG, "WASI resource created: output-stream(1) -> standard input stream\n");
+    return 1;
 }
 
 extern "C" wasm_resource_t w2c_wasi0x3Acli0x2Fstdout0x4000x2E20x2E0_get0x2Dstdout(struct w2c_wasi0x3Acli0x2Fstdout0x4000x2E20x2E0 *wasi) {
     LOG_PRINT(RETRO_LOG_DEBUG, "wasi:cli/stdout@0.2.0::get-stdout()\n");
-    return 1;
+    LOG_PRINT(RETRO_LOG_DEBUG, "WASI resource created: output-stream(2) -> standard output stream\n");
+    return 2;
 }
 
 extern "C" wasm_resource_t w2c_wasi0x3Acli0x2Fstderr0x4000x2E20x2E0_get0x2Dstderr(struct w2c_wasi0x3Acli0x2Fstderr0x4000x2E20x2E0 *wasi) {
     LOG_PRINT(RETRO_LOG_DEBUG, "wasi:cli/stderr@0.2.0::get-stderr()\n");
-    return 2;
+    LOG_PRINT(RETRO_LOG_DEBUG, "WASI resource created: output-stream(3) -> standard error stream\n");
+    return 3;
 }
 
 extern "C" void w2c_wasi0x3Acli0x2Fterminal0x2Dstdin0x4000x2E20x2E0_get0x2Dterminal0x2Dstdin(struct w2c_wasi0x3Acli0x2Fterminal0x2Dstdin0x4000x2E20x2E0 *wasi, wasm_ptr_t result) {
@@ -523,8 +528,9 @@ extern "C" void w2c_wasi0x3Acli0x2Fterminal0x2Dstdout0x4000x2E20x2E0_get0x2Dterm
 
     wasi->check_bounds(result, 8);
 
+    LOG_PRINT(RETRO_LOG_DEBUG, "WASI resource created: terminal-output(2) -> standard output terminal\n");
     wasi->ref<uint8_t>(result) = true;
-    wasi->ref<wasm_resource_t>(result + 4) = 1;
+    wasi->ref<wasm_resource_t>(result + 4) = 2;
 }
 
 extern "C" void w2c_wasi0x3Acli0x2Fterminal0x2Dstderr0x4000x2E20x2E0_get0x2Dterminal0x2Dstderr(struct w2c_wasi0x3Acli0x2Fterminal0x2Dstderr0x4000x2E20x2E0 *wasi, wasm_ptr_t result) {
@@ -532,8 +538,9 @@ extern "C" void w2c_wasi0x3Acli0x2Fterminal0x2Dstderr0x4000x2E20x2E0_get0x2Dterm
 
     wasi->check_bounds(result, 8);
 
+    LOG_PRINT(RETRO_LOG_DEBUG, "WASI resource created: terminal-output(3) -> standard error terminal\n");
     wasi->ref<uint8_t>(result) = true;
-    wasi->ref<wasm_resource_t>(result + 4) = 2;
+    wasi->ref<wasm_resource_t>(result + 4) = 3;
 }
 
 extern "C" void w2c_wasi0x3Acli0x2Fterminal0x2Dinput0x4000x2E20x2E0_0x5Bresource0x2Ddrop0x5Dterminal0x2Dinput(struct w2c_wasi0x3Acli0x2Fterminal0x2Dinput0x4000x2E20x2E0 *wasi, wasm_resource_t self) {
@@ -601,7 +608,8 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_clock_res_get(struct w2c_wasi__
 
 extern "C" wasm_resource_t w2c_wasi0x3Aclocks0x2Fmonotonic0x2Dclock0x4000x2E20x2E0_subscribe0x2Dduration(struct w2c_wasi0x3Aclocks0x2Fmonotonic0x2Dclock0x4000x2E20x2E0 *wasi, uint64_t when) {
     LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:clocks/monotonic-clock@0.2.0::subscribe-duration(%llu)\n", (unsigned long long)when);
-    return 0;
+    LOG_PRINTF(RETRO_LOG_DEBUG, "WASI resource created: pollable(%u) -> monotonic clock\n", (unsigned int)-1);
+    return -1;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -650,6 +658,11 @@ template <bool is_write_stream, bool seek_to_end> static void open_stream_impl(s
             }
             uint32_t stream_fd = wasi->allocate_file_descriptor(wasi_fd_type::FSFILESTREAM, new fs_file_stream {offset, fd});
             wasi->fdtable[fd].file_handle()->streams.insert(stream_fd);
+            if (is_write_stream) {
+                LOG_PRINTF(RETRO_LOG_DEBUG, "WASI resource created: output-stream(%u) -> file descriptor %u \"%s\"\n", (unsigned int)stream_fd, (unsigned int)fd, wasi->fdtable[fd].file_handle()->file.path());
+            } else {
+                LOG_PRINTF(RETRO_LOG_DEBUG, "WASI resource created: input-stream(%u) -> file descriptor %u \"%s\"\n", (unsigned int)stream_fd, (unsigned int)fd, wasi->fdtable[fd].file_handle()->file.path());
+            }
             wasi->ref<uint8_t>(result) = false;
             wasi->ref<wasm_resource_t>(result + 4) = stream_fd;
             return;
@@ -1291,8 +1304,10 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
                     (void *)&deque
                 );
                 if (success) {
+                    wasm_resource_t dirstream = wasi->allocate_file_descriptor(wasi_fd_type::FSDIRSTREAM, new fs_dir_stream {std::move(deque)});
+                    LOG_PRINTF(RETRO_LOG_DEBUG, "WASI resource created: directory-entry-stream(%u) -> directory descriptor %u \"%s\"\n", (unsigned int)dirstream, (unsigned int)fd, wasi->fdtable[fd].dir_handle()->path.c_str());
                     wasi->ref<uint8_t>(result) = false;
-                    wasi->ref<wasm_resource_t>(result + 4) = wasi->allocate_file_descriptor(wasi_fd_type::FSDIRSTREAM, new fs_dir_stream {std::move(deque)});
+                    wasi->ref<wasm_resource_t>(result + 4) = dirstream;
                 } else {
                     wasi->ref<uint8_t>(result) = true;
                     wasi->ref<uint8_t>(result + 4) = WASI_FILESYSTEM_ERROR_NO_ENTRY;
@@ -2085,6 +2100,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
 
                 std::pair<uint32_t, enum PHYSFS_ErrorCode> open_result = open_impl(wasi, fd, joined_path, exists, stat.filetype == PHYSFS_FILETYPE_DIRECTORY, truncate, needs_read, needs_write, false);
                 if (open_result.second == PHYSFS_ERR_OK) {
+                    LOG_PRINTF(RETRO_LOG_DEBUG, "WASI resource created: descriptor(%u) -> %s \"%s\"\n", (unsigned int)open_result.first, stat.filetype == PHYSFS_FILETYPE_DIRECTORY ? "directory" : "file", joined_path.c_str());
                     wasi->ref<uint8_t>(result) = false;
                     wasi->ref<wasm_resource_t>(result + 4) = open_result.first;
                 } else {
@@ -2174,6 +2190,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_open(struct w2c_wasi__snap
 
                 std::pair<uint32_t, enum PHYSFS_ErrorCode> open_result = open_impl(wasi, fd, joined_path, exists, stat.filetype == PHYSFS_FILETYPE_DIRECTORY, truncate, needs_read, needs_write, true);
                 if (open_result.second == PHYSFS_ERR_OK) {
+                    LOG_PRINTF(RETRO_LOG_DEBUG, "WASI resource created: fd(%u) -> %s \"%s\"\n", (unsigned int)open_result.first, stat.filetype == PHYSFS_FILETYPE_DIRECTORY ? "directory" : "file", joined_path.c_str());
                     wasi->ref<uint32_t>(result) = open_result.first;
                     return WASIP1_ESUCCESS;
                 } else {
@@ -3052,6 +3069,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Fpreopens0x4000x2E20x2E0_get0x2Ddirecto
     wasm_size_t i = 0;
     for (const struct wasi_file_entry &entry : wasi->fdtable) {
         if (entry.type == wasi_fd_type::FS) {
+            LOG_PRINTF(RETRO_LOG_DEBUG, "WASI resource created: descriptor(%u) -> preopened directory \"%s\"\n", (unsigned int)i, entry.dir_handle()->path.c_str());
             wasi->ref<wasm_resource_t>(buf) = i;
             buf += sizeof(wasm_ptr_t);
 
@@ -3371,7 +3389,8 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_tell(struct w2c_wasi__snapsh
 
 extern "C" wasm_resource_t w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0_0x5Bmethod0x5Dinput0x2Dstream0x2Esubscribe(struct w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0 *wasi, wasm_resource_t fd) {
     LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:io/streams@0.2.0::[method]input-stream.subscribe(%u)\n", (unsigned int)fd);
-    return 0;
+    LOG_PRINTF(RETRO_LOG_DEBUG, "WASI resource created: pollable(%u) -> input stream %u\n", (unsigned int)fd, (unsigned int)fd);
+    return fd;
 }
 
 static void close_stream_impl(struct wasi_instance *wasi, uint32_t fd) {
@@ -3730,7 +3749,8 @@ extern "C" void w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0_0x5Bmethod0x5Doutput0x2
 
 extern "C" wasm_resource_t w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0_0x5Bmethod0x5Doutput0x2Dstream0x2Esubscribe(struct w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0 *wasi, wasm_resource_t fd) {
     LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:io/streams@0.2.0::[method]output-stream.subscribe(%u)\n", (unsigned int)fd);
-    return 0;
+    LOG_PRINTF(RETRO_LOG_DEBUG, "WASI resource created: pollable(%u) -> output stream %u\n", (unsigned int)fd, (unsigned int)fd);
+    return fd;
 }
 
 extern "C" void w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0_0x5Bresource0x2Ddrop0x5Doutput0x2Dstream(struct w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0 *wasi, wasm_resource_t fd) {
