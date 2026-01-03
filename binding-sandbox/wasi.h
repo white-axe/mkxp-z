@@ -329,8 +329,6 @@ struct wasi_instance {
     // Line buffer for standard output and standard error, respectively.
     std::string stdio_line_buffers[2];
 
-    uint64_t monotonic_clock_start_time;
-
     uint64_t prng_state;
     uint8_t prng_buffer[4];
     uint32_t prng_buffer_size;

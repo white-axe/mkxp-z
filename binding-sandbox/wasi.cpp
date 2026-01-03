@@ -79,9 +79,6 @@ struct fs_file_stream *wasi_file_entry::file_stream() const noexcept {
 }
 
 wasi_instance::wasi_instance(std::shared_ptr<struct w2c_ruby> ruby) : ruby(ruby), prng_buffer_size(0) {
-    // Initialize monotonic clock
-    monotonic_clock_start_time = mkxp_retro::perf.get_time_usec != nullptr ? (uint64_t)mkxp_retro::perf.get_time_usec() : 0;
-
     // Initialize PRNG
     static_assert(sizeof(unsigned int) == sizeof(uint32_t), "unsigned int should be 32 bits");
     static std::random_device dev;
@@ -217,8 +214,6 @@ bool wasi_instance::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &ma
         if (!::sandbox_serialize(stdio_line_buffers[i], data, max_size)) return false;
     }
 
-    if (!::sandbox_serialize(monotonic_clock_start_time, data, max_size)) return false;
-
     if (!::sandbox_serialize(prng_state, data, max_size)) return false;
     if (max_size < 4) return false;
     std::memcpy(data, prng_buffer, 4);
@@ -291,8 +286,6 @@ bool wasi_instance::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_si
     for (size_t i = 0; i < 2; ++i) {
         if (!::sandbox_deserialize(stdio_line_buffers[i], data, max_size)) return false;
     }
-
-    if (!::sandbox_deserialize(monotonic_clock_start_time, data, max_size)) return false;
 
     if (!::sandbox_deserialize(prng_state, data, max_size)) return false;
     if (max_size < 4) return false;
@@ -557,7 +550,7 @@ extern "C" void w2c_wasi0x3Acli0x2Fterminal0x2Doutput0x4000x2E20x2E0_0x5Bresourc
 
 extern "C" uint64_t w2c_wasi0x3Aclocks0x2Fmonotonic0x2Dclock0x4000x2E20x2E0_now(struct w2c_wasi0x3Aclocks0x2Fmonotonic0x2Dclock0x4000x2E20x2E0 *wasi) {
     LOG_PRINT(RETRO_LOG_DEBUG, "wasi:clocks/monotonic-clock@0.2.0::now()\n");
-    return mkxp_retro::perf.get_time_usec != nullptr ? ((uint64_t)mkxp_retro::perf.get_time_usec() - wasi->monotonic_clock_start_time) * (uint64_t)1000 : (uint64_t)0;
+    return mkxp_retro::get_ticks_us() * (uint64_t)1000;
 }
 
 extern "C" void w2c_wasi0x3Aclocks0x2Fwall0x2Dclock0x4000x2E20x2E0_now(struct w2c_wasi0x3Aclocks0x2Fwall0x2Dclock0x4000x2E20x2E0 *wasi, wasm_ptr_t result) {
@@ -578,7 +571,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_clock_time_get(struct w2c_wasi_
     if (id == 0) {
         wasi->ref<uint64_t>(result) = mkxp_retro::perf.get_time_usec != nullptr ? (uint64_t)mkxp_retro::perf.get_time_usec() * (uint64_t)1000 : (uint64_t)0;
     } else {
-        wasi->ref<uint64_t>(result) = mkxp_retro::perf.get_time_usec != nullptr ? ((uint64_t)mkxp_retro::perf.get_time_usec() - (uint64_t)wasi->monotonic_clock_start_time) * (uint64_t)1000 : (uint64_t)0;
+        wasi->ref<uint64_t>(result) = mkxp_retro::get_ticks_us() * (uint64_t)1000;
     }
     return WASIP1_ESUCCESS;
 }
