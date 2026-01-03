@@ -760,7 +760,7 @@ struct InputPrivate
 
     void updateDir8()
     {
-        static const int combos[4][4] =
+        static const uint8_t combos[4][4] =
         {
             { 8, 0, 7, 9 },
             { 0, 2, 1, 3 },
@@ -775,7 +775,7 @@ struct InputPrivate
             if (!(joypadState & (1 << (RETRO_DEVICE_ID_JOYPAD_UP + i))))
                 continue;
 
-            for (int j = 0; j < 3; ++j)
+            for (size_t j = 0; j < 3; ++j)
             {
                 uint8_t other = otherDirs[i][j];
 
@@ -786,7 +786,7 @@ struct InputPrivate
                 return;
             }
 
-            dir8 = RETRO_DEVICE_ID_JOYPAD_UP + i;
+            dir8 = combos[i][i];
             return;
         }
     }
