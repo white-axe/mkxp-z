@@ -34,12 +34,13 @@ SANDBOX_DEF_ALLOC(font_type);
 struct collect_strings : boost::asio::coroutine {
     typedef decl_slots<wasm_ptr_t, wasm_size_t, wasm_size_t, VALUE, VALUE> slots;
 
-    void operator()(VALUE obj, std::vector<std::string> &out) {
+    void operator()(VALUE obj) {
         BOOST_ASIO_CORO_REENTER (this) {
+            sb().font_names_buffer.clear();
             SANDBOX_AWAIT_S(3, rb_obj_is_kind_of, obj, sb()->rb_cString());
             if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(3))) {
                 SANDBOX_AWAIT_S(0, rb_string_value_cstr, &obj);
-                out.push_back((const char *)sb()->str(SANDBOX_SLOT(0)));
+                sb().font_names_buffer.push_back((const char *)sb()->str(SANDBOX_SLOT(0)));
             } else {
                 SANDBOX_AWAIT_S(3, rb_obj_is_kind_of, obj, sb()->rb_cArray());
                 if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(3))) {
@@ -50,7 +51,7 @@ struct collect_strings : boost::asio::coroutine {
                         SANDBOX_AWAIT_S(3, rb_obj_is_kind_of, SANDBOX_SLOT(4), sb()->rb_cString());
                         if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(3))) {
                             SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(4));
-                            out.push_back((const char *)sb()->str(SANDBOX_SLOT(0)));
+                            sb().font_names_buffer.push_back((const char *)sb()->str(SANDBOX_SLOT(0)));
                         }
                     }
                 }
@@ -76,7 +77,7 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     }
                 } else if (argc == 1) {
                     SANDBOX_SLOT(0) = sb()->ref<VALUE>(argv, 0);
-                    SANDBOX_AWAIT(collect_strings, SANDBOX_SLOT(0), sb().font_names_buffer);
+                    SANDBOX_AWAIT(collect_strings, SANDBOX_SLOT(0));
                     if (has_private_data<Font>(self)) {
                         Font *f = new Font(&sb().font_names_buffer);
                         *get_private_data<Font>(self) = *f;
@@ -87,7 +88,7 @@ static VALUE initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 } else {
                     SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
                     SANDBOX_SLOT(0) = sb()->ref<VALUE>(argv, 0);
-                    SANDBOX_AWAIT(collect_strings, SANDBOX_SLOT(0), sb().font_names_buffer);
+                    SANDBOX_AWAIT(collect_strings, SANDBOX_SLOT(0));
                     if (has_private_data<Font>(self)) {
                         Font *f = new Font(&sb().font_names_buffer, SANDBOX_SLOT(1));
                         *get_private_data<Font>(self) = *f;
@@ -156,13 +157,10 @@ static VALUE get_name(VALUE self) {
 
 static VALUE set_name(VALUE self, VALUE value) {
     struct coro : boost::asio::coroutine {
-        std::vector<std::string> *names;
-
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
-                names = new std::vector<std::string>;
-                SANDBOX_AWAIT(collect_strings, value, *names);
-                get_private_data<Font>(self)->setName(*names);
+                SANDBOX_AWAIT(collect_strings, value);
+                get_private_data<Font>(self)->setName(sb().font_names_buffer);
                 SANDBOX_AWAIT(rb_iv_set, self, "name", value);
             }
 
@@ -170,7 +168,7 @@ static VALUE set_name(VALUE self, VALUE value) {
         }
 
         void end() noexcept {
-            delete names;
+            sb().font_names_buffer.clear();
         }
     };
 
@@ -210,13 +208,10 @@ static VALUE get_default_name(VALUE self) {
 
 static VALUE set_default_name(VALUE self, VALUE value) {
     struct coro : boost::asio::coroutine {
-        std::vector<std::string> *names;
-
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
-                names = new std::vector<std::string>;
-                SANDBOX_AWAIT(collect_strings, value, *names);
-                Font::setDefaultName(*names, shState->fontState());
+                SANDBOX_AWAIT(collect_strings, value);
+                Font::setDefaultName(sb().font_names_buffer, shState->fontState());
                 SANDBOX_AWAIT(rb_iv_set, self, "default_name", value);
             }
 
@@ -224,7 +219,7 @@ static VALUE set_default_name(VALUE self, VALUE value) {
         }
 
         void end() noexcept {
-            delete names;
+            sb().font_names_buffer.clear();
         }
     };
 
