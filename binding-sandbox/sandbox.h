@@ -64,6 +64,7 @@ namespace mkxp_sandbox {
         struct retro_device_power device_power;
         std::string convert_string_buffer;
         bool transitioning;
+        std::vector<std::pair<uint32_t, std::string>> cheats;
         inline struct mkxp_sandbox::bindings &operator*() noexcept { return *bindings; }
         inline struct mkxp_sandbox::bindings *operator->() noexcept { return &*bindings; }
         sandbox();

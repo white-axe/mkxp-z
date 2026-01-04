@@ -25,6 +25,11 @@
 #include "binding-util.h"
 
 namespace mkxp_sandbox {
+    struct eval_script : boost::asio::coroutine {
+        typedef decl_slots<VALUE> slots;
+        VALUE operator()(VALUE string, VALUE filename);
+    };
+
     struct sandbox_binding_init : boost::asio::coroutine {
         typedef decl_slots<VALUE> slots;
         void operator()();

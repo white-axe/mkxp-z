@@ -129,6 +129,7 @@ namespace mkxp_sandbox {
     template <typename T> typename std::enable_if<std::is_enum<T>::value, bool>::type sandbox_serialize(T value, void *&data, wasm_size_t &max_size);
     template <typename T> typename std::enable_if<!std::is_same<T, bool>::value && !std::is_enum<T>::value && std::is_arithmetic<T>::value, bool>::type sandbox_serialize(T value, void *&data, wasm_size_t &max_size);
     template <typename T> bool sandbox_serialize(const std::vector<T> &value, void *&data, wasm_size_t &max_size);
+    template <typename T, typename U> bool sandbox_serialize(const std::pair<T, U> &value, void *&data, wasm_size_t &max_size);
     template <typename T> typename std::enable_if<std::is_same<T, char>::value, bool>::type sandbox_serialize(const T *value, void *&data, wasm_size_t &max_size);
     template <typename T> typename std::enable_if<std::is_class<T>::value, bool>::type sandbox_serialize(const T *value, void *&data, wasm_size_t &max_size);
     template <typename T> typename std::enable_if<std::is_class<T>::value && boost::is_detected<sandbox_serialize_member_declaration, T>::value, bool>::type sandbox_serialize(const T &value, void *&data, wasm_size_t &max_size);
@@ -138,6 +139,7 @@ namespace mkxp_sandbox {
     template <typename T> typename std::enable_if<!std::is_const<T>::value && std::is_enum<T>::value, bool>::type sandbox_deserialize(T &value, const void *&data, wasm_size_t &max_size);
     template <typename T> typename std::enable_if<!std::is_const<T>::value && !std::is_same<T, bool>::value && !std::is_enum<T>::value && std::is_arithmetic<T>::value, bool>::type sandbox_deserialize(T &value, const void *&data, wasm_size_t &max_size);
     template <typename T> typename std::enable_if<!std::is_const<T>::value, bool>::type sandbox_deserialize(std::vector<T> &value, const void *&data, wasm_size_t &max_size);
+    template <typename T, typename U> typename std::enable_if<!std::is_const<T>::value && !std::is_const<U>::value, bool>::type sandbox_deserialize(std::pair<T, U> &value, const void *&data, wasm_size_t &max_size);
     template <typename T> typename std::enable_if<!std::is_const<T>::value && std::is_class<T>::value, bool>::type sandbox_deserialize(T *&value, const void *&data, wasm_size_t &max_size);
     template <typename T> typename std::enable_if<!std::is_const<T>::value && std::is_class<T>::value && boost::is_detected<sandbox_deserialize_member_declaration, T>::value, bool>::type sandbox_deserialize(T &value, const void *&data, wasm_size_t &max_size);
     template <typename T> typename std::enable_if<!std::is_const<T>::value && std::is_class<T>::value && !boost::is_detected<sandbox_deserialize_member_declaration, T>::value, bool>::type sandbox_deserialize(T &value, const void *&data, wasm_size_t &max_size);
@@ -272,6 +274,18 @@ namespace mkxp_sandbox {
             if (!sandbox_deserialize(value.back(), data, max_size)) return false;
             --size;
         }
+        return true;
+    }
+
+    template <typename T, typename U> bool sandbox_serialize(const std::pair<T, U> &value, void *&data, wasm_size_t &max_size) {
+        if (!sandbox_serialize(value.first, data, max_size)) return false;
+        if (!sandbox_serialize(value.second, data, max_size)) return false;
+        return true;
+    }
+
+    template <typename T, typename U> typename std::enable_if<!std::is_const<T>::value && !std::is_const<U>::value, bool>::type sandbox_deserialize(std::pair<T, U> &value, const void *&data, wasm_size_t &max_size) {
+        if (!sandbox_deserialize(value.first, data, max_size)) return false;
+        if (!sandbox_deserialize(value.second, data, max_size)) return false;
         return true;
     }
 

@@ -64,7 +64,12 @@
         sb()._begin_yield(); \
         BOOST_ASIO_CORO_YIELD; \
         sb()._end_yield(); \
-    } while (0)
+        if (!sb().cheats.empty()) { \
+            SANDBOX_AWAIT(_sandbox_yield_run_cheat); \
+        } else { \
+            break; \
+        } \
+    } while (1)
 
 #ifdef __GNUC__
 #  define SANDBOX_VALUE_TO_BOOL(value) ({ auto _value = (value); _value != SANDBOX_FALSE && _value != SANDBOX_NIL; })
@@ -503,6 +508,12 @@ namespace mkxp_sandbox {
             return boost::none;
         }
     }
+
+    struct _sandbox_yield_run_cheat : boost::asio::coroutine {
+        typedef decl_slots<VALUE, VALUE, wasm_size_t> slots;
+        void operator()();
+        void end() noexcept;
+    };
 
     // Given a Ruby object `val`, stores the C++ object `ptr` into the private data field of `val`.
     // You can set `ptr` to `nullptr` if you just want to destroy the current object in the private data field,

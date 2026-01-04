@@ -20,7 +20,7 @@
 */
 
 #include "binding-sandbox.h"
-#include "mkxp-polyfill.h" // std::strtol
+#include "mkxp-polyfill.h" // std::strtol, std::to_string
 #include <string>
 #include <libretro.h>
 #include <zlib.h>
@@ -53,45 +53,41 @@ static VALUE top_self;
 static VALUE marshal_module;
 static VALUE win32api_class;
 
-namespace mkxp_sandbox {
-    struct eval_script : boost::asio::coroutine {
-        typedef decl_slots<VALUE> slots;
+static VALUE eval_script_func(VALUE arg) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE, VALUE, ID> slots;
 
-        static VALUE func(VALUE arg) {
-            struct coro : boost::asio::coroutine {
-                typedef decl_slots<VALUE, VALUE, ID> slots;
-
-                VALUE operator()(VALUE arg) {
-                    BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_S(0, rb_ary_entry, arg, 0);
-                        SANDBOX_AWAIT_S(1, rb_ary_entry, arg, 1);
-                        SANDBOX_AWAIT_S(2, rb_intern, "eval");
-                        SANDBOX_AWAIT(rb_funcall, top_self, SANDBOX_SLOT(2), 3, SANDBOX_SLOT(0), SANDBOX_NIL, SANDBOX_SLOT(1));
-                    }
-
-                    return SANDBOX_UNDEF;
-                }
-            };
-
-            return sb()->bind<struct coro>()()(arg);
-        }
-
-        static VALUE rescue(VALUE arg, VALUE exception) {
-            return exception;
-        }
-
-        VALUE operator()(VALUE string, VALUE filename) {
+        VALUE operator()(VALUE arg) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, rb_ary_new_capa, 2);
-                SANDBOX_AWAIT(rb_ary_store, SANDBOX_SLOT(0), 0, string);
-                SANDBOX_AWAIT(rb_ary_store, SANDBOX_SLOT(0), 1, filename);
-                SANDBOX_AWAIT_S(0, rb_rescue2, func, SANDBOX_SLOT(0), rescue, SANDBOX_NIL, reset_class, 0);
+                SANDBOX_AWAIT_S(0, rb_ary_entry, arg, 0);
+                SANDBOX_AWAIT_S(1, rb_ary_entry, arg, 1);
+                SANDBOX_AWAIT_S(2, rb_intern, "eval");
+                SANDBOX_AWAIT(rb_funcall, top_self, SANDBOX_SLOT(2), 3, SANDBOX_SLOT(0), SANDBOX_NIL, SANDBOX_SLOT(1));
             }
 
-            return SANDBOX_SLOT(0);
+            return SANDBOX_UNDEF;
         }
     };
 
+    return sb()->bind<struct coro>()()(arg);
+}
+
+static VALUE eval_script_rescue(VALUE arg, VALUE exception) {
+    return exception;
+}
+
+VALUE eval_script::operator()(VALUE string, VALUE filename) {
+    BOOST_ASIO_CORO_REENTER (this) {
+        SANDBOX_AWAIT_S(0, rb_ary_new_capa, 2);
+        SANDBOX_AWAIT(rb_ary_store, SANDBOX_SLOT(0), 0, string);
+        SANDBOX_AWAIT(rb_ary_store, SANDBOX_SLOT(0), 1, filename);
+        SANDBOX_AWAIT_S(0, rb_rescue2, eval_script_func, SANDBOX_SLOT(0), eval_script_rescue, SANDBOX_NIL, reset_class, 0);
+    }
+
+    return SANDBOX_SLOT(0);
+}
+
+namespace mkxp_sandbox {
     struct run_custom_script : boost::asio::coroutine {
         typedef decl_slots<VALUE, VALUE, ID> slots;
 

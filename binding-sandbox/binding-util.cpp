@@ -20,6 +20,7 @@
 */
 
 #include "binding-util.h"
+#include "binding-sandbox.h"
 #include "core.h"
 #include "sharedstate.h"
 
@@ -27,6 +28,50 @@ using namespace mkxp_sandbox;
 
 void mkxp_sandbox::dfree(wasm_objkey_t key) {
     sb()->destroy_object(key);
+}
+
+static VALUE run_cheat_func(VALUE arg) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE, VALUE> slots;
+
+        VALUE operator()(VALUE arg) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, rb_ary_entry, arg, 0);
+                SANDBOX_AWAIT_S(1, rb_ary_entry, arg, 1);
+                SANDBOX_AWAIT_S(0, eval_script, SANDBOX_SLOT(0), SANDBOX_SLOT(1));
+                if (SANDBOX_SLOT(0) != SANDBOX_UNDEF) {
+                    SANDBOX_AWAIT(rb_exc_raise, SANDBOX_SLOT(0));
+                }
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(arg);
+}
+
+static VALUE run_cheat_rescue(VALUE arg, VALUE exception) {
+    sb()->bind<struct log_backtrace>()()(exception);
+    return SANDBOX_NIL;
+}
+
+void _sandbox_yield_run_cheat::operator()() {
+    BOOST_ASIO_CORO_REENTER (this) {
+        for (SANDBOX_SLOT(2) = 0; SANDBOX_SLOT(2) < sb().cheats.size(); ++SANDBOX_SLOT(2)) {
+            LOG_PRINTF(RETRO_LOG_INFO, "Executing cheat #%u (%llu bytes)\n", sb().cheats[SANDBOX_SLOT(2)].first, (unsigned long long)sb().cheats[SANDBOX_SLOT(2)].second.size());
+            SANDBOX_AWAIT_S(0, rb_ary_new_capa, 2);
+            SANDBOX_AWAIT_S(1, rb_str_new_cstr, ("<cheat #" + std::to_string(sb().cheats[SANDBOX_SLOT(2)].first) + ">").c_str());
+            SANDBOX_AWAIT(rb_ary_store, SANDBOX_SLOT(0), 1, SANDBOX_SLOT(1));
+            SANDBOX_AWAIT_S(1, rb_str_new_cstr, sb().cheats[SANDBOX_SLOT(2)].second.c_str());
+            SANDBOX_AWAIT(rb_ary_store, SANDBOX_SLOT(0), 0, SANDBOX_SLOT(1));
+            SANDBOX_AWAIT(rb_rescue2, run_cheat_func, SANDBOX_SLOT(0), run_cheat_rescue, SANDBOX_NIL, sb()->rb_eException(), 0);
+        }
+    }
+}
+
+void _sandbox_yield_run_cheat::end() noexcept {
+    sb().cheats.clear();
 }
 
 wasm_size_t get_length::operator()(VALUE obj) {

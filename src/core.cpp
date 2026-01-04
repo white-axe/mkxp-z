@@ -1704,6 +1704,7 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     if (!sandbox_serialize(frame_time.load_relaxed(), data, max_size)) return false;
     if (!sandbox_serialize(frame_time_remainder, data, max_size)) return false;
     if (!sandbox_serialize(retro_run_count, data, max_size)) return false;
+    if (!sandbox_serialize(sb().cheats, data, max_size)) return false;
 
     // Write the pseudorandom number generator state and open WASI file descriptors
     if (!sb().sandbox_serialize_wasi(data, max_size)) return false;
@@ -1937,6 +1938,7 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     }
     if (!sandbox_deserialize(frame_time_remainder, data, max_size)) DESER_FAIL;
     if (!sandbox_deserialize(retro_run_count, data, max_size)) DESER_FAIL;
+    if (!sandbox_deserialize(sb().cheats, data, max_size)) DESER_FAIL;
 
     // Read the pseudorandom number generator state and open WASI file descriptors
     if (!sb().sandbox_deserialize_wasi(data, max_size)) DESER_FAIL;
@@ -2239,7 +2241,12 @@ extern "C" RETRO_API void retro_cheat_reset() {
 }
 
 extern "C" RETRO_API void retro_cheat_set(unsigned int index, bool enabled, const char *code) {
-
+    if (!enabled || !mkxp_retro::sandbox.has_value()) {
+        return;
+    }
+    if ((wasm_size_t)sb().cheats.size() + 1 > (wasm_size_t)sb().cheats.size()) {
+        sb().cheats.emplace_back(index, code);
+    }
 }
 
 extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
