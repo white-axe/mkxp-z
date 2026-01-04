@@ -33,7 +33,7 @@ static const struct retro_core_option_v2_category core_option_categories[] = {
     {
         "video",
         "Video",
-        "Configure the game engine's graphics",
+        "Configure the game engine's graphics.",
     },
     {
         "audio",
@@ -58,7 +58,7 @@ static const struct retro_core_option_v2_category core_option_categories[] = {
     {
         "controller",
         "Controller Bindings",
-        "Choose the RetroPad inputs that are mapped to each controller key.",
+        "Choose the RetroPad inputs that are mapped to each controller button.",
     },
     {
         "preload",
