@@ -31,7 +31,7 @@ SYNTAX_TRANSFORM_PATCHES := \
 
 HAVE_SYNTAX_TRANSFORM ?= 1
 
-$(RUBY_SRC)/syntax-transform: $(RUBY_SRC)/configure.ac $(SYNTAX_TRANSFORM_PATCHES)
+$(RUBY_SRC)/syntax-transform: $(RUBY_SRC)/configure.ac
 ifeq ($(HAVE_SYNTAX_TRANSFORM),1)
 ifeq ($(patsubst MINGW%,,$(firstword $(shell uname))),)
 	cd $(RUBY_SRC) && for patch in $(SYNTAX_TRANSFORM_PATCHES); do echo "Applying $$patch"; patch -p1 -i $(PWD)/$$patch || exit 1; done
