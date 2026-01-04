@@ -787,8 +787,9 @@ FileSystem::File::File(FileSystem &fs, const char *read_path, const char *write_
       }
 
       // If the path exists but not in the PhysFS write directory (mounted at "/Save"),
+      // and the file is not opened in truncate mode,
       // copy the file into the PhysFS write directory first
-      if (exists && PHYSFS_exists((std::string("/Save/") + suffix).c_str()) == 0) {
+      if (!truncate && exists && PHYSFS_exists((std::string("/Save/") + suffix).c_str()) == 0) {
         if ((read_handle = PHYSFS_openRead(_path.c_str())) != nullptr) {
           if ((write_handle = PHYSFS_openWrite(suffix)) != nullptr) {
             std::array<uint8_t, 4096> buffer;
@@ -798,9 +799,6 @@ FileSystem::File::File(FileSystem &fs, const char *read_path, const char *write_
               if (n < buffer.size()) {
                 break;
               }
-            }
-            if (truncate) {
-              PHYSFS_seek(write_handle, 0);
             }
           }
           PHYSFS_close(read_handle);
