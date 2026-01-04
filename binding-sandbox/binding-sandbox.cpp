@@ -239,6 +239,96 @@ static VALUE rgss_stop(VALUE self) {
     return sb()->bind<struct coro>()()(self);
 }
 
+static VALUE msgbox(int32_t argc, wasm_ptr_t argv, VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<wasm_ptr_t, VALUE, int32_t> slots;
+
+        VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                for (SANDBOX_SLOT(2) = 0; SANDBOX_SLOT(2) < argc; ++SANDBOX_SLOT(2)) {
+                    SANDBOX_AWAIT_S(1, rb_obj_as_string, sb()->ref<VALUE>(argv, SANDBOX_SLOT(2)));
+                    SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(1));
+                    struct sandbox_str_guard str = sb()->str(SANDBOX_SLOT(0));
+                    LOG_PRINTF(RETRO_LOG_INFO, "[mkxp-z msgbox] %s\n", (const char *)str);
+                    mkxp_retro::display_message(RETRO_LOG_INFO, str);
+                }
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(argc, argv, self);
+}
+
+static VALUE msgbox_p(int32_t argc, wasm_ptr_t argv, VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<wasm_ptr_t, VALUE, int32_t> slots;
+
+        VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                for (SANDBOX_SLOT(2) = 0; SANDBOX_SLOT(2) < argc; ++SANDBOX_SLOT(2)) {
+                    SANDBOX_AWAIT_S(1, rb_inspect, sb()->ref<VALUE>(argv, SANDBOX_SLOT(2)));
+                    SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(1));
+                    struct sandbox_str_guard str = sb()->str(SANDBOX_SLOT(0));
+                    LOG_PRINTF(RETRO_LOG_INFO, "[mkxp-z msgbox] %s\n", (const char *)str);
+                    mkxp_retro::display_message(RETRO_LOG_INFO, str);
+                }
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(argc, argv, self);
+}
+
+static VALUE kernel_caller(VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<wasm_size_t, VALUE, VALUE, VALUE, VALUE, ID> slots;
+
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(5, rb_intern, "_mkxp_kernel_caller_alias");
+                SANDBOX_AWAIT_S(1, rb_funcall, sb()->rb_mKernel(), SANDBOX_SLOT(5), 0);
+
+                SANDBOX_AWAIT_S(2, rb_obj_is_kind_of, SANDBOX_SLOT(1), sb()->rb_cArray());
+                if (!SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(2))) {
+                    return SANDBOX_SLOT(1);
+                }
+
+                SANDBOX_AWAIT_S(0, get_length, SANDBOX_SLOT(1));
+                if (SANDBOX_SLOT(0) < 2) {
+                    return SANDBOX_SLOT(1);
+                }
+
+                /* Remove useless "ruby:1:in 'eval'" */
+                SANDBOX_AWAIT(rb_ary_pop, SANDBOX_SLOT(1));
+
+                /* Also remove trace of this helper function */
+                SANDBOX_AWAIT(rb_ary_shift, SANDBOX_SLOT(1));
+
+                SANDBOX_SLOT(0) -= 2;
+
+                if (SANDBOX_SLOT(0) == 0) {
+                    return SANDBOX_SLOT(1);
+                }
+
+                /* RMXP does this, not sure if specific or 1.8 related */
+                SANDBOX_AWAIT_S(2, rb_ary_entry, SANDBOX_SLOT(1), -1);
+                SANDBOX_AWAIT_S(3, rb_utf8_str_new_cstr, ":in `<main>'");
+                SANDBOX_AWAIT_S(4, rb_utf8_str_new_cstr, "");
+                SANDBOX_AWAIT_S(5, rb_intern, "gsub!");
+                SANDBOX_AWAIT(rb_funcall, SANDBOX_SLOT(2), SANDBOX_SLOT(5), 2, SANDBOX_SLOT(3), SANDBOX_SLOT(4));
+            }
+
+            return SANDBOX_SLOT(1);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
+}
+
 static VALUE delta(VALUE self) {
     struct coro : boost::asio::coroutine {
         typedef decl_slots<double, VALUE> slots;
@@ -602,7 +692,7 @@ void sandbox_binding_init::operator()() {
                             SANDBOX_AWAIT_S(0, rb_proc_new, string_force_utf8, SANDBOX_UNDEF);
                         }
                         SANDBOX_AWAIT_S(1, rb_intern, "_mkxp_load_alias");
-                        SANDBOX_AWAIT_S(0, rb_funcall, self, SANDBOX_SLOT(1), 2, sb()->ref<VALUE>(argv, 0), SANDBOX_SLOT(0));
+                        SANDBOX_AWAIT_S(0, rb_funcall, marshal_module, SANDBOX_SLOT(1), 2, sb()->ref<VALUE>(argv, 0), SANDBOX_SLOT(0));
                     }
 
                     return SANDBOX_SLOT(0);
@@ -623,7 +713,7 @@ void sandbox_binding_init::operator()() {
                 SANDBOX_AWAIT_R(marshal_module, rb_const_get, sb()->rb_cObject(), SANDBOX_SLOT(1));
                 SANDBOX_AWAIT_S(0, rb_singleton_class, marshal_module);
                 SANDBOX_AWAIT(rb_define_alias, SANDBOX_SLOT(0), "_mkxp_load_alias", "load");
-                SANDBOX_AWAIT(rb_define_module_function, SANDBOX_SLOT(0), "load", (VALUE (*)(ANYARGS))marshal_load, -1);
+                SANDBOX_AWAIT(rb_define_module_function, marshal_module, "load", (VALUE (*)(ANYARGS))marshal_load, -1);
             }
         }
     };
@@ -667,8 +757,18 @@ void sandbox_binding_init::operator()() {
             SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "rgss_main", (VALUE (*)(ANYARGS))rgss_main, 0);
             SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "rgss_stop", (VALUE (*)(ANYARGS))rgss_stop, 0);
 
+            SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "msgbox", (VALUE (*)(ANYARGS))msgbox, -1);
+            SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "msgbox_p", (VALUE (*)(ANYARGS))msgbox_p, -1);
+
             SANDBOX_AWAIT_S(0, rb_utf8_str_new_cstr, "3.0.1");
             SANDBOX_AWAIT(rb_define_global_const, "RGSS_VERSION", SANDBOX_SLOT(0));
+        } else {
+            SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "print", (VALUE (*)(ANYARGS))msgbox, -1);
+            SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "p", (VALUE (*)(ANYARGS))msgbox_p, -1);
+
+            SANDBOX_AWAIT_S(0, rb_singleton_class, sb()->rb_mKernel());
+            SANDBOX_AWAIT(rb_define_alias, SANDBOX_SLOT(0), "_mkxp_kernel_caller_alias", "caller");
+            SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "caller", (VALUE (*)(ANYARGS))kernel_caller, 0);
         }
 
         if (rgssVer == 1) {
