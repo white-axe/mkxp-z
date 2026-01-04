@@ -672,7 +672,7 @@ static void set_script_core_option_definition(std::vector<std::string> &key_buff
     definition.info = nullptr;
     definition.info_categorized = nullptr;
     definition.category_key = is_postload ? "postload" : "preload";
-    definition.values[0] = {"default", "Default (disabled)"};
+    definition.values[0] = {"default", "Default (Disabled)"};
     definition.values[1] = {"enabled", "Enabled"};
     definition.values[2] = {"disabled", "Disabled"};
     definition.values[3] = {nullptr, nullptr};
@@ -777,6 +777,9 @@ static void set_core_options(Config &config, std::vector<std::string> &preload_s
         save_state_size = (size_t)(100 * 0x100000);
     }
     save_state_size = std::max(save_state_size, (size_t)(64 * 0x100000));
+
+    config.editor.debug = std::strcmp(get_core_option("mkxp-z_debug"), "enabled") == 0;
+    config.editor.battleTest = std::strcmp(get_core_option("mkxp-z_battleTest"), "enabled") == 0;
 
     // Prepend the preload scripts enabled via core options to the list of preload scripts
     std::vector<std::string> enabled_preload_scripts;
@@ -1511,9 +1514,11 @@ extern "C" RETRO_API void retro_run() {
         if (result.has_value()) {
             if (*result) {
                 LOG_PRINT(RETRO_LOG_INFO, "Game exited; terminating\n");
-                environment(RETRO_ENVIRONMENT_SHUTDOWN, nullptr);
             } else {
                 LOG_PRINT(RETRO_LOG_ERROR, "Game threw an exception; terminating\n");
+            }
+            if (frame_count >= 128) {
+                environment(RETRO_ENVIRONMENT_SHUTDOWN, nullptr);
             }
             deinit_sandbox();
             should_render = false;

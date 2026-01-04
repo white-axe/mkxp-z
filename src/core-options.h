@@ -370,6 +370,40 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
         "100",
     },
     {
+        "mkxp-z_debug",
+        "Debug",
+        nullptr,
+        (
+            "Launch the game in debug mode."
+            " Changes will take effect after the core is reset."
+        ),
+        nullptr,
+        "runtime",
+        {
+            {"enabled", "Enabled"},
+            {"disabled", "Disabled"},
+            {nullptr, nullptr},
+        },
+        "disabled",
+    },
+    {
+        "mkxp-z_battleTest",
+        "Battle Test",
+        nullptr,
+        (
+            "Launch the game in battle test mode."
+            " Changes will take effect after the core is reset."
+        ),
+        nullptr,
+        "runtime",
+        {
+            {"enabled", "Enabled"},
+            {"disabled", "Disabled"},
+            {nullptr, nullptr},
+        },
+        "disabled",
+    },
+    {
         "mkxp-z_frameSkip",
         "Frame Skip",
         nullptr,

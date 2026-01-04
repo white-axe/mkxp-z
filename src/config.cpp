@@ -261,6 +261,7 @@ void Config::read(int argc, char *argv[], int forceRgssVersion) {
     bool failure = false;
     auto &opts = optsJ.as_object(failure);
     
+#ifndef MKXPZ_RETRO
     editor.debug = false;
     editor.battleTest = false;
     
@@ -275,6 +276,7 @@ void Config::read(int argc, char *argv[], int forceRgssVersion) {
                 launchArgs.push_back(argv[i]);
         }
     }
+#endif // MKXPZ_RETRO
     
     json::value baseConf = readConfFile(CONF_FILE);
     copyObject(optsJ, baseConf);

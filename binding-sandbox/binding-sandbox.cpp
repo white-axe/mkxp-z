@@ -249,8 +249,8 @@ static VALUE msgbox(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     SANDBOX_AWAIT_S(1, rb_obj_as_string, sb()->ref<VALUE>(argv, SANDBOX_SLOT(2)));
                     SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(1));
                     struct sandbox_str_guard str = sb()->str(SANDBOX_SLOT(0));
-                    LOG_PRINTF(RETRO_LOG_INFO, "[mkxp-z msgbox] %s\n", (const char *)str);
-                    mkxp_retro::display_message(RETRO_LOG_INFO, str);
+                    LOG_PRINTF(RETRO_LOG_WARN, "[mkxp-z msgbox] %s\n", (const char *)str);
+                    mkxp_retro::display_message(RETRO_LOG_WARN, str);
                 }
             }
 
@@ -271,8 +271,8 @@ static VALUE msgbox_p(int32_t argc, wasm_ptr_t argv, VALUE self) {
                     SANDBOX_AWAIT_S(1, rb_inspect, sb()->ref<VALUE>(argv, SANDBOX_SLOT(2)));
                     SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(1));
                     struct sandbox_str_guard str = sb()->str(SANDBOX_SLOT(0));
-                    LOG_PRINTF(RETRO_LOG_INFO, "[mkxp-z msgbox] %s\n", (const char *)str);
-                    mkxp_retro::display_message(RETRO_LOG_INFO, str);
+                    LOG_PRINTF(RETRO_LOG_WARN, "[mkxp-z msgbox] %s\n", (const char *)str);
+                    mkxp_retro::display_message(RETRO_LOG_WARN, str);
                 }
             }
 
@@ -829,14 +829,6 @@ void sandbox_binding_init::operator()() {
 
         SANDBOX_AWAIT(rb_gv_set, "MKXP", SANDBOX_TRUE);
 
-        if (rgssVer == 1) {
-            SANDBOX_AWAIT(rb_gv_set, "DEBUG", SANDBOX_FALSE);
-        } else if (rgssVer >= 2) {
-            SANDBOX_AWAIT(rb_gv_set, "TEST", SANDBOX_FALSE);
-        }
-
-        SANDBOX_AWAIT(rb_gv_set, "BTEST", SANDBOX_FALSE);
-
         SANDBOX_AWAIT_S(0, rb_utf8_str_new_cstr, MKXPZ_VERSION "/" MKXPZ_GIT_HASH);
         SANDBOX_AWAIT(rb_str_freeze, SANDBOX_SLOT(0));
         SANDBOX_AWAIT(rb_define_const, system_module, "VERSION", SANDBOX_SLOT(0));
@@ -851,6 +843,9 @@ void sandbox_binding_init::operator()() {
 
 void sandbox_run_rmxp_scripts::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
+        SANDBOX_AWAIT(rb_gv_set, rgssVer >= 2 ? "TEST" : "DEBUG", SANDBOX_BOOL_TO_VALUE(shState->config().editor.debug));
+        SANDBOX_AWAIT(rb_gv_set, "BTEST", SANDBOX_BOOL_TO_VALUE(shState->config().editor.battleTest));
+
         // Unmarshal the script array into slot 1
         if (rgssVer == 1) {
             SANDBOX_AWAIT_S(0, rb_file_open, "Data/Scripts.rxdata", "rb");
