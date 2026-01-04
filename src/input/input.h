@@ -82,6 +82,32 @@ extern std::unordered_map<std::string, SDL_GameControllerButton> strToGCButton;
 struct InputPrivate;
 struct RGSSThreadData;
 
+#define NUM_INPUT_PORTS 3
+#define NUM_BUTTONCODES 43
+#define NUM_SCANCODES 291
+#define NUM_CONTROLLER_BUTTONS 21
+
+#ifdef MKXPZ_RETRO
+enum mkxp_input_retro_mapping_type {
+	DEFAULT = 0,
+	NONE,
+	BUTTON,
+	JOYPAD,
+	LIGHTGUN,
+	MOUSE,
+};
+
+struct mkxp_input_retro_binding {
+	enum mkxp_input_retro_mapping_type type;
+	uint8_t id;
+	uint8_t port;
+};
+
+extern struct mkxp_input_retro_binding mkxpButtonMapping[NUM_BUTTONCODES];
+extern struct mkxp_input_retro_binding mkxpScancodeMapping[NUM_SCANCODES];
+extern struct mkxp_input_retro_binding mkxpControllerMapping[NUM_CONTROLLER_BUTTONS];
+#endif // MKXPZ_RETRO
+
 class Input
 {
 public:

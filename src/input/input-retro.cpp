@@ -27,36 +27,350 @@
 #include "mkxp-polyfill.h" // std::lround
 
 #define JOYPAD_BUTTON_MAX 16
-#define REPEATING_NONE 255
 #define REPEAT_START (rgssVer >= 2 ? 0.375 : 0.400)
 #define REPEAT_DELAY 0.1
 
-static const std::unordered_map<int, uint8_t> codeToJoypadId = {
-    {Input::Down, RETRO_DEVICE_ID_JOYPAD_DOWN},
-    {Input::Left, RETRO_DEVICE_ID_JOYPAD_LEFT},
-    {Input::Right, RETRO_DEVICE_ID_JOYPAD_RIGHT},
-    {Input::Up, RETRO_DEVICE_ID_JOYPAD_UP},
-    {Input::A, RETRO_DEVICE_ID_JOYPAD_X},
-    {Input::B, RETRO_DEVICE_ID_JOYPAD_B},
-    {Input::C, RETRO_DEVICE_ID_JOYPAD_A},
-    {Input::X, RETRO_DEVICE_ID_JOYPAD_Y},
-    {Input::Y, RETRO_DEVICE_ID_JOYPAD_L3},
-    {Input::Z, RETRO_DEVICE_ID_JOYPAD_R3},
-    {Input::L, RETRO_DEVICE_ID_JOYPAD_L},
-    {Input::R, RETRO_DEVICE_ID_JOYPAD_R},
-    {Input::Shift, RETRO_DEVICE_ID_JOYPAD_L2},
-    {Input::Ctrl, RETRO_DEVICE_ID_JOYPAD_R2},
-    {Input::Alt, RETRO_DEVICE_ID_JOYPAD_SELECT},
+#define DIRINDEX_TO_BUTTONCODE(dir) (((dir) + 1) * 2)
+#define BUTTONCODE_TO_DIRINDEX(button) ((button) / 2 - 1)
+
+static const struct mkxp_input_retro_binding defaultButtonMapping[NUM_BUTTONCODES] = {
+    {},
+    {},
+    /* Input::Down */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_DOWN},
+    {},
+    /* Input::Left */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_LEFT},
+    {},
+    /* Input::Right */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_RIGHT},
+    {},
+    /* Input::Up */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_UP},
+    {},
+    {},
+    /* Input::A */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_X},
+    /* Input::B */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_B},
+    /* Input::C */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_A},
+    /* Input::X */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_Y},
+    /* Input::Y */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_L3},
+    /* Input::Z */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_R3},
+    /* Input::L */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_L},
+    /* Input::R */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_R},
+    {},
+    {},
+    /* Input::Shift */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_R2},
+    /* Input::Ctrl */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_L2},
+    /* Input::Alt */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_START},
+    {},
+    /* Input::F5 */ {NONE},
+    /* Input::F6 */ {NONE},
+    /* Input::F7 */ {NONE},
+    /* Input::F8 */ {NONE},
+    /* Input::F9 */ {NONE},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    /* Input::MouseLeft */ {MOUSE, RETRO_DEVICE_ID_MOUSE_LEFT},
+    /* Input::MouseMiddle */ {MOUSE, RETRO_DEVICE_ID_MOUSE_MIDDLE},
+    /* Input::MouseRight */ {MOUSE, RETRO_DEVICE_ID_MOUSE_RIGHT},
+    /* Input::MouseX1 */ {MOUSE, RETRO_DEVICE_ID_MOUSE_BUTTON_4},
+    /* Input::MouseX2 */ {MOUSE, RETRO_DEVICE_ID_MOUSE_BUTTON_5},
 };
+
+struct mkxp_input_retro_binding mkxpButtonMapping[NUM_BUTTONCODES];
+
+static const struct mkxp_input_retro_binding defaultScancodeMapping[NUM_SCANCODES] = {
+    {}, {}, {}, {},
+    /* A */ {BUTTON, Input::X},
+    /* B */ {NONE},
+    /* C */ {NONE},
+    /* D */ {BUTTON, Input::Z},
+    /* E */ {NONE},
+    /* F */ {NONE},
+    /* G */ {NONE},
+    /* H */ {NONE},
+    /* I */ {NONE},
+    /* J */ {NONE},
+    /* K */ {NONE},
+    /* L */ {NONE},
+    /* M */ {NONE},
+    /* N */ {NONE},
+    /* O */ {NONE},
+    /* P */ {NONE},
+    /* Q */ {BUTTON, Input::L},
+    /* R */ {NONE},
+    /* S */ {BUTTON, Input::Y},
+    /* T */ {NONE},
+    /* U */ {NONE},
+    /* V */ {NONE},
+    /* W */ {BUTTON, Input::R},
+    /* X */ {BUTTON, Input::B},
+    /* Y */ {NONE},
+    /* Z */ {BUTTON, Input::C},
+    /* 1 */ {NONE},
+    /* 2 */ {NONE},
+    /* 3 */ {NONE},
+    /* 4 */ {NONE},
+    /* 5 */ {NONE},
+    /* 6 */ {NONE},
+    /* 7 */ {NONE},
+    /* 8 */ {NONE},
+    /* 9 */ {NONE},
+    /* 0 */ {NONE},
+    /* RETURN */ {BUTTON, Input::C},
+    /* ESCAPE */ {BUTTON, Input::B},
+    /* BACKSPACE */ {NONE},
+    /* TAB */ {NONE},
+    /* SPACE */ {BUTTON, Input::C},
+    /* MINUS */ {NONE},
+    /* EQUALS */ {NONE},
+    /* LEFTBRACKET */ {NONE},
+    /* RIGHTBRACKET */ {NONE},
+    /* BACKSLASH */ {NONE},
+    /* NONUSHASH */ {NONE},
+    /* SEMICOLON */ {NONE},
+    /* APOSTROPHE */ {NONE},
+    /* GRAVE */ {NONE},
+    /* COMMA */ {NONE},
+    /* PERIOD */ {NONE},
+    /* SLASH */ {NONE},
+    /* CAPSLOCK */ {NONE},
+    /* F1 */ {NONE},
+    /* F2 */ {NONE},
+    /* F3 */ {NONE},
+    /* F4 */ {NONE},
+    /* F5 */ {NONE},
+    /* F6 */ {NONE},
+    /* F7 */ {NONE},
+    /* F8 */ {NONE},
+    /* F9 */ {NONE},
+    /* F10 */ {NONE},
+    /* F11 */ {NONE},
+    /* F12 */ {NONE},
+    /* PRINTSCREEN */ {NONE},
+    /* SCROLLLOCK */ {NONE},
+    /* PAUSE */ {NONE},
+    /* INSERT */ {NONE},
+    /* HOME */ {NONE},
+    /* PAGEUP */ {NONE},
+    /* DELETE */ {NONE},
+    /* END */ {NONE},
+    /* PAGEDOWN */ {NONE},
+    /* RIGHT */ {BUTTON, Input::Right},
+    /* LEFT */ {BUTTON, Input::Left},
+    /* DOWN */ {BUTTON, Input::Down},
+    /* UP */ {BUTTON, Input::Up},
+    /* NUMLOCKCLEAR */ {NONE},
+    /* KP_DIVIDE */ {NONE},
+    /* KP_MULTIPLY */ {NONE},
+    /* KP_MINUS */ {NONE},
+    /* KP_PLUS */ {NONE},
+    /* KP_ENTER */ {NONE},
+    /* KP_1 */ {NONE},
+    /* KP_2 */ {NONE},
+    /* KP_3 */ {NONE},
+    /* KP_4 */ {NONE},
+    /* KP_5 */ {NONE},
+    /* KP_6 */ {NONE},
+    /* KP_7 */ {NONE},
+    /* KP_8 */ {NONE},
+    /* KP_9 */ {NONE},
+    /* KP_0 */ {BUTTON, Input::B},
+    /* KP_PERIOD */ {NONE},
+    /* NONUSBACKSLASH */ {NONE},
+    /* APPLICATION */ {NONE},
+    /* POWER */ {NONE},
+    /* KP_EQUALS */ {NONE},
+    /* F13 */ {NONE},
+    /* F14 */ {NONE},
+    /* F15 */ {NONE},
+    /* F16 */ {NONE},
+    /* F17 */ {NONE},
+    /* F18 */ {NONE},
+    /* F19 */ {NONE},
+    /* F20 */ {NONE},
+    /* F21 */ {NONE},
+    /* F22 */ {NONE},
+    /* F23 */ {NONE},
+    /* F24 */ {NONE},
+    /* EXECUTE */ {NONE},
+    /* HELP */ {NONE},
+    /* MENU */ {NONE},
+    /* SELECT */ {NONE},
+    /* STOP */ {NONE},
+    /* AGAIN */ {NONE},
+    /* UNDO */ {NONE},
+    /* CUT */ {NONE},
+    /* COPY */ {NONE},
+    /* PASTE */ {NONE},
+    /* FIND */ {NONE},
+    /* MUTE */ {NONE},
+    /* VOLUMEUP */ {NONE},
+    /* VOLUMEDOWN */ {NONE},
+    {}, {}, {},
+    /* KP_COMMA */ {NONE},
+    /* KP_EQUALSAS400 */ {NONE},
+    /* INTERNATIONAL1 */ {NONE},
+    /* INTERNATIONAL2 */ {NONE},
+    /* INTERNATIONAL3 */ {NONE},
+    /* INTERNATIONAL4 */ {NONE},
+    /* INTERNATIONAL5 */ {NONE},
+    /* INTERNATIONAL6 */ {NONE},
+    /* INTERNATIONAL7 */ {NONE},
+    /* INTERNATIONAL8 */ {NONE},
+    /* INTERNATIONAL9 */ {NONE},
+    /* LANG1 */ {NONE},
+    /* LANG2 */ {NONE},
+    /* LANG3 */ {NONE},
+    /* LANG4 */ {NONE},
+    /* LANG5 */ {NONE},
+    /* LANG6 */ {NONE},
+    /* LANG7 */ {NONE},
+    /* LANG8 */ {NONE},
+    /* LANG9 */ {NONE},
+    /* ALTERASE */ {NONE},
+    /* SYSREQ */ {NONE},
+    /* CANCEL */ {NONE},
+    /* CLEAR */ {NONE},
+    /* PRIOR */ {NONE},
+    /* RETURN2 */ {NONE},
+    /* SEPARATOR */ {NONE},
+    /* OUT */ {NONE},
+    /* OPER */ {NONE},
+    /* CLEARAGAIN */ {NONE},
+    /* CRSEL */ {NONE},
+    /* EXSEL */ {NONE},
+    {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
+    /* KP_00 */ {NONE},
+    /* KP_000 */ {NONE},
+    /* THOUSANDSSEPARATOR */ {NONE},
+    /* DECIMALSEPARATOR */ {NONE},
+    /* CURRENCYUNIT */ {NONE},
+    /* CURRENCYSUBUNIT */ {NONE},
+    /* KP_LEFTPAREN */ {NONE},
+    /* KP_RIGHTPAREN */ {NONE},
+    /* KP_LEFTBRACE */ {NONE},
+    /* KP_RIGHTBRACE */ {NONE},
+    /* KP_TAB */ {NONE},
+    /* KP_BACKSPACE */ {NONE},
+    /* KP_A */ {NONE},
+    /* KP_B */ {NONE},
+    /* KP_C */ {NONE},
+    /* KP_D */ {NONE},
+    /* KP_E */ {NONE},
+    /* KP_F */ {NONE},
+    /* KP_XOR */ {NONE},
+    /* KP_POWER */ {NONE},
+    /* KP_PERCENT */ {NONE},
+    /* KP_LESS */ {NONE},
+    /* KP_GREATER */ {NONE},
+    /* KP_AMPERSAND */ {NONE},
+    /* KP_DBLAMPERSAND */ {NONE},
+    /* KP_VERTICALBAR */ {NONE},
+    /* KP_DBLVERTICALBAR */ {NONE},
+    /* KP_COLON */ {NONE},
+    /* KP_HASH */ {NONE},
+    /* KP_SPACE */ {NONE},
+    /* KP_AT */ {NONE},
+    /* KP_EXCLAM */ {NONE},
+    /* KP_MEMSTORE */ {NONE},
+    /* KP_MEMRECALL */ {NONE},
+    /* KP_MEMCLEAR */ {NONE},
+    /* KP_MEMADD */ {NONE},
+    /* KP_MEMSUBTRACT */ {NONE},
+    /* KP_MEMMULTIPLY */ {NONE},
+    /* KP_MEMDIVIDE */ {NONE},
+    /* KP_PLUSMINUS */ {NONE},
+    /* KP_CLEAR */ {NONE},
+    /* KP_CLEARENTRY */ {NONE},
+    /* KP_BINARY */ {NONE},
+    /* KP_OCTAL */ {NONE},
+    /* KP_DECIMAL */ {NONE},
+    /* KP_HEXADECIMAL */ {NONE},
+    {}, {},
+    /* LCTRL */ {BUTTON, Input::Ctrl},
+    /* LSHIFT */ {BUTTON, Input::A},
+    /* LALT */ {BUTTON, Input::Alt},
+    /* LGUI */ {NONE},
+    /* RCTRL */ {BUTTON, Input::Ctrl},
+    /* RSHIFT */ {BUTTON, Input::Shift},
+    /* RALT */ {BUTTON, Input::Alt},
+    /* RGUI */ {NONE},
+    {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
+    /* MODE */ {NONE},
+    /* AUDIONEXT */ {NONE},
+    /* AUDIOPREV */ {NONE},
+    /* AUDIOSTOP */ {NONE},
+    /* AUDIOPLAY */ {NONE},
+    /* AUDIOMUTE */ {NONE},
+    /* MEDIASELECT */ {NONE},
+    /* WWW */ {NONE},
+    /* MAIL */ {NONE},
+    /* CALCULATOR */ {NONE},
+    /* COMPUTER */ {NONE},
+    /* AC_SEARCH */ {NONE},
+    /* AC_HOME */ {NONE},
+    /* AC_BACK */ {NONE},
+    /* AC_FORWARD */ {NONE},
+    /* AC_STOP */ {NONE},
+    /* AC_REFRESH */ {NONE},
+    /* AC_BOOKMARKS */ {NONE},
+    /* BRIGHTNESSDOWN */ {NONE},
+    /* BRIGHTNESSUP */ {NONE},
+    /* DISPLAYSWITCH */ {NONE},
+    /* KBDILLUMTOGGLE */ {NONE},
+    /* KBDILLUMDOWN */ {NONE},
+    /* KBDILLUMUP */ {NONE},
+    /* EJECT */ {NONE},
+    /* SLEEP */ {NONE},
+    /* APP1 */ {NONE},
+    /* APP2 */ {NONE},
+    /* AUDIOREWIND */ {NONE},
+    /* AUDIOFASTFORWARD */ {NONE},
+    /* SOFTLEFT */ {NONE},
+    /* SOFTRIGHT */ {NONE},
+    /* CALL */ {NONE},
+    /* ENDCALL */ {NONE},
+};
+
+struct mkxp_input_retro_binding mkxpScancodeMapping[NUM_SCANCODES];
+
+const static struct mkxp_input_retro_binding defaultControllerMapping[NUM_CONTROLLER_BUTTONS] = {
+    /* A */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_A},
+    /* B */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_B},
+    /* X */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_X},
+    /* Y */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_Y},
+    /* BACK */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_SELECT},
+    /* GUIDE */ {NONE},
+    /* START */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_START},
+    /* LEFTSTICK */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_L3},
+    /* RIGHTSTICK */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_R3},
+    /* LEFTSHOULDER */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_L},
+    /* RIGHTSHOULDER */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_R},
+    /* DPAD_UP */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_UP},
+    /* DPAD_DOWN */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_DOWN},
+    /* DPAD_LEFT */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_LEFT},
+    /* DPAD_RIGHT */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_RIGHT},
+    /* MISC1 */ {NONE},
+    /* PADDLE1 */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_L2},
+    /* PADDLE2 */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_R2},
+    /* PADDLE3 */ {NONE},
+    /* PADDLE4 */ {NONE},
+    /* TOUCHPAD */ {NONE},
+};
+
+struct mkxp_input_retro_binding mkxpControllerMapping[NUM_CONTROLLER_BUTTONS];
 
 static const uint8_t otherDirs[4][3] = {
-    { RETRO_DEVICE_ID_JOYPAD_LEFT, RETRO_DEVICE_ID_JOYPAD_RIGHT, RETRO_DEVICE_ID_JOYPAD_DOWN  }, /* Up    */
-    { RETRO_DEVICE_ID_JOYPAD_LEFT, RETRO_DEVICE_ID_JOYPAD_RIGHT, RETRO_DEVICE_ID_JOYPAD_UP    }, /* Down  */
-    { RETRO_DEVICE_ID_JOYPAD_DOWN, RETRO_DEVICE_ID_JOYPAD_UP,    RETRO_DEVICE_ID_JOYPAD_RIGHT }, /* Left  */
-    { RETRO_DEVICE_ID_JOYPAD_DOWN, RETRO_DEVICE_ID_JOYPAD_UP,    RETRO_DEVICE_ID_JOYPAD_LEFT  }, /* Right */
+    { Input::Left, Input::Right, Input::Down  }, /* Up    */
+    { Input::Left, Input::Right, Input::Up    }, /* Down  */
+    { Input::Down, Input::Up,    Input::Right }, /* Left  */
+    { Input::Down, Input::Up,    Input::Left  }, /* Right */
 };
 
-static const enum retro_key scancodeToRetrok[] = {
+static const enum retro_key scancodeToRetrok[NUM_SCANCODES] = {
     RETROK_UNKNOWN,
     RETROK_UNKNOWN,
     RETROK_UNKNOWN,
@@ -350,8 +664,6 @@ static const enum retro_key scancodeToRetrok[] = {
     RETROK_UNKNOWN,
 };
 
-#define NUM_SCANCODES (sizeof scancodeToRetrok / sizeof *scancodeToRetrok)
-
 static const enum retro_key vkeyToRetrok[] = {
     RETROK_UNKNOWN,
     RETROK_UNKNOWN, // left mouse button; specially handled
@@ -610,134 +922,209 @@ static const enum retro_key vkeyToRetrok[] = {
     RETROK_UNKNOWN,
 };
 
-#define NUM_VKEYS (sizeof vkeyToRetrok / sizeof *vkeyToRetrok)
+// Compiled from the vKeyToScancode from input.cpp
+static const uint16_t vKeyToScancode[] = {0, 0, 0, 155, 0, 0, 0, 0, 42, 43, 0, 0, 156, 40, 0, 0, 0, 0, 0, 72, 57, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 0, 44, 75, 78, 77, 74, 80, 82, 79, 81, 119, 0, 116, 70, 73, 76, 117, 39, 30, 31, 32, 33, 34, 35, 36, 37, 38, 0, 0, 0, 0, 0, 0, 0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 227, 231, 101, 0, 282, 98, 89, 90, 91, 92, 93, 94, 95, 96, 97, 85, 87, 40, 86, 220, 84, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 0, 0, 0, 0, 0, 0, 0, 0, 83, 71, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 225, 229, 224, 228, 226, 230, 270, 271, 273, 272, 268, 0, 269, 262, 129, 128, 258, 259, 260, 261, 265, 263, 0, 0, 0, 0, 51, 46, 54, 45, 55, 56, 53, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 47, 49, 48, 52, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 163, 164, 0, 261, 0, 0, 0, 156};
 
-static const uint8_t controllerButtonToJoypadId[] = {
-    RETRO_DEVICE_ID_JOYPAD_A,
-    RETRO_DEVICE_ID_JOYPAD_B,
-    RETRO_DEVICE_ID_JOYPAD_X,
-    RETRO_DEVICE_ID_JOYPAD_Y,
-    REPEATING_NONE,
-    RETRO_DEVICE_ID_JOYPAD_SELECT,
-    RETRO_DEVICE_ID_JOYPAD_START,
-    RETRO_DEVICE_ID_JOYPAD_L3,
-    RETRO_DEVICE_ID_JOYPAD_R3,
-    RETRO_DEVICE_ID_JOYPAD_L,
-    RETRO_DEVICE_ID_JOYPAD_R,
-    RETRO_DEVICE_ID_JOYPAD_UP,
-    RETRO_DEVICE_ID_JOYPAD_DOWN,
-    RETRO_DEVICE_ID_JOYPAD_LEFT,
-    RETRO_DEVICE_ID_JOYPAD_RIGHT,
-    REPEATING_NONE,
-    REPEATING_NONE,
-    REPEATING_NONE,
-    REPEATING_NONE,
-    REPEATING_NONE,
-    REPEATING_NONE,
-};
-
-#define NUM_CONTROLLER_BUTTONS (sizeof controllerButtonToJoypadId / sizeof *controllerButtonToJoypadId)
+#define NUM_VKEYS (sizeof vKeyToScancode / sizeof *vKeyToScancode)
 
 struct InputPrivate
 {
-    uint16_t joypadState;
-    uint16_t joypadStateOld;
-    uint8_t dir4;
-    uint8_t dir4Old;
-    uint8_t dir8;
-
-    bool keyboardStates[RETROK_LAST];
-    bool keyboardStatesOld[RETROK_LAST];
-
-    bool mouseStates[5];
-    bool mouseStatesOld[5];
+    uint16_t joypadStates[NUM_INPUT_PORTS];
+    uint32_t lightgunStates[NUM_INPUT_PORTS];
+    uint16_t mouseStates[NUM_INPUT_PORTS];
     int16_t mouseX;
     int16_t mouseY;
     uint32_t scrollV;
     bool mouseInWindow;
+    bool keyboardStates[RETROK_LAST];
+
+    uint8_t buttonStates[NUM_BUTTONCODES];
+    uint8_t buttonStatesOld[NUM_BUTTONCODES];
+
+    uint8_t dir4;
+    uint8_t dir4Old;
+    uint8_t dir8;
 
     uint8_t rawKeyStates[NUM_SCANCODES];
+    uint8_t rawKeyStatesOld[NUM_SCANCODES];
     uint8_t rawButtonStates[NUM_CONTROLLER_BUTTONS];
+    uint8_t rawButtonStatesOld[NUM_CONTROLLER_BUTTONS];
 
     uint8_t repeating;
-    double repeatTime;
     uint32_t repeatCount;
+    double repeatTime;
 
-    enum {
-        RAW_REPEATING_NONE,
-        RAW_REPEATING_KEYBOARD,
-        RAW_REPEATING_MOUSE,
-    } rawRepeatingType;
     uint16_t rawRepeating;
     uint32_t rawRepeatCount;
     double rawRepeatTime;
+
+    uint8_t buttonRepeating;
+    uint32_t buttonRepeatCount;
+    double buttonRepeatTime;
 
     double last_update;
 
     bool joypadMaskSupported;
 
     InputPrivate() :
-        joypadState(0),
-        joypadStateOld(0),
-        dir4(0),
-        dir4Old(0),
-        dir8(0),
+        joypadStates {},
+        lightgunStates {},
+        mouseStates {},
         mouseX(0),
         mouseY(0),
         scrollV(0),
         mouseInWindow(false),
-        repeating(REPEATING_NONE),
-        repeatTime(0),
+        keyboardStates {},
+        buttonStates {},
+        buttonStatesOld {},
+        dir4(0),
+        dir4Old(0),
+        dir8(0),
+        rawKeyStates {},
+        rawKeyStatesOld {},
+        rawButtonStates {},
+        rawButtonStatesOld {},
+        repeating(Input::None),
         repeatCount(0),
-        rawRepeatingType(RAW_REPEATING_NONE),
+        repeatTime(0),
+        rawRepeating(-1),
         rawRepeatCount(0),
         rawRepeatTime(0),
+        buttonRepeating(-1),
+        buttonRepeatCount(0),
+        buttonRepeatTime(0),
         last_update(0),
         joypadMaskSupported(mkxp_retro::environment(RETRO_ENVIRONMENT_GET_INPUT_BITMASKS, nullptr))
     {
-        std::memset(keyboardStates, 0, sizeof keyboardStates);
-        std::memset(keyboardStatesOld, 0, sizeof keyboardStates);
-        std::memset(mouseStates, 0, sizeof mouseStates);
-        std::memset(mouseStatesOld, 0, sizeof mouseStates);
-        std::memset(rawKeyStates, 0, sizeof rawKeyStates);
-        std::memset(rawButtonStates, 0, sizeof rawButtonStates);
     }
 
     void updateJoypad()
     {
-        joypadStateOld = joypadState;
-
-        if (joypadMaskSupported) {
-            joypadState = (uint16_t)mkxp_retro::input_state(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
-        } else {
-            joypadState = 0;
-            for (uint8_t i = 0; i < JOYPAD_BUTTON_MAX; ++i) {
-                if (mkxp_retro::input_state(0, RETRO_DEVICE_JOYPAD, 0, i)) {
-                    joypadState |= (1 << i);
+        for (uint8_t port = 0; port < NUM_INPUT_PORTS; ++port)
+        {
+            if (joypadMaskSupported) {
+                joypadStates[port] = (uint16_t)mkxp_retro::input_state(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
+            } else {
+                joypadStates[port] = 0;
+                for (uint8_t i = 0; i < JOYPAD_BUTTON_MAX; ++i) {
+                    if (mkxp_retro::input_state(port, RETRO_DEVICE_JOYPAD, 0, i)) {
+                        joypadStates[port] |= (1 << i);
+                    }
                 }
             }
         }
     }
 
+    void updateLightgun()
+    {
+        for (uint8_t port = 0; port < NUM_INPUT_PORTS; ++port)
+        {
+            lightgunStates[port] = mkxp_retro::input_state(port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_TRIGGER) ? 1 << RETRO_DEVICE_ID_LIGHTGUN_TRIGGER : 0;
+            lightgunStates[port] = mkxp_retro::input_state(port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_AUX_A) ? 1 << RETRO_DEVICE_ID_LIGHTGUN_AUX_A : 0;
+            lightgunStates[port] = mkxp_retro::input_state(port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_AUX_B) ? 1 << RETRO_DEVICE_ID_LIGHTGUN_AUX_B : 0;
+            lightgunStates[port] = mkxp_retro::input_state(port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_START) ? 1 << RETRO_DEVICE_ID_LIGHTGUN_START : 0;
+            lightgunStates[port] = mkxp_retro::input_state(port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_SELECT) ? 1 << RETRO_DEVICE_ID_LIGHTGUN_SELECT : 0;
+            lightgunStates[port] = mkxp_retro::input_state(port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_AUX_C) ? 1 << RETRO_DEVICE_ID_LIGHTGUN_AUX_C : 0;
+            lightgunStates[port] = mkxp_retro::input_state(port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_DPAD_UP) ? 1 << RETRO_DEVICE_ID_LIGHTGUN_DPAD_UP : 0;
+            lightgunStates[port] = mkxp_retro::input_state(port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_DPAD_DOWN) ? 1 << RETRO_DEVICE_ID_LIGHTGUN_DPAD_DOWN : 0;
+            lightgunStates[port] = mkxp_retro::input_state(port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_DPAD_LEFT) ? 1 << RETRO_DEVICE_ID_LIGHTGUN_DPAD_LEFT : 0;
+            lightgunStates[port] = mkxp_retro::input_state(port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_DPAD_RIGHT) ? 1 << RETRO_DEVICE_ID_LIGHTGUN_DPAD_RIGHT : 0;
+            lightgunStates[port] = mkxp_retro::input_state(port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_RELOAD) ? 1 << RETRO_DEVICE_ID_LIGHTGUN_RELOAD : 0;
+        }
+    }
+
+    void updateMouse()
+    {
+        for (uint8_t port = 0; port < 3; ++port)
+        {
+            mouseStates[port] = mkxp_retro::input_state(port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT) ? 1 << RETRO_DEVICE_ID_MOUSE_LEFT : 0;
+            mouseStates[port] |= mkxp_retro::input_state(port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT) ? 1 << RETRO_DEVICE_ID_MOUSE_RIGHT : 0;
+            mouseStates[port] |= mkxp_retro::input_state(port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE) ? 1 << RETRO_DEVICE_ID_MOUSE_MIDDLE : 0;
+            mouseStates[port] |= mkxp_retro::input_state(port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_BUTTON_4) ? 1 << RETRO_DEVICE_ID_MOUSE_BUTTON_4 : 0;
+            mouseStates[port] |= mkxp_retro::input_state(port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_BUTTON_5) ? 1 << RETRO_DEVICE_ID_MOUSE_BUTTON_5 : 0;
+        }
+
+        mouseX = (int16_t)mkxp_retro::input_state(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X);
+        mouseY = (int16_t)mkxp_retro::input_state(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y);
+        mouseInWindow = !mkxp_retro::input_state(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_IS_OFFSCREEN);
+        scrollV += mkxp_retro::input_state(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_WHEELDOWN);
+        scrollV -= mkxp_retro::input_state(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_WHEELUP);
+    }
+
+    void updateKeyboard()
+    {
+        std::memcpy(keyboardStates, mkxp_retro::keyboard_state, sizeof keyboardStates);
+    }
+
+    template <bool isScancode, bool isControllerButton> bool getMappedState(uint16_t buttonOrScancodeOrControllerButton)
+    {
+        if (buttonOrScancodeOrControllerButton >= (isScancode ? NUM_SCANCODES : isControllerButton ? NUM_CONTROLLER_BUTTONS : NUM_BUTTONCODES))
+            return false;
+
+        if (!isScancode && !isControllerButton && buttonOrScancodeOrControllerButton == Input::None)
+            return false;
+
+        const struct mkxp_input_retro_binding *const defaultMapping = isScancode ? defaultScancodeMapping : isControllerButton ? defaultControllerMapping : defaultButtonMapping;
+        const struct mkxp_input_retro_binding *mapping = isScancode ? mkxpScancodeMapping : isControllerButton ? mkxpControllerMapping : mkxpButtonMapping;
+
+        for (;;)
+            switch (mapping[buttonOrScancodeOrControllerButton].type)
+            {
+                case DEFAULT:
+                    if (mapping == defaultMapping)
+                        return false;
+                    mapping = defaultMapping;
+                    break;
+
+                case NONE:
+                    return false;
+
+                case BUTTON:
+                    return isScancode || isControllerButton ? getMappedState<false, false>(mapping[buttonOrScancodeOrControllerButton].id) : false;
+
+                case JOYPAD:
+                    if (mapping[buttonOrScancodeOrControllerButton].port >= NUM_INPUT_PORTS)
+                        return false;
+                    return joypadStates[mapping[buttonOrScancodeOrControllerButton].port] & (1 << mapping[buttonOrScancodeOrControllerButton].id);
+
+                case LIGHTGUN:
+                    if (mapping[buttonOrScancodeOrControllerButton].port >= NUM_INPUT_PORTS)
+                        return false;
+                    return lightgunStates[mapping[buttonOrScancodeOrControllerButton].port] & (1 << mapping[buttonOrScancodeOrControllerButton].id);
+
+                case MOUSE:
+                    if (mapping[buttonOrScancodeOrControllerButton].port >= NUM_INPUT_PORTS)
+                        return false;
+                    return mouseStates[mapping[buttonOrScancodeOrControllerButton].port] & (1 << mapping[buttonOrScancodeOrControllerButton].id);
+            }
+    }
+
+    void updateButtonStates()
+    {
+        std::memcpy(buttonStatesOld, buttonStates, sizeof buttonStates);
+        for (uint8_t i = 0; i < NUM_BUTTONCODES; ++i)
+            buttonStates[i] = getMappedState<false, false>(i);
+    }
+
     void updateDir4()
     {
         /* Check for dead keys */
-        if (((joypadState & (1 << RETRO_DEVICE_ID_JOYPAD_DOWN)) && (joypadState & (1 << RETRO_DEVICE_ID_JOYPAD_UP))) || ((joypadState & (1 << RETRO_DEVICE_ID_JOYPAD_LEFT)) && (joypadState & (1 << RETRO_DEVICE_ID_JOYPAD_RIGHT))))
+        if ((buttonStates[Input::Down] && buttonStates[Input::Up]) || (buttonStates[Input::Left] && buttonStates[Input::Right]))
         {
-            dir4 = 0;
+            dir4 = Input::None;
             return;
         }
 
-        if (dir4Old != 0)
+        if (dir4Old != Input::None)
         {
             /* Check if prev still pressed */
-            if (joypadState & (1 << dir4Old))
+            if (buttonStates[dir4Old])
             {
                 for (size_t i = 0; i < 3; ++i)
                 {
-                    uint8_t other = otherDirs[dir4Old - RETRO_DEVICE_ID_JOYPAD_UP][i];
+                    uint8_t other = otherDirs[BUTTONCODE_TO_DIRINDEX(dir4Old)][i];
 
-                    if (!(joypadState & (1 << other)))
+                    if (!buttonStates[other])
                         continue;
 
                     dir4 = other;
@@ -748,41 +1135,41 @@ struct InputPrivate
 
         for (size_t i = 0; i < 4; ++i)
         {
-            if (!(joypadState & (1 << (RETRO_DEVICE_ID_JOYPAD_UP + i))))
+            if (!buttonStates[DIRINDEX_TO_BUTTONCODE(i)])
                 continue;
 
-            dir4 = dir4Old = RETRO_DEVICE_ID_JOYPAD_UP + i;
+            dir4 = dir4Old = DIRINDEX_TO_BUTTONCODE(i);
             return;
         }
 
-        dir4 = dir4Old = 0;
+        dir4 = dir4Old = Input::None;
     }
 
     void updateDir8()
     {
         static const uint8_t combos[4][4] =
         {
-            { 8, 0, 7, 9 },
-            { 0, 2, 1, 3 },
-            { 7, 1, 4, 0 },
-            { 9, 3, 0, 6 },
+            { 2, 1, 3, 0 },
+            { 1, 4, 0, 7 },
+            { 3, 0, 6, 9 },
+            { 0, 7, 9, 8 },
         };
 
         dir8 = 0;
 
         for (size_t i = 0; i < 4; ++i)
         {
-            if (!(joypadState & (1 << (RETRO_DEVICE_ID_JOYPAD_UP + i))))
+            if (!buttonStates[DIRINDEX_TO_BUTTONCODE(i)])
                 continue;
 
             for (size_t j = 0; j < 3; ++j)
             {
                 uint8_t other = otherDirs[i][j];
 
-                if (!(joypadState & (1 << other)))
+                if (!buttonStates[other])
                     continue;
 
-                dir8 = combos[i][other - RETRO_DEVICE_ID_JOYPAD_UP];
+                dir8 = combos[i][BUTTONCODE_TO_DIRINDEX(other)];
                 return;
             }
 
@@ -791,51 +1178,26 @@ struct InputPrivate
         }
     }
 
-    void updateKeyboard()
-    {
-        std::memcpy(keyboardStatesOld, keyboardStates, sizeof keyboardStates);
-        std::memcpy(keyboardStates, mkxp_retro::keyboard_state, sizeof keyboardStates);
-    }
-
-    void updateMouse()
-    {
-        std::memcpy(mouseStatesOld, mouseStates, sizeof mouseStates);
-
-        mouseStates[0] = mkxp_retro::input_state(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT);
-        mouseStates[1] = mkxp_retro::input_state(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT);
-        mouseStates[2] = mkxp_retro::input_state(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE);
-        mouseStates[3] = mkxp_retro::input_state(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_BUTTON_4);
-        mouseStates[4] = mkxp_retro::input_state(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_BUTTON_5);
-
-        mouseX = (int16_t)mkxp_retro::input_state(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X);
-        mouseY = (int16_t)mkxp_retro::input_state(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y);
-        mouseInWindow = !mkxp_retro::input_state(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_IS_OFFSCREEN);
-        scrollV += mkxp_retro::input_state(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_WHEELDOWN);
-        scrollV -= mkxp_retro::input_state(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_WHEELUP);
-    }
-
     void updateRawKeyStates()
     {
+        std::memcpy(rawKeyStatesOld, rawKeyStates, sizeof rawKeyStates);
         for (uint16_t i = 0; i < NUM_SCANCODES; ++i)
-        {
-            rawKeyStates[i] = keyboardStates[scancodeToRetrok[i]];
-        }
+            rawKeyStates[i] = keyboardStates[scancodeToRetrok[i]] || getMappedState<true, false>(i);
     }
 
     void updateRawButtonStates()
     {
+        std::memcpy(rawButtonStatesOld, rawButtonStates, sizeof rawButtonStates);
         for (uint8_t i = 0; i < NUM_CONTROLLER_BUTTONS; ++i)
-        {
-            rawButtonStates[i] = controllerButtonToJoypadId[i] != REPEATING_NONE && joypadState & (1 << controllerButtonToJoypadId[i]);
-        }
+            rawButtonStates[i] = getMappedState<false, true>(i);
     }
 
     void updateRepeat()
     {
-        for (uint8_t i = 0; i < JOYPAD_BUTTON_MAX; ++i)
+        for (uint8_t i = 0; i < NUM_BUTTONCODES; ++i)
         {
-            /* Check for new repeating joypad key */
-            if (joypadState & (1 << i) && !(joypadStateOld & (1 << i)) && i != repeating)
+            /* Check for new repeating button */
+            if (i != Input::None && buttonStates[i] && !buttonStatesOld[i])
             {
                 repeating = i;
                 repeatCount = 0;
@@ -844,24 +1206,23 @@ struct InputPrivate
             }
         }
 
-        /* Check if repeating joypad key still pressed */
-        if (repeating < JOYPAD_BUTTON_MAX && joypadState & (1 << repeating))
+        /* Check if repeating button still pressed */
+        if (repeating != Input::None && buttonStates[repeating])
         {
             ++repeatCount;
             return;
         }
 
-        repeating = REPEATING_NONE;
+        repeating = Input::None;
     }
 
     void updateRawRepeat()
     {
-        for (uint16_t i = 0; i < RETROK_LAST; ++i)
+        for (uint16_t i = 0; i < NUM_SCANCODES; ++i)
         {
-            /* Check for new repeating keyboard key */
-            if (keyboardStates[i] && !keyboardStatesOld[i] && (rawRepeatingType != RAW_REPEATING_KEYBOARD || i != rawRepeating))
+            /* Check for new repeating key */
+            if (rawKeyStates[i] && !rawKeyStatesOld[i])
             {
-                rawRepeatingType = RAW_REPEATING_KEYBOARD;
                 rawRepeating = i;
                 rawRepeatCount = 0;
                 rawRepeatTime = shState->runTime();
@@ -869,154 +1230,151 @@ struct InputPrivate
             }
         }
 
-        for (uint8_t i = 0; i < 5; ++i)
+        /* Check if repeating key still pressed */
+        if (rawRepeating != (uint16_t)-1 && rawKeyStates[rawRepeating])
         {
-            /* Check for new repeating mouse button */
-            if (mouseStates[i] && !mouseStatesOld[i] && (rawRepeatingType != RAW_REPEATING_MOUSE || i != rawRepeating))
+            ++rawRepeatCount;
+            return;
+        }
+
+        rawRepeating = -1;
+    }
+
+    void updateButtonRepeat()
+    {
+        for (uint8_t i = 0; i < NUM_CONTROLLER_BUTTONS; ++i)
+        {
+            /* Check for new repeating controller button */
+            if (rawButtonStates[i] && !rawButtonStatesOld[i])
             {
-                rawRepeatingType = RAW_REPEATING_MOUSE;
-                rawRepeating = i;
-                rawRepeatCount = 0;
-                rawRepeatTime = shState->runTime();
+                buttonRepeating = i;
+                buttonRepeatCount = 0;
+                buttonRepeatTime = shState->runTime();
                 return;
             }
         }
 
-        /* Check if repeating keyboard key still pressed */
-        if (rawRepeatingType == RAW_REPEATING_KEYBOARD && keyboardStates[rawRepeating])
+        /* Check if repeating controller button still pressed */
+        if (buttonRepeating != (uint8_t)-1 && rawButtonStates[buttonRepeating])
         {
-            ++rawRepeatCount;
+            ++buttonRepeatCount;
             return;
         }
 
-        /* Check if repeating mouse button still pressed */
-        if (rawRepeatingType == RAW_REPEATING_MOUSE && mouseStates[rawRepeating])
-        {
-            ++rawRepeatCount;
-            return;
-        }
-
-        rawRepeatingType = RAW_REPEATING_NONE;
+        buttonRepeating = -1;
     }
 
     bool getState(int button)
     {
-        auto it = codeToJoypadId.find(button);
-        return it != codeToJoypadId.end() && (joypadState & (1 << it->second));
+        if (button < 0 || button >= NUM_BUTTONCODES)
+            return false;
+        return buttonStates[button];
     }
 
     bool getStateOld(int button)
     {
-        auto it = codeToJoypadId.find(button);
-        return it != codeToJoypadId.end() && (joypadStateOld & (1 << it->second));
+        if (button < 0 || button >= NUM_BUTTONCODES)
+            return false;
+        return buttonStatesOld[button];
     }
 
     bool isRepeat(int button)
     {
-        auto it = codeToJoypadId.find(button);
-        return it != codeToJoypadId.end() && repeating == it->second;
+        return getState(button) && repeating == button;
     }
 
     bool getRawState(int button, bool isVKey)
     {
         if (button < 0 || button >= (isVKey ? NUM_VKEYS : NUM_SCANCODES))
             return false;
-        else if (!isVKey)
-            return keyboardStates[scancodeToRetrok[button]];
-        else if (button == 1)
-            return mouseStates[0];
-        else if (button == 2)
-            return mouseStates[1];
-        else if (button == 4)
-            return mouseStates[2];
-        else if (button == 5)
-            return mouseStates[3];
-        else if (button == 6)
-            return mouseStates[4];
-        else if (button == 16)
-            return keyboardStates[RETROK_LSHIFT] || keyboardStates[RETROK_RSHIFT];
-        else if (button == 17)
-            return keyboardStates[RETROK_LCTRL] || keyboardStates[RETROK_RCTRL];
-        else if (button == 18)
-            return keyboardStates[RETROK_LALT] || keyboardStates[RETROK_RALT];
-        else
-            return keyboardStates[vkeyToRetrok[button]];
+        if (!isVKey)
+            return rawKeyStates[button];
+        switch (button)
+        {
+            case 0x10:
+                return getState(Input::Shift);
+            case 0x11:
+                return getState(Input::Ctrl);
+            case 0x12:
+                return getState(Input::Alt);
+            case 0x1:
+                return getState(Input::MouseLeft);
+            case 0x2:
+                return getState(Input::MouseRight);
+            case 0x4:
+                return getState(Input::MouseMiddle);
+            default:
+                return rawKeyStates[vKeyToScancode[button]];
+        }
     }
 
     bool getRawStateOld(int button, bool isVKey)
     {
         if (button < 0 || button >= (isVKey ? NUM_VKEYS : NUM_SCANCODES))
             return false;
-        else if (!isVKey)
-            return keyboardStatesOld[scancodeToRetrok[button]];
-        else if (button == 1)
-            return mouseStatesOld[0];
-        else if (button == 2)
-            return mouseStatesOld[1];
-        else if (button == 4)
-            return mouseStatesOld[2];
-        else if (button == 5)
-            return mouseStatesOld[3];
-        else if (button == 6)
-            return mouseStatesOld[4];
-        else if (button == 16)
-            return keyboardStatesOld[RETROK_LSHIFT] || keyboardStatesOld[RETROK_RSHIFT];
-        else if (button == 17)
-            return keyboardStatesOld[RETROK_LCTRL] || keyboardStatesOld[RETROK_RCTRL];
-        else if (button == 18)
-            return keyboardStatesOld[RETROK_LALT] || keyboardStatesOld[RETROK_RALT];
-        else
-            return keyboardStatesOld[vkeyToRetrok[button]];
+        if (!isVKey)
+            return rawKeyStatesOld[button];
+        switch (button)
+        {
+            case 0x10:
+                return getStateOld(Input::Shift);
+            case 0x11:
+                return getStateOld(Input::Ctrl);
+            case 0x12:
+                return getStateOld(Input::Alt);
+            case 0x1:
+                return getStateOld(Input::MouseLeft);
+            case 0x2:
+                return getStateOld(Input::MouseRight);
+            case 0x4:
+                return getStateOld(Input::MouseMiddle);
+            default:
+                return rawKeyStatesOld[vKeyToScancode[button]];
+        }
     }
 
     bool isRawRepeat(int button, bool isVKey)
     {
-        if (rawRepeatingType == RAW_REPEATING_NONE || button < 0 || button >= (isVKey ? NUM_VKEYS : NUM_SCANCODES))
+        if (!getRawState(button, isVKey))
             return false;
-        else if (!isVKey)
-            return rawRepeatingType == RAW_REPEATING_KEYBOARD && rawRepeating == scancodeToRetrok[button];
-        else if (button == 1)
-            return rawRepeatingType == RAW_REPEATING_MOUSE && rawRepeating == 0;
-        else if (button == 2)
-            return rawRepeatingType == RAW_REPEATING_MOUSE && rawRepeating == 1;
-        else if (button == 4)
-            return rawRepeatingType == RAW_REPEATING_MOUSE && rawRepeating == 2;
-        else if (button == 5)
-            return rawRepeatingType == RAW_REPEATING_MOUSE && rawRepeating == 3;
-        else if (button == 6)
-            return rawRepeatingType == RAW_REPEATING_MOUSE && rawRepeating == 4;
-        else if (button == 16)
-            return rawRepeatingType == RAW_REPEATING_KEYBOARD && (rawRepeating == RETROK_LSHIFT || rawRepeating == RETROK_RSHIFT);
-        else if (button == 17)
-            return rawRepeatingType == RAW_REPEATING_KEYBOARD && (rawRepeating == RETROK_LCTRL || rawRepeating == RETROK_RCTRL);
-        else if (button == 18)
-            return rawRepeatingType == RAW_REPEATING_KEYBOARD && (rawRepeating == RETROK_LALT || rawRepeating == RETROK_RALT);
-        else
-            return rawRepeatingType == RAW_REPEATING_KEYBOARD && rawRepeating == vkeyToRetrok[button];
+        if (!isVKey)
+            return rawRepeating == button;
+        switch (button)
+        {
+            case 0x10:
+                return isRepeat(Input::Shift);
+            case 0x11:
+                return isRepeat(Input::Ctrl);
+            case 0x12:
+                return isRepeat(Input::Alt);
+            case 0x1:
+                return isRepeat(Input::MouseLeft);
+            case 0x2:
+                return isRepeat(Input::MouseRight);
+            case 0x4:
+                return isRepeat(Input::MouseMiddle);
+            default:
+                return rawRepeating == vKeyToScancode[button];
+        }
     }
 
     bool getControllerState(int button)
     {
-        if (button < 0 || button >= NUM_CONTROLLER_BUTTONS || controllerButtonToJoypadId[button] == REPEATING_NONE)
+        if (button < 0 || button >= NUM_CONTROLLER_BUTTONS)
             return false;
-        else
-            return joypadState & (1 << controllerButtonToJoypadId[button]);
+        return rawButtonStates[button];
     }
 
     bool getControllerStateOld(int button)
     {
-        if (button < 0 || button >= NUM_CONTROLLER_BUTTONS || controllerButtonToJoypadId[button] == REPEATING_NONE)
+        if (button < 0 || button >= NUM_CONTROLLER_BUTTONS)
             return false;
-        else
-            return joypadStateOld & (1 << controllerButtonToJoypadId[button]);
+        return rawButtonStatesOld[button];
     }
 
     bool isControllerRepeat(int button)
     {
-        if (button < 0 || button >= NUM_CONTROLLER_BUTTONS || controllerButtonToJoypadId[button] == REPEATING_NONE)
-            return false;
-        else
-            return repeating == controllerButtonToJoypadId[button];
+        return getControllerState(button) && buttonRepeating == button;
     }
 };
 
@@ -1045,14 +1403,17 @@ void Input::update()
     mkxp_retro::input_poll();
     mkxp_retro::input_polled = true;
     p->updateJoypad();
+    p->updateLightgun();
+    p->updateMouse();
+    p->updateKeyboard();
+    p->updateButtonStates();
     p->updateDir4();
     p->updateDir8();
-    p->updateKeyboard();
-    p->updateMouse();
     p->updateRawKeyStates();
     p->updateRawButtonStates();
     p->updateRepeat();
     p->updateRawRepeat();
+    p->updateButtonRepeat();
     p->last_update = shState->runTime();
 }
 
@@ -1136,17 +1497,17 @@ bool Input::controllerIsReleasedEx(int button)
 bool Input::controllerIsRepeatedEx(int button)
 {
     int frame_rate = shState->graphics().getFrameRate();
-    return p->isControllerRepeat(button) && (p->repeatCount == 0 || (p->repeatCount >= (size_t)std::ceil(REPEAT_START * frame_rate) && (p->repeatCount + 1) % (size_t)std::ceil(REPEAT_DELAY * frame_rate) == 0));
+    return p->isControllerRepeat(button) && (p->buttonRepeatCount == 0 || (p->buttonRepeatCount >= (size_t)std::ceil(REPEAT_START * frame_rate) && (p->buttonRepeatCount + 1) % (size_t)std::ceil(REPEAT_DELAY * frame_rate) == 0));
 }
 
 unsigned int Input::controllerRepeatcount(int button)
 {
-    return p->isControllerRepeat(button) ? p->repeatCount : 0;
+    return p->isControllerRepeat(button) ? p->buttonRepeatCount : 0;
 }
 
 double Input::controllerRepeatTimeEx(int button)
 {
-    return p->isControllerRepeat(button) ? shState->runTime() - p->repeatTime : 0;
+    return p->isControllerRepeat(button) ? shState->runTime() - p->buttonRepeatTime : 0;
 }
 
 uint8_t *Input::rawKeyStates()
@@ -1186,18 +1547,7 @@ short Input::getControllerAxisValue(SDL_GameControllerAxis axis)
 
 int Input::dir4Value()
 {
-    switch (p->dir4) {
-        case RETRO_DEVICE_ID_JOYPAD_DOWN:
-            return Input::Down;
-        case RETRO_DEVICE_ID_JOYPAD_LEFT:
-            return Input::Left;
-        case RETRO_DEVICE_ID_JOYPAD_RIGHT:
-            return Input::Right;
-        case RETRO_DEVICE_ID_JOYPAD_UP:
-            return Input::Up;
-        default:
-            return Input::None;
-    }
+    return p->dir4;
 }
 
 int Input::dir8Value()

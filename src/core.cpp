@@ -40,7 +40,7 @@
 #include <fluidsynth.h>
 #include <punycode.h>
 
-#include "mkxp-polyfill.h" // std::mutex, std::stof, std::strtoul
+#include "mkxp-polyfill.h" // std::mutex, std::stof, std::strtoul, std::to_string
 #include "git-hash.h"
 #include "binding-sandbox-hash.h"
 
@@ -53,6 +53,7 @@
 #include "gl-fun.h"
 #include "glstate.h"
 #include "graphics.h"
+#include "input.h"
 #include "sharedmidistate.h"
 #include "sharedstate.h"
 
@@ -355,7 +356,7 @@ static const char *get_core_option(const char *key) {
         key,
         "",
     };
-    return environment(RETRO_ENVIRONMENT_GET_VARIABLE, &variable) ? variable.value : "";
+    return environment(RETRO_ENVIRONMENT_GET_VARIABLE, &variable) && variable.value != nullptr ? variable.value : "";
 }
 
 struct init : boost::asio::coroutine {
@@ -592,6 +593,58 @@ static void update_simple_core_options() {
             conf->fontOutlineCrop.setOverride(false);
         } else {
             conf->fontOutlineCrop.clearOverride();
+        }
+    }
+
+    for (size_t i = 0; i < NUM_BUTTONCODES; ++i) {
+        const char *value = get_core_option((std::string("mkxp-z_button-") + std::to_string(i)).c_str());
+        unsigned char id, port;
+        if (std::strcmp(value, "none") == 0) {
+            mkxpButtonMapping[i] = {NONE};
+        } else if (std::sscanf(value, "joypad-%hhu-%hhu\n", &id, &port) == 2) {
+            mkxpButtonMapping[i] = {JOYPAD, id, port};
+        } else if (std::sscanf(value, "lightgun-%hhu-%hhu\n", &id, &port) == 2) {
+            mkxpButtonMapping[i] = {LIGHTGUN, id, port};
+        } else if (std::sscanf(value, "mouse-%hhu-%hhu\n", &id, &port) == 2) {
+            mkxpButtonMapping[i] = {MOUSE, id, port};
+        } else {
+            mkxpButtonMapping[i] = {};
+        }
+    }
+
+    for (size_t i = 0; i < NUM_SCANCODES; ++i) {
+        const char *value = get_core_option((std::string("mkxp-z_scancode-") + std::to_string(i)).c_str());
+        unsigned char id, port;
+        if (std::strcmp(value, "none") == 0) {
+            mkxpScancodeMapping[i] = {NONE};
+        } else if (std::sscanf(value, "button-%hhu\n", &id) == 1) {
+            mkxpScancodeMapping[i] = {BUTTON, id};
+        } else if (std::sscanf(value, "joypad-%hhu-%hhu\n", &id, &port) == 2) {
+            mkxpScancodeMapping[i] = {JOYPAD, id, port};
+        } else if (std::sscanf(value, "lightgun-%hhu-%hhu\n", &id, &port) == 2) {
+            mkxpScancodeMapping[i] = {LIGHTGUN, id, port};
+        } else if (std::sscanf(value, "mouse-%hhu-%hhu\n", &id, &port) == 2) {
+            mkxpScancodeMapping[i] = {MOUSE, id, port};
+        } else {
+            mkxpScancodeMapping[i] = {};
+        }
+    }
+
+    for (size_t i = 0; i < NUM_CONTROLLER_BUTTONS; ++i) {
+        const char *value = get_core_option((std::string("mkxp-z_controller-") + std::to_string(i)).c_str());
+        unsigned char id, port;
+        if (std::strcmp(value, "none") == 0) {
+            mkxpControllerMapping[i] = {NONE};
+        } else if (std::sscanf(value, "button-%hhu\n", &id) == 1) {
+            mkxpControllerMapping[i] = {BUTTON, id};
+        } else if (std::sscanf(value, "joypad-%hhu-%hhu\n", &id, &port) == 2) {
+            mkxpControllerMapping[i] = {JOYPAD, id, port};
+        } else if (std::sscanf(value, "lightgun-%hhu-%hhu\n", &id, &port) == 2) {
+            mkxpControllerMapping[i] = {LIGHTGUN, id, port};
+        } else if (std::sscanf(value, "mouse-%hhu-%hhu\n", &id, &port) == 2) {
+            mkxpControllerMapping[i] = {MOUSE, id, port};
+        } else {
+            mkxpControllerMapping[i] = {};
         }
     }
 }
