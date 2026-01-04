@@ -101,6 +101,18 @@ wasi_instance::wasi_instance(std::shared_ptr<struct w2c_ruby> ruby) : ruby(ruby)
 }
 
 wasi_instance::~wasi_instance() {
+    // Flush standard output and standard error
+    for (size_t i = 0; i < 2; ++i) {
+        if (!stdio_line_buffers[i].empty()) {
+            mkxp_retro::log_printf(
+                i == 0 ? RETRO_LOG_INFO : RETRO_LOG_WARN,
+                i == 0 ? "[mkxp-z stdout] %s\n" : "[mkxp-z stderr] %s\n",
+                stdio_line_buffers[i].c_str()
+            );
+            stdio_line_buffers[i].clear();
+        }
+    }
+
     // Close all of the open WASI file descriptors
     for (uint32_t i = fdtable.size(); i > 0;) {
         deallocate_file_descriptor(--i);
