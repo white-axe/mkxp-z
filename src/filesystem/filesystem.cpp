@@ -787,19 +787,35 @@ FileSystem::File::File(FileSystem &fs, const char *read_path, const char *write_
       }
 
       // If the path exists but not in the PhysFS write directory (mounted at "/Save"),
-      // then the file is read-only, so don't allow writing to it
-      if (!exists || PHYSFS_exists((std::string("/Save/") + suffix).c_str())) {
-        if (truncate) {
-          write_handle = PHYSFS_openWrite(suffix);
-        } else {
-          write_handle = PHYSFS_openAppend(suffix);
+      // copy the file into the PhysFS write directory first
+      if (exists && PHYSFS_exists((std::string("/Save/") + suffix).c_str()) == 0) {
+        if ((read_handle = PHYSFS_openRead(_path.c_str())) != nullptr) {
+          if ((write_handle = PHYSFS_openWrite(suffix)) != nullptr) {
+            std::array<uint8_t, 4096> buffer;
+            for (;;) {
+              PHYSFS_sint64 n = PHYSFS_readBytes(read_handle, buffer.data(), buffer.size());
+              PHYSFS_writeBytes(write_handle, buffer.data(), n);
+              if (n < buffer.size()) {
+                break;
+              }
+            }
+            if (truncate) {
+              PHYSFS_seek(write_handle, 0);
+            }
+          }
+          PHYSFS_close(read_handle);
+          read_handle = nullptr;
         }
+      } else if (truncate) {
+        write_handle = PHYSFS_openWrite(suffix);
+      } else {
+        write_handle = PHYSFS_openAppend(suffix);
+      }
 
-        if (write_handle == nullptr) {
-          write_error = PHYSFS_getLastErrorCode();
-        } else {
-          write_error = PHYSFS_ERR_OK;
-        }
+      if (write_handle == nullptr) {
+        write_error = PHYSFS_getLastErrorCode();
+      } else {
+        write_error = PHYSFS_ERR_OK;
       }
     }
   }
