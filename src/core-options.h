@@ -2080,7 +2080,7 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
         nullptr,
         "scancode",
         {
-            {"default", "Default (None)"},
+            {"default", "Default (Same as Input::F5)"},
             {"none", "None"},
             BUTTON_OPTIONS
             RETROPAD_OPTIONS
@@ -2096,7 +2096,7 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
         nullptr,
         "scancode",
         {
-            {"default", "Default (None)"},
+            {"default", "Default (Same as Input::F6)"},
             {"none", "None"},
             BUTTON_OPTIONS
             RETROPAD_OPTIONS
@@ -2112,7 +2112,7 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
         nullptr,
         "scancode",
         {
-            {"default", "Default (None)"},
+            {"default", "Default (Same as Input::F7)"},
             {"none", "None"},
             BUTTON_OPTIONS
             RETROPAD_OPTIONS
@@ -2128,7 +2128,7 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
         nullptr,
         "scancode",
         {
-            {"default", "Default (None)"},
+            {"default", "Default (Same as Input::F8)"},
             {"none", "None"},
             BUTTON_OPTIONS
             RETROPAD_OPTIONS
@@ -2144,7 +2144,7 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
         nullptr,
         "scancode",
         {
-            {"default", "Default (None)"},
+            {"default", "Default (Same as Input::F9)"},
             {"none", "None"},
             BUTTON_OPTIONS
             RETROPAD_OPTIONS
