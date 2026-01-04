@@ -1137,8 +1137,6 @@ static bool init_sandbox() {
         PHYSFS_mount(fonts_path.c_str(), "/Game/Fonts", true);
     }
 
-    fs->createPathCache();
-
     {
         const char *save_path;
         if (environment(RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY, &save_path) && save_path != nullptr) {
@@ -1241,6 +1239,8 @@ static bool init_sandbox() {
             LOG_PRINTF(RETRO_LOG_INFO, "Mounted game save directory from \"%s\"\n", save_path_subdir.c_str());
         }
     }
+
+    fs->createPathCache();
 
     {
         float refresh_rate;
