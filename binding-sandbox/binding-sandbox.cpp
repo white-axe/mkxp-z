@@ -740,6 +740,12 @@ void sandbox_binding_init::operator()() {
         SANDBOX_AWAIT_S(0, rb_utf8_str_new_cstr, MKXPZ_VERSION "/" MKXPZ_GIT_HASH);
         SANDBOX_AWAIT(rb_str_freeze, SANDBOX_SLOT(0));
         SANDBOX_AWAIT(rb_define_const, system_module, "VERSION", SANDBOX_SLOT(0));
+
+        SANDBOX_AWAIT_S(1, rb_intern, "Zlib");
+        SANDBOX_AWAIT_S(0, rb_const_defined, sb()->rb_mKernel(), SANDBOX_SLOT(1));
+        if (!SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(0))) {
+            SANDBOX_AWAIT(rb_require, "zlib");
+        }
     }
 }
 
