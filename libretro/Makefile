@@ -76,9 +76,11 @@ WASI_CXX_STANDARD := -std=gnu++11
 WASI_CFLAGS := $(WASI_TARGET_FLAGS) $(WASI_C_STANDARD) $(WASI_CFLAGS)
 WASI_CXXFLAGS := $(WASI_TARGET_FLAGS) $(WASI_CXX_STANDARD) $(WASI_CXXFLAGS)
 
+RUBY_SRC := $(DOWNLOADS)/ruby
+
 all default: ruby-dist ruby-bindings $(OUTDIR)/preload.zip $(OUTDIR)/boost_predef/include/boost/predef.h
 
-ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt
+ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
 
 ruby-bindings: $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.h
 
@@ -107,10 +109,19 @@ $(OUTDIR)/preload.zip: ../scripts/preload/mkxp_wrap.rb ../scripts/preload/ruby_c
 
 # Ruby (targets WASI)
 
-$(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt &: $(WASM2C) $(LIBDIR)/Dist/bin/ruby
+$(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h &: $(WASM2C) $(LIBDIR)/Dist/bin/ruby
 	mkdir -p $(OUTDIR)/ruby
 	echo '$(RUBY_NUM_OUTPUTS)' > $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt
 	echo '$(WASI_TARGET)' > $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt
+	echo '#ifndef RAPI_MAJOR' > $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
+	$(RUBY) -e 'puts "#define RAPI_MAJOR " + "$(RUBY_VERSION)".split(".")[0]' >> $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
+	echo '#endif /* RAPI_MAJOR */' >> $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
+	echo '#ifndef RAPI_MINOR' >> $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
+	$(RUBY) -e 'puts "#define RAPI_MINOR " + "$(RUBY_VERSION)".split(".")[1]' >> $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
+	echo '#endif /* RAPI_MINOR */' >> $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
+	echo '#ifndef RAPI_TEENY' >> $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
+	$(RUBY) -e 'puts "#define RAPI_TEENY " + "$(RUBY_VERSION)".split(".")[2]' >> $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
+	echo '#endif /* RAPI_TEENY */' >> $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
 	$(WASM2C) $(LIBDIR)/Dist/bin/ruby -n ruby --num-outputs=$(RUBY_NUM_OUTPUTS) -o $(OUTDIR)/ruby/mkxp-sandbox-ruby.c
 	# Find all the function types declared using `FUNC_TYPE_DECL_EXTERN_T` and redeclare them as macros to fix the "initializer element is not constant" compilation error that occurs when using GCC versions earlier than 8.1.0
 	rm -f $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h
@@ -127,7 +138,7 @@ $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h: $(INDEXER) $(LIBDIR)/Dist/bin/ruby
 	mkdir -p $(OUTDIR)/ruby
 	$(INDEXER) $(LIBDIR)/Dist/bin/ruby > $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h
 
-$(OUTDIR)/dist.zip: $(LIBDIR)/Dist/bin/ruby $(DOWNLOADS)/ruby/BSDL $(DOWNLOADS)/ruby/COPYING $(DOWNLOADS)/ruby/COPYING.ja
+$(OUTDIR)/dist.zip: $(LIBDIR)/Dist/bin/ruby $(RUBY_SRC)/BSDL $(RUBY_SRC)/COPYING $(RUBY_SRC)/COPYING.ja
 	rm -rf $(LIBDIR)/_Dist
 	cp -r $(LIBDIR)/Dist $(LIBDIR)/_Dist
 	rm $(LIBDIR)/_Dist/bin/ruby
@@ -139,15 +150,15 @@ $(OUTDIR)/dist.zip: $(LIBDIR)/Dist/bin/ruby $(DOWNLOADS)/ruby/BSDL $(DOWNLOADS)/
 	rm -r $(LIBDIR)/_Dist/lib/ruby/$(shell $(RUBY) -e 'puts "$(RUBY_VERSION)".split(".")[..1].join(".")').0/rdoc
 	rm -r $(LIBDIR)/_Dist/lib/ruby/$(shell $(RUBY) -e 'puts "$(RUBY_VERSION)".split(".")[..1].join(".")').0/rubygems
 	echo '# This is a Ruby script that does nothing. We make Ruby load this file on startup just because Ruby needs to load a script on startup for some reason.' > $(LIBDIR)/_Dist/bin/mkxp-z
-	cp $(DOWNLOADS)/ruby/BSDL $(LIBDIR)/_Dist/lib/ruby
-	cp $(DOWNLOADS)/ruby/COPYING $(LIBDIR)/_Dist/lib/ruby
-	cp $(DOWNLOADS)/ruby/COPYING.ja $(LIBDIR)/_Dist/lib/ruby
+	cp $(RUBY_SRC)/BSDL $(LIBDIR)/_Dist/lib/ruby
+	cp $(RUBY_SRC)/COPYING $(LIBDIR)/_Dist/lib/ruby
+	cp $(RUBY_SRC)/COPYING.ja $(LIBDIR)/_Dist/lib/ruby
 	rm -f $(OUTDIR)/dist.zip
 	cd $(LIBDIR)/_Dist && $(ZIP) -r $(OUTDIR)/dist.zip *
 	rm -r $(LIBDIR)/_Dist
 
-$(LIBDIR)/Dist/bin/ruby: $(DOWNLOADS)/ruby/Makefile ruby-bindings.h
-	cd $(DOWNLOADS)/ruby && $(MAKE) install DESTDIR=$(LIBDIR)
+$(LIBDIR)/Dist/bin/ruby: $(RUBY_SRC)/Makefile ruby-bindings.h
+	cd $(RUBY_SRC) && $(MAKE) install DESTDIR=$(LIBDIR)
 
 $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.h &: sandbox-bindgen.rb $(LIBDIR)/tags
 	mkdir -p $(OUTDIR)/sandbox-bindgen
@@ -158,12 +169,12 @@ $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sandbox-bindgen/mkx
 $(LIBDIR)/tags: $(LIBDIR)/tags.c
 	$(CTAGS) --fields=kS --kinds-c=epx -o $(LIBDIR)/tags $(LIBDIR)/tags.c
 
-$(LIBDIR)/tags.c: $(DOWNLOADS)/ruby/.ext/include/$(WASI_TARGET)/ruby/config.h
+$(LIBDIR)/tags.c: $(RUBY_SRC)/.ext/include/$(WASI_TARGET)/ruby/config.h
 	mkdir -p $(LIBDIR)
-	echo -e '#include <ruby.h>\n#include <ruby/encoding.h>' | $(WASI_CC) -E -I$(DOWNLOADS)/ruby/include -I$(DOWNLOADS)/ruby/.ext/include/$(WASI_TARGET) -o $(LIBDIR)/tags.c -
+	echo -e '#include <ruby.h>\n#include <ruby/encoding.h>' | $(WASI_CC) -E -I$(RUBY_SRC)/include -I$(RUBY_SRC)/.ext/include/$(WASI_TARGET) -o $(LIBDIR)/tags.c -
 
-$(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/$(WASI_TARGET)/ruby/config.h $(DOWNLOADS)/ruby/BSDL $(DOWNLOADS)/ruby/COPYING $(DOWNLOADS)/ruby/COPYING.ja &: $(DOWNLOADS)/ruby/configure $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a
-	cd $(DOWNLOADS)/ruby && ./configure \
+$(RUBY_SRC)/Makefile $(RUBY_SRC)/.ext/include/$(WASI_TARGET)/ruby/config.h $(RUBY_SRC)/BSDL $(RUBY_SRC)/COPYING $(RUBY_SRC)/COPYING.ja &: $(RUBY_SRC)/configure $(LIBDIR)/usr/local/lib/libyaml.a $(LIBDIR)/usr/local/lib/libz.a
+	cd $(RUBY_SRC) && ./configure \
 		--prefix=/Dist \
 		--host $(WASI_TARGET) \
 		--build $(shell $(RUBY) -e 'puts(RbConfig::CONFIG["host"])') \
@@ -187,20 +198,20 @@ $(DOWNLOADS)/ruby/Makefile $(DOWNLOADS)/ruby/.ext/include/$(WASI_TARGET)/ruby/co
 		--disable-rubygems \
 		--disable-install-doc
 
-$(DOWNLOADS)/ruby/configure: $(DOWNLOADS)/ruby/configure.ac
-	cd $(DOWNLOADS)/ruby && $(RUBY) tool/downloader.rb -d tool -e gnu config.guess config.sub
-	cd $(DOWNLOADS)/ruby && $(AUTORECONF) -i
+$(RUBY_SRC)/configure: $(RUBY_SRC)/configure.ac
+	cd $(RUBY_SRC) && $(RUBY) tool/downloader.rb -d tool -e gnu config.guess config.sub
+	cd $(RUBY_SRC) && $(AUTORECONF) -i
 
-$(DOWNLOADS)/ruby/configure.ac:
+$(RUBY_SRC)/configure.ac:
 	mkdir -p $(DOWNLOADS)
-	$(CLONE) $(GITHUB)/ruby/ruby $(DOWNLOADS)/ruby -b v$(subst .,_,$(RUBY_VERSION))
+	$(CLONE) $(GITHUB)/ruby/ruby $(RUBY_SRC) -b v$(subst .,_,$(RUBY_VERSION))
 ifneq ($(shell $(RUBY) -e 'puts "1" if Gem::Version.new("$(RUBY_VERSION)") >= Gem::Version.new("3.4")'),)
-	cd $(DOWNLOADS)/ruby && $(GIT) apply $(PWD)/ruby-compat-3.4.patch
+	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-compat-3.4.patch
 else
-	cd $(DOWNLOADS)/ruby && $(GIT) apply $(PWD)/ruby-compat.patch
+	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-compat.patch
 endif
-	cd $(DOWNLOADS)/ruby && $(GIT) apply $(PWD)/ruby-prng-time.patch
-	echo '#include "$(PWD)/ruby-bindings.h"' >> $(DOWNLOADS)/ruby/gc.c
+	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-prng-time.patch
+	echo '#include "$(PWD)/ruby-bindings.h"' >> $(RUBY_SRC)/gc.c
 
 # WABT (targets the build machine)
 

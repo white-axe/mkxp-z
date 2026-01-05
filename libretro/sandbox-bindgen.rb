@@ -46,6 +46,8 @@ ARG_HANDLERS = {
   'unsigned long long' => { primitive: :u64 },
   'float' => { primitive: :f32 },
   'double' => { primitive: :f64 },
+  'bool' => { primitive: :u32 },
+  '_Bool' => { primitive: :u32 },
   'const char *' => {
     keep: true,
     buf_size: 'std::strlen(ARG) + 1',
@@ -122,6 +124,8 @@ RET_HANDLERS = {
   'unsigned long long' => { primitive: :u64 },
   'float' => { primitive: :f32 },
   'double' => { primitive: :f64 },
+  'bool' => { primitive: :u32 },
+  '_Bool' => { primitive: :u32 },
   'char *' => { primitive: :ptr },
   'const char *' => { primitive: :ptr },
 }
@@ -428,16 +432,16 @@ File.readlines('tags', chomp: true).each do |line|
   globals.append(global_name)
 end
 
-# Find all `rb_` functions declared in the Ruby headers and generate bindings for them
+# Find all `rb_` and `mkxp_` functions declared in the Ruby headers and generate bindings for them
 File.readlines('tags', chomp: true).each do |line|
   line = line.split("\t")
 
   # Skip tags that are not function declarations
   next unless line[3] == 'p'
 
-  # Skip functions that do not begin with "rb_", that end with "_static" (our bindings are unable to handle functions that take static strings as arguments) or are in the list of functions that we want to exclude
+  # Skip functions that do not begin with "rb_" or "mkxp_", that end with "_static" (our bindings are unable to handle functions that take static strings as arguments) or are in the list of functions that we want to exclude
   func_name = line[0]
-  next unless func_name.start_with?('rb_')
+  next unless func_name.start_with?('rb_') || func_name.start_with?('mkxp_')
   next if func_name.end_with?('_static')
   next if IGNORED_FUNCTIONS.include?(func_name)
 
@@ -466,7 +470,7 @@ File.readlines('tags', chomp: true).each do |line|
   i = 0
   args.each_with_index do |arg, i|
     next if arg == '...'
-    handler = ARG_HANDLERS[arg]
+    handler = arg == 'const VALUE *' && func_name.start_with?('rb_funcall') ? {primitive: :ptr} : ARG_HANDLERS[arg]
 
     # Generate bindings for converting the arguments
     if !handler[:func_ptr_args].nil? || handler[:anyargs]
@@ -612,29 +616,31 @@ File.readlines('tags', chomp: true).each do |line|
     .lstrip + coroutine_initializer
   num_slots = old_num_slots
 
-  handler = RET_HANDLERS[ret]
+  ret_handler = RET_HANDLERS[ret]
 
   coroutine_ret = !RET_HANDLERS[ret][:keep] ? VAR_TYPE_TABLE[RET_HANDLERS[ret][:primitive]] : ret;
 
-  coroutine_vars.append("#{coroutine_ret} r") if handler[:primitive] != :void
+  coroutine_vars.append("#{coroutine_ret} r") if ret_handler[:primitive] != :void
 
   coroutine_args = (0...args.length).map do |i|
+    handler = args[i] == 'const VALUE *' && func_name.start_with?('rb_funcall') ? {primitive: :ptr} : ARG_HANDLERS[args[i]]
     args[i] == '...' ? '...'
-      : !ARG_HANDLERS[args[i]][:formatter].nil? ? ARG_HANDLERS[args[i]][:formatter].call("a#{i}")
-      : !ARG_HANDLERS[args[i]][:keep] ? "#{VAR_TYPE_TABLE[ARG_HANDLERS[args[i]][:primitive]]} a#{i}"
+      : !handler[:formatter].nil? ? handler[:formatter].call("a#{i}")
+      : !handler[:keep] ? "#{VAR_TYPE_TABLE[handler[:primitive]]} a#{i}"
       : "#{args[i]} a#{i}"
   end
 
   declaration_args = (0...args.length).map do |i|
+    handler = args[i] == 'const VALUE *' && func_name.start_with?('rb_funcall') ? {primitive: :ptr} : ARG_HANDLERS[args[i]]
     args[i] == '...' ? '...'
-      : !ARG_HANDLERS[args[i]][:formatter].nil? ? ARG_HANDLERS[args[i]][:formatter].call('')
-      : !ARG_HANDLERS[args[i]][:keep] ? "#{VAR_TYPE_TABLE[ARG_HANDLERS[args[i]][:primitive]]}"
+      : !handler[:formatter].nil? ? handler[:formatter].call('')
+      : !handler[:keep] ? "#{VAR_TYPE_TABLE[handler[:primitive]]}"
       : "#{args[i]}"
   end
 
   j = 0
   coroutine_inner = <<~HEREDOC
-    #{handler[:primitive] == :void ? '' : 'r = '}w2c_#{MODULE_NAME}_#{func_name}(#{(['&bind.instance()'] + (0...args.length).map do |i|
+    #{ret_handler[:primitive] == :void ? '' : 'r = '}w2c_#{MODULE_NAME}_#{func_name}(#{(['&bind.instance()'] + (0...args.length).map do |i|
       if args[i] == '...' || transformed_args.include?(i)
         j += 1
         "_SBINDGEN_SLOT(#{j - 1})"
@@ -676,7 +682,7 @@ File.readlines('tags', chomp: true).each do |line|
     #{coroutine_initializer.empty? ? '' : (coroutine_initializer.split("\n").map { |line| "        #{line}".rstrip }.join("\n") + "\n\n")}        for (;;) {
     #{coroutine_inner.split("\n").map { |line| "            #{line}" }.join("\n")}
             }
-        }#{handler[:primitive] == :void ? '' : "\n\n    return r;"}
+        }#{ret_handler[:primitive] == :void ? '' : "\n\n    return r;"}
     }#{coroutine_destructor.empty? ? '' : ("\n" + coroutine_destructor)}
   HEREDOC
 
