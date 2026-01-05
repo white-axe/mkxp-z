@@ -53,6 +53,309 @@ static VALUE top_self;
 static VALUE marshal_module;
 static VALUE win32api_class;
 
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+static VALUE legacy_array_indexes(int32_t argc, wasm_ptr_t argv, VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE, ID> slots;
+
+        VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
+                if (!SANDBOX_SLOT(0)) {
+                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "indexes");
+                }
+                SANDBOX_AWAIT(mkxp_warn, "Array#indexes is deprecated; use Array#values_at");
+                SANDBOX_AWAIT_S(1, rb_intern, "values_at");
+                SANDBOX_AWAIT_S(0, rb_funcallv, self, SANDBOX_SLOT(1), argc, argv);
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(argc, argv, self);
+}
+
+static VALUE legacy_array_indices(int32_t argc, wasm_ptr_t argv, VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE, ID> slots;
+
+        VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
+                if (!SANDBOX_SLOT(0)) {
+                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "indices");
+                }
+                SANDBOX_AWAIT(mkxp_warn, "Array#indices is deprecated; use Array#values_at");
+                SANDBOX_AWAIT_S(1, rb_intern, "values_at");
+                SANDBOX_AWAIT_S(0, rb_funcallv, self, SANDBOX_SLOT(1), argc, argv);
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(argc, argv, self);
+}
+
+static VALUE legacy_exception_to_str(VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE> slots;
+
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
+                if (!SANDBOX_SLOT(0)) {
+                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "to_str");
+                }
+                SANDBOX_AWAIT_S(0, rb_obj_as_string, self);
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
+}
+
+static VALUE legacy_hash_indexes(int32_t argc, wasm_ptr_t argv, VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE, ID> slots;
+
+        VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
+                if (!SANDBOX_SLOT(0)) {
+                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "indexes");
+                }
+                SANDBOX_AWAIT(mkxp_warn, "Hash#indexes is deprecated; use Hash#values_at");
+                SANDBOX_AWAIT_S(1, rb_intern, "values_at");
+                SANDBOX_AWAIT_S(0, rb_funcallv, self, SANDBOX_SLOT(1), argc, argv);
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(argc, argv, self);
+}
+
+static VALUE legacy_hash_indices(int32_t argc, wasm_ptr_t argv, VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE, ID> slots;
+
+        VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
+                if (!SANDBOX_SLOT(0)) {
+                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "indices");
+                }
+                SANDBOX_AWAIT(mkxp_warn, "Hash#indices is deprecated; use Hash#values_at");
+                SANDBOX_AWAIT_S(1, rb_intern, "values_at");
+                SANDBOX_AWAIT_S(0, rb_funcallv, self, SANDBOX_SLOT(1), argc, argv);
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(argc, argv, self);
+}
+
+static VALUE legacy_kernel_id(VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE> slots;
+
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
+                if (!SANDBOX_SLOT(0)) {
+                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "id");
+                }
+                SANDBOX_AWAIT(mkxp_warn, "Object#id will be deprecated; use Object#object_id");
+                SANDBOX_AWAIT_S(0, rb_obj_id, self);
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
+}
+
+static VALUE legacy_kernel_to_a(VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE> slots;
+
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
+                if (!SANDBOX_SLOT(0)) {
+                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "to_a");
+                }
+                SANDBOX_AWAIT(mkxp_warn, "default `to_a' will be obsolete");
+                SANDBOX_AWAIT_S(0, rb_ary_new_capa, 1);
+                SANDBOX_AWAIT(rb_ary_push, SANDBOX_SLOT(0), self);
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
+}
+
+static VALUE legacy_kernel_type(VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE> slots;
+
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
+                if (!SANDBOX_SLOT(0)) {
+                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "type");
+                }
+                SANDBOX_AWAIT(mkxp_warn, "Object#type is deprecated; use Object#class");
+                SANDBOX_AWAIT_S(0, rb_obj_class, self);
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
+}
+
+static VALUE legacy_symbol_to_i(VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE, ID> slots;
+
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
+                if (!SANDBOX_SLOT(0)) {
+                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "to_i");
+                }
+                SANDBOX_AWAIT_S(1, rb_sym2id, self);
+                SANDBOX_AWAIT_S(0, rb_ll2inum, (wasm_ssize_t)SANDBOX_SLOT(1));
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
+}
+
+static VALUE legacy_symbol_to_int(VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE, ID> slots;
+
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
+                if (!SANDBOX_SLOT(0)) {
+                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "to_int");
+                }
+                SANDBOX_AWAIT(mkxp_warn, "treating Symbol as an integer");
+                SANDBOX_AWAIT_S(1, rb_sym2id, self);
+                SANDBOX_AWAIT_S(0, rb_ll2inum, (wasm_ssize_t)SANDBOX_SLOT(1));
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
+}
+
+static VALUE legacy_dir_exists(VALUE self, VALUE path) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE, ID> slots;
+
+        VALUE operator()(VALUE self, VALUE path) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 3, 1, -1);
+                if (!SANDBOX_SLOT(0)) {
+                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "exists?");
+                }
+                SANDBOX_AWAIT_S(1, rb_intern, "exist?");
+                SANDBOX_AWAIT_S(0, rb_funcall, sb()->rb_cDir(), SANDBOX_SLOT(1), 1, path);
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self, path);
+}
+
+static VALUE legacy_file_exists(VALUE self, VALUE path) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE, ID> slots;
+
+        VALUE operator()(VALUE self, VALUE path) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 3, 1, -1);
+                if (!SANDBOX_SLOT(0)) {
+                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "exists?");
+                }
+                SANDBOX_AWAIT_S(1, rb_intern, "exist?");
+                SANDBOX_AWAIT_S(0, rb_funcall, sb()->rb_cFile(), SANDBOX_SLOT(1), 1, path);
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self, path);
+}
+
+static VALUE legacy_file_test_exists(VALUE self, VALUE path) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE, ID> slots;
+
+        VALUE operator()(VALUE self, VALUE path) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 3, 1, -1);
+                if (!SANDBOX_SLOT(0)) {
+                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "exists?");
+                }
+                SANDBOX_AWAIT_S(1, rb_intern, "exist?");
+                SANDBOX_AWAIT_S(0, rb_funcall, sb()->rb_mFileTest(), SANDBOX_SLOT(1), 1, path);
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self, path);
+}
+
+static VALUE legacy_kernel_match(VALUE self, VALUE other) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE> slots;
+
+        VALUE operator()(VALUE self, VALUE other) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
+                if (SANDBOX_SLOT(0)) {
+                    return SANDBOX_FALSE;
+                }
+                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 3, 1, -1);
+                if (!SANDBOX_SLOT(0)) {
+                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "=~");
+                }
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self, other);
+}
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+
 static VALUE eval_script_func(VALUE arg) {
     struct coro : boost::asio::coroutine {
         typedef decl_slots<VALUE, VALUE, ID> slots;
@@ -96,7 +399,7 @@ namespace mkxp_sandbox {
                 SANDBOX_AWAIT_S(0, rb_str_new_cstr, mkxp_retro::fs->normalize(filename, false, true, "/Game").c_str());
                 SANDBOX_AWAIT_S(2, rb_intern, "read");
                 SANDBOX_AWAIT_S(0, rb_funcall, sb()->rb_cFile(), SANDBOX_SLOT(2), 1, SANDBOX_SLOT(0));
-                SANDBOX_AWAIT_S(1, rb_utf8_str_new_cstr, filename);
+                SANDBOX_AWAIT_S(1, mkxp_str_new_cstr, filename);
                 SANDBOX_AWAIT_S(0, eval_script, SANDBOX_SLOT(0), SANDBOX_SLOT(1));
             }
 
@@ -316,8 +619,8 @@ static VALUE kernel_caller(VALUE self) {
 
                 /* RMXP does this, not sure if specific or 1.8 related */
                 SANDBOX_AWAIT_S(2, rb_ary_entry, SANDBOX_SLOT(1), -1);
-                SANDBOX_AWAIT_S(3, rb_utf8_str_new_cstr, ":in `<main>'");
-                SANDBOX_AWAIT_S(4, rb_utf8_str_new_cstr, "");
+                SANDBOX_AWAIT_S(3, mkxp_str_new_cstr, ":in `<main>'");
+                SANDBOX_AWAIT_S(4, mkxp_str_new_cstr, "");
                 SANDBOX_AWAIT_S(5, rb_intern, "gsub!");
                 SANDBOX_AWAIT(rb_funcall, SANDBOX_SLOT(2), SANDBOX_SLOT(5), 2, SANDBOX_SLOT(3), SANDBOX_SLOT(4));
             }
@@ -351,7 +654,7 @@ static VALUE data_directory(VALUE self) {
 }
 
 static VALUE get_window_title(VALUE self) {
-    return sb()->bind<struct rb_utf8_str_new_cstr>()()("");
+    return sb()->bind<struct mkxp_str_new_cstr>()()("");
 }
 
 static VALUE set_window_title(VALUE self, VALUE value) {
@@ -369,7 +672,7 @@ static VALUE desensitize(VALUE self, VALUE value) {
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_S(0, rb_string_value_cstr, &value);
-                SANDBOX_AWAIT_S(1, rb_utf8_str_new_cstr, mkxp_retro::fs->desensitize(sb()->str(SANDBOX_SLOT(0))));
+                SANDBOX_AWAIT_S(1, mkxp_str_new_cstr, mkxp_retro::fs->desensitize(sb()->str(SANDBOX_SLOT(0))));
             }
 
             return SANDBOX_SLOT(1);
@@ -380,7 +683,7 @@ static VALUE desensitize(VALUE self, VALUE value) {
 }
 
 static VALUE platform(VALUE self) {
-    return sb()->bind<struct rb_utf8_str_new_cstr>()()("libretro");
+    return sb()->bind<struct mkxp_str_new_cstr>()()("libretro");
 }
 
 static VALUE is_not_libretro(VALUE self) {
@@ -437,7 +740,7 @@ static VALUE user_language(VALUE self) {
         case RETRO_LANGUAGE_IRISH: str = "ga_IE"; break;
     }
 
-    return sb()->bind<struct rb_utf8_str_new_cstr>()()(str);
+    return sb()->bind<struct mkxp_str_new_cstr>()()(str);
 }
 
 static VALUE user_name(VALUE self) {
@@ -447,11 +750,11 @@ static VALUE user_name(VALUE self) {
         str = "";
     }
 
-    return sb()->bind<struct rb_utf8_str_new_cstr>()()(str);
+    return sb()->bind<struct mkxp_str_new_cstr>()()(str);
 }
 
 static VALUE game_title(VALUE self) {
-    return sb()->bind<struct rb_utf8_str_new_cstr>()()(shState->config().game.title.c_str());
+    return sb()->bind<struct mkxp_str_new_cstr>()()(shState->config().game.title.c_str());
 }
 
 static VALUE power_state(VALUE self) {
@@ -572,7 +875,7 @@ static VALUE to_utf8(VALUE self) {
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_S(0, rb_string_value_cstr, &self);
-                SANDBOX_AWAIT_S(1, rb_utf8_str_new_cstr, Encoding::convertString((const char *)sb()->str(SANDBOX_SLOT(0))).c_str());
+                SANDBOX_AWAIT_S(1, mkxp_str_new_cstr, Encoding::convertString((const char *)sb()->str(SANDBOX_SLOT(0))).c_str());
             }
 
             return SANDBOX_SLOT(1);
@@ -655,13 +958,15 @@ void sandbox_binding_init::operator()() {
 
                 VALUE operator()(VALUE yielded_arg, VALUE callback_arg, int32_t argc, wasm_ptr_t argv, VALUE blockarg) {
                     BOOST_ASIO_CORO_REENTER (this) {
-                        SANDBOX_AWAIT_S(0, rb_obj_is_kind_of, yielded_arg, sb()->rb_cString());
-                        if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(0))) {
-                            SANDBOX_AWAIT_S(2, rb_enc_get_index, yielded_arg);
-                            SANDBOX_AWAIT_S(3, rb_ascii8bit_encindex);
-                            if (SANDBOX_SLOT(2) == SANDBOX_SLOT(3)) {
-                                SANDBOX_AWAIT_S(2, rb_utf8_encindex);
-                                SANDBOX_AWAIT(rb_enc_associate_index, yielded_arg, SANDBOX_SLOT(2));
+                        if (!sb().using_ruby18_encoding()) {
+                            SANDBOX_AWAIT_S(0, rb_obj_is_kind_of, yielded_arg, sb()->rb_cString());
+                            if (SANDBOX_VALUE_TO_BOOL(SANDBOX_SLOT(0))) {
+                                SANDBOX_AWAIT_S(2, rb_enc_get_index, yielded_arg);
+                                SANDBOX_AWAIT_S(3, rb_ascii8bit_encindex);
+                                if (SANDBOX_SLOT(2) == SANDBOX_SLOT(3)) {
+                                    SANDBOX_AWAIT_S(2, rb_utf8_encindex);
+                                    SANDBOX_AWAIT(rb_enc_associate_index, yielded_arg, SANDBOX_SLOT(2));
+                                }
                             }
                         }
                         if (callback_arg != SANDBOX_UNDEF) {
@@ -723,6 +1028,26 @@ void sandbox_binding_init::operator()() {
         SANDBOX_AWAIT_R(top_self, rb_eval_string, "self");
         SANDBOX_AWAIT(exception_binding_init);
 
+        SANDBOX_AWAIT_S(0, rb_str_new_cstr, "UTF8");
+        SANDBOX_AWAIT(rb_gv_set, "$KCODE", SANDBOX_SLOT(0));
+        SANDBOX_AWAIT_S(0, rb_str_new_cstr, "UTF8");
+        SANDBOX_AWAIT(rb_gv_set, "$-K", SANDBOX_SLOT(0));
+
+        SANDBOX_AWAIT(rb_define_method, sb()->rb_cArray(), "indexes", (VALUE (*)(ANYARGS))legacy_array_indexes, -1);
+        SANDBOX_AWAIT(rb_define_method, sb()->rb_cArray(), "indices", (VALUE (*)(ANYARGS))legacy_array_indices, -1);
+        SANDBOX_AWAIT(rb_define_method, sb()->rb_eException(), "to_str", (VALUE (*)(ANYARGS))legacy_exception_to_str, 0);
+        SANDBOX_AWAIT(rb_define_method, sb()->rb_cHash(), "indexes", (VALUE (*)(ANYARGS))legacy_hash_indexes, -1);
+        SANDBOX_AWAIT(rb_define_method, sb()->rb_cHash(), "indices", (VALUE (*)(ANYARGS))legacy_hash_indices, -1);
+        SANDBOX_AWAIT(rb_define_method, sb()->rb_mKernel(), "id", (VALUE (*)(ANYARGS))legacy_kernel_id, 0);
+        SANDBOX_AWAIT(rb_define_method, sb()->rb_mKernel(), "to_a", (VALUE (*)(ANYARGS))legacy_kernel_to_a, 0);
+        SANDBOX_AWAIT(rb_define_method, sb()->rb_mKernel(), "type", (VALUE (*)(ANYARGS))legacy_kernel_type, 0);
+        SANDBOX_AWAIT(rb_define_method, sb()->rb_cSymbol(), "to_i", (VALUE (*)(ANYARGS))legacy_symbol_to_i, 0);
+        SANDBOX_AWAIT(rb_define_method, sb()->rb_cSymbol(), "to_int", (VALUE (*)(ANYARGS))legacy_symbol_to_int, 0);
+        SANDBOX_AWAIT(rb_define_singleton_method, sb()->rb_cDir(), "exists?", (VALUE (*)(ANYARGS))legacy_dir_exists, 1);
+        SANDBOX_AWAIT(rb_define_singleton_method, sb()->rb_cFile(), "exists?", (VALUE (*)(ANYARGS))legacy_file_exists, 1);
+        SANDBOX_AWAIT(rb_define_singleton_method, sb()->rb_mFileTest(), "exists?", (VALUE (*)(ANYARGS))legacy_file_test_exists, 1);
+        SANDBOX_AWAIT(rb_define_singleton_method, sb()->rb_mKernel(), "=~", (VALUE (*)(ANYARGS))legacy_kernel_match, 1);
+
         SANDBOX_AWAIT(table_binding_init);
         SANDBOX_AWAIT(etc_binding_init);
         SANDBOX_AWAIT(font_binding_init);
@@ -760,7 +1085,7 @@ void sandbox_binding_init::operator()() {
             SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "msgbox", (VALUE (*)(ANYARGS))msgbox, -1);
             SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "msgbox_p", (VALUE (*)(ANYARGS))msgbox_p, -1);
 
-            SANDBOX_AWAIT_S(0, rb_utf8_str_new_cstr, "3.0.1");
+            SANDBOX_AWAIT_S(0, mkxp_str_new_cstr, "3.0.1");
             SANDBOX_AWAIT(rb_define_global_const, "RGSS_VERSION", SANDBOX_SLOT(0));
         } else {
             SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "print", (VALUE (*)(ANYARGS))msgbox, -1);
@@ -829,7 +1154,7 @@ void sandbox_binding_init::operator()() {
 
         SANDBOX_AWAIT(rb_gv_set, "MKXP", SANDBOX_TRUE);
 
-        SANDBOX_AWAIT_S(0, rb_utf8_str_new_cstr, MKXPZ_VERSION "/" MKXPZ_GIT_HASH);
+        SANDBOX_AWAIT_S(0, mkxp_str_new_cstr, MKXPZ_VERSION "/" MKXPZ_GIT_HASH);
         SANDBOX_AWAIT(rb_str_freeze, SANDBOX_SLOT(0));
         SANDBOX_AWAIT(rb_define_const, system_module, "VERSION", SANDBOX_SLOT(0));
 
@@ -913,7 +1238,7 @@ void sandbox_run_rmxp_scripts::operator()() {
                 }
             }
 
-            SANDBOX_AWAIT_S(0, rb_utf8_str_new_cstr, (const char *)sb().script_decode_buffer.data());
+            SANDBOX_AWAIT_S(0, mkxp_str_new_cstr, (const char *)sb().script_decode_buffer.data());
             SANDBOX_AWAIT(rb_ary_store, SANDBOX_SLOT(4), 3, SANDBOX_SLOT(0));
         }
 
@@ -942,7 +1267,13 @@ void sandbox_run_rmxp_scripts::operator()() {
                 SANDBOX_AWAIT_S(10, rb_str_concat, SANDBOX_SLOT(9), SANDBOX_SLOT(10));
                 SANDBOX_AWAIT_S(9, rb_ary_entry, SANDBOX_SLOT(4), 3);
 
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+                sb().enable_syntax_transform_for_next_eval();
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
                 SANDBOX_AWAIT_S(9, eval_script, SANDBOX_SLOT(9), SANDBOX_SLOT(10));
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+                sb().disable_syntax_transform_for_next_eval();
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
             }
 
             // Stop unless a reset was requested
@@ -957,5 +1288,8 @@ void sandbox_run_rmxp_scripts::operator()() {
 }
 
 void sandbox_run_rmxp_scripts::end() noexcept {
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+    sb().disable_syntax_transform_for_next_eval();
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
     sb().script_decode_buffer.clear();
 }

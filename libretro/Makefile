@@ -76,9 +76,12 @@ WASI_CXX_STANDARD := -std=gnu++11
 WASI_CFLAGS := $(WASI_TARGET_FLAGS) $(WASI_C_STANDARD) $(WASI_CFLAGS)
 WASI_CXXFLAGS := $(WASI_TARGET_FLAGS) $(WASI_CXX_STANDARD) $(WASI_CXXFLAGS)
 
+SYNTAX_TRANSFORM_DIR := ../syntax-transform/$(shell $(RUBY) -e 'puts "$(RUBY_VERSION)".split(".")[..1].join(".")')
 RUBY_SRC := $(DOWNLOADS)/ruby
 
 all default: ruby-dist ruby-bindings $(OUTDIR)/preload.zip $(OUTDIR)/boost_predef/include/boost/predef.h
+
+include $(SYNTAX_TRANSFORM_DIR)/Makefile
 
 ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
 
@@ -198,7 +201,7 @@ $(RUBY_SRC)/Makefile $(RUBY_SRC)/.ext/include/$(WASI_TARGET)/ruby/config.h $(RUB
 		--disable-rubygems \
 		--disable-install-doc
 
-$(RUBY_SRC)/configure: $(RUBY_SRC)/configure.ac
+$(RUBY_SRC)/configure: $(RUBY_SRC)/configure.ac $(RUBY_SRC)/syntax-transform
 	cd $(RUBY_SRC) && $(RUBY) tool/downloader.rb -d tool -e gnu config.guess config.sub
 	cd $(RUBY_SRC) && $(AUTORECONF) -i
 

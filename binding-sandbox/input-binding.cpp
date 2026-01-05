@@ -367,7 +367,7 @@ static VALUE controller_connected(VALUE self) {
 }
 
 static VALUE controller_name(VALUE self) {
-    return sb()->bind<struct rb_utf8_str_new_cstr>()()(mkxp_retro::input->getControllerName());
+    return sb()->bind<struct mkxp_str_new_cstr>()()(mkxp_retro::input->getControllerName());
 }
 
 #define POWERCASE(power) \
@@ -582,7 +582,7 @@ static VALUE gets_(VALUE self) {
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, rb_utf8_str_new_cstr, mkxp_retro::input->getText());
+                SANDBOX_AWAIT_S(0, mkxp_str_new_cstr, mkxp_retro::input->getText());
                 mkxp_retro::input->clearText();
             }
 

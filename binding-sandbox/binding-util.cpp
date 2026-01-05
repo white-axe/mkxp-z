@@ -204,3 +204,27 @@ void raise_disposed_access::operator()(VALUE obj) {
         SANDBOX_AWAIT(rb_exc_raise, SANDBOX_SLOT(0));
     }
 }
+
+VALUE mkxp_str_new::operator()(const char *str, wasm_ssize_t size_in_bytes_not_including_null_terminator) {
+    BOOST_ASIO_CORO_REENTER (this) {
+        if (sb().using_ruby18_encoding()) {
+            SANDBOX_AWAIT_S(0, rb_str_new, str, size_in_bytes_not_including_null_terminator);
+        } else {
+            SANDBOX_AWAIT_S(0, rb_utf8_str_new, str, size_in_bytes_not_including_null_terminator);
+        }
+    }
+
+    return SANDBOX_SLOT(0);
+}
+
+VALUE mkxp_str_new_cstr::operator()(const char *str) {
+    BOOST_ASIO_CORO_REENTER (this) {
+        if (sb().using_ruby18_encoding()) {
+            SANDBOX_AWAIT_S(0, rb_str_new_cstr, str);
+        } else {
+            SANDBOX_AWAIT_S(0, rb_utf8_str_new_cstr, str);
+        }
+    }
+
+    return SANDBOX_SLOT(0);
+}

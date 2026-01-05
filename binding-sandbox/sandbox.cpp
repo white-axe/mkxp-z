@@ -48,7 +48,7 @@ void sandbox::sandbox_free(wasm_ptr_t ptr) {
     w2c_ruby_mkxp_sandbox_free(RB, ptr);
 }
 
-sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_instance(ruby)), bindings(ruby), movie(nullptr), yielding(false), trans_map(nullptr), transitioning(false) {
+sandbox::sandbox(const Config &conf) : ruby(new struct w2c_ruby), wasi(new wasi_instance(ruby)), bindings(ruby), movie(nullptr), yielding(false), trans_map(nullptr), transitioning(false) {
     // Initialize the sandbox
 #if MKXPZ_WASI_VERSION_MAJOR == 0 && MKXPZ_WASI_VERSION_MINOR <= 1
     wasm2c_ruby_instantiate(RB, (struct w2c_wasi__snapshot__preview1 *)wasi.get());
@@ -75,6 +75,27 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_instance(ruby)), b
         (struct w2c_wasi0x3Arandom0x2Frandom0x4000x2E20x2E0 *)wasi.get()
     );
 #endif
+
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+    switch (conf.syntaxTransform) {
+        default:
+            wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_major) = -1;
+            wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_minor) = -1;
+            wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_teeny) = -1;
+            break;
+        case 1:
+            wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_major) = std::max(0, conf.syntaxTransformCustomVersionMajor);
+            wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_minor) = std::max(0, conf.syntaxTransformCustomVersionMinor);
+            wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_teeny) = std::max(0, conf.syntaxTransformCustomVersionTeeny);
+            break;
+        case 2:
+            wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_major) = 1;
+            wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_minor) = conf.rgssVersion >= 3 ? 9 : 8;
+            wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_teeny) = conf.rgssVersion >= 3 ? 2 : 1;
+            break;
+    }
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+
     w2c_ruby_mkxp_sandbox_init(
         RB,
         0,              // heap_free_slots
@@ -100,7 +121,7 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_instance(ruby)), b
 
     // Determine Ruby command-line arguments
     std::vector<std::string> args{"mkxp-z"};
-    args.push_back("-EUTF-8"); // Sets the default external encoding to UTF-8
+    args.push_back(using_ruby18_encoding() ? "-EASCII-8BIT" : "-EUTF-8"); // Sets the default external encoding to 8-bit ASCII or UTF-8
     args.push_back("/Dist/bin/mkxp-z");
 
     // Copy all the command-line arguments into the sandbox (sandboxed code can't access memory that's outside the sandbox!)

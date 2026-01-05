@@ -202,7 +202,212 @@ static const struct retro_core_option_v2_category core_option_categories[] = {
     {"mouse-9-2", "Mouse Button 4 on Port 3"}, \
     {"mouse-10-2", "Mouse Button 5 on Port 3"}, \
 
+#define SYNTAX_TRANSFORM_VERSION_SELECTION \
+    {"0", "0"}, \
+    {"1", "1"}, \
+    {"2", "2"}, \
+    {"3", "3"}, \
+    {"4", "4"}, \
+    {"5", "5"}, \
+    {"6", "6"}, \
+    {"7", "7"}, \
+    {"8", "8"}, \
+    {"9", "9"}, \
+    {"10", "10"}, \
+    {"11", "11"}, \
+    {"12", "12"}, \
+    {"13", "13"}, \
+    {"14", "14"}, \
+    {"15", "15"}, \
+    {"16", "16"}, \
+    {"17", "17"}, \
+    {"18", "18"}, \
+    {"19", "19"}, \
+    {"20", "20"}, \
+    {"21", "21"}, \
+    {"22", "22"}, \
+    {"23", "23"}, \
+    {"24", "24"}, \
+    {"25", "25"}, \
+    {"26", "26"}, \
+    {"27", "27"}, \
+    {"28", "28"}, \
+    {"29", "29"}, \
+    {"30", "30"}, \
+    {"31", "31"}, \
+    {"32", "32"}, \
+    {"33", "33"}, \
+    {"34", "34"}, \
+    {"35", "35"}, \
+    {"36", "36"}, \
+    {"37", "37"}, \
+    {"38", "38"}, \
+    {"39", "39"}, \
+    {"40", "40"}, \
+    {"41", "41"}, \
+    {"42", "42"}, \
+    {"43", "43"}, \
+    {"44", "44"}, \
+    {"45", "45"}, \
+    {"46", "46"}, \
+    {"47", "47"}, \
+    {"48", "48"}, \
+    {"49", "49"}, \
+    {"50", "50"}, \
+    {"51", "51"}, \
+    {"52", "52"}, \
+    {"53", "53"}, \
+    {"54", "54"}, \
+    {"55", "55"}, \
+    {"56", "56"}, \
+    {"57", "57"}, \
+    {"58", "58"}, \
+    {"59", "59"}, \
+    {"60", "60"}, \
+    {"61", "61"}, \
+    {"62", "62"}, \
+    {"63", "63"}, \
+    {"64", "64"}, \
+    {"65", "65"}, \
+    {"66", "66"}, \
+    {"67", "67"}, \
+    {"68", "68"}, \
+    {"69", "69"}, \
+    {"70", "70"}, \
+    {"71", "71"}, \
+    {"72", "72"}, \
+    {"73", "73"}, \
+    {"74", "74"}, \
+    {"75", "75"}, \
+    {"76", "76"}, \
+    {"77", "77"}, \
+    {"78", "78"}, \
+    {"79", "79"}, \
+    {"80", "80"}, \
+    {"81", "81"}, \
+    {"82", "82"}, \
+    {"83", "83"}, \
+    {"84", "84"}, \
+    {"85", "85"}, \
+    {"86", "86"}, \
+    {"87", "87"}, \
+    {"88", "88"}, \
+    {"89", "89"}, \
+    {"90", "90"}, \
+    {"91", "91"}, \
+    {"92", "92"}, \
+    {"93", "93"}, \
+    {"94", "94"}, \
+    {"95", "95"}, \
+    {"96", "96"}, \
+    {"97", "97"}, \
+    {"98", "98"}, \
+    {"99", "99"}, \
+    {"100", "100"}, \
+    {"101", "101"}, \
+    {"102", "102"}, \
+    {"103", "103"}, \
+    {"104", "104"}, \
+    {"105", "105"}, \
+    {"106", "106"}, \
+    {"107", "107"}, \
+    {"108", "108"}, \
+    {"109", "109"}, \
+    {"110", "110"}, \
+    {"111", "111"}, \
+    {"112", "112"}, \
+    {"113", "113"}, \
+    {"114", "114"}, \
+    {"115", "115"}, \
+    {"116", "116"}, \
+    {"117", "117"}, \
+    {"118", "118"}, \
+    {"119", "119"}, \
+    {"120", "120"}, \
+    {"121", "121"}, \
+    {"122", "122"}, \
+    {"123", "123"}, \
+    {"124", "124"}, \
+    {"125", "125"}, \
+
 static const struct retro_core_option_v2_definition core_option_definitions[] = {
+    {
+        "mkxp-z_syntaxTransform",
+        "Syntax Transform",
+        nullptr,
+        (
+            "Apply a syntax transform to help games that require old Ruby syntax run"
+            " in modern Ruby. If this is enabled, the syntax transform is only applied"
+            " to the game scripts in Scripts.rxdata, Scripts.rvdata or Scripts.rvdata2."
+            " Any `eval` or `instance_eval` calls made from code with syntax transform"
+            " enabled also enable syntax transform for the evaluated code. The syntax"
+            " transform is not applied to any other Ruby scripts, such as preload"
+            " scripts, postload scripts, the `customScript` specified in mkxp.json, the"
+            " Ruby standard library, or scripts imported using `require` or"
+            " `require_relative`."
+            " Changes will take effect after the core is reset."
+            " (default: disabled)"
+        ),
+        nullptr,
+        "runtime",
+        {
+            {"inherit", "Inherit from mkxp.json"},
+            {"default", "Default"},
+            {"0", "Disabled (use modern Ruby syntax for all Ruby scripts)"},
+            {"1", "Custom (use the Ruby version specified by `syntaxTransformCustomVersionMajor`, `syntaxTransformCustomVersionMinor` and `syntaxTransformCustomVersionTeeny`)"},
+            {"2", "Compatibility Mode (equivalent to Ruby 1.9.2 if the RGSS version is 3, or Ruby 1.8.1 otherwise)"},
+            {nullptr, nullptr},
+        },
+        "inherit",
+    },
+    {
+        "mkxp-z_syntaxTransformCustomVersionMajor",
+        "Syntax Transform Custom Major Version",
+        nullptr,
+        (
+            "When syntax transform is set to custom, this controls the targeted Ruby major version."
+        ),
+        nullptr,
+        "runtime",
+        {
+            {"inherit", "Inherit from mkxp.json"},
+            SYNTAX_TRANSFORM_VERSION_SELECTION
+            {nullptr, nullptr},
+        },
+        "inherit",
+    },
+    {
+        "mkxp-z_syntaxTransformCustomVersionMinor",
+        "Syntax Transform Custom Minor Version",
+        nullptr,
+        (
+            "When syntax transform is set to custom, this controls the targeted Ruby minor version."
+        ),
+        nullptr,
+        "runtime",
+        {
+            {"inherit", "Inherit from mkxp.json"},
+            SYNTAX_TRANSFORM_VERSION_SELECTION
+            {nullptr, nullptr},
+        },
+        "inherit",
+    },
+    {
+        "mkxp-z_syntaxTransformCustomVersionTeeny",
+        "Syntax Transform Custom Teeny Version",
+        nullptr,
+        (
+            "When syntax transform is set to custom, this controls the targeted Ruby teeny version."
+        ),
+        nullptr,
+        "runtime",
+        {
+            {"inherit", "Inherit from mkxp.json"},
+            SYNTAX_TRANSFORM_VERSION_SELECTION
+            {nullptr, nullptr},
+        },
+        "inherit",
+    },
     {
         "mkxp-z_rgssVersion",
         "RGSS Version",

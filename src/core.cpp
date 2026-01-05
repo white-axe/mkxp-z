@@ -938,6 +938,36 @@ static bool init_sandbox() {
         }
 
         {
+            const char *value = get_core_option("mkxp-z_syntaxTransform");
+            if (!std::strcmp(value, "default")) {
+                conf->syntaxTransform = 0;
+            } else if (std::strcmp(value, "inherit")) {
+                conf->syntaxTransform = std::strtoul(value, nullptr, 10);
+            }
+        }
+
+        {
+            const char *value = get_core_option("mkxp-z_syntaxTransformCustomVersionMajor");
+            if (std::strcmp(value, "inherit")) {
+                conf->syntaxTransformCustomVersionMajor = std::strtoul(value, nullptr, 10);
+            }
+        }
+
+        {
+            const char *value = get_core_option("mkxp-z_syntaxTransformCustomVersionMinor");
+            if (std::strcmp(value, "inherit")) {
+                conf->syntaxTransformCustomVersionMinor = std::strtoul(value, nullptr, 10);
+            }
+        }
+
+        {
+            const char *value = get_core_option("mkxp-z_syntaxTransformCustomVersionTeeny");
+            if (std::strcmp(value, "inherit")) {
+                conf->syntaxTransformCustomVersionTeeny = std::strtoul(value, nullptr, 10);
+            }
+        }
+
+        {
             const char *value = get_core_option("mkxp-z_frameSkip");
             if (!std::strcmp(value, "enabled")) {
                 conf->frameSkip.setOverride(true);
@@ -1309,7 +1339,7 @@ static bool init_sandbox() {
 
     input.emplace();
 
-    mkxp_retro::sandbox.emplace();
+    mkxp_retro::sandbox.emplace(*conf);
     Font::initDefaultDynAttribs();
 
     av_info.geometry.base_width = screen_width = conf->defScreenW;

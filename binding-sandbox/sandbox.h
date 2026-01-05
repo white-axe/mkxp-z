@@ -32,6 +32,7 @@
 #include "wasi.h"
 #include "wasm-types.h"
 #include "audio.h"
+#include "config.h"
 #include "etc.h"
 #include "graphics.h"
 
@@ -67,7 +68,7 @@ namespace mkxp_sandbox {
         std::vector<std::pair<uint32_t, std::string>> cheats;
         inline struct mkxp_sandbox::bindings &operator*() noexcept { return *bindings; }
         inline struct mkxp_sandbox::bindings *operator->() noexcept { return &*bindings; }
-        sandbox();
+        sandbox(const Config &conf);
         ~sandbox();
         bool sandbox_serialize_wasi(void *&data, wasm_size_t &max_size) const;
         bool sandbox_deserialize_wasi(const void *&data, wasm_size_t &max_size);
@@ -77,6 +78,25 @@ namespace mkxp_sandbox {
 
         // Gets the current working directory in the sandbox.
         struct sandbox_str_guard getcwd();
+
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+        inline void enable_syntax_transform_for_next_eval() noexcept {
+            wasi->ref<int32_t>(ruby->w2c_mkxp_syntax_transform_enabled_for_next_eval) = 1;
+        }
+
+        inline void disable_syntax_transform_for_next_eval() noexcept {
+            wasi->ref<int32_t>(ruby->w2c_mkxp_syntax_transform_enabled_for_next_eval) = 0;
+        }
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+
+        inline bool using_ruby18_encoding() const noexcept {
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+            uint32_t major = wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_major);
+            return major < 1 || (major == 1 && wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_minor) <= 8);
+#else
+            return false;
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+        }
 
         // Internal utility method of the `SANDBOX_YIELD` macro.
         inline void _begin_yield() {

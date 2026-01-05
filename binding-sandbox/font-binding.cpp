@@ -269,11 +269,11 @@ void font_binding_init::operator()() {
         }
 
         if (Font::getInitialDefaultNames().size() == 1) {
-            SANDBOX_AWAIT_S(1, rb_utf8_str_new_cstr, Font::getInitialDefaultNames()[0].c_str());
+            SANDBOX_AWAIT_S(1, mkxp_str_new_cstr, Font::getInitialDefaultNames()[0].c_str());
         } else {
             SANDBOX_AWAIT_S(1, rb_ary_new_capa, Font::getInitialDefaultNames().size());
             for (SANDBOX_SLOT(0) = 0; SANDBOX_SLOT(0) < Font::getInitialDefaultNames().size(); ++SANDBOX_SLOT(0)) {
-                SANDBOX_AWAIT_S(2, rb_utf8_str_new_cstr, Font::getInitialDefaultNames()[SANDBOX_SLOT(0)].c_str());
+                SANDBOX_AWAIT_S(2, mkxp_str_new_cstr, Font::getInitialDefaultNames()[SANDBOX_SLOT(0)].c_str());
                 SANDBOX_AWAIT(rb_ary_push, SANDBOX_SLOT(1), SANDBOX_SLOT(2));
             }
         }

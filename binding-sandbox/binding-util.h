@@ -626,6 +626,16 @@ namespace mkxp_sandbox {
         typedef decl_slots<VALUE, VALUE, ID> slots;
         void operator()(VALUE obj);
     };
+
+    struct mkxp_str_new : boost::asio::coroutine {
+        typedef decl_slots<VALUE> slots;
+        VALUE operator()(const char *str, wasm_ssize_t size_in_bytes_not_including_null_terminator);
+    };
+
+    struct mkxp_str_new_cstr : boost::asio::coroutine {
+        typedef decl_slots<VALUE> slots;
+        VALUE operator()(const char *str);
+    };
 }
 
 #endif // MKXPZ_SANDBOX_BINDING_UTIL_H
