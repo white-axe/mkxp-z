@@ -166,6 +166,10 @@ Config::Config() {}
 
 void Config::read(int argc, char *argv[], int forceRgssVersion) {
     auto optsJ = json::object({
+        {"syntaxTransform", 0},
+        {"syntaxTransformCustomVersionMajor", 1},
+        {"syntaxTransformCustomVersionMinor", 0},
+        {"syntaxTransformCustomVersionTeeny", 0},
         {"rgssVersion", 0},
         {"debugMode", false},
         {"displayFPS", false},
@@ -298,6 +302,10 @@ void Config::read(int argc, char *argv[], int forceRgssVersion) {
     SET_OPT_CUSTOMKEY(jit.maxCache, JITMaxCache, integer);
     SET_OPT_CUSTOMKEY(jit.minCalls, JITMinCalls, integer);
     SET_OPT_CUSTOMKEY(yjit.enabled, YJITEnable, boolean);
+    SET_OPT(syntaxTransform, integer);
+    SET_OPT(syntaxTransformCustomVersionMajor, integer);
+    SET_OPT(syntaxTransformCustomVersionMinor, integer);
+    SET_OPT(syntaxTransformCustomVersionTeeny, integer);
     SET_OPT(rgssVersion, integer);
     SET_OPT(defScreenW, integer);
     SET_OPT(defScreenH, integer);

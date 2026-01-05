@@ -44,7 +44,7 @@ jobs:
           path: |
             windows/build-mingw64
             windows/downloads
-          key: win-${{ hashFiles('windows/Makefile') }}
+          key: win-${{ hashFiles('windows/Makefile', 'syntax-transform/3.1/Makefile', 'syntax-transform/3.1/*.patch') }}
 
       - name: Build all dependencies
         shell: msys2 {0}
@@ -129,7 +129,7 @@ jobs:
           path: |
             linux/build-x86_64
             linux/downloads
-          key: lin-x86_64-${{ hashFiles('linux/Makefile') }}
+          key: lin-x86_64-${{ hashFiles('linux/Makefile', 'syntax-transform/3.1/Makefile', 'syntax-transform/3.1/*.patch') }}
 
       - name: Install apt dependencies
         run: |
@@ -223,7 +223,7 @@ jobs:
           path: |
             linux/build-${{matrix.arch_mkxpz}}
             linux/downloads
-          key: lin-${{matrix.arch_mkxpz}}-${{ hashFiles('linux/Makefile', 'linux/target*', 'linux/toolchain*') }}
+          key: lin-${{matrix.arch_mkxpz}}-${{ hashFiles('linux/Makefile', 'linux/target*', 'linux/toolchain*', 'syntax-transform/3.1/Makefile', 'syntax-transform/3.1/*.patch') }}
 
       - name: Install apt dependencies
         run: |
@@ -302,7 +302,7 @@ jobs:
           path: |
             linux/build-x86_64
             linux/downloads
-          key: lin-debian-trixie-x86_64-${{ hashFiles('linux/Makefile') }}
+          key: lin-debian-trixie-x86_64-${{ hashFiles('linux/Makefile', 'syntax-transform/3.1/Makefile', 'syntax-transform/3.1/*.patch') }}
 
       - name: Build everything else
         run: |
@@ -401,7 +401,7 @@ jobs:
           path: |
             linux/build-${{matrix.arch_mkxpz}}
             linux/downloads
-          key: lin-debian-trixie-${{matrix.arch_mkxpz}}-${{ hashFiles('linux/Makefile', 'linux/target*', 'linux/toolchain*') }}
+          key: lin-debian-trixie-${{matrix.arch_mkxpz}}-${{ hashFiles('linux/Makefile', 'linux/target*', 'linux/toolchain*', 'syntax-transform/3.1/Makefile', 'syntax-transform/3.1/*.patch') }}
 
       - name: Build everything else
         run: |
@@ -458,7 +458,7 @@ jobs:
             macos/Dependencies/build-macosx-arm64
             macos/Dependencies/build-macosx-universal
             macos/Dependencies/downloads
-          key: mac-${{ hashFiles('macos/Dependencies/*.make', 'macos/Dependencies/*.sh') }}
+          key: mac-${{ hashFiles('macos/Dependencies/*.make', 'macos/Dependencies/*.sh', 'syntax-transform/3.1/Makefile', 'syntax-transform/3.1/*.patch') }}
 
       - name: Install Homebrew tools
         run: |

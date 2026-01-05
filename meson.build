@@ -50,6 +50,9 @@ android_api_level = host_system == 'android' ? compilers['c'].get_define('__ANDR
 
 global_args += '-DMKXPZ_BUILD_MESON'
 global_args += '-DMKXPZ_VERSION="@0@"'.format(meson.project_version())
+if get_option('syntax_transform')
+    global_args += '-DMKXPZ_HAVE_SYNTAX_TRANSFORM'
+endif
 
 have_any_mutex = true
 have_any_thread = true

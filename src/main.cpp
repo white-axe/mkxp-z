@@ -170,6 +170,39 @@ static void printRgssVersion(int ver) {
   Debug() << buf;
 }
 
+static void initSyntaxTransform(const Config &conf) {
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+  extern unsigned int mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor, mkxp_syntax_transform_target_ruby_version_teeny;
+
+  char buf[128];
+
+  switch (conf.syntaxTransform) {
+    default:
+      mkxp_syntax_transform_target_ruby_version_major = -1;
+      mkxp_syntax_transform_target_ruby_version_minor = -1;
+      mkxp_syntax_transform_target_ruby_version_teeny = -1;
+      snprintf(buf, sizeof(buf), "Disabled");
+      break;
+    case 1:
+      mkxp_syntax_transform_target_ruby_version_major = std::max(0, conf.syntaxTransformCustomVersionMajor);
+      mkxp_syntax_transform_target_ruby_version_minor = std::max(0, conf.syntaxTransformCustomVersionMinor);
+      mkxp_syntax_transform_target_ruby_version_teeny = std::max(0, conf.syntaxTransformCustomVersionTeeny);
+      snprintf(buf, sizeof(buf), "Ruby %u.%u.%u", mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor, mkxp_syntax_transform_target_ruby_version_teeny);
+      break;
+    case 2:
+      mkxp_syntax_transform_target_ruby_version_major = 1;
+      mkxp_syntax_transform_target_ruby_version_minor = conf.rgssVersion >= 3 ? 9 : 8;
+      mkxp_syntax_transform_target_ruby_version_teeny = conf.rgssVersion >= 3 ? 2 : 1;
+      snprintf(buf, sizeof(buf), "Compatibility mode (Ruby %u.%u.%u)", mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor, mkxp_syntax_transform_target_ruby_version_teeny);
+      break;
+  }
+
+  Debug() << "Syntax transform:" << buf;
+#else
+  Debug() << "Syntax transform support was disabled at build time";
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+}
+
 static void rgssThreadError(RGSSThreadData *rtData, const std::string &msg) {
   rtData->rgssErrorMsg = msg;
   rtData->ethread->requestTerminate();
@@ -267,6 +300,8 @@ int main(int argc, char *argv[]) {
 
     assert(conf.rgssVersion >= 1 && conf.rgssVersion <= 3);
     printRgssVersion(conf.rgssVersion);
+
+    initSyntaxTransform(conf);
 
     int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;
     if (IMG_Init(imgFlags) != imgFlags) {

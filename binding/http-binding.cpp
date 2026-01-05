@@ -15,8 +15,8 @@
 VALUE stringMap2hash(mkxp_net::StringMap &map) {
     VALUE ret = rb_hash_new();
     for (auto const &item : map) {
-        VALUE key = rb_utf8_str_new_cstr(item.first.c_str());
-        VALUE val = rb_utf8_str_new_cstr(item.second.c_str());
+        VALUE key = mkxp_str_new_cstr(item.first.c_str());
+        VALUE val = mkxp_str_new_cstr(item.second.c_str());
         rb_hash_aset(ret, key, val);
     }
     return ret;
@@ -55,7 +55,7 @@ VALUE getResponseBody(mkxp_net::HTTPResponse &res) {
         strContainsStr(ctype, "text/css")          || strContainsStr(ctype, "text/javascript")  ||
         strContainsStr(ctype, "application/x-sh")  || strContainsStr(ctype, "image/svg+xml")    ||
         strContainsStr(ctype, "application/x-httpd-php"))
-        return rb_utf8_str_new(res.body().c_str(), res.body().length());
+        return mkxp_str_new(res.body().c_str(), res.body().length());
     
 #endif
     return rb_str_new(res.body().c_str(), res.body().length());
@@ -205,7 +205,7 @@ VALUE json2rb(json5pp::value const &v) {
         ret = rb_float_new(v.as_number(failure));
     
     else if (v.is_string())
-        ret = rb_utf8_str_new_cstr(v.as_string(failure).c_str());
+        ret = mkxp_str_new_cstr(v.as_string(failure).c_str());
     
     else if (v.is_boolean())
         ret = rb_bool_new(v.as_boolean(failure));
@@ -225,7 +225,7 @@ VALUE json2rb(json5pp::value const &v) {
         auto &o = v.as_object(failure);
         ret = rb_hash_new();
         for (auto const &pair : o) {
-            rb_hash_aset(ret, rb_utf8_str_new_cstr(pair.first.c_str()), json2rb(pair.second));
+            rb_hash_aset(ret, rb_str_new_cstr(pair.first.c_str()), json2rb(pair.second));
         }
     }
     
@@ -329,7 +329,7 @@ RB_METHOD_GUARD(httpJsonStringify) {
     rb_scan_args(argc, argv, "1", &obj);
     
     json5pp::value v = rb2json(obj);
-    return rb_utf8_str_new_cstr(v.stringify5(json5pp::rule::space_indent<>()).c_str());
+    return mkxp_str_new_cstr(v.stringify5(json5pp::rule::space_indent<>()).c_str());
 }
 RB_METHOD_GUARD_END
 
