@@ -378,10 +378,10 @@ struct rect_binding_init : boost::asio::coroutine {
         return self;
     }
 
-    SANDBOX_DEF_PROP_D(Rect, X, x);
-    SANDBOX_DEF_PROP_D(Rect, Y, y);
-    SANDBOX_DEF_PROP_D(Rect, Width, width);
-    SANDBOX_DEF_PROP_D(Rect, Height, height);
+    SANDBOX_DEF_PROP_I(Rect, X, x);
+    SANDBOX_DEF_PROP_I(Rect, Y, y);
+    SANDBOX_DEF_PROP_I(Rect, Width, width);
+    SANDBOX_DEF_PROP_I(Rect, Height, height);
 
     static VALUE equal(VALUE self, VALUE other) {
         struct coro : boost::asio::coroutine {
