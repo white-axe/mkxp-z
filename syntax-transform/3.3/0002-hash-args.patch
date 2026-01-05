@@ -1,0 +1,126 @@
+# syntax-transform/3.3/0002-hash-args.patch
+#
+# This file is part of mkxp.
+#
+# Copyright (C) 2013 - 2021 Amaryllis Kulla <ancurio@mapleshrine.eu>
+#
+# mkxp is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# mkxp is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
+
+# In Ruby 1.8, it is allowed to define a hash by providing a comma-separated
+# list of even length consisting of a key, then its value, then another key,
+# then its value, and so on. A list of odd length will result in a syntax error.
+#
+#   a = {'key1', 'value1', 'key2', 'value2'}
+#   p a
+
+--- a/parse.y
++++ b/parse.y
+@@ -800,6 +800,7 @@ parser_token2id(struct parser_params *p, enum yytokentype tok)
+       TOKEN2ID(tUMINUS_NUM);
+       TOKEN2ID(tMKXP_LEGACY_LPAREN_ARG);
+       TOKEN2ID(tMKXP_LEGACY_STAR);
++      TOKEN2ID(tMKXP_LEGACY_LBRACE);
+       TOKEN2ID(tLAST_TOKEN);
+ #undef TOKEN2ID
+ #undef TOKEN2ID2
+@@ -2110,6 +2111,7 @@ get_nd_args(struct parser_params *p, NODE *node)
+ %type <node> p_value p_primitive p_variable p_var_ref p_expr_ref p_const
+ %type <node> p_kwargs p_kwarg p_kw
+ %type <node> mkxp_legacy_expr mkxp_legacy_call_args2 mkxp_open_args
++%type <node> mkxp_legacy_assoc_list
+ %type <id>   keyword_variable user_variable sym operation operation2 operation3
+ %type <id>   cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg f_bad_arg
+ %type <id>   f_kwrest f_label f_arg_asgn call_op call_op2 reswords relop dot_or_colon
+@@ -2183,6 +2185,7 @@ get_nd_args(struct parser_params *p, NODE *node)
+ 
+ %token tMKXP_LEGACY_LPAREN_ARG	"( arg legacy"
+ %token tMKXP_LEGACY_STAR	"* legacy"
++%token tMKXP_LEGACY_LBRACE	"{ legacy"
+ 
+ /*
+  *	precedence table
+@@ -2358,6 +2361,31 @@ mkxp_open_args  : call_args
+                     }
+                 ;
+ 
++mkxp_lbrace     : tLBRACE
++                | tMKXP_LEGACY_LBRACE
++                ;
++
++mkxp_legacy_assoc_list
++                : none
++                | assocs trailer
++                    {
++                    /*%%%*/
++                        $$ = $1;
++                    /*% %*/
++                    /*% ripper: assoclist_from_args!($1) %*/
++                    }
++                | args trailer
++                    {
++                    /*%%%*/
++                        if (RNODE_LIST($1)->as.nd_alen % 2 != 0) {
++                            yyerror1(&@1, "odd number list for Hash");
++                        }
++                        $$ = $1;
++                    /*% %*/
++                    /*% ripper: assoclist_from_args!($1) %*/
++                    }
++                ;
++
+ top_compstmt	: top_stmts opt_terms
+                     {
+                         $$ = void_stmts(p, $1);
+@@ -4075,6 +4103,14 @@ primary		: literal
+                     /*% %*/
+                     /*% ripper: hash!($2) %*/
+                     }
++                | tMKXP_LEGACY_LBRACE mkxp_legacy_assoc_list '}'
++                    {
++                    /*%%%*/
++                        $$ = new_hash(p, $2, &@$);
++                        RNODE_HASH($$)->nd_brace = TRUE;
++                    /*% %*/
++                    /*% ripper: hash!($2) %*/
++                    }
+                 | k_return
+                     {
+                     /*%%%*/
+@@ -5370,7 +5406,7 @@ p_expr_basic	: p_value
+                         $$ = new_array_pattern_tail(p, Qnone, 0, Qnone, Qnone, &@$);
+                         $$ = new_array_pattern(p, Qnone, Qnone, $$, &@$);
+                     }
+-                | tLBRACE p_pktbl lex_ctxt[ctxt]
++                | mkxp_lbrace p_pktbl lex_ctxt[ctxt]
+                     {
+                         p->ctxt.in_kwarg = 0;
+                     }
+@@ -5380,7 +5416,7 @@ p_expr_basic	: p_value
+                         p->ctxt.in_kwarg = $ctxt.in_kwarg;
+                         $$ = new_hash_pattern(p, Qnone, $p_kwargs, &@$);
+                     }
+-                | tLBRACE rbrace
++                | mkxp_lbrace rbrace
+                     {
+                         $$ = new_hash_pattern_tail(p, Qnone, 0, &@$);
+                         $$ = new_hash_pattern(p, Qnone, $$, &@$);
+@@ -11246,7 +11282,7 @@ parser_yylex(struct parser_params *p)
+         ++p->lex.paren_nest;  /* after lambda_beginning_p() */
+         COND_PUSH(0);
+         CMDARG_PUSH(0);
+-        return c;
++        return mkxp_parser_is_syntax_transform_active(p, 1, 8, -1) && c == tLBRACE ? tMKXP_LEGACY_LBRACE : c;
+ 
+       case '\\':
+         c = nextc(p);

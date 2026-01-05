@@ -1,0 +1,312 @@
+# syntax-transform/3.3/0000-prelude.patch
+#
+# This file is part of mkxp.
+#
+# Copyright (C) 2013 - 2021 Amaryllis Kulla <ancurio@mapleshrine.eu>
+#
+# mkxp is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# mkxp is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
+
+# This patch adds a mechanism to selectively enable syntax transform in only
+# some Ruby scripts.
+#
+# * When the Ruby functions `eval` or `instance_eval` are called while
+#   `mkxp_syntax_transform_enabled_for_next_eval` is true,
+#   `mkxp_syntax_transform_enabled_for_next_eval` is immediately set to false
+#   and then `mkxp_parser_enable_syntax_transform()` is called on the parser
+#   object used by that `eval` or `instance_eval` call to flag the parser as
+#   having syntax transform enabled. The value of
+#   `mkxp_syntax_transform_enabled_for_next_eval` can be changed from C/C++ to
+#   specify which top-level `eval` calls need to have syntax transform enabled.
+# * ASTs output by parsers on which `mkxp_parser_enable_syntax_transform()` has
+#   been called have a flag set that indicates the AST has syntax transform
+#   enabled.
+# * Instruction sequences derived from ASTs that are flagged as having syntax
+#   transform enabled are themselves flagged as having syntax transform enabled.
+# * The syntax transform flag propagates to child instruction sequences of
+#   instruction sequences.
+# * When the Ruby functions `eval` or `instance_eval` are called from an
+#   instruction sequence that has been flagged as having syntax transform
+#   enabled, `mkxp_parser_enable_syntax_transform()` is called on the parser
+#   object used by that `eval` or `instance_eval` call to flag the parser as
+#   having syntax transform enabled. This ensures that the syntax transform flag
+#   propagates into `eval` and `instance_eval` calls.
+# * The other patches may add code that checks if the syntax transform flag is
+#   set on the current parser or instruction sequence, depending on what part of
+#   the codebase is being modified, in order to ensure that the syntax transform
+#   is only enabled on the Ruby scripts where it should be enabled.
+
+--- a/compile.c
++++ b/compile.c
+@@ -45,6 +45,71 @@
+ #include "insns.inc"
+ #include "insns_info.inc"
+ 
++void
++mkxp_warn(const char *message)
++{
++    rb_warn("%s", message);
++}
++
++void
++mkxp_raise_no_method_exception(VALUE receiver, const char *method_name)
++{
++    VALUE rb_make_no_method_exception(VALUE, VALUE, VALUE, int, const VALUE *, int);
++    VALUE method_name_value = rb_str_new_cstr(method_name);
++    VALUE exc = rb_make_no_method_exception(rb_eNoMethodError, 0, receiver, 1, &method_name_value, 0);
++    rb_exc_raise(exc);
++}
++
++/**
++ * Check if mkxp syntax transform is active in the scope that `iseq` is in
++ * and is currently targeting a Ruby version that is less than or equal to
++ * the version given by `maximum_target_ruby_version_major`,
++ * `maximum_target_ruby_version_minor` and `maximum_target_ruby_version_teeny`
++ */
++bool
++mkxp_iseq_is_syntax_transform_active(const rb_iseq_t *iseq, unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny)
++{
++    extern unsigned int mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor, mkxp_syntax_transform_target_ruby_version_teeny;
++    if (mkxp_syntax_transform_target_ruby_version_major > maximum_target_ruby_version_major || (mkxp_syntax_transform_target_ruby_version_major == maximum_target_ruby_version_major && (mkxp_syntax_transform_target_ruby_version_minor > maximum_target_ruby_version_minor || (mkxp_syntax_transform_target_ruby_version_minor == maximum_target_ruby_version_minor && mkxp_syntax_transform_target_ruby_version_teeny > maximum_target_ruby_version_teeny)))) {
++        return FALSE;
++    }
++
++    return iseq->body->param.flags.mkxp_syntax_transform_flag;
++}
++
++/**
++ * Check if mkxp syntax transform is active in the current execution context
++ * and is currently targeting a Ruby version that is less than or equal to
++ * the version given by `maximum_target_ruby_version_major`,
++ * `maximum_target_ruby_version_minor` and `maximum_target_ruby_version_teeny`
++ */
++bool
++mkxp_ec_is_syntax_transform_active(unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny)
++{
++    extern unsigned int mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor, mkxp_syntax_transform_target_ruby_version_teeny;
++    if (mkxp_syntax_transform_target_ruby_version_major > maximum_target_ruby_version_major || (mkxp_syntax_transform_target_ruby_version_major == maximum_target_ruby_version_major && (mkxp_syntax_transform_target_ruby_version_minor > maximum_target_ruby_version_minor || (mkxp_syntax_transform_target_ruby_version_minor == maximum_target_ruby_version_minor && mkxp_syntax_transform_target_ruby_version_teeny > maximum_target_ruby_version_teeny)))) {
++        return FALSE;
++    }
++
++    {
++        const rb_execution_context_t *ec = GET_EC();
++        const rb_control_frame_t *cfp, *end_cfp;
++        if (ec == NULL) {
++            return FALSE;
++        }
++        cfp = ec->cfp;
++        if (cfp == NULL) {
++            return FALSE;
++        }
++        for (end_cfp = RUBY_VM_END_CONTROL_FRAME(ec); RUBY_VM_VALID_CONTROL_FRAME_P(cfp, end_cfp); cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp)) {
++            if (VM_FRAME_RUBYFRAME_P(cfp)) {
++                return cfp->iseq->body->param.flags.mkxp_syntax_transform_flag;
++            }
++        }
++        return FALSE;
++    }
++}
++
+ #undef RUBY_UNTYPED_DATA_WARNING
+ #define RUBY_UNTYPED_DATA_WARNING 0
+ 
+@@ -1487,6 +1552,7 @@ new_child_iseq(rb_iseq_t *iseq, const NODE *const node,
+     ast.root = node;
+     ast.frozen_string_literal = -1;
+     ast.coverage_enabled = -1;
++    ast.mkxp_syntax_transform_flag = ISEQ_BODY(iseq)->param.flags.mkxp_syntax_transform_flag;
+     ast.script_lines = ISEQ_BODY(iseq)->variable.script_lines;
+ 
+     debugs("[new_child_iseq]> ---------------------------------------\n");
+@@ -8584,6 +8650,7 @@ compile_builtin_mandatory_only_method(rb_iseq_t *iseq, const NODE *node, const N
+         .root = RNODE(&scope_node),
+         .frozen_string_literal = -1,
+         .coverage_enabled = -1,
++        .mkxp_syntax_transform_flag = iseq->body->param.flags.mkxp_syntax_transform_flag,
+         .script_lines = ISEQ_BODY(iseq)->variable.script_lines,
+     };
+ 
+--- a/include/ruby/ruby.h
++++ b/include/ruby/ruby.h
+@@ -426,6 +426,12 @@ __extension__({ \
+ # include "ruby/backward.h"
+ #endif
+ 
++void mkxp_warn(const char *message);
++
++bool mkxp_ec_is_syntax_transform_active(unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny);
++
++void mkxp_raise_no_method_exception(VALUE receiver, const char *method_name);
++
+ RBIMPL_SYMBOL_EXPORT_END()
+ 
+ #endif /* RUBY_RUBY_H */
+--- a/iseq.c
++++ b/iseq.c
+@@ -620,6 +620,8 @@ prepare_iseq_build(rb_iseq_t *iseq,
+     VALUE err_info = Qnil;
+     struct rb_iseq_constant_body *const body = ISEQ_BODY(iseq);
+ 
++    body->param.flags.mkxp_syntax_transform_flag = option->mkxp_syntax_transform_flag;
++
+     if (parent && (type == ISEQ_TYPE_MAIN || type == ISEQ_TYPE_TOP))
+         err_info = Qfalse;
+ 
+@@ -771,6 +773,7 @@ set_compile_option_from_hash(rb_compile_option_t *option, VALUE opt)
+     SET_COMPILE_OPTION(option, opt, frozen_string_literal);
+     SET_COMPILE_OPTION(option, opt, debug_frozen_string_literal);
+     SET_COMPILE_OPTION(option, opt, coverage_enabled);
++    SET_COMPILE_OPTION(option, opt, mkxp_syntax_transform_flag);
+     SET_COMPILE_OPTION_NUM(option, opt, debug_level);
+ #undef SET_COMPILE_OPTION
+ #undef SET_COMPILE_OPTION_NUM
+@@ -783,6 +786,7 @@ set_compile_option_from_ast(rb_compile_option_t *option, const rb_ast_body_t *as
+     ((a)->mem < 0 ? 0 : ((o)->mem = (a)->mem > 0))
+     SET_COMPILE_OPTION(option, ast, frozen_string_literal);
+     SET_COMPILE_OPTION(option, ast, coverage_enabled);
++    SET_COMPILE_OPTION(option, ast, mkxp_syntax_transform_flag);
+ #undef SET_COMPILE_OPTION
+     return option;
+ }
+--- a/iseq.h
++++ b/iseq.h
+@@ -233,6 +233,7 @@ struct rb_compile_option_struct {
+     unsigned int frozen_string_literal: 1;
+     unsigned int debug_frozen_string_literal: 1;
+     unsigned int coverage_enabled: 1;
++    unsigned int mkxp_syntax_transform_flag: 1;
+     int debug_level;
+ };
+ 
+@@ -336,4 +337,6 @@ void rb_free_encoded_insn_data(void);
+ 
+ RUBY_SYMBOL_EXPORT_END
+ 
++bool mkxp_iseq_is_syntax_transform_active(const rb_iseq_t *iseq, unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny);
++
+ #endif /* RUBY_ISEQ_H */
+--- a/parse.y
++++ b/parse.y
+@@ -510,6 +510,8 @@ struct parser_params {
+     unsigned int error_p: 1;
+     unsigned int cr_seen: 1;
+ 
++    unsigned int mkxp_syntax_transform_flag: 1;
++
+ #ifndef RIPPER
+     /* Ruby core only */
+ 
+@@ -540,6 +542,23 @@ struct parser_params {
+ #endif
+ };
+ 
++/**
++ * Check if mkxp syntax transform is active in the current parser
++ * and is currently targeting a Ruby version that is less than or equal to
++ * the version given by `maximum_target_ruby_version_major`,
++ * `maximum_target_ruby_version_minor` and `maximum_target_ruby_version_teeny`
++ */
++static bool
++mkxp_parser_is_syntax_transform_active(const struct parser_params *p, unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny)
++{
++    extern unsigned int mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor, mkxp_syntax_transform_target_ruby_version_teeny;
++    if (mkxp_syntax_transform_target_ruby_version_major > maximum_target_ruby_version_major || (mkxp_syntax_transform_target_ruby_version_major == maximum_target_ruby_version_major && (mkxp_syntax_transform_target_ruby_version_minor > maximum_target_ruby_version_minor || (mkxp_syntax_transform_target_ruby_version_minor == maximum_target_ruby_version_minor && mkxp_syntax_transform_target_ruby_version_teeny > maximum_target_ruby_version_teeny)))) {
++        return FALSE;
++    }
++
++    return p->mkxp_syntax_transform_flag;
++}
++
+ #define NUMPARAM_ID_P(id) numparam_id_p(p, id)
+ #define NUMPARAM_ID_TO_IDX(id) (unsigned int)(((id) >> ID_SCOPE_SHIFT) - (tNUMPARAM_1 - 1))
+ #define NUMPARAM_IDX_TO_ID(idx) TOKEN2LOCALID((tNUMPARAM_1 - 1 + (idx)))
+@@ -7406,6 +7425,7 @@ yycompile0(VALUE arg)
+         RNODE_SCOPE(tree)->nd_body = prelude;
+         p->ast->body.frozen_string_literal = p->frozen_string_literal;
+         p->ast->body.coverage_enabled = cov;
++        p->ast->body.mkxp_syntax_transform_flag = p->mkxp_syntax_transform_flag;
+         if (p->keep_tokens) {
+             rb_obj_freeze(tokens);
+             rb_ast_set_tokens(p->ast, tokens);
+@@ -15600,6 +15620,14 @@ static const rb_data_type_t parser_data_type = {
+     },
+     0, 0, RUBY_TYPED_FREE_IMMEDIATELY
+ };
++
++void
++mkxp_parser_enable_syntax_transform(VALUE vparser)
++{
++    struct parser_params *p;
++    TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p);
++    p->mkxp_syntax_transform_flag = TRUE;
++}
+ #endif
+ #endif
+ 
+--- a/rubyparser.h
++++ b/rubyparser.h
+@@ -1092,6 +1092,7 @@ typedef struct rb_ast_body_struct {
+     // - an Array that contains the lines of the original source
+     signed int frozen_string_literal:2; /* -1: not specified, 0: false, 1: true */
+     signed int coverage_enabled:2; /* -1: not specified, 0: false, 1: true */
++    unsigned int mkxp_syntax_transform_flag:1;
+ } rb_ast_body_t;
+ typedef struct rb_ast_struct {
+     VALUE flags;
+--- a/vm_core.h
++++ b/vm_core.h
+@@ -415,6 +415,8 @@ struct rb_iseq_constant_body {
+             unsigned int ambiguous_param0 : 1; /* {|a|} */
+             unsigned int accepts_no_kwarg : 1;
+             unsigned int ruby2_keywords: 1;
++
++            unsigned int mkxp_syntax_transform_flag: 1;
+         } flags;
+ 
+         unsigned int size;
+--- a/vm_eval.c
++++ b/vm_eval.c
+@@ -1,3 +1,13 @@
++RUBY_FUNC_EXPORTED unsigned int mkxp_syntax_transform_target_ruby_version_major = -1, mkxp_syntax_transform_target_ruby_version_minor = -1, mkxp_syntax_transform_target_ruby_version_teeny = -1;
++
++RUBY_FUNC_EXPORTED
++#if __STDC_VERSION__ >= 202311L
++thread_local
++#else
++_Thread_local
++#endif
++int mkxp_syntax_transform_enabled_for_next_eval = 0;
++
+ /**********************************************************************
+ 
+   vm_eval.c -
+@@ -1684,6 +1694,19 @@ eval_make_iseq(VALUE src, VALUE fname, int line, const rb_binding_t *bind,
+         coverage_enabled = FALSE;
+     }
+ 
++    /* If eval() or instance_eval() is called while mkxp_syntax_transform_enabled_for_next_eval is true, enable syntax transform for this call and immediately set mkxp_syntax_transform_enabled_for_next_eval to false */
++    if (mkxp_syntax_transform_enabled_for_next_eval) {
++        void mkxp_parser_enable_syntax_transform(VALUE);
++        mkxp_syntax_transform_enabled_for_next_eval = 0;
++        mkxp_parser_enable_syntax_transform(parser);
++    }
++
++    /* If code with syntax transform enabled calls eval() or instance_eval(), propagate the syntax transform into the eval() or instance_eval() call */
++    if (parent->body->param.flags.mkxp_syntax_transform_flag) {
++        void mkxp_parser_enable_syntax_transform(VALUE);
++        mkxp_parser_enable_syntax_transform(parser);
++    }
++
+     rb_parser_set_context(parser, parent, FALSE);
+     rb_parser_set_script_lines(parser, RBOOL(ruby_vm_keep_script_lines));
+     ast = rb_parser_compile_string_path(parser, fname, src, line);
