@@ -937,8 +937,11 @@ void sandbox_run_rmxp_scripts::operator()() {
                     continue;
                 }
 
-                SANDBOX_AWAIT_S(9, rb_ary_entry, SANDBOX_SLOT(4), 3);
+                SANDBOX_AWAIT_S(9, rb_str_new_cstr, (std::string("000").substr(std::min((size_t)3, std::to_string(SANDBOX_SLOT(3)).length())) + std::to_string(SANDBOX_SLOT(3)) + ":").c_str());
                 SANDBOX_AWAIT_S(10, rb_ary_entry, SANDBOX_SLOT(4), 1);
+                SANDBOX_AWAIT_S(10, rb_str_concat, SANDBOX_SLOT(9), SANDBOX_SLOT(10));
+                SANDBOX_AWAIT_S(9, rb_ary_entry, SANDBOX_SLOT(4), 3);
+
                 SANDBOX_AWAIT_S(9, eval_script, SANDBOX_SLOT(9), SANDBOX_SLOT(10));
             }
 
