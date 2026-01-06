@@ -335,7 +335,7 @@ typedef struct {
 #define RTLUSHORTBYTESWAP(x) (uint16_t)((x >> 8) | (x << 8))
 #define RTLULONGBYTESWAP(x) (((uint32_t)RTLUSHORTBYTESWAP((uint16_t)x) << 16) | RTLUSHORTBYTESWAP((uint16_t)(x >> 16)))
 
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+#ifdef MKXPZ_BIG_ENDIAN
 #define GET_BE_WORD(x) (x)
 #else
 #define GET_BE_WORD(x) RTLUSHORTBYTESWAP(x)
