@@ -44,7 +44,7 @@
     // 0: Disabled (use modern Ruby syntax for all Ruby scripts)
     // 1: Custom (use the Ruby version specified by `syntaxTransformCustomVersionMajor`, `syntaxTransformCustomVersionMinor` and `syntaxTransformCustomVersionTeeny`)
     // 2: Compatibility mode (equivalent to Ruby 1.9.2 if the RGSS version is 3, or Ruby 1.8.1 otherwise)
-    // (default: 0)
+    // (default: 0 if mkxp.json exists, 2 if mkxp.json does not exist)
     //
     // "syntaxTransform": 0,
 

@@ -97,11 +97,11 @@ bool getEnvironmentBool(const char *env, bool defaultValue) {
     return defaultValue;
 }
 
-json::value readConfFile(const char *path) {
+json::value readConfFile(const char *path, bool isBaseConf) {
     
     json::value ret(0);
     if (!mkxp_fs::fileExists(path)) {
-        return json::object({});
+        return isBaseConf ? json::object({{"syntaxTransform", 2}}) : json::object({});
     }
     
     try {
@@ -239,7 +239,7 @@ try { exp } catch (...) {}
         }
     }
     
-    json::value baseConf = readConfFile(CONF_FILE);
+    json::value baseConf = readConfFile(CONF_FILE, true);
     copyObject(optsJ, baseConf);
     copyObject(opts["bindingNames"], baseConf.as_object()["bindingNames"], "bindingNames .");
     
@@ -276,7 +276,7 @@ try { exp } catch (...) {}
     
     // Now check for an extra mkxp.conf in the user's save directory and merge anything else from that
     userConfPath = mkxp_fs::normalizePath(std::string(customDataPath + "/" CONF_FILE).c_str(), 0, 1);
-    json::value userConf = readConfFile(userConfPath.c_str());
+    json::value userConf = readConfFile(userConfPath.c_str(), false);
     copyObject(optsJ, userConf);
     
     // now RESUME
