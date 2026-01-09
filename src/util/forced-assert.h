@@ -29,14 +29,12 @@
 
 #ifdef MKXPZ_RETRO
 #  include <libretro.h>
-namespace mkxp_retro {
-    extern retro_log_printf_t log_printf;
-}
+extern retro_log_printf_t mkxp_retro_log_printf;
 #  define MKXPZ_FORCED_ASSERT_WITH_MESSAGE(condition, message) do { \
     if (!(condition)) { \
         const char *fmt = "[mkxp-z @ " __FILE__ ":" _MKXPZ_FORCED_ASSERT_DETAIL(__LINE__) "] Fatal error: %s\n"; \
         std::fprintf(stderr, fmt, message); \
-        ::mkxp_retro::log_printf(RETRO_LOG_ERROR, fmt, message); \
+        ::mkxp_retro_log_printf(RETRO_LOG_ERROR, fmt, message); \
         std::fflush(stderr); \
         std::abort(); \
     } \

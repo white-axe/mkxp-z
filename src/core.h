@@ -28,13 +28,14 @@
 #include "filesystem.h"
 #include "input.h"
 
+extern retro_log_printf_t mkxp_retro_log_printf;
+
 namespace mkxp_retro {
     extern boost::optional<struct mkxp_sandbox::sandbox> sandbox;
     extern boost::optional<Audio> audio;
     extern boost::optional<Input> input;
     extern boost::optional<FileSystem> fs;
 
-    extern retro_log_printf_t log_printf;
     extern retro_video_refresh_t video_refresh;
     extern retro_audio_sample_batch_t audio_sample_batch;
     extern retro_environment_t environment;
@@ -59,7 +60,7 @@ namespace mkxp_retro {
 #define _LOG_PRINTF_DETAIL2(x) #x
 #define _LOG_PRINTF_DETAIL(x) _LOG_PRINTF_DETAIL2(x)
 
-#define LOG_PRINT(log_level, str) ::mkxp_retro::log_printf(log_level, "[mkxp-z @ " __FILE__ ":" _LOG_PRINTF_DETAIL(__LINE__) "] %s", str)
-#define LOG_PRINTF(log_level, fmt, ...) ::mkxp_retro::log_printf(log_level, "[mkxp-z @ " __FILE__ ":" _LOG_PRINTF_DETAIL(__LINE__) "] " fmt, __VA_ARGS__)
+#define LOG_PRINT(log_level, str) ::mkxp_retro_log_printf(log_level, "[mkxp-z @ " __FILE__ ":" _LOG_PRINTF_DETAIL(__LINE__) "] %s", str)
+#define LOG_PRINTF(log_level, fmt, ...) ::mkxp_retro_log_printf(log_level, "[mkxp-z @ " __FILE__ ":" _LOG_PRINTF_DETAIL(__LINE__) "] " fmt, __VA_ARGS__)
 
 #endif // MKXPZ_CORE_H

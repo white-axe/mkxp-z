@@ -232,8 +232,9 @@ struct retro_vfs_interface_info mkxp_vfs;
 
 static unsigned int message_interface_version;
 
+retro_log_printf_t mkxp_retro_log_printf;
+
 namespace mkxp_retro {
-    retro_log_printf_t log_printf;
     retro_video_refresh_t video_refresh;
     retro_audio_sample_batch_t audio_sample_batch;
     retro_environment_t environment;
@@ -1368,9 +1369,9 @@ extern "C" RETRO_API void retro_init() {
     {
         struct retro_log_callback log;
         if (environment(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log)) {
-            log_printf = log.log;
+            mkxp_retro_log_printf = log.log;
         } else {
-            log_printf = fallback_log;
+            mkxp_retro_log_printf = fallback_log;
         }
     }
 
