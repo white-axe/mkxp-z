@@ -1770,6 +1770,9 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         if (!Graphics::sandbox_serialize_movie(sb().get_movie_from_main_thread(), data, max_size)) return false;
     }
 
+    // Write the default font
+    if (!Font::sandbox_serialize_default(data, max_size)) return false;
+
     SER_OBJECTS_END;
 
     // Write the graphics state
@@ -2091,6 +2094,9 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
         if (!sandbox_deserialize(have_movie, data, max_size)) DESER_OBJECTS_END_FAIL;
         if (have_movie) DESER_OBJECTS_END_FAIL;
     }
+
+    // Read the default font
+    if (!Font::sandbox_deserialize_default(data, max_size)) return false;
 
     // Make sure every pointer in the save state has been swizzled
     for (const auto &pair : swizzle_map) {
