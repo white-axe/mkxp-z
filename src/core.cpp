@@ -916,11 +916,10 @@ static bool init_sandbox() {
             parsed_game_path = parsed_game_path.substr(0, last_slash_index);
         }
 
-        Exception exception(Exception::Ok, "");
-        fs->addPath(exception, parsed_game_path.c_str(), "/Game");
-        if (exception.is_error()) {
-            LOG_PRINTF(RETRO_LOG_ERROR, "%s\n", exception.what());
-            display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: ") + exception.what()).c_str());
+        if (!PHYSFS_mount(parsed_game_path.c_str(), "/Game", false)) {
+            const char *what = PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode());
+            LOG_PRINTF(RETRO_LOG_ERROR, "%s\n", what);
+            display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: ") + what).c_str());
             deinit_sandbox();
             return false;
         }
@@ -1224,10 +1223,10 @@ static bool init_sandbox() {
             // Mount the subdirectory
             PHYSFS_setWriteDir(save_path_subdir.c_str());
             Exception exception(Exception::Ok, "");
-            fs->addPath(exception, save_path_subdir.c_str(), "/Save");
-            if (exception.is_error()) {
-                LOG_PRINTF(RETRO_LOG_ERROR, "Failed to mount game save directory from \"%s\": %s\n", save_path_subdir.c_str(), exception.what());
-                display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Failed to mount game save directory from \"") + save_path_subdir + "\": " + exception.what()).c_str());
+            if (!PHYSFS_mount(save_path_subdir.c_str(), "/Save", false)) {
+                const char *what = PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode());
+                LOG_PRINTF(RETRO_LOG_ERROR, "Failed to mount game save directory from \"%s\": %s\n", save_path_subdir.c_str(), what);
+                display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Failed to mount game save directory from \"") + save_path_subdir + "\": " + what).c_str());
                 deinit_sandbox();
                 return false;
             }
@@ -1235,13 +1234,13 @@ static bool init_sandbox() {
                 // PhysFS won't normally allow us to mount the save directory in two locations at once,
                 // so we temporarily disable the duplicate detection here
                 struct physfs_allow_duplicates_guard guard;
-                fs->addPath(exception, save_path_subdir.c_str(), "/Game");
-            }
-            if (exception.is_error()) {
-                LOG_PRINTF(RETRO_LOG_ERROR, "Failed to mount game save directory from \"%s\": %s\n", save_path_subdir.c_str(), exception.what());
-                display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Failed to mount game save directory from \"") + save_path_subdir + "\": " + exception.what()).c_str());
-                deinit_sandbox();
-                return false;
+                if (!PHYSFS_mount(save_path_subdir.c_str(), "/Game", false)) {
+                    const char *what = PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode());
+                    LOG_PRINTF(RETRO_LOG_ERROR, "Failed to mount game save directory from \"%s\": %s\n", save_path_subdir.c_str(), what);
+                    display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Failed to mount game save directory from \"") + save_path_subdir + "\": " + what).c_str());
+                    deinit_sandbox();
+                    return false;
+                }
             }
 
             LOG_PRINTF(RETRO_LOG_INFO, "Mounted game save directory from \"%s\"\n", save_path_subdir.c_str());
