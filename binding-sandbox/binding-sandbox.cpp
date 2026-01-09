@@ -608,13 +608,34 @@ static VALUE to_utf8_bang(VALUE self) {
     return sb()->bind<struct coro>()()(self);
 }
 
-static VALUE win32api_stub(int32_t argc, wasm_ptr_t argv, VALUE self) {
+static VALUE win32api_initialize(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
         typedef decl_slots<VALUE> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, rb_str_new_cstr, "Win32API is not supported in libretro builds of mkxp-z; try enabling the win32_wrap.rb preload script");
+                SANDBOX_AWAIT(check_arity, argc, 2, 4);
+                SANDBOX_AWAIT_S(0, rb_str_new_cstr, "Failed loading ");
+                SANDBOX_AWAIT_S(0, rb_str_concat, SANDBOX_SLOT(0), sb()->ref<VALUE>(argv, 0));
+                SANDBOX_AWAIT_S(0, rb_str_cat_cstr, SANDBOX_SLOT(0), ": Win32API is not supported in libretro builds of mkxp-z");
+                SANDBOX_AWAIT_S(0, rb_class_new_instance, 1, &SANDBOX_SLOT(0), sb()->rb_eRuntimeError());
+                SANDBOX_AWAIT(rb_exc_raise, SANDBOX_SLOT(0));
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(argc, argv, self);
+}
+
+static VALUE win32api_call(int32_t argc, wasm_ptr_t argv, VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE> slots;
+
+        VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, rb_str_new_cstr, "Win32API is not supported in libretro builds of mkxp-z");
                 SANDBOX_AWAIT_S(0, rb_class_new_instance, 1, &SANDBOX_SLOT(0), sb()->rb_eRuntimeError());
                 SANDBOX_AWAIT(rb_exc_raise, SANDBOX_SLOT(0));
             }
@@ -749,8 +770,8 @@ void sandbox_binding_init::operator()() {
         SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mKernel(), "save_data", (VALUE (*)(ANYARGS))save_data, 2);
 
         SANDBOX_AWAIT_R(win32api_class, rb_define_class, "Win32API", sb()->rb_cObject());
-        SANDBOX_AWAIT(rb_define_method, win32api_class, "initialize", (VALUE (*)(ANYARGS))win32api_stub, -1);
-        SANDBOX_AWAIT(rb_define_method, win32api_class, "call", (VALUE (*)(ANYARGS))win32api_stub, -1);
+        SANDBOX_AWAIT(rb_define_method, win32api_class, "initialize", (VALUE (*)(ANYARGS))win32api_initialize, -1);
+        SANDBOX_AWAIT(rb_define_method, win32api_class, "call", (VALUE (*)(ANYARGS))win32api_call, -1);
         SANDBOX_AWAIT(rb_define_alias, win32api_class, "Call", "call");
 
         if (rgssVer >= 3) {
