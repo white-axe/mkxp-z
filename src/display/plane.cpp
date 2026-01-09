@@ -351,103 +351,6 @@ void Plane::releaseResources()
 }
 
 #ifdef MKXPZ_RETRO
-bool Plane::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
-{
-	if (!mkxp_sandbox::sandbox_serialize(p->opacity, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->blendType, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize((int32_t)p->ox, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize((int32_t)p->oy, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->zoomX, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->zoomY, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->sceneGeo, data, max_size)) return false;
-
-	if (!sandbox_serialize_viewport_element(data, max_size)) return false;
-
-	if (!mkxp_sandbox::sandbox_serialize(p->bitmap, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->color == &p->tmp.color ? nullptr : p->color, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(p->tone == &p->tmp.tone ? nullptr : p->tone, data, max_size)) return false;
-
-	return true;
-}
-
-bool Plane::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
-{
-	if (!mkxp_sandbox::sandbox_deserialize(p->opacity, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->blendType, data, max_size)) return false;
-	{
-		int32_t value = (int32_t)p->ox;
-		if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->ox, data, max_size)) return false;
-		if ((int32_t)p->ox != value) {
-			p->quadSourceDirty = true;
-		}
-	}
-	{
-		int32_t value = (int32_t)p->oy;
-		if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->oy, data, max_size)) return false;
-		if ((int32_t)p->oy != value) {
-			p->quadSourceDirty = true;
-		}
-	}
-	{
-		float value = p->zoomX;
-		if (!mkxp_sandbox::sandbox_deserialize(p->zoomX, data, max_size)) return false;
-		if (p->zoomX != value) {
-			p->quadSourceDirty = true;
-		}
-	}
-	{
-		float value = p->zoomY;
-		if (!mkxp_sandbox::sandbox_deserialize(p->zoomY, data, max_size)) return false;
-		if (p->zoomY != value) {
-			p->quadSourceDirty = true;
-		}
-	}
-	{
-		Scene::Geometry old_geo = p->sceneGeo;
-		if (!mkxp_sandbox::sandbox_deserialize(p->sceneGeo, data, max_size)) return false;
-		if (p->sceneGeo != old_geo) {
-			p->quadSourceDirty = true;
-		}
-	}
-
-	if (!sandbox_deserialize_viewport_element(data, max_size)) return false;
-
-	if (!mkxp_sandbox::sandbox_deserialize(p->bitmap, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(p->color, data, max_size)) return false;
-	if (p->color == nullptr) {
-		p->color = &p->tmp.color;
-	}
-	if (!mkxp_sandbox::sandbox_deserialize(p->tone, data, max_size)) return false;
-	if (p->tone == nullptr) {
-		p->tone = &p->tmp.tone;
-	}
-
-	return true;
-}
-
-void Plane::sandbox_deserialize_begin()
-{
-	sandbox_deserialize_begin_viewport_element();
-
-	if (isDisposed()) return;
-
-	p->bitmapDispCon.disconnect();
-}
-
-void Plane::sandbox_deserialize_end()
-{
-	if (isDisposed()) return;
-	sandbox_deserialize_end_viewport_element();
-
-	if (isDisposed()) return;
-	if (p->bitmap != nullptr) {
-		p->bitmapDispCon = p->bitmap->wasDisposed.connect(&PlanePrivate::bitmapDisposal, p);
-		if (p->bitmap->isDisposed()) {
-			p->bitmapDisposal();
-		}
-	}
-}
-
 void Plane::sandbox_reinit()
 {
 	if (isDisposed()) return;
@@ -455,4 +358,9 @@ void Plane::sandbox_reinit()
 	p->qArray.reinit();
 	p->quadSourceDirty = true;
 }
+
+#ifndef MKXPZ_SANDBOX_SERIAL_PLANE_H
+#define MKXPZ_SANDBOX_SERIAL_PLANE_H
+#include "sandbox-serial-plane.h"
+#endif // MKXPZ_SANDBOX_SERIAL_PLANE_H
 #endif // MKXPZ_RETRO

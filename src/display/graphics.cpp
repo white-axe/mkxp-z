@@ -583,18 +583,7 @@ struct Movie
     }
 
 #ifdef MKXPZ_RETRO
-    bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
-    {
-        if (!mkxp_sandbox::sandbox_serialize(baseTicks != (uint64_t)-1, data, max_size)) return false;
-
-        if (baseTicks != (uint64_t)-1) {
-            if (!mkxp_sandbox::sandbox_serialize(baseTicks, data, max_size)) return false;
-            if (!mkxp_sandbox::sandbox_serialize(currentTicks, data, max_size)) return false;
-            if (!mkxp_sandbox::sandbox_serialize(srcOps->path(), data, max_size)) return false;
-        }
-
-        return true;
-    }
+    bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
 #endif // MKXPZ_RETRO
 };
 
@@ -2043,13 +2032,6 @@ bool Graphics::getMovieDupeFrame(Movie *movie) {
     return movie->dupeFrame;
 }
 
-bool Graphics::sandbox_serialize_movie(const Movie *movie, void *&data, mkxp_sandbox::wasm_size_t &max_size) {
-    if (movie == nullptr) {
-        return false;
-    }
-    return movie->sandbox_serialize(data, max_size);
-}
-
 void Graphics::sandbox_reinit() {
     p->reinit();
     p->screenQuad.reinit();
@@ -2335,5 +2317,12 @@ void Graphics::unlock(bool force) {
 void Graphics::addDisposable(Disposable *d) { p->dispList.append(d->link); }
 
 void Graphics::remDisposable(Disposable *d) { p->dispList.remove(d->link); }
+
+#ifdef MKXPZ_RETRO
+#ifndef MKXPZ_SANDBOX_SERIAL_GRAPHICS_H
+#define MKXPZ_SANDBOX_SERIAL_GRAPHICS_H
+#include "sandbox-serial-graphics.h"
+#endif // MKXPZ_SANDBOX_SERIAL_GRAPHICS_H
+#endif // MKXPZ_RETRO
 
 #undef GRAPHICS_THREAD_LOCK

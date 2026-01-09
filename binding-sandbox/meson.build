@@ -43,7 +43,25 @@ binding_sandbox_hasher = executable(
 
 global_sources += custom_target(
     'binding-sandbox-hash',
-    input: binding_sandbox_sources,
+    input: binding_sandbox_sources + [
+        'sandbox-serial-audio.h',
+        'sandbox-serial-audiostream.h',
+        'sandbox-serial-bitmap.h',
+        'sandbox-serial-core.h',
+        'sandbox-serial-etc.h',
+        'sandbox-serial-font.h',
+        'sandbox-serial-graphics.h',
+        'sandbox-serial-plane.h',
+        'sandbox-serial-scene.h',
+        'sandbox-serial-soundemitter.h',
+        'sandbox-serial-sprite.h',
+        'sandbox-serial-table.h',
+        'sandbox-serial-tilemap.h',
+        'sandbox-serial-tilemapvx.h',
+        'sandbox-serial-viewport.h',
+        'sandbox-serial-window.h',
+        'sandbox-serial-windowvx.h',
+    ],
     output: 'binding-sandbox-hash.h',
     command: [
         binding_sandbox_hasher,
