@@ -5,10 +5,9 @@ The build process for the libretro core is divided into two stages.
 All the files produced by this stage are platform-agnostic, so you can run this build stage on any computer, regardless of which operating system or CPU architecture the libretro core is for.
 
 Required software:
-* C and C++ compilers
+* C and C++ compilers for the build machine that support C17 and C++17
 * GNU Make
 * GNU Autotools
-* GNU Bison
 * [Git](https://git-scm.com)
 * [curl](https://curl.se)
 * [Info-ZIP's Zip](https://infozip.sourceforge.net/Zip.html) (the `zip` package found in many package managers)
@@ -27,10 +26,11 @@ This will produce the directory "libretro/build/libretro-stage1".
 
 # Stage 2
 
-This stage produces the actual core file.
+This stage produces the actual core file. You need to build stage 1 first and make sure it's located at libretro/build/libretro-stage1 relative to the root directory of this repository.
 
 Required software:
-* C and C++ compilers
+* C and C++ compilers for the build machine that support C99 and C++11
+* C and C++ compilers for the host machine that support C99 and C++17
 * [Git](https://git-scm.com)
 * [Meson](https://mesonbuild.com)
 * [Ninja](https://ninja-build.org)
@@ -38,10 +38,53 @@ Required software:
 
 No software libraries are required other than the system libraries.
 
-Go to the root directory of this repository and run:
+If the host machine has the same operating system and CPU architecture as the build machine, to build a libretro core, go to the root directory of this repository and run:
 
 ```
 meson setup build -Dlibretro=true
+cd build
+ninja
+```
+
+To build a libretro core for a host machine that has a different operating system and/or CPU architecture as the build machine, you need to create a cross file first to tell Meson about the host machine. If you're building for a game console, you can use one of the "meson-" files already in this directory as the cross file. In most other cases, a file of the following format will be sufficient, replacing the angle-bracket strings with the correct values:
+
+```conf
+[binaries]
+c = '<path to host C compiler>'
+cpp = '<path to host C++ compiler>'
+ar = '<path to the ar program that creates static libraries for the host machine>'
+[host_machine]
+system = '<see https://mesonbuild.com/Reference-tables.html#operating-system-names>'
+cpu_family = '<see https://mesonbuild.com/Reference-tables.html#cpu-families>'
+cpu = '<the output of uname -m on the host machine, or the same as cpu_family if this is not an option>'
+endian = '<big|little>'
+```
+
+When building for Android, you need to add additional lines of the following format at the bottom of the cross file, replacing the angle-bracket strings with the correct values:
+
+```conf
+[cmake]
+CMAKE_SYSTEM_PROCESSOR = '<armv7-a|aarch64|i686|x86_64>'
+```
+
+When building for Darwin platforms, including iOS and macOS, you need to add these additional lines at the bottom of the cross file to stop CMake from trying to manually set a sysroot:
+
+```conf
+[cmake]
+CMAKE_OSX_SYSROOT = '/nonexistent'
+```
+
+When building for Emscripten, you need to add additional lines of the following format at the bottom of the cross file, replacing the angle-bracket strings with the correct values:
+
+```conf
+[properties]
+cmake_toolchain_file = '<path to Emscripten root directory>/cmake/Modules/Platform/Emscripten.cmake'
+```
+
+Once the cross file is set up, go to the root directory of this repository and run these commands to build the core, replacing the angle-bracket strings with the correct values. When building for Android, you may need to set the environment variable `ANDROID_NDK` to the root directory of the Android NDK used to build the core for the duration of the `meson setup` command; it doesn't need to be set for the rest of the build process.
+
+```
+meson setup build -Dlibretro=true --cross-file <path to cross file>
 cd build
 ninja
 ```
