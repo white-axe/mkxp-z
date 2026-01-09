@@ -31,13 +31,15 @@
 #   end
 #   f (1, 2)
 #
-# However, Ruby 1.8 uses the modern behavior for certain types of expressions,
-# non-recursively:
+# However, Ruby 1.8 uses the modern parsing behavior for certain types of
+# expressions, non-recursively, with the exception that no syntax error occurs
+# when a function is called with more than one argument with a space before the
+# parentheses:
 #
-#   * The expressions on the inside of a pair of parentheses
-#   * The expressions inside of a block
-#   * The expressions inside of a class definition
-#   * The expressions inside of a function definition
+# * The expressions on the inside of a pair of parentheses
+# * The expressions inside of a block
+# * The expressions inside of a class definition
+# * The expressions inside of a function definition
 #
 # This snippet prints `12`, `22`, `12` and `22` in Ruby 1.8 but `22`, `22`, `22`
 # and `22` in Ruby versions newer than 1.8.
@@ -51,14 +53,6 @@
 #   p a
 #   a = (f (1) + 10)
 #   p a
-#
-# Likewise, this code snippet gives a syntax error in all Ruby versions, even
-# Ruby 1.8.
-#
-#   def f(x, y)
-#     x
-#   end
-#   (f (1, 2) + 3)
 #
 # This code snippet is a test of a bunch of edge cases in the parser to check
 # for consistency with the Ruby 1.8 behavior.
