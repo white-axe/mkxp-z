@@ -96,19 +96,27 @@ wasm_size_t get_bytesize::operator()(VALUE obj) {
 
 void log_backtrace::operator()(VALUE exception) {
     BOOST_ASIO_CORO_REENTER (this) {
-        SANDBOX_AWAIT_S(0, rb_intern, "message");
-        SANDBOX_AWAIT_S(1, rb_funcall, exception, SANDBOX_SLOT(0), 0);
-        SANDBOX_AWAIT_S(3, rb_string_value_cstr, &SANDBOX_SLOT(1));
-        LOG_PRINTF(RETRO_LOG_ERROR, "%s\n", (const char *)sb()->str(SANDBOX_SLOT(3)));
-        mkxp_retro::display_message(RETRO_LOG_ERROR, (const char *)sb()->str(SANDBOX_SLOT(3)));
-        SANDBOX_AWAIT(rb_p, exception);
-        SANDBOX_AWAIT_S(0, rb_intern, "backtrace");
-        SANDBOX_AWAIT_S(1, rb_funcall, exception, SANDBOX_SLOT(0), 0);
-        SANDBOX_AWAIT_S(0, rb_intern, "join");
-        SANDBOX_AWAIT_S(2, rb_str_new_cstr, "\n\t");
-        SANDBOX_AWAIT_S(1, rb_funcall, SANDBOX_SLOT(1), SANDBOX_SLOT(0), 1, SANDBOX_SLOT(2));
-        SANDBOX_AWAIT_S(3, rb_string_value_cstr, &SANDBOX_SLOT(1));
-        LOG_PRINTF(RETRO_LOG_ERROR, "%s\n", (const char *)sb()->str(SANDBOX_SLOT(3)));
+        SANDBOX_AWAIT_S(7, rb_intern, "message");
+        SANDBOX_AWAIT_S(4, rb_funcall, exception, SANDBOX_SLOT(7), 0);
+        SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(4));
+        mkxp_retro::display_message(RETRO_LOG_ERROR, (const char *)sb()->str(SANDBOX_SLOT(0)));
+        SANDBOX_AWAIT_S(7, rb_intern, "backtrace");
+        SANDBOX_AWAIT_S(5, rb_funcall, exception, SANDBOX_SLOT(7), 0);
+        SANDBOX_AWAIT_S(2, get_length, SANDBOX_SLOT(5));
+        if (SANDBOX_SLOT(2) == 0) {
+            LOG_PRINTF(RETRO_LOG_ERROR, "%s\n", (const char *)sb()->str(SANDBOX_SLOT(0)));
+        } else {
+            for (SANDBOX_SLOT(3) = 0; SANDBOX_SLOT(3) < SANDBOX_SLOT(2); ++SANDBOX_SLOT(3)) {
+                SANDBOX_AWAIT_S(6, rb_ary_entry, SANDBOX_SLOT(5), SANDBOX_SLOT(3));
+                SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(6));
+                if (SANDBOX_SLOT(3) == 0) {
+                    SANDBOX_AWAIT_S(1, rb_string_value_cstr, &SANDBOX_SLOT(4));
+                    LOG_PRINTF(RETRO_LOG_ERROR, "%s: %s\n", (const char *)sb()->str(SANDBOX_SLOT(0)), (const char *)sb()->str(SANDBOX_SLOT(1)));
+                } else {
+                    LOG_PRINTF(RETRO_LOG_ERROR, "        from %s\n", (const char *)sb()->str(SANDBOX_SLOT(0)));
+                }
+            }
+        }
     }
 }
 
