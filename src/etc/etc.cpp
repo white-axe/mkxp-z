@@ -186,29 +186,6 @@ SDL_Color Color::toSDLColor() const
 	return c;
 }
 
-#ifdef MKXPZ_RETRO
-bool Color::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
-{
-	if (!mkxp_sandbox::sandbox_serialize(red, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(green, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(blue, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(alpha, data, max_size)) return false;
-
-	return true;
-}
-
-bool Color::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size) {
-	if (!mkxp_sandbox::sandbox_deserialize(red, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(green, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(blue, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(alpha, data, max_size)) return false;
-
-	updateInternal();
-
-	return true;
-}
-#endif // MKXPZ_RETRO
-
 
 Tone::Tone(double red, double green, double blue, double gray)
 	: red(red), green(green), blue(blue), gray(gray)
@@ -330,29 +307,6 @@ void Tone::updateInternal()
 	norm.z = (float) clamp<double>(blue,  -255, 255) / 255;
 	norm.w = (float) clamp<double>(gray,     0, 255) / 255;
 }
-
-#ifdef MKXPZ_RETRO
-bool Tone::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
-{
-	if (!mkxp_sandbox::sandbox_serialize(red, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(green, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(blue, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize(gray, data, max_size)) return false;
-
-	return true;
-}
-
-bool Tone::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size) {
-	if (!mkxp_sandbox::sandbox_deserialize(red, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(green, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(blue, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize(gray, data, max_size)) return false;
-
-	updateInternal();
-
-	return true;
-}
-#endif // MKXPZ_RETRO
 
 
 Rect::Rect(int x, int y, int width, int height)
@@ -500,22 +454,8 @@ Rect *Rect::deserialize(Exception &exception, const char *data, int len)
 }
 
 #ifdef MKXPZ_RETRO
-bool Rect::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
-{
-	if (!mkxp_sandbox::sandbox_serialize((int32_t)x, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize((int32_t)y, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize((int32_t)width, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_serialize((int32_t)height, data, max_size)) return false;
-
-	return true;
-}
-
-bool Rect::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size) {
-	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)x, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)y, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)width, data, max_size)) return false;
-	if (!mkxp_sandbox::sandbox_deserialize((int32_t &)height, data, max_size)) return false;
-
-	return true;
-}
+#ifndef MKXPZ_SANDBOX_SERIAL_ETC_H
+#define MKXPZ_SANDBOX_SERIAL_ETC_H
+#include "sandbox-serial-etc.h"
+#endif // MKXPZ_SANDBOX_SERIAL_ETC_H
 #endif // MKXPZ_RETRO

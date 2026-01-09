@@ -21,8 +21,8 @@
 # useless" syntax error is a warning instead of a syntax error. The following
 # code gives a warning in Ruby versions up to and including 2.5 (although the
 # function does work correctly), throws the "else without rescue is useless"
-# syntax error in Ruby 2.6 through Ruby 3.2 and throws a different syntax error
-# in Ruby versions later than 3.2.
+# syntax error in Ruby 2.6 through Ruby 3.3 and throws a different syntax error
+# in Ruby versions later than 3.3.
 #
 #   def f(x)
 #     return 'truthy' if x else 'falsy'

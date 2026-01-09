@@ -111,7 +111,7 @@ static bool getEnvironmentBool(const char *env, bool defaultValue) {
 }
 #endif // MKXPZ_RETRO
 
-static json::value readConfFile(const char *path) {
+static json::value readConfFile(const char *path, bool isBaseConf) {
     
     json::value ret(0);
 
@@ -122,7 +122,7 @@ static json::value readConfFile(const char *path) {
     if (!mkxp_fs::fileExists(path))
 #endif // MKXPZ_RETRO
     {
-        return json::object({});
+        return isBaseConf ? json::object({{"syntaxTransform", 2}}) : json::object({});
     }
     
 #ifdef MKXPZ_RETRO
@@ -282,7 +282,7 @@ void Config::read(int argc, char *argv[], int forceRgssVersion) {
     }
 #endif // MKXPZ_RETRO
     
-    json::value baseConf = readConfFile(CONF_FILE);
+    json::value baseConf = readConfFile(CONF_FILE, true);
     copyObject(optsJ, baseConf);
     copyObject(opts["bindingNames"], baseConf.as_object(failure)["bindingNames"], "bindingNames .");
     
@@ -325,7 +325,7 @@ void Config::read(int argc, char *argv[], int forceRgssVersion) {
 #ifndef MKXPZ_RETRO
     // Now check for an extra mkxp.conf in the user's save directory and merge anything else from that
     userConfPath = mkxp_fs::normalizePath(std::string(customDataPath + "/" CONF_FILE).c_str(), 0, 1);
-    json::value userConf = readConfFile(userConfPath.c_str());
+    json::value userConf = readConfFile(userConfPath.c_str(), false);
     copyObject(optsJ, userConf);
 #endif // MKXPZ_RETRO
     

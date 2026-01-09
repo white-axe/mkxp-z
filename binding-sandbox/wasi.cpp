@@ -104,7 +104,7 @@ wasi_instance::~wasi_instance() {
     // Flush standard output and standard error
     for (size_t i = 0; i < 2; ++i) {
         if (!stdio_line_buffers[i].empty()) {
-            mkxp_retro::log_printf(
+            mkxp_retro_log_printf(
                 i == 0 ? RETRO_LOG_INFO : RETRO_LOG_WARN,
                 i == 0 ? "[mkxp-z stdout] %s\n" : "[mkxp-z stderr] %s\n",
                 stdio_line_buffers[i].c_str()
@@ -1197,7 +1197,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_pwrite(struct w2c_wasi__snap
                 size_t line_start_index = 0, i = 0;
                 for (char c : buf) {
                     if (c == '\n') {
-                        mkxp_retro::log_printf(
+                        mkxp_retro_log_printf(
                             wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? RETRO_LOG_INFO : RETRO_LOG_WARN,
                             wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? "[mkxp-z stdout] %.*s\n" : "[mkxp-z stderr] %.*s\n",
                             std::min(line_buffer.length() + (i - line_start_index), (size_t)INT_MAX),
@@ -3519,7 +3519,7 @@ extern "C" void w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0_0x5Bmethod0x5Doutput0x2
                 size_t line_start_index = 0;
                 for (size_t i = 0; i < contents_len; ++i) {
                     if (str[i] == '\n') {
-                        mkxp_retro::log_printf(
+                        mkxp_retro_log_printf(
                             wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? RETRO_LOG_INFO : RETRO_LOG_WARN,
                             wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? "[mkxp-z stdout] %.*s\n" : "[mkxp-z stderr] %.*s\n",
                             std::min(line_buffer.length() + (i - line_start_index), (size_t)INT_MAX),
@@ -3636,7 +3636,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_write(struct w2c_wasi__snaps
                 size_t line_start_index = 0, i = 0;
                 for (char c : buf) {
                     if (c == '\n') {
-                        mkxp_retro::log_printf(
+                        mkxp_retro_log_printf(
                             wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? RETRO_LOG_INFO : RETRO_LOG_WARN,
                             wasi->fdtable[fd].type == wasi_fd_type::STDOUT ? "[mkxp-z stdout] %.*s\n" : "[mkxp-z stderr] %.*s\n",
                             std::min(line_buffer.length() + (i - line_start_index), (size_t)INT_MAX),

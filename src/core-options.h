@@ -68,7 +68,7 @@ static const struct retro_core_option_v2_category core_option_categories[] = {
     {
         "postload",
         "Postload Scripts",
-        "Choose postload scripts to load on game startup. All postload scripts are disabled by default. More postload scripts may be added to the mkxp-z/Scripts/Postload subdirectory of the libretro system directory.",
+        "Choose postload scripts to load on game startup. More postload scripts may be added to the mkxp-z/Scripts/Postload subdirectory of the libretro system directory.",
     },
     {
         nullptr,
