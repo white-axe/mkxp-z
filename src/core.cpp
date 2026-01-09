@@ -649,6 +649,10 @@ static void update_simple_core_options() {
     }
 }
 
+static bool script_is_enabled_by_default(const char *script_name, bool is_postload) {
+    return !is_postload && !std::strcmp(script_name, "win32_wrap.rb");
+}
+
 static std::string get_script_core_option_name(const char *script_name, bool is_postload) {
     static const char hex[] = "0123456789abcdef";
     std::string option_name(is_postload ? "mkxp-z_postload-" : "mkxp-z_preload-");
@@ -672,7 +676,7 @@ static void set_script_core_option_definition(std::vector<std::string> &key_buff
     definition.info = nullptr;
     definition.info_categorized = nullptr;
     definition.category_key = is_postload ? "postload" : "preload";
-    definition.values[0] = {"default", "Default (Disabled)"};
+    definition.values[0] = {"default", script_is_enabled_by_default(script_name, is_postload) ? "Default (Enabled)" : "Default (Disabled)"};
     definition.values[1] = {"enabled", "Enabled"};
     definition.values[2] = {"disabled", "Disabled"};
     definition.values[3] = {nullptr, nullptr};
@@ -785,7 +789,7 @@ static void set_core_options(Config &config, std::vector<std::string> &preload_s
     std::vector<std::string> enabled_preload_scripts;
     for (const std::string &script_name : preload_scripts) {
         const char *value = get_core_option(get_script_core_option_name(script_name.c_str(), false).c_str());
-        if (!std::strcmp(value, "enabled")) {
+        if (script_is_enabled_by_default(script_name.c_str(), false) ? std::strcmp(value, "disabled") : !std::strcmp(value, "enabled")) {
             enabled_preload_scripts.emplace_back(std::string("/System/Scripts/Preload/") + script_name);
         }
     }
@@ -795,7 +799,7 @@ static void set_core_options(Config &config, std::vector<std::string> &preload_s
     // Append the postload scripts enabled via core options to the list of postload scripts
     for (const std::string &script_name : postload_scripts) {
         const char *value = get_core_option(get_script_core_option_name(script_name.c_str(), false).c_str());
-        if (!std::strcmp(value, "enabled")) {
+        if (script_is_enabled_by_default(script_name.c_str(), true) ? std::strcmp(value, "disabled") : !std::strcmp(value, "enabled")) {
             config.postloadScripts.emplace_back(std::string("/System/Scripts/Postload/") + script_name);
         }
     }
