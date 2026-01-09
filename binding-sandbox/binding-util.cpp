@@ -136,6 +136,9 @@ void exception_binding_init::operator()() {
         SANDBOX_AWAIT_R(reset_class, rb_define_class, rgssVer >= 3 ? "RGSSReset" : "Reset", sb()->rb_eException());
         SANDBOX_AWAIT_S(0, rb_intern, "ENOENT");
         SANDBOX_AWAIT_R(enoent_class, rb_const_get, sb()->rb_mErrno(), SANDBOX_SLOT(0));
+        if (rgssVer == 1) {
+            SANDBOX_AWAIT(rb_define_class, "Hangup", sb()->rb_eException());
+        }
     }
 }
 
