@@ -46,8 +46,8 @@ ARG_HANDLERS = {
   'unsigned long long' => { primitive: :u64 },
   'float' => { primitive: :f32 },
   'double' => { primitive: :f64 },
-  'bool' => { primitive: :u32 },
-  '_Bool' => { primitive: :u32 },
+  'bool' => { primitive: :bool },
+  '_Bool' => { primitive: :bool },
   'const char *' => {
     keep: true,
     buf_size: 'std::strlen(ARG) + 1',
@@ -124,8 +124,8 @@ RET_HANDLERS = {
   'unsigned long long' => { primitive: :u64 },
   'float' => { primitive: :f32 },
   'double' => { primitive: :f64 },
-  'bool' => { primitive: :u32 },
-  '_Bool' => { primitive: :u32 },
+  'bool' => { primitive: :bool },
+  '_Bool' => { primitive: :bool },
   'char *' => { primitive: :ptr },
   'const char *' => { primitive: :ptr },
 }
@@ -142,6 +142,7 @@ VAR_TYPE_TABLE = {
   f64: 'double',
   void: 'void',
   value: 'VALUE',
+  bool: 'bool',
 }
 
 FUNC_TYPE_TABLE = {
