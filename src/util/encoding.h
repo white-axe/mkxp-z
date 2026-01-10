@@ -31,16 +31,13 @@ static std::string getCharset(std::string &str) {
     return ret;
 }
 
-static std::string convertString(std::string &str) {
-    
-    std::string charset = getCharset(str);
-    
+static std::string convertString(std::string &str, const char *charset) {
     // Conversion doesn't need to happen if it's already UTF-8
-    if (!strcmp(charset.c_str(), "UTF-8") || !strcmp(charset.c_str(), "ASCII")) {
+    if (!strcmp(charset, "UTF-8") || !strcmp(charset, "ASCII")) {
         return std::string(str);
     }
     
-    iconv_t cd = iconv_open("UTF-8", charset.c_str());
+    iconv_t cd = iconv_open("UTF-8", charset);
     
     size_t inLen = str.size();
     size_t outLen = inLen * 4;
@@ -58,10 +55,14 @@ static std::string convertString(std::string &str) {
         buf.resize(buf.size()-outLen);
     }
     else {
-        throw Exception(Exception::MKXPError, "Unable to convert string (Guessed encoding: %s)", charset.c_str());
+        throw Exception(Exception::MKXPError, "Unable to convert string (Guessed encoding: %s)", charset);
     }
     
     return buf;
+}
+
+static std::string convertString(std::string &str) {
+    return convertString(str, getCharset(str).c_str());
 }
 }
 
