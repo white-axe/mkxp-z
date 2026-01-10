@@ -30,11 +30,24 @@
     } \
 } while (0)
 
+#define RESERVE_SER_FAIL(bytes) do { \
+    if (max_size < (bytes)) { \
+        SER_FAIL; \
+    } \
+} while (0)
+
+#define RESERVE_DESER_FAIL(bytes) do { \
+    if (max_size < (bytes)) { \
+        DESER_FAIL; \
+    } \
+} while (0)
+
 #define ADVANCE(bytes) do { \
     data = (uint8_t *)data + (bytes); \
     max_size -= (bytes); \
 } while (0)
 
+#define SER_FAIL do { ser_fail(); return false; } while (0)
 #define SER_OBJECTS_BEGIN_DETAIL(_r, _data, T) sandbox_ptr_map<T>::sandbox_serialize_begin();
 #define SER_OBJECTS_BEGIN do { BOOST_PP_SEQ_FOR_EACH(SER_OBJECTS_BEGIN_DETAIL, _, SANDBOX_TYPENUM_TYPES) } while (0)
 #define SER_OBJECTS_END_DETAIL(_r, _data, T) sandbox_ptr_map<T>::sandbox_serialize_end();
@@ -47,6 +60,12 @@
 #define DESER_OBJECTS_END_DETAIL(_r, _data, T) sandbox_ptr_map<T>::sandbox_deserialize_end();
 #define DESER_OBJECTS_END do { BOOST_PP_SEQ_FOR_EACH(DESER_OBJECTS_END_DETAIL, _, SANDBOX_TYPENUM_TYPES) } while (0)
 #define DESER_OBJECTS_END_FAIL do { DESER_OBJECTS_END; sb()->vacant_object_keys.clear(); sb()->objects.clear(); DESER_FAIL; } while (0)
+
+static void ser_fail() {
+    std::string message("This game is using more memory (" + std::to_string(((unsigned long long)sb()->memory_size() + 1048575) / 1048576) + " mebibytes) than the maximum save state size; increase the maximum save state size in the core options");
+    LOG_PRINTF(RETRO_LOG_ERROR, "%s\n", message.c_str());
+    display_message(RETRO_LOG_ERROR, message.c_str());
+}
 
 extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
 #ifdef MKXPZ_RETRO_NO_SAVE_STATES
@@ -64,7 +83,7 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     wasm_size_t max_size = len;
 
     // Write 4-byte magic number: "MKXP" for big-endian platforms, "mkxp" for little-endian platforms
-    RESERVE(4);
+    RESERVE_SER_FAIL(4);
 #ifdef MKXPZ_BIG_ENDIAN
     std::memcpy(data, "MKXP", 4);
 #else
@@ -73,75 +92,75 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     ADVANCE(4);
 
     // Write 4-byte version: 1
-    if (!sandbox_serialize((uint32_t)1, data, max_size)) return false;
+    if (!sandbox_serialize((uint32_t)1, data, max_size)) SER_FAIL;
 
     // Write mkxp-z version
-    if (!sandbox_serialize(MKXPZ_VERSION "/" MKXPZ_GIT_HASH, data, max_size)) return false;
+    if (!sandbox_serialize(MKXPZ_VERSION "/" MKXPZ_GIT_HASH, data, max_size)) SER_FAIL;
 
     // Write 20-byte Ruby revision
-    RESERVE(sizeof ruby_revision);
+    RESERVE_SER_FAIL(sizeof ruby_revision);
     std::memcpy(data, ruby_revision, sizeof ruby_revision);
     ADVANCE(sizeof ruby_revision);
 
     // Write 32-byte hash of binding-sandbox source files
-    RESERVE(sizeof MKXPZ_BINDING_SANDBOX_HASH - 1);
+    RESERVE_SER_FAIL(sizeof MKXPZ_BINDING_SANDBOX_HASH - 1);
     std::memcpy(data, MKXPZ_BINDING_SANDBOX_HASH, sizeof MKXPZ_BINDING_SANDBOX_HASH - 1);
     ADVANCE(sizeof MKXPZ_BINDING_SANDBOX_HASH - 1);
 
     // Write the capacity of the VM memory
-    if (!sandbox_serialize(sb()->memory_capacity(), data, max_size)) return false;
+    if (!sandbox_serialize(sb()->memory_capacity(), data, max_size)) SER_FAIL;
 
     {
         // Write the size of the VM memory
         wasm_size_t memory_size = sb()->memory_size();
-        if (!sandbox_serialize(memory_size, data, max_size)) return false;
+        if (!sandbox_serialize(memory_size, data, max_size)) SER_FAIL;
 
         // Write the VM memory itself
-        RESERVE(memory_size);
+        RESERVE_SER_FAIL(memory_size);
         sb()->copy_memory_to(data);
         ADVANCE(memory_size);
     }
 
     // Write the number of sandbox fibers
-    if (!sandbox_serialize((wasm_size_t)sb()->fiber_list.size(), data, max_size)) return false;
+    if (!sandbox_serialize((wasm_size_t)sb()->fiber_list.size(), data, max_size)) SER_FAIL;
 
     for (const auto &fiber : sb()->fiber_list) {
         // Write the key of the fiber
-        if (!sandbox_serialize(std::get<0>(fiber.key), data, max_size)) return false;
-        if (!sandbox_serialize(std::get<1>(fiber.key), data, max_size)) return false;
-        if (!sandbox_serialize(std::get<2>(fiber.key), data, max_size)) return false;
+        if (!sandbox_serialize(std::get<0>(fiber.key), data, max_size)) SER_FAIL;
+        if (!sandbox_serialize(std::get<1>(fiber.key), data, max_size)) SER_FAIL;
+        if (!sandbox_serialize(std::get<2>(fiber.key), data, max_size)) SER_FAIL;
 
         // Write the stack index of the fiber
-        if (!sandbox_serialize(fiber.stack_index, data, max_size)) return false;
+        if (!sandbox_serialize(fiber.stack_index, data, max_size)) SER_FAIL;
 
         // Write the number of frames in the fiber
-        if (!sandbox_serialize(std::max((wasm_size_t)fiber.stack.size(), (wasm_size_t)fiber.deser_stack.size()), data, max_size)) return false;
+        if (!sandbox_serialize(std::max((wasm_size_t)fiber.stack.size(), (wasm_size_t)fiber.deser_stack.size()), data, max_size)) SER_FAIL;
 
         // Write the stack pointer and state of each frame
         for (const auto &frame : fiber.stack) {
-            if (!sandbox_serialize(frame.get_stack_pointer(), data, max_size)) return false;
-            if (!sandbox_serialize((int32_t)frame, data, max_size)) return false;
+            if (!sandbox_serialize(frame.get_stack_pointer(), data, max_size)) SER_FAIL;
+            if (!sandbox_serialize((int32_t)frame, data, max_size)) SER_FAIL;
         }
         if (fiber.deser_stack.size() > fiber.stack.size()) {
             for (auto it = fiber.deser_stack.begin() + fiber.stack.size(); it != fiber.deser_stack.end(); ++it) {
-                if (!sandbox_serialize(it->stack_ptr, data, max_size)) return false;
-                if (!sandbox_serialize(it->state, data, max_size)) return false;
+                if (!sandbox_serialize(it->stack_ptr, data, max_size)) SER_FAIL;
+                if (!sandbox_serialize(it->state, data, max_size)) SER_FAIL;
             }
         }
     }
 
     // Write the sandbox state
-    if (!sandbox_serialize(sb()->get_machine_stack_pointer(), data, max_size)) return false;
-    if (!sandbox_serialize(sb()->get_asyncify_state(), data, max_size)) return false;
-    if (!sandbox_serialize(sb()->get_asyncify_data(), data, max_size)) return false;
-    if (!sandbox_serialize(frame_count, data, max_size)) return false;
-    if (!sandbox_serialize(frame_time.load_relaxed(), data, max_size)) return false;
-    if (!sandbox_serialize(frame_time_remainder, data, max_size)) return false;
-    if (!sandbox_serialize(retro_run_count, data, max_size)) return false;
-    if (!sandbox_serialize(sb().cheats, data, max_size)) return false;
+    if (!sandbox_serialize(sb()->get_machine_stack_pointer(), data, max_size)) SER_FAIL;
+    if (!sandbox_serialize(sb()->get_asyncify_state(), data, max_size)) SER_FAIL;
+    if (!sandbox_serialize(sb()->get_asyncify_data(), data, max_size)) SER_FAIL;
+    if (!sandbox_serialize(frame_count, data, max_size)) SER_FAIL;
+    if (!sandbox_serialize(frame_time.load_relaxed(), data, max_size)) SER_FAIL;
+    if (!sandbox_serialize(frame_time_remainder, data, max_size)) SER_FAIL;
+    if (!sandbox_serialize(retro_run_count, data, max_size)) SER_FAIL;
+    if (!sandbox_serialize(sb().cheats, data, max_size)) SER_FAIL;
 
     // Write the pseudorandom number generator state and open WASI file descriptors
-    if (!sb().sandbox_serialize_wasi(data, max_size)) return false;
+    if (!sb().sandbox_serialize_wasi(data, max_size)) SER_FAIL;
 
     SER_OBJECTS_BEGIN;
 
@@ -177,55 +196,55 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     }
 
     // Write the transition map and movie, if applicable
-    if (!sandbox_serialize(sb().transitioning, data, max_size)) return false;
-    if (!sandbox_serialize(sb().trans_map != nullptr, data, max_size)) return false;
+    if (!sandbox_serialize(sb().transitioning, data, max_size)) SER_FAIL;
+    if (!sandbox_serialize(sb().trans_map != nullptr, data, max_size)) SER_FAIL;
     if (sb().trans_map != nullptr) {
         MKXPZ_FORCED_ASSERT(!sb().trans_map->isDisposed());
-        if (!sb().trans_map->sandbox_serialize_without_hires(data, max_size)) return false;
+        if (!sb().trans_map->sandbox_serialize_without_hires(data, max_size)) SER_FAIL;
         Exception e;
         Bitmap *hires = sb().trans_map->getHires(e);
         MKXPZ_FORCED_ASSERT(e.is_ok());
-        if (!sandbox_serialize(hires != nullptr, data, max_size)) return false;
+        if (!sandbox_serialize(hires != nullptr, data, max_size)) SER_FAIL;
         if (hires != nullptr) {
-            if (!hires->sandbox_serialize_without_hires(data, max_size)) return false;
+            if (!hires->sandbox_serialize_without_hires(data, max_size)) SER_FAIL;
         }
     }
-    if (!sandbox_serialize(sb().get_movie_from_main_thread() != nullptr, data, max_size)) return false;
+    if (!sandbox_serialize(sb().get_movie_from_main_thread() != nullptr, data, max_size)) SER_FAIL;
     if (sb().get_movie_from_main_thread() != nullptr) {
-        if (!Graphics::sandbox_serialize_movie(sb().get_movie_from_main_thread(), data, max_size)) return false;
+        if (!Graphics::sandbox_serialize_movie(sb().get_movie_from_main_thread(), data, max_size)) SER_FAIL;
     }
 
     // Write the default font
-    if (!Font::sandbox_serialize_default(data, max_size)) return false;
+    if (!Font::sandbox_serialize_default(data, max_size)) SER_FAIL;
 
     SER_OBJECTS_END;
 
     // Write the graphics state
-    if (!sandbox_serialize((int32_t)shState->graphics().width(), data, max_size)) return false;
-    if (!sandbox_serialize((int32_t)shState->graphics().height(), data, max_size)) return false;
-    if (!sandbox_serialize((uint32_t)av_info.geometry.base_width, data, max_size)) return false;
-    if (!sandbox_serialize((uint32_t)av_info.geometry.base_height, data, max_size)) return false;
-    if (!sandbox_serialize((int32_t)shState->graphics().getFrameRate(), data, max_size)) return false;
-    if (!sandbox_serialize((int32_t)shState->graphics().getFrameCount(), data, max_size)) return false;
-    if (!sandbox_serialize((int32_t)shState->graphics().getBrightness(), data, max_size)) return false;
-    if (!sandbox_serialize(shState->graphics().getFullscreen(), data, max_size)) return false;
-    if (!sandbox_serialize(shState->graphics().getShowCursor(), data, max_size)) return false;
-    if (!sandbox_serialize(shState->graphics().getScale(), data, max_size)) return false;
-    if (!sandbox_serialize(shState->graphics().getFrameskip(), data, max_size)) return false;
-    if (!sandbox_serialize(shState->graphics().getFixedAspectRatio(), data, max_size)) return false;
-    if (!sandbox_serialize((int32_t)shState->graphics().getSmoothScaling(), data, max_size)) return false;
-    if (!sandbox_serialize(shState->graphics().getIntegerScaling(), data, max_size)) return false;
-    if (!sandbox_serialize(shState->graphics().getLastMileScaling(), data, max_size)) return false;
-    if (!sandbox_serialize(shState->graphics().getThreadsafe(), data, max_size)) return false;
-    if (!sandbox_serialize(shState->graphics().frozen(), data, max_size)) return false;
+    if (!sandbox_serialize((int32_t)shState->graphics().width(), data, max_size)) SER_FAIL;
+    if (!sandbox_serialize((int32_t)shState->graphics().height(), data, max_size)) SER_FAIL;
+    if (!sandbox_serialize((uint32_t)av_info.geometry.base_width, data, max_size)) SER_FAIL;
+    if (!sandbox_serialize((uint32_t)av_info.geometry.base_height, data, max_size)) SER_FAIL;
+    if (!sandbox_serialize((int32_t)shState->graphics().getFrameRate(), data, max_size)) SER_FAIL;
+    if (!sandbox_serialize((int32_t)shState->graphics().getFrameCount(), data, max_size)) SER_FAIL;
+    if (!sandbox_serialize((int32_t)shState->graphics().getBrightness(), data, max_size)) SER_FAIL;
+    if (!sandbox_serialize(shState->graphics().getFullscreen(), data, max_size)) SER_FAIL;
+    if (!sandbox_serialize(shState->graphics().getShowCursor(), data, max_size)) SER_FAIL;
+    if (!sandbox_serialize(shState->graphics().getScale(), data, max_size)) SER_FAIL;
+    if (!sandbox_serialize(shState->graphics().getFrameskip(), data, max_size)) SER_FAIL;
+    if (!sandbox_serialize(shState->graphics().getFixedAspectRatio(), data, max_size)) SER_FAIL;
+    if (!sandbox_serialize((int32_t)shState->graphics().getSmoothScaling(), data, max_size)) SER_FAIL;
+    if (!sandbox_serialize(shState->graphics().getIntegerScaling(), data, max_size)) SER_FAIL;
+    if (!sandbox_serialize(shState->graphics().getLastMileScaling(), data, max_size)) SER_FAIL;
+    if (!sandbox_serialize(shState->graphics().getThreadsafe(), data, max_size)) SER_FAIL;
+    if (!sandbox_serialize(shState->graphics().frozen(), data, max_size)) SER_FAIL;
     if (shState->graphics().frozen()) {
-        RESERVE((size_t)4 * shState->graphics().frozenPixels.size());
+        RESERVE_SER_FAIL((size_t)4 * shState->graphics().frozenPixels.size());
         std::memcpy(data, shState->graphics().frozenPixels.data(), (size_t)4 * shState->graphics().frozenPixels.size());
         ADVANCE((size_t)4 * shState->graphics().frozenPixels.size());
     }
 
     // Write the audio state
-    if (!audio->sandbox_serialize(data, max_size)) return false;
+    if (!audio->sandbox_serialize(data, max_size)) SER_FAIL;
 
     std::memset(data, 0, max_size);
     return true;
@@ -659,7 +678,7 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     }
     if (!sandbox_deserialize(shState->graphics().frozen(), data, max_size)) DESER_FAIL;
     if (shState->graphics().frozen()) {
-        RESERVE((size_t)4 * (size_t)shState->graphics().width() * (size_t)shState->graphics().height());
+        RESERVE_DESER_FAIL((size_t)4 * (size_t)shState->graphics().width() * (size_t)shState->graphics().height());
         if (shState->graphics().frozenPixels.size() != (size_t)shState->graphics().width() * (size_t)shState->graphics().height()) {
             shState->graphics().frozenPixels.clear();
             shState->graphics().frozenPixels.resize((size_t)shState->graphics().width() * (size_t)shState->graphics().height());
