@@ -2485,7 +2485,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_remove_directory(struct w2
                 }
 
                 PHYSFS_Stat stat;
-                if (!PHYSFS_stat(wasi->fdtable[fd].dir_handle()->path.c_str(), &stat)) {
+                if (!PHYSFS_stat(joined_path.c_str(), &stat)) {
                     return WASIP1_ENOENT;
                 }
 
@@ -2697,7 +2697,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
                 }
 
                 PHYSFS_Stat stat;
-                if (!PHYSFS_stat(wasi->fdtable[fd].dir_handle()->path.c_str(), &stat)) {
+                if (!PHYSFS_stat(joined_path.c_str(), &stat)) {
                     wasi->ref<uint8_t>(result) = true;
                     wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_NO_ENTRY;
                     return;
@@ -2774,7 +2774,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_unlink_file(struct w2c_was
                 }
 
                 PHYSFS_Stat stat;
-                if (!PHYSFS_stat(wasi->fdtable[fd].dir_handle()->path.c_str(), &stat)) {
+                if (!PHYSFS_stat(joined_path.c_str(), &stat)) {
                     return WASIP1_ENOENT;
                 }
 
