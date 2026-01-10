@@ -35,16 +35,13 @@ static std::string getCharset(const std::string &str) {
     return ret;
 }
 
-static std::string convertString(const std::string &str) {
-    
-    std::string charset = getCharset(str);
-    
+static std::string convertString(const std::string &str, const char *charset) {
     // Conversion doesn't need to happen if it's already UTF-8
-    if (!strcmp(charset.c_str(), "UTF-8") || !strcmp(charset.c_str(), "ASCII")) {
+    if (!strcmp(charset, "UTF-8") || !strcmp(charset, "ASCII")) {
         return std::string(str);
     }
     
-    iconv_t cd = iconv_open("UTF-8", charset.c_str());
+    iconv_t cd = iconv_open("UTF-8", charset);
     
     size_t inLen = str.size();
     size_t outLen = inLen * 4;
@@ -94,6 +91,10 @@ static std::string convertStringToUtf32(const std::string &str) {
     }
     
     return buf;
+}
+
+static std::string convertString(const std::string &str) {
+    return convertString(str, getCharset(str).c_str());
 }
 }
 
