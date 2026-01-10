@@ -173,12 +173,6 @@ static VALUE legacy_array_indices(int argc, VALUE *argv, VALUE self) {
     return rb_funcallv(self, rb_intern("values_at"), argc, argv);
 }
 
-static VALUE legacy_exception_to_str(VALUE self) {
-    if (!mkxp_ec_is_syntax_transform_active(1, 8, -1))
-        mkxp_raise_no_method_exception(self, "to_str");
-    return rb_obj_as_string(self);
-}
-
 static VALUE legacy_hash_indexes(int argc, VALUE *argv, VALUE self) {
     if (!mkxp_ec_is_syntax_transform_active(1, 8, -1))
         mkxp_raise_no_method_exception(self, "indexes");
@@ -198,13 +192,6 @@ static VALUE legacy_kernel_id(VALUE self) {
         mkxp_raise_no_method_exception(self, "id");
     rb_warn("Object#id will be deprecated; use Object#object_id");
     return rb_obj_id(self);
-}
-
-static VALUE legacy_kernel_to_a(VALUE self) {
-    if (!mkxp_ec_is_syntax_transform_active(1, 8, -1))
-        mkxp_raise_no_method_exception(self, "to_a");
-    rb_warn("default `to_a' will be obsolete");
-    return rb_ary_new_from_args(1, self);
 }
 
 static VALUE legacy_kernel_type(VALUE self) {
@@ -262,11 +249,9 @@ static void mriBindingInit() {
 #if RAPI_MAJOR > 1 || (RAPI_MAJOR == 1 && RAPI_MINOR > 8)
     rb_define_method(rb_cArray, "indexes", legacy_array_indexes, -1);
     rb_define_method(rb_cArray, "indices", legacy_array_indices, -1);
-    rb_define_method(rb_eException, "to_str", legacy_exception_to_str, 0);
     rb_define_method(rb_cHash, "indexes", legacy_hash_indexes, -1);
     rb_define_method(rb_cHash, "indices", legacy_hash_indices, -1);
     rb_define_method(rb_mKernel, "id", legacy_kernel_id, 0);
-    rb_define_method(rb_mKernel, "to_a", legacy_kernel_to_a, 0);
     rb_define_method(rb_mKernel, "type", legacy_kernel_type, 0);
     rb_define_method(rb_cSymbol, "to_i", legacy_symbol_to_i, 0);
     rb_define_method(rb_cSymbol, "to_int", legacy_symbol_to_int, 0);
