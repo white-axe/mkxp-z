@@ -64,6 +64,8 @@ else
     RUBY_EXTS := cgi/escape,continuation,coverage,date,digest/bubblebabble,digest,digest/md5,digest/rmd160,digest/sha1,digest/sha2,etc,fcntl,json,json/generator,json/parser,objspace,pathname,psych,rbconfig/sizeof,ripper,stringio,strscan,monitor,zlib
 endif
 
+RUBY_EXTS := $(RUBY_EXTS),io/wait
+
 WASI_SDK_VERSION_EXPECTED := 29.0
 WASI_SDK_VERSION_ACTUAL := $(shell head -n 1 $(WASI_SDK)/VERSION)
 ifneq ($(WASI_SDK_VERSION_EXPECTED),$(WASI_SDK_VERSION_ACTUAL))
@@ -87,7 +89,7 @@ ruby-bindings: $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sand
 clean: clean-ruby-dist clean-ruby-bindings
 	rm -rf $(LIBDIR)/*
 	rm -rf $(DOWNLOADS)/*
-	rm -r $(OUTDIR)/preload.zip
+	rm -f $(OUTDIR)/preload.zip
 	rm -rf $(OUTDIR)/boost_predef
 
 clean-ruby-dist:
@@ -212,6 +214,7 @@ else
 endif
 	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-prng-time.patch
 	echo '#include "$(PWD)/ruby-bindings.h"' >> $(RUBY_SRC)/gc.c
+	cp -r $(PWD)/ruby-lib/* $(RUBY_SRC)/lib/
 
 # WABT (targets the build machine)
 
