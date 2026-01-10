@@ -36,6 +36,11 @@
 
 using namespace mkxp_sandbox;
 
+static const std::pair<std::string, std::string> wasi_env[] = {
+    {"HOME", "/Save"},
+};
+static constexpr wasm_size_t wasi_env_size = sizeof wasi_env / sizeof *wasi_env;
+
 // Returns the absolute path obtained by joining the path of the directory corresponding to file descriptor `fd` with the relative path given by `path` and `path_len`.
 // Assumes that `fd` corresponds to a `wasi_fd_type::FS` or `wasi_fd_type::FSDIR`.
 // Assumes that `path` points to a buffer that is at least as long as `path_len`.
@@ -447,12 +452,54 @@ extern "C" void w2c_wasi0x3Acli0x2Fenvironment0x4000x2E20x2E0_get0x2Denvironment
 
     wasi->check_bounds(result, 2 * sizeof(wasm_ptr_t));
 
-    wasi->ref<wasm_ptr_t>(result) = wasi->cabi_alloc<wasm_ptr_t>(0);
-    wasi->ref<wasm_size_t>(result + sizeof(wasm_ptr_t)) = 0;
+    wasm_ptr_t buf = wasi->cabi_alloc<wasm_ptr_t>(wasi_env_size * 4 * sizeof(wasm_ptr_t));
+    wasi->ref<wasm_ptr_t>(result) = buf;
+    wasi->ref<wasm_size_t>(result + sizeof(wasm_ptr_t)) = wasi_env_size;
+
+    for (wasm_size_t i = 0; i < wasi_env_size; ++i) {
+        wasm_size_t key_len = wasi_env[i].first.length();
+        wasm_ptr_t key_buf = wasi->cabi_alloc<char>(key_len);
+        wasi->arycpy(key_buf, wasi_env[i].first.c_str(), key_len);
+
+        wasm_size_t val_len = wasi_env[i].second.length();
+        wasm_ptr_t val_buf = wasi->cabi_alloc<char>(val_len);
+        wasi->arycpy(val_buf, wasi_env[i].second.c_str(), val_len);
+
+        wasi->ref<wasm_ptr_t>(buf) = key_buf;
+        buf += sizeof(wasm_ptr_t);
+        wasi->ref<wasm_size_t>(buf) = key_len;
+        buf += sizeof(wasm_ptr_t);
+        wasi->ref<wasm_ptr_t>(buf) = val_buf;
+        buf += sizeof(wasm_ptr_t);
+        wasi->ref<wasm_size_t>(buf) = val_len;
+        buf += sizeof(wasm_ptr_t);
+    }
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_environ_get(struct w2c_wasi__snapshot__preview1 *wasi, wasm_ptr_t env, wasm_ptr_t env_buf) {
     LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::environ_get(0x%08llx, 0x%08llx)\n", (unsigned long long)env, (unsigned long long)env_buf);
+
+    wasi->check_bounds(env, wasi_env_size * sizeof(wasm_ptr_t));
+
+    wasm_size_t buf_size = 0;
+    for (wasm_size_t i = 0; i < wasi_env_size; ++i) {
+        buf_size += wasi_env[i].first.length() + wasi_env[i].second.length() + 2;
+    }
+
+    wasi->check_bounds(env_buf, buf_size);
+
+    for (wasm_size_t i = 0; i < wasi_env_size; ++i) {
+        wasi->ref<wasm_ptr_t>(env) = env_buf;
+        env += sizeof(wasm_ptr_t);
+
+        wasi->strcpy(env_buf, wasi_env[i].first.c_str());
+        env_buf += wasi_env[i].first.length();
+        wasi->ref<char>(env_buf) = '=';
+        env_buf += 1;
+        wasi->strcpy(env_buf, wasi_env[i].second.c_str());
+        env_buf += wasi_env[i].second.length() + 1;
+    }
+
     return WASIP1_ESUCCESS;
 }
 
@@ -462,8 +509,13 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_environ_sizes_get(struct w2c_wa
     wasi->check_bounds(env_size, 4);
     wasi->check_bounds(env_buf_size, 4);
 
-    wasi->ref<uint32_t>(env_size) = 0;
-    wasi->ref<uint32_t>(env_buf_size) = 0;
+    wasm_size_t buf_size = 0;
+    for (wasm_size_t i = 0; i < wasi_env_size; ++i) {
+        buf_size += wasi_env[i].first.length() + wasi_env[i].second.length() + 2;
+    }
+
+    wasi->ref<uint32_t>(env_size) = wasi_env_size;
+    wasi->ref<uint32_t>(env_buf_size) = buf_size;
     return WASIP1_ESUCCESS;
 }
 
