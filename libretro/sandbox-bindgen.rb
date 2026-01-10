@@ -528,8 +528,11 @@ File.readlines('tags', chomp: true).each do |line|
       num_slots += 1
     elsif !handler[:buf_size].nil?
       coroutine_initializer += <<~HEREDOC
-        _SBINDGEN_SLOT(#{num_slots}) = bind.sandbox_malloc(#{handler[:buf_size].gsub('PREV_ARG', "a#{i - 1}").gsub('ARG', "a#{i}")});
-        if (_SBINDGEN_SLOT(#{num_slots}) == 0) MKXPZ_THROW(std::bad_alloc());
+        {
+            wasm_ptr_t p = bind.sandbox_malloc(#{handler[:buf_size].gsub('PREV_ARG', "a#{i - 1}").gsub('ARG', "a#{i}")});
+            if (p == 0) MKXPZ_THROW(std::bad_alloc());
+            _SBINDGEN_SLOT(#{num_slots}) = p;
+        }
       HEREDOC
       coroutine_initializer += handler[:serialize].gsub('PREV_ARG', "a#{i - 1}").gsub('ARG', "a#{i}").gsub('BUF', "_SBINDGEN_SLOT(#{num_slots})")
       coroutine_initializer += "\n"
