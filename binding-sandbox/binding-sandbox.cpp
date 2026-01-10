@@ -98,26 +98,6 @@ static VALUE legacy_array_indices(int32_t argc, wasm_ptr_t argv, VALUE self) {
     return sb()->bind<struct coro>()()(argc, argv, self);
 }
 
-static VALUE legacy_exception_to_str(VALUE self) {
-    struct coro : boost::asio::coroutine {
-        typedef decl_slots<VALUE> slots;
-
-        VALUE operator()(VALUE self) {
-            BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
-                if (!SANDBOX_SLOT(0)) {
-                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "to_str");
-                }
-                SANDBOX_AWAIT_S(0, rb_obj_as_string, self);
-            }
-
-            return SANDBOX_SLOT(0);
-        }
-    };
-
-    return sb()->bind<struct coro>()()(self);
-}
-
 static VALUE legacy_hash_indexes(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
         typedef decl_slots<VALUE, ID> slots;
@@ -174,28 +154,6 @@ static VALUE legacy_kernel_id(VALUE self) {
                 }
                 SANDBOX_AWAIT(mkxp_warn, "Object#id will be deprecated; use Object#object_id");
                 SANDBOX_AWAIT_S(0, rb_obj_id, self);
-            }
-
-            return SANDBOX_SLOT(0);
-        }
-    };
-
-    return sb()->bind<struct coro>()()(self);
-}
-
-static VALUE legacy_kernel_to_a(VALUE self) {
-    struct coro : boost::asio::coroutine {
-        typedef decl_slots<VALUE> slots;
-
-        VALUE operator()(VALUE self) {
-            BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
-                if (!SANDBOX_SLOT(0)) {
-                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "to_a");
-                }
-                SANDBOX_AWAIT(mkxp_warn, "default `to_a' will be obsolete");
-                SANDBOX_AWAIT_S(0, rb_ary_new_capa, 1);
-                SANDBOX_AWAIT(rb_ary_push, SANDBOX_SLOT(0), self);
             }
 
             return SANDBOX_SLOT(0);
@@ -1056,11 +1014,9 @@ void sandbox_binding_init::operator()() {
 
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cArray(), "indexes", (VALUE (*)(ANYARGS))legacy_array_indexes, -1);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cArray(), "indices", (VALUE (*)(ANYARGS))legacy_array_indices, -1);
-        SANDBOX_AWAIT(rb_define_method, sb()->rb_eException(), "to_str", (VALUE (*)(ANYARGS))legacy_exception_to_str, 0);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cHash(), "indexes", (VALUE (*)(ANYARGS))legacy_hash_indexes, -1);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cHash(), "indices", (VALUE (*)(ANYARGS))legacy_hash_indices, -1);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_mKernel(), "id", (VALUE (*)(ANYARGS))legacy_kernel_id, 0);
-        SANDBOX_AWAIT(rb_define_method, sb()->rb_mKernel(), "to_a", (VALUE (*)(ANYARGS))legacy_kernel_to_a, 0);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_mKernel(), "type", (VALUE (*)(ANYARGS))legacy_kernel_type, 0);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cSymbol(), "to_i", (VALUE (*)(ANYARGS))legacy_symbol_to_i, 0);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cSymbol(), "to_int", (VALUE (*)(ANYARGS))legacy_symbol_to_int, 0);
