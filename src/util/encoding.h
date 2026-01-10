@@ -25,6 +25,13 @@ static std::string getCharset(const std::string &str) {
     std::string ret(uchardet_get_charset(ud));
     uchardet_delete(ud);
     
+    if (!strncmp(ret.c_str(), "IBM", 3)) {
+        ret = "CP" + ret.substr(3);
+    } else if (!strncmp(ret.c_str(), "MAC-", 4)) {
+        ret = "MAC" + ret.substr(4);
+    } else if (!strncmp(ret.c_str(), "WINDOWS-", 8) || !strncmp(ret.c_str(), "Windows-", 8)) {
+        ret = "CP" + ret.substr(8);
+    }
     return ret;
 }
 
