@@ -187,7 +187,7 @@
  /*
 --- a/vm_eval.c
 +++ b/vm_eval.c
-@@ -2509,7 +2509,22 @@ rb_f_local_variables(VALUE _)
+@@ -2512,7 +2512,22 @@ rb_f_local_variables(VALUE _)
  	    break;
  	}
      }
