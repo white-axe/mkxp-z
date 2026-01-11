@@ -84,7 +84,7 @@ sandbox::sandbox(const Config &conf) : ruby(new struct w2c_ruby), wasi(new wasi_
 #endif
 
     {
-        static const char *makers[] = {"XP", "VX", "VX Ace"};
+        static const char *const makers[] = {"XP", "VX", "VX Ace"};
         LOG_PRINTF(RETRO_LOG_INFO, "RGSS version %d (RPG Maker %s)\n", conf.rgssVersion, conf.rgssVersion >= 1 && conf.rgssVersion <= 3 ? makers[conf.rgssVersion - 1] : nullptr);
     }
 
