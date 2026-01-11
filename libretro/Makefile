@@ -31,6 +31,7 @@ WASI_CFLAGS ?= -Oz -DNDEBUG
 WASI_CXXFLAGS ?= -Oz -DNDEBUG
 WASI_LDFLAGS ?=
 WASM_OPT_FLAGS ?= -Oz
+RUBY_HAVE_SOCKET ?= 1
 
 BUILD_PREFIX := $(PWD)/build
 OUTDIR := $(BUILD_PREFIX)/libretro-stage1
@@ -57,6 +58,17 @@ else
     RUBY_STACK_SIZE := 2097152
 endif
 
+# WASI Preview 1 doesn't have usable socket support
+ifeq ($(WASI_TARGET),wasm32-wasip1)
+    RUBY_HAVE_SOCKET := 0
+else ifeq ($(WASI_TARGET),wasm32-wasip1-threads)
+    RUBY_HAVE_SOCKET := 0
+else ifeq ($(WASI_TARGET),wasm32-wasi)
+    RUBY_HAVE_SOCKET := 0
+else ifeq ($(WASI_TARGET),wasm32-wasi-threads)
+    RUBY_HAVE_SOCKET := 0
+endif
+
 # These lists of native extensions are copied directly from ruby.wasm, but with the dbm, gdbm and openssl extensions removed
 ifneq ($(shell $(RUBY) -e 'puts "1" if Gem::Version.new("$(RUBY_VERSION)") < Gem::Version.new("3.4")'),)
     RUBY_EXTS := bigdecimal,cgi/escape,continuation,coverage,date,digest/bubblebabble,digest,digest/md5,digest/rmd160,digest/sha1,digest/sha2,etc,fcntl,fiber,json,json/generator,json/parser,nkf,objspace,pathname,psych,racc/cparse,rbconfig/sizeof,ripper,stringio,strscan,monitor,zlib
@@ -65,6 +77,9 @@ else
 endif
 
 RUBY_EXTS := $(RUBY_EXTS),io/wait
+ifeq ($(RUBY_HAVE_SOCKET),1)
+    RUBY_EXTS := $(RUBY_EXTS),socket
+endif
 
 WASI_SDK_VERSION_EXPECTED := 29.0
 WASI_SDK_VERSION_ACTUAL := $(shell head -n 1 $(WASI_SDK)/VERSION)
@@ -213,8 +228,10 @@ else
 	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-compat.patch
 endif
 	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-prng-time.patch
+ifeq ($(RUBY_HAVE_SOCKET),1)
+	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-socket.patch
+endif
 	echo '#include "$(PWD)/ruby-bindings.h"' >> $(RUBY_SRC)/gc.c
-	cp -r $(PWD)/ruby-lib/* $(RUBY_SRC)/lib/
 
 # WABT (targets the build machine)
 

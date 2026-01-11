@@ -269,6 +269,68 @@
 // future operations.
 #define WASI_STREAMS_ERROR_CLOSED 1
 
+// WASI Preview 2 network errors
+
+// Unknown error
+#define WASI_NETWORK_ERROR_UNKNOWN 0
+// Access denied.
+//
+// POSIX equivalent: EACCES, EPERM
+#define WASI_NETWORK_ERROR_ACCESS_DENIED 1
+// The operation is not supported.
+//
+// POSIX equivalent: EOPNOTSUPP
+#define WASI_NETWORK_ERROR_NOT_SUPPORTED 2
+// One of the arguments is invalid.
+//
+// POSIX equivalent: EINVAL
+#define WASI_NETWORK_ERROR_INVALID_ARGUMENT 3
+// Not enough memory to complete the operation.
+//
+// POSIX equivalent: ENOMEM, ENOBUFS, EAI_MEMORY
+#define WASI_NETWORK_ERROR_OUT_OF_MEMORY 4
+// The operation timed out before it could finish completely.
+#define WASI_NETWORK_ERROR_TIMEOUT 5
+// This operation is incompatible with another asynchronous operation that is already in progress.
+//
+// POSIX equivalent: EALREADY
+#define WASI_NETWORK_ERROR_CONCURRENCY_CONFLICT 6
+// Trying to finish an asynchronous operation that:
+// - has not been started yet, or:
+// - was already finished by a previous `finish-*` call.
+//
+// Note: this is scheduled to be removed when `future`s are natively supported.
+#define WASI_NETWORK_ERROR_NOT_IN_PROGRESS 7
+// The operation has been aborted because it could not be completed immediately.
+//
+// Note: this is scheduled to be removed when `future`s are natively supported.
+#define WASI_NETWORK_ERROR_WOULD_BLOCK 8
+// The operation is not valid in the socket's current state.
+#define WASI_NETWORK_ERROR_INVALID_STATE 9
+// A new socket resource could not be created because of a system limit.
+#define WASI_NETWORK_ERROR_NEW_SOCKET_LIMIT 10
+// A bind operation failed because the provided address is not an address that the `network` can bind to.
+#define WASI_NETWORK_ERROR_ADDRESS_NOT_BINDABLE 11
+// A bind operation failed because the provided address is already in use or because there are no ephemeral ports available.
+#define WASI_NETWORK_ERROR_ADDRESS_IN_USE 12
+// The remote address is not reachable
+#define WASI_NETWORK_ERROR_REMOTE_UNREACHABLE 13
+// The TCP connection was forcefully rejected
+#define WASI_NETWORK_ERROR_CONNECTION_REFUSED 14
+// The TCP connection was reset.
+#define WASI_NETWORK_ERROR_CONNECTION_RESET 15
+// A TCP connection was aborted.
+#define WASI_NETWORK_ERROR_CONNECTION_ABORTED 16
+// The size of a datagram sent to a UDP socket exceeded the maximum
+// supported size.
+#define WASI_NETWORK_ERROR_DATAGRAM_TOO_LARGE 17
+// Name does not exist or has no suitable associated IP addresses.
+#define WASI_NETWORK_ERROR_NAME_UNRESOLVABLE 18
+// A temporary failure in name resolution occurred.
+#define WASI_NETWORK_ERROR_TEMPORARY_RESOLVER_FAILURE 19
+// A permanent failure in name resolution occurred.
+#define WASI_NETWORK_ERROR_PERMANENT_RESOLVER_FAILURE 20
+
 typedef std::pair<uint32_t, std::string> path_cache_entry_t;
 
 struct fs_dir {
@@ -293,6 +355,18 @@ struct fs_file_stream {
     uint32_t root; // If this is nonzero, the stream is open and backed by the FSFILE with this file descriptor. If this is zero, the stream is closed. The stream will auto-close when the backing file is closed.
 };
 
+struct ai_stream_entry {
+    bool is_ipv6;
+    union {
+        uint8_t ipv4[4];
+        uint16_t ipv6[8];
+    } inner;
+};
+
+struct ai_stream {
+    std::deque<struct ai_stream_entry> entries; // List of remaining addresses.
+};
+
 enum wasi_fd_type {
     STDIN, // This file descriptor is standard input. The `handle` field is null.
     STDOUT, // This file descriptor is standard output. The `handle` field is null.
@@ -302,6 +376,7 @@ enum wasi_fd_type {
     FSDIRSTREAM, // This file descriptor is a directory stream for listing the entries in a directory. The `handle` field is a `struct fs_dir_stream *`.
     FSFILE, // This file descriptor is a file handled by PhysFS. The `handle` field is a `struct fs_file *`.
     FSFILESTREAM, // This file descriptor is a file stream backed by a FSFILE. The `handle` field is a `struct fs_file_stream *`.
+    AISTREAM, // This file descriptor is an address info stream. The `handle` field is a `struct ai_stream *`.
     VACANT, // Indicates this is a vacant file descriptor that doesn't correspond to a file. The `handle` field is null.
 };
 
@@ -315,6 +390,7 @@ struct wasi_file_entry {
     struct fs_dir_stream *dir_stream() const noexcept;
     struct fs_file *file_handle() const noexcept;
     struct fs_file_stream *file_stream() const noexcept;
+    struct ai_stream *ai_stream() const noexcept;
 };
 
 struct wasi_instance {
@@ -417,5 +493,11 @@ struct w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0 : wasi_instance {};
 struct w2c_wasi0x3Aio0x2Fpoll0x4000x2E20x2E0 : wasi_instance {};
 struct w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0 : wasi_instance {};
 struct w2c_wasi0x3Arandom0x2Frandom0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Asockets0x2Finstance0x2Dnetwork0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Asockets0x2Fip0x2Dname0x2Dlookup0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Asockets0x2Ftcp0x2Dcreate0x2Dsocket0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Asockets0x2Fudp0x2Dcreate0x2Dsocket0x4000x2E20x2E0 : wasi_instance {};
+struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 : wasi_instance {};
 
 #endif /* MKXPZ_SANDBOX_WASI_H */

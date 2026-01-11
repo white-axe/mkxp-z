@@ -83,6 +83,10 @@ struct fs_file_stream *wasi_file_entry::file_stream() const noexcept {
     return (struct fs_file_stream *)handle;
 }
 
+struct ai_stream *wasi_file_entry::ai_stream() const noexcept {
+    return (struct ai_stream *)handle;
+}
+
 wasi_instance::wasi_instance(std::shared_ptr<struct w2c_ruby> ruby) : ruby(ruby), prng_buffer_size(0) {
     // Initialize PRNG
     static_assert(sizeof(unsigned int) == sizeof(uint32_t), "unsigned int should be 32 bits");
@@ -177,6 +181,10 @@ void wasi_instance::deallocate_file_descriptor(uint32_t fd) {
                 // Remove this file stream from the backing file's set of file streams
                 close_file_stream(this, fd);
                 delete fdtable[fd].file_stream();
+                break;
+            case wasi_fd_type::AISTREAM:
+                delete fdtable[fd].ai_stream();
+                break;
             default:
                 break;
         }
@@ -286,6 +294,26 @@ bool wasi_instance::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &ma
             if (!::sandbox_serialize((uint8_t)4, data, max_size)) return false;
             if (!::sandbox_serialize(entry.file_stream()->offset, data, max_size)) return false;
             if (!::sandbox_serialize(entry.file_stream()->root, data, max_size)) return false;
+        } else if (entry.type == wasi_fd_type::AISTREAM) {
+            if (num_free_handles > 0) {
+                if (!::sandbox_serialize((uint8_t)0, data, max_size)) return false;
+                if (!::sandbox_serialize(num_free_handles, data, max_size)) return false;
+                num_free_handles = 0;
+            }
+            if (!::sandbox_serialize((uint8_t)5, data, max_size)) return false;
+            if (!::sandbox_serialize((wasm_size_t)entry.ai_stream()->entries.size(), data, max_size)) return false;
+            for (const struct ai_stream_entry &e : entry.ai_stream()->entries) {
+                if (!::sandbox_serialize(e.is_ipv6, data, max_size)) return false;
+                if (!e.is_ipv6) {
+                    for (size_t i = 0; i < 4; ++i) {
+                        if (!::sandbox_serialize(e.inner.ipv4[i], data, max_size)) return false;
+                    }
+                } else {
+                    for (size_t i = 0; i < 8; ++i) {
+                        if (!::sandbox_serialize(e.inner.ipv6[i], data, max_size)) return false;
+                    }
+                }
+            }
         } else {
             ++num_free_handles;
         }
@@ -425,6 +453,23 @@ bool wasi_instance::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_si
                 if (root >= fdtable.size() || fdtable[root].type != wasi_fd_type::FSFILE) return false;
                 fdtable[root].file_handle()->streams.insert(i);
                 fdtable[i] = {new fs_file_stream {offset, root}, wasi_fd_type::FSFILESTREAM};
+            } else if (type == 5) { // AISTREAM
+                wasm_size_t length;
+                if (!::sandbox_deserialize(length, data, max_size)) return false;
+                std::deque<struct ai_stream_entry> deque(length);
+                for (struct ai_stream_entry &e : deque) {
+                    if (!::sandbox_deserialize(e.is_ipv6, data, max_size)) return false;
+                    if (!e.is_ipv6) {
+                        for (size_t i = 0; i < 4; ++i) {
+                            if (!::sandbox_deserialize(e.inner.ipv4[i], data, max_size)) return false;
+                        }
+                    } else {
+                        for (size_t i = 0; i < 8; ++i) {
+                            if (!::sandbox_deserialize(e.inner.ipv6[i], data, max_size)) return false;
+                        }
+                    }
+                }
+                fdtable[i] = {new ai_stream {deque}, wasi_fd_type::AISTREAM};
             } else {
                 return false;
             }
@@ -695,6 +740,7 @@ template <bool is_write_stream, bool seek_to_end> static void open_stream_impl(s
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 4) = WASI_FILESYSTEM_ERROR_INVALID;
             return;
@@ -777,6 +823,7 @@ static void flush_impl(const struct wasi_instance *wasi, uint32_t fd, wasm_ptr_t
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_INVALID;
             return;
@@ -815,6 +862,7 @@ static uint32_t flush_impl1(const struct wasi_instance *wasi, uint32_t fd) noexc
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_EINVAL;
 
         case wasi_fd_type::STDIN:
@@ -862,6 +910,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
         case wasi_fd_type::STDERR:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_INVALID;
             return;
@@ -897,6 +946,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_fdstat_get(struct w2c_wasi__
 
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_EINVAL;
 
         case wasi_fd_type::STDIN:
@@ -940,6 +990,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_fdstat_set_flags(struct w2c_
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_ESUCCESS;
     }
 
@@ -969,6 +1020,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_INVALID;
             return;
@@ -1005,6 +1057,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_filestat_set_size(struct w2c
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_ENOTSUP;
     }
 
@@ -1037,6 +1090,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + sizeof(wasm_ptr_t)) = WASI_FILESYSTEM_ERROR_INVALID;
             return;
@@ -1099,6 +1153,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_pread(struct w2c_wasi__snaps
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_EINVAL;
 
         case wasi_fd_type::FSFILE:
@@ -1163,6 +1218,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 8) = WASI_FILESYSTEM_ERROR_INVALID;
             return;
@@ -1271,6 +1327,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_pwrite(struct w2c_wasi__snap
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_EINVAL;
 
         case wasi_fd_type::FSFILE:
@@ -1334,6 +1391,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 4) = WASI_FILESYSTEM_ERROR_INVALID;
             return;
@@ -1407,6 +1465,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_readdir(struct w2c_wasi__sna
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_EINVAL;
 
         case wasi_fd_type::FS:
@@ -1519,6 +1578,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_NOT_DIRECTORY;
             return;
@@ -1571,6 +1631,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_create_directory(struct w2
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_ENOTDIR;
 
         case wasi_fd_type::FS:
@@ -1614,6 +1675,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
 
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 8) = WASI_FILESYSTEM_ERROR_INVALID;
             return;
@@ -1715,6 +1777,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_filestat_get(struct w2c_wasi
 
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_EINVAL;
 
         case wasi_fd_type::STDIN:
@@ -1799,6 +1862,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 8) = WASI_FILESYSTEM_ERROR_NOT_DIRECTORY;
             return;
@@ -1864,6 +1928,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_filestat_get(struct w2c_wa
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_ENOTDIR;
 
         case wasi_fd_type::FS:
@@ -1919,6 +1984,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_NOT_DIRECTORY;
             return;
@@ -1952,6 +2018,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_filestat_set_times(struct 
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_ENOTDIR;
 
         case wasi_fd_type::FS:
@@ -1993,6 +2060,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_NOT_DIRECTORY;
             return;
@@ -2100,6 +2168,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 4) = WASI_FILESYSTEM_ERROR_NOT_DIRECTORY;
             return;
@@ -2204,6 +2273,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_open(struct w2c_wasi__snap
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_ENOTDIR;
 
         case wasi_fd_type::FS:
@@ -2293,6 +2363,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + sizeof(wasm_ptr_t)) = WASI_FILESYSTEM_ERROR_NOT_DIRECTORY;
             return;
@@ -2336,6 +2407,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_readlink(struct w2c_wasi__
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_ENOTDIR;
 
         case wasi_fd_type::FS:
@@ -2376,6 +2448,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_NOT_DIRECTORY;
             return;
@@ -2465,6 +2538,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_remove_directory(struct w2
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_ENOTDIR;
 
         case wasi_fd_type::FS:
@@ -2539,6 +2613,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_NOT_DIRECTORY;
             return;
@@ -2573,6 +2648,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_rename(struct w2c_wasi__sn
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_ENOTDIR;
 
         case wasi_fd_type::FS:
@@ -2608,6 +2684,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_NOT_DIRECTORY;
             return;
@@ -2642,6 +2719,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_symlink(struct w2c_wasi__s
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_ENOTDIR;
 
         case wasi_fd_type::FS:
@@ -2676,6 +2754,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_NOT_DIRECTORY;
             return;
@@ -2759,6 +2838,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_unlink_file(struct w2c_was
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_ENOTDIR;
 
         case wasi_fd_type::FS:
@@ -2835,6 +2915,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
 
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 8) = WASI_FILESYSTEM_ERROR_INVALID;
             return;
@@ -2885,6 +2966,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 8) = WASI_FILESYSTEM_ERROR_NOT_DIRECTORY;
             return;
@@ -2922,6 +3004,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bresource0x2Dd
         case wasi_fd_type::FS:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return;
 
         case wasi_fd_type::FSDIR:
@@ -2948,6 +3031,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_close(struct w2c_wasi__snaps
         case wasi_fd_type::FS:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_EINVAL;
 
         case wasi_fd_type::FSDIR:
@@ -2976,6 +3060,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_renumber(struct w2c_wasi__sn
         case wasi_fd_type::FS:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_EINVAL;
 
         case wasi_fd_type::FSDIR:
@@ -3001,6 +3086,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_renumber(struct w2c_wasi__sn
         case wasi_fd_type::FS:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_EINVAL;
 
         case wasi_fd_type::FSDIR:
@@ -3054,6 +3140,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddir
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + sizeof(wasm_ptr_t)) = WASI_FILESYSTEM_ERROR_INVALID;
             return;
@@ -3095,6 +3182,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bresource0x2Dd
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSFILESTREAM:
         case wasi_fd_type::FSFILE:
+        case wasi_fd_type::AISTREAM:
             return;
 
         case wasi_fd_type::FSDIRSTREAM:
@@ -3168,6 +3256,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_prestat_dir_name(struct w2c_
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_EINVAL;
     }
 
@@ -3199,6 +3288,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_prestat_get(struct w2c_wasi_
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_EINVAL;
     }
 
@@ -3213,9 +3303,7 @@ extern "C" void w2c_wasi0x3Aio0x2Ferror0x4000x2E20x2E0_0x5Bresource0x2Ddrop0x5De
     LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:io/error@0.2.0::[resource-drop]error(%u)\n", (unsigned int)self);
 }
 
-extern "C" void w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0_0x5Bmethod0x5Dinput0x2Dstream0x2Eblocking0x2Dread(struct w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint64_t len, wasm_ptr_t result) {
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:io/streams@0.2.0::[method]input-stream.blocking-read(%u, %llu)\n", (unsigned int)fd, (unsigned long long)len);
-
+static void stream_read_impl(struct wasi_instance *wasi, uint32_t fd, uint64_t len, wasm_ptr_t result) {
     MKXPZ_FORCED_ASSERT(len <= (wasm_size_t)-1);
     wasi->check_bounds(result, 3 * sizeof(wasm_ptr_t));
 
@@ -3233,6 +3321,7 @@ extern "C" void w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0_0x5Bmethod0x5Dinput0x2D
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + sizeof(wasm_ptr_t)) = WASI_STREAMS_ERROR_CLOSED;
             return;
@@ -3294,6 +3383,16 @@ extern "C" void w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0_0x5Bmethod0x5Dinput0x2D
     wasi->ref<uint8_t>(result + sizeof(wasm_ptr_t)) = WASI_STREAMS_ERROR_CLOSED;
 }
 
+extern "C" void w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0_0x5Bmethod0x5Dinput0x2Dstream0x2Eread(struct w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint64_t len, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:io/streams@0.2.0::[method]input-stream.read(%u, %llu)\n", (unsigned int)fd, (unsigned long long)len);
+    stream_read_impl(wasi, fd, len, result);
+}
+
+extern "C" void w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0_0x5Bmethod0x5Dinput0x2Dstream0x2Eblocking0x2Dread(struct w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint64_t len, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:io/streams@0.2.0::[method]input-stream.blocking-read(%u, %llu)\n", (unsigned int)fd, (unsigned long long)len);
+    stream_read_impl(wasi, fd, len, result);
+}
+
 extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_read(struct w2c_wasi__snapshot__preview1 *wasi, uint32_t fd, wasm_ptr_t iovs, uint32_t iovs_len, wasm_ptr_t result) {
     LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::fd_read(%u, 0x%08llx (%u))\n", (unsigned int)fd, (unsigned long long)iovs, (unsigned int)iovs_len);
 
@@ -3319,6 +3418,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_read(struct w2c_wasi__snapsh
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_EINVAL;
 
         case wasi_fd_type::FSFILE:
@@ -3376,6 +3476,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_seek(struct w2c_wasi__snapsh
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_EINVAL;
 
         case wasi_fd_type::STDIN:
@@ -3428,6 +3529,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_tell(struct w2c_wasi__snapsh
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_EINVAL;
 
         case wasi_fd_type::STDIN:
@@ -3464,6 +3566,7 @@ static void close_stream_impl(struct wasi_instance *wasi, uint32_t fd) {
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
+        case wasi_fd_type::AISTREAM:
             return;
 
         case wasi_fd_type::FSFILESTREAM:
@@ -3495,6 +3598,7 @@ extern "C" void w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0_0x5Bmethod0x5Doutput0x2
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 8) = WASI_STREAMS_ERROR_CLOSED;
             return;
@@ -3549,6 +3653,7 @@ extern "C" void w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0_0x5Bmethod0x5Doutput0x2
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 4) = WASI_STREAMS_ERROR_CLOSED;
             return;
@@ -3710,6 +3815,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_write(struct w2c_wasi__snaps
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSDIRSTREAM:
         case wasi_fd_type::FSFILESTREAM:
+        case wasi_fd_type::AISTREAM:
             return WASIP1_EINVAL;
 
         case wasi_fd_type::FSFILE:
@@ -3769,6 +3875,7 @@ extern "C" void w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0_0x5Bmethod0x5Doutput0x2
         case wasi_fd_type::FSDIR:
         case wasi_fd_type::FSFILE:
         case wasi_fd_type::FSDIRSTREAM:
+        case wasi_fd_type::AISTREAM:
             wasi->ref<uint8_t>(result) = true;
             wasi->ref<uint8_t>(result + 4) = WASI_STREAMS_ERROR_CLOSED;
             return;
@@ -3893,4 +4000,672 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_random_get(struct w2c_wasi__sna
     wasi->check_bounds(buf, buf_len);
     get_random_impl(wasi, buf, buf_len);
     return WASIP1_ESUCCESS;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// wasi:sockets
+////////////////////////////////////////////////////////////////////////////////
+
+extern "C" wasm_resource_t w2c_wasi0x3Asockets0x2Finstance0x2Dnetwork0x4000x2E20x2E0_instance0x2Dnetwork(struct w2c_wasi0x3Asockets0x2Finstance0x2Dnetwork0x4000x2E20x2E0 *wasi) {
+    LOG_PRINT(RETRO_LOG_DEBUG, "wasi:sockets/instance-network@0.2.0::instance-network()\n");
+    LOG_PRINT(RETRO_LOG_DEBUG, "WASI resource created: network(1)\n");
+    return 1;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fnetwork0x4000x2E20x2E0_0x5Bresource0x2Ddrop0x5Dnetwork(struct w2c_wasi0x3Asockets0x2Fip0x2Dname0x2Dlookup0x4000x2E20x2E0 *wasi, wasm_resource_t fd) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/network@0.2.0::[resource-drop]network(%u)\n", (unsigned int)fd);
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fip0x2Dname0x2Dlookup0x4000x2E20x2E0_resolve0x2Daddresses(struct w2c_wasi0x3Asockets0x2Fip0x2Dname0x2Dlookup0x4000x2E20x2E0 *wasi, wasm_resource_t network, wasm_ptr_t name, wasm_size_t name_len, wasm_ptr_t result) {
+    wasi->check_bounds(name, name_len);
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/ip-name-lookup@0.2.0::resolve-addresses(%u, \"%.*s\")\n", (unsigned int)network, (int)std::min(name_len, (wasm_size_t)INT_MAX), (const char *)wasi->str(name, name_len));
+
+    wasi->check_bounds(result, 8);
+
+    const struct sandbox_str_guard name_guard = wasi->str(name, name_len);
+
+    if (name_len == 9 && !std::strncmp(name_guard, "localhost", 9)) {
+        static const uint8_t ipv4[4] = {127, 0, 0, 1};
+        static const uint16_t ipv6[8] = {0, 0, 0, 0, 0, 0, 0, 1};
+
+        std::deque<struct ai_stream_entry> deque(2);
+
+        deque[0].is_ipv6 = false;
+        std::memcpy(deque[0].inner.ipv4, ipv4, sizeof ipv4);
+
+        deque[1].is_ipv6 = true;
+        std::memcpy(deque[1].inner.ipv6, ipv6, sizeof ipv6);
+
+        wasm_resource_t aistream = wasi->allocate_file_descriptor(wasi_fd_type::AISTREAM, new ai_stream {std::move(deque)});
+        LOG_PRINTF(RETRO_LOG_DEBUG, "WASI resource created: resolve-address-stream(%u) -> localhost (127.0.0.1, ::1)\n", (unsigned int)aistream);
+        wasi->ref<uint8_t>(result) = false;
+        wasi->ref<wasm_resource_t>(result + 4) = aistream;
+        return;
+    }
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 4) = WASI_NETWORK_ERROR_NAME_UNRESOLVABLE;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fip0x2Dname0x2Dlookup0x4000x2E20x2E0_0x5Bmethod0x5Dresolve0x2Daddress0x2Dstream0x2Eresolve0x2Dnext0x2Daddress(struct w2c_wasi0x3Asockets0x2Fip0x2Dname0x2Dlookup0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/ip-name-lookup@0.2.0::[method]resolve-address-stream.resolve-next-address(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 22);
+
+    if (fd >= wasi->fdtable.size()) {
+        wasi->ref<uint8_t>(result) = true;
+        wasi->ref<uint8_t>(result + 2) = WASI_NETWORK_ERROR_INVALID_ARGUMENT;
+        return;
+    }
+
+    switch (wasi->fdtable[fd].type) {
+        case wasi_fd_type::VACANT:
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+        case wasi_fd_type::FS:
+        case wasi_fd_type::FSDIR:
+        case wasi_fd_type::FSFILE:
+        case wasi_fd_type::FSDIRSTREAM:
+        case wasi_fd_type::FSFILESTREAM:
+            wasi->ref<uint8_t>(result) = true;
+            wasi->ref<uint8_t>(result + 2) = WASI_NETWORK_ERROR_INVALID_ARGUMENT;
+            return;
+
+        case wasi_fd_type::AISTREAM:
+            {
+                std::deque<struct ai_stream_entry> &entries = wasi->fdtable[fd].ai_stream()->entries;
+                wasi->ref<uint8_t>(result) = false;
+                if (entries.empty()) {
+                    wasi->ref<uint8_t>(result + 2) = false;
+                } else {
+                    wasi->ref<uint8_t>(result + 2) = true;
+                    const struct ai_stream_entry &entry = entries.front();
+                    wasi->ref<uint8_t>(result + 4) = entry.is_ipv6;
+                    if (!entry.is_ipv6) {
+                        wasi->arycpy(result + 6, entry.inner.ipv4, 4);
+                    } else {
+                        wasi->arycpy(result + 6, entry.inner.ipv6, 8);
+                    }
+                    entries.pop_front();
+                }
+            }
+            return;
+    }
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 2) = WASI_NETWORK_ERROR_INVALID_ARGUMENT;
+}
+
+extern "C" wasm_resource_t w2c_wasi0x3Asockets0x2Fip0x2Dname0x2Dlookup0x4000x2E20x2E0_0x5Bmethod0x5Dresolve0x2Daddress0x2Dstream0x2Esubscribe(struct w2c_wasi0x3Asockets0x2Fip0x2Dname0x2Dlookup0x4000x2E20x2E0 *wasi, wasm_resource_t fd) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/ip-name-lookup@0.2.0::[method]resolve-address-stream.subscribe(%u)\n", (unsigned int)fd);
+    LOG_PRINTF(RETRO_LOG_DEBUG, "WASI resource created: pollable(%u) -> resolve address stream %u\n", (unsigned int)fd, (unsigned int)fd);
+    return fd;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fip0x2Dname0x2Dlookup0x4000x2E20x2E0_0x5Bresource0x2Ddrop0x5Dresolve0x2Daddress0x2Dstream(struct w2c_wasi0x3Asockets0x2Fip0x2Dname0x2Dlookup0x4000x2E20x2E0 *wasi, wasm_resource_t fd) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/ip-name-lookup@0.2.0::[resource-drop]resolve-address-stream(%u)\n", (unsigned int)fd);
+
+    if (fd >= wasi->fdtable.size()) {
+        return;
+    }
+
+    switch (wasi->fdtable[fd].type) {
+        case wasi_fd_type::VACANT:
+        case wasi_fd_type::STDIN:
+        case wasi_fd_type::STDOUT:
+        case wasi_fd_type::STDERR:
+        case wasi_fd_type::FS:
+        case wasi_fd_type::FSDIR:
+        case wasi_fd_type::FSFILE:
+        case wasi_fd_type::FSDIRSTREAM:
+        case wasi_fd_type::FSFILESTREAM:
+            return;
+
+        case wasi_fd_type::AISTREAM:
+            wasi->deallocate_file_descriptor(fd);
+            return;
+    }
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x2Dcreate0x2Dsocket0x4000x2E20x2E0_create0x2Dtcp0x2Dsocket(struct w2c_wasi0x3Asockets0x2Ftcp0x2Dcreate0x2Dsocket0x4000x2E20x2E0 *wasi, uint32_t address_family, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp-create-socket@0.2.0::create-tcp-socket(%u)\n", (unsigned int)address_family);
+
+    wasi->check_bounds(result, 8);
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 4) = WASI_NETWORK_ERROR_NOT_SUPPORTED;
+}
+
+/*
+ * If the local address is IPv4:
+ *   - local_address_is_ipv6 is 0
+ *   - local_address_port is the TCP port number the socket is binding to
+ *   - local_address_0 is the first byte of the address the socket is binding to (e.g. if the address is 192.168.0.1, then this is 192)
+ *   - local_address_1 is the second byte of the address the socket is binding to
+ *   - local_address_2 is the third byte of the address the socket is binding to
+ *   - local_address_3 is the fourth byte of the address the socket is binding to
+ * If the local address is IPv6:
+ *   - local_address_is_ipv6 is 1
+ *   - local_address_port is the TCP port number the socket is binding to
+ *   - local_address_0 is equivalent to the sin6_flowinfo field of the sockaddr_in6 struct in both POSIX sockets and Winsock
+ *   - local_address_1 is the first nibble of the address the socket is binding to (e.g. if the address is 2001:0db8:0000:0000:0000:0000:0000:0000, then this is 0x2001 = 8193)
+ *   - local_address_2 is the second nibble of the address the socket is binding to
+ *   - local_address_3 is the third nibble of the address the socket is binding to
+ *   - local_address_4 is the fourth nibble of the address the socket is binding to
+ *   - local_address_5 is the fifth nibble of the address the socket is binding to
+ *   - local_address_6 is the sixth nibble of the address the socket is binding to
+ *   - local_address_7 is the seventh nibble of the address the socket is binding to
+ *   - local_address_8 is the eighth nibble of the address the socket is binding to
+ *   - local_address_scope_id is equivalent to the sin6_scope_id field of the sockaddr_in6 struct in both POSIX sockets and Winsock
+ */
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Estart0x2Dbind(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_resource_t network, uint32_t local_address_is_ipv6, uint32_t local_address_port, uint32_t local_address_0, uint32_t local_address_1, uint32_t local_address_2, uint32_t local_address_3, uint32_t local_address_4, uint32_t local_address_5, uint32_t local_address_6, uint32_t local_address_7, uint32_t local_address_8, uint32_t local_address_scope_id, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.start-bind(%u, %u, %u, (%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u))\n", (unsigned int)fd, (unsigned int)network, (unsigned int)local_address_is_ipv6, (unsigned int)local_address_port, (unsigned int)local_address_0, (unsigned int)local_address_1, (unsigned int)local_address_2, (unsigned int)local_address_3, (unsigned int)local_address_4, (unsigned int)local_address_5, (unsigned int)local_address_6, (unsigned int)local_address_7, (unsigned int)local_address_8, (unsigned int)local_address_scope_id);
+
+    wasi->check_bounds(result, 2);
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 1) = WASI_NETWORK_ERROR_INVALID_STATE;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Efinish0x2Dbind(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.finish-bind(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 2);
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 1) = WASI_NETWORK_ERROR_INVALID_STATE;
+}
+
+/*
+ * If the remote address is IPv4:
+ *   - remote_address_is_ipv6 is 0
+ *   - remote_address_port is the TCP port number the socket is connecting to
+ *   - remote_address_0 is the first byte of the address the socket is connecting to (e.g. if the address is 192.168.0.1, then this is 192)
+ *   - remote_address_1 is the second byte of the address the socket is connecting to
+ *   - remote_address_2 is the third byte of the address the socket is connecting to
+ *   - remote_address_3 is the fourth byte of the address the socket is connecting to
+ * If the remote address is IPv6:
+ *   - remote_address_is_ipv6 is 1
+ *   - remote_address_port is the TCP port number the socket is connecting to
+ *   - remote_address_0 is equivalent to the sin6_flowinfo field of the sockaddr_in6 struct in both POSIX sockets and Winsock
+ *   - remote_address_1 is the first nibble of the address the socket is connecting to (e.g. if the address is 2001:0db8:0000:0000:0000:0000:0000:0001, then this is 0x2001 = 8193)
+ *   - remote_address_2 is the second nibble of the address the socket is connecting to
+ *   - remote_address_3 is the third nibble of the address the socket is connecting to
+ *   - remote_address_4 is the fourth nibble of the address the socket is connecting to
+ *   - remote_address_5 is the fifth nibble of the address the socket is connecting to
+ *   - remote_address_6 is the sixth nibble of the address the socket is connecting to
+ *   - remote_address_7 is the seventh nibble of the address the socket is connecting to
+ *   - remote_address_8 is the eighth nibble of the address the socket is connecting to
+ *   - remote_address_scope_id is equivalent to the sin6_scope_id field of the sockaddr_in6 struct in both POSIX sockets and Winsock
+ */
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Estart0x2Dconnect(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_resource_t network, uint32_t remote_address_is_ipv6, uint32_t remote_address_port, uint32_t remote_address_0, uint32_t remote_address_1, uint32_t remote_address_2, uint32_t remote_address_3, uint32_t remote_address_4, uint32_t remote_address_5, uint32_t remote_address_6, uint32_t remote_address_7, uint32_t remote_address_8, uint32_t remote_address_scope_id, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.start-connect(%u, %u, %u, (%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u))\n", (unsigned int)fd, (unsigned int)network, (unsigned int)remote_address_is_ipv6, (unsigned int)remote_address_port, (unsigned int)remote_address_0, (unsigned int)remote_address_1, (unsigned int)remote_address_2, (unsigned int)remote_address_3, (unsigned int)remote_address_4, (unsigned int)remote_address_5, (unsigned int)remote_address_6, (unsigned int)remote_address_7, (unsigned int)remote_address_8, (unsigned int)remote_address_scope_id);
+
+    wasi->check_bounds(result, 2);
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 1) = WASI_NETWORK_ERROR_INVALID_STATE;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Efinish0x2Dconnect(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.finish-connect(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 12);
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 4) = WASI_NETWORK_ERROR_INVALID_STATE;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Estart0x2Dlisten(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.start-listen(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 2);
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 1) = WASI_NETWORK_ERROR_INVALID_STATE;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Efinish0x2Dlisten(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.finish-listen(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 2);
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 1) = WASI_NETWORK_ERROR_INVALID_STATE;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Eaccept(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.accept(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 16);
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 4) = WASI_NETWORK_ERROR_INVALID_STATE;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Elocal0x2Daddress(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.local-address(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 36);
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 4) = WASI_NETWORK_ERROR_INVALID_STATE;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Eremote0x2Daddress(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.remote-address(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 36);
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 4) = WASI_NETWORK_ERROR_INVALID_STATE;
+}
+
+extern "C" uint32_t w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Eis0x2Dlistening(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.is-listening(%u)\n", (unsigned int)fd);
+
+    return false;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Eset0x2Dlisten0x2Dbacklog0x2Dsize(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint64_t value, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.set-listen-backlog-size(%u, %llu)\n", (unsigned int)fd, (unsigned long long)value);
+
+    wasi->check_bounds(result, 2);
+
+    if (value == 0) {
+        wasi->ref<uint8_t>(result) = true;
+        wasi->ref<uint8_t>(result + 1) = WASI_NETWORK_ERROR_INVALID_ARGUMENT;
+    } else {
+        wasi->ref<uint8_t>(result) = false;
+    }
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Ekeep0x2Dalive0x2Denabled(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.keep-alive-enabled(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 2);
+
+    wasi->ref<uint8_t>(result) = false;
+    wasi->ref<uint8_t>(result + 1) = false;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Eset0x2Dkeep0x2Dalive0x2Denabled(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint32_t value, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.set-keep-alive-enabled(%u, %s)\n", (unsigned int)fd, value ? "true" : "false");
+
+    wasi->check_bounds(result, 2);
+
+    wasi->ref<uint8_t>(result) = false;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Ekeep0x2Dalive0x2Didle0x2Dtime(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.keep-alive-idle-time(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 16);
+
+    wasi->ref<uint8_t>(result) = false;
+    wasi->ref<uint64_t>(result + 8) = 7200ULL * 1000000000ULL;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Ekeep0x2Dalive0x2Dinterval(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.keep-alive-interval(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 16);
+
+    wasi->ref<uint8_t>(result) = false;
+    wasi->ref<uint64_t>(result + 8) = 75ULL * 1000000000ULL;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Eset0x2Dkeep0x2Dalive0x2Dinterval(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint64_t value, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.set-keep-alive-interval(%u, %llu)\n", (unsigned int)fd, (unsigned long long)value);
+
+    wasi->check_bounds(result, 2);
+
+    if (value == 0) {
+        wasi->ref<uint8_t>(result) = true;
+        wasi->ref<uint8_t>(result + 1) = WASI_NETWORK_ERROR_INVALID_ARGUMENT;
+    } else {
+        wasi->ref<uint8_t>(result) = false;
+    }
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Ekeep0x2Dalive0x2Dcount(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.keep-alive-count(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 8);
+
+    wasi->ref<uint8_t>(result) = false;
+    wasi->ref<uint32_t>(result + 4) = 9;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Eset0x2Dkeep0x2Dalive0x2Dcount(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint32_t value, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.set-keep-alive-count(%u, %u)\n", (unsigned int)fd, (unsigned int)value);
+
+    wasi->check_bounds(result, 2);
+
+    if (value == 0) {
+        wasi->ref<uint8_t>(result) = true;
+        wasi->ref<uint8_t>(result + 1) = WASI_NETWORK_ERROR_INVALID_ARGUMENT;
+    } else {
+        wasi->ref<uint8_t>(result) = false;
+    }
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Eset0x2Dkeep0x2Dalive0x2Didle0x2Dtime(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint64_t value, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.set-keep-alive-idle-time(%u, %llu)\n", (unsigned int)fd, (unsigned long long)value);
+
+    wasi->check_bounds(result, 2);
+
+    if (value == 0) {
+        wasi->ref<uint8_t>(result) = true;
+        wasi->ref<uint8_t>(result + 1) = WASI_NETWORK_ERROR_INVALID_ARGUMENT;
+    } else {
+        wasi->ref<uint8_t>(result) = false;
+    }
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Ehop0x2Dlimit(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.hop-limit(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 2);
+
+    wasi->ref<uint8_t>(result) = false;
+    wasi->ref<uint8_t>(result + 1) = 64;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Eset0x2Dhop0x2Dlimit(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint32_t value, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.set-hop-limit(%u, %u)\n", (unsigned int)fd, (unsigned int)value);
+
+    wasi->check_bounds(result, 2);
+
+    if (value == 0) {
+        wasi->ref<uint8_t>(result) = true;
+        wasi->ref<uint8_t>(result + 1) = WASI_NETWORK_ERROR_INVALID_ARGUMENT;
+    } else {
+        wasi->ref<uint8_t>(result) = false;
+    }
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Ereceive0x2Dbuffer0x2Dsize(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.receive-buffer-size(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 16);
+
+    wasi->ref<uint8_t>(result) = false;
+    wasi->ref<uint64_t>(result + 8) = 4096;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Eset0x2Dreceive0x2Dbuffer0x2Dsize(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint64_t value, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.set-receive-buffer-size(%u, %llu)\n", (unsigned int)fd, (unsigned long long)value);
+
+    wasi->check_bounds(result, 2);
+
+    if (value == 0) {
+        wasi->ref<uint8_t>(result) = true;
+        wasi->ref<uint8_t>(result + 1) = WASI_NETWORK_ERROR_INVALID_ARGUMENT;
+    } else {
+        wasi->ref<uint8_t>(result) = false;
+    }
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Esend0x2Dbuffer0x2Dsize(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.send-buffer-size(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 16);
+
+    wasi->ref<uint8_t>(result) = false;
+    wasi->ref<uint64_t>(result + 8) = 4096;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Eset0x2Dsend0x2Dbuffer0x2Dsize(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint64_t value, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.set-send-buffer-size(%u, %llu)\n", (unsigned int)fd, (unsigned long long)value);
+
+    wasi->check_bounds(result, 2);
+
+    if (value == 0) {
+        wasi->ref<uint8_t>(result) = true;
+        wasi->ref<uint8_t>(result + 1) = WASI_NETWORK_ERROR_INVALID_ARGUMENT;
+    } else {
+        wasi->ref<uint8_t>(result) = false;
+    }
+}
+
+extern "C" wasm_resource_t w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Esubscribe(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.subscribe(%u)\n", (unsigned int)fd);
+    LOG_PRINTF(RETRO_LOG_DEBUG, "WASI resource created: pollable(%u) -> TCP socket %u\n", (unsigned int)fd, (unsigned int)fd);
+    return fd;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bmethod0x5Dtcp0x2Dsocket0x2Eshutdown(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint32_t shutdown_type, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[method]tcp-socket.shutdown(%u, %u)\n", (unsigned int)fd, (unsigned int)shutdown_type);
+
+    wasi->check_bounds(result, 2);
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 1) = WASI_NETWORK_ERROR_INVALID_STATE;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0_0x5Bresource0x2Ddrop0x5Dtcp0x2Dsocket(struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *wasi, wasm_resource_t fd) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/tcp@0.2.0::[resource-drop]tcp-socket(%u)\n", (unsigned int)fd);
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fudp0x2Dcreate0x2Dsocket0x4000x2E20x2E0_create0x2Dudp0x2Dsocket(struct w2c_wasi0x3Asockets0x2Fudp0x2Dcreate0x2Dsocket0x4000x2E20x2E0 *wasi, uint32_t address_family, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp-create-socket@0.2.0::create-udp-socket(%u)\n", (unsigned int)address_family);
+
+    wasi->check_bounds(result, 8);
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 4) = WASI_NETWORK_ERROR_NOT_SUPPORTED;
+}
+
+/*
+ * If the local address is IPv4:
+ *   - local_address_is_ipv6 is 0
+ *   - local_address_port is the UDP port number the socket is binding to
+ *   - local_address_0 is the first byte of the address the socket is binding to (e.g. if the address is 192.168.0.1, then this is 192)
+ *   - local_address_1 is the second byte of the address the socket is binding to
+ *   - local_address_2 is the third byte of the address the socket is binding to
+ *   - local_address_3 is the fourth byte of the address the socket is binding to
+ * If the local address is IPv6:
+ *   - local_address_is_ipv6 is 1
+ *   - local_address_port is the UDP port number the socket is binding to
+ *   - local_address_0 is equivalent to the sin6_flowinfo field of the sockaddr_in6 struct in both POSIX sockets and Winsock
+ *   - local_address_1 is the first nibble of the address the socket is binding to (e.g. if the address is 2001:0db8:0000:0000:0000:0000:0000:0000, then this is 0x2001 = 8193)
+ *   - local_address_2 is the second nibble of the address the socket is binding to
+ *   - local_address_3 is the third nibble of the address the socket is binding to
+ *   - local_address_4 is the fourth nibble of the address the socket is binding to
+ *   - local_address_5 is the fifth nibble of the address the socket is binding to
+ *   - local_address_6 is the sixth nibble of the address the socket is binding to
+ *   - local_address_7 is the seventh nibble of the address the socket is binding to
+ *   - local_address_8 is the eighth nibble of the address the socket is binding to
+ *   - local_address_scope_id is equivalent to the sin6_scope_id field of the sockaddr_in6 struct in both POSIX sockets and Winsock
+ */
+extern "C" void w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bmethod0x5Dudp0x2Dsocket0x2Estart0x2Dbind(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_resource_t network, uint32_t local_address_is_ipv6, uint32_t local_address_port, uint32_t local_address_0, uint32_t local_address_1, uint32_t local_address_2, uint32_t local_address_3, uint32_t local_address_4, uint32_t local_address_5, uint32_t local_address_6, uint32_t local_address_7, uint32_t local_address_8, uint32_t local_address_scope_id, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[method]udp-socket.start-bind(%u, %u, %u, (%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u))\n", (unsigned int)fd, (unsigned int)network, (unsigned int)local_address_is_ipv6, (unsigned int)local_address_port, (unsigned int)local_address_0, (unsigned int)local_address_1, (unsigned int)local_address_2, (unsigned int)local_address_3, (unsigned int)local_address_4, (unsigned int)local_address_5, (unsigned int)local_address_6, (unsigned int)local_address_7, (unsigned int)local_address_8, (unsigned int)local_address_scope_id);
+
+    wasi->check_bounds(result, 2);
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 1) = WASI_NETWORK_ERROR_INVALID_STATE;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bmethod0x5Dudp0x2Dsocket0x2Efinish0x2Dbind(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[method]udp-socket.finish-bind(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 2);
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 1) = WASI_NETWORK_ERROR_INVALID_STATE;
+}
+
+/*
+ * If the remote address is IPv4:
+ *   - remote_address_is_ipv6 is 0
+ *   - remote_address_port is the UDP port number the socket is connecting to
+ *   - remote_address_0 is the first byte of the address the socket is connecting to (e.g. if the address is 192.168.0.1, then this is 192)
+ *   - remote_address_1 is the second byte of the address the socket is connecting to
+ *   - remote_address_2 is the third byte of the address the socket is connecting to
+ *   - remote_address_3 is the fourth byte of the address the socket is connecting to
+ * If the remote address is IPv6:
+ *   - remote_address_is_ipv6 is 1
+ *   - remote_address_port is the UDP port number the socket is connecting to
+ *   - remote_address_0 is equivalent to the sin6_flowinfo field of the sockaddr_in6 struct in both POSIX sockets and Winsock
+ *   - remote_address_1 is the first nibble of the address the socket is connecting to (e.g. if the address is 2001:0db8:0000:0000:0000:0000:0000:0001, then this is 0x2001 = 8193)
+ *   - remote_address_2 is the second nibble of the address the socket is connecting to
+ *   - remote_address_3 is the third nibble of the address the socket is connecting to
+ *   - remote_address_4 is the fourth nibble of the address the socket is connecting to
+ *   - remote_address_5 is the fifth nibble of the address the socket is connecting to
+ *   - remote_address_6 is the sixth nibble of the address the socket is connecting to
+ *   - remote_address_7 is the seventh nibble of the address the socket is connecting to
+ *   - remote_address_8 is the eighth nibble of the address the socket is connecting to
+ *   - remote_address_scope_id is equivalent to the sin6_scope_id field of the sockaddr_in6 struct in both POSIX sockets and Winsock
+ */
+extern "C" void w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bmethod0x5Dudp0x2Dsocket0x2Estream(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_resource_t network, uint32_t remote_address_is_ipv6, uint32_t remote_address_port, uint32_t remote_address_0, uint32_t remote_address_1, uint32_t remote_address_2, uint32_t remote_address_3, uint32_t remote_address_4, uint32_t remote_address_5, uint32_t remote_address_6, uint32_t remote_address_7, uint32_t remote_address_8, uint32_t remote_address_scope_id, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[method]udp-socket.stream(%u, %u, %u, (%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u))\n", (unsigned int)fd, (unsigned int)network, (unsigned int)remote_address_is_ipv6, (unsigned int)remote_address_port, (unsigned int)remote_address_0, (unsigned int)remote_address_1, (unsigned int)remote_address_2, (unsigned int)remote_address_3, (unsigned int)remote_address_4, (unsigned int)remote_address_5, (unsigned int)remote_address_6, (unsigned int)remote_address_7, (unsigned int)remote_address_8, (unsigned int)remote_address_scope_id);
+
+    wasi->check_bounds(result, 12);
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 4) = WASI_NETWORK_ERROR_NOT_SUPPORTED;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bmethod0x5Dudp0x2Dsocket0x2Elocal0x2Daddress(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[method]udp-socket.local-address(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 36);
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 4) = WASI_NETWORK_ERROR_INVALID_STATE;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bmethod0x5Dudp0x2Dsocket0x2Eremote0x2Daddress(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[method]udp-socket.remote-address(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 36);
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 4) = WASI_NETWORK_ERROR_INVALID_STATE;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bmethod0x5Dudp0x2Dsocket0x2Eunicast0x2Dhop0x2Dlimit(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[method]udp-socket.unicast-hop-limit(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 2);
+
+    wasi->ref<uint8_t>(result) = false;
+    wasi->ref<uint8_t>(result + 1) = 64;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bmethod0x5Dudp0x2Dsocket0x2Eset0x2Dunicast0x2Dhop0x2Dlimit(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint32_t value, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[method]udp-socket.set-unicast-hop-limit(%u, %u)\n", (unsigned int)fd, (unsigned int)value);
+
+    wasi->check_bounds(result, 2);
+
+    if (value == 0) {
+        wasi->ref<uint8_t>(result) = true;
+        wasi->ref<uint8_t>(result + 1) = WASI_NETWORK_ERROR_INVALID_ARGUMENT;
+    } else {
+        wasi->ref<uint8_t>(result) = false;
+    }
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bmethod0x5Dudp0x2Dsocket0x2Ereceive0x2Dbuffer0x2Dsize(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[method]udp-socket.receive-buffer-size(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 16);
+
+    wasi->ref<uint8_t>(result) = false;
+    wasi->ref<uint64_t>(result + 8) = 4096;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bmethod0x5Dudp0x2Dsocket0x2Eset0x2Dreceive0x2Dbuffer0x2Dsize(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint64_t value, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[method]udp-socket.set-receive-buffer-size(%u, %llu)\n", (unsigned int)fd, (unsigned long long)value);
+
+    wasi->check_bounds(result, 2);
+
+    if (value == 0) {
+        wasi->ref<uint8_t>(result) = true;
+        wasi->ref<uint8_t>(result + 1) = WASI_NETWORK_ERROR_INVALID_ARGUMENT;
+    } else {
+        wasi->ref<uint8_t>(result) = false;
+    }
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bmethod0x5Dudp0x2Dsocket0x2Esend0x2Dbuffer0x2Dsize(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[method]udp-socket.send-buffer-size(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 16);
+
+    wasi->ref<uint8_t>(result) = false;
+    wasi->ref<uint64_t>(result + 8) = 4096;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bmethod0x5Dudp0x2Dsocket0x2Eset0x2Dsend0x2Dbuffer0x2Dsize(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint64_t value, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[method]udp-socket.set-send-buffer-size(%u, %llu)\n", (unsigned int)fd, (unsigned long long)value);
+
+    wasi->check_bounds(result, 2);
+
+    if (value == 0) {
+        wasi->ref<uint8_t>(result) = true;
+        wasi->ref<uint8_t>(result + 1) = WASI_NETWORK_ERROR_INVALID_ARGUMENT;
+    } else {
+        wasi->ref<uint8_t>(result) = false;
+    }
+}
+
+extern "C" wasm_resource_t w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bmethod0x5Dudp0x2Dsocket0x2Esubscribe(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[method]udp-socket.subscribe(%u)\n", (unsigned int)fd);
+    LOG_PRINTF(RETRO_LOG_DEBUG, "WASI resource created: pollable(%u) -> TCP socket %u\n", (unsigned int)fd, (unsigned int)fd);
+    return fd;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bresource0x2Ddrop0x5Dudp0x2Dsocket(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[resource-drop]udp-socket(%u)\n", (unsigned int)fd);
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bmethod0x5Dincoming0x2Ddatagram0x2Dstream0x2Ereceive(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, uint64_t max_results, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[method]incoming-datagram-stream.receive(%u, %llu)\n", (unsigned int)fd, (unsigned long long)max_results);
+
+    wasi->check_bounds(result, 3 * sizeof(wasm_ptr_t));
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + sizeof(wasm_ptr_t)) = WASI_NETWORK_ERROR_NOT_SUPPORTED;
+}
+
+extern "C" wasm_resource_t w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bmethod0x5Dincoming0x2Ddatagram0x2Dstream0x2Esubscribe(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[method]incoming-datagram-stream.subscribe(%u)\n", (unsigned int)fd);
+    LOG_PRINTF(RETRO_LOG_DEBUG, "WASI resource created: pollable(%u) -> incoming datagram stream %u\n", (unsigned int)fd, (unsigned int)fd);
+    return fd;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bresource0x2Ddrop0x5Dincoming0x2Ddatagram0x2Dstream(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[resource-drop]incoming-datagram-stream(%u)", (unsigned int)fd);
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bmethod0x5Doutgoing0x2Ddatagram0x2Dstream0x2Echeck0x2Dsend(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[method]outgoing-datagram-stream.check-send(%u)\n", (unsigned int)fd);
+
+    wasi->check_bounds(result, 16);
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 8) = WASI_NETWORK_ERROR_NOT_SUPPORTED;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bmethod0x5Doutgoing0x2Ddatagram0x2Dstream0x2Esend(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd, wasm_ptr_t datagrams, wasm_size_t datagrams_len, wasm_ptr_t result) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[method]outgoing-datagram-stream.check-send(%u, 0x%08llx (%llu))\n", (unsigned int)fd, (unsigned long long)datagrams, (unsigned long long)datagrams_len);
+
+    wasi->check_bounds(result, 16);
+
+    wasi->ref<uint8_t>(result) = true;
+    wasi->ref<uint8_t>(result + 8) = WASI_NETWORK_ERROR_NOT_SUPPORTED;
+}
+
+extern "C" wasm_resource_t w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bmethod0x5Doutgoing0x2Ddatagram0x2Dstream0x2Esubscribe(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[method]outgoing-datagram-stream.subscribe(%u)\n", (unsigned int)fd);
+    LOG_PRINTF(RETRO_LOG_DEBUG, "WASI resource created: pollable(%u) -> outgoing datagram stream %u\n", (unsigned int)fd, (unsigned int)fd);
+    return fd;
+}
+
+extern "C" void w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0_0x5Bresource0x2Ddrop0x5Doutgoing0x2Ddatagram0x2Dstream(struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *wasi, wasm_resource_t fd) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:sockets/udp@0.2.0::[resource-drop]outgoing-datagram-stream(%u)", (unsigned int)fd);
 }
