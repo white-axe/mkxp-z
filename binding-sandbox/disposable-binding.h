@@ -28,16 +28,14 @@ namespace mkxp_sandbox {
     template <class C> struct disposable_binding_init : boost::asio::coroutine {
     private:
         static VALUE dispose(VALUE self) {
-            C *c = get_private_data<C>(self);
-            if (c != nullptr) {
-                c->dispose();
+            if (has_private_data<C>(self)) {
+                get_private_data<C>(self)->dispose();
             }
             return SANDBOX_NIL;
         }
 
         static VALUE disposed(VALUE self) {
-            C *c = get_private_data<C>(self);
-            return SANDBOX_BOOL_TO_VALUE(c == nullptr || c->isDisposed());
+            return SANDBOX_BOOL_TO_VALUE(!has_private_data<C>(self) || get_private_data<C>(self)->isDisposed());
         }
 
     public:

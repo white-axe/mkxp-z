@@ -179,7 +179,7 @@ static VALUE blt(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 }
 
                 SANDBOX_AWAIT(check_type, SANDBOX_SLOT(0), bitmap_class);
-                if (get_private_data<Bitmap>(SANDBOX_SLOT(0)) != nullptr) {
+                if (has_private_data<Bitmap>(SANDBOX_SLOT(0))) {
                     SANDBOX_AWAIT(check_type, SANDBOX_SLOT(1), rect_class);
                     if (argc > 4) {
                         SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->blt(sb().e, SANDBOX_SLOT(2), SANDBOX_SLOT(3), *get_private_data<Bitmap>(SANDBOX_SLOT(0)), get_private_data<Rect>(SANDBOX_SLOT(1))->toIntRect(), SANDBOX_SLOT(4)));
@@ -212,7 +212,7 @@ static VALUE stretch_blt(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 }
 
                 SANDBOX_AWAIT(check_type, SANDBOX_SLOT(1), bitmap_class);
-                if (get_private_data<Bitmap>(SANDBOX_SLOT(1)) != nullptr) {
+                if (has_private_data<Bitmap>(SANDBOX_SLOT(1))) {
                     SANDBOX_AWAIT(check_type, SANDBOX_SLOT(2), rect_class);
                     if (argc > 4) {
                         SANDBOX_GUARD_L(get_private_data<Bitmap>(self)->stretchBlt(sb().e, get_private_data<Rect>(SANDBOX_SLOT(0))->toIntRect(), *get_private_data<Bitmap>(SANDBOX_SLOT(1)), get_private_data<Rect>(SANDBOX_SLOT(2))->toIntRect(), SANDBOX_SLOT(3)););
@@ -851,7 +851,7 @@ static VALUE set_font(VALUE self, VALUE value) {
         VALUE operator()(VALUE self, VALUE value) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT(check_type, value, font_class);
-                if (get_private_data<Font>(value) != nullptr) {
+                if (has_private_data<Font>(value)) {
                     get_private_data<Bitmap>(self)->setFont(*get_private_data<Font>(value));
 
                     SANDBOX_AWAIT_S(0, rb_iv_get, self, "font");
