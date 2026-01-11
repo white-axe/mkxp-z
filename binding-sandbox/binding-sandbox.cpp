@@ -1249,7 +1249,7 @@ void sandbox_run_rmxp_scripts::operator()() {
 #endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
                 SANDBOX_AWAIT_S(9, eval_script, SANDBOX_SLOT(9), SANDBOX_SLOT(10));
 #ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
-                sb().disable_syntax_transform_for_next_eval();
+                sb().reset_syntax_transform_for_next_eval();
 #endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
             }
 
@@ -1266,7 +1266,7 @@ void sandbox_run_rmxp_scripts::operator()() {
 
 void sandbox_run_rmxp_scripts::end() noexcept {
 #ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
-    sb().disable_syntax_transform_for_next_eval();
+    sb().reset_syntax_transform_for_next_eval();
 #endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
     sb().script_decode_buffer.clear();
 }

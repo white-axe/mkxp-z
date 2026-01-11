@@ -81,11 +81,15 @@ namespace mkxp_sandbox {
 
 #ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
         inline void enable_syntax_transform_for_next_eval() noexcept {
-            wasi->ref<int32_t>(ruby->w2c_mkxp_syntax_transform_enabled_for_next_eval) = 1;
+            wasi->ref<int32_t>(ruby->w2c_mkxp_syntax_transform_next_eval) = 1;
         }
 
         inline void disable_syntax_transform_for_next_eval() noexcept {
-            wasi->ref<int32_t>(ruby->w2c_mkxp_syntax_transform_enabled_for_next_eval) = 0;
+            wasi->ref<int32_t>(ruby->w2c_mkxp_syntax_transform_next_eval) = -1;
+        }
+
+        inline void reset_syntax_transform_for_next_eval() noexcept {
+            wasi->ref<int32_t>(ruby->w2c_mkxp_syntax_transform_next_eval) = 0;
         }
 #endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
 

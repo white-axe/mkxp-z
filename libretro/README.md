@@ -48,7 +48,7 @@ ninja
 
 To build a libretro core for a host machine that has a different operating system and/or CPU architecture as the build machine, you need to create a cross file first to tell Meson about the host machine. If you're building for a game console, you can use one of the "meson-" files already in this directory as the cross file. In most other cases, a file of the following format will be sufficient, replacing the angle-bracket strings with the correct values:
 
-```conf
+```ini
 [binaries]
 c = '<path to host C compiler>'
 cpp = '<path to host C++ compiler>'
@@ -62,21 +62,21 @@ endian = '<big|little>'
 
 When building for Android, you need to add additional lines of the following format at the bottom of the cross file, replacing the angle-bracket strings with the correct values:
 
-```conf
+```ini
 [cmake]
 CMAKE_SYSTEM_PROCESSOR = '<armv7-a|aarch64|i686|x86_64>'
 ```
 
 When building for Darwin platforms, including iOS and macOS, you need to add these additional lines at the bottom of the cross file to stop CMake from trying to manually set a sysroot:
 
-```conf
+```ini
 [cmake]
 CMAKE_OSX_SYSROOT = '/nonexistent'
 ```
 
 When building for Emscripten, you need to add additional lines of the following format at the bottom of the cross file, replacing the angle-bracket strings with the correct values:
 
-```conf
+```ini
 [properties]
 cmake_toolchain_file = '<path to Emscripten root directory>/cmake/Modules/Platform/Emscripten.cmake'
 ```

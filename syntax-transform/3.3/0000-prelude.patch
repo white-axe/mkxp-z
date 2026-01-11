@@ -21,13 +21,12 @@
 # some Ruby scripts.
 #
 # * When the Ruby functions `eval` or `instance_eval` are called while
-#   `mkxp_syntax_transform_enabled_for_next_eval` is true,
-#   `mkxp_syntax_transform_enabled_for_next_eval` is immediately set to false
-#   and then `mkxp_parser_enable_syntax_transform()` is called on the parser
-#   object used by that `eval` or `instance_eval` call to flag the parser as
-#   having syntax transform enabled. The value of
-#   `mkxp_syntax_transform_enabled_for_next_eval` can be changed from C/C++ to
-#   specify which top-level `eval` calls need to have syntax transform enabled.
+#   `mkxp_syntax_transform_next_eval` is nonzero,
+#   `mkxp_syntax_transform_next_eval` is immediately set to 0
+#   and then the parser object used by that `eval` or `instance_eval` call has
+#   syntax transform enabled (if positive) or disabled (if negative). The value
+#   of `mkxp_syntax_transform_next_eval` can be changed from C/C++ to specify
+#   which top-level `eval` calls need to have syntax transform enabled.
 # * ASTs output by parsers on which `mkxp_parser_enable_syntax_transform()` has
 #   been called have a flag set that indicates the AST has syntax transform
 #   enabled.
@@ -285,24 +284,27 @@
 +#else
 +_Thread_local
 +#endif
-+int mkxp_syntax_transform_enabled_for_next_eval = 0;
++int mkxp_syntax_transform_next_eval = 0;
 +
  /**********************************************************************
  
    vm_eval.c -
-@@ -1684,6 +1694,19 @@ eval_make_iseq(VALUE src, VALUE fname, int line, const rb_binding_t *bind,
+@@ -1684,6 +1694,22 @@ eval_make_iseq(VALUE src, VALUE fname, int line, const rb_binding_t *bind,
          coverage_enabled = FALSE;
      }
  
-+    /* If eval() or instance_eval() is called while mkxp_syntax_transform_enabled_for_next_eval is true, enable syntax transform for this call and immediately set mkxp_syntax_transform_enabled_for_next_eval to false */
-+    if (mkxp_syntax_transform_enabled_for_next_eval) {
++    /* If eval() or instance_eval() is called while mkxp_syntax_transform_next_eval is positive, enable syntax transform for this call and immediately set mkxp_syntax_transform_next_eval to 0 */
++    if (mkxp_syntax_transform_next_eval > 0) {
 +        void mkxp_parser_enable_syntax_transform(VALUE);
-+        mkxp_syntax_transform_enabled_for_next_eval = 0;
++        mkxp_syntax_transform_next_eval = 0;
 +        mkxp_parser_enable_syntax_transform(parser);
 +    }
-+
++    /* If eval() or instance_eval() is called while mkxp_syntax_transform_next_eval is negative, disable syntax transform for this call and immediately set mkxp_syntax_transform_next_eval to 0 */
++    else if (mkxp_syntax_transform_next_eval < 0) {
++        mkxp_syntax_transform_next_eval = 0;
++    }
 +    /* If code with syntax transform enabled calls eval() or instance_eval(), propagate the syntax transform into the eval() or instance_eval() call */
-+    if (parent->body->param.flags.mkxp_syntax_transform_flag) {
++    else if (parent->body->param.flags.mkxp_syntax_transform_flag) {
 +        void mkxp_parser_enable_syntax_transform(VALUE);
 +        mkxp_parser_enable_syntax_transform(parser);
 +    }
