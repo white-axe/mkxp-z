@@ -404,7 +404,7 @@ extern "C" void w2c_wasi0x3Acli0x2Fterminal0x2Doutput0x4000x2E20x2E0_0x5Bresourc
 ////////////////////////////////////////////////////////////////////////////////
 
 extern "C" uint64_t w2c_wasi0x3Aclocks0x2Fmonotonic0x2Dclock0x4000x2E20x2E0_now(struct w2c_wasi0x3Aclocks0x2Fmonotonic0x2Dclock0x4000x2E20x2E0 *wasi) {
-    LOG_PRINT(RETRO_LOG_DEBUG, "wasi:clocks/monotonic-clock@0.2.0::now()\n");
+    //LOG_PRINT(RETRO_LOG_DEBUG, "wasi:clocks/monotonic-clock@0.2.0::now()\n");
     return mkxp_retro::get_ticks_us() * (uint64_t)1000;
 }
 
@@ -419,7 +419,9 @@ extern "C" void w2c_wasi0x3Aclocks0x2Fwall0x2Dclock0x4000x2E20x2E0_now(struct w2
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_clock_time_get(struct w2c_wasi__snapshot__preview1 *wasi, uint32_t id, uint64_t precision, wasm_ptr_t result) {
-    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::clock_time_get(%u, %llu)\n", (unsigned int)id, (unsigned long long)precision);
+    if (id == 0) {
+        LOG_PRINTF(RETRO_LOG_DEBUG, "wasi_snapshot_preview1::clock_time_get(%u, %llu)\n", (unsigned int)id, (unsigned long long)precision);
+    }
 
     wasi->check_bounds(result, 8);
 
