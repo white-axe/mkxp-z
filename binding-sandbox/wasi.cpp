@@ -155,7 +155,7 @@ static void close_file_stream(struct wasi_instance *wasi, uint32_t fd) {
 }
 
 void wasi_instance::deallocate_file_descriptor(uint32_t fd) {
-    if (fdtable[fd].type == wasi_fd_type::VACANT) {
+    if (fd >= fdtable.size() || fdtable[fd].type == wasi_fd_type::VACANT) {
         return;
     }
 
