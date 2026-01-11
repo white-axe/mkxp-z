@@ -26,6 +26,7 @@
 #include "mkxp-polyfill.h"
 #include "forced-assert.h"
 #include "sandbox.h"
+#include "core.h"
 
 #define RB (ruby.get())
 #define AWAIT(statement) do statement; while (w2c_ruby_mkxp_sandbox_yield(RB))
@@ -82,24 +83,34 @@ sandbox::sandbox(const Config &conf) : ruby(new struct w2c_ruby), wasi(new wasi_
     );
 #endif
 
+    {
+        static const char *makers[] = {"XP", "VX", "VX Ace"};
+        LOG_PRINTF(RETRO_LOG_INFO, "RGSS version %d (RPG Maker %s)\n", conf.rgssVersion, conf.rgssVersion >= 1 && conf.rgssVersion <= 3 ? makers[conf.rgssVersion - 1] : nullptr);
+    }
+
 #ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
     switch (conf.syntaxTransform) {
         default:
             wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_major) = -1;
             wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_minor) = -1;
             wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_teeny) = -1;
+            LOG_PRINT(RETRO_LOG_INFO, "Syntax transform: Disabled\n");
             break;
         case 1:
             wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_major) = std::max(0, conf.syntaxTransformCustomVersionMajor);
             wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_minor) = std::max(0, conf.syntaxTransformCustomVersionMinor);
             wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_teeny) = std::max(0, conf.syntaxTransformCustomVersionTeeny);
+            LOG_PRINTF(RETRO_LOG_INFO, "Syntax transform: Ruby %u.%u.%u\n", (unsigned int)wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_major), (unsigned int)wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_minor), (unsigned int)wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_teeny));
             break;
         case 2:
             wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_major) = 1;
             wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_minor) = conf.rgssVersion >= 3 ? 9 : 8;
             wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_teeny) = conf.rgssVersion >= 3 ? 2 : 1;
+            LOG_PRINTF(RETRO_LOG_INFO, "Syntax transform: Compatibility Mode (Ruby %u.%u.%u)\n", (unsigned int)wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_major), (unsigned int)wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_minor), (unsigned int)wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_teeny));
             break;
     }
+#else
+    LOG_PRINT(RETRO_LOG_INFO, "Syntax transform support was disabled at build time\n");
 #endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
 
     w2c_ruby_mkxp_sandbox_init(
