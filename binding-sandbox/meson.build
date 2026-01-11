@@ -59,6 +59,7 @@ global_sources += custom_target(
         'sandbox-serial-tilemap.h',
         'sandbox-serial-tilemapvx.h',
         'sandbox-serial-viewport.h',
+        'sandbox-serial-util.h',
         'sandbox-serial-wasi.h',
         'sandbox-serial-window.h',
         'sandbox-serial-windowvx.h',
