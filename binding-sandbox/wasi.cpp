@@ -2436,7 +2436,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
                         if (n > 0) {
                             PHYSFS_writeBytes(write_handle, buffer.data(), n);
                         }
-                        if (n < buffer.size()) {
+                        if (n < 0 || (size_t)n < buffer.size()) {
                             break;
                         }
                     }
@@ -2444,6 +2444,7 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
 
                 PHYSFS_close(write_handle);
                 PHYSFS_close(read_handle);
+                PHYSFS_delete(joined_old_path.c_str() + wasi->fdtable[root].dir_handle()->path.length());
 
                 wasi->ref<uint8_t>(result) = false;
                 return;
@@ -2529,7 +2530,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_rename(struct w2c_wasi__sn
                         if (n > 0) {
                             PHYSFS_writeBytes(write_handle, buffer.data(), n);
                         }
-                        if (n < buffer.size()) {
+                        if (n < 0 || (size_t)n < buffer.size()) {
                             break;
                         }
                     }
@@ -2537,6 +2538,7 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_rename(struct w2c_wasi__sn
 
                 PHYSFS_close(write_handle);
                 PHYSFS_close(read_handle);
+                PHYSFS_delete(joined_old_path.c_str() + wasi->fdtable[root].dir_handle()->path.length());
 
                 return WASIP1_ESUCCESS;
             }
