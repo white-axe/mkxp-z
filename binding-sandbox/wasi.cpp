@@ -2366,9 +2366,86 @@ extern "C" void w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0_0x5Bmethod0x5Ddes
 
         case wasi_fd_type::FS:
         case wasi_fd_type::FSDIR:
-            wasi->ref<uint8_t>(result) = true;
-            wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_UNSUPPORTED;
-            return;
+            {
+                if (!wasi->fdtable[fd].dir_handle()->writable) {
+                    wasi->ref<uint8_t>(result) = true;
+                    wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_READ_ONLY;
+                    return;
+                }
+
+                std::string joined_old_path = dir_path_join(wasi, fd, old_path, old_path_len);
+                if (joined_old_path.empty()) {
+                    wasi->ref<uint8_t>(result) = true;
+                    wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_NOT_PERMITTED;
+                    return;
+                }
+
+                std::string joined_new_path = dir_path_join(wasi, fd, new_path, new_path_len);
+                if (joined_new_path.empty()) {
+                    wasi->ref<uint8_t>(result) = true;
+                    wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_NOT_PERMITTED;
+                    return;
+                }
+
+                PHYSFS_Stat old_stat;
+                if (!PHYSFS_stat(joined_old_path.c_str(), &old_stat)) {
+                    wasi->ref<uint8_t>(result) = true;
+                    wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_NO_ENTRY;
+                    return;
+                }
+
+                if (old_stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
+                    // We don't support renaming directories yet
+                    wasi->ref<uint8_t>(result) = true;
+                    wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_UNSUPPORTED;
+                    return;
+                } else if (old_stat.filetype != PHYSFS_FILETYPE_REGULAR) {
+                    wasi->ref<uint8_t>(result) = true;
+                    wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_IO;
+                    return;
+                }
+
+                if (joined_old_path == joined_new_path) {
+                    wasi->ref<uint8_t>(result) = false;
+                    return;
+                }
+
+                PHYSFS_File *read_handle = PHYSFS_openRead(joined_old_path.c_str());
+                if (read_handle == nullptr) {
+                    wasi->ref<uint8_t>(result) = true;
+                    wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_IO;
+                    return;
+                }
+
+                uint32_t root = wasi->fdtable[fd].type == wasi_fd_type::FS ? fd : wasi->fdtable[fd].dir_handle()->root;
+                PHYSFS_File *write_handle = PHYSFS_openWrite(joined_new_path.c_str() + wasi->fdtable[root].dir_handle()->path.length());
+                if (write_handle == nullptr) {
+                    PHYSFS_close(read_handle);
+                    wasi->ref<uint8_t>(result) = true;
+                    wasi->ref<uint8_t>(result + 1) = WASI_FILESYSTEM_ERROR_IO;
+                    return;
+                }
+
+                {
+                    std::array<uint8_t, 4096> buffer;
+                    PHYSFS_sint64 n;
+                    for (;;) {
+                        n = PHYSFS_readBytes(read_handle, buffer.data(), buffer.size());
+                        if (n > 0) {
+                            PHYSFS_writeBytes(write_handle, buffer.data(), n);
+                        }
+                        if (n < buffer.size()) {
+                            break;
+                        }
+                    }
+                }
+
+                PHYSFS_close(write_handle);
+                PHYSFS_close(read_handle);
+
+                wasi->ref<uint8_t>(result) = false;
+                return;
+            }
     }
 
     wasi->ref<uint8_t>(result) = true;
@@ -2399,7 +2476,68 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_path_rename(struct w2c_wasi__sn
 
         case wasi_fd_type::FS:
         case wasi_fd_type::FSDIR:
-            return WASIP1_ENOTSUP;
+            {
+                if (!wasi->fdtable[fd].dir_handle()->writable) {
+                    return WASIP1_EROFS;
+                }
+
+                std::string joined_old_path = dir_path_join(wasi, fd, old_path, old_path_len);
+                if (joined_old_path.empty()) {
+                    return WASIP1_EPERM;
+                }
+
+                std::string joined_new_path = dir_path_join(wasi, fd, new_path, new_path_len);
+                if (joined_new_path.empty()) {
+                    return WASIP1_EPERM;
+                }
+
+                PHYSFS_Stat old_stat;
+                if (!PHYSFS_stat(joined_old_path.c_str(), &old_stat)) {
+                    return WASIP1_ENOENT;
+                }
+
+                if (old_stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
+                    // We don't support renaming directories yet
+                    return WASIP1_ENOTSUP;
+                } else if (old_stat.filetype != PHYSFS_FILETYPE_REGULAR) {
+                    return WASIP1_EIO;
+                }
+
+                if (joined_old_path == joined_new_path) {
+                    return WASIP1_ESUCCESS;
+                }
+
+                PHYSFS_File *read_handle = PHYSFS_openRead(joined_old_path.c_str());
+                if (read_handle == nullptr) {
+                    return WASIP1_EIO;
+                }
+
+                uint32_t root = wasi->fdtable[fd].type == wasi_fd_type::FS ? fd : wasi->fdtable[fd].dir_handle()->root;
+                PHYSFS_File *write_handle = PHYSFS_openWrite(joined_new_path.c_str() + wasi->fdtable[root].dir_handle()->path.length());
+                if (write_handle == nullptr) {
+                    PHYSFS_close(read_handle);
+                    return WASIP1_EIO;
+                }
+
+                {
+                    std::array<uint8_t, 4096> buffer;
+                    PHYSFS_sint64 n;
+                    for (;;) {
+                        n = PHYSFS_readBytes(read_handle, buffer.data(), buffer.size());
+                        if (n > 0) {
+                            PHYSFS_writeBytes(write_handle, buffer.data(), n);
+                        }
+                        if (n < buffer.size()) {
+                            break;
+                        }
+                    }
+                }
+
+                PHYSFS_close(write_handle);
+                PHYSFS_close(read_handle);
+
+                return WASIP1_ESUCCESS;
+            }
     }
 
     return WASIP1_EBADF;
