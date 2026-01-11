@@ -24,6 +24,9 @@
 #include "bitmap.cpp"
 #endif // MKXPZ_SANDBOX_SERIAL_BITMAP_H
 
+// This is here just to make sure that MKXPZ_BINDING_SANDBOX_HASH will change if DIFF_TILE_SIZE is changed in bitmap.cpp
+static_assert(DIFF_TILE_SIZE == 64, "please change this line to contain the correct value of DIFF_TILE_SIZE");
+
 bool Bitmap::sandbox_serialize_without_hires(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
     if (!mkxp_sandbox::sandbox_serialize((int32_t)width(), data, max_size)) return false;
