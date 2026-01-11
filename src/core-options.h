@@ -337,25 +337,19 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
         nullptr,
         (
             "Apply a syntax transform to help games that require old Ruby syntax run"
-            " in modern Ruby. If this is enabled, the syntax transform is only applied"
-            " to the game scripts in Scripts.rxdata, Scripts.rvdata or Scripts.rvdata2."
-            " Any `eval` or `instance_eval` calls made from code with syntax transform"
-            " enabled also enable syntax transform for the evaluated code. The syntax"
-            " transform is not applied to any other Ruby scripts, such as preload"
-            " scripts, postload scripts, the `customScript` specified in mkxp.json, the"
-            " Ruby standard library, or scripts imported using `require` or"
-            " `require_relative`."
-            " Changes will take effect after the core is reset."
-            " (default: disabled)"
+            " in modern Ruby."
+            " Disabling this makes the game engine use modern Ruby syntax."
+            " Setting this to compatibility mode is equivalent to Ruby 1.9.2 if the RGSS version is 3, or Ruby 1.8.1 otherwise."
+            " (default: disabled if mkxp.json exists, compatibility mode if mkxp.json does not exist)"
         ),
         nullptr,
         "runtime",
         {
             {"inherit", "Inherit from mkxp.json"},
             {"default", "Default"},
-            {"0", "Disabled (use modern Ruby syntax for all Ruby scripts)"},
-            {"1", "Custom (use the Ruby version specified by `syntaxTransformCustomVersionMajor`, `syntaxTransformCustomVersionMinor` and `syntaxTransformCustomVersionTeeny`)"},
-            {"2", "Compatibility Mode (equivalent to Ruby 1.9.2 if the RGSS version is 3, or Ruby 1.8.1 otherwise)"},
+            {"0", "Disabled"},
+            {"1", "Custom"},
+            {"2", "Compatibility Mode"},
             {nullptr, nullptr},
         },
         "inherit",
