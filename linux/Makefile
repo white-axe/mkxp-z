@@ -194,13 +194,27 @@ $(LIBDIR)/libSDL2.a: $(DOWNLOADS)/sdl2/cmakebuild/Makefile
 	cd $(DOWNLOADS)/sdl2/cmakebuild; \
 	make -j$(NPROC); make install
 
-$(DOWNLOADS)/sdl2/cmakebuild/Makefile: $(DOWNLOADS)/sdl2/CMakeLists.txt
+$(DOWNLOADS)/sdl2/cmakebuild/Makefile: $(DOWNLOADS)/sdl2/CMakeLists.txt $(LIBDIR)/libdbus-1.so.3.38.3
 	cd $(DOWNLOADS)/sdl2; \
 	mkdir cmakebuild; cd cmakebuild; \
-	$(CMAKE) -DBUILD_SHARED_LIBS=no
+	$(CMAKE) -DBUILD_SHARED_LIBS=no -DSDL_DBUS=yes
 
 $(DOWNLOADS)/sdl2/CMakeLists.txt:
 	$(CLONE) $(GITHUB)/mkxp-z/SDL $(DOWNLOADS)/sdl2 -b mkxp-z-2.28.1
+
+# dbus
+
+$(LIBDIR)/libdbus-1.so.3.38.3: $(DOWNLOADS)/dbus/cmakebuild/Makefile
+	cd $(DOWNLOADS)/dbus/cmakebuild; \
+	make -j$(NPROC); make install
+
+$(DOWNLOADS)/dbus/cmakebuild/Makefile: $(DOWNLOADS)/dbus/CMakeLists.txt
+	cd $(DOWNLOADS)/dbus; \
+	mkdir cmakebuild; cd cmakebuild; \
+	$(CMAKE) -DDBUS_WITH_GLIB=no -DDBUS_SESSION_SOCKET_DIR=/tmp
+
+$(DOWNLOADS)/dbus/CMakeLists.txt: init_dirs
+	$(CLONE) https://gitlab.freedesktop.org/dbus/dbus $(DOWNLOADS)/dbus -b dbus-1.16.2
 
 # SDL_image
 sdl2image: init_dirs sdl2 $(LIBDIR)/libSDL2_image.a
