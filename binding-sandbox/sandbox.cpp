@@ -106,7 +106,7 @@ sandbox::sandbox(const Config &conf) : ruby(new struct w2c_ruby), wasi(new wasi_
             wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_major) = 1;
             wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_minor) = conf.rgssVersion >= 3 ? 9 : 8;
             wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_teeny) = conf.rgssVersion >= 3 ? 2 : 1;
-            LOG_PRINTF(RETRO_LOG_INFO, "Syntax transform: Compatibility Mode (Ruby %u.%u.%u)\n", (unsigned int)wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_major), (unsigned int)wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_minor), (unsigned int)wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_teeny));
+            LOG_PRINTF(RETRO_LOG_INFO, "Syntax transform: Compatibility mode (Ruby %u.%u.%u)\n", (unsigned int)wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_major), (unsigned int)wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_minor), (unsigned int)wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_teeny));
             break;
     }
 #else
