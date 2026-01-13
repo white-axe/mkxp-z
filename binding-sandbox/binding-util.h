@@ -592,7 +592,7 @@ namespace mkxp_sandbox {
 
     // Prints the backtrace of a Ruby exception to the log.
     struct log_backtrace : boost::asio::coroutine {
-        typedef decl_slots<wasm_ptr_t, wasm_ptr_t, wasm_size_t, wasm_size_t, VALUE, VALUE, VALUE, ID> slots;
+        typedef decl_slots<wasm_ptr_t, wasm_ptr_t, wasm_ptr_t, wasm_size_t, wasm_size_t, VALUE, VALUE, VALUE, ID> slots;
         void operator()(VALUE exception);
     };
 

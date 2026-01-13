@@ -96,25 +96,46 @@ wasm_size_t get_bytesize::operator()(VALUE obj) {
 
 void log_backtrace::operator()(VALUE exception) {
     BOOST_ASIO_CORO_REENTER (this) {
-        SANDBOX_AWAIT_S(7, rb_intern, "message");
-        SANDBOX_AWAIT_S(4, rb_funcall, exception, SANDBOX_SLOT(7), 0);
-        SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(4));
+        SANDBOX_AWAIT_S(8, rb_intern, "message");
+        SANDBOX_AWAIT_S(5, rb_funcall, exception, SANDBOX_SLOT(8), 0);
+        SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(5));
         mkxp_retro::display_message(RETRO_LOG_ERROR, (const char *)sb()->str(SANDBOX_SLOT(0)));
-        SANDBOX_AWAIT_S(7, rb_intern, "backtrace");
-        SANDBOX_AWAIT_S(5, rb_funcall, exception, SANDBOX_SLOT(7), 0);
-        SANDBOX_AWAIT_S(2, get_length, SANDBOX_SLOT(5));
-        if (SANDBOX_SLOT(2) == 0) {
-            LOG_PRINTF(RETRO_LOG_ERROR, "%s\n", (const char *)sb()->str(SANDBOX_SLOT(0)));
-        } else {
-            for (SANDBOX_SLOT(3) = 0; SANDBOX_SLOT(3) < SANDBOX_SLOT(2); ++SANDBOX_SLOT(3)) {
-                SANDBOX_AWAIT_S(6, rb_ary_entry, SANDBOX_SLOT(5), SANDBOX_SLOT(3));
-                SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(6));
-                if (SANDBOX_SLOT(3) == 0) {
-                    SANDBOX_AWAIT_S(1, rb_string_value_cstr, &SANDBOX_SLOT(4));
-                    LOG_PRINTF(RETRO_LOG_ERROR, "%s: %s\n", (const char *)sb()->str(SANDBOX_SLOT(0)), (const char *)sb()->str(SANDBOX_SLOT(1)));
-                } else {
-                    LOG_PRINTF(RETRO_LOG_ERROR, "        from %s\n", (const char *)sb()->str(SANDBOX_SLOT(0)));
+        SANDBOX_AWAIT_S(8, rb_intern, "backtrace");
+        SANDBOX_AWAIT_S(6, rb_funcall, exception, SANDBOX_SLOT(8), 0);
+        SANDBOX_AWAIT_S(3, get_length, SANDBOX_SLOT(6));
+        if (SANDBOX_SLOT(3) == 0) {
+            SANDBOX_AWAIT_S(7, rb_str_new_cstr, "");
+            SANDBOX_AWAIT(rb_ary_push, SANDBOX_SLOT(6), SANDBOX_SLOT(7));
+            SANDBOX_SLOT(3) = 1;
+        }
+        for (SANDBOX_SLOT(4) = 0; SANDBOX_SLOT(4) < SANDBOX_SLOT(3); ++SANDBOX_SLOT(4)) {
+            SANDBOX_AWAIT_S(7, rb_ary_entry, SANDBOX_SLOT(6), SANDBOX_SLOT(4));
+            SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(7));
+            if (SANDBOX_SLOT(4) == 0) {
+                SANDBOX_AWAIT_S(1, rb_string_value_cstr, &SANDBOX_SLOT(5));
+                SANDBOX_AWAIT_S(2, rb_obj_classname, exception);
+                const sandbox_str_guard message = sb()->str(SANDBOX_SLOT(1));
+                const char *ptr = (const char *)message;
+                const char *line_start = ptr;
+                for (bool done = false; !done;) {
+                    switch (*ptr) {
+                        case 0:
+                            done = true;
+                        case '\n':
+                            if (line_start == message) {
+                                LOG_PRINTF(RETRO_LOG_ERROR, "%s: %.*s (%s)\n", (const char *)sb()->str(SANDBOX_SLOT(0)), (int)std::min(ptr - line_start, (ptrdiff_t)INT_MAX), line_start, (const char *)sb()->str(SANDBOX_SLOT(2)));
+                            } else {
+                                LOG_PRINTF(RETRO_LOG_ERROR, "%.*s\n", (int)std::min(ptr - line_start, (ptrdiff_t)INT_MAX), line_start);
+                            }
+                            line_start = ++ptr;
+                            break;
+                        default:
+                            ++ptr;
+                            break;
+                    }
                 }
+            } else {
+                LOG_PRINTF(RETRO_LOG_ERROR, "        from %s\n", (const char *)sb()->str(SANDBOX_SLOT(0)));
             }
         }
     }
