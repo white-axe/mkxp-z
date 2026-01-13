@@ -31,7 +31,7 @@
   extends:
     - .miniforge
   variables:
-    MINIFORGE_PACKAGES: git meson=1.9.2 cmake=4.2.0
+    MINIFORGE_PACKAGES: git meson=1.9.2 cmake
   before_script:
     - !reference [.miniforge, before_script]
     - git config --global --add safe.directory "$(pwd)"
@@ -40,7 +40,7 @@
   before_script:
     - sudo apk add git python3 gcc g++ ninja
     - python3 -m ensurepip
-    - python3 -m pip install meson==1.9.2 cmake==4.2.0
+    - python3 -m pip install meson==1.9.2 cmake
     - export PATH="$HOME/.local/bin:$PATH"
     - git config --global --add safe.directory "$(pwd)"
 
