@@ -26,6 +26,7 @@
 #include "mkxp-polyfill.h"
 #include "forced-assert.h"
 #include "sandbox.h"
+#include "core.h"
 
 #define RB (ruby.get())
 #define AWAIT(statement) do statement; while (w2c_ruby_mkxp_sandbox_yield(RB))
@@ -48,7 +49,7 @@ void sandbox::sandbox_free(wasm_ptr_t ptr) {
     w2c_ruby_mkxp_sandbox_free(RB, ptr);
 }
 
-sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_instance(ruby)), bindings(ruby), movie(nullptr), yielding(false), trans_map(nullptr), transitioning(false) {
+sandbox::sandbox(const Config &conf) : ruby(new struct w2c_ruby), wasi(new wasi_instance(ruby)), bindings(ruby), movie(nullptr), yielding(false), trans_map(nullptr), transitioning(false) {
     // Initialize the sandbox
 #if MKXPZ_WASI_VERSION_MAJOR == 0 && MKXPZ_WASI_VERSION_MINOR <= 1
     wasm2c_ruby_instantiate(RB, (struct w2c_wasi__snapshot__preview1 *)wasi.get());
@@ -81,6 +82,12 @@ sandbox::sandbox() : ruby(new struct w2c_ruby), wasi(new wasi_instance(ruby)), b
         (struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *)wasi.get()
     );
 #endif
+
+    {
+        static const char *const makers[] = {"XP", "VX", "VX Ace"};
+        LOG_PRINTF(RETRO_LOG_INFO, "RGSS version %d (RPG Maker %s)\n", conf.rgssVersion, conf.rgssVersion >= 1 && conf.rgssVersion <= 3 ? makers[conf.rgssVersion - 1] : nullptr);
+    }
+
     w2c_ruby_mkxp_sandbox_init(
         RB,
         0,              // heap_free_slots

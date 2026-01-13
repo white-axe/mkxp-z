@@ -1313,7 +1313,7 @@ static bool init_sandbox() {
 
     input.emplace();
 
-    mkxp_retro::sandbox.emplace();
+    mkxp_retro::sandbox.emplace(*conf);
     Font::initDefaultDynAttribs();
 
     av_info.geometry.base_width = screen_width = conf->defScreenW;

@@ -32,6 +32,7 @@
 #include "wasi.h"
 #include "wasm-types.h"
 #include "audio.h"
+#include "config.h"
 #include "etc.h"
 #include "graphics.h"
 
@@ -67,7 +68,7 @@ namespace mkxp_sandbox {
         std::vector<std::pair<uint32_t, std::string>> cheats;
         inline struct mkxp_sandbox::bindings &operator*() noexcept { return *bindings; }
         inline struct mkxp_sandbox::bindings *operator->() noexcept { return &*bindings; }
-        sandbox();
+        sandbox(const Config &conf);
         ~sandbox();
         bool sandbox_serialize_wasi(void *&data, wasm_size_t &max_size) const;
         bool sandbox_deserialize_wasi(const void *&data, wasm_size_t &max_size);
