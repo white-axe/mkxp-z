@@ -209,6 +209,8 @@ int main(int argc, char *argv[]) {
     SDL_SetHint(SDL_HINT_OPENGL_ES_DRIVER, "1");
 #endif
 
+    SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
+
     /* initialize SDL first */
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_TIMER) < 0) {
       showInitError(std::string("Error initializing SDL: ") + SDL_GetError());

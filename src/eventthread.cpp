@@ -517,6 +517,10 @@ void EventThread::process(RGSSThreadData &rtData)
                     case REQUEST_TEXTMODE :
                         if (event.user.code)
                         {
+                            {
+                                const SDL_Rect rect = {0, 0, 1, 1};
+                                SDL_SetTextInputRect(&rect);
+                            }
                             SDL_StartTextInput();
                             lockText(true);
                             textInputBuffer.clear();

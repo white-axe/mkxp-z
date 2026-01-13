@@ -741,7 +741,11 @@ void sandbox_binding_init::operator()() {
 
     BOOST_ASIO_CORO_REENTER (this) {
         SANDBOX_AWAIT(register_ruby_revision);
-        SANDBOX_AWAIT_R(top_self, rb_eval_string, "self");
+        if (rgssVer == 1) {
+            top_self = SANDBOX_NIL;
+        } else {
+            SANDBOX_AWAIT_R(top_self, rb_eval_string, "self");
+        }
         SANDBOX_AWAIT(exception_binding_init);
 
         SANDBOX_AWAIT(table_binding_init);
