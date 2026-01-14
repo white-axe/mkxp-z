@@ -27,6 +27,7 @@
 #include "boost-hash.h"
 #include "util.h"
 #include "config.h"
+#include "encoding.h"
 
 #include "debugwriter.h"
 
@@ -35,6 +36,7 @@
 #include <algorithm>
 #include <cctype>
 #include <array>
+#include <unordered_map>
 
 #ifdef MKXPZ_BUILD_XCODE
 #include "filesystem/filesystem.h"
@@ -44,7 +46,9 @@
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include FT_SFNT_NAMES_H
 #include FT_TRUETYPE_TABLES_H
+#include FT_TRUETYPE_IDS_H
 
 #ifndef MKXPZ_BUILD_XCODE
 #ifndef MKXPZ_CJK_FONT
@@ -75,6 +79,10 @@ BUNDLED_FONT_DECL(liberation)
 
 #endif
 
+/* Dirty hack to get the FT_Face.
+ * SDL_ttf will probably never move it from the beginning of the struct. */
+#define TTF_FONT_TO_FT_FACE(font) (*reinterpret_cast<FT_Face *>(font))
+
 static SDL_RWops *openBundledFont()
 {
 #ifndef MKXPZ_BUILD_XCODE
@@ -97,6 +105,23 @@ struct FontSet
 
 	/* Any other styles (used in case no 'Regular' exists) */
 	std::string other;
+
+	/* 'Regular' style obtained via SFNT */
+	std::string sfnt_regular;
+
+	/* Any other styles obtained via SFNT */
+	std::string sfnt_other;
+
+	const std::string *operator->() const noexcept
+	{
+		if (!sfnt_regular.empty())
+			return &sfnt_regular;
+		if (!sfnt_other.empty())
+			return &sfnt_other;
+		if (!regular.empty())
+			return &regular;
+		return &other;
+	}
 };
 
 struct SharedFontStatePrivate
@@ -166,6 +191,24 @@ SharedFontState::~SharedFontState()
 	delete p;
 }
 
+static std::string decodeSfntName(const FT_SfntName &aname)
+{
+	std::string str = std::string((const char *)aname.string, (size_t)aname.string_len);
+	if ((aname.platform_id == TT_PLATFORM_MICROSOFT && aname.encoding_id == TT_MS_ID_UNICODE_CS) || aname.platform_id == TT_PLATFORM_APPLE_UNICODE)
+		try
+		{
+			str = Encoding::convertString(str, "UTF-16BE");
+		} catch (Exception)
+		{}
+	else if (aname.platform_id == TT_PLATFORM_MICROSOFT && aname.encoding_id == TT_MS_ID_UCS_4)
+		try
+		{
+			str = Encoding::convertString(str, "UTF-32BE");
+		} catch (Exception)
+		{}
+	return str;
+}
+
 void SharedFontState::initFontSetCB(SDL_RWops &ops,
                                     const std::string &filename)
 {
@@ -180,14 +223,60 @@ void SharedFontState::initFontSetCB(SDL_RWops &ops,
 	std::transform(family.begin(), family.end(), family.begin(),
 		[](unsigned char c){ return std::tolower(c); });
 
-	TTF_CloseFont(font);
-
 	FontSet &set = p->sets[family];
 
 	if (style == "Regular" && set.regular.empty())
 		set.regular = filename;
 	else if (style != "Regular" && set.other.empty())
 		set.other = filename;
+
+	FT_Face face = TTF_FONT_TO_FT_FACE(font);
+
+	if (FT_IS_SFNT(face))
+	{
+		std::unordered_map<uint32_t, std::pair<std::string, std::string>> name_map;
+
+		for (unsigned int i = 0, name_count = FT_Get_Sfnt_Name_Count(face); i < name_count; ++i)
+		{
+			FT_SfntName aname;
+			if (FT_Get_Sfnt_Name(face, i, &aname))
+				continue;
+			uint32_t key = aname.platform_id;
+			key <<= 16;
+			key |= aname.language_id;
+			switch (aname.name_id)
+			{
+				case TT_NAME_ID_FONT_FAMILY:
+					name_map[key].first = decodeSfntName(aname);
+					break;
+				case TT_NAME_ID_FONT_SUBFAMILY:
+					name_map[key].second = decodeSfntName(aname);
+					break;
+			}
+		}
+
+		for (const auto &entry : name_map)
+		{
+			const std::string &sfnt_family_raw = entry.second.first;
+			const std::string &sfnt_style = entry.second.second;
+			if (sfnt_family_raw.empty())
+				continue;
+
+			std::string sfnt_family(sfnt_family_raw);
+
+			std::transform(sfnt_family.begin(), sfnt_family.end(), sfnt_family.begin(),
+				[](unsigned char c){ return std::tolower(c); });
+
+			FontSet &set = p->sets[sfnt_family];
+
+			if (sfnt_style == "Regular" && set.sfnt_regular.empty())
+				set.sfnt_regular = filename;
+			else if (sfnt_style != "Regular" && set.sfnt_other.empty())
+				set.sfnt_other = filename;
+		}
+	}
+
+	TTF_CloseFont(font);
 }
 
 // https://github.com/wine-mirror/wine/blob/dc34fef45d491516fa8eaee45b2ae40faa7b0bfe/dlls/win32u/freetype.c
@@ -461,7 +550,7 @@ _TTF_Font *SharedFontState::getFont(std::string family,
 	/* Find out if the font asset exists */
 	const FontSet &req = p->sets[family];
 
-	if (req.regular.empty() && req.other.empty())
+	if (req->empty())
 	{
 		/* Doesn't exist; use built-in font */
 		family = "";
@@ -502,8 +591,7 @@ _TTF_Font *SharedFontState::getFont(std::string family,
 	{
 		/* Use 'other' path as alternative in case
 		 * we have no 'regular' styled font asset */
-		const char *path = !req.regular.empty()
-		                 ? req.regular.c_str() : req.other.c_str();
+		const char *path = req->c_str();
 
 		ops = SDL_AllocRW();
 		try{
@@ -520,9 +608,7 @@ _TTF_Font *SharedFontState::getFont(std::string family,
 
 	if (font)
 	{
-		/* Dirty hack to get the FT_Face.
-		 * SDL_ttf will probably never move it from the beginning of the struct. */
-		FT_Face face= *(reinterpret_cast<FT_Face *>( font ));
+		FT_Face face = TTF_FONT_TO_FT_FACE(font);
 		/* This is should always be true, but we may as well check... */
 		if (FT_IS_SCALABLE( face ))
 		{
@@ -597,7 +683,7 @@ bool SharedFontState::fontPresent(std::string family) const
 
 	const FontSet &set = p->sets[family];
 
-	return !(set.regular.empty() && set.other.empty());
+	return !set->empty();
 }
 
 _TTF_Font *SharedFontState::openBundled(int size)

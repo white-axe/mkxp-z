@@ -1367,7 +1367,7 @@ static void mriBindingExecute() {
     rb_gv_set("$KCODE", rb_str_new_cstr("UTF8"));
     rb_gv_set("$-K", rb_str_new_cstr("UTF8"));
     
-    topSelf = rb_eval_string("self");
+    topSelf = rgssVer == 1 ? Qnil : rb_eval_string("self");
     
     VALUE rbArgv = rb_get_argv();
     for (const auto &str : conf.launchArgs)
