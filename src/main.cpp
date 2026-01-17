@@ -172,9 +172,9 @@ static void printRgssVersion(int ver) {
 }
 
 static void initSyntaxTransform(Config &conf) {
-#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
   extern unsigned int mkxp_syntax_transform_target_ruby_version_major, mkxp_syntax_transform_target_ruby_version_minor, mkxp_syntax_transform_target_ruby_version_teeny;
-#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
 
   char buf[128];
 
@@ -199,11 +199,11 @@ static void initSyntaxTransform(Config &conf) {
       break;
   }
 
-#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
   mkxp_syntax_transform_target_ruby_version_major = conf.syntaxTransformCustomVersionMajor == INT_MAX ? -1 : conf.syntaxTransformCustomVersionMajor;
   mkxp_syntax_transform_target_ruby_version_minor = conf.syntaxTransformCustomVersionMinor == INT_MAX ? -1 : conf.syntaxTransformCustomVersionMinor;
   mkxp_syntax_transform_target_ruby_version_teeny = conf.syntaxTransformCustomVersionTeeny == INT_MAX ? -1 : conf.syntaxTransformCustomVersionTeeny;
-#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
 
   Debug() << "Syntax transform:" << buf;
 }

@@ -157,7 +157,7 @@ json5pp::value rb2json(VALUE v);
 
 RB_METHOD(mkxpParseCSV);
 
-#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
 #if RAPI_MAJOR > 1 || (RAPI_MAJOR == 1 && RAPI_MINOR > 8)
 static VALUE legacy_array_indexes(int argc, VALUE *argv, VALUE self) {
     if (!mkxp_ec_is_syntax_transform_active(1, 8, -1))
@@ -242,10 +242,10 @@ static VALUE legacy_kernel_match(VALUE self, VALUE other) {
     return Qnil;
 }
 #endif // RAPI_MAJOR > 3 || (RAPI_MAJOR == 3 && RAPI_MINOR > 1)
-#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
 
 static void mriBindingInit() {
-#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
 #if RAPI_MAJOR > 1 || (RAPI_MAJOR == 1 && RAPI_MINOR > 8)
     rb_define_method(rb_cArray, "indexes", legacy_array_indexes, -1);
     rb_define_method(rb_cArray, "indices", legacy_array_indices, -1);
@@ -262,7 +262,7 @@ static void mriBindingInit() {
     rb_define_module_function(rb_mFileTest, "exists?", legacy_file_test_exists, 1);
     rb_define_method(rb_mKernel, "=~", legacy_kernel_match, 1);
 #endif // RAPI_MAJOR > 3 || (RAPI_MAJOR == 3 && RAPI_MINOR > 1)
-#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
 
     tableBindingInit();
     etcBindingInit();
@@ -1187,7 +1187,7 @@ static void runRMXPScripts(BacktraceData &btData) {
             int state;
             
             {
-#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
                 extern thread_local int mkxp_syntax_transform_next_eval;
                 struct SyntaxTransformGuard {
                     SyntaxTransformGuard() {
@@ -1198,7 +1198,7 @@ static void runRMXPScripts(BacktraceData &btData) {
                     }
                 };
                 SyntaxTransformGuard guard;
-#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
                 evalString(string, fname, &state);
             }
             if (state)
