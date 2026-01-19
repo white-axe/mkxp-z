@@ -57,6 +57,7 @@ namespace mkxp_sandbox {
 
         public:
         Exception e;
+        uint8_t sandbox_yield_state;
         std::vector<uint8_t> script_decode_buffer;
         std::vector<std::string> font_names_buffer;
         Bitmap *trans_map;
@@ -97,19 +98,24 @@ namespace mkxp_sandbox {
                 w2c_ruby_asyncify_start_rewind(ruby.get(), ruby->w2c_mkxp_sandbox_async_buf);
             }
             for (;;) {
-                {
-                    struct mkxp_sandbox::bindings::stack_frame_guard<T> frame = bindings->bind<T>();
-                    auto result = frame()();
-                    if (frame().is_complete()) {
-                        assert(!yielding);
-                        return result;
+                if (sandbox_yield_state != 2) {
+                    {
+                        struct mkxp_sandbox::bindings::stack_frame_guard<T> frame = bindings->bind<T>();
+                        auto result = frame()();
+                        if (frame().is_complete()) {
+                            assert(!yielding);
+                            return result;
+                        }
+                    }
+                    if (yielding) {
+                        yielding = false;
+                        return boost::none;
                     }
                 }
-                if (yielding) {
-                    yielding = false;
+                if ((sandbox_yield_state = w2c_ruby_mkxp_sandbox_yield(ruby.get())) == 2) {
                     return boost::none;
                 }
-                w2c_ruby_mkxp_sandbox_yield(ruby.get());
+                assert(sandbox_yield_state != 0);
             }
         }
     };

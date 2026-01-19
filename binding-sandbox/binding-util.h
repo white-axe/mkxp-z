@@ -61,6 +61,7 @@
 #define SANDBOX_YIELD \
     do { \
         using namespace ::mkxp_sandbox; \
+        SANDBOX_AWAIT(mkxp_sandbox_pump_threads); \
         sb()._begin_yield(); \
         BOOST_ASIO_CORO_YIELD; \
         sb()._end_yield(); \

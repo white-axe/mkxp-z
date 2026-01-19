@@ -31,7 +31,9 @@ WASI_CFLAGS ?= -Oz -DNDEBUG
 WASI_CXXFLAGS ?= -Oz -DNDEBUG
 WASI_LDFLAGS ?=
 WASM_OPT_FLAGS ?= -Oz
-RUBY_HAVE_SOCKET ?= 1
+
+MKXPZ_RUBY_HAVE_SOCKETS ?= 1
+MKXPZ_RUBY_HAVE_USER_THREADS ?= 1
 
 BUILD_PREFIX := $(PWD)/build
 OUTDIR := $(BUILD_PREFIX)/libretro-stage1
@@ -60,13 +62,13 @@ endif
 
 # WASI Preview 1 doesn't have usable socket support
 ifeq ($(WASI_TARGET),wasm32-wasip1)
-    RUBY_HAVE_SOCKET := 0
+    MKXPZ_RUBY_HAVE_SOCKETS := 0
 else ifeq ($(WASI_TARGET),wasm32-wasip1-threads)
-    RUBY_HAVE_SOCKET := 0
+    MKXPZ_RUBY_HAVE_SOCKETS := 0
 else ifeq ($(WASI_TARGET),wasm32-wasi)
-    RUBY_HAVE_SOCKET := 0
+    MKXPZ_RUBY_HAVE_SOCKETS := 0
 else ifeq ($(WASI_TARGET),wasm32-wasi-threads)
-    RUBY_HAVE_SOCKET := 0
+    MKXPZ_RUBY_HAVE_SOCKETS := 0
 endif
 
 # These lists of native extensions are copied directly from ruby.wasm, but with the dbm, gdbm and openssl extensions removed
@@ -77,7 +79,7 @@ else
 endif
 
 RUBY_EXTS := $(RUBY_EXTS),io/wait
-ifeq ($(RUBY_HAVE_SOCKET),1)
+ifeq ($(MKXPZ_RUBY_HAVE_SOCKETS),1)
     RUBY_EXTS := $(RUBY_EXTS),socket
 endif
 
@@ -88,6 +90,9 @@ ifneq ($(WASI_SDK_VERSION_EXPECTED),$(WASI_SDK_VERSION_ACTUAL))
 endif
 
 WASI_TARGET_FLAGS := --target=$(WASI_TARGET) -mbulk-memory
+ifeq ($(MKXPZ_RUBY_HAVE_USER_THREADS),1)
+    WASI_TARGET_FLAGS := $(WASI_TARGET_FLAGS) -DMKXPZ_RUBY_HAVE_USER_THREADS
+endif
 WASI_C_STANDARD := -std=gnu99
 WASI_CXX_STANDARD := -std=gnu++11
 WASI_CFLAGS := $(WASI_TARGET_FLAGS) $(WASI_C_STANDARD) $(WASI_CFLAGS)
@@ -233,8 +238,11 @@ else
 	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-compat.patch
 endif
 	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-prng-time.patch
-ifeq ($(RUBY_HAVE_SOCKET),1)
-	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-socket.patch
+ifeq ($(MKXPZ_RUBY_HAVE_SOCKETS),1)
+	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-sockets.patch
+endif
+ifeq ($(MKXPZ_RUBY_HAVE_USER_THREADS),1)
+	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-user-threads.patch
 endif
 	echo '#include "$(PWD)/ruby-bindings.h"' >> $(RUBY_SRC)/gc.c
 

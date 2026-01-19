@@ -35,6 +35,10 @@ IGNORED_FUNCTIONS = Set[
   'rb_close_before_exec',
 ]
 
+EXTRA_FUNCTIONS = [
+  'mkxp_sandbox_pump_threads	tags.c	/^void mkxp_sandbox_pump_threads(void);$/;"	p	signature:(void)',
+]
+
 ARG_HANDLERS = {
   'VALUE' => { keep: true, primitive: :size },
   'ID' => { keep: true, primitive: :size },
@@ -392,7 +396,7 @@ File.readlines('tags', chomp: true).each do |line|
 end
 
 # Find all `rb_` and `mkxp_` functions declared in the Ruby headers and generate bindings for them
-File.readlines('tags', chomp: true).each do |line|
+(File.readlines('tags', chomp: true) + EXTRA_FUNCTIONS).each do |line|
   line = line.split("\t")
 
   # Skip tags that are not function declarations

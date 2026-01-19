@@ -50,7 +50,7 @@ void sandbox::sandbox_free(wasm_ptr_t ptr) {
     w2c_ruby_mkxp_sandbox_free(RB, ptr);
 }
 
-sandbox::sandbox(const Config &conf) : ruby(new struct w2c_ruby), wasi(new wasi_instance(ruby)), bindings(ruby), movie(nullptr), yielding(false), trans_map(nullptr), transitioning(false) {
+sandbox::sandbox(const Config &conf) : ruby(new struct w2c_ruby), wasi(new wasi_instance(ruby)), bindings(ruby), movie(nullptr), yielding(false), sandbox_yield_state(1), trans_map(nullptr), transitioning(false) {
     // Initialize the sandbox
     wasm2c_ruby_instantiate(RB, SANDBOX_INSTANTIATE_ARGS(wasi.get()));
 

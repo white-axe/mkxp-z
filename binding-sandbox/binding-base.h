@@ -259,7 +259,7 @@ namespace mkxp_sandbox {
 
     struct binding_base {
     private:
-        typedef std::tuple<wasm_ptr_t, wasm_ptr_t, wasm_ptr_t> key_t;
+        typedef std::tuple<wasm_ptr_t, wasm_ptr_t, wasm_ptr_t, wasm_ptr_t> key_t;
 
         struct deser_stack_frame {
             deser_stack_frame(wasm_ptr_t stack_ptr, int32_t state);
@@ -434,6 +434,7 @@ namespace mkxp_sandbox {
 
             static struct fiber &init_fiber(struct binding_base &bind) {
                 key_t key = {
+                    bind.ref<wasm_ptr_t>(bind.instance().w2c_mkxp_sandbox_thread),
                     bind.ref<wasm_ptr_t>(bind.instance().w2c_mkxp_sandbox_fiber_entry_point),
                     bind.ref<wasm_ptr_t>(bind.instance().w2c_mkxp_sandbox_fiber_arg0),
                     bind.ref<wasm_ptr_t>(bind.instance().w2c_mkxp_sandbox_fiber_arg1),
