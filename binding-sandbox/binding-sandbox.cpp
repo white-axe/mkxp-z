@@ -1026,8 +1026,8 @@ void sandbox_binding_init::operator()() {
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cSymbol(), "to_int", (VALUE (*)(ANYARGS))legacy_symbol_to_int, 0);
         SANDBOX_AWAIT(rb_define_singleton_method, sb()->rb_cDir(), "exists?", (VALUE (*)(ANYARGS))legacy_dir_exists, 1);
         SANDBOX_AWAIT(rb_define_singleton_method, sb()->rb_cFile(), "exists?", (VALUE (*)(ANYARGS))legacy_file_exists, 1);
-        SANDBOX_AWAIT(rb_define_singleton_method, sb()->rb_mFileTest(), "exists?", (VALUE (*)(ANYARGS))legacy_file_test_exists, 1);
-        SANDBOX_AWAIT(rb_define_singleton_method, sb()->rb_mKernel(), "=~", (VALUE (*)(ANYARGS))legacy_kernel_match, 1);
+        SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mFileTest(), "exists?", (VALUE (*)(ANYARGS))legacy_file_test_exists, 1);
+        SANDBOX_AWAIT(rb_define_method, sb()->rb_mKernel(), "=~", (VALUE (*)(ANYARGS))legacy_kernel_match, 1);
 
         SANDBOX_AWAIT(table_binding_init);
         SANDBOX_AWAIT(etc_binding_init);
