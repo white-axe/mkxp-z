@@ -88,7 +88,7 @@ sandbox::sandbox(const Config &conf) : ruby(new struct w2c_ruby), wasi(new wasi_
         LOG_PRINTF(RETRO_LOG_INFO, "RGSS version %d (RPG Maker %s)\n", conf.rgssVersion, conf.rgssVersion >= 1 && conf.rgssVersion <= 3 ? makers[conf.rgssVersion - 1] : nullptr);
     }
 
-#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
     switch (conf.syntaxTransform) {
         default:
             wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_major) = -1;
@@ -111,7 +111,7 @@ sandbox::sandbox(const Config &conf) : ruby(new struct w2c_ruby), wasi(new wasi_
     }
 #else
     LOG_PRINT(RETRO_LOG_INFO, "Syntax transform support was disabled at build time\n");
-#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
 
     w2c_ruby_mkxp_sandbox_init(
         RB,

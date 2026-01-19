@@ -53,7 +53,7 @@ static VALUE top_self;
 static VALUE marshal_module;
 static VALUE win32api_class;
 
-#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
 static VALUE legacy_array_indexes(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
         typedef decl_slots<VALUE, ID> slots;
@@ -312,7 +312,7 @@ static VALUE legacy_kernel_match(VALUE self, VALUE other) {
 
     return sb()->bind<struct coro>()()(self, other);
 }
-#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
 
 static VALUE eval_script_func(VALUE arg) {
     struct coro : boost::asio::coroutine {
@@ -1248,13 +1248,13 @@ void sandbox_run_rmxp_scripts::operator()() {
                 SANDBOX_AWAIT_S(10, rb_str_concat, SANDBOX_SLOT(9), SANDBOX_SLOT(10));
                 SANDBOX_AWAIT_S(9, rb_ary_entry, SANDBOX_SLOT(4), 3);
 
-#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
                 sb().enable_syntax_transform_for_next_eval();
-#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
                 SANDBOX_AWAIT_S(9, eval_script, SANDBOX_SLOT(9), SANDBOX_SLOT(10));
-#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
                 sb().reset_syntax_transform_for_next_eval();
-#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
             }
 
             // Stop unless a reset was requested
@@ -1269,8 +1269,8 @@ void sandbox_run_rmxp_scripts::operator()() {
 }
 
 void sandbox_run_rmxp_scripts::end() noexcept {
-#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
     sb().reset_syntax_transform_for_next_eval();
-#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
     sb().script_decode_buffer.clear();
 }

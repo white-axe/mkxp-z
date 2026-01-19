@@ -79,7 +79,7 @@ namespace mkxp_sandbox {
         // Gets the current working directory in the sandbox.
         struct sandbox_str_guard getcwd();
 
-#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
         inline void enable_syntax_transform_for_next_eval() noexcept {
             wasi->ref<int32_t>(ruby->w2c_mkxp_syntax_transform_next_eval) = 1;
         }
@@ -91,15 +91,15 @@ namespace mkxp_sandbox {
         inline void reset_syntax_transform_for_next_eval() noexcept {
             wasi->ref<int32_t>(ruby->w2c_mkxp_syntax_transform_next_eval) = 0;
         }
-#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
 
         inline bool using_ruby18_encoding() const noexcept {
-#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
             uint32_t major = wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_major);
             return major < 1 || (major == 1 && wasi->ref<uint32_t>(ruby->w2c_mkxp_syntax_transform_target_ruby_version_minor) <= 8);
 #else
             return false;
-#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
         }
 
         // Internal utility method of the `SANDBOX_YIELD` macro.

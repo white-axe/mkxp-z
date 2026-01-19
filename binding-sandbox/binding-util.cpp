@@ -38,13 +38,13 @@ static VALUE run_cheat_func(VALUE arg) {
             BOOST_ASIO_CORO_REENTER (this) {
                 SANDBOX_AWAIT_S(0, rb_ary_entry, arg, 0);
                 SANDBOX_AWAIT_S(1, rb_ary_entry, arg, 1);
-#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
                 sb().disable_syntax_transform_for_next_eval();
-#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
                 SANDBOX_AWAIT_S(0, eval_script, SANDBOX_SLOT(0), SANDBOX_SLOT(1));
-#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
                 sb().reset_syntax_transform_for_next_eval();
-#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
                 if (SANDBOX_SLOT(0) != SANDBOX_UNDEF) {
                     SANDBOX_AWAIT(rb_exc_raise, SANDBOX_SLOT(0));
                 }
@@ -77,9 +77,9 @@ void _sandbox_yield_run_cheat::operator()() {
 }
 
 void _sandbox_yield_run_cheat::end() noexcept {
-#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
     sb().reset_syntax_transform_for_next_eval();
-#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
     sb().cheats.clear();
 }
 
