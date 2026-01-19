@@ -409,7 +409,7 @@ extern "C" uint64_t w2c_wasi0x3Aclocks0x2Fmonotonic0x2Dclock0x4000x2E20x2E0_now(
 }
 
 extern "C" void w2c_wasi0x3Aclocks0x2Fwall0x2Dclock0x4000x2E20x2E0_now(struct w2c_wasi0x3Aclocks0x2Fwall0x2Dclock0x4000x2E20x2E0 *wasi, wasm_ptr_t result) {
-    LOG_PRINT(RETRO_LOG_DEBUG, "wasi:clocks/wall-clock-clock@0.2.0::now()\n");
+    LOG_PRINT(RETRO_LOG_DEBUG, "wasi:clocks/wall-clock@0.2.0::now()\n");
 
     wasi->check_bounds(result, 16);
 
@@ -439,7 +439,7 @@ extern "C" uint64_t w2c_wasi0x3Aclocks0x2Fmonotonic0x2Dclock0x4000x2E20x2E0_reso
 }
 
 extern "C" void w2c_wasi0x3Aclocks0x2Fwall0x2Dclock0x4000x2E20x2E0_resolution(struct w2c_wasi0x3Aclocks0x2Fwall0x2Dclock0x4000x2E20x2E0 *wasi, wasm_ptr_t result) {
-    LOG_PRINT(RETRO_LOG_DEBUG, "wasi:clocks/wall-clock-clock@0.2.0::resolution()\n");
+    LOG_PRINT(RETRO_LOG_DEBUG, "wasi:clocks/wall-clock@0.2.0::resolution()\n");
 
     wasi->check_bounds(result, 16);
 
@@ -458,6 +458,12 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_clock_res_get(struct w2c_wasi__
 
 extern "C" wasm_resource_t w2c_wasi0x3Aclocks0x2Fmonotonic0x2Dclock0x4000x2E20x2E0_subscribe0x2Dduration(struct w2c_wasi0x3Aclocks0x2Fmonotonic0x2Dclock0x4000x2E20x2E0 *wasi, uint64_t when) {
     LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:clocks/monotonic-clock@0.2.0::subscribe-duration(%llu)\n", (unsigned long long)when);
+    LOG_PRINTF(RETRO_LOG_DEBUG, "WASI resource created: pollable(%u) -> monotonic clock\n", (unsigned int)-1);
+    return -1;
+}
+
+extern "C" wasm_resource_t w2c_wasi0x3Aclocks0x2Fmonotonic0x2Dclock0x4000x2E20x2E0_subscribe0x2Dinstant(struct w2c_wasi0x3Aclocks0x2Fmonotonic0x2Dclock0x4000x2E20x2E0 *wasi, uint64_t when) {
+    LOG_PRINTF(RETRO_LOG_DEBUG, "wasi:clocks/monotonic-clock@0.2.0::subscribe-instant(%llu)\n", (unsigned long long)when);
     LOG_PRINTF(RETRO_LOG_DEBUG, "WASI resource created: pollable(%u) -> monotonic clock\n", (unsigned int)-1);
     return -1;
 }

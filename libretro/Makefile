@@ -31,7 +31,9 @@ WASI_CFLAGS ?= -Oz -DNDEBUG
 WASI_CXXFLAGS ?= -Oz -DNDEBUG
 WASI_LDFLAGS ?=
 WASM_OPT_FLAGS ?= -Oz
-RUBY_HAVE_SOCKET ?= 1
+
+MKXPZ_RUBY_HAVE_SOCKETS ?= 1
+MKXPZ_RUBY_HAVE_USER_THREADS ?= 1
 
 BUILD_PREFIX := $(PWD)/build
 OUTDIR := $(BUILD_PREFIX)/libretro-stage1
@@ -60,13 +62,13 @@ endif
 
 # WASI Preview 1 doesn't have usable socket support
 ifeq ($(WASI_TARGET),wasm32-wasip1)
-    RUBY_HAVE_SOCKET := 0
+    MKXPZ_RUBY_HAVE_SOCKETS := 0
 else ifeq ($(WASI_TARGET),wasm32-wasip1-threads)
-    RUBY_HAVE_SOCKET := 0
+    MKXPZ_RUBY_HAVE_SOCKETS := 0
 else ifeq ($(WASI_TARGET),wasm32-wasi)
-    RUBY_HAVE_SOCKET := 0
+    MKXPZ_RUBY_HAVE_SOCKETS := 0
 else ifeq ($(WASI_TARGET),wasm32-wasi-threads)
-    RUBY_HAVE_SOCKET := 0
+    MKXPZ_RUBY_HAVE_SOCKETS := 0
 endif
 
 # These lists of native extensions are copied directly from ruby.wasm, but with the dbm, gdbm and openssl extensions removed
@@ -77,7 +79,7 @@ else
 endif
 
 RUBY_EXTS := $(RUBY_EXTS),io/wait
-ifeq ($(RUBY_HAVE_SOCKET),1)
+ifeq ($(MKXPZ_RUBY_HAVE_SOCKETS),1)
     RUBY_EXTS := $(RUBY_EXTS),socket
 endif
 
@@ -88,6 +90,9 @@ ifneq ($(WASI_SDK_VERSION_EXPECTED),$(WASI_SDK_VERSION_ACTUAL))
 endif
 
 WASI_TARGET_FLAGS := --target=$(WASI_TARGET) -mbulk-memory
+ifeq ($(MKXPZ_RUBY_HAVE_USER_THREADS),1)
+    WASI_TARGET_FLAGS := $(WASI_TARGET_FLAGS) -DMKXPZ_RUBY_HAVE_USER_THREADS
+endif
 WASI_C_STANDARD := -std=gnu99
 WASI_CXX_STANDARD := -std=gnu++11
 WASI_CFLAGS := $(WASI_TARGET_FLAGS) $(WASI_C_STANDARD) $(WASI_CFLAGS)
@@ -100,7 +105,7 @@ all default: ruby-dist ruby-bindings $(OUTDIR)/preload.zip $(OUTDIR)/boost_prede
 
 include $(SYNTAX_TRANSFORM_DIR)/Makefile
 
-ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
+ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-instantiate-args.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
 
 ruby-bindings: $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.h
 
@@ -157,6 +162,11 @@ $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUT
 $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h: $(INDEXER) $(LIBDIR)/Dist/bin/ruby
 	mkdir -p $(OUTDIR)/ruby
 	$(INDEXER) $(LIBDIR)/Dist/bin/ruby > $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h
+
+$(OUTDIR)/ruby/mkxp-sandbox-ruby-instantiate-args.h: $(OUTDIR)/ruby/mkxp-sandbox-ruby.h
+	echo '#ifndef SANDBOX_INSTANTIATE_ARGS' > $@
+	echo "#define SANDBOX_INSTANTIATE_ARGS(x) $$($(GREP) '^void wasm2c_ruby_instantiate(' $< | head -n 1 | $(SED) -e 's/^[^,]*, *//' -e 's/)[^)]*$$/,/' -e 's/\([^,]*\), */,static_cast<\1>(x)/g' -e 's/^,//')" >> $@
+	echo '#endif /* SANDBOX_INSTANTIATE_ARGS */' >> $@
 
 $(OUTDIR)/dist.zip: $(LIBDIR)/Dist/bin/ruby $(RUBY_SRC)/BSDL $(RUBY_SRC)/COPYING $(RUBY_SRC)/COPYING.ja
 	rm -rf $(LIBDIR)/_Dist
@@ -231,8 +241,11 @@ else
 	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-compat.patch
 endif
 	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-prng-time.patch
-ifeq ($(RUBY_HAVE_SOCKET),1)
-	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-socket.patch
+ifeq ($(MKXPZ_RUBY_HAVE_SOCKETS),1)
+	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-sockets.patch
+endif
+ifeq ($(MKXPZ_RUBY_HAVE_USER_THREADS),1)
+	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-user-threads.patch
 endif
 	echo '#include "$(PWD)/ruby-bindings.h"' >> $(RUBY_SRC)/gc.c
 

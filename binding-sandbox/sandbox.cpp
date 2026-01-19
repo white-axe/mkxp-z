@@ -23,6 +23,7 @@
 #include <wasm-rt.h>
 #include "wasi.h"
 #include <mkxp-sandbox-ruby.h>
+#include <mkxp-sandbox-ruby-instantiate-args.h>
 #include "mkxp-polyfill.h"
 #include "forced-assert.h"
 #include "sandbox.h"
@@ -49,39 +50,9 @@ void sandbox::sandbox_free(wasm_ptr_t ptr) {
     w2c_ruby_mkxp_sandbox_free(RB, ptr);
 }
 
-sandbox::sandbox(const Config &conf) : ruby(new struct w2c_ruby), wasi(new wasi_instance(ruby)), bindings(ruby), movie(nullptr), yielding(false), trans_map(nullptr), transitioning(false) {
+sandbox::sandbox(const Config &conf) : ruby(new struct w2c_ruby), wasi(new wasi_instance(ruby)), bindings(ruby), movie(nullptr), yielding(false), sandbox_yield_state(1), trans_map(nullptr), transitioning(false) {
     // Initialize the sandbox
-#if MKXPZ_WASI_VERSION_MAJOR == 0 && MKXPZ_WASI_VERSION_MINOR <= 1
-    wasm2c_ruby_instantiate(RB, (struct w2c_wasi__snapshot__preview1 *)wasi.get());
-#else
-    wasm2c_ruby_instantiate(
-        RB,
-        (struct w2c_wasi0x3Acli0x2Fenvironment0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Acli0x2Fexit0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Acli0x2Fstderr0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Acli0x2Fstdin0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Acli0x2Fstdout0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Acli0x2Fterminal0x2Dinput0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Acli0x2Fterminal0x2Doutput0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Acli0x2Fterminal0x2Dstderr0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Acli0x2Fterminal0x2Dstdin0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Acli0x2Fterminal0x2Dstdout0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Aclocks0x2Fmonotonic0x2Dclock0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Aclocks0x2Fwall0x2Dclock0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Afilesystem0x2Fpreopens0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Afilesystem0x2Ftypes0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Aio0x2Ferror0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Aio0x2Fpoll0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Aio0x2Fstreams0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Arandom0x2Frandom0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Asockets0x2Finstance0x2Dnetwork0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Asockets0x2Fip0x2Dname0x2Dlookup0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Asockets0x2Ftcp0x2Dcreate0x2Dsocket0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Asockets0x2Ftcp0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Asockets0x2Fudp0x2Dcreate0x2Dsocket0x4000x2E20x2E0 *)wasi.get(),
-        (struct w2c_wasi0x3Asockets0x2Fudp0x4000x2E20x2E0 *)wasi.get()
-    );
-#endif
+    wasm2c_ruby_instantiate(RB, SANDBOX_INSTANTIATE_ARGS(wasi.get()));
 
     {
         static const char *const makers[] = {"XP", "VX", "VX Ace"};

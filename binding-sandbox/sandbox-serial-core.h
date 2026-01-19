@@ -129,6 +129,7 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
         if (!sandbox_serialize(std::get<0>(fiber.key), data, max_size)) SER_FAIL;
         if (!sandbox_serialize(std::get<1>(fiber.key), data, max_size)) SER_FAIL;
         if (!sandbox_serialize(std::get<2>(fiber.key), data, max_size)) SER_FAIL;
+        if (!sandbox_serialize(std::get<3>(fiber.key), data, max_size)) SER_FAIL;
 
         // Write the stack index of the fiber
         if (!sandbox_serialize(fiber.stack_index, data, max_size)) SER_FAIL;
@@ -157,6 +158,7 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     if (!sandbox_serialize(frame_time.load_relaxed(), data, max_size)) SER_FAIL;
     if (!sandbox_serialize(frame_time_remainder, data, max_size)) SER_FAIL;
     if (!sandbox_serialize(retro_run_count, data, max_size)) SER_FAIL;
+    if (!sandbox_serialize(sb().sandbox_yield_state, data, max_size)) SER_FAIL;
     if (!sandbox_serialize(sb().cheats, data, max_size)) SER_FAIL;
 
     // Write the pseudorandom number generator state and open WASI file descriptors
@@ -339,10 +341,11 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
 
         while (num_fibers > 0) {
             // Read the key of the fiber
-            std::tuple<wasm_size_t, wasm_size_t, wasm_size_t> key;
+            std::remove_const<decltype(sb()->fiber_list.back().key)>::type key;
             if (!sandbox_deserialize(std::get<0>(key), data, max_size)) DESER_FAIL;
             if (!sandbox_deserialize(std::get<1>(key), data, max_size)) DESER_FAIL;
             if (!sandbox_deserialize(std::get<2>(key), data, max_size)) DESER_FAIL;
+            if (!sandbox_deserialize(std::get<3>(key), data, max_size)) DESER_FAIL;
 
             // Construct the fiber
             auto &fiber = *sb()->fiber_map.emplace(key, sb()->fiber_list.emplace(sb()->fiber_list.end(), key)).first->second;
@@ -394,6 +397,7 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     }
     if (!sandbox_deserialize(frame_time_remainder, data, max_size)) DESER_FAIL;
     if (!sandbox_deserialize(retro_run_count, data, max_size)) DESER_FAIL;
+    if (!sandbox_deserialize(sb().sandbox_yield_state, data, max_size)) DESER_FAIL;
     if (!sandbox_deserialize(sb().cheats, data, max_size)) DESER_FAIL;
 
     // Read the pseudorandom number generator state and open WASI file descriptors
