@@ -97,7 +97,7 @@ RUBY_SRC := $(DOWNLOADS)/ruby
 
 all default: ruby-dist ruby-bindings $(OUTDIR)/preload.zip $(OUTDIR)/boost_predef/include/boost/predef.h
 
-ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
+ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-instantiate-args.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
 
 ruby-bindings: $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.h
 
@@ -154,6 +154,11 @@ $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUT
 $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h: $(INDEXER) $(LIBDIR)/Dist/bin/ruby
 	mkdir -p $(OUTDIR)/ruby
 	$(INDEXER) $(LIBDIR)/Dist/bin/ruby > $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h
+
+$(OUTDIR)/ruby/mkxp-sandbox-ruby-instantiate-args.h: $(OUTDIR)/ruby/mkxp-sandbox-ruby.h
+	echo '#ifndef SANDBOX_INSTANTIATE_ARGS' > $@
+	echo "#define SANDBOX_INSTANTIATE_ARGS(x) $$($(GREP) '^void wasm2c_ruby_instantiate(' $< | head -n 1 | $(SED) -e 's/^[^,]*, *//' -e 's/)[^)]*$$/,/' -e 's/\([^,]*\), */,static_cast<\1>(x)/g' -e 's/^,//')" >> $@
+	echo '#endif /* SANDBOX_INSTANTIATE_ARGS */' >> $@
 
 $(OUTDIR)/dist.zip: $(LIBDIR)/Dist/bin/ruby $(RUBY_SRC)/BSDL $(RUBY_SRC)/COPYING $(RUBY_SRC)/COPYING.ja
 	rm -rf $(LIBDIR)/_Dist
