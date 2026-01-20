@@ -411,6 +411,7 @@ end
   # Only bind functions whose return type matches one of the return types we have a handler for
   ret = line[2]
   next unless ret.start_with?('/^') && ret.include?('(')
+  ret = ret.gsub(/\[\[.*\]\]/, '') # Remove attributes like [[noreturn]]
   ret = ret[2..].partition('(')[0].strip
   next unless ret.include?(' ') && ret.rpartition(' ')[2].end_with?(func_name)
   ret = ret[...-func_name.length].strip
