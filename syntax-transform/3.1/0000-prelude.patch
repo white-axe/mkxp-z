@@ -121,7 +121,7 @@
  
 +bool mkxp_ec_is_syntax_transform_active(unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny);
 +
-+void mkxp_raise_no_method_exception(VALUE receiver, const char *method_name);
++NORETURN(void mkxp_raise_no_method_exception(VALUE receiver, const char *method_name));
 +
  RBIMPL_SYMBOL_EXPORT_END()
  
