@@ -51,7 +51,7 @@
  #include "insns.inc"
  #include "insns_info.inc"
  
-+void
++[[noreturn]] void
 +mkxp_raise_no_method_exception(VALUE receiver, const char *method_name)
 +{
 +    VALUE rb_make_no_method_exception(VALUE, VALUE, VALUE, int, const VALUE *, int);
@@ -121,7 +121,7 @@
  
 +bool mkxp_ec_is_syntax_transform_active(unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny);
 +
-+NORETURN(void mkxp_raise_no_method_exception(VALUE receiver, const char *method_name));
++[[noreturn]] void mkxp_raise_no_method_exception(VALUE receiver, const char *method_name);
 +
  RBIMPL_SYMBOL_EXPORT_END()
  
