@@ -1,6 +1,18 @@
 # This patch allows Ruby to compile with LTO enabled when targeting WASI
 # by marking every function that calls asyncify_start_unwind(), asyncify_stop_unwind(), asyncify_start_rewind() or asyncify_stop_rewind() as noinline.
+# Also marks all of the `Init_` functions called in inits.c as noinline to prevent the `ruby_setup()` function from becoming too large.
 
+--- a/inits.c
++++ b/inits.c
+@@ -15,7 +15,7 @@
+ static void Init_builtin_prelude(void);
+ #include "prelude.rbinc"
+ 
+-#define CALL(n) {void Init_##n(void); Init_##n();}
++#define CALL(n) {__attribute__((noinline)) void Init_##n(void); Init_##n();}
+ 
+ void
+ rb_call_inits(void)
 --- a/wasm/fiber.c
 +++ b/wasm/fiber.c
 @@ -33,7 +33,7 @@ rb_wasm_init_context(rb_wasm_fiber_context *fcp, void (*func)(void *, void *), v
