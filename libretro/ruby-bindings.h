@@ -265,7 +265,7 @@ static void mkxp_thread_priorityqueue_push(rb_thread_t *thread) {
     }
 
     if (mkxp_thread_priorityqueue_size == mkxp_thread_priorityqueue_capacity) {
-        VM_ASSERT(mkxp_thread_priorityqueue_capacity * 2 * sizeof(rb_thread_t *) > mkxp_thread_priorityqueue_capacity * sizeof(rb_thread_t *));
+        assert(mkxp_thread_priorityqueue_capacity * 2 * sizeof(rb_thread_t *) > mkxp_thread_priorityqueue_capacity * sizeof(rb_thread_t *));
         mkxp_thread_priorityqueue_capacity *= 2;
         mkxp_thread_priorityqueue = ruby_xrealloc(mkxp_thread_priorityqueue, mkxp_thread_priorityqueue_capacity * sizeof(rb_thread_t *));
     }
@@ -420,7 +420,7 @@ void mkxp_thread_stack_initialize(rb_thread_t *th) {
     size_t stack_maxsize = (size_t)rb_wasm_stack_get_base();
     void *stack_end = ruby_xmalloc(stack_maxsize);
     void *stack_start = (void *)(((uintptr_t)stack_end + (uintptr_t)stack_maxsize) & ~(uintptr_t)15); /* We round the stack start address down to the nearest multiple of 16 because LLVM requires a stack alignment of 16 on WebAssembly targets */
-    VM_ASSERT(stack_start > stack_end);
+    assert(stack_start > stack_end);
     stack_maxsize = (uintptr_t)stack_start - (uintptr_t)stack_end;
 
     th->nt->machine_stack_end = stack_end;
@@ -452,7 +452,7 @@ void mkxp_thread_mark_zombies(void) {
 
 /* Destroys a thread. You need to destroy the `nt` field of the thread, the VM stack and the machine stack as well. The thread will not be the main thread. */
 void mkxp_thread_destroy(rb_thread_t *th) {
-    VM_ASSERT(th != GET_THREAD());
+    assert(th != GET_THREAD());
 
     mkxp_thread_priorityqueue_remove(th);
 
@@ -517,8 +517,8 @@ rb_nativethread_lock_t mkxp_thread_mutex_initialize(void) {
 
 /* Destroys an unlocked mutex. */
 void mkxp_thread_mutex_destroy(rb_nativethread_lock_t mutex) {
-    VM_ASSERT(!mutex->locked);
-    VM_ASSERT(mutex->wait_queue == NULL);
+    assert(!mutex->locked);
+    assert(mutex->wait_queue == NULL);
     ruby_xfree(mutex);
 }
 
@@ -527,7 +527,7 @@ int mkxp_thread_mutex_trylock(rb_nativethread_lock_t mutex) {
     if (mutex->locked) {
         return -EBUSY;
     } else {
-        VM_ASSERT(mutex->wait_queue == NULL);
+        assert(mutex->wait_queue == NULL);
         mutex->locked = true;
         return 0;
     }
@@ -573,8 +573,8 @@ static bool mkxp_thread_mutex_unlock0(rb_nativethread_lock_t mutex) {
     /* Remove and unblock one thread from the mutex's queue */
     struct mkxp_mutex_node *node = mutex->wait_queue;
     rb_thread_t *th = node->th;
-    VM_ASSERT(th->nt->mutex == mutex);
-    VM_ASSERT(th->nt->mutex_node == node);
+    assert(th->nt->mutex == mutex);
+    assert(th->nt->mutex_node == node);
     mkxp_thread_stop_waiting(th);
     ruby_xfree(node);
     mkxp_thread_schedule_now(th);
@@ -609,7 +609,7 @@ rb_nativethread_cond_t mkxp_thread_cond_initialize(void) {
 
 /* Destroys a condition variable that no threads are waiting on. */
 void mkxp_thread_cond_destroy(rb_nativethread_cond_t cond) {
-    VM_ASSERT(cond->wait_queue == NULL);
+    assert(cond->wait_queue == NULL);
     ruby_xfree(cond);
 }
 
@@ -622,8 +622,8 @@ void mkxp_thread_cond_signal(rb_nativethread_cond_t cond) {
     /* Remove and unblock one thread from the condition variable's queue */
     struct mkxp_cond_node *node = cond->wait_queue;
     rb_thread_t *th = node->th;
-    VM_ASSERT(th->nt->cond == cond);
-    VM_ASSERT(th->nt->cond_node == node);
+    assert(th->nt->cond == cond);
+    assert(th->nt->cond_node == node);
     mkxp_thread_stop_waiting(th);
     ruby_xfree(node);
     mkxp_thread_schedule_now(th);
@@ -644,8 +644,8 @@ void mkxp_thread_cond_broadcast(rb_nativethread_cond_t cond) {
         /* Remove and unblock one thread from the condition variable's queue */
         struct mkxp_cond_node *node = cond->wait_queue;
         rb_thread_t *th = node->th;
-        VM_ASSERT(th->nt->cond == cond);
-        VM_ASSERT(th->nt->cond_node == node);
+        assert(th->nt->cond == cond);
+        assert(th->nt->cond_node == node);
         mkxp_thread_stop_waiting(th);
         ruby_xfree(node);
         mkxp_thread_schedule(th);
@@ -708,8 +708,6 @@ void mkxp_thread_cond_timedwait(rb_nativethread_cond_t cond, rb_nativethread_loc
 /* Removes a thread from the wait queue of the mutex or condition variable it is waiting on, if any. */
 static void mkxp_thread_stop_waiting(rb_thread_t *th) {
     if (th->nt->mutex_node != NULL) {
-        VM_ASSERT(th->nt->mutex != NULL);
-
         struct mkxp_mutex_node *node = (struct mkxp_mutex_node *)th->nt->mutex_node;
 
         if (node->prev != NULL) {
@@ -729,8 +727,6 @@ static void mkxp_thread_stop_waiting(rb_thread_t *th) {
     }
 
     if (th->nt->cond_node != NULL) {
-        VM_ASSERT(th->nt->cond != NULL);
-
         struct mkxp_cond_node *node = (struct mkxp_cond_node *)th->nt->cond_node;
 
         if (node->prev != NULL) {
@@ -759,7 +755,7 @@ static void mkxp_thread_stop_waiting(rb_thread_t *th) {
  *   - If it returns 2, the original function is not done running. To continue running it, you need to wait until the next video frame and then call `mkxp_sandbox_yield()` again without calling the original function.
  * The return value 2 is only used to handle the edge case where all of the VM threads are sleeping at the same time, so if you can make sure that doesn't happen, you can safely assume the return value will not be 2.
  * Note: This function must be called from the root fiber of the main thread. */
-MKXP_SANDBOX_API uint8_t mkxp_sandbox_yield(void) {
+MKXP_SANDBOX_API __attribute__((noinline)) uint8_t mkxp_sandbox_yield(void) {
     static bool unwound;
     static bool new_fiber_started;
     static void *asyncify_buf;

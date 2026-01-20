@@ -27,11 +27,12 @@ NATIVE_RANLIB ?= ranlib
 NATIVE_CFLAGS ?=
 NATIVE_CXXFLAGS ?=
 NATIVE_LDFLAGS ?=
-WASI_CFLAGS ?= -Oz -DNDEBUG
-WASI_CXXFLAGS ?= -Oz -DNDEBUG
+WASI_CFLAGS ?= -O3 -DNDEBUG
+WASI_CXXFLAGS ?= -O3 -DNDEBUG
 WASI_LDFLAGS ?=
-WASM_OPT_FLAGS ?= -Oz
+WASM_OPT_FLAGS ?= -O4
 
+MKXPZ_RUBY_HAVE_LTO ?= 1
 MKXPZ_RUBY_HAVE_SOCKETS ?= 1
 MKXPZ_RUBY_HAVE_USER_THREADS ?= 1
 
@@ -90,6 +91,10 @@ ifneq ($(WASI_SDK_VERSION_EXPECTED),$(WASI_SDK_VERSION_ACTUAL))
 endif
 
 WASI_TARGET_FLAGS := --target=$(WASI_TARGET) -mbulk-memory
+ifeq ($(MKXPZ_RUBY_HAVE_LTO),1)
+    WASI_TARGET_FLAGS := $(WASI_TARGET_FLAGS) -flto
+    WASI_LDFLAGS := $(WASI_LDFLAGS) -flto
+endif
 ifeq ($(MKXPZ_RUBY_HAVE_USER_THREADS),1)
     WASI_TARGET_FLAGS := $(WASI_TARGET_FLAGS) -DMKXPZ_RUBY_HAVE_USER_THREADS
 endif
@@ -241,6 +246,9 @@ else
 	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-compat.patch
 endif
 	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-prng-time.patch
+ifeq ($(MKXPZ_RUBY_HAVE_LTO),1)
+	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-lto.patch
+endif
 ifeq ($(MKXPZ_RUBY_HAVE_SOCKETS),1)
 	cd $(RUBY_SRC) && $(GIT) apply $(PWD)/ruby-sockets.patch
 endif
