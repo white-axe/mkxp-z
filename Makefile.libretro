@@ -22,6 +22,8 @@ else ifeq ($(platform),unix)
         MKXPZ_CPU = power8
     else ifeq ($(MKXPZ_CPU_FAMILY),x86)
         MKXPZ_CPU = i686
+        # The build runs out of memory with LTO enabled
+        MKXPZ_LTO = false
     else
         MKXPZ_CPU = $(MKXPZ_CPU_FAMILY)
     endif
