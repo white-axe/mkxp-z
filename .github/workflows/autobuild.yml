@@ -1415,7 +1415,7 @@ jobs:
           else
             threaded=false
           fi
-          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=false -Dlibretro=true -Dlibretro_save_states=true -Demscripten_threaded=$threaded
+          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dlibretro=true -Dlibretro_save_states=true -Demscripten_threaded=$threaded
 
       - name: Build core
         run: |
@@ -1727,7 +1727,7 @@ jobs:
       - name: Configure core
         run: |
           git config --global --add safe.directory "$(pwd)"
-          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-wiiu.txt --buildtype release -Db_lto=false -Dlibretro=true -Dlibretro_save_states=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file libretro/meson-wiiu.txt --buildtype release -Db_lto=true -Dlibretro=true -Dlibretro_save_states=true
 
       - name: Build core
         run: |
