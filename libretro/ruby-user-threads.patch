@@ -204,7 +204,7 @@
 -    struct timespec ts;
 -    (void)clock_nanosleep(CLOCK_REALTIME, 0, rb_hrtime2timespec(&ts, rel), NULL);
 +    void mkxp_thread_sleep(rb_thread_t *, uint64_t nanoseconds);
-+    mkxp_thread_sleep(th, *rel);
++    mkxp_thread_sleep(th, rel == NULL ? (uint64_t)-1 : *rel);
  }
  
  static int
