@@ -136,6 +136,7 @@ static void mkxp_sandbox_update_fiber(void) {
 static rb_thread_t **mkxp_thread_priorityqueue = NULL;
 static size_t mkxp_thread_priorityqueue_size = 0;
 static size_t mkxp_thread_priorityqueue_capacity = 4;
+static uint64_t mkxp_thread_counter = 0;
 static bool mkxp_thread_switching;
 
 struct mkxp_zombie_node {
@@ -167,7 +168,7 @@ static inline bool mkxp_thread_compare(const rb_thread_t *a, const rb_thread_t *
 
 /* Returns true if the current timestamp is greater than or equal to the timestamp a thread is scheduled to run at, otherwise false. */
 bool mkxp_thread_is_ready(const rb_thread_t *thread) {
-    return thread != NULL && mkxp_thread_timestamp() >= thread->nt->timestamp;
+    return thread != NULL && mkxp_thread_timestamp() + 1 >= thread->nt->timestamp;
 }
 
 /* Returns the next thread in the queue ready to be scheduled, or null if there isn't one. */
@@ -336,9 +337,8 @@ void mkxp_thread_switch(void) {
 
 /* Schedules a thread to run again after all other threads currently scheduled to run on or before the given timestamp have been run. */
 static void mkxp_thread_schedule_at(rb_thread_t *th, uint64_t timestamp) {
-    static uint64_t counter = 0;
-    th->nt->counter = ++counter;
-    th->nt->timestamp = timestamp;
+    th->nt->counter = mkxp_thread_counter++;
+    th->nt->timestamp = timestamp == (uint64_t)-1 ? (uint64_t)-1 : timestamp + 1;
     mkxp_thread_priorityqueue_update(th);
 }
 
@@ -355,7 +355,7 @@ static void mkxp_thread_schedule_never(rb_thread_t *th) {
 
 /* Schedules a thread to be run immediately after the current thread. */
 void mkxp_thread_schedule_now(rb_thread_t *th) {
-    th->nt->counter = 0;
+    th->nt->counter = ~mkxp_thread_counter++;
     th->nt->timestamp = 0;
     mkxp_thread_priorityqueue_update(th);
 }
@@ -638,8 +638,6 @@ void mkxp_thread_cond_broadcast(rb_nativethread_cond_t cond) {
         return;
     }
 
-    rb_thread_t *next_thread;
-
     while (cond->wait_queue != NULL) {
         /* Remove and unblock one thread from the condition variable's queue */
         struct mkxp_cond_node *node = cond->wait_queue;
@@ -648,13 +646,10 @@ void mkxp_thread_cond_broadcast(rb_nativethread_cond_t cond) {
         assert(th->nt->cond_node == node);
         mkxp_thread_stop_waiting(th);
         ruby_xfree(node);
-        mkxp_thread_schedule(th);
-
-        next_thread = th;
+        mkxp_thread_schedule_now(th);
     }
 
     /* Yield to one of the unblocked threads */
-    mkxp_thread_schedule_now(next_thread);
     mkxp_thread_switch();
 }
 
