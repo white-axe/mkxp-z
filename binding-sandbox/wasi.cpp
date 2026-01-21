@@ -505,8 +505,8 @@ template <bool is_write_stream, bool seek_to_end> static void open_stream_impl(s
                 wasi->ref<uint8_t>(result + 4) = WASI_FILESYSTEM_ERROR_IO;
                 return;
             }
-            if (seek_to_end) {
-                offset = (uint64_t)PHYSFS_fileLength(wasi->fdtable[fd].file_handle()->file.get_read());
+            if (seek_to_end && (wasi->fdtable[fd].file_handle()->file.is_read_open() || wasi->fdtable[fd].file_handle()->file.is_write_open())) {
+                offset = (uint64_t)PHYSFS_fileLength(wasi->fdtable[fd].file_handle()->file.is_read_open() ? wasi->fdtable[fd].file_handle()->file.get_read() : wasi->fdtable[fd].file_handle()->file.get_write());
                 if (offset == (uint64_t)-1) {
                     wasi->ref<uint8_t>(result) = true;
                     wasi->ref<uint8_t>(result + 4) = WASI_FILESYSTEM_ERROR_IO;
@@ -3382,8 +3382,8 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_fd_seek(struct w2c_wasi__snapsh
             {
                 switch (whence) {
                     case 2:
-                        {
-                            uint64_t length = PHYSFS_fileLength(wasi->fdtable[fd].file_handle()->file.get_read());
+                        if (wasi->fdtable[fd].file_handle()->file.is_read_open() || wasi->fdtable[fd].file_handle()->file.is_write_open()) {
+                            uint64_t length = PHYSFS_fileLength(wasi->fdtable[fd].file_handle()->file.is_read_open() ? wasi->fdtable[fd].file_handle()->file.get_read() : wasi->fdtable[fd].file_handle()->file.get_write());
                             if (length == (uint64_t)-1) {
                                 return WASIP1_EIO;
                             }
