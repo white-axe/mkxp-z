@@ -509,7 +509,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y git curl build-essential automake libtool binaryen zip universal-ctags ruby nodejs npm
+          sudo apt install -y git curl build-essential automake libtool zip universal-ctags ruby nodejs npm
           npm install @actions/artifact@4 fast-glob@3
 
       - name: Set up WASI SDK
@@ -519,10 +519,17 @@ jobs:
           tar -xzf ${{ runner.temp }}/wasi-sdk.tar.gz -C ${{ runner.temp }}/wasi-sdk --strip-components=1
           rm ${{ runner.temp }}/wasi-sdk.tar.gz
 
+      - name: Set up Binaryen
+        run: |
+          curl -Lo ${{ runner.temp }}/binaryen.tar.gz https://github.com/WebAssembly/binaryen/releases/download/version_125/binaryen-version_125-x86_64-linux.tar.gz
+          mkdir ${{ runner.temp }}/binaryen
+          tar -xzf ${{ runner.temp }}/binaryen.tar.gz -C ${{ runner.temp }}/binaryen --strip-components=1
+          rm ${{ runner.temp }}/binaryen.tar.gz
+
       - name: Build stage 1
         run: |
           cd libretro
-          CLICOLOR_FORCE=1 make -j $(nproc) WASI_SDK=${{ runner.temp }}/wasi-sdk
+          CLICOLOR_FORCE=1 make -j $(nproc) WASI_SDK=${{ runner.temp }}/wasi-sdk WASM_OPT=${{ runner.temp }}/binaryen/bin/wasm-opt
 
       - id: upload-artifact
         name: Upload artifact

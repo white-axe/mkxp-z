@@ -223,7 +223,7 @@ $(RUBY_SRC)/Makefile $(RUBY_SRC)/.ext/include/$(WASI_TARGET)/ruby/config.h $(RUB
 		LDFLAGS='-fuse-ld=$(WASI_SDK)/bin/wasm-ld -Wl,--export-dynamic,--stack-first,-z,stack-size=$(RUBY_STACK_SIZE) $(WASI_LDFLAGS)' \
 		XCFLAGS='-DWASM_SETJMP_STACK_BUFFER_SIZE=24576 -DWASM_FIBER_STACK_BUFFER_SIZE=24576 -DWASM_SCAN_STACK_BUFFER_SIZE=24576' \
 		optflags='-fno-fast-math' \
-		wasmoptflags='--enable-bulk-memory $(WASM_OPT_FLAGS) --pass-arg=asyncify-ignore-imports' \
+		wasmoptflags='--enable-bulk-memory --no-inline=Init_* $(WASM_OPT_FLAGS) --pass-arg=asyncify-ignore-imports' \
 		ac_cv_func_realpath=no \
 		$(shell $(RUBY) -e 'puts "ac_cv_func_dlopen=no" if Gem::Version.new("$(RUBY_VERSION)") < Gem::Version.new("3.3")') \
 		$(shell $(RUBY) -e 'puts "--disable-jit-support" if Gem::Version.new("$(RUBY_VERSION)") < Gem::Version.new("3.3")') \
