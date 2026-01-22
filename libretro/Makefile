@@ -36,6 +36,8 @@ MKXPZ_RUBY_HAVE_LTO ?= 1
 MKXPZ_RUBY_HAVE_SOCKETS ?= 1
 MKXPZ_RUBY_HAVE_USER_THREADS ?= 1
 
+MKXPZ_RUBY_NUM_OUTPUTS ?= 32
+
 BUILD_PREFIX := $(PWD)/build
 OUTDIR := $(BUILD_PREFIX)/libretro-stage1
 LIBDIR := $(BUILD_PREFIX)/lib
@@ -51,8 +53,6 @@ WASI_AR := $(WASI_SDK)/bin/llvm-ar
 WASI_RANLIB := $(WASI_SDK)/bin/llvm-ranlib
 NATIVE_TOOLCHAIN := CC=$(NATIVE_CC) CXX=$(NATIVE_CXX) LD=$(NATIVE_LD) AR=$(NATIVE_AR) RANLIB=$(NATIVE_RANLIB)
 WASI_TOOLCHAIN := CC=$(WASI_CC) CXX=$(WASI_CXX) LD=$(WASI_LD) AR=$(WASI_AR) RANLIB=$(WASI_RANLIB)
-
-RUBY_NUM_OUTPUTS ?= 8
 
 # We need a larger stack size for Ruby 3.2 due to the lack of the overhaul of the setjmp implementation in WASI builds of Ruby started in https://github.com/ruby/ruby/pull/8902
 ifneq ($(shell $(RUBY) -e 'puts "1" if Gem::Version.new("$(RUBY_VERSION)") < Gem::Version.new("3.3")'),)
@@ -110,7 +110,7 @@ all default: ruby-dist ruby-bindings $(OUTDIR)/preload.zip $(OUTDIR)/boost_prede
 
 include $(SYNTAX_TRANSFORM_DIR)/Makefile
 
-ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-instantiate-args.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
+ruby-dist: $(OUTDIR)/dist.zip $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-indices.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-instantiate-args.h $(foreach i,$(shell seq 0 $(shell expr $(MKXPZ_RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
 
 ruby-bindings: $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.cpp $(OUTDIR)/sandbox-bindgen/mkxp-sandbox-bindgen.h
 
@@ -139,9 +139,9 @@ $(OUTDIR)/preload.zip: ../scripts/preload/mkxp_wrap.rb ../scripts/preload/ruby_c
 
 # Ruby (targets WASI)
 
-$(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(foreach i,$(shell seq 0 $(shell expr $(RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h &: $(WASM2C) $(LIBDIR)/Dist/bin/ruby
+$(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h $(foreach i,$(shell seq 0 $(shell expr $(MKXPZ_RUBY_NUM_OUTPUTS) - 1)),$(OUTDIR)/ruby/mkxp-sandbox-ruby_$(i).c) $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h &: $(WASM2C) $(LIBDIR)/Dist/bin/ruby
 	mkdir -p $(OUTDIR)/ruby
-	echo '$(RUBY_NUM_OUTPUTS)' > $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt
+	echo '$(MKXPZ_RUBY_NUM_OUTPUTS)' > $(OUTDIR)/ruby/mkxp-sandbox-ruby-num-outputs.txt
 	echo '$(WASI_TARGET)' > $(OUTDIR)/ruby/mkxp-sandbox-ruby-target.txt
 	echo '#ifndef RAPI_MAJOR' > $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
 	$(RUBY) -e 'puts "#define RAPI_MAJOR " + "$(RUBY_VERSION)".split(".")[0]' >> $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
@@ -152,7 +152,7 @@ $(OUTDIR)/ruby/mkxp-sandbox-ruby.h $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h $(OUT
 	echo '#ifndef RAPI_TEENY' >> $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
 	$(RUBY) -e 'puts "#define RAPI_TEENY " + "$(RUBY_VERSION)".split(".")[2]' >> $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
 	echo '#endif /* RAPI_TEENY */' >> $(OUTDIR)/ruby/mkxp-sandbox-ruby-version.h
-	$(WASM2C) $(LIBDIR)/Dist/bin/ruby -n ruby --num-outputs=$(RUBY_NUM_OUTPUTS) -o $(OUTDIR)/ruby/mkxp-sandbox-ruby.c
+	$(WASM2C) $(LIBDIR)/Dist/bin/ruby -n ruby --num-outputs=$(MKXPZ_RUBY_NUM_OUTPUTS) -o $(OUTDIR)/ruby/mkxp-sandbox-ruby.c
 	# Find all the function types declared using `FUNC_TYPE_DECL_EXTERN_T` and redeclare them as macros to fix the "initializer element is not constant" compilation error that occurs when using GCC versions earlier than 8.1.0
 	rm -f $(OUTDIR)/ruby/mkxp-sandbox-ruby-func-types.h
 	for func_type in $$($(GREP) -r 'FUNC_TYPE_DECL_EXTERN_T *([^()]*)' $(OUTDIR)/ruby/mkxp-sandbox-ruby-impl.h | $(GREP) -v '# *define' | $(SED) -e 's/FUNC_TYPE_DECL_EXTERN_T *( *\(.*\) *).*/\1/'); do \
@@ -226,7 +226,7 @@ $(RUBY_SRC)/Makefile $(RUBY_SRC)/.ext/include/$(WASI_TARGET)/ruby/config.h $(RUB
 		LDFLAGS='-fuse-ld=$(WASI_SDK)/bin/wasm-ld -Wl,--export-dynamic,--stack-first,-z,stack-size=$(RUBY_STACK_SIZE) $(WASI_LDFLAGS)' \
 		XCFLAGS='-DWASM_SETJMP_STACK_BUFFER_SIZE=24576 -DWASM_FIBER_STACK_BUFFER_SIZE=24576 -DWASM_SCAN_STACK_BUFFER_SIZE=24576' \
 		optflags='-fno-fast-math' \
-		wasmoptflags='--enable-bulk-memory $(WASM_OPT_FLAGS) --pass-arg=asyncify-ignore-imports' \
+		wasmoptflags='--enable-bulk-memory --no-inline=Init_* $(WASM_OPT_FLAGS) --pass-arg=asyncify-ignore-imports' \
 		ac_cv_func_realpath=no \
 		$(shell $(RUBY) -e 'puts "ac_cv_func_dlopen=no" if Gem::Version.new("$(RUBY_VERSION)") < Gem::Version.new("3.3")') \
 		$(shell $(RUBY) -e 'puts "--disable-jit-support" if Gem::Version.new("$(RUBY_VERSION)") < Gem::Version.new("3.3")') \

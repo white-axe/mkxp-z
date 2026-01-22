@@ -240,7 +240,6 @@ namespace mkxp_retro {
     retro_environment_t environment;
     retro_input_poll_t input_poll;
     retro_input_state_t input_state;
-    struct retro_perf_callback perf;
     struct retro_hw_render_callback hw_render;
     bool keyboard_state[RETROK_LAST];
     bool input_polled;
@@ -1408,18 +1407,6 @@ extern "C" RETRO_API void retro_init() {
 
     if (!environment(RETRO_ENVIRONMENT_GET_MESSAGE_INTERFACE_VERSION, &message_interface_version)) {
         message_interface_version = 0;
-    }
-
-    if (!environment(RETRO_ENVIRONMENT_GET_PERF_INTERFACE, &perf)) {
-        perf = {
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-        };
     }
 
     mkxp_vfs.required_interface_version = 3;
