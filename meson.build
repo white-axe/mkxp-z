@@ -498,16 +498,47 @@ if not compilers['cpp'].has_header_symbol('chrono', 'std::chrono::system_clock::
     global_args += '-DMKXPZ_NO_STD_CHRONO_SYSTEM_CLOCK_NOW'
 endif
 
-if not compilers['cpp'].has_header_symbol('time.h', 'gmtime_r') or not compilers['cpp'].links('''
+if is_orbisdev or not compilers['cpp'].has_header_symbol('time.h', 'gmtime_r') or not compilers['cpp'].links('''
     #include <time.h>
     int main(void) {
         time_t timer = 0;
         struct tm buf;
-        gmtime_r(&timer, &buf);
+        if (gmtime_r(&timer, &buf) == nullptr) {
+            return 1;
+        }
         return mktime(&buf) != (time_t)-1;
     }
 ''', args: link_test_args, name: 'gmtime_r sanity check')
     global_args += '-DMKXPZ_NO_GMTIME_R'
+endif
+
+if is_orbisdev or not compilers['cpp'].has_header_symbol('time.h', 'gmtime_s') or not compilers['cpp'].links('''
+    #include <time.h>
+    int main(void) {
+        time_t timer = 0;
+        struct tm buf;
+        if (gmtime_s(&timer, &buf) == nullptr) {
+            return 1;
+        }
+        return mktime(&buf) != (time_t)-1;
+    }
+''', args: link_test_args, name: 'gmtime_s (standard version) sanity check')
+    global_args += '-DMKXPZ_NO_GMTIME_S'
+endif
+
+if is_orbisdev or not compilers['cpp'].has_header_symbol('time.h', 'gmtime_s') or not compilers['cpp'].links('''
+    #include <time.h>
+    int main(void) {
+        time_t timer = 0;
+        struct tm buf;
+        errno_t result = gmtime_s(&buf, &timer);
+        if (result != 0) {
+            return 1;
+        }
+        return mktime(&buf) != (time_t)-1;
+    }
+''', args: link_test_args, name: 'gmtime_s (Windows version) sanity check')
+    global_args += '-DMKXPZ_NO_GMTIME_S_WOE32'
 endif
 
 # Enable integer-only mode in FLAC when building with Vita SDK. Otherwise, we get an internal compiler error in FLAC__window_triangle:
