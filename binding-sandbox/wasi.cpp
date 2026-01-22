@@ -34,7 +34,7 @@
 #include "binding-base.h"
 #include "sandbox-serial-util.h"
 
-#ifndef MKXPZ_NO_CLOCK_GETTIME
+#if !defined(MKXPZ_NO_CLOCK_GETTIME) || !defined(MKXPZ_NO_CLOCK_GETRES)
 #  include <time.h>
 #elif !defined(MKXPZ_NO_STD_CHRONO_SYSTEM_CLOCK_NOW)
 #  include <chrono>
@@ -423,10 +423,10 @@ static std::pair<uint64_t, uint32_t> wall_clock_now_impl() {
     }
     return {(uint64_t)ts.tv_sec, (uint32_t)ts.tv_nsec};
 #elif !defined(MKXPZ_NO_STD_CHRONO_SYSTEM_CLOCK_NOW)
-    std::chrono::time_point<std::chrono::system_clock> now(std::chrono::system_clock::now());
-    uint64_t seconds = (uint64_t)std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
-    uint32_t nanoseconds = (uint32_t)std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count() % (uint32_t)1000000000U;
-    return {seconds, nanoseconds};
+    auto duration = std::chrono::system_clock::now().time_since_epoch();
+    auto duration_seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
+    duration -= duration_seconds;
+    return {(uint64_t)duration_seconds.count(), (uint32_t)std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count()};
 #else
     return {0, 0};
 #endif
@@ -472,7 +472,7 @@ static std::pair<uint64_t, uint32_t> wall_clock_resolution_impl() {
     }
     return {(uint64_t)ts.tv_sec, (uint32_t)ts.tv_nsec};
 #else
-    return {0, 0};
+    return {0, 1};
 #endif
 }
 
