@@ -40,7 +40,7 @@
 #  include <chrono>
 #endif
 
-#ifndef MKXPZ_NO_GMTIME_R
+#if !defined(MKXPZ_NO_GMTIME_R) || !defined(MKXPZ_NO_GMTIME_S) || !defined(MKXPZ_NO_GMTIME_S_WOE32)
 #  include <time.h>
 #endif
 
@@ -435,12 +435,20 @@ static std::pair<uint64_t, uint32_t> wall_clock_now_impl() {
     std::pair<uint64_t, uint32_t> now(0, 0);
 #endif
 
-#ifndef MKXPZ_NO_GMTIME_R
+#if !defined(MKXPZ_NO_GMTIME_R) || !defined(MKXPZ_NO_GMTIME_S) || !defined(MKXPZ_NO_GMTIME_S_WOE32)
     // Convert the time from UTC to the local timezone
     if (now.first != 0) {
         time_t t1 = (time_t)now.first;
         struct tm buf;
-        if (gmtime_r(&t1, &buf) != nullptr) {
+        if (
+#ifndef MKXPZ_NO_GMTIME_R
+            gmtime_r(&t1, &buf) != nullptr
+#elif !defined(MKXPZ_NO_GMTIME_S)
+            gmtime_s(&t1, &buf) != nullptr
+#elif !defined(MKXPZ_NO_GMTIME_S_WOE32)
+            gmtime_s(&buf, &t1) == 0
+#endif
+        ) {
             time_t t2 = mktime(&buf);
             if (t2 != (time_t)-1) {
                 now.first += (uint64_t)t1 - (uint64_t)t2;
