@@ -466,6 +466,38 @@ if host_system == 'darwin'
     endif
 endif
 
+if not compilers['cpp'].has_header_symbol('time.h', 'clock_gettime') or not compilers['cpp'].links('''
+    #include <time.h>
+    int main(void) {
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        return ts.tv_sec == 0 && ts.tv_nsec == 0;
+    }
+''', args: link_test_args, name: 'clock_gettime sanity check')
+    global_args += '-DMKXPZ_NO_CLOCK_GETTIME'
+endif
+
+if not compilers['cpp'].has_header_symbol('time.h', 'clock_getres') or not compilers['cpp'].links('''
+    #include <time.h>
+    int main(void) {
+        struct timespec ts;
+        clock_getres(CLOCK_REALTIME, &ts);
+        return ts.tv_sec == 0 && ts.tv_nsec == 0;
+    }
+''', args: link_test_args, name: 'clock_getres sanity check')
+    global_args += '-DMKXPZ_NO_CLOCK_GETRES'
+endif
+
+if not compilers['cpp'].has_header_symbol('chrono', 'std::chrono::system_clock::now') or not compilers['cpp'].links('''
+    #include <chrono>
+    int main(void) {
+        std::chrono::time_point<std::chrono::system_clock> now(std::chrono::system_clock::now());
+        return std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count() == 0 && std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count() == 0;
+    }
+''', args: link_test_args, name: 'std::chrono::system_clock::now sanity check')
+    global_args += '-DMKXPZ_NO_STD_CHRONO_SYSTEM_CLOCK_NOW'
+endif
+
 # Enable integer-only mode in FLAC when building with Vita SDK. Otherwise, we get an internal compiler error in FLAC__window_triangle:
 #
 # ../subprojects/flac/src/libFLAC/window.c: In function 'FLAC__window_triangle':

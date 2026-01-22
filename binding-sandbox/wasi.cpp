@@ -34,6 +34,12 @@
 #include "binding-base.h"
 #include "sandbox-serial-util.h"
 
+#ifndef MKXPZ_NO_CLOCK_GETTIME
+#  include <time.h>
+#elif !defined(MKXPZ_NO_STD_CHRONO_SYSTEM_CLOCK_NOW)
+#  include <chrono>
+#endif
+
 using namespace mkxp_sandbox;
 
 static const std::pair<std::string, std::string> wasi_env[] = {
@@ -408,14 +414,32 @@ extern "C" uint64_t w2c_wasi0x3Aclocks0x2Fmonotonic0x2Dclock0x4000x2E20x2E0_now(
     return mkxp_retro::get_ticks_us() * (uint64_t)1000;
 }
 
+static std::pair<uint64_t, uint32_t> wall_clock_now_impl() {
+#ifndef MKXPZ_NO_CLOCK_GETTIME
+    struct timespec ts;
+    if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
+        ts.tv_sec = 0;
+        ts.tv_nsec = 0;
+    }
+    return {(uint64_t)ts.tv_sec, (uint32_t)ts.tv_nsec};
+#elif !defined(MKXPZ_NO_STD_CHRONO_SYSTEM_CLOCK_NOW)
+    std::chrono::time_point<std::chrono::system_clock> now(std::chrono::system_clock::now());
+    uint64_t seconds = (uint64_t)std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+    uint32_t nanoseconds = (uint32_t)std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count() % (uint32_t)1000000000U;
+    return {seconds, nanoseconds};
+#else
+    return {0, 0};
+#endif
+}
+
 extern "C" void w2c_wasi0x3Aclocks0x2Fwall0x2Dclock0x4000x2E20x2E0_now(struct w2c_wasi0x3Aclocks0x2Fwall0x2Dclock0x4000x2E20x2E0 *wasi, wasm_ptr_t result) {
     LOG_PRINT(RETRO_LOG_DEBUG, "wasi:clocks/wall-clock@0.2.0::now()\n");
 
     wasi->check_bounds(result, 16);
 
-    uint64_t time_usec = mkxp_retro::perf.get_time_usec != nullptr ? (uint64_t)mkxp_retro::perf.get_time_usec() : (uint64_t)0;
-    wasi->ref<uint64_t>(result) = time_usec / 1000000U;
-    wasi->ref<uint32_t>(result + 8) = (time_usec % 1000000U) * 1000U;
+    std::pair<uint64_t, uint32_t> now(wall_clock_now_impl());
+    wasi->ref<uint64_t>(result) = now.first;
+    wasi->ref<uint32_t>(result + 8) = now.second;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_clock_time_get(struct w2c_wasi__snapshot__preview1 *wasi, uint32_t id, uint64_t precision, wasm_ptr_t result) {
@@ -426,7 +450,8 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_clock_time_get(struct w2c_wasi_
     wasi->check_bounds(result, 8);
 
     if (id == 0) {
-        wasi->ref<uint64_t>(result) = mkxp_retro::perf.get_time_usec != nullptr ? (uint64_t)mkxp_retro::perf.get_time_usec() * (uint64_t)1000 : (uint64_t)0;
+        std::pair<uint64_t, uint32_t> now(wall_clock_now_impl());
+        wasi->ref<uint64_t>(result) = now.first * (uint64_t)1000000000U + (uint64_t)now.second;
     } else {
         wasi->ref<uint64_t>(result) = mkxp_retro::get_ticks_us() * (uint64_t)1000;
     }
@@ -438,13 +463,27 @@ extern "C" uint64_t w2c_wasi0x3Aclocks0x2Fmonotonic0x2Dclock0x4000x2E20x2E0_reso
     return 1000;
 }
 
+static std::pair<uint64_t, uint32_t> wall_clock_resolution_impl() {
+#ifndef MKXPZ_NO_CLOCK_GETRES
+    struct timespec ts;
+    if (clock_getres(CLOCK_REALTIME, &ts) != 0) {
+        ts.tv_sec = 0;
+        ts.tv_nsec = 1;
+    }
+    return {(uint64_t)ts.tv_sec, (uint32_t)ts.tv_nsec};
+#else
+    return {0, 0};
+#endif
+}
+
 extern "C" void w2c_wasi0x3Aclocks0x2Fwall0x2Dclock0x4000x2E20x2E0_resolution(struct w2c_wasi0x3Aclocks0x2Fwall0x2Dclock0x4000x2E20x2E0 *wasi, wasm_ptr_t result) {
     LOG_PRINT(RETRO_LOG_DEBUG, "wasi:clocks/wall-clock@0.2.0::resolution()\n");
 
     wasi->check_bounds(result, 16);
 
-    wasi->ref<uint64_t>(result) = 0;
-    wasi->ref<uint32_t>(result + 8) = 1000;
+    std::pair<uint64_t, uint32_t> resolution(wall_clock_resolution_impl());
+    wasi->ref<uint64_t>(result) = resolution.first;
+    wasi->ref<uint32_t>(result + 8) = resolution.second;
 }
 
 extern "C" uint32_t w2c_wasi__snapshot__preview1_clock_res_get(struct w2c_wasi__snapshot__preview1 *wasi, uint32_t id, wasm_ptr_t result) {
@@ -452,7 +491,8 @@ extern "C" uint32_t w2c_wasi__snapshot__preview1_clock_res_get(struct w2c_wasi__
 
     wasi->check_bounds(result, 8);
 
-    wasi->ref<uint64_t>(result) = 1000;
+    std::pair<uint64_t, uint32_t> resolution(wall_clock_resolution_impl());
+    wasi->ref<uint64_t>(result) = resolution.first * (uint64_t)1000000000U + (uint64_t)resolution.second;
     return WASIP1_ESUCCESS;
 }
 
