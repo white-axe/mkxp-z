@@ -40,6 +40,10 @@
 #  include <chrono>
 #endif
 
+#ifndef MKXPZ_NO_GMTIME_R
+#  include <time.h>
+#endif
+
 using namespace mkxp_sandbox;
 
 static const std::pair<std::string, std::string> wasi_env[] = {
@@ -421,15 +425,31 @@ static std::pair<uint64_t, uint32_t> wall_clock_now_impl() {
         ts.tv_sec = 0;
         ts.tv_nsec = 0;
     }
-    return {(uint64_t)ts.tv_sec, (uint32_t)ts.tv_nsec};
+    std::pair<uint64_t, uint32_t> now((uint64_t)ts.tv_sec, (uint32_t)ts.tv_nsec);
 #elif !defined(MKXPZ_NO_STD_CHRONO_SYSTEM_CLOCK_NOW)
     auto duration = std::chrono::system_clock::now().time_since_epoch();
     auto duration_seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
     duration -= duration_seconds;
-    return {(uint64_t)duration_seconds.count(), (uint32_t)std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count()};
+    std::pair<uint64_t, uint32_t> now((uint64_t)duration_seconds.count(), (uint32_t)std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count());
 #else
-    return {0, 0};
+    std::pair<uint64_t, uint32_t> now(0, 0);
 #endif
+
+#ifndef MKXPZ_NO_GMTIME_R
+    // Convert the time from UTC to the local timezone
+    if (now.first != 0) {
+        time_t t1 = (time_t)now.first;
+        struct tm buf;
+        if (gmtime_r(&t1, &buf) != nullptr) {
+            time_t t2 = mktime(&buf);
+            if (t2 != (time_t)-1) {
+                now.first += (uint64_t)t1 - (uint64_t)t2;
+            }
+        }
+    }
+#endif
+
+    return now;
 }
 
 extern "C" void w2c_wasi0x3Aclocks0x2Fwall0x2Dclock0x4000x2E20x2E0_now(struct w2c_wasi0x3Aclocks0x2Fwall0x2Dclock0x4000x2E20x2E0 *wasi, wasm_ptr_t result) {

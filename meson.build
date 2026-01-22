@@ -498,6 +498,18 @@ if not compilers['cpp'].has_header_symbol('chrono', 'std::chrono::system_clock::
     global_args += '-DMKXPZ_NO_STD_CHRONO_SYSTEM_CLOCK_NOW'
 endif
 
+if not compilers['cpp'].has_header_symbol('time.h', 'gmtime_r') or not compilers['cpp'].links('''
+    #include <time.h>
+    int main(void) {
+        time_t timer = 0;
+        struct tm buf;
+        gmtime_r(&timer, &buf);
+        return mktime(&buf) != (time_t)-1;
+    }
+''', args: link_test_args, name: 'gmtime_r sanity check')
+    global_args += '-DMKXPZ_NO_GMTIME_R'
+endif
+
 # Enable integer-only mode in FLAC when building with Vita SDK. Otherwise, we get an internal compiler error in FLAC__window_triangle:
 #
 # ../subprojects/flac/src/libFLAC/window.c: In function 'FLAC__window_triangle':
