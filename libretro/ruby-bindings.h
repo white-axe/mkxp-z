@@ -490,7 +490,7 @@ void mkxp_thread_destroy(rb_thread_t *th) {
 static void mkxp_thread_wakeup(void *th) {
     ((rb_thread_t *)th)->status = THREAD_RUNNABLE;
 
-    mkxp_thread_stop_waiting(((rb_thread_t *)th));
+    mkxp_thread_stop_waiting((rb_thread_t *)th);
 
     if ((rb_thread_t *)th == GET_THREAD()) {
         return;
