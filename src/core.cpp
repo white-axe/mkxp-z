@@ -597,6 +597,10 @@ static void update_simple_core_options() {
     }
 
     for (size_t i = 0; i < NUM_BUTTONCODES; ++i) {
+        if (mkxpDefaultButtonMapping[i].type == DEFAULT) {
+            LOG_PRINTF(RETRO_LOG_DEBUG, "Skipping nonexistent button code %llu\n", (unsigned long long)i);
+            continue;
+        }
         const char *value = get_core_option((std::string("mkxp-z_button-") + std::to_string(i)).c_str());
         unsigned char id, port;
         if (std::strcmp(value, "none") == 0) {
@@ -613,6 +617,10 @@ static void update_simple_core_options() {
     }
 
     for (size_t i = 0; i < NUM_SCANCODES; ++i) {
+        if (mkxpDefaultScancodeMapping[i].type == DEFAULT) {
+            LOG_PRINTF(RETRO_LOG_DEBUG, "Skipping nonexistent scancode %llu\n", (unsigned long long)i);
+            continue;
+        }
         const char *value = get_core_option((std::string("mkxp-z_scancode-") + std::to_string(i)).c_str());
         unsigned char id, port;
         if (std::strcmp(value, "none") == 0) {
@@ -631,6 +639,10 @@ static void update_simple_core_options() {
     }
 
     for (size_t i = 0; i < NUM_CONTROLLER_BUTTONS; ++i) {
+        if (mkxpDefaultControllerMapping[i].type == DEFAULT) {
+            LOG_PRINTF(RETRO_LOG_DEBUG, "Skipping nonexistent controller button %llu\n", (unsigned long long)i);
+            continue;
+        }
         const char *value = get_core_option((std::string("mkxp-z_controller-") + std::to_string(i)).c_str());
         unsigned char id, port;
         if (std::strcmp(value, "none") == 0) {

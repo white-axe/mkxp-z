@@ -33,7 +33,7 @@
 #define DIRINDEX_TO_BUTTONCODE(dir) (((dir) + 1) * 2)
 #define BUTTONCODE_TO_DIRINDEX(button) ((button) / 2 - 1)
 
-static const struct mkxp_input_retro_binding defaultButtonMapping[NUM_BUTTONCODES] = {
+const struct mkxp_input_retro_binding mkxpDefaultButtonMapping[NUM_BUTTONCODES] = {
     {},
     {},
     /* Input::Down */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_DOWN},
@@ -81,7 +81,7 @@ static const struct mkxp_input_retro_binding defaultButtonMapping[NUM_BUTTONCODE
 
 struct mkxp_input_retro_binding mkxpButtonMapping[NUM_BUTTONCODES];
 
-static const struct mkxp_input_retro_binding defaultScancodeMapping[NUM_SCANCODES] = {
+const struct mkxp_input_retro_binding mkxpDefaultScancodeMapping[NUM_SCANCODES] = {
     {}, {}, {}, {},
     /* A */ {BUTTON, Input::X},
     /* B */ {NONE},
@@ -337,7 +337,7 @@ static const struct mkxp_input_retro_binding defaultScancodeMapping[NUM_SCANCODE
 
 struct mkxp_input_retro_binding mkxpScancodeMapping[NUM_SCANCODES];
 
-const static struct mkxp_input_retro_binding defaultControllerMapping[NUM_CONTROLLER_BUTTONS] = {
+const struct mkxp_input_retro_binding mkxpDefaultControllerMapping[NUM_CONTROLLER_BUTTONS] = {
     /* A */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_A},
     /* B */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_B},
     /* X */ {JOYPAD, RETRO_DEVICE_ID_JOYPAD_X},
@@ -1069,7 +1069,7 @@ struct InputPrivate
         if (!isScancode && !isControllerButton && buttonOrScancodeOrControllerButton == Input::None)
             return false;
 
-        const struct mkxp_input_retro_binding *const defaultMapping = isScancode ? defaultScancodeMapping : isControllerButton ? defaultControllerMapping : defaultButtonMapping;
+        const struct mkxp_input_retro_binding *const defaultMapping = isScancode ? mkxpDefaultScancodeMapping : isControllerButton ? mkxpDefaultControllerMapping : mkxpDefaultButtonMapping;
         const struct mkxp_input_retro_binding *mapping = isScancode ? mkxpScancodeMapping : isControllerButton ? mkxpControllerMapping : mkxpButtonMapping;
 
         for (;;)

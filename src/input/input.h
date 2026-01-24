@@ -104,8 +104,11 @@ struct mkxp_input_retro_binding {
 };
 
 extern struct mkxp_input_retro_binding mkxpButtonMapping[NUM_BUTTONCODES];
+extern const struct mkxp_input_retro_binding mkxpDefaultButtonMapping[NUM_BUTTONCODES];
 extern struct mkxp_input_retro_binding mkxpScancodeMapping[NUM_SCANCODES];
+extern const struct mkxp_input_retro_binding mkxpDefaultScancodeMapping[NUM_SCANCODES];
 extern struct mkxp_input_retro_binding mkxpControllerMapping[NUM_CONTROLLER_BUTTONS];
+extern const struct mkxp_input_retro_binding mkxpDefaultControllerMapping[NUM_CONTROLLER_BUTTONS];
 #endif // MKXPZ_RETRO
 
 class Input
