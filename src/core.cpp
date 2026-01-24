@@ -1514,6 +1514,7 @@ extern "C" RETRO_API void retro_run() {
 
     if (should_render) {
         boost::optional<bool> result = sb().run<struct main>();
+        Bitmap::updateDiffs();
         if (result.has_value()) {
             if (*result) {
                 LOG_PRINT(RETRO_LOG_INFO, "Game exited; terminating\n");
