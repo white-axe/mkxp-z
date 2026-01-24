@@ -500,6 +500,27 @@ static VALUE rgss_stop(VALUE self) {
     return sb()->bind<struct coro>()()(self);
 }
 
+static void msgbox_impl(wasm_ptr_t message_ptr) {
+    struct sandbox_str_guard message = sb()->str(message_ptr);
+    MKXPZ_FORCED_ASSERT(((const char *)message)[sb()->strlen(message_ptr)] == 0); // Verify that the message string is null-terminated
+    const char *ptr = (const char *)message;
+    const char *line_start = ptr;
+    for (bool done = false; !done;) {
+        switch (*ptr) {
+            case 0:
+                done = true;
+            case '\n':
+                mkxp_retro_log_printf(RETRO_LOG_WARN, "[mkxp-z msgbox] %.*s\n", (int)std::min(ptr - line_start, (ptrdiff_t)INT_MAX), line_start);
+                line_start = ++ptr;
+                break;
+            default:
+                ++ptr;
+                break;
+        }
+    }
+    mkxp_retro::display_message(RETRO_LOG_WARN, message);
+}
+
 static VALUE msgbox(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
         typedef decl_slots<wasm_ptr_t, VALUE, int32_t> slots;
@@ -509,9 +530,7 @@ static VALUE msgbox(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 for (SANDBOX_SLOT(2) = 0; SANDBOX_SLOT(2) < argc; ++SANDBOX_SLOT(2)) {
                     SANDBOX_AWAIT_S(1, rb_obj_as_string, sb()->ref<VALUE>(argv, SANDBOX_SLOT(2)));
                     SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(1));
-                    struct sandbox_str_guard str = sb()->str(SANDBOX_SLOT(0));
-                    LOG_PRINTF(RETRO_LOG_WARN, "[mkxp-z msgbox] %s\n", (const char *)str);
-                    mkxp_retro::display_message(RETRO_LOG_WARN, str);
+                    msgbox_impl(SANDBOX_SLOT(0));
                 }
             }
 
@@ -531,9 +550,7 @@ static VALUE msgbox_p(int32_t argc, wasm_ptr_t argv, VALUE self) {
                 for (SANDBOX_SLOT(2) = 0; SANDBOX_SLOT(2) < argc; ++SANDBOX_SLOT(2)) {
                     SANDBOX_AWAIT_S(1, rb_inspect, sb()->ref<VALUE>(argv, SANDBOX_SLOT(2)));
                     SANDBOX_AWAIT_S(0, rb_string_value_cstr, &SANDBOX_SLOT(1));
-                    struct sandbox_str_guard str = sb()->str(SANDBOX_SLOT(0));
-                    LOG_PRINTF(RETRO_LOG_WARN, "[mkxp-z msgbox] %s\n", (const char *)str);
-                    mkxp_retro::display_message(RETRO_LOG_WARN, str);
+                    msgbox_impl(SANDBOX_SLOT(0));
                 }
             }
 
@@ -1101,7 +1118,7 @@ void sandbox_binding_init::operator()() {
         SANDBOX_AWAIT(rb_define_module_function, system_module, "platform", (VALUE (*)(ANYARGS))platform, 0);
         SANDBOX_AWAIT(rb_define_module_function, system_module, "is_mac?", (VALUE (*)(ANYARGS))is_not_libretro, 0);
         SANDBOX_AWAIT(rb_define_module_function, system_module, "is_rosetta?", (VALUE (*)(ANYARGS))is_not_libretro, 0);
-        SANDBOX_AWAIT(rb_define_module_function, system_module, "is_linux?", (VALUE (*)(ANYARGS))is_not_libretro, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "is_linux?", (VALUE (*)(ANYARGS))is_libretro, 0);
         SANDBOX_AWAIT(rb_define_module_function, system_module, "is_windows?", (VALUE (*)(ANYARGS))is_not_libretro, 0);
         SANDBOX_AWAIT(rb_define_module_function, system_module, "is_wine?", (VALUE (*)(ANYARGS))is_not_libretro, 0);
         SANDBOX_AWAIT(rb_define_module_function, system_module, "is_really_mac?", (VALUE (*)(ANYARGS))is_not_libretro, 0);

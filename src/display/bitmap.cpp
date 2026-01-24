@@ -121,6 +121,8 @@ static const FT_Matrix ITALIC_TRANSFORM = (FT_Matrix){1 << 16, 0x0366a, 0, 1 << 
 #  define GET_ITALIC_WIDTH(ft_face) (((uint32_t)ITALIC_TRANSFORM.xy * (uint32_t)(((int32_t)(ft_face)->ascender - (int32_t)(ft_face)->descender)) / 64) >> 16)
 
 static uint64_t next_id = 1;
+
+static std::unordered_set<BitmapPrivate *> modified_bitmaps;
 #endif // MKXPZ_RETRO
 
 /* Normalize (= ensure width and
@@ -288,6 +290,7 @@ struct BitmapPrivate
     bool assumingRubyGC;
 
 #ifdef MKXPZ_RETRO
+    pixman_region16_t deferredDiff;
     std::vector<std::vector<uint32_t>> diff;
     std::string path;
     int originalFrameIndex;
@@ -301,7 +304,9 @@ struct BitmapPrivate
     surface(0),
     assumingRubyGC(false)
     {
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+        pixman_region_init(&deferredDiff);
+#else
         format = SDL_AllocFormat(SDL_PIXELFORMAT_ABGR8888);
 #endif // MKXPZ_RETRO
         
@@ -325,7 +330,10 @@ struct BitmapPrivate
     ~BitmapPrivate()
     {
         prepareCon.disconnect();
-#ifndef MKXPZ_RETRO
+#ifdef MKXPZ_RETRO
+        modified_bitmaps.erase(this);
+        pixman_region_fini(&deferredDiff);
+#else
         SDL_FreeFormat(format);
 #endif // MKXPZ_RETRO
         pixman_region_fini(&tainted);
@@ -493,28 +501,88 @@ struct BitmapPrivate
     }
 
 #ifdef MKXPZ_RETRO
-    void pushDiff(const void *pixels, IntRect rect)
+    void pushDeferredDiff(const IntRect &rect)
     {
+        IntRect norm = normalizedRect(rect);
+        pixman_region_union_rect(&deferredDiff, &deferredDiff, norm.x, norm.y, norm.w, norm.h);
+        if (pixman_region_not_empty(&deferredDiff))
+            modified_bitmaps.insert(this);
+    }
+
+    void updateDiff()
+    {
+        if (!pixman_region_not_empty(&deferredDiff))
+            return;
+
+        // Get the bounding box of the deferred diff region
         int image_width = megaSurface != nullptr ? megaSurface->w : animation.enabled ? animation.width : gl.width;
         int image_height = megaSurface != nullptr ? megaSurface->h : animation.enabled ? animation.height : gl.height;
-        rect = normalizedRect(rect);
+        pixman_box16_t *extents = pixman_region_extents(&deferredDiff);
+        IntRect rect {extents->x1, extents->y1, extents->x2 - extents->x1, extents->y2 - extents->y1};
         rect.x = clamp(rect.x, 0, image_width - 1);
         rect.y = clamp(rect.y, 0, image_height - 1);
         rect.w = clamp(rect.w, 0, image_width - rect.x);
         rect.h = clamp(rect.h, 0, image_height - rect.y);
 
-        if (diff.empty() || rect.w <= 0 || rect.h <= 0)
-            return;
+        // Expand the bounding box to align with tile boundaries
+        {
+            IntRect expanded_rect(rect);
+            expanded_rect.x = DIFF_TILE_SIZE * FLOOR_DIV_DIFF_TILE_SIZE(rect.x);
+            expanded_rect.y = DIFF_TILE_SIZE * FLOOR_DIV_DIFF_TILE_SIZE(rect.y);
+            expanded_rect.w = DIFF_TILE_SIZE * CEIL_DIV_DIFF_TILE_SIZE(rect.w + (rect.x - expanded_rect.x));
+            expanded_rect.h = DIFF_TILE_SIZE * CEIL_DIV_DIFF_TILE_SIZE(rect.h + (rect.y - expanded_rect.y));
+            expanded_rect.x = clamp(expanded_rect.x, 0, image_width - 1);
+            expanded_rect.y = clamp(expanded_rect.y, 0, image_height - 1);
+            expanded_rect.w = clamp(expanded_rect.w, 0, image_width - expanded_rect.x);
+            expanded_rect.h = clamp(expanded_rect.h, 0, image_height - expanded_rect.y);
 
+            if (expanded_rect.w <= 0 || expanded_rect.h <= 0)
+            {
+                pixman_region_clear(&deferredDiff);
+                return;
+            }
+
+            rect = expanded_rect;
+        }
+
+        // Get the pixels for this part of the bitmap
+        uint32_t *pixels = (uint32_t *)STBI_MALLOC(4 * rect.w * rect.h);
+        if (pixels == nullptr)
+            MKXPZ_THROW(std::bad_alloc());
+        if (megaSurface != nullptr)
+        {
+            for (size_t y = 0; y < (size_t)rect.h; ++y)
+                std::memcpy(pixels + rect.w * y, (const uint32_t *)megaSurface->pixels + megaSurface->w * (rect.y + y) + rect.x, rect.w);
+        }
+        else
+        {
+            bindFBO();
+            ::gl.ReadPixels(rect.x, rect.y, rect.w, rect.h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        }
+
+        // For all tiles that are touching the deferred diff region, push that section of the pixels into the diff
         std::vector<std::vector<uint32_t>> &diff = animation.enabled ? animation.currentFrame().diff : this->diff;
         const std::string &path = animation.enabled ? animation.currentFrame().path : this->path;
-
         for (size_t tile_row = FLOOR_DIV_DIFF_TILE_SIZE(rect.y); tile_row <= FLOOR_DIV_DIFF_TILE_SIZE(rect.y + (rect.h - 1)); ++tile_row)
         {
             for (size_t tile_col = FLOOR_DIV_DIFF_TILE_SIZE(rect.x); tile_col <= FLOOR_DIV_DIFF_TILE_SIZE(rect.x + (rect.w - 1)); ++tile_col)
             {
                 size_t tile_width = std::min(DIFF_TILE_SIZE, image_width - DIFF_TILE_SIZE * tile_col);
                 size_t tile_height = std::min(DIFF_TILE_SIZE, image_height - DIFF_TILE_SIZE * tile_row);
+
+                {
+                    pixman_box16_t box;
+                    box.x1 = DIFF_TILE_SIZE * tile_col;
+                    box.y1 = DIFF_TILE_SIZE * tile_row;
+                    box.x2 = box.x1 + tile_width;
+                    box.y2 = box.y1 + tile_height;
+                    if (pixman_region_contains_rectangle(&deferredDiff, &box) == PIXMAN_REGION_OUT)
+                    {
+                        // This tile doesn't touch the deferred diff region, so skip this tile
+                        continue;
+                    }
+                }
+
                 size_t x_start = (size_t)rect.x > DIFF_TILE_SIZE * tile_col ? rect.x - DIFF_TILE_SIZE * tile_col : 0;
                 size_t y_start = (size_t)rect.y > DIFF_TILE_SIZE * tile_row ? rect.y - DIFF_TILE_SIZE * tile_row : 0;
                 size_t x_end = std::min(DIFF_TILE_SIZE, rect.x + rect.w - DIFF_TILE_SIZE * tile_col);
@@ -523,22 +591,6 @@ struct BitmapPrivate
                 std::vector<uint32_t> &tile = diff[CEIL_DIV_DIFF_TILE_SIZE(image_width) * tile_row + tile_col];
                 tile.resize(tile_width * tile_height);
                 tile.shrink_to_fit();
-
-                // If this bitmap has a path and `pixels` doesn't cover the entire tile,
-                // take a snapshot of the part of the bitmap corresponding to the tile and use it to fill in the rest of the tile
-                if (!path.empty() && (x_start != 0 || y_start != 0 || x_end < tile_width || y_end < tile_height))
-                {
-                    if (megaSurface != nullptr)
-                    {
-                        for (size_t y = 0; y < tile_height; ++y)
-                            std::memcpy(tile.data() + tile_width * y, (const uint32_t *)megaSurface->pixels + megaSurface->w * (DIFF_TILE_SIZE * tile_row + y) + DIFF_TILE_SIZE * tile_col, tile_width);
-                    }
-                    else
-                    {
-                        bindFBO();
-                        ::gl.ReadPixels(DIFF_TILE_SIZE * tile_col, DIFF_TILE_SIZE * tile_row, tile_width, tile_height, GL_RGBA, GL_UNSIGNED_BYTE, tile.data());
-                    }
-                }
 
                 for (size_t y = y_start; y < y_end; ++y)
                     std::memcpy(tile.data() + tile_width * y + x_start, (const uint32_t *)pixels + rect.w * (DIFF_TILE_SIZE * tile_row + y - rect.y) + DIFF_TILE_SIZE * tile_col + x_start - rect.x, 4 * (x_end - x_start));
@@ -563,56 +615,9 @@ struct BitmapPrivate
                 }
             }
         }
-    }
-
-    void pushDiff(IntRect rect)
-    {
-        int image_width = megaSurface != nullptr ? megaSurface->w : animation.enabled ? animation.width : gl.width;
-        int image_height = megaSurface != nullptr ? megaSurface->h : animation.enabled ? animation.height : gl.height;
-        rect = normalizedRect(rect);
-        rect.x = clamp(rect.x, 0, image_width - 1);
-        rect.y = clamp(rect.y, 0, image_height - 1);
-        rect.w = clamp(rect.w, 0, image_width - rect.x);
-        rect.h = clamp(rect.h, 0, image_height - rect.y);
-
-        if (diff.empty() || rect.w <= 0 || rect.h <= 0)
-            return;
-
-        IntRect expanded_rect(rect);
-        const std::string &path = animation.enabled ? animation.currentFrame().path : this->path;
-        // If the path is not empty, expand the rect so that it doesn't partially cover any tiles
-        if (!path.empty()) {
-            expanded_rect.x = DIFF_TILE_SIZE * FLOOR_DIV_DIFF_TILE_SIZE(rect.x);
-            expanded_rect.y = DIFF_TILE_SIZE * FLOOR_DIV_DIFF_TILE_SIZE(rect.y);
-            expanded_rect.w = DIFF_TILE_SIZE * CEIL_DIV_DIFF_TILE_SIZE(rect.w + (rect.x - expanded_rect.x));
-            expanded_rect.h = DIFF_TILE_SIZE * CEIL_DIV_DIFF_TILE_SIZE(rect.h + (rect.y - expanded_rect.y));
-            expanded_rect.x = clamp(expanded_rect.x, 0, image_width - 1);
-            expanded_rect.y = clamp(expanded_rect.y, 0, image_height - 1);
-            expanded_rect.w = clamp(expanded_rect.w, 0, image_width - expanded_rect.x);
-            expanded_rect.h = clamp(expanded_rect.h, 0, image_height - expanded_rect.y);
-        }
-
-        if (expanded_rect.w <= 0 || expanded_rect.h <= 0)
-            return;
-
-        uint32_t *pixels = (uint32_t *)STBI_MALLOC(4 * expanded_rect.w * expanded_rect.h);
-        if (pixels == nullptr)
-            MKXPZ_THROW(std::bad_alloc());
-
-        if (megaSurface != nullptr)
-        {
-            for (size_t y = 0; y < (size_t)expanded_rect.h; ++y)
-                std::memcpy(pixels + expanded_rect.w * y, (const uint32_t *)megaSurface->pixels + megaSurface->w * (expanded_rect.y + y) + expanded_rect.x, expanded_rect.w);
-        }
-        else
-        {
-            bindFBO();
-            ::gl.ReadPixels(expanded_rect.x, expanded_rect.y, expanded_rect.w, expanded_rect.h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-        }
-
-        pushDiff(pixels, expanded_rect);
 
         stbi_image_free(pixels);
+        pixman_region_clear(&deferredDiff);
     }
 #endif // MKXPZ_RETRO
 };
@@ -1080,7 +1085,7 @@ Bitmap::Bitmap(Exception &exception, void *pixeldata, int width, int height, boo
     if (useDiff)
         p->diff.resize(CEIL_DIV_DIFF_TILE_SIZE(width) * CEIL_DIV_DIFF_TILE_SIZE(height));
     p->path.clear();
-    p->pushDiff(pixeldata, rect());
+    p->pushDeferredDiff(rect());
 #endif // MKXPZ_RETRO
 
     p->addTaintedArea(rect());
@@ -1210,7 +1215,7 @@ Bitmap::Bitmap(Exception &exception, TEXFBO &other, bool useDiff) :
     if (useDiff)
         p->diff.resize(CEIL_DIV_DIFF_TILE_SIZE(width()) * CEIL_DIV_DIFF_TILE_SIZE(height()));
     p->path.clear();
-    p->pushDiff(rect());
+    p->pushDeferredDiff(rect());
 #endif // MKXPZ_RETRO
 
     p->addTaintedArea(rect());
@@ -1803,7 +1808,7 @@ void Bitmap::stretchBlt(Exception &exception,
 #endif // MKXPZ_RETRO
 
 #ifdef MKXPZ_RETRO
-    p->pushDiff(destRect);
+    p->pushDeferredDiff(destRect);
 #endif // MKXPZ_RETRO
 
     p->addTaintedArea(destRect);
@@ -1838,19 +1843,7 @@ void Bitmap::fillRect(Exception &exception, const IntRect &rect, const Vec4 &col
     p->fillRect(rect, color);
 
 #ifdef MKXPZ_RETRO
-    uint32_t *pixels = (uint32_t *)STBI_MALLOC(4 * rect.w * rect.h);
-    if (pixels == nullptr)
-        MKXPZ_THROW(std::bad_alloc());
-    const uint8_t pixel[4] = {
-        (uint8_t)clamp(color.x * 255.0f, 0.0f, 255.0f),
-        (uint8_t)clamp(color.y * 255.0f, 0.0f, 255.0f),
-        (uint8_t)clamp(color.z * 255.0f, 0.0f, 255.0f),
-        (uint8_t)clamp(color.w * 255.0f, 0.0f, 255.0f),
-    };
-    for (size_t i = 0; i < (size_t)rect.w * (size_t)rect.h; ++i)
-        std::memcpy(pixels + i, pixel, 4);
-    p->pushDiff(pixels, rect);
-    stbi_image_free(pixels);
+    p->pushDeferredDiff(rect);
 #endif // MKXPZ_RETRO
     
     if (color.w == 0)
@@ -1923,7 +1916,7 @@ void Bitmap::gradientFillRect(Exception &exception,
     p->popViewport();
 
 #ifdef MKXPZ_RETRO
-    p->pushDiff(rect);
+    p->pushDeferredDiff(rect);
 #endif // MKXPZ_RETRO
 
     p->addTaintedArea(rect);
@@ -1956,12 +1949,7 @@ void Bitmap::clearRect(Exception &exception, const IntRect &rect)
     p->fillRect(rect, Vec4());
 
 #ifdef MKXPZ_RETRO
-    void *pixels = STBI_MALLOC(4 * rect.w * rect.h);
-    if (pixels == nullptr)
-        MKXPZ_THROW(std::bad_alloc());
-    std::memset(pixels, 0, 4 * rect.w * rect.h);
-    p->pushDiff(pixels, rect);
-    stbi_image_free(pixels);
+    p->pushDeferredDiff(rect);
 #endif // MKXPZ_RETRO
     
     p->onModified();
@@ -2018,7 +2006,7 @@ void Bitmap::blur(Exception &exception)
     shState->texPool().release(auxTex);
 
 #ifdef MKXPZ_RETRO
-    p->pushDiff(this->rect());
+    p->pushDeferredDiff(this->rect());
 #endif // MKXPZ_RETRO
 
     p->onModified();
@@ -2124,7 +2112,7 @@ void Bitmap::radialBlur(Exception &exception, int angle, int divisions)
     p->gl = newTex;
 
 #ifdef MKXPZ_RETRO
-    p->pushDiff(rect());
+    p->pushDeferredDiff(rect());
 #endif // MKXPZ_RETRO
 
     p->onModified();
@@ -2316,7 +2304,7 @@ void Bitmap::setPixel(Exception &exception, int x, int y, const Color &color)
 #endif // MKXPZ_RETRO
 
 #ifdef MKXPZ_RETRO
-    p->pushDiff(pixel, IntRect(x, y, 1, 1));
+    p->pushDeferredDiff(IntRect(x, y, 1, 1));
 #endif // MKXPZ_RETRO
 
     p->onModified(false);
@@ -2367,7 +2355,7 @@ void Bitmap::replaceRaw(Exception &exception, void *pixel_data, int size)
     TEX::uploadImage(w, h, pixel_data, GL_RGBA);
 
 #ifdef MKXPZ_RETRO
-    p->pushDiff(pixel_data, rect());
+    p->pushDeferredDiff(rect());
 #endif // MKXPZ_RETRO
 
     taintArea(IntRect(0,0,w,h));
@@ -2482,7 +2470,7 @@ void Bitmap::hueChange(Exception &exception, int hue)
     p->gl = newTex;
 
 #ifdef MKXPZ_RETRO
-    p->pushDiff(rect());
+    p->pushDeferredDiff(rect());
 #endif // MKXPZ_RETRO
 
     p->onModified();
@@ -4149,6 +4137,15 @@ void Bitmap::sandbox_reinit()
             ++tile_number;
         }
     }
+}
+
+void Bitmap::updateDiffs()
+{
+    for (BitmapPrivate *p : modified_bitmaps) {
+        p->updateDiff();
+    }
+
+    modified_bitmaps.clear();
 }
 
 #ifndef MKXPZ_SANDBOX_SERIAL_BITMAP_H
