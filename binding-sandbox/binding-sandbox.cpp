@@ -820,7 +820,7 @@ void sandbox_binding_init::operator()() {
         SANDBOX_AWAIT(rb_define_module_function, system_module, "platform", (VALUE (*)(ANYARGS))platform, 0);
         SANDBOX_AWAIT(rb_define_module_function, system_module, "is_mac?", (VALUE (*)(ANYARGS))is_not_libretro, 0);
         SANDBOX_AWAIT(rb_define_module_function, system_module, "is_rosetta?", (VALUE (*)(ANYARGS))is_not_libretro, 0);
-        SANDBOX_AWAIT(rb_define_module_function, system_module, "is_linux?", (VALUE (*)(ANYARGS))is_not_libretro, 0);
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "is_linux?", (VALUE (*)(ANYARGS))is_libretro, 0);
         SANDBOX_AWAIT(rb_define_module_function, system_module, "is_windows?", (VALUE (*)(ANYARGS))is_not_libretro, 0);
         SANDBOX_AWAIT(rb_define_module_function, system_module, "is_wine?", (VALUE (*)(ANYARGS))is_not_libretro, 0);
         SANDBOX_AWAIT(rb_define_module_function, system_module, "is_really_mac?", (VALUE (*)(ANYARGS))is_not_libretro, 0);
