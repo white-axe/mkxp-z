@@ -115,6 +115,7 @@ void log_backtrace::operator()(VALUE exception) {
                 SANDBOX_AWAIT_S(1, rb_string_value_cstr, &SANDBOX_SLOT(5));
                 SANDBOX_AWAIT_S(2, rb_obj_classname, exception);
                 const sandbox_str_guard message = sb()->str(SANDBOX_SLOT(1));
+                MKXPZ_FORCED_ASSERT(((const char *)message)[sb()->strlen(SANDBOX_SLOT(1))] == 0); // Verify that the message string is null-terminated
                 const char *ptr = (const char *)message;
                 const char *line_start = ptr;
                 for (bool done = false; !done;) {
@@ -123,9 +124,9 @@ void log_backtrace::operator()(VALUE exception) {
                             done = true;
                         case '\n':
                             if (line_start == message) {
-                                LOG_PRINTF(RETRO_LOG_ERROR, "%s: %.*s (%s)\n", (const char *)sb()->str(SANDBOX_SLOT(0)), (int)std::min(ptr - line_start, (ptrdiff_t)INT_MAX), line_start, (const char *)sb()->str(SANDBOX_SLOT(2)));
+                                mkxp_retro_log_printf(RETRO_LOG_ERROR, "[mkxp-z exception] %s: %.*s (%s)\n", (const char *)sb()->str(SANDBOX_SLOT(0)), (int)std::min(ptr - line_start, (ptrdiff_t)INT_MAX), line_start, (const char *)sb()->str(SANDBOX_SLOT(2)));
                             } else {
-                                LOG_PRINTF(RETRO_LOG_ERROR, "%.*s\n", (int)std::min(ptr - line_start, (ptrdiff_t)INT_MAX), line_start);
+                                mkxp_retro_log_printf(RETRO_LOG_ERROR, "[mkxp-z exception] %.*s\n", (int)std::min(ptr - line_start, (ptrdiff_t)INT_MAX), line_start);
                             }
                             line_start = ++ptr;
                             break;
@@ -135,7 +136,7 @@ void log_backtrace::operator()(VALUE exception) {
                     }
                 }
             } else {
-                LOG_PRINTF(RETRO_LOG_ERROR, "        from %s\n", (const char *)sb()->str(SANDBOX_SLOT(0)));
+                mkxp_retro_log_printf(RETRO_LOG_ERROR, "[mkxp-z exception]        from %s\n", (const char *)sb()->str(SANDBOX_SLOT(0)));
             }
         }
     }
