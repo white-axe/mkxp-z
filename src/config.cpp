@@ -162,7 +162,9 @@ static json::value readConfFile(const char *path, bool isBaseConf) {
 
 #define CONF_FILE "mkxp.json"
 
-Config::Config() {}
+Config::Config() :
+    loadFontsIntoMemory(false)
+{}
 
 void Config::read(int argc, char *argv[], int forceRgssVersion) {
     auto optsJ = json::object({

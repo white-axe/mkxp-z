@@ -191,26 +191,76 @@ struct SharedFontStatePrivate
 	{
 		SharedFontStatePrivate::PoolEntry entry;
 
-		entry.rec = new FT_StreamRec {
-			nullptr,
-			(unsigned long)-1,
-			0,
-			{},
-			{},
-			[](FT_Stream stream, unsigned long offset, unsigned char *buffer, unsigned long count) {
-				if (!PHYSFS_seek(((std::shared_ptr<struct FileSystem::File> *)stream->descriptor.pointer)->get()->get_read(), offset))
-					return (unsigned long)(count == 0);
-				if (count == 0)
-					return 0UL;
-				PHYSFS_uint64 n = PHYSFS_readBytes(((std::shared_ptr<struct FileSystem::File> *)stream->descriptor.pointer)->get()->get_read(), buffer, count);
-				return n == (PHYSFS_uint64)-1 ? 0UL : (unsigned long)n;
-			},
-			[](FT_Stream stream) {
-				delete (std::shared_ptr<struct FileSystem::File> *)stream->descriptor.pointer;
-			},
-		};
-		entry.rec->descriptor.pointer = new std::shared_ptr<struct FileSystem::File>(ops);
-	
+		if (shState->config().loadFontsIntoMemory) {
+			PHYSFS_sint64 length = PHYSFS_fileLength(ops.get()->get_read());
+			if (length == -1 || (uint64_t)length > std::min((uint64_t)SIZE_MAX, (uint64_t)ULONG_MAX)) {
+				return boost::none;
+			}
+			uint8_t *data = (uint8_t *)std::malloc((size_t)length);
+			if (data == nullptr) {
+				return boost::none;
+			}
+			PHYSFS_sint64 n = PHYSFS_readBytes(ops.get()->get_read(), data, (PHYSFS_uint64)length);
+			if (n == -1 || (uint64_t)n < (uint64_t)length) {
+				std::free(data);
+				return boost::none;
+			}
+
+			struct stream_struct {
+				uint8_t *data;
+				size_t length;
+			};
+			const struct stream_struct *stream = new stream_struct {data, (size_t)length};
+
+			entry.rec = new FT_StreamRec {
+				nullptr,
+				(unsigned long)-1,
+				0,
+				{},
+				{},
+				[](FT_Stream stream, unsigned long offset, unsigned char *buffer, unsigned long count) {
+					if ((uint64_t)offset > (uint64_t)((const struct stream_struct *)stream->descriptor.pointer)->length)
+						return (unsigned long)(count == 0);
+					if (count == 0)
+						return 0UL;
+					uint64_t end = (uint64_t)offset + (uint64_t)count;
+					if (end < offset)
+						return 0UL;
+					uint64_t n = std::min(end, (uint64_t)((const struct stream_struct *)stream->descriptor.pointer)->length) - (uint64_t)offset;
+					if (n > 0)
+						std::memcpy(buffer, ((const struct stream_struct *)stream->descriptor.pointer)->data + offset, (size_t)n);
+					return (unsigned long)n;
+				},
+				[](FT_Stream stream) {
+					std::free(((const struct stream_struct *)stream->descriptor.pointer)->data);
+					delete (const struct stream_struct *)stream->descriptor.pointer;
+				},
+			};
+
+			entry.rec->descriptor.pointer = (void *)stream;
+		} else {
+			entry.rec = new FT_StreamRec {
+				nullptr,
+				(unsigned long)-1,
+				0,
+				{},
+				{},
+				[](FT_Stream stream, unsigned long offset, unsigned char *buffer, unsigned long count) {
+					if (!PHYSFS_seek(((std::shared_ptr<struct FileSystem::File> *)stream->descriptor.pointer)->get()->get_read(), offset))
+						return (unsigned long)(count == 0);
+					if (count == 0)
+						return 0UL;
+					PHYSFS_uint64 n = PHYSFS_readBytes(((std::shared_ptr<struct FileSystem::File> *)stream->descriptor.pointer)->get()->get_read(), buffer, count);
+					return n == (PHYSFS_uint64)-1 ? 0UL : (unsigned long)n;
+				},
+				[](FT_Stream stream) {
+					delete (std::shared_ptr<struct FileSystem::File> *)stream->descriptor.pointer;
+				},
+			};
+
+			entry.rec->descriptor.pointer = new std::shared_ptr<struct FileSystem::File>(ops);
+		}
+
 		entry.args = new FT_Open_Args {
 			FT_OPEN_STREAM,
 			nullptr,

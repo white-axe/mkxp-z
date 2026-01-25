@@ -1023,6 +1023,26 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
         "inherit",
     },
     {
+        "mkxp-z_loadFontsIntoMemory",
+        "Load Fonts Into Memory",
+        nullptr,
+        (
+            "When loading a font, load the entire font file into memory instead of using a file handle."
+            " This improves text rendering performance on systems with extremely slow file system access speed"
+            " at the cost of higher memory usage."
+            " (default: enabled on Emscripten, disabled on other platforms)"
+        ),
+        nullptr,
+        "text",
+        {
+            {"default", "Default"},
+            {"enabled", "Enabled"},
+            {"disabled", "Disabled"},
+            {nullptr, nullptr},
+        },
+        "default",
+    },
+    {
         "mkxp-z_button-13",
         "Input::C Button Binding",
         "Input::C",
