@@ -235,6 +235,7 @@ struct Config {
 #ifndef MKXPZ_RETRO
     std::string customDataPath;
 #endif // MKXPZ_RETRO
+    bool loadFontsIntoMemory;
     
     Config();
     

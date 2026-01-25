@@ -603,6 +603,16 @@ static void update_simple_core_options() {
         }
     }
 
+    {
+        const char *value = get_core_option("mkxp-z_loadFontsIntoMemory");
+        conf->loadFontsIntoMemory =
+#ifdef __EMSCRIPTEN__
+            std::strcmp(value, "disabled");
+#else
+            !std::strcmp(value, "enabled");
+#endif // __EMSCRIPTEN__
+    }
+
     for (size_t i = 0; i < NUM_BUTTONCODES; ++i) {
         if (mkxpDefaultButtonMapping[i].type == DEFAULT) {
             LOG_PRINTF(RETRO_LOG_DEBUG, "Skipping nonexistent button code %llu\n", (unsigned long long)i);
