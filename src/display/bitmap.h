@@ -221,7 +221,7 @@ public:
     void assumeRubyGC(bool value = true);
 
 #ifdef MKXPZ_RETRO
-	static void updateDiffs();
+	static void syncDiffs();
 	bool sandbox_serialize_without_hires(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
 	bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
 	bool sandbox_deserialize_without_hires(const void *&data, mkxp_sandbox::wasm_size_t &max_size);

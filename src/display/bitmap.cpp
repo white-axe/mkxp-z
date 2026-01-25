@@ -509,7 +509,7 @@ struct BitmapPrivate
             modified_bitmaps.insert(this);
     }
 
-    void updateDiff()
+    void syncDiff()
     {
         if (!pixman_region_not_empty(&deferredDiff))
             return;
@@ -4139,10 +4139,10 @@ void Bitmap::sandbox_reinit()
     }
 }
 
-void Bitmap::updateDiffs()
+void Bitmap::syncDiffs()
 {
     for (BitmapPrivate *p : modified_bitmaps) {
-        p->updateDiff();
+        p->syncDiff();
     }
 
     modified_bitmaps.clear();

@@ -343,6 +343,8 @@ bool Bitmap::sandbox_deserialize_without_hires(const void *&data, mkxp_sandbox::
         p->font = &shState->defaultFont();
     }
 
+    pixman_region_clear(&p->deferredDiff);
+
     return true;
 }
 
