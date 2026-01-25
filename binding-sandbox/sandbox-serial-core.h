@@ -164,6 +164,7 @@ extern "C" RETRO_API bool retro_serialize(void *data, size_t len) {
     // Write the pseudorandom number generator state and open WASI file descriptors
     if (!sb().sandbox_serialize_wasi(data, max_size)) SER_FAIL;
 
+    Bitmap::syncDiffs();
     SER_OBJECTS_BEGIN;
 
     // Write the number of objects, then each object

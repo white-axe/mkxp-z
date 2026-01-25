@@ -662,6 +662,28 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
         "default",
     },
     {
+        "mkxp-z_textureSync",
+        "Texture Synchronization",
+        nullptr,
+        (
+            "Controls how often GPU textures are copied to CPU memory."
+            " Eager synchronization is less likely to cause graphical issues but may cause performance problems in some games."
+            " Lazy synchronization is faster but may or may not,"
+            " depending on which libretro frontend you're using and what version of it you're using,"
+            " cause graphical artifacts when performing certain operations,"
+            " such as toggling fullscreen or, on Android, opening the app switcher."
+        ),
+        nullptr,
+        "video",
+        {
+            {"default", "Default (Eager)"},
+            {"eager", "Eager"},
+            {"lazy", "Lazy"},
+            {nullptr, nullptr},
+        },
+        "default",
+    },
+    {
         "mkxp-z_threadedAudio",
         "Threaded Audio",
         nullptr,

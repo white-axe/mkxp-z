@@ -232,6 +232,8 @@ struct retro_vfs_interface_info mkxp_vfs;
 
 static unsigned int message_interface_version;
 
+static bool texture_sync_is_eager = true;
+
 retro_log_printf_t mkxp_retro_log_printf;
 
 namespace mkxp_retro {
@@ -527,6 +529,11 @@ static void update_simple_core_options() {
         } else {
             conf->enableBlitting.clearOverride();
         }
+    }
+
+    {
+        const char *value = get_core_option("mkxp-z_textureSync");
+        texture_sync_is_eager = std::strcmp(value, "lazy");
     }
 
     {
@@ -1544,7 +1551,9 @@ extern "C" RETRO_API void retro_run() {
 
     if (should_render) {
         boost::optional<bool> result = sb().run<struct main>();
-        Bitmap::updateDiffs();
+        if (texture_sync_is_eager) {
+            Bitmap::syncDiffs();
+        }
         if (result.has_value()) {
             if (*result) {
                 LOG_PRINT(RETRO_LOG_INFO, "Game exited; terminating\n");
@@ -1675,7 +1684,9 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
             }
         }
     };
-    hw_render.context_destroy = nullptr;
+    hw_render.context_destroy = []() {
+        Bitmap::syncDiffs();
+    };
     hw_render.cache_context = true;
     hw_render.bottom_left_origin = false;
     if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 6, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
