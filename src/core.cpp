@@ -232,7 +232,7 @@ struct retro_vfs_interface_info mkxp_vfs;
 
 static unsigned int message_interface_version;
 
-static bool texture_sync_is_eager = true;
+static bool texture_sync_is_eager = false;
 
 retro_log_printf_t mkxp_retro_log_printf;
 
@@ -533,7 +533,7 @@ static void update_simple_core_options() {
 
     {
         const char *value = get_core_option("mkxp-z_textureSync");
-        texture_sync_is_eager = std::strcmp(value, "lazy");
+        texture_sync_is_eager = !std::strcmp(value, "eager");
     }
 
     {
@@ -1667,7 +1667,7 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
     hw_render.context_destroy = []() {
         Bitmap::syncDiffs();
     };
-    hw_render.cache_context = true;
+    hw_render.cache_context = false;
     hw_render.bottom_left_origin = false;
     if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 6, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
         LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL 4.6 graphics driver\n");

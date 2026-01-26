@@ -473,11 +473,12 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
             " depending on which libretro frontend you're using and what version of it you're using,"
             " cause graphical artifacts when performing certain operations,"
             " such as toggling fullscreen or, on Android, opening the app switcher."
+            " (default: lazy)"
         ),
         nullptr,
         "video",
         {
-            {"default", "Default (Eager)"},
+            {"default", "Default"},
             {"eager", "Eager"},
             {"lazy", "Lazy"},
             {nullptr, nullptr},
