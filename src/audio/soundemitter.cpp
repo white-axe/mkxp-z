@@ -236,7 +236,7 @@ struct SoundOpenHandler : FileSystem::OpenHandler
 		 * to keep the source ops around */
 #ifdef MKXPZ_RETRO
 		uint8_t sampleSize = 2;
-		uint32_t sampleCount = handle.frames();
+		uint32_t sampleCount = (uint32_t)handle.frames() * (uint32_t)handle.channels();
 #else
 		uint32_t decBytes = Sound_DecodeAll(sample);
 		uint8_t sampleSize = formatSampleSize(sample->actual.format);
