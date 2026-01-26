@@ -404,6 +404,7 @@ extern "C" RETRO_API bool retro_unserialize(const void *data, size_t len) {
     // Read the pseudorandom number generator state and open WASI file descriptors
     if (!sb().sandbox_deserialize_wasi(data, max_size)) DESER_FAIL;
 
+    Bitmap::syncDiffs();
     DESER_OBJECTS_BEGIN;
     for (const auto &object : sb()->objects) {
         if (object.typenum > 0) {

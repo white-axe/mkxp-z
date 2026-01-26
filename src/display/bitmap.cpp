@@ -290,7 +290,7 @@ struct BitmapPrivate
     bool assumingRubyGC;
 
 #ifdef MKXPZ_RETRO
-    pixman_region16_t deferredDiff;
+    pixman_region32_t deferredDiff;
     std::vector<std::vector<uint32_t>> diff;
     std::string path;
     int originalFrameIndex;
@@ -305,7 +305,7 @@ struct BitmapPrivate
     assumingRubyGC(false)
     {
 #ifdef MKXPZ_RETRO
-        pixman_region_init(&deferredDiff);
+        pixman_region32_init(&deferredDiff);
 #else
         format = SDL_AllocFormat(SDL_PIXELFORMAT_ABGR8888);
 #endif // MKXPZ_RETRO
@@ -332,7 +332,7 @@ struct BitmapPrivate
         prepareCon.disconnect();
 #ifdef MKXPZ_RETRO
         modified_bitmaps.erase(this);
-        pixman_region_fini(&deferredDiff);
+        pixman_region32_fini(&deferredDiff);
 #else
         SDL_FreeFormat(format);
 #endif // MKXPZ_RETRO
@@ -504,20 +504,20 @@ struct BitmapPrivate
     void pushDeferredDiff(const IntRect &rect)
     {
         IntRect norm = normalizedRect(rect);
-        pixman_region_union_rect(&deferredDiff, &deferredDiff, norm.x, norm.y, norm.w, norm.h);
-        if (pixman_region_not_empty(&deferredDiff))
+        pixman_region32_union_rect(&deferredDiff, &deferredDiff, norm.x, norm.y, norm.w, norm.h);
+        if (pixman_region32_not_empty(&deferredDiff))
             modified_bitmaps.insert(this);
     }
 
     void syncDiff()
     {
-        if (!pixman_region_not_empty(&deferredDiff))
+        if (!pixman_region32_not_empty(&deferredDiff))
             return;
 
         // Get the bounding box of the deferred diff region
         int image_width = megaSurface != nullptr ? megaSurface->w : animation.enabled ? animation.width : gl.width;
         int image_height = megaSurface != nullptr ? megaSurface->h : animation.enabled ? animation.height : gl.height;
-        pixman_box16_t *extents = pixman_region_extents(&deferredDiff);
+        pixman_box32_t *extents = pixman_region32_extents(&deferredDiff);
         IntRect rect {extents->x1, extents->y1, extents->x2 - extents->x1, extents->y2 - extents->y1};
         rect.x = clamp(rect.x, 0, image_width - 1);
         rect.y = clamp(rect.y, 0, image_height - 1);
@@ -538,7 +538,7 @@ struct BitmapPrivate
 
             if (expanded_rect.w <= 0 || expanded_rect.h <= 0)
             {
-                pixman_region_clear(&deferredDiff);
+                pixman_region32_clear(&deferredDiff);
                 return;
             }
 
@@ -571,12 +571,12 @@ struct BitmapPrivate
                 size_t tile_height = std::min(DIFF_TILE_SIZE, image_height - DIFF_TILE_SIZE * tile_row);
 
                 {
-                    pixman_box16_t box;
+                    pixman_box32_t box;
                     box.x1 = DIFF_TILE_SIZE * tile_col;
                     box.y1 = DIFF_TILE_SIZE * tile_row;
                     box.x2 = box.x1 + tile_width;
                     box.y2 = box.y1 + tile_height;
-                    if (pixman_region_contains_rectangle(&deferredDiff, &box) == PIXMAN_REGION_OUT)
+                    if (pixman_region32_contains_rectangle(&deferredDiff, &box) == PIXMAN_REGION_OUT)
                     {
                         // This tile doesn't touch the deferred diff region, so skip this tile
                         continue;
@@ -617,7 +617,7 @@ struct BitmapPrivate
         }
 
         stbi_image_free(pixels);
-        pixman_region_clear(&deferredDiff);
+        pixman_region32_clear(&deferredDiff);
     }
 #endif // MKXPZ_RETRO
 };
