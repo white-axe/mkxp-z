@@ -469,7 +469,7 @@ if host_system == 'darwin'
     endif
 endif
 
-if not compilers['cpp'].has_header_symbol('time.h', 'clock_gettime') or not compilers['cpp'].links('''
+if is_devkitppc or not compilers['cpp'].has_header_symbol('time.h', 'clock_gettime') or not compilers['cpp'].links('''
     #include <time.h>
     int main(void) {
         struct timespec ts;
@@ -480,7 +480,7 @@ if not compilers['cpp'].has_header_symbol('time.h', 'clock_gettime') or not comp
     global_args += '-DMKXPZ_NO_CLOCK_GETTIME'
 endif
 
-if not compilers['cpp'].has_header_symbol('time.h', 'clock_getres') or not compilers['cpp'].links('''
+if is_devkitppc or not compilers['cpp'].has_header_symbol('time.h', 'clock_getres') or not compilers['cpp'].links('''
     #include <time.h>
     int main(void) {
         struct timespec ts;

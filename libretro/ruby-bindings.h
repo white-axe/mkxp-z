@@ -255,7 +255,7 @@ static void mkxp_thread_priorityqueue_bubble_down(size_t index) {
     }
 }
 
-/* Add a thread to the queue if it isn't already in the queue. */
+/* Adds a thread to the queue if it isn't already in the queue. */
 static void mkxp_thread_priorityqueue_push(rb_thread_t *thread) {
     if (mkxp_thread_priorityqueue == NULL) {
         mkxp_thread_priorityqueue = (rb_thread_t **)ruby_xmalloc(mkxp_thread_priorityqueue_capacity * sizeof(rb_thread_t *));
@@ -335,22 +335,26 @@ void mkxp_thread_switch(void) {
     mkxp_thread_switch0(current_thread);
 }
 
+/* Schedules a thread to never run. */
+static void mkxp_thread_schedule_never(rb_thread_t *th) {
+    th->nt->timestamp = -1;
+    mkxp_thread_priorityqueue_update(th);
+}
+
 /* Schedules a thread to run again after all other threads currently scheduled to run on or before the given timestamp have been run. */
 static void mkxp_thread_schedule_at(rb_thread_t *th, uint64_t timestamp) {
+    if (timestamp == (uint64_t)-1) {
+        mkxp_thread_schedule_never(th);
+        return;
+    }
     th->nt->counter = mkxp_thread_counter++;
-    th->nt->timestamp = timestamp == (uint64_t)-1 ? (uint64_t)-1 : timestamp + 1;
+    th->nt->timestamp = timestamp + 1;
     mkxp_thread_priorityqueue_update(th);
 }
 
 /* Schedules a thread to run again after all other threads scheduled to run on or before the current timestamp have been run. */
 void mkxp_thread_schedule(rb_thread_t *th) {
     mkxp_thread_schedule_at(th, mkxp_thread_timestamp());
-}
-
-/* Schedules a thread to never run. */
-static void mkxp_thread_schedule_never(rb_thread_t *th) {
-    th->nt->timestamp = -1;
-    mkxp_thread_priorityqueue_update(th);
 }
 
 /* Schedules a thread to be run immediately after the current thread. */
@@ -671,7 +675,9 @@ void mkxp_thread_cond_broadcast(rb_nativethread_cond_t cond) {
     mkxp_thread_switch();
 }
 
-static void mkxp_thread_cond_wait0(rb_thread_t *th, bool timed, rb_nativethread_cond_t cond, rb_nativethread_lock_t mutex) {
+static void mkxp_thread_cond_wait0(rb_nativethread_cond_t cond, rb_nativethread_lock_t mutex, uint64_t timestamp) {
+    rb_thread_t *th = GET_THREAD();
+
     /* Push the current thread to the condition variable's queue */
     struct mkxp_cond_node *node = (struct mkxp_cond_node *)ruby_xmalloc(sizeof(struct mkxp_cond_node));
     node->th = th;
@@ -687,6 +693,9 @@ static void mkxp_thread_cond_wait0(rb_thread_t *th, bool timed, rb_nativethread_
     /* Unlock the mutex */
     mkxp_thread_mutex_unlock0(mutex);
 
+    /* Block the thread */
+    mkxp_thread_schedule_at(th, timestamp);
+
     /* Allow the thread to be unblocked from a different thread */
     th->unblock.func = mkxp_thread_wakeup;
     th->unblock.arg = th;
@@ -700,26 +709,18 @@ static void mkxp_thread_cond_wait0(rb_thread_t *th, bool timed, rb_nativethread_
 
 /* Unlocks a mutex, waits until another thread unblocks the current thread by signalling or broadcasting on a condition variable and then locks the mutex again. The mutex must have been locked beforehand by the current thread. While the thread is waiting, it should be possible to cancel the wait by calling `th->unblock.func(th->unblock.arg)` on the waiting thread `th`; the mutex will still be relocked if this occurs. */
 void mkxp_thread_cond_wait(rb_nativethread_cond_t cond, rb_nativethread_lock_t mutex) {
-    /* Block the current thread */
-    rb_thread_t *th = GET_THREAD();
-    mkxp_thread_schedule_never(th);
-
-    mkxp_thread_cond_wait0(th, false, cond, mutex);
+    mkxp_thread_cond_wait0(cond, mutex, -1);
 }
 
 /* Unlocks a mutex, waits until another thread unblocks the current thread by signalling or broadcasting on this condition variable or until the given number of milliseconds passes and then locks the mutex again. The mutex must have been locked beforehand by the current thread. While the thread is waiting, it should be possible to cancel the remaining wait duration by calling `th->unblock.func(th->unblock.arg)` on the thread `th`; the mutex will still be relocked if this occurs. */
 void mkxp_thread_cond_timedwait(rb_nativethread_cond_t cond, rb_nativethread_lock_t mutex, uint64_t duration) {
-    /* Block the current thread for the given duration */
     if (__builtin_mul_overflow(duration, (uint64_t)1000000, &duration)) {
         duration = -1;
     }
     if (__builtin_add_overflow(mkxp_thread_timestamp(), duration, &duration)) {
         duration = -1;
     }
-    rb_thread_t *th = GET_THREAD();
-    mkxp_thread_schedule_at(th, duration);
-
-    mkxp_thread_cond_wait0(th, true, cond, mutex);
+    mkxp_thread_cond_wait0(cond, mutex, duration);
 }
 
 /* Removes any remaining sleep duration from a thread and removes a thread from the wait queue of any mutex or condition variable it is waiting on. */
