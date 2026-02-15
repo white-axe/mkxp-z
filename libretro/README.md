@@ -11,7 +11,7 @@ Required software:
 * [Git](https://git-scm.com)
 * [curl](https://curl.se)
 * [Info-ZIP's Zip](https://infozip.sourceforge.net/Zip.html) (the `zip` package found in many package managers)
-* [WASI SDK](https://github.com/WebAssembly/wasi-sdk) version 29 (the makefile will not permit earlier or later versions because using a different WASI SDK version breaks save state compatibility)
+* [WASI SDK](https://github.com/WebAssembly/wasi-sdk) version 30 (the makefile will not permit earlier or later versions because using a different WASI SDK version breaks save state compatibility)
 * [Binaryen](https://github.com/WebAssembly/binaryen) version 117 or later (the exact version doesn't matter because differing Binaryen versions don't break save state compatibility)
 * Either [Universal Ctags](https://github.com/universal-ctags/ctags) or [Exuberant Ctags](https://ctags.sourceforge.net)
 * Ruby (any reasonably recent version)

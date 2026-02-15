@@ -178,11 +178,11 @@ stage1:
   before_script:
     - apt update
     - apt install -y git curl build-essential automake libtool zip universal-ctags ruby
-    - curl -Lo ~/wasi-sdk.tar.gz https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-29/wasi-sdk-29.0-x86_64-linux.tar.gz
+    - curl -Lo ~/wasi-sdk.tar.gz https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-30/wasi-sdk-30.0-x86_64-linux.tar.gz
     - mkdir ~/wasi-sdk
     - tar -xzf ~/wasi-sdk.tar.gz -C ~/wasi-sdk --strip-components=1
     - rm ~/wasi-sdk.tar.gz
-    - curl -Lo ~/binaryen.tar.gz https://github.com/WebAssembly/binaryen/releases/download/version_125/binaryen-version_125-x86_64-linux.tar.gz
+    - curl -Lo ~/binaryen.tar.gz https://github.com/WebAssembly/binaryen/releases/download/version_126/binaryen-version_126-x86_64-linux.tar.gz
     - mkdir ~/binaryen
     - tar -xzf ~/binaryen.tar.gz -C ~/binaryen --strip-components=1
     - rm ~/binaryen.tar.gz
