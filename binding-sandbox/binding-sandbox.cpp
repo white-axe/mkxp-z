@@ -582,6 +582,23 @@ static VALUE default_font_family(VALUE self, VALUE value) {
     return sb()->bind<struct coro>()()(self, value);
 }
 
+static VALUE system_puts(int32_t argc, wasm_ptr_t argv, VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE, ID> slots;
+
+        VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(1, rb_intern, "puts");
+                SANDBOX_AWAIT_S(0, rb_funcallv, sb()->rb_mKernel(), SANDBOX_SLOT(1), argc, argv);
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(argc, argv, self);
+}
+
 static VALUE to_utf8(VALUE self) {
     struct coro : boost::asio::coroutine {
         typedef decl_slots<wasm_ptr_t, VALUE> slots;
@@ -858,6 +875,8 @@ void sandbox_binding_init::operator()() {
         SANDBOX_AWAIT(rb_define_module_function, system_module, "launch", (VALUE (*)(ANYARGS))launch, 2);
 
         SANDBOX_AWAIT(rb_define_module_function, system_module, "default_font_family=", (VALUE (*)(ANYARGS))default_font_family, 1);
+
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "puts", (VALUE (*)(ANYARGS))system_puts, -1);
 
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cString(), "to_utf8", (VALUE (*)(ANYARGS))to_utf8, 0);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cString(), "to_utf8!", (VALUE (*)(ANYARGS))to_utf8_bang, 0);
