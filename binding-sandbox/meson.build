@@ -44,6 +44,8 @@ binding_sandbox_hasher = executable(
 global_sources += custom_target(
     'binding-sandbox-hash',
     input: binding_sandbox_sources + [
+        '../libretro/Makefile',
+        '../libretro/ruby-bindings.h',
         'sandbox-serial-audio.h',
         'sandbox-serial-audiostream.h',
         'sandbox-serial-bitmap.h',

@@ -325,14 +325,19 @@ static __attribute__((noinline)) void mkxp_thread_switch0(const rb_thread_t *cur
 /* Switch to the next thread ready to be scheduled as returned by mkxp_thread_priorityqueue_peek(). */
 void mkxp_thread_switch(void) {
     rb_thread_t *current_thread = GET_THREAD();
-    rb_thread_t *next_thread = mkxp_thread_priorityqueue_peek();
 
-    if (next_thread == current_thread) {
-        return;
+    {
+        rb_thread_t *next_thread = mkxp_thread_priorityqueue_peek();
+        if (next_thread == current_thread) {
+            mkxp_thread_stop_waiting(current_thread);
+            return;
+        }
     }
 
     mkxp_thread_switching = false;
     mkxp_thread_switch0(current_thread);
+
+    mkxp_thread_stop_waiting(current_thread);
 }
 
 /* Schedules a thread to never run. */
@@ -846,7 +851,6 @@ MKXP_SANDBOX_API __attribute__((noinline)) uint8_t mkxp_sandbox_yield(void) {
             return 2;
         }
         GET_THREAD()->nt->machine_stack_pointer = rb_wasm_get_stack_pointer();
-        mkxp_thread_stop_waiting(next_thread);
         mkxp_sandbox_thread = next_thread == GET_VM()->ractor.main_thread ? NULL : next_thread;
         mkxp_sandbox_fiber_entry_point = next_thread->nt->fiber_entry_point;
         mkxp_sandbox_fiber_arg0 = next_thread->nt->fiber_arg0;

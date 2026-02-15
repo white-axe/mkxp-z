@@ -2138,6 +2138,9 @@ void Bitmap::clear(Exception &exception)
     glState.clearColor.pop();
 
 #ifdef MKXPZ_RETRO
+    pixman_region32_clear(&p->deferredDiff);
+    modified_bitmaps.erase(p);
+
     if (p->animation.enabled)
     {
         if (!p->animation.currentFrame().diff.empty())

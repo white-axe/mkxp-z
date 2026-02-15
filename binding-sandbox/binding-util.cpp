@@ -123,25 +123,20 @@ void log_backtrace::operator()(VALUE exception) {
             if (SANDBOX_SLOT(4) == 0) {
                 SANDBOX_AWAIT_S(1, rb_string_value_cstr, &SANDBOX_SLOT(5));
                 SANDBOX_AWAIT_S(2, rb_obj_classname, exception);
-                const sandbox_str_guard message = sb()->str(SANDBOX_SLOT(1));
-                MKXPZ_FORCED_ASSERT(((const char *)message)[sb()->strlen(SANDBOX_SLOT(1))] == 0); // Verify that the message string is null-terminated
+                const struct sandbox_str_guard message = sb()->str(SANDBOX_SLOT(1));
+                wasm_size_t message_len = sb()->strlen(SANDBOX_SLOT(1));
                 const char *ptr = (const char *)message;
                 const char *line_start = ptr;
-                for (bool done = false; !done;) {
-                    switch (*ptr) {
-                        case 0:
-                            done = true;
-                        case '\n':
-                            if (line_start == message) {
-                                mkxp_retro_log_printf(RETRO_LOG_ERROR, "[mkxp-z exception] %s: %.*s (%s)\n", (const char *)sb()->str(SANDBOX_SLOT(0)), (int)std::min(ptr - line_start, (ptrdiff_t)INT_MAX), line_start, (const char *)sb()->str(SANDBOX_SLOT(2)));
-                            } else {
-                                mkxp_retro_log_printf(RETRO_LOG_ERROR, "[mkxp-z exception] %.*s\n", (int)std::min(ptr - line_start, (ptrdiff_t)INT_MAX), line_start);
-                            }
-                            line_start = ++ptr;
-                            break;
-                        default:
-                            ++ptr;
-                            break;
+                for (wasm_size_t i = 0; i < message_len;) {
+                    if (++i == message_len || *ptr == '\n') {
+                        if (line_start == message) {
+                            mkxp_retro_log_printf(RETRO_LOG_ERROR, "[mkxp-z exception] %s: %.*s (%s)\n", (const char *)sb()->str(SANDBOX_SLOT(0)), (int)std::min(ptr - line_start, (ptrdiff_t)INT_MAX), line_start, (const char *)sb()->str(SANDBOX_SLOT(2)));
+                        } else {
+                            mkxp_retro_log_printf(RETRO_LOG_ERROR, "[mkxp-z exception] %.*s\n", (int)std::min(ptr - line_start, (ptrdiff_t)INT_MAX), line_start);
+                        }
+                        line_start = ++ptr;
+                    } else {
+                        ++ptr;
                     }
                 }
             } else {

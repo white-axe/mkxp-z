@@ -501,21 +501,16 @@ static VALUE rgss_stop(VALUE self) {
 }
 
 static void msgbox_impl(wasm_ptr_t message_ptr) {
-    struct sandbox_str_guard message = sb()->str(message_ptr);
-    MKXPZ_FORCED_ASSERT(((const char *)message)[sb()->strlen(message_ptr)] == 0); // Verify that the message string is null-terminated
+    const struct sandbox_str_guard message = sb()->str(message_ptr);
+    wasm_size_t message_len = sb()->strlen(message_ptr);
     const char *ptr = (const char *)message;
     const char *line_start = ptr;
-    for (bool done = false; !done;) {
-        switch (*ptr) {
-            case 0:
-                done = true;
-            case '\n':
-                mkxp_retro_log_printf(RETRO_LOG_WARN, "[mkxp-z msgbox] %.*s\n", (int)std::min(ptr - line_start, (ptrdiff_t)INT_MAX), line_start);
-                line_start = ++ptr;
-                break;
-            default:
-                ++ptr;
-                break;
+    for (wasm_size_t i = 0; i < message_len;) {
+        if (++i == message_len || *ptr == '\n') {
+            mkxp_retro_log_printf(RETRO_LOG_WARN, "[mkxp-z msgbox] %.*s\n", (int)std::min(ptr - line_start, (ptrdiff_t)INT_MAX), line_start);
+            line_start = ++ptr;
+        } else {
+            ++ptr;
         }
     }
     mkxp_retro::display_message(RETRO_LOG_WARN, message);
@@ -843,6 +838,23 @@ static VALUE default_font_family(VALUE self, VALUE value) {
     return sb()->bind<struct coro>()()(self, value);
 }
 
+static VALUE system_puts(int32_t argc, wasm_ptr_t argv, VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE, ID> slots;
+
+        VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(1, rb_intern, "puts");
+                SANDBOX_AWAIT_S(0, rb_funcallv, sb()->rb_mKernel(), SANDBOX_SLOT(1), argc, argv);
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(argc, argv, self);
+}
+
 static VALUE to_utf8(VALUE self) {
     struct coro : boost::asio::coroutine {
         typedef decl_slots<wasm_ptr_t, VALUE> slots;
@@ -1139,6 +1151,8 @@ void sandbox_binding_init::operator()() {
         SANDBOX_AWAIT(rb_define_module_function, system_module, "launch", (VALUE (*)(ANYARGS))launch, 2);
 
         SANDBOX_AWAIT(rb_define_module_function, system_module, "default_font_family=", (VALUE (*)(ANYARGS))default_font_family, 1);
+
+        SANDBOX_AWAIT(rb_define_module_function, system_module, "puts", (VALUE (*)(ANYARGS))system_puts, -1);
 
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cString(), "to_utf8", (VALUE (*)(ANYARGS))to_utf8, 0);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cString(), "to_utf8!", (VALUE (*)(ANYARGS))to_utf8_bang, 0);

@@ -1467,7 +1467,7 @@ extern "C" RETRO_API void retro_get_system_info(struct retro_system_info *info) 
     std::memset(info, 0, sizeof *info);
     info->library_name = "mkxp-z";
     info->library_version = MKXPZ_VERSION "/" MKXPZ_GIT_HASH;
-    info->valid_extensions = "ini|json|rxproj|rvproj|rvproj2|mkxp|mkxpz|zip|7z";
+    info->valid_extensions = "ini|json|rxproj|rvproj|rvproj2|mkxpz|zip|7z";
     info->need_fullpath = true;
     info->block_extract = true;
 }
