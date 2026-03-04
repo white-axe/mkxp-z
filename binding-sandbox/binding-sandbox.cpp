@@ -227,6 +227,28 @@ static VALUE legacy_symbol_to_int(VALUE self) {
     return sb()->bind<struct coro>()()(self);
 }
 
+static VALUE legacy_hash_index(int32_t argc, wasm_ptr_t argv, VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE, ID> slots;
+
+        VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 2, 7, -1);
+                if (!SANDBOX_SLOT(0)) {
+                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "index");
+                }
+                SANDBOX_AWAIT(mkxp_warn, "Hash#index is deprecated; use Hash#key instead");
+                SANDBOX_AWAIT_S(1, rb_intern, "key");
+                SANDBOX_AWAIT_S(0, rb_funcallv, self, SANDBOX_SLOT(1), argc, argv);
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(argc, argv, self);
+}
+
 static VALUE legacy_dir_exists(VALUE self, VALUE path) {
     struct coro : boost::asio::coroutine {
         typedef decl_slots<VALUE, ID> slots;
@@ -1053,6 +1075,7 @@ void sandbox_binding_init::operator()() {
         SANDBOX_AWAIT(rb_define_method, sb()->rb_mKernel(), "type", (VALUE (*)(ANYARGS))legacy_kernel_type, 0);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cSymbol(), "to_i", (VALUE (*)(ANYARGS))legacy_symbol_to_i, 0);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cSymbol(), "to_int", (VALUE (*)(ANYARGS))legacy_symbol_to_int, 0);
+        SANDBOX_AWAIT(rb_define_method, sb()->rb_cHash(), "index", (VALUE (*)(ANYARGS))legacy_hash_index, -1);
         SANDBOX_AWAIT(rb_define_singleton_method, sb()->rb_cDir(), "exists?", (VALUE (*)(ANYARGS))legacy_dir_exists, 1);
         SANDBOX_AWAIT(rb_define_singleton_method, sb()->rb_cFile(), "exists?", (VALUE (*)(ANYARGS))legacy_file_exists, 1);
         SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mFileTest(), "exists?", (VALUE (*)(ANYARGS))legacy_file_test_exists, 1);
