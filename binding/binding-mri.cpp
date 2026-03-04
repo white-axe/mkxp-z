@@ -215,14 +215,14 @@ static VALUE legacy_symbol_to_int(VALUE self) {
 }
 #endif // RAPI_MAJOR > 1 || (RAPI_MAJOR == 1 && RAPI_MINOR > 8)
 
-#if RAPI_MAJOR > 3 || (RAPI_MAJOR == 3 && RAPI_MINOR > 0)
+#if RAPI_MAJOR > 2 || (RAPI_MAJOR == 2 && RAPI_MINOR > 7)
 static VALUE legacy_hash_index(int argc, VALUE *argv, VALUE self) {
-    if (!mkxp_ec_is_syntax_transform_active(3, 0, -1))
+    if (!mkxp_ec_is_syntax_transform_active(2, 7, -1))
         mkxp_raise_no_method_exception(self, "index");
     rb_warn("Hash#index is deprecated; use Hash#key instead");
     return rb_funcallv(self, rb_intern("key"), argc, argv);
 }
-#endif // RAPI_MAJOR > 3 || (RAPI_MAJOR == 3 && RAPI_MINOR > 0)
+#endif // RAPI_MAJOR > 2 || (RAPI_MAJOR == 2 && RAPI_MINOR > 7)
 
 #if RAPI_MAJOR > 3 || (RAPI_MAJOR == 3 && RAPI_MINOR > 1)
 static VALUE legacy_dir_exists(VALUE self, VALUE path) {
@@ -265,9 +265,9 @@ static void mriBindingInit() {
     rb_define_method(rb_cSymbol, "to_i", legacy_symbol_to_i, 0);
     rb_define_method(rb_cSymbol, "to_int", legacy_symbol_to_int, 0);
 #endif // RAPI_MAJOR > 1 || (RAPI_MAJOR == 1 && RAPI_MINOR > 8)
-#if RAPI_MAJOR > 3 || (RAPI_MAJOR == 3 && RAPI_MINOR > 0)
+#if RAPI_MAJOR > 2 || (RAPI_MAJOR == 2 && RAPI_MINOR > 7)
     rb_define_method(rb_cHash, "index", legacy_hash_index, -1);
-#endif // RAPI_MAJOR > 3 || (RAPI_MAJOR == 3 && RAPI_MINOR > 0)
+#endif // RAPI_MAJOR > 2 || (RAPI_MAJOR == 2 && RAPI_MINOR > 7)
 #if RAPI_MAJOR > 3 || (RAPI_MAJOR == 3 && RAPI_MINOR > 1)
     rb_define_singleton_method(rb_cDir, "exists?", legacy_dir_exists, 1);
     rb_define_singleton_method(rb_cFile, "exists?", legacy_file_exists, 1);
