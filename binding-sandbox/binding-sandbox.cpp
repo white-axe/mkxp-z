@@ -54,6 +54,27 @@ static VALUE marshal_module;
 static VALUE win32api_class;
 
 #ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
+static VALUE legacy_array_choice(int32_t argc, wasm_ptr_t argv, VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE, ID> slots;
+
+        VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
+                if (!SANDBOX_SLOT(0)) {
+                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "choice");
+                }
+                SANDBOX_AWAIT_S(1, rb_intern, "sample");
+                SANDBOX_AWAIT_S(0, rb_funcallv, self, SANDBOX_SLOT(1), argc, argv);
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(argc, argv, self);
+}
+
 static VALUE legacy_array_indexes(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
         typedef decl_slots<VALUE, ID> slots;
@@ -1067,6 +1088,7 @@ void sandbox_binding_init::operator()() {
         SANDBOX_AWAIT_S(0, rb_str_new_cstr, "UTF8");
         SANDBOX_AWAIT(rb_gv_set, "$-K", SANDBOX_SLOT(0));
 
+        SANDBOX_AWAIT(rb_define_method, sb()->rb_cArray(), "choice", (VALUE (*)(ANYARGS))legacy_array_choice, -1);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cArray(), "indexes", (VALUE (*)(ANYARGS))legacy_array_indexes, -1);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cArray(), "indices", (VALUE (*)(ANYARGS))legacy_array_indices, -1);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cHash(), "indexes", (VALUE (*)(ANYARGS))legacy_hash_indexes, -1);
