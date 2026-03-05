@@ -159,6 +159,12 @@ RB_METHOD(mkxpParseCSV);
 
 #ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
 #if RAPI_MAJOR > 1 || (RAPI_MAJOR == 1 && RAPI_MINOR > 8)
+static VALUE legacy_array_choice(int argc, VALUE *argv, VALUE self) {
+    if (!mkxp_ec_is_syntax_transform_active(1, 8, -1))
+        mkxp_raise_no_method_exception(self, "choice");
+    return rb_funcallv(self, rb_intern("sample"), argc, argv);
+}
+
 static VALUE legacy_array_indexes(int argc, VALUE *argv, VALUE self) {
     if (!mkxp_ec_is_syntax_transform_active(1, 8, -1))
         mkxp_raise_no_method_exception(self, "indexes");
@@ -256,6 +262,7 @@ static VALUE legacy_kernel_match(VALUE self, VALUE other) {
 static void mriBindingInit() {
 #ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
 #if RAPI_MAJOR > 1 || (RAPI_MAJOR == 1 && RAPI_MINOR > 8)
+    rb_define_method(rb_cArray, "choice", legacy_array_choice, -1);
     rb_define_method(rb_cArray, "indexes", legacy_array_indexes, -1);
     rb_define_method(rb_cArray, "indices", legacy_array_indices, -1);
     rb_define_method(rb_cHash, "indexes", legacy_hash_indexes, -1);
