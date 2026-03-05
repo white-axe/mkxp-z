@@ -86,23 +86,23 @@ static const struct retro_core_option_v2_category core_option_categories[] = {
     {"button-16", "Same as Input::Z"}, \
     {"button-17", "Same as Input::L"}, \
     {"button-18", "Same as Input::R"}, \
-    {"button-21", "Same as Input::Shift"}, \
-    {"button-22", "Same as Input::Ctrl"}, \
-    {"button-23", "Same as Input::Alt"}, \
+    {"button-21", "Same as Input::SHIFT"}, \
+    {"button-22", "Same as Input::CTRL"}, \
+    {"button-23", "Same as Input::ALT"}, \
     {"button-25", "Same as Input::F5"}, \
     {"button-26", "Same as Input::F6"}, \
     {"button-27", "Same as Input::F7"}, \
     {"button-28", "Same as Input::F8"}, \
     {"button-29", "Same as Input::F9"}, \
-    {"button-38", "Same as Input::MouseLeft"}, \
-    {"button-39", "Same as Input::MouseMiddle"}, \
-    {"button-40", "Same as Input::MouseRight"}, \
-    {"button-41", "Same as Input::MouseX1"}, \
-    {"button-42", "Same as Input::MouseX2"}, \
-    {"button-2", "Same as Input::Down"}, \
-    {"button-4", "Same as Input::Left"}, \
-    {"button-6", "Same as Input::Right"}, \
-    {"button-8", "Same as Input::Up"}, \
+    {"button-38", "Same as Input::MOUSELEFT"}, \
+    {"button-39", "Same as Input::MOUSEMIDDLE"}, \
+    {"button-40", "Same as Input::MOUSERIGHT"}, \
+    {"button-41", "Same as Input::MOUSEX1"}, \
+    {"button-42", "Same as Input::MOUSEX2"}, \
+    {"button-2", "Same as Input::DOWN"}, \
+    {"button-4", "Same as Input::LEFT"}, \
+    {"button-6", "Same as Input::RIGHT"}, \
+    {"button-8", "Same as Input::UP"}, \
 
 #define RETROPAD_OPTIONS \
     {"joypad-8-0", "A on Port 1"}, \
@@ -966,8 +966,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_button-21",
-        "Input::Shift Button Binding",
-        "Input::Shift",
+        "Input::SHIFT Button Binding",
+        "Input::SHIFT",
         "The stock RPG Maker runtimes bind this to the shift keys on the keyboard.",
         nullptr,
         "button",
@@ -981,8 +981,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_button-22",
-        "Input::Ctrl Button Binding",
-        "Input::Ctrl",
+        "Input::CTRL Button Binding",
+        "Input::CTRL",
         "The stock RPG Maker runtimes bind this to the control keys on the keyboard.",
         nullptr,
         "button",
@@ -996,8 +996,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_button-23",
-        "Input::Alt Button Binding",
-        "Input::Alt",
+        "Input::ALT Button Binding",
+        "Input::ALT",
         "The stock RPG Maker runtimes bind this to the alt keys on the keyboard.",
         nullptr,
         "button",
@@ -1086,8 +1086,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_button-38",
-        "Input::MouseLeft Button Binding",
-        "Input::MouseLeft",
+        "Input::MOUSELEFT Button Binding",
+        "Input::MOUSELEFT",
         "This is typically bound to the primary mouse button.",
         nullptr,
         "button",
@@ -1101,8 +1101,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_button-39",
-        "Input::MouseMiddle Button Binding",
-        "Input::MouseMiddle",
+        "Input::MOUSEMIDDLE Button Binding",
+        "Input::MOUSEMIDDLE",
         "This is typically bound to the middle mouse button.",
         nullptr,
         "button",
@@ -1116,8 +1116,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_button-40",
-        "Input::MouseRight Button Binding",
-        "Input::MouseRight",
+        "Input::MOUSERIGHT Button Binding",
+        "Input::MOUSERIGHT",
         "This is typically bound to the secondary mouse button.",
         nullptr,
         "button",
@@ -1131,8 +1131,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_button-41",
-        "Input::MouseX1 Button Binding",
-        "Input::MouseX1",
+        "Input::MOUSEX1 Button Binding",
+        "Input::MOUSEX1",
         "This is typically bound to mouse button 4.",
         nullptr,
         "button",
@@ -1146,8 +1146,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_button-42",
-        "Input::MouseX2 Button Binding",
-        "Input::MouseX2",
+        "Input::MOUSEX2 Button Binding",
+        "Input::MOUSEX2",
         "This is typically bound to mouse button 5.",
         nullptr,
         "button",
@@ -1161,8 +1161,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_button-2",
-        "Input::Down Button Binding",
-        "Input::Down",
+        "Input::DOWN Button Binding",
+        "Input::DOWN",
         "The stock RPG Maker runtimes bind this to the down arrow key on the keyboard.",
         nullptr,
         "button",
@@ -1176,8 +1176,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_button-4",
-        "Input::Left Button Binding",
-        "Input::Left",
+        "Input::LEFT Button Binding",
+        "Input::LEFT",
         "The stock RPG Maker runtimes bind this to the left arrow key on the keyboard.",
         nullptr,
         "button",
@@ -1191,8 +1191,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_button-6",
-        "Input::Right Button Binding",
-        "Input::Right",
+        "Input::RIGHT Button Binding",
+        "Input::RIGHT",
         "The stock RPG Maker runtimes bind this to the right arrow key on the keyboard.",
         nullptr,
         "button",
@@ -1206,8 +1206,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_button-8",
-        "Input::Up Button Binding",
-        "Input::Up",
+        "Input::UP Button Binding",
+        "Input::UP",
         "The stock RPG Maker runtimes bind this to the up arrow key on the keyboard.",
         nullptr,
         "button",
@@ -1637,8 +1637,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_scancode-30",
-        "1 Scancode Binding",
-        "1",
+        "NUMBER_1 Scancode Binding",
+        "NUMBER_1",
         nullptr,
         nullptr,
         "scancode",
@@ -1653,8 +1653,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_scancode-31",
-        "2 Scancode Binding",
-        "2",
+        "NUMBER_2 Scancode Binding",
+        "NUMBER_2",
         nullptr,
         nullptr,
         "scancode",
@@ -1669,8 +1669,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_scancode-32",
-        "3 Scancode Binding",
-        "3",
+        "NUMBER_3 Scancode Binding",
+        "NUMBER_3",
         nullptr,
         nullptr,
         "scancode",
@@ -1685,8 +1685,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_scancode-33",
-        "4 Scancode Binding",
-        "4",
+        "NUMBER_4 Scancode Binding",
+        "NUMBER_4",
         nullptr,
         nullptr,
         "scancode",
@@ -1701,8 +1701,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_scancode-34",
-        "5 Scancode Binding",
-        "5",
+        "NUMBER_5 Scancode Binding",
+        "NUMBER_5",
         nullptr,
         nullptr,
         "scancode",
@@ -1717,8 +1717,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_scancode-35",
-        "6 Scancode Binding",
-        "6",
+        "NUMBER_6 Scancode Binding",
+        "NUMBER_6",
         nullptr,
         nullptr,
         "scancode",
@@ -1733,8 +1733,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_scancode-36",
-        "7 Scancode Binding",
-        "7",
+        "NUMBER_7 Scancode Binding",
+        "NUMBER_7",
         nullptr,
         nullptr,
         "scancode",
@@ -1749,8 +1749,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_scancode-37",
-        "8 Scancode Binding",
-        "8",
+        "NUMBER_8 Scancode Binding",
+        "NUMBER_8",
         nullptr,
         nullptr,
         "scancode",
@@ -1765,8 +1765,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_scancode-38",
-        "9 Scancode Binding",
-        "9",
+        "NUMBER_9 Scancode Binding",
+        "NUMBER_9",
         nullptr,
         nullptr,
         "scancode",
@@ -1781,8 +1781,8 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
     {
         "mkxp-z_scancode-39",
-        "0 Scancode Binding",
-        "0",
+        "NUMBER_0 Scancode Binding",
+        "NUMBER_0",
         nullptr,
         nullptr,
         "scancode",
@@ -2427,7 +2427,7 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
         nullptr,
         "scancode",
         {
-            {"default", "Default (Same as Input::Right)"},
+            {"default", "Default (Same as Input::RIGHT)"},
             {"none", "None"},
             BUTTON_OPTIONS
             RETROPAD_OPTIONS
@@ -2443,7 +2443,7 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
         nullptr,
         "scancode",
         {
-            {"default", "Default (Same as Input::Left)"},
+            {"default", "Default (Same as Input::LEFT)"},
             {"none", "None"},
             BUTTON_OPTIONS
             RETROPAD_OPTIONS
@@ -2459,7 +2459,7 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
         nullptr,
         "scancode",
         {
-            {"default", "Default (Same as Input::Down)"},
+            {"default", "Default (Same as Input::DOWN)"},
             {"none", "None"},
             BUTTON_OPTIONS
             RETROPAD_OPTIONS
@@ -2475,7 +2475,7 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
         nullptr,
         "scancode",
         {
-            {"default", "Default (Same as Input::Up)"},
+            {"default", "Default (Same as Input::UP)"},
             {"none", "None"},
             BUTTON_OPTIONS
             RETROPAD_OPTIONS
@@ -4491,7 +4491,7 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
         nullptr,
         "scancode",
         {
-            {"default", "Default (Same as Input::Ctrl)"},
+            {"default", "Default (Same as Input::CTRL)"},
             {"none", "None"},
             BUTTON_OPTIONS
             RETROPAD_OPTIONS
@@ -4523,7 +4523,7 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
         nullptr,
         "scancode",
         {
-            {"default", "Default (Same as Input::Alt)"},
+            {"default", "Default (Same as Input::ALT)"},
             {"none", "None"},
             BUTTON_OPTIONS
             RETROPAD_OPTIONS
@@ -4555,7 +4555,7 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
         nullptr,
         "scancode",
         {
-            {"default", "Default (Same as Input::Ctrl)"},
+            {"default", "Default (Same as Input::CTRL)"},
             {"none", "None"},
             BUTTON_OPTIONS
             RETROPAD_OPTIONS
@@ -4571,7 +4571,7 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
         nullptr,
         "scancode",
         {
-            {"default", "Default (Same as Input::Shift)"},
+            {"default", "Default (Same as Input::SHIFT)"},
             {"none", "None"},
             BUTTON_OPTIONS
             RETROPAD_OPTIONS
@@ -4587,7 +4587,7 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
         nullptr,
         "scancode",
         {
-            {"default", "Default (Same as Input::Alt)"},
+            {"default", "Default (Same as Input::ALT)"},
             {"none", "None"},
             BUTTON_OPTIONS
             RETROPAD_OPTIONS
