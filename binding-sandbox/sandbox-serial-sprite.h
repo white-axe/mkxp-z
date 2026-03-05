@@ -26,6 +26,12 @@
 
 bool Sprite::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const
 {
+    if (!mkxp_sandbox::sandbox_serialize(p->wave.active, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize((int32_t)p->wave.amp, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize((int32_t)p->wave.length, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize((int32_t)p->wave.speed, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->wave.phase, data, max_size)) return false;
+
     if (!mkxp_sandbox::sandbox_serialize(p->trans, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->mirrored, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize((int32_t)p->bushDepth, data, max_size)) return false;
@@ -38,14 +44,8 @@ bool Sprite::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
     if (!mkxp_sandbox::sandbox_serialize(p->patternScroll, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->patternZoom, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->invert, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_serialize(p->sceneRect, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_serialize(p->sceneOrig, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->sceneGeo, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->isVisible, data, max_size)) return false;
-
-    if (!mkxp_sandbox::sandbox_serialize((int32_t)p->wave.amp, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_serialize((int32_t)p->wave.length, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_serialize((int32_t)p->wave.speed, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_serialize(p->wave.phase, data, max_size)) return false;
 
     if (!sandbox_serialize_viewport_element(data, max_size)) return false;
 
@@ -61,18 +61,69 @@ bool Sprite::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
 bool Sprite::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size)
 {
     {
-        float old_y = p->trans.getPosition().y;
-        float old_zoom_y = p->trans.getScale().y;
-        if (!mkxp_sandbox::sandbox_deserialize(p->trans, data, max_size)) return false;
-        if (p->trans.getPosition().y != old_y) {
-            p->deserYChanged = true;
-            if (rgssVer >= 2) {
+        if (!mkxp_sandbox::sandbox_deserialize(p->wave.active, data, max_size)) return false;
+        if (!p->wave.active) {
+            p->wave.dirty = false;
+        }
+    }
+    {
+        int32_t value = (int32_t)p->wave.amp;
+        if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->wave.amp, data, max_size)) return false;
+        if ((int32_t)p->wave.amp != value) {
+            if (p->wave.active) {
                 p->wave.dirty = true;
             }
         }
-        if (p->trans.getScale().y != old_zoom_y) {
-            p->deserBushDepthChanged = true;
-            if (rgssVer >= 2) {
+    }
+    {
+        int32_t value = (int32_t)p->wave.length;
+        if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->wave.length, data, max_size)) return false;
+        if ((int32_t)p->wave.length != value) {
+            if (p->wave.active) {
+                p->wave.dirty = true;
+            }
+        }
+    }
+    {
+        int32_t value = (int32_t)p->wave.speed;
+        if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->wave.speed, data, max_size)) return false;
+        if ((int32_t)p->wave.speed != value) {
+            if (p->wave.active) {
+                p->wave.dirty = true;
+            }
+        }
+    }
+    {
+        float value = p->wave.phase;
+        if (!mkxp_sandbox::sandbox_deserialize(p->wave.phase, data, max_size)) return false;
+        if (p->wave.phase != value) {
+            if (p->wave.active) {
+                p->wave.dirty = true;
+            }
+        }
+    }
+
+    {
+        float old_y = p->trans.getPosition().y;
+        float old_oy = p->trans.getOrigin().y;
+        Vec2 old_zoom = p->trans.getScale();
+        if (!mkxp_sandbox::sandbox_deserialize(p->trans, data, max_size)) return false;
+        if (p->trans.getPosition().y != old_y) {
+            p->deserYChanged = true;
+            if (p->wave.active) {
+                p->wave.dirty = true;
+            }
+        }
+        if (p->trans.getOrigin().y != old_oy) {
+            if (p->wave.active) {
+                p->wave.dirty = true;
+            }
+        }
+        if (p->trans.getScale() != old_zoom) {
+            if (p->trans.getScale().y != old_zoom.y) {
+                p->deserBushDepthChanged = true;
+            }
+            if (p->wave.active) {
                 p->wave.dirty = true;
             }
         }
@@ -82,6 +133,9 @@ bool Sprite::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
         if (!mkxp_sandbox::sandbox_deserialize(p->mirrored, data, max_size)) return false;
         if (p->mirrored != value) {
             p->deserMirrorChanged = true;
+            if (p->wave.active) {
+                p->wave.dirty = true;
+            }
         }
     }
     {
@@ -100,38 +154,8 @@ bool Sprite::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
     if (!mkxp_sandbox::sandbox_deserialize(p->patternScroll, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_deserialize(p->patternZoom, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_deserialize(p->invert, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_deserialize(p->sceneRect, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_deserialize(p->sceneOrig, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->sceneGeo, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_deserialize(p->isVisible, data, max_size)) return false;
-
-    {
-        int32_t value = (int32_t)p->wave.amp;
-        if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->wave.amp, data, max_size)) return false;
-        if ((int32_t)p->wave.amp != value) {
-            p->wave.dirty = true;
-        }
-    }
-    {
-        int32_t value = (int32_t)p->wave.length;
-        if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->wave.length, data, max_size)) return false;
-        if ((int32_t)p->wave.length != value) {
-            p->wave.dirty = true;
-        }
-    }
-    {
-        int32_t value = (int32_t)p->wave.speed;
-        if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->wave.speed, data, max_size)) return false;
-        if ((int32_t)p->wave.speed != value) {
-            p->wave.dirty = true;
-        }
-    }
-    {
-        float value = p->wave.phase;
-        if (!mkxp_sandbox::sandbox_deserialize(p->wave.phase, data, max_size)) return false;
-        if (p->wave.phase != value) {
-            p->wave.dirty = true;
-        }
-    }
 
     if (!sandbox_deserialize_viewport_element(data, max_size)) return false;
 
@@ -173,6 +197,8 @@ void Sprite::sandbox_deserialize_begin()
     p->deserYChanged = false;
 
     p->deserBushDepthChanged = false;
+
+    p->deserSavedBitmapId = p->bitmap != nullptr ? p->bitmap->id : -1;
 }
 
 void Sprite::sandbox_deserialize_end()
@@ -185,6 +211,9 @@ void Sprite::sandbox_deserialize_end()
         p->bitmapDispCon = p->bitmap->wasDisposed.connect(&SpritePrivate::bitmapDisposal, p);
         if (p->bitmap->isDisposed()) {
             p->bitmapDisposal();
+        }
+        if (p->wave.active && (p->bitmap != nullptr ? p->bitmap->id : -1) != p->deserSavedBitmapId) {
+            p->wave.dirty = true;
         }
     }
 
