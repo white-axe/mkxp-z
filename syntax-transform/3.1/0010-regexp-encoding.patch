@@ -26,7 +26,10 @@
 # encoding otherwise, whereas in Ruby 1.8, the default encoding for a regular
 # expression if not specified is based on the first character of the `$KCODE`
 # global variable if it's equal to "e", "n", "s" or "u" after converting to
-# lowercase; otherwise the default is equivalent to "n" (8-bit ASCII).
+# lowercase; otherwise the default encoding can be set at configure time using
+# the `--with-default-kcode` configure flag; if that flag is not set, the
+# default is `--with-default-kcode=none`. RPG Maker XP and VX configure Ruby
+# with `--with-default-kcode=none`.
 #
 # Thus, this code should print `7` and `[3, 3, 1]` in Ruby 1.8. In later
 # versions, it prints `7` and `[1, 1, 1, 1, 1, 1, 1]`.
