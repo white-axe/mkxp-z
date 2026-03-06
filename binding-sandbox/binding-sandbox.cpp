@@ -359,7 +359,7 @@ static VALUE delta(VALUE self) {
 }
 
 static VALUE data_directory(VALUE self) {
-    return sb()->bind<struct rb_str_new_cstr>()()("/Save");
+    return sb()->bind<struct rb_str_new_cstr>()()("/Save/");
 }
 
 static VALUE get_window_title(VALUE self) {
