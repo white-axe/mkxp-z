@@ -51,21 +51,13 @@ struct SharedMidiState
 {
 	bool inited;
 	std::vector<Synth> synths;
-#ifndef MKXPZ_RETRO
 	const std::string &soundFont;
-#endif // MKXPZ_RETRO
 	fluid_settings_t *flSettings;
 
-#ifdef MKXPZ_RETRO
-	SharedMidiState()
-	    : inited(false)
-	{}
-#else
 	SharedMidiState(const Config &conf)
 	    : inited(false),
 	      soundFont(conf.midi.soundFont)
 	{}
-#endif // MKXPZ_RETRO
 
 	~SharedMidiState()
 	{
@@ -176,43 +168,106 @@ private:
 		extern const uint8_t mkxp_gmgsx_sf2[];
 		extern const size_t mkxp_gmgsx_sf2_len;
 
+		struct data {
+			union {
+				PHYSFS_File *file;
+				fluid_long_long_t builtin_offset;
+			} inner;
+			const bool is_builtin;
+
+			data() noexcept : is_builtin(true) {
+				inner.builtin_offset = 0;
+			}
+
+			data(PHYSFS_File *file) noexcept : is_builtin(false) {
+				inner.file = file;
+			}
+
+			~data() {
+				if (!is_builtin && inner.file != nullptr)
+					PHYSFS_close(inner.file);
+			}
+		};
+
 		fluid_sfloader_t *loader = new_fluid_defsfloader(flSettings);
 		fluid_sfloader_set_callbacks(
 			loader,
 			[](const char *filename) {
-				return std::strcmp(filename, "/GMGSx.sf2") ? NULL : std::calloc(1, sizeof(fluid_long_long_t));
+				if (std::strcmp(filename, "/GMGSx.sf2") == 0)
+					return (void *)new data;
+				PHYSFS_File *file = PHYSFS_openRead(mkxp_retro::fs->normalize(filename, false, true, "/Game").c_str());
+				return file == nullptr ? nullptr : (void *)new data(file);
 			},
 			[](void *buf, fluid_long_long_t count, void *handle) {
-				assert((size_t)(*(fluid_long_long_t *)handle + count) < mkxp_gmgsx_sf2_len);
-				std::memcpy(buf, mkxp_gmgsx_sf2 + *(fluid_long_long_t *)handle, count);
-				*(fluid_long_long_t *)handle += count;
-				return (int)FLUID_OK;
+				struct data *data = (struct data *)handle;
+				if (data->is_builtin)
+				{
+					assert((size_t)(data->inner.builtin_offset + count) < mkxp_gmgsx_sf2_len);
+					std::memcpy(buf, mkxp_gmgsx_sf2 + data->inner.builtin_offset, count);
+					data->inner.builtin_offset = (uint64_t)data->inner.builtin_offset + (uint64_t)count;
+					return (int)FLUID_OK;
+				}
+				else
+					return PHYSFS_readBytes(data->inner.file, buf, count) == -1 ? (int)FLUID_FAILED : (int)FLUID_OK;
 			},
 			[](void *handle, fluid_long_long_t offset, int origin) {
-				switch (origin) {
-					case SEEK_CUR:
-						*(fluid_long_long_t *)handle += offset;
-						break;
-					case SEEK_END:
-						*(fluid_long_long_t *)handle = mkxp_gmgsx_sf2_len + offset;
-						break;
-					default:
-						*(fluid_long_long_t *)handle = offset;
-						break;
+				struct data *data = (struct data *)handle;
+				if (data->is_builtin)
+				{
+					switch (origin) {
+						case SEEK_CUR:
+							data->inner.builtin_offset = (uint64_t)data->inner.builtin_offset + (uint64_t)offset;
+							break;
+						case SEEK_END:
+							data->inner.builtin_offset = (uint64_t)mkxp_gmgsx_sf2_len + (uint64_t)offset;
+							break;
+						default:
+							data->inner.builtin_offset = offset;
+							break;
+					}
+					return (int)FLUID_OK;
 				}
-				return (int)FLUID_OK;
+				else
+				{
+					switch (origin) {
+						case SEEK_CUR:
+							{
+								uint64_t pos = PHYSFS_tell(data->inner.file);
+								if (pos != (uint64_t)-1) {
+									offset = (uint64_t)offset + pos;
+								}
+							}
+							break;
+						case SEEK_END:
+							{
+								offset = (uint64_t)offset + (uint64_t)PHYSFS_fileLength(data->inner.file);
+							}
+							break;
+					}
+					return PHYSFS_seek(data->inner.file, offset) ? (int)FLUID_OK : (int)FLUID_FAILED;
+				}
 			},
 			[](void *handle) {
-				return *(fluid_long_long_t *)handle;
+				struct data *data = (struct data *)handle;
+				if (data->is_builtin)
+					return data->inner.builtin_offset;
+				else
+				{
+					PHYSFS_sint64 pos = PHYSFS_tell(data->inner.file);
+					return pos == -1 ? (fluid_long_long_t)FLUID_FAILED : pos;
+				}
 			},
 			[](void *handle) {
-				std::free(handle);
+				delete (struct data *)handle;
 				return (int)FLUID_OK;
 			}
 		);
 
 		fluid_synth_add_sfloader(syn, loader);
-		fluid.synth_sfload(syn, "/GMGSx.sf2", 1);
+		if (soundFont.empty())
+			fluid.synth_sfload(syn, "/GMGSx.sf2", 1);
+		else
+			fluid.synth_sfload(syn, soundFont.c_str(), 1);
 #else
 		if (!soundFont.empty())
 			fluid.synth_sfload(syn, soundFont.c_str(), 1);
