@@ -43,15 +43,15 @@ static int vfSeek(void *ops, ogg_int64_t offset, int whence)
 	switch (whence) {
 		case SEEK_CUR:
 			{
-				ogg_int64_t pos = PHYSFS_tell(static_cast<struct FileSystem::File*>(ops)->get_read());
-				if (pos >= 0) {
-					offset += pos;
+				uint64_t pos = PHYSFS_tell(static_cast<struct FileSystem::File*>(ops)->get_read());
+				if (pos != (uint64_t)-1) {
+					offset = (uint64_t)offset + pos;
 				}
 			}
 			break;
 		case SEEK_END:
 			{
-				offset += PHYSFS_fileLength(static_cast<struct FileSystem::File*>(ops)->get_read());
+				offset = (uint64_t)offset + (uint64_t)PHYSFS_fileLength(static_cast<struct FileSystem::File*>(ops)->get_read());
 			}
 			break;
 	}

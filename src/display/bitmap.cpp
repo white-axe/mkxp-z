@@ -26,7 +26,7 @@
 #  include <stb_image.h>
 #  include <pixman-region/pixman-region.h>
 #  include FT_STROKER_H
-#  include "mkxp-polyfill.h" // std::lround, std::to_string
+#  include "mkxp-polyfill.h" // std::lround, std::round, std::to_string
 #  include "sandbox-serial-util.h"
 #else
 #  include <SDL.h>
@@ -355,6 +355,7 @@ struct BitmapPrivate
 #ifdef MKXPZ_RETRO
         surface = new SDL_Surface {gl.width, gl.height, STBI_MALLOC(4 * gl.width * gl.height)};
         if (surface->pixels == nullptr) {
+            delete surface;
             MKXPZ_THROW(std::bad_alloc());
         }
 #else
@@ -1026,7 +1027,10 @@ Bitmap::Bitmap(Exception &exception, void *pixeldata, int width, int height, boo
 
     stbi_uc *image = (stbi_uc *)STBI_MALLOC((size_t)4 * (size_t)width * (size_t)height * sizeof(stbi_uc));
     if (image == nullptr)
+    {
+        delete surface;
         MKXPZ_THROW(std::bad_alloc());
+    }
 
     surface->pixels = image;
     surface->w = width;
@@ -1595,52 +1599,117 @@ void Bitmap::stretchBlt(Exception &exception,
             
             if (srcRectTooBig || srcSurfTooBig)
             {
-#ifdef MKXPZ_RETRO // TODO
-                MKXPZ_FORCED_ASSERT_WITH_MESSAGE(false, "not implemented: stretchBlt for sources larger than the max texture size");
-#else
+#ifndef MKXPZ_RETRO
                 int error;
+#endif // MKXPZ_RETRO
                 if (srcRectTooBig)
                 {
                     /* We have to resize it here anyway, so use software resizing */
+#ifdef MKXPZ_RETRO
+                    blitTemp = new SDL_Surface {abs(destRect.w), abs(destRect.h), nullptr};
+                    blitTemp->pixels = STBI_MALLOC((size_t)4 * (size_t)blitTemp->w * (size_t)blitTemp->h);
+                    if (blitTemp->pixels == nullptr)
+                    {
+                        delete blitTemp;
+                        MKXPZ_THROW(std::bad_alloc());
+                    }
+#else
                     blitTemp =
                         SDL_CreateRGBSurface(0, abs(destRect.w), abs(destRect.h), p->format->BitsPerPixel,
                                              p->format->Rmask, p->format->Gmask,
                                              p->format->Bmask, p->format->Amask);
                     if (!blitTemp)
                         MKXPZ_THROW(std::bad_alloc());
+#endif // MKXPZ_RETRO
                     
                     if (smooth)
                     {
+#ifdef MKXPZ_RETRO
+                        double w_ratio = (double)srcRect.w / (double)destRect.w;
+                        double h_ratio = (double)srcRect.h / (double)destRect.h;
+                        for (size_t r = 0; r < (size_t)blitTemp->h; ++r)
+                            for (size_t c = 0; c < (size_t)blitTemp->w; ++c)
+                            {
+                                size_t src_c0 = (size_t)std::floor(w_ratio * c);
+                                size_t src_r0 = (size_t)std::floor(h_ratio * r);
+                                double src_w0 = w_ratio * c - src_c0;
+                                double src_h0 = h_ratio * r - src_r0;
+                                double src_00 = ((uint32_t *)srcSurf->pixels)[(size_t)srcSurf->w * ((size_t)srcRect.y + src_r0) + ((size_t)srcRect.x + src_c0)];
+                                double src_01 = src_c0 + 1 >= (size_t)srcRect.w
+                                    ? src_00
+                                    : ((uint32_t *)srcSurf->pixels)[(size_t)srcSurf->w * ((size_t)srcRect.y + src_r0) + ((size_t)srcRect.x + src_c0 + 1)];
+                                double src_10 = src_r0 + 1 >= (size_t)srcRect.h
+                                    ? src_00
+                                    : ((uint32_t *)srcSurf->pixels)[(size_t)srcSurf->w * ((size_t)srcRect.y + src_r0 + 1) + ((size_t)srcRect.x + src_c0)];
+                                double src_11 = src_c0 + 1 >= (size_t)srcRect.w
+                                    ? src_10
+                                    : (size_t)src_r0 + 1 >= (size_t)srcRect.h
+                                    ? src_01
+                                    : ((uint32_t *)srcSurf->pixels)[(size_t)srcSurf->w * ((size_t)srcRect.y + src_r0 + 1) + ((size_t)srcRect.x + src_c0 + 1)];
+                                ((uint32_t *)blitTemp->pixels)[(size_t)blitTemp->w * r + c] = std::round(
+                                    src_00 * (1. - src_w0) * (1. - src_h0)
+                                        + src_01 * (1. - src_w0) * src_h0
+                                        + src_10 * src_w0 * (1. - src_h0)
+                                        + src_11 * src_w0 * src_h0
+                                );
+                            }
+#else
                         error = SDL_SoftStretchLinear(srcSurf, &srcRect, blitTemp, 0);
+#endif // MKXPZ_RETRO
                         smooth = false;
                     }
                     else
                     {
+#ifdef MKXPZ_RETRO
+                        double w_ratio = (double)srcRect.w / (double)destRect.w;
+                        double h_ratio = (double)srcRect.h / (double)destRect.h;
+                        for (size_t r = 0; r < (size_t)blitTemp->h; ++r)
+                            for (size_t c = 0; c < (size_t)blitTemp->w; ++c)
+                                ((uint32_t *)blitTemp->pixels)[(size_t)blitTemp->w * r + c] = ((uint32_t *)srcSurf->pixels)[(size_t)srcSurf->w * ((size_t)srcRect.y + (size_t)std::round(h_ratio * r)) + ((size_t)srcRect.x + (size_t)std::round(w_ratio * c))];
+#else
                         SDL_Rect tmpRect = {0, 0, blitTemp->w, blitTemp->h};
                         error = SDL_LowerBlitScaled(srcSurf, &srcRect, blitTemp, &tmpRect);
+#endif // MKXPZ_RETRO
                     }
                     unpack_subimage = false;
                 }
                 else
                 {
                     /* Just crop it, let the shader resize it later */
+#ifdef MKXPZ_RETRO
+                    blitTemp = new SDL_Surface {abs(sourceRect.w), abs(sourceRect.h), nullptr};
+                    blitTemp->pixels = STBI_MALLOC((size_t)4 * (size_t)blitTemp->w * (size_t)blitTemp->h);
+                    if (blitTemp->pixels == nullptr)
+                    {
+                        delete blitTemp;
+                        MKXPZ_THROW(std::bad_alloc());
+                    }
+#else
                     blitTemp =
                         SDL_CreateRGBSurface(0, sourceRect.w, sourceRect.h, p->format->BitsPerPixel,
                                              p->format->Rmask, p->format->Gmask,
                                              p->format->Bmask, p->format->Amask);
                     if (!blitTemp)
                         MKXPZ_THROW(std::bad_alloc());
+#endif // MKXPZ_RETRO
                     
+#ifdef MKXPZ_RETRO
+                    for (size_t r = 0; r < (size_t)blitTemp->h; ++r)
+                        std::memcpy((uint32_t *)blitTemp->pixels + (size_t)blitTemp->w * r, (uint32_t *)srcSurf->pixels + (size_t)srcSurf->w * (sourceRect.y + r) + sourceRect.x, (size_t)4 * blitTemp->w);
+#else
                     SDL_Rect tmpRect = {0, 0, blitTemp->w, blitTemp->h};
                     error = SDL_LowerBlit(srcSurf, &srcRect, blitTemp, &tmpRect);
+#endif // MKXPZ_RETRO
                 }
                 
+#ifndef MKXPZ_RETRO
                 if (error)
                 {
                     SDL_FreeSurface(blitTemp);
                     exception = Exception(Exception::SDLError, "Failed to blit surface: %s", SDL_GetError());
                     return;
                 }
+#endif // MKXPZ_RETRO
                 
                 srcSurf = blitTemp;
                 
@@ -1648,7 +1717,6 @@ void Bitmap::stretchBlt(Exception &exception,
                 sourceRect.h = srcSurf->h;
                 sourceRect.x = 0;
                 sourceRect.y = 0;
-#endif // MKXPZ_RETRO
             }
             
             if (opacity == 255 && !touchesTaintedArea)
@@ -2511,6 +2579,7 @@ static void applyShadow(SDL_Surface *&in, const SDL_PixelFormat &fm, const SDL_C
 #ifdef MKXPZ_RETRO
     SDL_Surface *out = new SDL_Surface {in->w+offset, in->h+offset, STBI_MALLOC(4 * (in->w+offset) * (in->h+offset))};
     if (out->pixels == nullptr) {
+        delete out;
         MKXPZ_THROW(std::bad_alloc());
     }
     const int inPitch = 4 * in->w;
@@ -2969,7 +3038,10 @@ SDL_Surface *Bitmap::drawTextInner(FT_Face font, const char *str, SDL_Color &c, 
 
     SDL_Surface *txtSurf = new SDL_Surface;
     if ((txtSurf->pixels = STBI_MALLOC(4 * bitmapRect.w * bitmapRect.h)) == nullptr)
+    {
+        delete txtSurf;
         MKXPZ_THROW(std::bad_alloc());
+    }
     txtSurf->w = bitmapRect.w;
     txtSurf->h = bitmapRect.h;
     std::memset(txtSurf->pixels, 0, 4 * bitmapRect.w * bitmapRect.h);

@@ -120,11 +120,7 @@ struct SharedStatePrivate
 #endif // MKXPZ_RETRO
 	      rtData(*threadData),
 	      config(threadData->config),
-#ifdef MKXPZ_RETRO
-              midiState(),
-#else
 	      midiState(threadData->config),
-#endif // MKXPZ_RETRO
 	      graphics(threadData),
 #ifndef MKXPZ_RETRO
 	      input(*threadData),

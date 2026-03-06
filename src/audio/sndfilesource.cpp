@@ -47,15 +47,15 @@ SF_VIRTUAL_IO sfvirtual = {
 		switch (whence) {
 			case SF_SEEK_CUR:
 				{
-					sf_count_t pos = PHYSFS_tell(((struct FileSystem::File *)handle)->get_read());
-					if (pos >= 0) {
-						offset += pos;
+					uint64_t pos = PHYSFS_tell(((struct FileSystem::File *)handle)->get_read());
+					if (pos != (uint64_t)-1) {
+						offset = (uint64_t)offset + pos;
 					}
 				}
 				break;
 			case SF_SEEK_END:
 				{
-					offset += std::max((PHYSFS_sint64)0, PHYSFS_fileLength(((struct FileSystem::File *)handle)->get_read()));
+					offset = (uint64_t)offset + (uint64_t)PHYSFS_fileLength(((struct FileSystem::File *)handle)->get_read());
 				}
 				break;
 		}

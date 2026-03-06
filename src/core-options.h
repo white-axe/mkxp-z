@@ -5702,6 +5702,7 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
     },
 };
 
+#undef BUTTON_OPTIONS
 #undef RETROPAD_OPIONS
 
 #endif // MKXPZ_CORE_OPTIONS_H

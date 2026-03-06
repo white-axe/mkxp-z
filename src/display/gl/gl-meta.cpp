@@ -27,6 +27,8 @@
 #include "config.h"
 #include "etc.h"
 #ifdef MKXPZ_RETRO
+#  include "stb_image_malloc.h"
+#  include <stb_image.h>
 #  include "core.h"
 #endif // MKXPZ_RETRO
 
@@ -42,7 +44,6 @@ void subRectImageUpload(GLint srcW, GLint srcX, GLint srcY,
                         GLint dstX, GLint dstY, GLsizei dstW, GLsizei dstH,
                         SDL_Surface *src, GLenum format)
 {
-#ifndef MKXPZ_RETRO // TODO
 	if (gl.unpack_subimage)
 	{
 		gl.PixelStorei(GL_UNPACK_ROW_LENGTH, srcW);
@@ -53,18 +54,34 @@ void subRectImageUpload(GLint srcW, GLint srcX, GLint srcY,
 	}
 	else
 	{
+#ifdef MKXPZ_RETRO
+		SDL_Surface *tmp = new SDL_Surface {dstW, dstH, nullptr};
+		tmp->pixels = STBI_MALLOC((size_t)4 * (size_t)dstW * (size_t)dstH);
+		if (tmp->pixels == nullptr)
+		{
+			delete tmp;
+			MKXPZ_THROW(std::bad_alloc());
+		}
+
+
+		for (size_t r = 0; r < (size_t)tmp->h; ++r)
+			std::memcpy((uint32_t *)tmp->pixels + (size_t)tmp->w * r, (uint32_t *)src->pixels + (size_t)src->w * (srcY + r) + srcX, (size_t)4 * tmp->w);
+#else
 		SDL_PixelFormat *form = src->format;
 		SDL_Surface *tmp = SDL_CreateRGBSurface(0, dstW, dstH, form->BitsPerPixel,
 		                                        form->Rmask, form->Gmask, form->Bmask, form->Amask);
 		SDL_Rect srcRect = { srcX, srcY, dstW, dstH };
 
 		SDL_BlitSurface(src, &srcRect, tmp, 0);
+#endif // MKXPZ_RETRO
 
 		TEX::uploadSubImage(dstX, dstY, dstW, dstH, tmp->pixels, format);
 
+#ifdef MKXPZ_RETRO
+#else
 		SDL_FreeSurface(tmp);
-	}
 #endif // MKXPZ_RETRO
+	}
 }
 
 void subRectImageEnd()
