@@ -1275,7 +1275,9 @@ static bool init_sandbox() {
         }
     }
 
-    fs->createPathCache();
+    if (conf->pathCache) {
+        fs->createPathCache();
+    }
 
     {
         float refresh_rate;
