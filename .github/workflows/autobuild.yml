@@ -1837,7 +1837,7 @@ jobs:
     name: LR Nintendo Switch
     runs-on: ubuntu-latest
     container:
-      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-libnx-devkitpro:latest
+      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-libnx-devkitpro:v4-10-0
       options: -u root
     steps:
       - name: Expose Actions environment
