@@ -1273,13 +1273,15 @@ struct GraphicsPrivate {
 #ifdef MKXPZ_RETRO
                               // Don't need to vertically flip the screen in libretro builds because the libretro frontend will do it for us
                               IntRect(scOffset.x, scOffset.y, scSize.x, scSize.y),
+                              false
 #else
                               IntRect(scOffset.x,
                                       (scSize.y + scOffset.y),
                                       scSize.x,
                                       -scSize.y),
+                              GLMeta::smoothScalingMethod(scaleIsSpecial) == Bilinear
 #endif // MKXPZ_RETRO
-                              GLMeta::smoothScalingMethod(scaleIsSpecial) == Bilinear);
+        );
     }
     
     void metaBlitBufferFlippedScaled(const Vec2i &sourceSize, int scaleIsSpecial, bool forceNearestNeighbor=false) {
@@ -1287,10 +1289,12 @@ struct GraphicsPrivate {
 #ifdef MKXPZ_RETRO
                               // Don't need to vertically flip the screen in libretro builds because the libretro frontend will do it for us
                               IntRect(scOffset.x, scOffset.y, scSize.x, scSize.y),
+                              false
 #else
                               IntRect(scOffset.x, scSize.y+scOffset.y, scSize.x, -scSize.y),
+                              !forceNearestNeighbor && GLMeta::smoothScalingMethod(scaleIsSpecial) == Bilinear
 #endif // MKXPZ_RETRO
-                              !forceNearestNeighbor && GLMeta::smoothScalingMethod(scaleIsSpecial) == Bilinear);
+        );
     }
     
     void redrawScreen(Exception &exception) {
