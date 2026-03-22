@@ -2,7 +2,6 @@
 #define SDLUTIL_H
 
 #ifdef MKXPZ_RETRO
-#  include "debugwriter.h"
 #  include "filesystem.h"
 #else
 #  include <SDL_atomic.h>
@@ -92,10 +91,7 @@ class PHYSFSRead
 public:
 	static size_t read(std::shared_ptr<struct FileSystem::File> ops, void *buf, size_t size)
 	{
-		Debug() << "Reading from file";
-		size_t n = std::max((PHYSFS_sint64)0, PHYSFS_readBytes(ops->get_read(), buf, size));
-		Debug() << "Finished reading from file";
-		return n;
+		return std::max((PHYSFS_sint64)0, PHYSFS_readBytes(ops->get_read(), buf, size));
 	}
 };
 

@@ -453,9 +453,7 @@ void Config::readGameINI() {
     
 #ifdef MKXPZ_RETRO
     std::string iniFileName(execName + ".ini");
-    Debug() << "Attempting to open" << iniFileName;
     std::shared_ptr<FileSystem::File> iniFile(new FileSystem::File(*mkxp_retro::fs, iniFileName.c_str()));
-    Debug() << "Finished attempting to open" << iniFileName;
 #else
     std::string iniFileName(execName + ".ini");
     SDLRWStream iniFile(iniFileName.c_str(), "r");
@@ -477,7 +475,6 @@ void Config::readGameINI() {
         if (ic.load(iniFile.stream()))
 #endif // MKXPZ_RETRO
         {
-            Debug() << "Successfully read from" << iniFileName;
             game.title = ic.getStringProperty("Game", "Title");
             game.scripts = ic.getStringProperty("Game", "Scripts");
             
@@ -508,8 +505,6 @@ void Config::readGameINI() {
                 game.rtps.push_back(rtp);
             }
         }
-        else
-            Debug() << "Opened" << iniFileName << "but failed to load from the file";
     }
     else
         Debug() << "Could not read" << iniFileName;
@@ -554,6 +549,4 @@ void Config::readGameINI() {
     }
     
     setupScreenSize(*this);
-
-    Debug() << "Finished loading config" << iniFileName;
 }
