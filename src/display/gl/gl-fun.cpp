@@ -78,15 +78,9 @@ static void parseExtensionsCompat(_PFNGLGETSTRINGPROC GetString, BoostSet<std::s
 }
 
 #ifdef MKXPZ_RETRO
-#  define GL_EXT_FUN(name, type) gl.name = (type) mkxp_retro::hw_render.get_proc_address("gl" #name EXT_SUFFIX);
+#  define GL_FUN(name, type) gl.name = (type) mkxp_retro::hw_render.get_proc_address("gl" #name EXT_SUFFIX);
 #else
-#  define GL_EXT_FUN(name, type) gl.name = (type) SDL_GL_GetProcAddress("gl" #name EXT_SUFFIX);
-#endif // MKXPZ_RETRO
-
-#if defined(MKXPZ_RETRO) && defined(__DEVKITA64__)
-#  define GL_FUN(name, type) gl.name = gl ## name;
-#else
-#  define GL_FUN(name, type) GL_EXT_FUN(name, type);
+#  define GL_FUN(name, type) gl.name = (type) SDL_GL_GetProcAddress("gl" #name EXT_SUFFIX);
 #endif // MKXPZ_RETRO
 
 #define EXC(msg) \
@@ -190,13 +184,13 @@ void initGLFunctions(Exception &exception)
     {
 #undef EXT_SUFFIX
 #define EXT_SUFFIX "APPLE"
-        GL_VAO_EXT_FUN;
+        GL_VAO_FUN;
     }
     else if (HAVE_EXT(OES_vertex_array_object))
     {
 #undef EXT_SUFFIX
 #define EXT_SUFFIX "OES"
-        GL_VAO_EXT_FUN;
+        GL_VAO_FUN;
     }
     
     /* Debug callback entrypoints */
@@ -204,20 +198,20 @@ void initGLFunctions(Exception &exception)
     {
 #undef EXT_SUFFIX
 #define EXT_SUFFIX ""
-        GL_DEBUG_KHR_EXT_FUN;
+        GL_DEBUG_KHR_FUN;
     }
     else if (HAVE_EXT(ARB_debug_output))
     {
 #undef EXT_SUFFIX
 #define EXT_SUFFIX "ARB"
-        GL_DEBUG_KHR_EXT_FUN;
+        GL_DEBUG_KHR_FUN;
     }
     
     if (HAVE_EXT(GREMEDY_string_marker))
     {
 #undef EXT_SUFFIX
 #define EXT_SUFFIX "GREMEDY"
-        GL_GREMEMDY_EXT_FUN;
+        GL_GREMEMDY_FUN;
     }
     
     /* Misc caps */

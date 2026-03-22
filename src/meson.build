@@ -6,6 +6,7 @@ if is_libretro
     cmake = import('cmake')
 
     global_args += '-DMPG123_NO_LARGENAME'
+    global_args += '-DGL_GLES_PROTOTYPES=0'
 
     global_dependencies += subproject('libretro-common').get_variable('libretro_common')
 

@@ -63,6 +63,7 @@ typedef void (APIENTRYP _PFNGLTEXSUBIMAGE2DPROC) (GLenum target, GLint level, GL
 typedef void (APIENTRYP _PFNGLTEXPARAMETERIPROC) (GLenum target, GLenum pname, GLint param);
 typedef void (APIENTRYP _PFNGLACTIVETEXTUREPROC) (GLenum texture);
 typedef void (APIENTRYP _PFNGLGENERATEMIPMAPPROC) (GLenum target);
+typedef void (APIENTRYP _PFNGLGENERATETEXTUREMIPMAPPROC) (GLuint texture);
 
 /* Debugging */
 typedef void (APIENTRYP _GLDEBUGPROC) (GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void *userParam);
@@ -158,6 +159,7 @@ typedef void (APIENTRYP _PFNGLRELEASESHADERCOMPILERPROC) (void);
 	GL_FUN(TexParameteri, _PFNGLTEXPARAMETERIPROC) \
 	GL_FUN(ActiveTexture, _PFNGLACTIVETEXTUREPROC) \
 	GL_FUN(GenerateMipmap, _PFNGLGENERATEMIPMAPPROC) \
+	GL_FUN(GenerateTextureMipmap, _PFNGLGENERATETEXTUREMIPMAPPROC) \
 	/* Buffer object */ \
 	GL_FUN(GenBuffers, _PFNGLGENBUFFERSPROC) \
 	GL_FUN(DeleteBuffers, _PFNGLDELETEBUFFERSPROC) \
@@ -212,38 +214,30 @@ typedef void (APIENTRYP _PFNGLRELEASESHADERCOMPILERPROC) (void);
 	GL_FUN(DeleteVertexArrays, _PFNGLDELETEVERTEXARRAYSPROC) \
 	GL_FUN(BindVertexArray, _PFNGLBINDVERTEXARRAYPROC)
 
-#define GL_VAO_EXT_FUN \
-	/* Vertex array object */ \
-	GL_EXT_FUN(GenVertexArrays, _PFNGLGENVERTEXARRAYSPROC) \
-	GL_EXT_FUN(DeleteVertexArrays, _PFNGLDELETEVERTEXARRAYSPROC) \
-	GL_EXT_FUN(BindVertexArray, _PFNGLBINDVERTEXARRAYPROC)
+#define GL_DEBUG_KHR_FUN \
+	GL_FUN(DebugMessageCallback, _PFNGLDEBUGMESSAGECALLBACKPROC)
 
-#define GL_DEBUG_KHR_EXT_FUN \
-	GL_EXT_FUN(DebugMessageCallback, _PFNGLDEBUGMESSAGECALLBACKPROC)
-
-#define GL_GREMEMDY_EXT_FUN \
-	GL_EXT_FUN(StringMarker, _PFNGLSTRINGMARKERPROC)
+#define GL_GREMEMDY_FUN \
+	GL_FUN(StringMarker, _PFNGLSTRINGMARKERPROC)
 
 
 struct GLFunctions
 {
-#define GL_EXT_FUN(name, type) type name;
-#define GL_FUN(name, type) GL_EXT_FUN(name, type)
+#define GL_FUN(name, type) type name;
 
 	GL_20_FUN
 	GL_ES_FUN
 	GL_FBO_FUN
 	GL_FBO_BLIT_FUN
 	GL_VAO_FUN
-	GL_DEBUG_KHR_EXT_FUN
-	GL_GREMEMDY_EXT_FUN
+	GL_DEBUG_KHR_FUN
+	GL_GREMEMDY_FUN
 
 	bool glsles;
 	bool unpack_subimage;
 	bool npot_repeat;
 
 #undef GL_FUN
-#undef GL_EXT_FUN
 };
 
 extern GLFunctions gl;
