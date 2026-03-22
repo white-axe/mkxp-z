@@ -1152,7 +1152,7 @@ static bool init_sandbox() {
             }, &data);
 
             if (!data.found) {
-                LOG_PRINTF(RETRO_LOG_ERROR, "Failed to mount RTP \"%s\" because \"%s/%s\" was not found\n", rtp.c_str(), rtp_root_path.c_str(), rtp.c_str());
+                LOG_PRINTF(RETRO_LOG_WARN, "Failed to mount RTP \"%s\" because \"%s/%s\" was not found\n", rtp.c_str(), rtp_root_path.c_str(), rtp.c_str());
                 display_message(RETRO_LOG_WARN, (std::string("Failed to locate run time package \"") + rtp + "\" required by the game").c_str());
             }
         }
