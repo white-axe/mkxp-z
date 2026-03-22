@@ -108,6 +108,7 @@ void GLProgram::apply(const unsigned int &value) { gl.UseProgram(value); }
 GLState::Caps::Caps() { gl.GetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTexSize); }
 
 GLState::GLState(const Config &conf) : conf(conf) {
+  LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of GLState::GLState()\n");
   refreshMiscGlobals();
 
   clearColor.init(Vec4(0, 0, 0, 1));
@@ -125,9 +126,11 @@ GLState::GLState(const Config &conf) : conf(conf) {
 
   if (conf.maxTextureSize > 0)
     caps.maxTexSize = conf.maxTextureSize;
+  LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of GLState::GLState()\n");
 }
 
 void GLState::refresh() {
+  LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of GLState::refresh()\n");
   refreshMiscGlobals();
   clearColor.refresh();
   scissorBox.refresh();
@@ -136,11 +139,14 @@ void GLState::refresh() {
   blend.refresh();
   viewport.refresh();
   program.refresh();
+  LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of GLState::refresh()\n");
 }
 
 void GLState::refreshMiscGlobals() {
+  LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of GLState::refreshMiscGlobals()\n");
   gl.PixelStorei(GL_PACK_ALIGNMENT, 4);
   gl.PixelStorei(GL_UNPACK_ALIGNMENT, 4);
   gl.Disable(GL_DEPTH_TEST);
   gl.ActiveTexture(GL_TEXTURE0);
+  LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of GLState::refreshMiscGlobals()\n");
 }

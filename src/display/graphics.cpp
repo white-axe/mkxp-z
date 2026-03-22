@@ -1055,6 +1055,7 @@ struct GraphicsPrivate {
     integerScaleActive(rtData->config.integerScaling.active),
     integerLastMileScaling(rtData->config.integerScaling.lastMileScaling)
 {
+        LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of GraphicsPrivate::GraphicsPrivate()\n");
         avgFPSData = std::vector<double>();
 #ifndef MKXPZ_RETRO
         avgFPSLock = SDL_CreateMutex();
@@ -1076,6 +1077,7 @@ struct GraphicsPrivate {
 #ifndef MKXPZ_RETRO
         fpsLimiter.resetFrameAdjust();
 #endif // MKXPZ_RETRO
+        LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of GraphicsPrivate::GraphicsPrivate()\n");
     }
     
     ~GraphicsPrivate() {
@@ -1436,6 +1438,7 @@ struct GraphicsPrivate {
 };
 
 Graphics::Graphics(RGSSThreadData *data) {
+    LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of Graphics::Graphics()\n");
     p = new GraphicsPrivate(data);
 #ifndef MKXPZ_RETRO
     if (data->config.syncToRefreshrate) {
@@ -1447,6 +1450,7 @@ Graphics::Graphics(RGSSThreadData *data) {
         p->fpsLimiter.disabled = true;
     }
 #endif // MKXPZ_RETRO
+    LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of Graphics::Graphics()\n");
 }
 
 Graphics::~Graphics() { delete p; }

@@ -294,6 +294,7 @@ struct SharedFontStatePrivate
 
 SharedFontState::SharedFontState(const Config &conf)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of SharedFontState::SharedFontState()\n");
 	p = new SharedFontStatePrivate;
 
 	/* Parse font substitutions */
@@ -318,6 +319,7 @@ SharedFontState::SharedFontState(const Config &conf)
 	}
 	p->fontKerning = conf.fontKerning;
 	p->fontHinting = conf.fontHinting;
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of SharedFontState::SharedFontState()\n");
 }
 
 SharedFontState::~SharedFontState()

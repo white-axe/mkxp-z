@@ -224,18 +224,24 @@ struct SharedStatePrivate
 
 void SharedState::initInstance(Exception &exception, RGSSThreadData *threadData)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of SharedState::initInstance()\n");
 	/* This section is tricky because of dependencies:
 	 * SharedState depends on GlobalIBO existing,
 	 * Font depends on SharedState existing */
 
 	rgssVersion = threadData->config.rgssVersion;
     
+	LOG_PRINT(RETRO_LOG_DEBUG, "Constructing IBO\n");
 	_globalIBO = new GlobalIBO();
+	LOG_PRINT(RETRO_LOG_DEBUG, "Initializing IBO\n");
 	_globalIBO->ensureSize(1);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Initialized IBO\n");
 
 	Font *defaultFont = 0;
 
+	LOG_PRINT(RETRO_LOG_DEBUG, "Initializing shared state instance\n");
 	SharedState::instance = new SharedState(exception, threadData);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Initialized shared state instance\n");
 	if (exception.is_error())
 	{
 		delete SharedState::instance;
@@ -247,8 +253,11 @@ void SharedState::initInstance(Exception &exception, RGSSThreadData *threadData)
 
 	MKXPZ_TRY
 	{
+		LOG_PRINT(RETRO_LOG_DEBUG, "Initializing font state\n");
 		Font::initDefaults(instance->p->fontState);
+		LOG_PRINT(RETRO_LOG_DEBUG, "Initializing default font\n");
 		defaultFont = new Font();
+		LOG_PRINT(RETRO_LOG_DEBUG, "Initialized font state\n");
 	}
 	MKXPZ_CATCH (const Exception &)
 	{
@@ -262,6 +271,8 @@ void SharedState::initInstance(Exception &exception, RGSSThreadData *threadData)
 	}
 
 	SharedState::instance->p->defaultFont = defaultFont;
+
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of SharedState::initInstance()\n");
 }
 
 void SharedState::finiInstance()
@@ -453,7 +464,9 @@ uint64_t SharedState::genTimeStamp()
 
 SharedState::SharedState(Exception &exception, RGSSThreadData *threadData)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of SharedState::SharedState()\n");
 	p = new SharedStatePrivate(exception, threadData);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Constructed SharedStatePrivate\n");
 	if (exception.is_error())
 	{
 		delete p;
@@ -462,8 +475,11 @@ SharedState::SharedState(Exception &exception, RGSSThreadData *threadData)
 	SharedState::instance = this;
 	MKXPZ_TRY
 	{
+		LOG_PRINT(RETRO_LOG_DEBUG, "Initializing SharedStatePrivate\n");
 		p->init(threadData);
+		LOG_PRINT(RETRO_LOG_DEBUG, "Initializing screen\n");
 		p->screen = p->graphics.getScreen();
+		LOG_PRINT(RETRO_LOG_DEBUG, "Initialized SharedStatePrivate\n");
 	}
 	MKXPZ_CATCH (const Exception &)
 	{
@@ -479,6 +495,7 @@ SharedState::SharedState(Exception &exception, RGSSThreadData *threadData)
 		
 		MKXPZ_RETHROW;
 	}
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of SharedState::SharedState()\n");
 }
 
 SharedState::~SharedState()

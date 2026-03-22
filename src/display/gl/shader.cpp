@@ -112,6 +112,7 @@ static void printProgramLog(GLuint program)
 
 Shader::Shader()
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of Shader::Shader()\n");
 #ifdef MKXPZ_BUILD_XCODE
     if (Shader::shaderCommon.empty())
         Shader::shaderCommon = mkxp_fs::contentsOfAssetAsString("Shaders/common", "h");
@@ -120,6 +121,7 @@ Shader::Shader()
 	fragShader = gl.CreateShader(GL_FRAGMENT_SHADER);
 
 	program = gl.CreateProgram();
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of Shader::Shader()\n");
 }
 
 Shader::~Shader()
@@ -340,6 +342,7 @@ void ShaderBase::setTranslation(const Vec2i &value)
 
 FlatColorShader::FlatColorShader(Exception &exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of FlatColorShader::FlatColorShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -348,6 +351,7 @@ FlatColorShader::FlatColorShader(Exception &exception)
 	ShaderBase::init();
 
 	GET_U(color);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of FlatColorShader::FlatColorShader()\n");
 }
 
 void FlatColorShader::setColor(const Vec4 &value)
@@ -358,6 +362,7 @@ void FlatColorShader::setColor(const Vec4 &value)
 
 SimpleShader::SimpleShader(Exception &exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of SimpleShader::SimpleShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -366,6 +371,7 @@ SimpleShader::SimpleShader(Exception &exception)
 	ShaderBase::init();
 
 	GET_U(texOffsetX);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of SimpleShader::SimpleShader()\n");
 }
 
 void SimpleShader::setTexOffsetX(int value)
@@ -376,28 +382,33 @@ void SimpleShader::setTexOffsetX(int value)
 
 SimpleColorShader::SimpleColorShader(Exception &exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of SimpleColorShader::SimpleColorShader()\n");
 	if (exception.is_error())
 		return;
 
 	INIT_SHADER(simpleColor, simpleColor, SimpleColorShader);
 
 	ShaderBase::init();
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of SimpleColorShader::SimpleColorShader()\n");
 }
 
 
 SimpleAlphaShader::SimpleAlphaShader(Exception &exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of SimpleAlphaShader::SimpleAlphaShader()\n");
 	if (exception.is_error())
 		return;
 
 	INIT_SHADER(simpleColor, simpleAlpha, SimpleAlphaShader);
 
 	ShaderBase::init();
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of SimpleAlphaShader::SimpleAlphaShader()\n");
 }
 
 
 SimpleSpriteShader::SimpleSpriteShader(Exception &exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of SimpleSpriteShader::SimpleSpriteShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -406,6 +417,7 @@ SimpleSpriteShader::SimpleSpriteShader(Exception &exception)
 	ShaderBase::init();
 
 	GET_U(spriteMat);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of SimpleSpriteShader::SimpleSpriteShader()\n");
 }
 
 void SimpleSpriteShader::setSpriteMat(const float value[16])
@@ -415,6 +427,7 @@ void SimpleSpriteShader::setSpriteMat(const float value[16])
 
 BicubicSpriteShader::BicubicSpriteShader(Exception &exception) : Lanczos3SpriteShader(exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of BicubicSpriteShader::BicubicSpriteShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -425,6 +438,7 @@ BicubicSpriteShader::BicubicSpriteShader(Exception &exception) : Lanczos3SpriteS
 	GET_U(spriteMat);
 	GET_U(sourceSize);
 	GET_U(bc);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of BicubicSpriteShader::BicubicSpriteShader()\n");
 }
 
 void BicubicSpriteShader::setSharpness(int sharpness)
@@ -434,6 +448,7 @@ void BicubicSpriteShader::setSharpness(int sharpness)
 
 Lanczos3SpriteShader::Lanczos3SpriteShader(Exception &exception) : SimpleSpriteShader(exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of Lanczos3SpriteShader::Lanczos3SpriteShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -443,6 +458,7 @@ Lanczos3SpriteShader::Lanczos3SpriteShader(Exception &exception) : SimpleSpriteS
 
 	GET_U(spriteMat);
 	GET_U(sourceSize);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of Lanczos3SpriteShader::Lanczos3SpriteShader()\n");
 }
 
 void Lanczos3SpriteShader::setTexSize(const Vec2i &value)
@@ -454,6 +470,7 @@ void Lanczos3SpriteShader::setTexSize(const Vec2i &value)
 #ifdef MKXPZ_SSL
 XbrzSpriteShader::XbrzSpriteShader(Exception &exception) : Lanczos3SpriteShader(exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of XbrzSpriteShader::XbrzSpriteShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -464,6 +481,7 @@ XbrzSpriteShader::XbrzSpriteShader(Exception &exception) : Lanczos3SpriteShader(
 	GET_U(spriteMat);
 	GET_U(sourceSize);
 	GET_U(targetScale);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of XbrzSpriteShader::XbrzSpriteShader()\n");
 }
 
 void XbrzSpriteShader::setTargetScale(const Vec2 &value)
@@ -474,6 +492,7 @@ void XbrzSpriteShader::setTargetScale(const Vec2 &value)
 
 AlphaSpriteShader::AlphaSpriteShader(Exception &exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of AlphaSpriteShader::AlphaSpriteShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -483,6 +502,7 @@ AlphaSpriteShader::AlphaSpriteShader(Exception &exception)
 
 	GET_U(spriteMat);
 	GET_U(alpha);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of AlphaSpriteShader::AlphaSpriteShader()\n");
 }
 
 void AlphaSpriteShader::setSpriteMat(const float value[16])
@@ -498,6 +518,7 @@ void AlphaSpriteShader::setAlpha(float value)
 
 TransShader::TransShader(Exception &exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of TransShader::TransShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -510,6 +531,7 @@ TransShader::TransShader(Exception &exception)
 	GET_U(transMap);
 	GET_U(prog);
 	GET_U(vague);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of TransShader::TransShader()\n");
 }
 
 void TransShader::setCurrentScene(TEX::ID tex)
@@ -540,6 +562,7 @@ void TransShader::setVague(float value)
 
 SimpleTransShader::SimpleTransShader(Exception &exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of SimpleTransShader::SimpleTransShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -550,6 +573,7 @@ SimpleTransShader::SimpleTransShader(Exception &exception)
 	GET_U(currentScene);
 	GET_U(frozenScene);
 	GET_U(prog);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of SimpleTransShader::SimpleTransShader()\n");
 }
 
 void SimpleTransShader::setCurrentScene(TEX::ID tex)
@@ -570,6 +594,7 @@ void SimpleTransShader::setProg(float value)
 
 SpriteShader::SpriteShader(Exception &exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of SpriteShader::SpriteShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -595,6 +620,7 @@ SpriteShader::SpriteShader(Exception &exception)
     GET_U(patternScroll);
     GET_U(patternZoom);
     GET_U(invert);
+    LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of SpriteShader::SpriteShader()\n");
 }
 
 void SpriteShader::setSpriteMat(const float value[16])
@@ -674,6 +700,7 @@ void SpriteShader::setInvert(bool value)
 
 PlaneShader::PlaneShader(Exception &exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of PlaneShader::PlaneShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -685,6 +712,7 @@ PlaneShader::PlaneShader(Exception &exception)
 	GET_U(color);
 	GET_U(flash);
 	GET_U(opacity);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of PlaneShader::PlaneShader()\n");
 }
 
 void PlaneShader::setTone(const Vec4 &tone)
@@ -710,6 +738,7 @@ void PlaneShader::setOpacity(float value)
 
 GrayShader::GrayShader(Exception &exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of GrayShader::GrayShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -718,6 +747,7 @@ GrayShader::GrayShader(Exception &exception)
 	ShaderBase::init();
 
 	GET_U(gray);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of GrayShader::GrayShader()\n");
 }
 
 bool GrayShader::framebufferScalingAllowed()
@@ -735,6 +765,7 @@ void GrayShader::setGray(float value)
 
 TilemapShader::TilemapShader(Exception &exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of TilemapShader::TilemapShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -748,6 +779,7 @@ TilemapShader::TilemapShader(Exception &exception)
 
 	GET_U(aniIndex);
 	GET_U(atFrames);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of TilemapShader::TilemapShader()\n");
 }
 
 void TilemapShader::setTone(const Vec4 &tone)
@@ -779,6 +811,7 @@ void TilemapShader::setATFrames(int values[7])
 
 FlashMapShader::FlashMapShader(Exception &exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of FlashMapShader::FlashMapShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -787,6 +820,7 @@ FlashMapShader::FlashMapShader(Exception &exception)
 	ShaderBase::init();
 
 	GET_U(alpha);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of FlashMapShader::FlashMapShader()\n");
 }
 
 void FlashMapShader::setAlpha(float value)
@@ -797,6 +831,7 @@ void FlashMapShader::setAlpha(float value)
 
 HueShader::HueShader(Exception &exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of HueShader::HueShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -805,6 +840,7 @@ HueShader::HueShader(Exception &exception)
 	ShaderBase::init();
 
 	GET_U(hueAdjust);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of HueShader::HueShader()\n");
 }
 
 void HueShader::setHueAdjust(float value)
@@ -815,6 +851,7 @@ void HueShader::setHueAdjust(float value)
 
 SimpleMatrixShader::SimpleMatrixShader(Exception &exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of SimpleMatrixShader::SimpleMatrixShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -823,6 +860,7 @@ SimpleMatrixShader::SimpleMatrixShader(Exception &exception)
 	ShaderBase::init();
 
 	GET_U(matrix);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of SimpleMatrixShader::SimpleMatrixShader()\n");
 }
 
 void SimpleMatrixShader::setMatrix(const float value[16])
@@ -833,22 +871,26 @@ void SimpleMatrixShader::setMatrix(const float value[16])
 
 BlurShader::HPass::HPass(Exception &exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of BlurShader::HPass::HPass()\n");
 	if (exception.is_error())
 		return;
 
 	INIT_SHADER(blurH, blur, BlurShader::HPass);
 
 	ShaderBase::init();
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of BlurShader::HPass::HPass()\n");
 }
 
 BlurShader::VPass::VPass(Exception &exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of BlurShader::VPass::VPass()\n");
 	if (exception.is_error())
 		return;
 
 	INIT_SHADER(blurV, blur, BlurShader::VPass);
 
 	ShaderBase::init();
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of BlurShader::VPass::VPass()\n");
 }
 
 BlurShader::BlurShader(Exception &exception) :
@@ -859,6 +901,7 @@ BlurShader::BlurShader(Exception &exception) :
 
 TilemapVXShader::TilemapVXShader(Exception &exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of TilemapVXShader::TilemapVXShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -867,6 +910,7 @@ TilemapVXShader::TilemapVXShader(Exception &exception)
 	ShaderBase::init();
 
 	GET_U(aniOffset);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of TilemapVXShader::TilemapVXShader()\n");
 }
 
 void TilemapVXShader::setAniOffset(const Vec2 &value)
@@ -877,6 +921,7 @@ void TilemapVXShader::setAniOffset(const Vec2 &value)
 
 BltShader::BltShader(Exception &exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of BltShader::BltShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -888,6 +933,7 @@ BltShader::BltShader(Exception &exception)
 	GET_U(destination);
 	GET_U(subRect);
 	GET_U(opacity);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of BltShader::BltShader()\n");
 }
 
 void BltShader::setSource()
@@ -912,6 +958,7 @@ void BltShader::setOpacity(float value)
 
 BicubicShader::BicubicShader(Exception &exception) : Lanczos3Shader(exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of BicubicShader::BicubicShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -922,6 +969,7 @@ BicubicShader::BicubicShader(Exception &exception) : Lanczos3Shader(exception)
 	GET_U(texOffsetX);
 	GET_U(sourceSize);
 	GET_U(bc);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of BicubicShader::BicubicShader()\n");
 }
 
 void BicubicShader::setSharpness(int sharpness)
@@ -931,6 +979,7 @@ void BicubicShader::setSharpness(int sharpness)
 
 Lanczos3Shader::Lanczos3Shader(Exception &exception) : SimpleShader(exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of Lanczos3Shader::Lanczos3Shader()\n");
 	if (exception.is_error())
 		return;
 
@@ -940,6 +989,7 @@ Lanczos3Shader::Lanczos3Shader(Exception &exception) : SimpleShader(exception)
 
 	GET_U(texOffsetX);
 	GET_U(sourceSize);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of Lanczos3Shader::Lanczos3Shader()\n");
 }
 
 void Lanczos3Shader::setTexSize(const Vec2i &value)
@@ -951,6 +1001,7 @@ void Lanczos3Shader::setTexSize(const Vec2i &value)
 #ifdef MKXPZ_SSL
 XbrzShader::XbrzShader(Exception &exception) : Lanczos3Shader(exception)
 {
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of XbrzShader::XbrzShader()\n");
 	if (exception.is_error())
 		return;
 
@@ -961,6 +1012,7 @@ XbrzShader::XbrzShader(Exception &exception) : Lanczos3Shader(exception)
 	GET_U(texOffsetX);
 	GET_U(sourceSize);
 	GET_U(targetScale);
+	LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of XbrzShader::XbrzShader()\n");
 }
 
 void XbrzShader::setTargetScale(const Vec2 &value)
