@@ -232,12 +232,14 @@ struct Rect : public Serializable
 enum InterpolationMethod
 {
 	NearestNeighbor = 0,
+#ifndef MKXPZ_RETRO
 	Bilinear = 1,
 	Bicubic = 2,
 	Lanczos3 = 3,
 #ifdef MKXPZ_SSL
 	xBRZ = 4,
 #endif
+#endif // MKXPZ_RETRO
 };
 
 enum SpecialScale
