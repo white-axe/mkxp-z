@@ -121,6 +121,14 @@ if is_devkitarm
     global_args += '-mtp=soft'
 endif
 
+if is_devkita64
+    global_args += '-march=armv8-a'
+    global_args += '-mcpu=cortex-a57'
+    global_args += '-mtune=cortex-a57'
+    global_args += '-mtp=soft'
+    global_args += '-ftls-model=local-exec'
+endif
+
 # The PlayStation 4 toolchain won't link most programs without either `-r` or `-Wl,--gc-sections`
 if is_orbisdev
     link_test_args += '-r'

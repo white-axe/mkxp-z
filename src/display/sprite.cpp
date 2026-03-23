@@ -887,7 +887,7 @@ void Sprite::draw(Exception &exception)
         scaleIsSpecial = DownScale;
     }
 
-#ifndef MKXPZ_RETRO // TODO
+#ifndef MKXPZ_RETRO
     switch (scaleIsSpecial)
     {
     case SameScale:
@@ -975,6 +975,7 @@ void Sprite::draw(Exception &exception)
     {
         switch (scalingMethod)
         {
+#ifndef MKXPZ_RETRO
         case Bicubic:
         {
             BicubicSpriteShader &shader = shState->shaders().bicubicSprite;
@@ -1012,6 +1013,7 @@ void Sprite::draw(Exception &exception)
         }
             break;
 #endif
+#endif // MKXPZ_RETRO
         default:
         {
             SimpleSpriteShader &shader = shState->shaders().simpleSprite;
@@ -1040,7 +1042,11 @@ void Sprite::draw(Exception &exception)
     }
 #endif
     
+#ifdef MKXPZ_RETRO
+    TEX::setSmooth(false);
+#else
     TEX::setSmooth(scalingMethod == Bilinear);
+#endif // MKXPZ_RETRO
 
     if (p->wave.active)
         p->wave.qArray.draw();

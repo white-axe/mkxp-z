@@ -1182,7 +1182,7 @@ static bool init_sandbox() {
             }, &data);
 
             if (!data.found) {
-                LOG_PRINTF(RETRO_LOG_ERROR, "Failed to mount RTP \"%s\" because \"%s/%s\" was not found\n", rtp.c_str(), rtp_root_path.c_str(), rtp.c_str());
+                LOG_PRINTF(RETRO_LOG_WARN, "Failed to mount RTP \"%s\" because \"%s/%s\" was not found\n", rtp.c_str(), rtp_root_path.c_str(), rtp.c_str());
                 display_message(RETRO_LOG_WARN, (std::string("Failed to locate run time package \"") + rtp + "\" required by the game").c_str());
             }
         }
@@ -1701,12 +1701,15 @@ extern "C" RETRO_API bool retro_load_game(const struct retro_game_info *info) {
     };
     hw_render.cache_context = false;
     hw_render.bottom_left_origin = false;
-    if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 6, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
+    if (false) {
+#ifndef __DEVKITA64__ // The Nintendo Switch currently only supports up to OpenGL 4.3 but RetroArch incorrectly thinks it supports OpenGL 4.6
+    } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 6, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
         LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL 4.6 graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 5, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
         LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL 4.5 graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 4, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
         LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL 4.4 graphics driver\n");
+#endif // __DEVKITA64__
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 3, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
         LOG_PRINT(RETRO_LOG_INFO, "Using OpenGL 4.3 graphics driver\n");
     } else if (hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE, hw_render.version_major = 4, hw_render.version_minor = 2, environment(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {

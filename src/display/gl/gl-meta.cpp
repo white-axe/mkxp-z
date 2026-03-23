@@ -232,6 +232,7 @@ static void _blitBegin(FBO::ID fbo, const Vec2i &size, int scaleIsSpecial)
 
 		switch (smoothScalingMethod(scaleIsSpecial))
 		{
+#ifndef MKXPZ_RETRO
 		case Bicubic:
 		{
 			BicubicShader &shader = shState->shaders().bicubic;
@@ -266,6 +267,7 @@ static void _blitBegin(FBO::ID fbo, const Vec2i &size, int scaleIsSpecial)
 
 			break;
 #endif
+#endif // MKXPZ_RETRO
 		default:
 		{
 			SimpleShader &shader = shState->shaders().simple;
@@ -342,6 +344,7 @@ void blitSource(TEXFBO &source, int scaleIsSpecial)
 	{
 		switch (smoothScalingMethod(scaleIsSpecial))
 		{
+#ifndef MKXPZ_RETRO
 		case Bicubic:
 		{
 			BicubicShader &shader = shState->shaders().bicubic;
@@ -368,6 +371,7 @@ void blitSource(TEXFBO &source, int scaleIsSpecial)
 
 			break;
 #endif
+#endif // MKXPZ_RETRO
 		default:
 		{
 			SimpleShader &shader = shState->shaders().simple;
