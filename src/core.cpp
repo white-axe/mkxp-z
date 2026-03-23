@@ -487,10 +487,8 @@ static void deinit_sandbox() {
 }
 
 static bool init_shared_state() {
-    LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of init_shared_state()\n");
     Exception e;
     SharedState::initInstance(e, &thread_data.get());
-    LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of init_shared_state()\n");
     if (e.is_error()) {
         LOG_PRINTF(RETRO_LOG_ERROR, "Error initializing shared state: %s\n", e.what());
         display_message(RETRO_LOG_ERROR, (std::string("Failed to initialize the mkxp-z game engine: Error initializing shared state: ") + e.what()).c_str());
@@ -1459,14 +1457,10 @@ extern "C" RETRO_API void retro_reset() {
 }
 
 extern "C" RETRO_API void retro_run() {
-    LOG_PRINT(RETRO_LOG_DEBUG, "Reached the start of retro_run()\n");
-
     // We need to wait until the graphics context is initialized before initializing shared state,
     // which is why we initialize it here instead of in `retro_load_game()`
     if (mkxp_retro::sandbox.has_value() && !shared_state_initialized.load_relaxed()) {
-        LOG_PRINT(RETRO_LOG_DEBUG, "Initializing shared state\n");
         init_shared_state();
-        LOG_PRINT(RETRO_LOG_DEBUG, "Initialized shared state\n");
     }
     assert(mkxp_retro::sandbox.has_value() == shared_state_initialized.load_relaxed());
 
@@ -1485,9 +1479,7 @@ extern "C" RETRO_API void retro_run() {
     input_polled = false;
 
     if (hw_render.context_type != RETRO_HW_CONTEXT_NONE && (should_render || (!dupe_supported && mkxp_retro::sandbox.has_value()))) {
-        LOG_PRINT(RETRO_LOG_DEBUG, "Refreshing GL context\n");
         glState.refresh();
-        LOG_PRINT(RETRO_LOG_DEBUG, "Refreshed GL context\n");
     }
 
     {
@@ -1540,9 +1532,7 @@ extern "C" RETRO_API void retro_run() {
     }
 
     if (should_render) {
-	LOG_PRINT(RETRO_LOG_DEBUG, "Entering sandbox\n");
         boost::optional<bool> result = sb().run<struct main>();
-	LOG_PRINT(RETRO_LOG_DEBUG, "Exited sandbox\n");
         if (texture_sync_is_eager) {
             Bitmap::syncDiffs();
         }
@@ -1620,8 +1610,6 @@ extern "C" RETRO_API void retro_run() {
         ++frame_count;
     }
     ++retro_run_count;
-
-    LOG_PRINT(RETRO_LOG_DEBUG, "Reached the end of retro_run()\n");
 }
 
 extern "C" RETRO_API size_t retro_serialize_size() {

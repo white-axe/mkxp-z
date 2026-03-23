@@ -78,7 +78,7 @@ static void parseExtensionsCompat(_PFNGLGETSTRINGPROC GetString, BoostSet<std::s
 }
 
 #ifdef MKXPZ_RETRO
-#  define GL_FUN(name, type) do { LOG_PRINT(RETRO_LOG_DEBUG, "Getting symbol gl" #name EXT_SUFFIX "\n"); LOG_PRINTF(RETRO_LOG_DEBUG, "Symbol gl" #name EXT_SUFFIX " located at %p\n", (gl.name = (type) mkxp_retro::hw_render.get_proc_address("gl" #name EXT_SUFFIX))); } while (0);
+#  define GL_FUN(name, type) gl.name = (type) mkxp_retro::hw_render.get_proc_address("gl" #name EXT_SUFFIX);
 #else
 #  define GL_FUN(name, type) gl.name = (type) SDL_GL_GetProcAddress("gl" #name EXT_SUFFIX);
 #endif // MKXPZ_RETRO
