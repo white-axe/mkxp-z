@@ -3917,7 +3917,7 @@ extern "C" void w2c_wasi0x3Aio0x2Fpoll0x4000x2E20x2E0_0x5Bresource0x2Ddrop0x5Dpo
 // wasi:random
 ////////////////////////////////////////////////////////////////////////////////
 
-static void get_random_impl(struct wasi_instance *wasi, wasm_ptr_t buf, uint32_t buf_len) noexcept {
+static void get_random_impl(struct wasi_instance *wasi, wasm_ptr_t buf, wasm_size_t buf_len) noexcept {
     while (buf_len > 0) {
         if (wasi->prng_buffer_size == 0) {
             wasi->prng_buffer_size = 4;
@@ -3935,7 +3935,7 @@ static void get_random_impl(struct wasi_instance *wasi, wasm_ptr_t buf, uint32_t
             std::memcpy(wasi->prng_buffer, &out, 4);
 #endif // MKXPZ_BIG_ENDIAN
         } else {
-            uint32_t n = std::min(buf_len, wasi->prng_buffer_size);
+            wasm_size_t n = std::min(buf_len, wasi->prng_buffer_size);
             wasi->arycpy(buf, wasi->prng_buffer + ((uint32_t)4 - n), n);
             buf += n;
             buf_len -= n;

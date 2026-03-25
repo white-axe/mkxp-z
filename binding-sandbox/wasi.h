@@ -407,7 +407,7 @@ struct wasi_instance {
 
     uint64_t prng_state;
     uint8_t prng_buffer[4];
-    uint32_t prng_buffer_size;
+    mkxp_sandbox::wasm_size_t prng_buffer_size;
 
     wasi_instance(std::shared_ptr<struct w2c_ruby> ruby);
     ~wasi_instance();
