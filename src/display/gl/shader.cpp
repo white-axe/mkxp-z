@@ -96,7 +96,15 @@ static void printShaderLog(GLuint shader)
 	std::string log(logLength, '\0');
 	gl.GetShaderInfoLog(shader, log.size(), 0, &log[0]);
 
+#ifdef MKXPZ_RETRO
+	std::istringstream stream(log);
+	std::string line;
+	while (std::getline(stream, line)) {
+		LOG_PRINTF(RETRO_LOG_ERROR, "[shader log] %s\n", line.c_str());
+	}
+#else
 	std::clog << "Shader log:\n" << log;
+#endif // MKXPZ_RETRO
 }
 
 static void printProgramLog(GLuint program)
@@ -107,7 +115,15 @@ static void printProgramLog(GLuint program)
 	std::string log(logLength, '\0');
 	gl.GetProgramInfoLog(program, log.size(), 0, &log[0]);
 
+#ifdef MKXPZ_RETRO
+	std::istringstream stream(log);
+	std::string line;
+	while (std::getline(stream, line)) {
+		LOG_PRINTF(RETRO_LOG_ERROR, "[program log] %s\n", line.c_str());
+	}
+#else
 	std::clog << "Program log:\n" << log;
+#endif // MKXPZ_RETRO
 }
 
 Shader::Shader()
