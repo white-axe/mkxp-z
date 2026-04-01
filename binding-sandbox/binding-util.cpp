@@ -120,10 +120,11 @@ void log_backtrace::operator()(VALUE exception) {
                 const char *line_start = ptr;
                 for (wasm_size_t i = 0; i < message_len;) {
                     if (++i == message_len || *ptr == '\n') {
+                        ptrdiff_t size = *ptr == '\n' ? ptr - line_start : ptr - line_start + 1;
                         if (line_start == message) {
-                            mkxp_retro_log_printf(RETRO_LOG_ERROR, "[mkxp-z exception] %s: %.*s (%s)\n", (const char *)sb()->str(SANDBOX_SLOT(0)), (int)std::min(ptr - line_start, (ptrdiff_t)INT_MAX), line_start, (const char *)sb()->str(SANDBOX_SLOT(2)));
+                            mkxp_retro_log_printf(RETRO_LOG_ERROR, "[mkxp-z exception] %s: %.*s (%s)\n", (const char *)sb()->str(SANDBOX_SLOT(0)), (int)std::min(size, (ptrdiff_t)INT_MAX), line_start, (const char *)sb()->str(SANDBOX_SLOT(2)));
                         } else {
-                            mkxp_retro_log_printf(RETRO_LOG_ERROR, "[mkxp-z exception] %.*s\n", (int)std::min(ptr - line_start, (ptrdiff_t)INT_MAX), line_start);
+                            mkxp_retro_log_printf(RETRO_LOG_ERROR, "[mkxp-z exception] %.*s\n", (int)std::min(size, (ptrdiff_t)INT_MAX), line_start);
                         }
                         line_start = ++ptr;
                     } else {
