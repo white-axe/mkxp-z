@@ -101,10 +101,15 @@ public:
 	         const Bitmap &source, const IntRect &rect,
 	         int opacity = 255);
 
+	enum BitmapBltMode {
+	    NORMAL,
+	};
+
 	void stretchBlt(Exception &exception,
 	                IntRect destRect,
 	                const Bitmap &source, IntRect sourceRect,
-	                int opacity = 255, bool smooth = false);
+	                int opacity = 255, bool smooth = false,
+			enum BitmapBltMode mode = NORMAL);
 
 	void fillRect(Exception &exception,
 	              int x, int y,
