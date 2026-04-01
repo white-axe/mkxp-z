@@ -339,7 +339,6 @@ private:
 	GLint u_source, u_destination, u_subRect, u_opacity;
 };
 
-#ifndef MKXPZ_RETRO
 class Lanczos3Shader : public SimpleShader
 {
 public:
@@ -407,7 +406,6 @@ public:
 protected:
 	GLint u_targetScale;
 };
-#endif // MKXPZ_RETRO
 
 /* Global object containing all available shaders */
 struct ShaderSet
@@ -430,7 +428,6 @@ struct ShaderSet
 	SimpleMatrixShader simpleMatrix;
 	BlurShader blur;
 	TilemapVXShader tilemapVX;
-#ifndef MKXPZ_RETRO
 	BicubicShader bicubic;
 	Lanczos3Shader lanczos3;
 #ifdef MKXPZ_SSL
@@ -441,7 +438,6 @@ struct ShaderSet
 #ifdef MKXPZ_SSL
 	XbrzSpriteShader xbrzSprite;
 #endif
-#endif // MKXPZ_RETRO
 
 	ShaderSet(Exception &exception);
 
