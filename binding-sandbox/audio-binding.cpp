@@ -34,16 +34,16 @@ void audio_reset::operator()() {
 
 static VALUE bgm_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        typedef decl_slots<double, wasm_ptr_t, int32_t, int32_t, int32_t, uint8_t> slots;
+        typedef decl_slots<double, wasm_ptr_t, int32_t, int32_t, int32_t> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT(check_arity, argc, 1, -1);
+                SANDBOX_AWAIT(check_arity, argc, 1, 5);
 
                 SANDBOX_SLOT(0) = 0.0;
                 SANDBOX_SLOT(2) = 100;
                 SANDBOX_SLOT(3) = 100;
-                SANDBOX_SLOT(5) = false;
+                SANDBOX_SLOT(4) = -127;
 
                 SANDBOX_AWAIT_S(1, rb_string_value_cstr, &sb()->ref<VALUE>(argv, 0));
                 if (argc >= 2) {
@@ -52,19 +52,14 @@ static VALUE bgm_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
                         SANDBOX_AWAIT_S(3, rb_num2int, sb()->ref<VALUE>(argv, 2));
                         if (argc >= 4) {
                             SANDBOX_AWAIT_S(0, rb_num2dbl, sb()->ref<VALUE>(argv, 3));
-                            if (argc >= 5) {
+                            if (argc >= 5 && sb()->ref<VALUE>(argv, 4) != SANDBOX_NIL) {
                                 SANDBOX_AWAIT_S(4, rb_num2int, sb()->ref<VALUE>(argv, 4));
-                                SANDBOX_SLOT(5) = true;
                             }
                         }
                     }
                 }
 
-                if (SANDBOX_SLOT(5)) {
-                    SANDBOX_GUARD(mkxp_retro::audio->bgmPlay(sb().e, sb()->str(SANDBOX_SLOT(1)), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(0), SANDBOX_SLOT(4)));
-                } else {
-                    SANDBOX_GUARD(mkxp_retro::audio->bgmPlay(sb().e, sb()->str(SANDBOX_SLOT(1)), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(0)));
-                }
+                SANDBOX_GUARD(mkxp_retro::audio->bgmPlay(sb().e, sb()->str(SANDBOX_SLOT(1)), SANDBOX_SLOT(2), SANDBOX_SLOT(3), SANDBOX_SLOT(0), SANDBOX_SLOT(4)));
             }
 
             return SANDBOX_NIL;
@@ -74,18 +69,26 @@ static VALUE bgm_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
     return sb()->bind<struct coro>()()(argc, argv, self);
 }
 
-static VALUE bgm_stop(VALUE self) {
+static VALUE bgm_stop(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
-        VALUE operator()(VALUE self) {
+        typedef decl_slots<int32_t> slots;
+
+        VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_GUARD(mkxp_retro::audio->bgmStop(sb().e));
+                SANDBOX_AWAIT(check_arity, argc, 0, 1);
+
+                SANDBOX_SLOT(0) = -127;
+                if (argc >= 1 && sb()->ref<VALUE>(argv, 0) != SANDBOX_NIL) {
+                    SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
+                }
+                SANDBOX_GUARD(mkxp_retro::audio->bgmStop(sb().e, SANDBOX_SLOT(0)));
             }
 
             return SANDBOX_NIL;
         }
     };
 
-    return sb()->bind<struct coro>()()(self);
+    return sb()->bind<struct coro>()()(argc, argv, self);
 }
 
 static VALUE bgm_fade(int32_t argc, wasm_ptr_t argv, VALUE self) {
@@ -94,11 +97,11 @@ static VALUE bgm_fade(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT(check_arity, argc, 1, -1);
+                SANDBOX_AWAIT(check_arity, argc, 1, 2);
 
                 SANDBOX_SLOT(1) = -127;
                 SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
-                if (argc >= 2) {
+                if (argc >= 2 && sb()->ref<VALUE>(argv, 1) != SANDBOX_NIL) {
                     SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
                 }
                 SANDBOX_GUARD(mkxp_retro::audio->bgmFade(sb().e, SANDBOX_SLOT(0), SANDBOX_SLOT(1)));
@@ -117,8 +120,10 @@ static VALUE bgm_pos(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT(check_arity, argc, 0, 1);
+
                 SANDBOX_SLOT(2) = -127;
-                if (argc >= 1) {
+                if (argc >= 1 && sb()->ref<VALUE>(argv, 0) != SANDBOX_NIL) {
                     SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 0));
                 }
                 SANDBOX_GUARD(SANDBOX_SLOT(0) = mkxp_retro::audio->bgmPos(sb().e, SANDBOX_SLOT(2)));
@@ -138,8 +143,10 @@ static VALUE bgm_volume(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT(check_arity, argc, 0, 1);
+
                 SANDBOX_SLOT(1) = -127;
-                if (argc >= 1) {
+                if (argc >= 1 && sb()->ref<VALUE>(argv, 0) != SANDBOX_NIL) {
                     SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 0));
                 }
                 SANDBOX_GUARD(SANDBOX_SLOT(2) = mkxp_retro::audio->bgmGetVolume(sb().e, SANDBOX_SLOT(1)));
@@ -159,11 +166,11 @@ static VALUE bgm_set_volume(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT(check_arity, argc, 1, -1);
+                SANDBOX_AWAIT(check_arity, argc, 1, 2);
 
                 SANDBOX_SLOT(1) = -127;
                 SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
-                if (argc >= 2) {
+                if (argc >= 2 && sb()->ref<VALUE>(argv, 1) != SANDBOX_NIL) {
                     SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
                 }
                 SANDBOX_GUARD(mkxp_retro::audio->bgmSetVolume(sb().e, SANDBOX_SLOT(0), SANDBOX_SLOT(1)));
@@ -182,7 +189,7 @@ static VALUE bgs_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT(check_arity, argc, 1, -1);
+                SANDBOX_AWAIT(check_arity, argc, 1, 4);
 
                 SANDBOX_SLOT(0) = 0.0;
                 SANDBOX_SLOT(2) = 100;
@@ -254,7 +261,7 @@ static VALUE me_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT(check_arity, argc, 1, -1);
+                SANDBOX_AWAIT(check_arity, argc, 1, 3);
 
                 SANDBOX_SLOT(1) = 100;
                 SANDBOX_SLOT(2) = 100;
@@ -305,7 +312,7 @@ static VALUE se_play(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT(check_arity, argc, 1, -1);
+                SANDBOX_AWAIT(check_arity, argc, 1, 3);
 
                 SANDBOX_SLOT(1) = 100;
                 SANDBOX_SLOT(2) = 100;
@@ -342,7 +349,7 @@ void audio_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
         SANDBOX_AWAIT_R(audio_module, rb_define_module, "Audio");
         SANDBOX_AWAIT(rb_define_module_function, audio_module, "bgm_play", (VALUE (*)(ANYARGS))bgm_play, -1);
-        SANDBOX_AWAIT(rb_define_module_function, audio_module, "bgm_stop", (VALUE (*)(ANYARGS))bgm_stop, 0);
+        SANDBOX_AWAIT(rb_define_module_function, audio_module, "bgm_stop", (VALUE (*)(ANYARGS))bgm_stop, -1);
         SANDBOX_AWAIT(rb_define_module_function, audio_module, "bgm_fade", (VALUE (*)(ANYARGS))bgm_fade, -1);
         SANDBOX_AWAIT(rb_define_module_function, audio_module, "bgm_pos", (VALUE (*)(ANYARGS))bgm_pos, -1);
         SANDBOX_AWAIT(rb_define_module_function, audio_module, "bgm_volume", (VALUE (*)(ANYARGS))bgm_volume, -1);
