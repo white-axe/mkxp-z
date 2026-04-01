@@ -457,6 +457,7 @@ SharedState::SharedState(Exception &exception, RGSSThreadData *threadData)
 	if (exception.is_error())
 	{
 		delete p;
+		p = nullptr;
 		return;
 	}
 	SharedState::instance = this;
@@ -475,6 +476,7 @@ SharedState::SharedState(Exception &exception, RGSSThreadData *threadData)
 #endif // MKXPZ_RETRO
 		
 		delete p;
+		p = nullptr;
 		SharedState::instance = 0;
 		
 		MKXPZ_RETHROW;
@@ -483,7 +485,8 @@ SharedState::SharedState(Exception &exception, RGSSThreadData *threadData)
 
 SharedState::~SharedState()
 {
-	delete p;
+	if (p != nullptr)
+		delete p;
 }
 
 #ifdef MKXPZ_RETRO

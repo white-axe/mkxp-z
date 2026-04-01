@@ -131,7 +131,7 @@ sandbox::sandbox(const Config &conf) : ruby(new struct w2c_ruby), wasi(new wasi_
 
     // Start up Ruby executable node
     bool valid;
-    u32 state;
+    uint32_t state;
     wasm_ptr_t state_buf = sandbox_malloc(sizeof(wasm_ptr_t));
     AWAIT(valid = w2c_ruby_ruby_executable_node(RB, node, state_buf));
     if (valid) {

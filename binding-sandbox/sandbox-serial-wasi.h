@@ -267,7 +267,7 @@ bool wasi_instance::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_si
         }
     }
 
-    std::vector<u32> new_vacant_fds;
+    std::vector<uint32_t> new_vacant_fds;
     for (uint32_t j = 0; j < fdtable.size(); ++j) {
         if (fdtable[j].type == wasi_fd_type::VACANT) {
             new_vacant_fds.push_back(j);

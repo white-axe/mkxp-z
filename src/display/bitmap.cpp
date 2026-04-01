@@ -1518,10 +1518,37 @@ static bool shrinkRects(int &sourcePos, int &sourceLen, const int &sBitmapLen,
     return ret || sourceLen == 0 || destLen == 0;
 }
 
+static float bltNormOpacity(enum Bitmap::BitmapBltMode mode, int opacity)
+{
+    opacity = clamp(opacity, 0, 255);
+
+    switch (mode)
+    {
+        case Bitmap::NORMAL:
+            return (float)opacity / 255.0f;
+    }
+}
+
+static void bltFilter(enum Bitmap::BitmapBltMode mode, uint32_t &dst_pixel, uint32_t src_pixel, float norm_opacity)
+{
+    switch (mode)
+    {
+        case Bitmap::NORMAL:
+            for (size_t i = 0; i < 4; ++i)
+            {
+                uint8_t &old_component = ((uint8_t *)&dst_pixel)[i];
+                uint8_t new_component = ((uint8_t *)&src_pixel)[i];
+                old_component = (uint8_t)std::round(norm_opacity * (float)new_component + (1.0f - norm_opacity) * (float)old_component);
+            }
+            break;
+    }
+}
+
 void Bitmap::stretchBlt(Exception &exception,
                         IntRect destRect,
                         const Bitmap &source, IntRect sourceRect,
-                        int opacity, bool smooth)
+                        int opacity, bool smooth,
+                        enum BitmapBltMode mode)
 {
     GUARD(guardDisposed(exception));
 
@@ -1558,7 +1585,12 @@ void Bitmap::stretchBlt(Exception &exception,
     opacity = clamp(opacity, 0, 255);
     
     if (opacity == 0)
-        return;
+        switch (mode) {
+            case NORMAL:
+                return;
+        }
+
+    float normOpacity = bltNormOpacity(mode, opacity);
     
     if(shrinkRects(sourceRect.x, sourceRect.w, source.width(), destRect.x, destRect.w, width()))
         return;
@@ -1567,7 +1599,7 @@ void Bitmap::stretchBlt(Exception &exception,
     
     SDL_Surface *srcSurf = source.megaSurface();
     SDL_Surface *blitTemp = 0;
-    bool touchesTaintedArea = p->touchesTaintedArea(destRect);
+    bool touchesTaintedArea = mode != NORMAL || opacity < 255 || p->touchesTaintedArea(destRect);
     bool unpack_subimage = srcSurf && gl.unpack_subimage;
 
     const bool scaleIsOne = sourceRect.w == destRect.w && sourceRect.h == destRect.h;
@@ -1575,7 +1607,7 @@ void Bitmap::stretchBlt(Exception &exception,
         smooth = false;
     }
 
-    if (!srcSurf && opacity == 255 && !touchesTaintedArea)
+    if (!srcSurf && !touchesTaintedArea)
     {
         /* Fast blit */
         // TODO: Use bitmapSmoothScaling/bitmapSmoothScalingDown configs for this.
@@ -1624,52 +1656,64 @@ void Bitmap::stretchBlt(Exception &exception,
                     
                     if (smooth)
                     {
-#ifdef MKXPZ_RETRO
+#ifndef MKXPZ_RETRO
+                        if (mode == NORMAL)
+                            error = SDL_SoftStretchLinear(srcSurf, &srcRect, blitTemp, 0);
+                        else
+#endif // MKXPZ_RETRO
+                        {
+
+                            double w_ratio = (double)srcRect.w / (double)destRect.w;
+                            double h_ratio = (double)srcRect.h / (double)destRect.h;
+                            for (size_t r = 0; r < (size_t)blitTemp->h; ++r)
+                                for (size_t c = 0; c < (size_t)blitTemp->w; ++c)
+                                {
+                                    size_t src_c0 = (size_t)std::floor(w_ratio * c);
+                                    size_t src_r0 = (size_t)std::floor(h_ratio * r);
+                                    double src_w0 = w_ratio * c - src_c0;
+                                    double src_h0 = h_ratio * r - src_r0;
+                                    double src_00 = ((uint32_t *)srcSurf->pixels)[(size_t)srcSurf->w * ((size_t)srcRect.y + src_r0) + ((size_t)srcRect.x + src_c0)];
+                                    double src_01 = src_c0 + 1 >= (size_t)srcRect.w
+                                        ? src_00
+                                        : ((uint32_t *)srcSurf->pixels)[(size_t)srcSurf->w * ((size_t)srcRect.y + src_r0) + ((size_t)srcRect.x + src_c0 + 1)];
+                                    double src_10 = src_r0 + 1 >= (size_t)srcRect.h
+                                        ? src_00
+                                        : ((uint32_t *)srcSurf->pixels)[(size_t)srcSurf->w * ((size_t)srcRect.y + src_r0 + 1) + ((size_t)srcRect.x + src_c0)];
+                                    double src_11 = src_c0 + 1 >= (size_t)srcRect.w
+                                        ? src_10
+                                        : (size_t)src_r0 + 1 >= (size_t)srcRect.h
+                                        ? src_01
+                                        : ((uint32_t *)srcSurf->pixels)[(size_t)srcSurf->w * ((size_t)srcRect.y + src_r0 + 1) + ((size_t)srcRect.x + src_c0 + 1)];
+                                    uint32_t &dst_pixel = ((uint32_t *)blitTemp->pixels)[(size_t)blitTemp->w * r + c];
+                                    uint32_t src_pixel = std::round(
+                                        src_00 * (1. - src_w0) * (1. - src_h0)
+                                            + src_01 * (1. - src_w0) * src_h0
+                                            + src_10 * src_w0 * (1. - src_h0)
+                                            + src_11 * src_w0 * src_h0
+                                    );
+                                    bltFilter(mode, dst_pixel, src_pixel, normOpacity);
+                                }
+                        }
+                        smooth = false;
+                    }
+#ifndef MKXPZ_RETRO
+                    else if (mode == NORMAL)
+                    {
+                        SDL_Rect tmpRect = {0, 0, blitTemp->w, blitTemp->h};
+                        error = SDL_LowerBlitScaled(srcSurf, &srcRect, blitTemp, &tmpRect);
+                    }
+#endif // MKXPZ_RETRO
+                    else
+                    {
                         double w_ratio = (double)srcRect.w / (double)destRect.w;
                         double h_ratio = (double)srcRect.h / (double)destRect.h;
                         for (size_t r = 0; r < (size_t)blitTemp->h; ++r)
                             for (size_t c = 0; c < (size_t)blitTemp->w; ++c)
                             {
-                                size_t src_c0 = (size_t)std::floor(w_ratio * c);
-                                size_t src_r0 = (size_t)std::floor(h_ratio * r);
-                                double src_w0 = w_ratio * c - src_c0;
-                                double src_h0 = h_ratio * r - src_r0;
-                                double src_00 = ((uint32_t *)srcSurf->pixels)[(size_t)srcSurf->w * ((size_t)srcRect.y + src_r0) + ((size_t)srcRect.x + src_c0)];
-                                double src_01 = src_c0 + 1 >= (size_t)srcRect.w
-                                    ? src_00
-                                    : ((uint32_t *)srcSurf->pixels)[(size_t)srcSurf->w * ((size_t)srcRect.y + src_r0) + ((size_t)srcRect.x + src_c0 + 1)];
-                                double src_10 = src_r0 + 1 >= (size_t)srcRect.h
-                                    ? src_00
-                                    : ((uint32_t *)srcSurf->pixels)[(size_t)srcSurf->w * ((size_t)srcRect.y + src_r0 + 1) + ((size_t)srcRect.x + src_c0)];
-                                double src_11 = src_c0 + 1 >= (size_t)srcRect.w
-                                    ? src_10
-                                    : (size_t)src_r0 + 1 >= (size_t)srcRect.h
-                                    ? src_01
-                                    : ((uint32_t *)srcSurf->pixels)[(size_t)srcSurf->w * ((size_t)srcRect.y + src_r0 + 1) + ((size_t)srcRect.x + src_c0 + 1)];
-                                ((uint32_t *)blitTemp->pixels)[(size_t)blitTemp->w * r + c] = std::round(
-                                    src_00 * (1. - src_w0) * (1. - src_h0)
-                                        + src_01 * (1. - src_w0) * src_h0
-                                        + src_10 * src_w0 * (1. - src_h0)
-                                        + src_11 * src_w0 * src_h0
-                                );
+                                uint32_t &dst_pixel = ((uint32_t *)blitTemp->pixels)[(size_t)blitTemp->w * r + c];
+                                uint32_t src_pixel = ((uint32_t *)srcSurf->pixels)[(size_t)srcSurf->w * ((size_t)srcRect.y + (size_t)std::round(h_ratio * r)) + ((size_t)srcRect.x + (size_t)std::round(w_ratio * c))];
+                                bltFilter(mode, dst_pixel, src_pixel, normOpacity);
                             }
-#else
-                        error = SDL_SoftStretchLinear(srcSurf, &srcRect, blitTemp, 0);
-#endif // MKXPZ_RETRO
-                        smooth = false;
-                    }
-                    else
-                    {
-#ifdef MKXPZ_RETRO
-                        double w_ratio = (double)srcRect.w / (double)destRect.w;
-                        double h_ratio = (double)srcRect.h / (double)destRect.h;
-                        for (size_t r = 0; r < (size_t)blitTemp->h; ++r)
-                            for (size_t c = 0; c < (size_t)blitTemp->w; ++c)
-                                ((uint32_t *)blitTemp->pixels)[(size_t)blitTemp->w * r + c] = ((uint32_t *)srcSurf->pixels)[(size_t)srcSurf->w * ((size_t)srcRect.y + (size_t)std::round(h_ratio * r)) + ((size_t)srcRect.x + (size_t)std::round(w_ratio * c))];
-#else
-                        SDL_Rect tmpRect = {0, 0, blitTemp->w, blitTemp->h};
-                        error = SDL_LowerBlitScaled(srcSurf, &srcRect, blitTemp, &tmpRect);
-#endif // MKXPZ_RETRO
                     }
                     unpack_subimage = false;
                 }
