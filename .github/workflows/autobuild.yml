@@ -1968,7 +1968,7 @@ jobs:
             process.chdir(process.env.HOME + "/dist");
             const artifact = new DefaultArtifactClient();
             await artifact.uploadArtifact(
-              "mkxp-z_libretro.switch.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ needs.build-libretro-stage1.outputs.sha }}",
+              "mkxp-z_libretro.switch.${{ matrix.type }}.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ needs.build-libretro-stage1.outputs.sha }}",
               fg.globSync("**"),
               ".",
             );
