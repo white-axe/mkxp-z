@@ -1897,7 +1897,9 @@ jobs:
           '
 
   build-libretro-switch-frontend:
-    needs: build-libretro-switch
+    needs:
+      - build-libretro-stage1
+      - build-libretro-switch
     name: LR Nintendo Switch frontend ${{ matrix.type }}
     runs-on: ubuntu-latest
     container:
