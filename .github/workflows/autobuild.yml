@@ -1834,11 +1834,13 @@ jobs:
 
   build-libretro-switch:
     needs: build-libretro-stage1
-    name: LR Nintendo Switch
+    name: LR Nintendo Switch core
     runs-on: ubuntu-latest
     container:
       image: git.libretro.com:5050/libretro-infrastructure/libretro-build-libnx-devkitpro:v4-10-0
       options: -u root
+    outputs:
+      artifact-id: ${{ steps.upload-artifact.outputs.artifact-id }}
     steps:
       - name: Expose Actions environment
         uses: white-axe/expose-actions-environment@v1
@@ -1876,16 +1878,87 @@ jobs:
           mkdir ~/dist
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          mv mkxp-z_libretro.a ~
+          mv mkxp-z_libretro.a ~/dist/libretro_libnx.a
+
+      - id: upload-artifact
+        name: Upload artifact
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            import fg from "fast-glob";
+            process.chdir(process.env.HOME + "/dist");
+            const artifact = new DefaultArtifactClient();
+            const {id, size} = await artifact.uploadArtifact(
+              "libretro_libnx.a.${{ github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name }}-${{ needs.build-libretro-stage1.outputs.sha }}",
+              fg.globSync("**"),
+              ".",
+            );
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `artifact-id=${id}`);
+          '
+
+  build-libretro-switch-frontend:
+    needs: build-libretro-switch
+    name: LR Nintendo Switch frontend ${{ matrix.type }}
+    runs-on: ubuntu-latest
+    container:
+      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-libnx-devkitpro:v4-10-0
+      options: -u root
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - type: standard
+          - type: bootstrap
+    steps:
+      - name: Expose Actions environment
+        uses: white-axe/expose-actions-environment@v1
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          curl -Lo ~/Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+          bash ~/Miniforge3.sh -b -p ~/miniforge3
+          source ~/miniforge3/etc/profile.d/conda.sh
+          conda install -y nodejs=22 git jq meson cmake
+          PATH="$HOME/miniforge3/bin:$PATH" npm install @actions/artifact@4 fast-glob@3
+          echo "$HOME/miniforge3/bin" >> "$GITHUB_PATH"
+
+      - name: Checkout repository
+        uses: taiki-e/checkout-action@v1
+
+      - name: Download core
+        run: |
+          node --input-type=module -e '
+            import {DefaultArtifactClient} from "@actions/artifact";
+            const artifact = new DefaultArtifactClient();
+            await artifact.downloadArtifact(${{ needs.build-libretro-switch.outputs.artifact-id }}, {
+              path: "libretro_libnx",
+            });
+          '
 
       - name: Build frontend
         run: |
+          mkdir ~/dist
+          mv libretro_libnx/libretro_libnx.a ~
+          if [ '${{ matrix.type }}' = 'bootstrap' ]
+          then
+            mv libretro/switch-bootstrap ~
+          fi
           cd ~
           git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest -H 'Authorization: Bearer ${{ github.token }}' -H 'X-GitHub-Api-Version: 2022-11-28' | jq -r '.tag_name')
-          mv mkxp-z_libretro.a retroarch/libretro_libnx.a
+          mv libretro_libnx.a retroarch/
           cd retroarch
-          CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z
-          mv retroarch_switch.nro ~/dist/mkxp-z_libretro_libnx.nro
+          if [ '${{ matrix.type }}' = 'bootstrap' ]
+          then
+            git apply ~/switch-bootstrap/switch-bootstrap.patch
+            CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z retroarch_switch.elf
+            mv retroarch_switch.elf mkxp-z_libretro_libnx.elf
+            elf2nro mkxp-z_libretro_libnx.elf mkxp-z_libretro_libnx.nro --romfsdir=~/switch-bootstrap/romfs # check that the .nro can be built but don't upload it
+            mv mkxp-z_libretro_libnx.elf ~/dist/mkxp-z_libretro_libnx.elf
+          else
+            CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z retroarch_switch.nro
+            mv retroarch_switch.nro ~/dist/mkxp-z_libretro_libnx.nro
+          fi
 
       - name: Upload artifact
         run: |
