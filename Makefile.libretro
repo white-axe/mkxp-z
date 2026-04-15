@@ -258,6 +258,7 @@ else ifeq ($(patsubst [%,,$(firstword $(MKXPZ_AR))),)
 else
 	echo "ar = '$(MKXPZ_AR)'" >> $(MKXPZ_CROSS_FILE)
 endif
+	echo "cmake = 'cmake'" >> $(MKXPZ_CROSS_FILE)
 	echo "[host_machine]" >> $(MKXPZ_CROSS_FILE)
 	echo "system = '$(MKXPZ_SYSTEM)'" >> $(MKXPZ_CROSS_FILE)
 	echo "cpu_family = '$(MKXPZ_CPU_FAMILY)'" >> $(MKXPZ_CROSS_FILE)

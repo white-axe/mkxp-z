@@ -3,6 +3,7 @@ c = '/opt/gcw0-toolchain/usr/bin/mipsel-linux-gcc'
 cpp = '/opt/gcw0-toolchain/usr/bin/mipsel-linux-g++'
 ar = 'ar'
 strip = '/opt/gcw0-toolchain/usr/bin/mipsel-gcw0-linux-uclibc-strip'
+cmake = 'cmake'
 
 [host_machine]
 system = 'linux'
