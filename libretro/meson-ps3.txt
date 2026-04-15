@@ -2,6 +2,7 @@
 c = 'ppu-gcc'
 cpp = 'ppu-g++'
 ar = 'ppu-ar'
+cmake = 'cmake'
 
 [host_machine]
 system = 'none'

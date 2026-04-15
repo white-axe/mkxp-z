@@ -3,6 +3,7 @@ c = '/opt/retrofw-toolchain/usr/bin/mipsel-linux-gcc'
 cpp = '/opt/retrofw-toolchain/usr/bin/mipsel-linux-g++'
 ar = 'ar'
 strip = '/opt/retrofw-toolchain/usr/bin/mipsel-linux-strip'
+cmake = 'cmake'
 
 [host_machine]
 system = 'linux'

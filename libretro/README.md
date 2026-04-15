@@ -53,6 +53,7 @@ To build a libretro core for a host machine that has a different operating syste
 c = '<path to host C compiler>'
 cpp = '<path to host C++ compiler>'
 ar = '<path to the ar program that creates static libraries for the host machine>'
+cmake = '<path to CMake binary>'
 [host_machine]
 system = '<see https://mesonbuild.com/Reference-tables.html#operating-system-names>'
 cpu_family = '<see https://mesonbuild.com/Reference-tables.html#cpu-families>'
