@@ -1,26 +1,26 @@
 diff --git a/frontend/drivers/platform_switch.c b/frontend/drivers/platform_switch.c
-index b3893afd58..1fb9831c30 100644
+index b3893afd58..58b94e67f9 100644
 --- a/frontend/drivers/platform_switch.c
 +++ b/frontend/drivers/platform_switch.c
-@@ -66,7 +66,7 @@
- #endif
+@@ -303,7 +303,7 @@ static void frontend_switch_get_env(
+    }
  
- #ifdef HAVE_LIBNX
--#define SD_PREFIX
-+#define SD_PREFIX "romfs:"
- #include "../../gfx/common/switch_defines.h"
- #else
- #define SD_PREFIX "/sd"
+    fill_pathname_join(g_defaults.path_config,
+-         g_defaults.dirs[DEFAULT_DIR_PORT],
++         "romfs:/retroarch",
+          FILE_PATH_MAIN_CONFIG,
+          sizeof(g_defaults.path_config));
+ 
 diff --git a/retroarch.c b/retroarch.c
-index b16728310b..37182bce3d 100644
+index b16728310b..6deedb3ab9 100644
 --- a/retroarch.c
 +++ b/retroarch.c
-@@ -5942,7 +5942,7 @@ void main_exit(void *args)
-  * Returns: varies per platform.
-  **/
- int rarch_main(int argc, char *argv[], void *data)
+@@ -6191,7 +6191,7 @@ void emscripten_mainloop(void)
+ extern "C"
+ #endif
+ int main(int argc, char *argv[])
 -{
-+{ static char *bootstrap_argv[] = {NULL, NULL, NULL}; bootstrap_argv[0] = strdup("retroarch"); bootstrap_argv[1] = strdup("romfs:/Game.mkxpz"); romfsInit(); argc = 2; argv = bootstrap_argv; data = NULL;
-    settings_t *settings;
-    struct rarch_state *p_rarch         = &rarch_st;
-    runloop_state_t *runloop_st         = runloop_state_get_ptr();
++{ { static char *bootstrap_argv[] = {NULL, NULL, NULL}; bootstrap_argv[0] = strdup("retroarch"); bootstrap_argv[1] = strdup("romfs:/Game.mkxpz"); romfsInit(); argc = 2; argv = bootstrap_argv; }
+    return rarch_main(argc, argv, NULL);
+ }
+ #endif

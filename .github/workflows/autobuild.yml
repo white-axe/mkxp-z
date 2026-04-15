@@ -1949,20 +1949,29 @@ jobs:
         run: |
           mkdir ~/dist
           mv libretro_libnx/libretro_libnx.a ~
+          tag_name=$(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest -H 'Authorization: Bearer ${{ github.token }}' -H 'X-GitHub-Api-Version: 2022-11-28' | jq -r '.tag_name')
+          if [ "$tag_name" = 'v1.22.2' ]
+          then
+            mv libretro/retroarch-pr18459.patch ~
+          fi
           if [ '${{ matrix.type }}' = 'bootstrap' ]
           then
             mv libretro/switch-bootstrap ~
           fi
           cd ~
-          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest -H 'Authorization: Bearer ${{ github.token }}' -H 'X-GitHub-Api-Version: 2022-11-28' | jq -r '.tag_name')
+          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $tag_name
           mv libretro_libnx.a retroarch/
           cd retroarch
+          if [ "$tag_name" = 'v1.22.2' ]
+          then
+            git apply ~/retroarch-pr18459.patch
+          fi
           if [ '${{ matrix.type }}' = 'bootstrap' ]
           then
             git apply ~/switch-bootstrap/switch-bootstrap.patch
             CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z retroarch_switch.elf
             mv retroarch_switch.elf mkxp-z_libretro_libnx.elf
-            elf2nro mkxp-z_libretro_libnx.elf mkxp-z_libretro_libnx.nro --romfsdir=~/switch-bootstrap/romfs # check that the .nro can be built but don't upload it
+            nacptool --create 'Hello, World!' mkxp-z 1.0.0 control.nacp && elf2nro mkxp-z_libretro_libnx.elf mkxp-z_libretro_libnx.nro --romfsdir=~/switch-bootstrap/romfs --nacp=control.nacp # check that the .nro can be built but don't upload it
             mv mkxp-z_libretro_libnx.elf ~/dist/mkxp-z_libretro_libnx.elf
           else
             CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z retroarch_switch.nro
