@@ -1962,7 +1962,7 @@ jobs:
             git apply ~/switch-bootstrap/switch-bootstrap.patch
             CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z retroarch_switch.elf
             mv retroarch_switch.elf mkxp-z_libretro_libnx.elf
-            elf2nro mkxp-z_libretro_libnx.elf mkxp-z_libretro_libnx.nro --romfsdir=~/switch-bootstrap/romfs # check that the .nro can be built but don't upload it
+            nacptool --create 'Hello, World!' mkxp-z 1.0.0 control.nacp && elf2nro mkxp-z_libretro_libnx.elf mkxp-z_libretro_libnx.nro --romfsdir=~/switch-bootstrap/romfs --nacp=control.nacp # check that the .nro can be built but don't upload it
             mv mkxp-z_libretro_libnx.elf ~/dist/mkxp-z_libretro_libnx.elf
           else
             CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z retroarch_switch.nro

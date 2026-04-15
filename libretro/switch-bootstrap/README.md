@@ -10,12 +10,13 @@ zip -r0 ../Game.mkxpz *
 
 Replace the example Game.mkxpz already present in the romfs directory with your version of Game.mkxpz.
 
-You may wish to change the RetroArch configuration in the romfs/retroarch directory. For example, you can change the RetroArch configuration in romfs/retroarch/retroarch.cfg, the core options in romfs/retroarch/config/mkxp-z/mkxp-z.opt or add RTPs your game needs to romfs/retroarch/cores/system/mkxp-z/RTP (consult the [core documentation](https://docs.libretro.com/library/mkxp-z/) for instructions on how to add RTPs).
+You may wish to modify the romfs/retroarch directory. For example, you can change the RetroArch configuration in romfs/retroarch/retroarch.cfg, the core options in romfs/retroarch/config/mkxp-z/mkxp-z.opt or add RTPs your game needs to romfs/retroarch/cores/system/mkxp-z/RTP (consult the [core documentation](https://docs.libretro.com/library/mkxp-z/) for instructions on how to add RTPs).
 
-To complete the build, run this command, using `elf2nro` from [switch-tools](https://github.com/switchbrew/switch-tools):
+To complete the build, run this command, using `nacptool` and `elf2nro` from [switch-tools](https://github.com/switchbrew/switch-tools):
 
 ```bash
-elf2nro <path to the .elf file from the mkxp-z libretro build> <path where the .nro file should be output to> --romfsdir=<path to the romfs directory>
+nacptool --create <game name> <game author> <game version> control.nacp
+elf2nro <path to the .elf file from the mkxp-z libretro build> <path where the .nro file should be output to> --romfsdir=<path to the romfs directory> --nacp=control.nacp
 ```
 
 If you experience any issues running this .nro file, you may wish to try again with the included example Game.mkxpz rather than your own version of Game.mkxpz to see whether the problem is in the mkxp-z build or due to your Game.mkxpz being incorrectly formatted.
