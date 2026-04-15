@@ -1949,14 +1949,23 @@ jobs:
         run: |
           mkdir ~/dist
           mv libretro_libnx/libretro_libnx.a ~
+          tag_name=$(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest -H 'Authorization: Bearer ${{ github.token }}' -H 'X-GitHub-Api-Version: 2022-11-28' | jq -r '.tag_name')
+          if [ "$tag_name" = 'v1.22.2' ]
+          then
+            mv libretro/retroarch-pr18459.patch ~
+          fi
           if [ '${{ matrix.type }}' = 'bootstrap' ]
           then
             mv libretro/switch-bootstrap ~
           fi
           cd ~
-          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $(curl -s https://api.github.com/repos/libretro/RetroArch/releases/latest -H 'Authorization: Bearer ${{ github.token }}' -H 'X-GitHub-Api-Version: 2022-11-28' | jq -r '.tag_name')
+          git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $tag_name
           mv libretro_libnx.a retroarch/
           cd retroarch
+          if [ "$tag_name" = 'v1.22.2' ]
+          then
+            git apply ~/retroarch-pr18459.patch
+          fi
           if [ '${{ matrix.type }}' = 'bootstrap' ]
           then
             git apply ~/switch-bootstrap/switch-bootstrap.patch
