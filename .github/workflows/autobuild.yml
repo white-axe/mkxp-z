@@ -1954,6 +1954,10 @@ jobs:
           then
             mv libretro/retroarch-pr18459.patch ~
           fi
+          if [ '${{ matrix.type }}' = 'bootstrap' ]
+          then
+            mv libretro/switch-bootstrap ~
+          fi
           cd ~
           git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $tag_name
           mv libretro_libnx.a retroarch/
@@ -1966,8 +1970,7 @@ jobs:
           then
             git apply ~/switch-bootstrap/switch-bootstrap.patch
             CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z
-            mv retroarch_switch.elf mkxp-z_libretro_libnx.elf
-            mv mkxp-z_libretro_libnx.elf ~/dist/mkxp-z_libretro_libnx.elf
+            mv retroarch_switch.elf ~/dist/mkxp-z_libretro_libnx.elf
           else
             CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z
             mv retroarch_switch.nro ~/dist/mkxp-z_libretro_libnx.nro
