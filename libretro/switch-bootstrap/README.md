@@ -12,7 +12,7 @@ Replace the example Game.mkxpz already present in the romfs directory with your 
 
 You may wish to modify the romfs/retroarch directory. For example, you can change the RetroArch configuration in romfs/retroarch/retroarch.cfg, the core options in romfs/retroarch/config/mkxp-z/mkxp-z.opt or add RTPs your game needs to romfs/retroarch/cores/system/mkxp-z/RTP (consult the [core documentation](https://docs.libretro.com/library/mkxp-z/) for instructions on how to add RTPs).
 
-To complete the build, run this command, using `nacptool` and `elf2nro` from [switch-tools](https://github.com/switchbrew/switch-tools):
+To complete the build, run these commands, using `nacptool` and `elf2nro` from [switch-tools](https://github.com/switchbrew/switch-tools):
 
 ```bash
 nacptool --create <game name> <game author> <game version> control.nacp

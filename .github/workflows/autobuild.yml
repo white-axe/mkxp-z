@@ -1954,10 +1954,6 @@ jobs:
           then
             mv libretro/retroarch-pr18459.patch ~
           fi
-          if [ '${{ matrix.type }}' = 'bootstrap' ]
-          then
-            mv libretro/switch-bootstrap ~
-          fi
           cd ~
           git clone https://github.com/libretro/RetroArch retroarch --depth 1 -b $tag_name
           mv libretro_libnx.a retroarch/
@@ -1969,12 +1965,11 @@ jobs:
           if [ '${{ matrix.type }}' = 'bootstrap' ]
           then
             git apply ~/switch-bootstrap/switch-bootstrap.patch
-            CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z retroarch_switch.elf
+            CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z
             mv retroarch_switch.elf mkxp-z_libretro_libnx.elf
-            nacptool --create 'Hello, World!' mkxp-z 1.0.0 control.nacp && elf2nro mkxp-z_libretro_libnx.elf mkxp-z_libretro_libnx.nro --romfsdir=~/switch-bootstrap/romfs --nacp=control.nacp # check that the .nro can be built but don't upload it
             mv mkxp-z_libretro_libnx.elf ~/dist/mkxp-z_libretro_libnx.elf
           else
-            CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z retroarch_switch.nro
+            CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z
             mv retroarch_switch.nro ~/dist/mkxp-z_libretro_libnx.nro
           fi
 
