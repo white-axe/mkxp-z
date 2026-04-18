@@ -116,6 +116,7 @@ private:
 class SimpleShader : public ShaderBase
 {
 public:
+	SimpleShader() = default;
 	SimpleShader(Exception &exception);
 
 	void setTexOffsetX(int value);
@@ -127,18 +128,21 @@ protected:
 class SimpleColorShader : public ShaderBase
 {
 public:
+	SimpleColorShader() = default;
 	SimpleColorShader(Exception &exception);
 };
 
 class SimpleAlphaShader : public ShaderBase
 {
 public:
+	SimpleAlphaShader() = default;
 	SimpleAlphaShader(Exception &exception);
 };
 
 class SimpleSpriteShader : public ShaderBase
 {
 public:
+	SimpleSpriteShader() = default;
 	SimpleSpriteShader(Exception &exception);
 
 	void setSpriteMat(const float value[16]);
@@ -150,6 +154,7 @@ protected:
 class AlphaSpriteShader : public ShaderBase
 {
 public:
+	AlphaSpriteShader() = default;
 	AlphaSpriteShader(Exception &exception);
 
 	void setSpriteMat(const float value[16]);
@@ -162,6 +167,7 @@ private:
 class TransShader : public ShaderBase
 {
 public:
+	TransShader() = default;
 	TransShader(Exception &exception);
 
 	void setCurrentScene(TEX::ID tex);
@@ -177,6 +183,7 @@ private:
 class SimpleTransShader : public ShaderBase
 {
 public:
+	SimpleTransShader() = default;
 	SimpleTransShader(Exception &exception);
 
 	void setCurrentScene(TEX::ID tex);
@@ -190,6 +197,7 @@ private:
 class SpriteShader : public ShaderBase
 {
 public:
+	SpriteShader() = default;
 	SpriteShader(Exception &exception);
 
 	void setSpriteMat(const float value[16]);
@@ -216,6 +224,7 @@ private:
 class PlaneShader : public ShaderBase
 {
 public:
+	PlaneShader() = default;
 	PlaneShader(Exception &exception);
 
 	void setTone(const Vec4 &value);
@@ -230,6 +239,7 @@ private:
 class GrayShader : public ShaderBase
 {
 public:
+	GrayShader() = default;
 	GrayShader(Exception &exception);
 
 	void setGray(float value);
@@ -244,6 +254,7 @@ private:
 class TilemapShader : public ShaderBase
 {
 public:
+	TilemapShader() = default;
 	TilemapShader(Exception &exception);
 
 	void setAniIndex(int value);
@@ -261,6 +272,7 @@ private:
 class FlashMapShader : public ShaderBase
 {
 public:
+	FlashMapShader() = default;
 	FlashMapShader(Exception &exception);
 
 	void setAlpha(float value);
@@ -272,6 +284,7 @@ private:
 class HueShader : public ShaderBase
 {
 public:
+	HueShader() = default;
 	HueShader(Exception &exception);
 
 	void setHueAdjust(float value);
@@ -283,6 +296,7 @@ private:
 class SimpleMatrixShader : public ShaderBase
 {
 public:
+	SimpleMatrixShader() = default;
 	SimpleMatrixShader(Exception &exception);
 
 	void setMatrix(const float value[16]);
@@ -297,15 +311,18 @@ struct BlurShader
 	class HPass : public ShaderBase
 	{
 	public:
+		HPass() = default;
 		HPass(Exception &exception);
 	};
 
 	class VPass : public ShaderBase
 	{
 	public:
+		VPass() = default;
 		VPass(Exception &exception);
 	};
 
+	BlurShader() = default;
 	BlurShader(Exception &exception);
 
 	HPass pass1;
@@ -315,6 +332,7 @@ struct BlurShader
 class TilemapVXShader : public ShaderBase
 {
 public:
+	TilemapVXShader() = default;
 	TilemapVXShader(Exception &exception);
 
 	void setAniOffset(const Vec2 &value);
@@ -327,6 +345,7 @@ private:
 class BltShader : public ShaderBase
 {
 public:
+	BltShader() = default;
 	BltShader(Exception &exception);
 
 	void setSource();
@@ -343,6 +362,7 @@ private:
 class Lanczos3Shader : public SimpleShader
 {
 public:
+	Lanczos3Shader() = default;
 	Lanczos3Shader(Exception &exception);
 
 	void setTexSize(const Vec2i &value);
@@ -354,6 +374,7 @@ protected:
 class BicubicShader : public Lanczos3Shader
 {
 public:
+	BicubicShader() = default;
 	BicubicShader(Exception &exception);
 
 	void setSharpness(int sharpness);
@@ -366,6 +387,7 @@ protected:
 class XbrzShader : public Lanczos3Shader
 {
 public:
+	XbrzShader() = default;
 	XbrzShader(Exception &exception);
 
 	void setTargetScale(const Vec2 &value);
@@ -378,6 +400,7 @@ protected:
 class Lanczos3SpriteShader : public SimpleSpriteShader
 {
 public:
+	Lanczos3SpriteShader() = default;
 	Lanczos3SpriteShader(Exception &exception);
 
 	void setTexSize(const Vec2i &value);
@@ -389,6 +412,7 @@ protected:
 class BicubicSpriteShader : public Lanczos3SpriteShader
 {
 public:
+	BicubicSpriteShader() = default;
 	BicubicSpriteShader(Exception &exception);
 
 	void setSharpness(int sharpness);
@@ -400,6 +424,7 @@ protected:
 class XbrzSpriteShader : public Lanczos3SpriteShader
 {
 public:
+	XbrzSpriteShader() = default;
 	XbrzSpriteShader(Exception &exception);
 
 	void setTargetScale(const Vec2 &value);
