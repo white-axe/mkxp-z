@@ -429,8 +429,7 @@ void SimpleSpriteShader::setSpriteMat(const float value[16])
 	gl.UniformMatrix4fv(u_spriteMat, 1, GL_FALSE, value);
 }
 
-#ifndef MKXPZ_RETRO
-BicubicSpriteShader::BicubicSpriteShader(Exception &exception) : Lanczos3SpriteShader(exception)
+BicubicSpriteShader::BicubicSpriteShader(Exception &exception)
 {
 	if (exception.is_error())
 		return;
@@ -449,7 +448,7 @@ void BicubicSpriteShader::setSharpness(int sharpness)
 	gl.Uniform2f(u_bc, 1.f - sharpness * 0.01f, sharpness * 0.005f);
 }
 
-Lanczos3SpriteShader::Lanczos3SpriteShader(Exception &exception) : SimpleSpriteShader(exception)
+Lanczos3SpriteShader::Lanczos3SpriteShader(Exception &exception)
 {
 	if (exception.is_error())
 		return;
@@ -469,7 +468,7 @@ void Lanczos3SpriteShader::setTexSize(const Vec2i &value)
 }
 
 #ifdef MKXPZ_SSL
-XbrzSpriteShader::XbrzSpriteShader(Exception &exception) : Lanczos3SpriteShader(exception)
+XbrzSpriteShader::XbrzSpriteShader(Exception &exception)
 {
 	if (exception.is_error())
 		return;
@@ -488,7 +487,6 @@ void XbrzSpriteShader::setTargetScale(const Vec2 &value)
 	gl.Uniform2f(u_targetScale, value.x, value.y);
 }
 #endif
-#endif // MKXPZ_RETRO
 
 AlphaSpriteShader::AlphaSpriteShader(Exception &exception)
 {
@@ -928,8 +926,7 @@ void BltShader::setOpacity(float value)
 	gl.Uniform1f(u_opacity, value);
 }
 
-#ifndef MKXPZ_RETRO
-BicubicShader::BicubicShader(Exception &exception) : Lanczos3Shader(exception)
+BicubicShader::BicubicShader(Exception &exception)
 {
 	if (exception.is_error())
 		return;
@@ -948,7 +945,7 @@ void BicubicShader::setSharpness(int sharpness)
 	gl.Uniform2f(u_bc, 1.f - sharpness * 0.01f, sharpness * 0.005f);
 }
 
-Lanczos3Shader::Lanczos3Shader(Exception &exception) : SimpleShader(exception)
+Lanczos3Shader::Lanczos3Shader(Exception &exception)
 {
 	if (exception.is_error())
 		return;
@@ -968,7 +965,7 @@ void Lanczos3Shader::setTexSize(const Vec2i &value)
 }
 
 #ifdef MKXPZ_SSL
-XbrzShader::XbrzShader(Exception &exception) : Lanczos3Shader(exception)
+XbrzShader::XbrzShader(Exception &exception)
 {
 	if (exception.is_error())
 		return;
@@ -987,7 +984,6 @@ void XbrzShader::setTargetScale(const Vec2 &value)
 	gl.Uniform2f(u_targetScale, value.x, value.y);
 }
 #endif
-#endif // MKXPZ_RETRO
 
 ShaderSet::ShaderSet(Exception &exception) :
 	flatColor(exception),
@@ -1007,9 +1003,6 @@ ShaderSet::ShaderSet(Exception &exception) :
 	blt(exception),
 	blur(exception),
 	simpleMatrix(exception),
-#ifdef MKXPZ_RETRO
-	tilemapVX(exception)
-#else
 	tilemapVX(exception),
 	bicubic(exception),
 	lanczos3(exception),
@@ -1023,7 +1016,6 @@ ShaderSet::ShaderSet(Exception &exception) :
 #else
 	bicubicSprite(exception)
 #endif
-#endif // MKXPZ_RETRO
 {}
 
 void ShaderSet::reinit(Exception &exception) {
