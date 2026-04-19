@@ -427,7 +427,7 @@ static const struct retro_core_option_v2_definition core_option_definitions[] = 
             " properly synchronize texture access, most"
             " apparent when text doesn't show up or the map"
             " tileset doesn't render at all."
-            " (default: enabled for systems using OpenGL ES, disabled on other systems)"
+            " (default: enabled on systems using OpenGL ES and on Nintendo Switch, disabled on other systems)"
         ),
         nullptr,
         "video",

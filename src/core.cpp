@@ -504,7 +504,11 @@ static void update_simple_core_options() {
     {
         const char *value = get_core_option("mkxp-z_subImageFix");
         if (!std::strcmp(value, "default")) {
+#ifdef __DEVKITA64__
+            conf->subImageFix.setOverride(true);
+#else
             conf->subImageFix.setOverride(hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES2 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES3 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES_VERSION);
+#endif // __DEVKITA64__
         } else if (!std::strcmp(value, "enabled")) {
             conf->subImageFix.setOverride(true);
         } else if (!std::strcmp(value, "disabled")) {
