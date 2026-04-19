@@ -206,7 +206,11 @@ void Config::read(int argc, char *argv[], int forceRgssVersion) {
         {"preferMetalRenderer", false},
 #endif
 #ifdef MKXPZ_RETRO
+#ifdef __DEVKITA64__
+        {"subImageFix", true},
+#else
         {"subImageFix", mkxp_retro::hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES2 || mkxp_retro::hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES3 || mkxp_retro::hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES_VERSION},
+#endif // __DEVKITA64__
 #else
         {"subImageFix", false},
 #endif // MKXPZ_RETRO

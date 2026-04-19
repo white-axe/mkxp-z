@@ -234,6 +234,8 @@ static unsigned int message_interface_version;
 
 static bool texture_sync_is_eager = false;
 
+static bool message_displayed_recently = false;
+
 retro_log_printf_t mkxp_retro_log_printf;
 
 namespace mkxp_retro {
@@ -280,6 +282,7 @@ namespace mkxp_retro {
     }
 
     void display_message(enum retro_log_level log_level, const char *msg) noexcept {
+        message_displayed_recently = true;
         switch (message_interface_version) {
             default:
                 {
@@ -504,7 +507,11 @@ static void update_simple_core_options() {
     {
         const char *value = get_core_option("mkxp-z_subImageFix");
         if (!std::strcmp(value, "default")) {
+#ifdef __DEVKITA64__
+            conf->subImageFix.setOverride(true);
+#else
             conf->subImageFix.setOverride(hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES2 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES3 || hw_render.context_type == RETRO_HW_CONTEXT_OPENGLES_VERSION);
+#endif // __DEVKITA64__
         } else if (!std::strcmp(value, "enabled")) {
             conf->subImageFix.setOverride(true);
         } else if (!std::strcmp(value, "disabled")) {
@@ -1507,6 +1514,7 @@ extern "C" RETRO_API void retro_run() {
     }
 
     input_polled = false;
+    message_displayed_recently = false;
 
     if (hw_render.context_type != RETRO_HW_CONTEXT_NONE && (should_render || (!dupe_supported && mkxp_retro::sandbox.has_value()))) {
         glState.refresh();
@@ -1572,7 +1580,13 @@ extern "C" RETRO_API void retro_run() {
             } else {
                 LOG_PRINT(RETRO_LOG_ERROR, "Game threw an exception; terminating\n");
             }
-            if (frame_count >= 128) {
+            // Heuristic: If the sandbox terminates, we send a shutdown signal to the frontend (which causes the frontend to quit to the menu),
+            // but only if the game has been running for sufficiently long, and the game exited normally without raising an exception, and
+            // the game did not show a message box in the same frame when it exited.
+            // This is to try to make it so that a shutdown signal is only sent if the player deliberately exited a game, and not when
+            // the game encountered an error.
+            // Some games may catch errors and display them as a message box before exiting normally, which is why the message box heuristic is needed.
+            if (frame_count >= 128 && *result && !message_displayed_recently) {
                 environment(RETRO_ENVIRONMENT_SHUTDOWN, nullptr);
             }
             deinit_sandbox();
