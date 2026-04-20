@@ -183,7 +183,7 @@
      mode |= O_CLOEXEC;
  #endif
 -
-+    if (mkxp_vfs.required_interface_version >= 3) { handle = mkxp_vfs.iface->open(filename, ((mode & O_ACCMODE) == O_RDONLY || (mode & O_ACCMODE) == O_RDWR ? RETRO_VFS_FILE_ACCESS_READ : 0) | ((mode & O_ACCMODE) == O_WRONLY || (mode & O_ACCMODE) == O_RDWR ? RETRO_VFS_FILE_ACCESS_WRITE : 0) | (((mode & O_ACCMODE) == O_WRONLY || (mode & O_ACCMODE) == O_RDWR) && !(mode & O_TRUNC) && mkxp_vfs.iface->stat(filename, NULL) & RETRO_VFS_STAT_IS_VALID ? RETRO_VFS_FILE_ACCESS_UPDATE_EXISTING : 0), RETRO_VFS_FILE_ACCESS_HINT_NONE); } else
++    if (mkxp_vfs.required_interface_version >= 3) { handle = mkxp_vfs.iface->open(filename, ((mode & O_ACCMODE) == O_RDONLY || (mode & O_ACCMODE) == O_RDWR ? RETRO_VFS_FILE_ACCESS_READ : 0) | ((mode & O_ACCMODE) == O_WRONLY || (mode & O_ACCMODE) == O_RDWR ? RETRO_VFS_FILE_ACCESS_WRITE : 0) | (((mode & O_ACCMODE) == O_WRONLY || (mode & O_ACCMODE) == O_RDWR) && !(mode & O_TRUNC) && (mkxp_vfs.required_interface_version >= 4 ? mkxp_vfs.iface->stat_64(filename, NULL) : mkxp_vfs.iface->stat(filename, NULL)) & RETRO_VFS_STAT_IS_VALID ? RETRO_VFS_FILE_ACCESS_UPDATE_EXISTING : 0), RETRO_VFS_FILE_ACCESS_HINT_NONE); } else
      do {
          fd = open(filename, mode, S_IRUSR | S_IWUSR);
      } while ((fd < 0) && (errno == EINTR));
@@ -343,8 +343,8 @@
 -    struct stat statbuf;
 -    const int rc = follow ? stat(fname, &statbuf) : lstat(fname, &statbuf);
 -    BAIL_IF(rc == -1, errcodeFromErrno(), 0);
-+    struct stat statbuf; PHYSFS_sint32 size;
-+    const int rc = mkxp_vfs.required_interface_version >= 3 ? mkxp_vfs.iface->stat(fname, &size) : stat(fname, &statbuf);
++    struct stat statbuf; int32_t size32; int64_t size64;
++    const int rc = mkxp_vfs.required_interface_version >= 4 ? mkxp_vfs.iface->stat_64(fname, &size64) : mkxp_vfs.required_interface_version >= 3 ? mkxp_vfs.iface->stat(fname, &size32) : stat(fname, &statbuf);
 +    BAIL_IF(rc == (mkxp_vfs.required_interface_version >= 3 ? 0 : -1), mkxp_vfs.required_interface_version >= 3 ? PHYSFS_ERR_NOT_FOUND : errcodeFromErrno(), 0);
  
 -    if (S_ISREG(statbuf.st_mode))
@@ -352,7 +352,7 @@
      {
          st->filetype = PHYSFS_FILETYPE_REGULAR;
 -        st->filesize = statbuf.st_size;
-+        st->filesize = mkxp_vfs.required_interface_version >= 3 ? size : statbuf.st_size;
++        st->filesize = mkxp_vfs.required_interface_version >= 4 ? size64 : mkxp_vfs.required_interface_version >= 3 ? size32 : statbuf.st_size;
      } /* if */
  
 -    else if(S_ISDIR(statbuf.st_mode))
@@ -372,7 +372,7 @@
      {
          st->filetype = PHYSFS_FILETYPE_OTHER;
 -        st->filesize = statbuf.st_size;
-+        st->filesize = mkxp_vfs.required_interface_version >= 3 ? size : statbuf.st_size;
++        st->filesize = mkxp_vfs.required_interface_version >= 4 ? size64 : mkxp_vfs.required_interface_version >= 3 ? size32 : statbuf.st_size;
      } /* else */
  
 -    st->modtime = statbuf.st_mtime;

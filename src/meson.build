@@ -13,6 +13,9 @@ if is_libretro
     uchardet_options = cmake.subproject_options()
     uchardet_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
+        'CMAKE_ANDROID_API': android_api_level,
+        'CMAKE_ANDROID_NDK': android_ndk_root,
+        'CMAKE_OSX_SYSROOT': '/nonexistent',
         'CMAKE_C_FLAGS': ' '.join(global_args),
         'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_C_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
@@ -50,6 +53,9 @@ if is_libretro
     zlib_options = cmake.subproject_options()
     zlib_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
+        'CMAKE_ANDROID_API': android_api_level,
+        'CMAKE_ANDROID_NDK': android_ndk_root,
+        'CMAKE_OSX_SYSROOT': '/nonexistent',
         'CMAKE_C_FLAGS': ' '.join(global_args),
         'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_C_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
@@ -63,6 +69,9 @@ if is_libretro
     physfs_options = cmake.subproject_options()
     physfs_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
+        'CMAKE_ANDROID_API': android_api_level,
+        'CMAKE_ANDROID_NDK': android_ndk_root,
+        'CMAKE_OSX_SYSROOT': '/nonexistent',
         'CMAKE_C_FLAGS': ' '.join(global_args),
         'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_C_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
@@ -78,6 +87,9 @@ if is_libretro
     openal_options = cmake.subproject_options()
     openal_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
+        'CMAKE_ANDROID_API': android_api_level,
+        'CMAKE_ANDROID_NDK': android_ndk_root,
+        'CMAKE_OSX_SYSROOT': '/nonexistent',
         'CMAKE_C_FLAGS': ' '.join(global_args),
         'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_C_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
@@ -116,6 +128,9 @@ if is_libretro
     fluidsynth_options = cmake.subproject_options()
     fluidsynth_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
+        'CMAKE_ANDROID_API': android_api_level,
+        'CMAKE_ANDROID_NDK': android_ndk_root,
+        'CMAKE_OSX_SYSROOT': '/nonexistent',
         'CMAKE_C_FLAGS': ' '.join(global_args),
         'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_C_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
@@ -159,6 +174,9 @@ if is_libretro
     ogg_options = cmake.subproject_options()
     ogg_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
+        'CMAKE_ANDROID_API': android_api_level,
+        'CMAKE_ANDROID_NDK': android_ndk_root,
+        'CMAKE_OSX_SYSROOT': '/nonexistent',
         'CMAKE_C_FLAGS': ' '.join(global_args),
         'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_C_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
@@ -173,6 +191,9 @@ if is_libretro
     vorbis_options = cmake.subproject_options()
     vorbis_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
+        'CMAKE_ANDROID_API': android_api_level,
+        'CMAKE_ANDROID_NDK': android_ndk_root,
+        'CMAKE_OSX_SYSROOT': '/nonexistent',
         'CMAKE_C_FLAGS': ' '.join(global_args),
         'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_C_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
@@ -188,6 +209,9 @@ if is_libretro
     flac_options = cmake.subproject_options()
     flac_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
+        'CMAKE_ANDROID_API': android_api_level,
+        'CMAKE_ANDROID_NDK': android_ndk_root,
+        'CMAKE_OSX_SYSROOT': '/nonexistent',
         'CMAKE_C_FLAGS': ' '.join(global_args),
         'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_C_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
@@ -212,6 +236,9 @@ if is_libretro
     opus_options = cmake.subproject_options()
     opus_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
+        'CMAKE_ANDROID_API': android_api_level,
+        'CMAKE_ANDROID_NDK': android_ndk_root,
+        'CMAKE_OSX_SYSROOT': '/nonexistent',
         'CMAKE_C_FLAGS': ' '.join(global_args),
         'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_C_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
@@ -234,6 +261,9 @@ if is_libretro
     mpg123_options = cmake.subproject_options()
     mpg123_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
+        'CMAKE_ANDROID_API': android_api_level,
+        'CMAKE_ANDROID_NDK': android_ndk_root,
+        'CMAKE_OSX_SYSROOT': '/nonexistent',
         'CMAKE_C_FLAGS': ' '.join(global_args + '-DNO_CATCHSIGNAL' + '-Wno-macro-redefined'),
         'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args + '-DNO_CATCHSIGNAL' + '-Wno-macro-redefined'),
         'CMAKE_C_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
@@ -251,6 +281,9 @@ if is_libretro
     libsndfile_options = cmake.subproject_options()
     libsndfile_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
+        'CMAKE_ANDROID_API': android_api_level,
+        'CMAKE_ANDROID_NDK': android_ndk_root,
+        'CMAKE_OSX_SYSROOT': '/nonexistent',
         'CMAKE_C_FLAGS': ' '.join(global_args),
         'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_C_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
@@ -273,6 +306,9 @@ if is_libretro
     pixman_region_options = cmake.subproject_options()
     pixman_region_options.add_cmake_defines({
         'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
+        'CMAKE_ANDROID_API': android_api_level,
+        'CMAKE_ANDROID_NDK': android_ndk_root,
+        'CMAKE_OSX_SYSROOT': '/nonexistent',
         'CMAKE_C_FLAGS': ' '.join(global_args),
         'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'CMAKE_C_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',

@@ -47,6 +47,7 @@ if sizeof['long'] <= 0
 endif
 win64 = (sizeof['void*'] != sizeof['long'])
 android_api_level = host_system == 'android' ? compilers['c'].get_define('__ANDROID_API__').to_int() : 0
+android_ndk_root = host_system == 'android' ? run_command(compilers['c'], '-print-file-name=sysroot', check: true).stdout().strip() / '..' / '..' / '..' / '..' / '..'  : ''
 
 global_args += '-DMKXPZ_BUILD_MESON'
 global_args += '-DMKXPZ_VERSION="@0@"'.format(meson.project_version())

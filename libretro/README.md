@@ -68,13 +68,6 @@ When building for Android, you need to add additional lines of the following for
 CMAKE_SYSTEM_PROCESSOR = '<armv7-a|aarch64|i686|x86_64>'
 ```
 
-When building for Darwin platforms, including iOS and macOS, you need to add these additional lines at the bottom of the cross file to stop CMake from trying to manually set a sysroot:
-
-```ini
-[cmake]
-CMAKE_OSX_SYSROOT = '/nonexistent'
-```
-
 When building for Emscripten, you need to add additional lines of the following format at the bottom of the cross file, replacing the angle-bracket strings with the correct values:
 
 ```ini
@@ -82,7 +75,7 @@ When building for Emscripten, you need to add additional lines of the following 
 cmake_toolchain_file = '<path to Emscripten root directory>/cmake/Modules/Platform/Emscripten.cmake'
 ```
 
-Once the cross file is set up, go to the root directory of this repository and run these commands to build the core, replacing the angle-bracket strings with the correct values. When building for Android, you may need to set the environment variable `ANDROID_NDK` to the root directory of the Android NDK used to build the core for the duration of the `meson setup` command; it doesn't need to be set for the rest of the build process.
+Once the cross file is set up, go to the root directory of this repository and run these commands to build the core, replacing the angle-bracket strings with the correct values.
 
 ```
 meson setup build -Dlibretro=true --cross-file <path to cross file>
