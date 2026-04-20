@@ -1166,7 +1166,7 @@ jobs:
           echo "[cmake]" | tee -a ${{ runner.temp }}/cross.ini
           echo "CMAKE_SYSTEM_PROCESSOR = '${{ matrix.arch_cmake }}'" | tee -a ${{ runner.temp }}/cross.ini
           echo '--------------------------------------------------------------------------------'
-          ANDROID_NDK=${{ steps.ndk.outputs.ndk-path }} CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dlibretro=true -Dlibretro_save_states=true
+          CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dlibretro=true -Dlibretro_save_states=true
 
       - name: Build core
         run: |
@@ -1343,8 +1343,6 @@ jobs:
           echo "cpu_family = '${{ matrix.cpu_family }}'" | tee -a ${{ runner.temp }}/cross.ini
           echo "cpu = '${{ matrix.cpu }}'" | tee -a ${{ runner.temp }}/cross.ini
           echo "endian = '${{ matrix.endian }}'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "[cmake]" | tee -a ${{ runner.temp }}/cross.ini
-          echo "CMAKE_OSX_SYSROOT = '/nonexistent'" | tee -a ${{ runner.temp }}/cross.ini
           echo '--------------------------------------------------------------------------------'
           CLICOLOR_FORCE=1 meson setup build --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Db_lto=true -Dlibretro=true -Dlibretro_save_states=true
 
