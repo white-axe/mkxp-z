@@ -28,6 +28,9 @@ SYNTAX_TRANSFORM_PATCHES := \
 	$(SYNTAX_TRANSFORM_DIR)/0026-superclass-mismatch.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0027-kernel-proc.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0028-numeric-div.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0029-incomplete-format-specifier.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0030-invalid-keyword.patch  \
+	$(SYNTAX_TRANSFORM_DIR)/0031-retry-redo.patch \
 
 HAVE_SYNTAX_TRANSFORM ?= 1
 
