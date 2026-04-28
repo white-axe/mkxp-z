@@ -119,6 +119,27 @@ static VALUE legacy_array_indices(int32_t argc, wasm_ptr_t argv, VALUE self) {
     return sb()->bind<struct coro>()()(argc, argv, self);
 }
 
+static VALUE legacy_array_nitems(VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE, ID> slots;
+
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
+                if (!SANDBOX_SLOT(0)) {
+                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "nitems");
+                }
+                SANDBOX_AWAIT_S(1, rb_intern, "length");
+                SANDBOX_AWAIT_S(0, rb_funcall, self, SANDBOX_SLOT(1), 0);
+            }
+
+            return SANDBOX_SLOT(0);
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
+}
+
 static VALUE legacy_hash_indexes(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
         typedef decl_slots<VALUE, ID> slots;
@@ -1091,6 +1112,7 @@ void sandbox_binding_init::operator()() {
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cArray(), "choice", (VALUE (*)(ANYARGS))legacy_array_choice, -1);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cArray(), "indexes", (VALUE (*)(ANYARGS))legacy_array_indexes, -1);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cArray(), "indices", (VALUE (*)(ANYARGS))legacy_array_indices, -1);
+        SANDBOX_AWAIT(rb_define_method, sb()->rb_cArray(), "nitems", (VALUE (*)(ANYARGS))legacy_array_nitems, 0);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cHash(), "indexes", (VALUE (*)(ANYARGS))legacy_hash_indexes, -1);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_cHash(), "indices", (VALUE (*)(ANYARGS))legacy_hash_indices, -1);
         SANDBOX_AWAIT(rb_define_method, sb()->rb_mKernel(), "id", (VALUE (*)(ANYARGS))legacy_kernel_id, 0);

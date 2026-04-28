@@ -61,7 +61,7 @@ RB_METHOD(windowVXInitialize) {
     BINDING_GUARD_F(GFX_UNLOCK, wrapProperty(self, &w->getTone(e), "tone", ToneType));
 
   Bitmap *contents;
-  BINDING_GUARD_F(delete contents, contents = new Bitmap(e, 1, 1));
+  BINDING_GUARD_F(delete contents; GFX_UNLOCK, contents = new Bitmap(e, 1, 1));
   VALUE contentsObj = wrapObject(contents, BitmapType);
   bitmapInitProps(contents, contentsObj);
   rb_iv_set(self, "contents", contentsObj);

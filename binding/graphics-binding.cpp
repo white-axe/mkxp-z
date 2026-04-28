@@ -93,7 +93,7 @@ RB_METHOD_GUARD(graphicsTransition)
     rb_get_args(argc, argv, "|izi", &duration, &filename, &vague RB_ARG_END);
     
     Bitmap *transMap;
-    BINDING_GUARD_L(delete transMap, transMap = *filename ? new Bitmap(e, filename) : 0);
+    BINDING_GUARD_LF(delete transMap, transMap = *filename ? new Bitmap(e, filename) : 0);
     TransitionArgs args = {duration, transMap, vague};
     
 #if RAPI_MAJOR >= 2

@@ -135,8 +135,8 @@ private:
 };
 
 #ifdef MKXPZ_RETRO
-#  define GFX_LOCK // TODO
-#  define GFX_UNLOCK // TODO
+#  define GFX_LOCK
+#  define GFX_UNLOCK
 #else
 #  define GFX_LOCK shState->graphics().lock()
 #  define GFX_UNLOCK shState->graphics().unlock()
