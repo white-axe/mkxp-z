@@ -103,6 +103,7 @@ public:
 
 	enum BitmapBltMode {
 	    NORMAL,
+	    KGL_SUBTRACT,
 	};
 
 	void stretchBlt(Exception &exception,
@@ -205,6 +206,12 @@ public:
     bool getLooping(Exception &exception) const;
 
     void ensureNotPlaying(Exception &exception) const;
+
+    void kglInvert(Exception &exception);
+    void kglCompressAlpha(Exception &exception);
+    int kglShadowShaderH(Exception &exception, int x1, int x2, int y, bool soft);
+    int kglShadowShaderV(Exception &exception, int y1, int y2, int x, bool wall, bool soft);
+
     // ----------
     
 	/* Binds the backing texture and sets the correct
