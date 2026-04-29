@@ -447,6 +447,7 @@ static VALUE user_language(VALUE self) {
         case RETRO_LANGUAGE_GALICIAN: str = "gl_ES"; break;
         case RETRO_LANGUAGE_NORWEGIAN: str = "no_NO"; break;
         case RETRO_LANGUAGE_IRISH: str = "ga_IE"; break;
+        case RETRO_LANGUAGE_THAI: str = "th_TH"; break;
     }
 
     return sb()->bind<struct rb_utf8_str_new_cstr>()()(str);
