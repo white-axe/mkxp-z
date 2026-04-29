@@ -3936,7 +3936,7 @@ static void get_random_impl(struct wasi_instance *wasi, wasm_ptr_t buf, wasm_siz
 #endif // MKXPZ_BIG_ENDIAN
         } else {
             wasm_size_t n = std::min(buf_len, wasi->prng_buffer_size);
-            wasi->arycpy(buf, wasi->prng_buffer + ((uint32_t)4 - n), n);
+            wasi->arycpy(buf, wasi->prng_buffer + ((wasm_size_t)4 - n), n);
             buf += n;
             buf_len -= n;
             wasi->prng_buffer_size -= n;
