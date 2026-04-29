@@ -1116,6 +1116,11 @@ ShaderSet::ShaderSet(Exception &exception) :
 	blur(exception),
 	simpleMatrix(exception),
 	tilemapVX(exception),
+	kglInvert(exception),
+	kglCompressAlpha(exception),
+	kglSubtract(exception),
+	kglShadowH(exception),
+	kglShadowV(exception),
 	bicubic(exception),
 	lanczos3(exception),
 #ifdef MKXPZ_SSL
