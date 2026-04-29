@@ -600,7 +600,7 @@ jobs:
     name: LR Windows ${{ matrix.arch_mkxpz }}
     runs-on: ubuntu-latest
     container:
-      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-mxe-win-cross-cores:gcc11
+      image: reallibretroretroarch/libretro-build-mxe-win-cross-cores:gcc11
       options: -u root
     strategy:
       fail-fast: false
@@ -1016,7 +1016,7 @@ jobs:
     name: LR OpenDingux ${{ matrix.target }}
     runs-on: ubuntu-latest
     container:
-      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-dingux:${{ matrix.tag }}
+      image: reallibretroretroarch/libretro-build-dingux:${{ matrix.tag }}
       options: -u root
     strategy:
       fail-fast: false
@@ -1466,7 +1466,7 @@ jobs:
     name: LR PlayStation 3
     runs-on: ubuntu-latest
     container:
-      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-psl1ght:latest
+      image: reallibretroretroarch/libretro-build-psl1ght:latest
       options: -u root
     steps:
       - name: Expose Actions environment
@@ -1535,7 +1535,7 @@ jobs:
     name: LR Nintendo 3DS
     runs-on: ubuntu-latest
     container:
-      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-devkitpro:latest
+      image: reallibretroretroarch/libretro-build-devkitpro:latest
       options: -u root
     steps:
       - name: Expose Actions environment
@@ -1605,7 +1605,7 @@ jobs:
     name: LR PlayStation Vita
     runs-on: ubuntu-latest
     container:
-      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-vita:latest
+      image: reallibretroretroarch/libretro-build-vita:latest
       options: -u root
     steps:
       - name: Expose Actions environment
@@ -1679,7 +1679,7 @@ jobs:
       # We're supposed to use libretro-build-wiiu, but that currently has a really old version of devkitPPC that doesn't support C++17, so it can't compile OpenAL Soft.
       # Also, pre-C++17 versions of OpenAL Soft give linker errors when we try to build them for Wii U, so we can't just downgrade OpenAL Soft.
       # The libretro-build-devkitpro image that we're using here instead currently has a newer version of devkitPPC that supports C++17 but lacks wiiurpxtool, which is why we need to separately install wiiurpxtool.
-      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-devkitpro:latest
+      image: reallibretroretroarch/libretro-build-devkitpro:latest
       options: -u root
     steps:
       - name: Expose Actions environment
@@ -1770,7 +1770,7 @@ jobs:
     name: LR PlayStation 4
     runs-on: ubuntu-latest
     container:
-      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-orbis:latest
+      image: reallibretroretroarch/libretro-build-orbis:latest
       options: -u root
     steps:
       - name: Expose Actions environment
@@ -1836,7 +1836,7 @@ jobs:
     name: LR Nintendo Switch core
     runs-on: ubuntu-latest
     container:
-      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-libnx-devkitpro:v4-10-0
+      image: reallibretroretroarch/libretro-build-libnx-devkitpro:v4-10-0
       options: -u root
     outputs:
       artifact-id: ${{ steps.upload-artifact.outputs.artifact-id }}
@@ -1902,7 +1902,7 @@ jobs:
     name: LR Nintendo Switch frontend ${{ matrix.type }}
     runs-on: ubuntu-latest
     container:
-      image: git.libretro.com:5050/libretro-infrastructure/libretro-build-libnx-devkitpro:v4-10-0
+      image: reallibretroretroarch/libretro-build-libnx-devkitpro:v4-10-0
       options: -u root
     strategy:
       fail-fast: false
