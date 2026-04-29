@@ -61,6 +61,11 @@
 #include "blurH.vert.xxd"
 #include "blurV.vert.xxd"
 #include "tilemapvx.vert.xxd"
+#include "kglInvert.frag.xxd"
+#include "kglCompressAlpha.frag.xxd"
+#include "kglSubtract.frag.xxd"
+#include "kglShadowH.frag.xxd"
+#include "kglShadowV.frag.xxd"
 #endif
 
 #ifdef MKXPZ_BUILD_XCODE
@@ -798,6 +803,11 @@ BltShader::BltShader()
 {
 	INIT_SHADER(simple, bitmapBlit, BltShader);
 
+	init();
+}
+
+void BltShader::init()
+{
 	ShaderBase::init();
 
 	GET_U(source);
@@ -824,6 +834,93 @@ void BltShader::setSubRect(const FloatRect &value)
 void BltShader::setOpacity(float value)
 {
 	gl.Uniform1f(u_opacity, value);
+}
+
+KglInvertShader::KglInvertShader()
+{
+	INIT_SHADER(simple, kglInvert, KglInvertShader);
+
+	ShaderBase::init();
+}
+
+KglCompressAlphaShader::KglCompressAlphaShader()
+{
+	INIT_SHADER(simple, kglCompressAlpha, KglCompressAlphaShader);
+
+	ShaderBase::init();
+}
+
+KglSubtractShader::KglSubtractShader()
+{
+	INIT_SHADER(simple, kglSubtract, KglSubtractShader);
+
+	BltShader::init();
+}
+
+KglShadowShaderH::KglShadowShaderH()
+{
+	INIT_SHADER(simple, kglShadowH, KglShadowShaderH);
+
+	ShaderBase::init();
+
+	GET_U(x1);
+	GET_U(x2);
+	GET_U(y);
+	GET_U(soft);
+	GET_U(w);
+	GET_U(h);
+	GET_U(x_center);
+	GET_U(y_center);
+	GET_U(slope1);
+	GET_U(slope2);
+}
+
+void KglShadowShaderH::setParams(int x1, int x2, int y, bool soft, int w, int h, int x_center, int y_center, double slope1, double slope2)
+{
+	gl.Uniform1i(u_x1, x1);
+	gl.Uniform1i(u_x2, x2);
+	gl.Uniform1i(u_y, y);
+	gl.Uniform1i(u_soft, soft);
+	gl.Uniform1i(u_w, w);
+	gl.Uniform1i(u_h, h);
+	gl.Uniform1i(u_x_center, x_center);
+	gl.Uniform1i(u_y_center, y_center);
+	gl.Uniform1f(u_slope1, slope1);
+	gl.Uniform1f(u_slope2, slope2);
+}
+
+KglShadowShaderV::KglShadowShaderV()
+{
+	INIT_SHADER(simple, kglShadowV, KglShadowShaderV);
+
+	ShaderBase::init();
+
+	GET_U(y1);
+	GET_U(y2);
+	GET_U(x);
+	GET_U(wall);
+	GET_U(soft);
+	GET_U(w);
+	GET_U(h);
+	GET_U(x_center);
+	GET_U(y_center);
+	GET_U(slope1);
+	GET_U(slope2);
+}
+
+void KglShadowShaderV::setParams(int y1, int y2, int x, bool wall, bool soft, int w, int h, int x_center, int y_center, double slope1, double slope2)
+{
+	gl.Uniform1i(u_y1, y1);
+	gl.Uniform1i(u_y2, y2);
+	gl.Uniform1i(u_x, x);
+	gl.Uniform1i(u_wall, wall);
+	gl.Uniform1i(u_soft, soft);
+	gl.Uniform1i(u_w, w);
+	gl.Uniform1i(u_h, h);
+	gl.Uniform1i(u_x_center, x_center);
+	gl.Uniform1i(u_y_center, y_center);
+	gl.Uniform1f(u_slope1, slope1);
+	gl.Uniform1f(u_slope2, slope2);
 }
 
 BicubicShader::BicubicShader()
