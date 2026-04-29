@@ -650,7 +650,6 @@ jobs:
           echo "cpp = '${{ matrix.arch_gcc }}-g++'" | tee -a ~/cross.ini
           echo "ar = '${{ matrix.arch_gcc }}-ar'" | tee -a ~/cross.ini
           echo "cmake = 'cmake'" | tee -a ~/cross.ini
-          echo "strip = '${{ matrix.arch_gcc }}-strip'" | tee -a ~/cross.ini
           echo "[host_machine]" | tee -a ~/cross.ini
           echo "system = 'windows'" | tee -a ~/cross.ini
           echo "cpu_family = '${{ matrix.cpu_family }}'" | tee -a ~/cross.ini
@@ -803,7 +802,6 @@ jobs:
           echo "cpp = ['clang++', '--target=${{ matrix.arch_llvm }}', '--sysroot=${{ runner.temp }}/sysroot']" | tee -a ${{ runner.temp }}/cross.ini
           echo "cpp_ld = 'lld'" | tee -a ${{ runner.temp }}/cross.ini
           echo "ar = 'llvm-ar'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "strip = 'llvm-strip'" | tee -a ${{ runner.temp }}/cross.ini
           echo "cmake = 'cmake'" | tee -a ${{ runner.temp }}/cross.ini
           echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
           echo "system = 'linux'" | tee -a ${{ runner.temp }}/cross.ini
@@ -965,7 +963,6 @@ jobs:
           echo "cpp = ['clang++', '--target=${{ matrix.arch_llvm }}', '--sysroot=${{ steps.sysroot.outputs.root-path }}']" | tee -a ${{ runner.temp }}/cross.ini
           echo "cpp_ld = 'lld'" | tee -a ${{ runner.temp }}/cross.ini
           echo "ar = 'llvm-ar'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "strip = 'llvm-strip'" | tee -a ${{ runner.temp }}/cross.ini
           echo "cmake = 'cmake'" | tee -a ${{ runner.temp }}/cross.ini
           echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
           echo "system = 'linux'" | tee -a ${{ runner.temp }}/cross.ini
@@ -1156,7 +1153,6 @@ jobs:
           echo "c = ['${{ steps.ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang', '--target=${{ matrix.arch_llvm }}']" | tee -a ${{ runner.temp }}/cross.ini
           echo "cpp = ['${{ steps.ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++', '--target=${{ matrix.arch_llvm }}']" | tee -a ${{ runner.temp }}/cross.ini
           echo "ar = '${{ steps.ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "strip = 'llvm-strip'" | tee -a ${{ runner.temp }}/cross.ini
           echo "cmake = 'cmake'" | tee -a ${{ runner.temp }}/cross.ini
           echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
           echo "system = 'android'" | tee -a ${{ runner.temp }}/cross.ini
@@ -1231,7 +1227,6 @@ jobs:
           echo "c = '${{ runner.temp }}/webos-sdk/bin/arm-webos-linux-gnueabi-gcc'" | tee -a ${{ runner.temp }}/cross.ini
           echo "cpp = '${{ runner.temp }}/webos-sdk/bin/arm-webos-linux-gnueabi-g++'" | tee -a ${{ runner.temp }}/cross.ini
           echo "ar = '${{ runner.temp }}/webos-sdk/bin/arm-webos-linux-gnueabi-ar'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "strip = '${{ runner.temp }}/webos-sdk/bin/arm-webos-linux-gnueabi-strip'" | tee -a ${{ runner.temp }}/cross.ini
           echo "cmake = 'cmake'" | tee -a ${{ runner.temp }}/cross.ini
           echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
           echo "system = 'linux'" | tee -a ${{ runner.temp }}/cross.ini
@@ -1336,7 +1331,6 @@ jobs:
           echo "c = ['xcrun', '--sdk', '${{ matrix.sdk }}', 'clang', '--target=${{ matrix.arch_llvm }}']" | tee -a ${{ runner.temp }}/cross.ini
           echo "cpp = ['xcrun', '--sdk', '${{ matrix.sdk }}', 'clang++', '--target=${{ matrix.arch_llvm }}']" | tee -a ${{ runner.temp }}/cross.ini
           echo "ar = 'ar'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "strip = 'strip'" | tee -a ${{ runner.temp }}/cross.ini
           echo "cmake = 'cmake'" | tee -a ${{ runner.temp }}/cross.ini
           echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
           echo "system = 'darwin'" | tee -a ${{ runner.temp }}/cross.ini
