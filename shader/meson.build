@@ -26,7 +26,12 @@ embedded_shaders = [
     'blur.frag',
     'blurH.vert',
     'blurV.vert',
-    'simpleMatrix.vert'
+    'simpleMatrix.vert',
+    'kglInvert.frag',
+    'kglCompressAlpha.frag',
+    'kglSubtract.frag',
+    'kglShadowH.frag',
+    'kglShadowV.frag',
 ]
 
 # xBRZ shader is GPLv3.

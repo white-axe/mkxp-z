@@ -213,7 +213,8 @@ $(DOWNLOADS)/dbus/cmakebuild/Makefile: $(DOWNLOADS)/dbus/CMakeLists.txt
 	mkdir cmakebuild; cd cmakebuild; \
 	$(CMAKE) -DDBUS_WITH_GLIB=no -DDBUS_SESSION_SOCKET_DIR=/tmp
 
-$(DOWNLOADS)/dbus/CMakeLists.txt: init_dirs
+$(DOWNLOADS)/dbus/CMakeLists.txt:
+	mkdir -p $(DOWNLOADS)
 	$(CLONE) https://gitlab.freedesktop.org/dbus/dbus $(DOWNLOADS)/dbus -b dbus-1.16.2
 
 # SDL_image
