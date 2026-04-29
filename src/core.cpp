@@ -686,7 +686,11 @@ static void update_simple_core_options() {
 }
 
 static bool script_is_enabled_by_default(const char *script_name, bool is_postload) {
-    return !is_postload && !std::strcmp(script_name, "win32_wrap.rb");
+    return !is_postload
+        && (
+            std::strcmp(script_name, "kgl2_wrap.rb") == 0
+                || std::strcmp(script_name, "win32_wrap.rb") == 0
+        );
 }
 
 static std::string get_script_core_option_name(const char *script_name, bool is_postload) {

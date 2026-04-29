@@ -126,7 +126,7 @@ clean-ruby-bindings:
 	rm -f $(LIBDIR)/tags.c
 	rm -f $(LIBDIR)/tags
 
-$(OUTDIR)/preload.zip: ../scripts/preload/mkxp_wrap.rb ../scripts/preload/ruby_classic_wrap.rb ../scripts/preload/win32_wrap.rb
+$(OUTDIR)/preload.zip: ../scripts/preload/kgl2_wrap.rb ../scripts/preload/mkxp_wrap.rb ../scripts/preload/ruby_classic_wrap.rb ../scripts/preload/win32_wrap.rb
 	rm -rf $(LIBDIR)/preload
 	mkdir -p $(LIBDIR)/preload
 	mkdir -p $(OUTDIR)
