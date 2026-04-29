@@ -1962,6 +1962,7 @@ jobs:
           then
             git apply ~/switch-bootstrap/switch-bootstrap.patch
             CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z
+            /opt/devkitpro/devkitA64/bin/aarch64-none-elf-strip retroarch_switch.elf
             mv retroarch_switch.elf ~/dist/mkxp-z_libretro_libnx.elf
           else
             CLICOLOR_FORCE=1 make -f Makefile.libnx LIBRETRO=mkxp-z
