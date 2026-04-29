@@ -907,6 +907,18 @@ static bool init_sandbox() {
             {
                 std::set<std::string> script_set;
                 PHYSFS_enumerate("/System/Scripts/Preload", [](void *data, const char *origdir, const char *fname) {
+                    if (fname[0] == '.') {
+                        // Exclude dotfiles
+                        return PHYSFS_ENUM_OK;
+                    }
+                    {
+                        PHYSFS_Stat stat;
+                        PHYSFS_stat((std::string(origdir) + "/" + fname).c_str(), &stat);
+                        if (stat.filetype != PHYSFS_FILETYPE_REGULAR) {
+                            // Exclude everything that's not a regular file
+                            return PHYSFS_ENUM_OK;
+                        }
+                    }
                     ((std::set<std::string> *)data)->emplace(fname);
                     return PHYSFS_ENUM_OK;
                 }, &script_set);
@@ -917,6 +929,18 @@ static bool init_sandbox() {
             {
                 std::set<std::string> script_set;
                 PHYSFS_enumerate("/System/Scripts/Postload", [](void *data, const char *origdir, const char *fname) {
+                    if (fname[0] == '.') {
+                        // Exclude dotfiles
+                        return PHYSFS_ENUM_OK;
+                    }
+                    {
+                        PHYSFS_Stat stat;
+                        PHYSFS_stat((std::string(origdir) + "/" + fname).c_str(), &stat);
+                        if (stat.filetype != PHYSFS_FILETYPE_REGULAR) {
+                            // Exclude everything that's not a regular file
+                            return PHYSFS_ENUM_OK;
+                        }
+                    }
                     ((std::set<std::string> *)data)->emplace(fname);
                     return PHYSFS_ENUM_OK;
                 }, &script_set);

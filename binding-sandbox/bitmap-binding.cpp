@@ -883,6 +883,140 @@ static VALUE set_font(VALUE self, VALUE value) {
     return sb()->bind<struct coro>()()(self, value);
 }
 
+static VALUE _kgl_invert(VALUE self) {
+    struct coro : boost::asio::coroutine {
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_GUARD(get_private_data<Bitmap>(self)->kglInvert(sb().e));
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
+}
+
+static VALUE _kgl_compress_alpha(VALUE self) {
+    struct coro : boost::asio::coroutine {
+        VALUE operator()(VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_GUARD(get_private_data<Bitmap>(self)->kglCompressAlpha(sb().e));
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self);
+}
+
+static VALUE _kgl_subtract_rect(int32_t argc, wasm_ptr_t argv, VALUE self) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<int32_t, int32_t, int32_t> slots;
+
+        VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT(check_arity, argc, 4, 5);
+
+                SANDBOX_AWAIT_S(0, rb_num2int, sb()->ref<VALUE>(argv, 0));
+                SANDBOX_AWAIT_S(1, rb_num2int, sb()->ref<VALUE>(argv, 1));
+                SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 2), bitmap_class);
+                SANDBOX_AWAIT(check_type, sb()->ref<VALUE>(argv, 3), rect_class);
+                if (argc > 4) {
+                    SANDBOX_AWAIT_S(2, rb_num2int, sb()->ref<VALUE>(argv, 4));
+                } else {
+                    SANDBOX_SLOT(2) = 255;
+                }
+
+                SANDBOX_GUARD_L(
+                    get_private_data<Bitmap>(self)->stretchBlt(
+                        sb().e,
+                        IntRect(
+                            SANDBOX_SLOT(0),
+                            SANDBOX_SLOT(1),
+                            std::abs(get_private_data<Rect>(sb()->ref<VALUE>(argv, 3))->toIntRect().w),
+                            std::abs(get_private_data<Rect>(sb()->ref<VALUE>(argv, 3))->toIntRect().h)
+                        ),
+                        *get_private_data<Bitmap>(sb()->ref<VALUE>(argv, 2)),
+                        get_private_data<Rect>(sb()->ref<VALUE>(argv, 3))->toIntRect(),
+                        SANDBOX_SLOT(2),
+                        false,
+                        Bitmap::KGL_SUBTRACT
+                    )
+                );
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(argc, argv, self);
+}
+
+static VALUE _kgl_shadow_shader_h(VALUE self, VALUE x1_value, VALUE x2_value, VALUE y_value, VALUE soft_value) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE, int32_t, int32_t, int32_t> slots;
+
+        VALUE operator()(VALUE self, VALUE x1_value, VALUE x2_value, VALUE y_value, VALUE soft_value) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(1, rb_num2int, x1_value);
+                SANDBOX_AWAIT_S(2, rb_num2int, x2_value);
+                SANDBOX_AWAIT_S(3, rb_num2int, y_value);
+
+                SANDBOX_GUARD(
+                    SANDBOX_SLOT(1) = get_private_data<Bitmap>(self)->kglShadowShaderH(
+                        sb().e,
+                        SANDBOX_SLOT(1),
+                        SANDBOX_SLOT(2),
+                        SANDBOX_SLOT(3),
+                        SANDBOX_VALUE_TO_BOOL(soft_value)
+                    )
+                );
+
+                SANDBOX_AWAIT_S(0, rb_ll2inum, SANDBOX_SLOT(1));
+                return SANDBOX_SLOT(0);
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self, x1_value, x2_value, y_value, soft_value);
+}
+
+static VALUE _kgl_shadow_shader_v(VALUE self, VALUE y1_value, VALUE y2_value, VALUE x_value, VALUE wall_value, VALUE soft_value) {
+    struct coro : boost::asio::coroutine {
+        typedef decl_slots<VALUE, int32_t, int32_t, int32_t> slots;
+
+        VALUE operator()(VALUE self, VALUE y1_value, VALUE y2_value, VALUE x_value, VALUE wall_value, VALUE soft_value) {
+            BOOST_ASIO_CORO_REENTER (this) {
+                SANDBOX_AWAIT_S(1, rb_num2int, y1_value);
+                SANDBOX_AWAIT_S(2, rb_num2int, y2_value);
+                SANDBOX_AWAIT_S(3, rb_num2int, x_value);
+
+                SANDBOX_GUARD(
+                    SANDBOX_SLOT(1) = get_private_data<Bitmap>(self)->kglShadowShaderV(
+                        sb().e,
+                        SANDBOX_SLOT(1),
+                        SANDBOX_SLOT(2),
+                        SANDBOX_SLOT(3),
+                        SANDBOX_VALUE_TO_BOOL(wall_value),
+                        SANDBOX_VALUE_TO_BOOL(soft_value)
+                    )
+                );
+
+                SANDBOX_AWAIT_S(0, rb_ll2inum, SANDBOX_SLOT(1));
+                return SANDBOX_SLOT(0);
+            }
+
+            return SANDBOX_NIL;
+        }
+    };
+
+    return sb()->bind<struct coro>()()(self, y1_value, y2_value, x_value, wall_value, soft_value);
+}
+
 void bitmap_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
         bitmap_type = sb()->rb_data_type("Bitmap", nullptr, dfree, nullptr, nullptr, 0, 0, 0);
@@ -936,5 +1070,11 @@ void bitmap_binding_init::operator()() {
         SANDBOX_AWAIT(rb_define_method, bitmap_class, "snap_to_bitmap", (VALUE (*)(ANYARGS))snap_to_bitmap, -1);
 
         SANDBOX_INIT_PROP_BIND(bitmap_class, font);
+
+        SANDBOX_AWAIT(rb_define_method, bitmap_class, "_kgl_invert", (VALUE (*)(ANYARGS))_kgl_invert, 0);
+        SANDBOX_AWAIT(rb_define_method, bitmap_class, "_kgl_compress_alpha", (VALUE (*)(ANYARGS))_kgl_compress_alpha, 0);
+        SANDBOX_AWAIT(rb_define_method, bitmap_class, "_kgl_subtract_rect", (VALUE (*)(ANYARGS))_kgl_subtract_rect, -1);
+        SANDBOX_AWAIT(rb_define_method, bitmap_class, "_kgl_shadow_shader_h", (VALUE (*)(ANYARGS))_kgl_shadow_shader_h, 4);
+        SANDBOX_AWAIT(rb_define_method, bitmap_class, "_kgl_shadow_shader_v", (VALUE (*)(ANYARGS))_kgl_shadow_shader_v, 5);
     }
 }

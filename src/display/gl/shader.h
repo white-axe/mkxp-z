@@ -348,6 +348,8 @@ public:
 	BltShader() = default;
 	BltShader(Exception &exception);
 
+	void init();
+
 	void setSource();
 	void setDestination(const TEX::ID value);
 	void setDestCoorF(const Vec2 &value);
@@ -356,6 +358,51 @@ public:
 
 private:
 	GLint u_source, u_destination, u_subRect, u_opacity;
+};
+
+class KglInvertShader : public ShaderBase
+{
+public:
+	KglInvertShader() = default;
+	KglInvertShader(Exception &exception);
+};
+
+class KglCompressAlphaShader : public ShaderBase
+{
+public:
+	KglCompressAlphaShader() = default;
+	KglCompressAlphaShader(Exception &exception);
+};
+
+class KglSubtractShader : public BltShader
+{
+public:
+	KglSubtractShader() = default;
+	KglSubtractShader(Exception &exception);
+};
+
+class KglShadowShaderH : public ShaderBase
+{
+public:
+	KglShadowShaderH() = default;
+	KglShadowShaderH(Exception &exception);
+
+	void setParams(int x1, int x2, int y, bool soft, int w, int h, int x_center, int y_center, double slope1, double slope2);
+
+private:
+	GLint u_x1, u_x2, u_y, u_soft, u_w, u_h, u_x_center, u_y_center, u_slope1, u_slope2;
+};
+
+class KglShadowShaderV : public ShaderBase
+{
+public:
+	KglShadowShaderV() = default;
+	KglShadowShaderV(Exception &exception);
+
+	void setParams(int y1, int y2, int x, bool wall, bool soft, int w, int h, int x_center, int y_center, double slope1, double slope2);
+
+private:
+	GLint u_y1, u_y2, u_x, u_wall, u_soft, u_w, u_h, u_x_center, u_y_center, u_slope1, u_slope2;
 };
 
 class Lanczos3Shader : public SimpleShader
@@ -453,6 +500,11 @@ struct ShaderSet
 	SimpleMatrixShader simpleMatrix;
 	BlurShader blur;
 	TilemapVXShader tilemapVX;
+	KglInvertShader kglInvert;
+	KglCompressAlphaShader kglCompressAlpha;
+	KglSubtractShader kglSubtract;
+	KglShadowShaderH kglShadowH;
+	KglShadowShaderV kglShadowV;
 	BicubicShader bicubic;
 	Lanczos3Shader lanczos3;
 #ifdef MKXPZ_SSL

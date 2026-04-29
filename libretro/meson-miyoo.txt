@@ -2,7 +2,6 @@
 c = '/opt/miyoo/usr/bin/arm-linux-gcc'
 cpp = '/opt/miyoo/usr/bin/arm-linux-g++'
 ar = 'ar'
-strip = '/opt/miyoo/usr/bin/arm-linux-strip'
 cmake = 'cmake'
 
 [host_machine]
