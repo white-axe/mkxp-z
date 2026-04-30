@@ -140,18 +140,25 @@ static json::value readConfFile(const char *path, bool isBaseConf) {
     }
     std::string cfg(buf.begin(), buf.begin() + size);
 #else
-    std::string cfg = mkxp_fs::contentsOfFileAsString(path);
+    std::string cfg;
+    try {
+        cfg = mkxp_fs::contentsOfFileAsString(path);
+    }
+    catch (const Exception &e) {
+        Debug() << "Failed to parse" << path << ":" << "Unknown encoding";
+    }
 #endif // MKXPZ_RETRO
     if (!cfg.empty()) {
         cfg = Encoding::convertString(cfg);
         if (cfg.empty()) {
             Debug() << "Failed to parse" << path << ":" << "Unknown encoding";
+        } else {
+            json::failure = false;
+            ret = json::parse5(Encoding::convertString(cfg));
+            if (json::failure) {
+                Debug() << "Failed to parse" << path << ":" << (json::failure.error() == nullptr ? "bad cast" : json::failure.error()->what());
+            }
         }
-    }
-    json::failure = false;
-    ret = json::parse5(Encoding::convertString(cfg));
-    if (json::failure) {
-        Debug() << "Failed to parse" << path << ":" << (json::failure.error() == nullptr ? "bad cast" : json::failure.error()->what());
     }
     
     if (!ret.is_object())
