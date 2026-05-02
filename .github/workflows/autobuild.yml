@@ -41,7 +41,7 @@ jobs:
         run: |
           meson setup build --prefix=/
           cd build
-          ninja -v
+          CLICOLOR_FORCE=1 ninja -v
           strip ./mkxp-z.exe
 
       - name: Prepare archive
@@ -113,7 +113,7 @@ jobs:
         run: |
           meson setup build --prefix=/
           cd build
-          ninja -v
+          CLICOLOR_FORCE=1 ninja -v
 
       - name: Prepare archive
         run: |
@@ -204,7 +204,7 @@ jobs:
         run: |
           meson setup --cross-file linux/$ARCH_MESON_TOOLCHAIN build --prefix=/
           cd build
-          ninja -v
+          CLICOLOR_FORCE=1 ninja -v
 
       - name: Prepare archive
         run: |
@@ -248,7 +248,7 @@ jobs:
         run: |
           meson setup build --prefix=/
           cd build
-          ninja -v
+          CLICOLOR_FORCE=1 ninja -v
 
       - name: Prepare archive
         run: |
@@ -334,7 +334,7 @@ jobs:
         run: |
           meson setup --cross-file linux/$ARCH_MESON_TOOLCHAIN build --prefix=/
           cd build
-          ninja -v
+          CLICOLOR_FORCE=1 ninja -v
 
       - name: Prepare archive
         run: |
@@ -374,7 +374,7 @@ jobs:
         run: |
           meson setup build --prefix=/
           cd build
-          ninja -v
+          CLICOLOR_FORCE=1 ninja -v
 
       - name: Prepare archive
         run: |
