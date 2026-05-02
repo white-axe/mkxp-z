@@ -119,8 +119,8 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          cp ../subprojects/ruby/dist/lib/libruby.so.* .
-          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
+          cp -P ../subprojects/ruby/dist/**/libruby.so.* .
+          cp -r ../subprojects/ruby/dist/**/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z.x86_64 .
           cp ../../mkxp.json .
@@ -210,8 +210,8 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          cp ../subprojects/ruby/dist/lib/libruby.so.* .
-          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
+          cp -P ../subprojects/ruby/dist/**/libruby.so.* .
+          cp -r ../subprojects/ruby/dist/**/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z.${{ matrix.arch_mkxpz }} .
           cp ../../mkxp.json .
@@ -254,8 +254,8 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          cp ../subprojects/ruby/dist/lib/libruby.so.* .
-          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
+          cp -P ../subprojects/ruby/dist/**/libruby.so.* .
+          cp -r ../subprojects/ruby/dist/**/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z.x86_64 .
           cp ../../mkxp.json .
@@ -340,8 +340,8 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          cp ../subprojects/ruby/dist/lib/libruby.so.* .
-          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
+          cp -P ../subprojects/ruby/dist/**/libruby.so.* .
+          cp -r ../subprojects/ruby/dist/**/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z.${{ matrix.arch_mkxpz }} .
           cp ../../mkxp.json .
@@ -380,8 +380,8 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          cp ../subprojects/ruby/dist/lib/libruby.* .
-          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
+          cp -a ../subprojects/ruby/dist/**/libruby.* .
+          cp -r ../subprojects/ruby/dist/**/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z .
           cp ../../mkxp.json .

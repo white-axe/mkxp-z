@@ -274,8 +274,8 @@ libyaml_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libyaml']
 
 libxcrypt_options = meson_base_options
 global_dependencies += subproject('libxcrypt', default_options: libxcrypt_options).get_variable('libxcrypt')
-libxcrypt_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + get_option('prefix') / 'include']
-libxcrypt_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + get_option('prefix') / 'lib']
+libxcrypt_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + get_option('prefix') / get_option('includedir')]
+libxcrypt_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + get_option('prefix') / get_option('libdir')]
 
 ruby_options = meson_base_options + {
     'cflags': zlib_includes + libyaml_includes + libxcrypt_includes,
