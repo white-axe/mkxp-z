@@ -3,4 +3,4 @@ url = https://github.com/ruby/ruby
 revision = v3_1_3
 depth = 1
 patch_directory = ruby
-diff_files = ruby-rbinstall.patch, ruby-mkxp-z-patches.patch, ruby-clock-gettime.patch
+diff_files = ruby-rbinstall.patch, ruby-reconfig.patch, ruby-mkxp-z-patches.patch, ruby-clock-gettime.patch
