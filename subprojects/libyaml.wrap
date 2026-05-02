@@ -1,0 +1,4 @@
+[wrap-git]
+url = https://github.com/yaml/libyaml
+revision = 0.2.5
+depth = 1

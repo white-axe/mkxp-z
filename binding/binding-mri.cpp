@@ -64,6 +64,8 @@ extern "C" {
 #include <SDL_loadso.h>
 #include <SDL_power.h>
 
+#include "git-hash.h"
+
 extern const char module_rpg1[];
 extern const char module_rpg2[];
 extern const char module_rpg3[];

@@ -1,0 +1,4 @@
+[wrap-git]
+url = https://github.com/FluidSynth/fluidsynth
+revision = v2.5.0
+depth = 1

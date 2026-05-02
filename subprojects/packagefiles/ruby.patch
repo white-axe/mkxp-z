@@ -1,0 +1,15 @@
+diff --git a/ext/zlib/extconf.rb b/ext/zlib/extconf.rb
+index d674544..7b21ac0 100644
+--- a/ext/zlib/extconf.rb
++++ b/ext/zlib/extconf.rb
+@@ -11,8 +11,8 @@
+ dir_config 'zlib'
+ 
+ libs = $libs
+-if %w'z libz zlib1 zlib zdll zlibwapi'.find {|z| have_library(z, 'deflateReset')} and
+-    have_header('zlib.h') then
++if true
++
+   have_zlib = true
+ else
+   $libs = libs

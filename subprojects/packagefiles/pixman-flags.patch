@@ -1,0 +1,31 @@
+# Makes Pixman's build system inherit our compiler flags.
+
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -121,3 +121,6 @@ option(
+   type : 'feature',
+   description : 'Build tests and demos'
+ )
++
++option('cflags', type: 'array', value: [])
++option('cppflags', type: 'array', value: [])
+--- a/pixman/meson.build
++++ b/pixman/meson.build
+@@ -66,7 +66,7 @@ foreach simd : simds
+     pixman_simd_libs += static_library(
+       name,
+       [name + '.c', config_h, version_h, simd[3]],
+-      c_args : simd[2]
++      c_args : get_option('cflags') + simd[2]
+     )
+   endif
+ endforeach
+@@ -121,7 +121,7 @@ libpixman = library(
+   'pixman-1',
+   [pixman_files, config_h, version_h, cpu_features_sources],
+   link_with: pixman_simd_libs,
+-  c_args : libpixman_extra_cargs,
++  c_args : get_option('cflags') + libpixman_extra_cargs,
+   dependencies : [dep_m, dep_threads],
+   include_directories : cpu_features_inc,
+   version : meson.project_version(),

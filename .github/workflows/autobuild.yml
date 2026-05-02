@@ -36,26 +36,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - uses: actions/cache@v4
-        with:
-          path: |
-            windows/build-mingw64
-            windows/downloads
-          key: win-${{ hashFiles('windows/Makefile') }}
-
-      - name: Build all dependencies
+      - name: Build
         shell: msys2 {0}
         run: |
-          cd windows
-          make
-
-      - name: Build exe
-        shell: msys2 {0}
-        run: |
-          source windows/vars.sh
-          meson setup build
+          meson setup build --prefix=/
           cd build
-          ninja
+          ninja -v
           strip ./mkxp-z.exe
 
       - name: Prepare archive
@@ -63,9 +49,8 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          cp /mingw64/bin/zlib1.dll .
-          cp ../../windows/build-mingw64/bin/x64-msvcrt-ruby310.dll .
-          cp -r ../../windows/build-mingw64/lib/ruby/3.1.0 .
+          cp ../subprojects/ruby/dist/lib/x64-msvcrt-ruby310.dll .
+          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z.exe .
           cp ../../mkxp.json .
@@ -118,36 +103,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - uses: actions/cache@v4
-        with:
-          path: |
-            linux/build-x86_64
-            linux/downloads
-          key: lin-x86_64-${{ hashFiles('linux/Makefile') }}
-
       - name: Install apt dependencies
         run: |
           sudo apt update
-          sudo apt install git wget build-essential cmake meson autoconf automake libtool pkg-config ruby bison xxd zlib1g-dev libbz2-dev xorg-dev libgl1-mesa-dev libasound2-dev libpulse-dev -y
+          sudo apt install git wget build-essential cmake python3-pip autoconf automake libtool pkg-config ruby bison xxd zlib1g-dev libbz2-dev xorg-dev libgl1-mesa-dev libasound2-dev libpulse-dev -y
+          pip3 install meson
 
-      - name: Build everything else
+      - name: Build
         run: |
-          cd linux
-          make
-
-      - name: Build executable
-        run: |
-          source linux/vars.sh
-          meson setup build --bindir=. --prefix=$GITHUB_WORKSPACE/build/local
+          meson setup build --prefix=/
           cd build
-          ninja
-          ninja install
+          ninja -v
 
       - name: Prepare archive
         run: |
-          cd build/local
-          cp -r ../../linux/build-x86_64/lib/ruby/3.1.0 .
+          mkdir build/artifact
+          cd build/artifact
+          cp ../subprojects/ruby/dist/lib/libruby.so.* .
+          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
+          cp ../mkxp-z.x86_64 .
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -155,7 +130,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: mkxp-z.linux.ubuntu.22.04.x86_64.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
-          path: build/local
+          path: build/artifact
 
   build-linux-cross:
     name: Ubuntu 22.04 ${{matrix.arch_mkxpz}}
@@ -208,13 +183,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - uses: actions/cache@v4
-        with:
-          path: |
-            linux/build-${{matrix.arch_mkxpz}}
-            linux/downloads
-          key: lin-${{matrix.arch_mkxpz}}-${{ hashFiles('linux/Makefile', 'linux/target*', 'linux/toolchain*') }}
-
       - name: Install apt dependencies
         run: |
           sudo sed -i "s/deb /deb [arch=amd64] /g" /etc/apt/sources.list
@@ -227,32 +195,25 @@ jobs:
           echo "deb [arch=${{matrix.arch_debian}}] http://ports.ubuntu.com/ jammy-updates multiverse" | sudo tee -a /etc/apt/sources.list
           echo "deb [arch=${{matrix.arch_debian}}] http://ports.ubuntu.com/ jammy-backports main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
           sudo apt update
-          sudo apt install git wget build-essential cmake meson autoconf automake libtool pkg-config ruby bison xxd -y
+          sudo apt install git wget build-essential cmake python3-pip autoconf automake libtool pkg-config ruby bison xxd -y
+          pip3 install meson
           sudo apt install libfontenc-dev:${{matrix.arch_debian}} libfs-dev:${{matrix.arch_debian}} libice-dev:${{matrix.arch_debian}} libsm-dev:${{matrix.arch_debian}} libx11-dev:${{matrix.arch_debian}} libxau-dev:${{matrix.arch_debian}} libxaw7-dev:${{matrix.arch_debian}} libxcomposite-dev:${{matrix.arch_debian}} libxcursor-dev:${{matrix.arch_debian}} libxdamage-dev:${{matrix.arch_debian}} libxdmcp-dev:${{matrix.arch_debian}} libxext-dev:${{matrix.arch_debian}} libxfixes-dev:${{matrix.arch_debian}} libxfont-dev:${{matrix.arch_debian}} libxft-dev:${{matrix.arch_debian}} libxi-dev:${{matrix.arch_debian}} libxinerama-dev:${{matrix.arch_debian}} libxkbfile-dev:${{matrix.arch_debian}} libxmu-dev:${{matrix.arch_debian}} libxmuu-dev:${{matrix.arch_debian}} libxpm-dev:${{matrix.arch_debian}} libxrandr-dev:${{matrix.arch_debian}} libxrender-dev:${{matrix.arch_debian}} libxres-dev:${{matrix.arch_debian}} libxss-dev:${{matrix.arch_debian}} libxt-dev:${{matrix.arch_debian}} libxtst-dev:${{matrix.arch_debian}} libxv-dev:${{matrix.arch_debian}} libxvmc-dev:${{matrix.arch_debian}} libxxf86dga-dev:${{matrix.arch_debian}} libxxf86vm-dev:${{matrix.arch_debian}} x11proto-dev:${{matrix.arch_debian}} xserver-xorg-dev:${{matrix.arch_debian}} xtrans-dev:${{matrix.arch_debian}} -y
           sudo apt install gcc-${{matrix.arch_gcc}} g++-${{matrix.arch_gcc}} zlib1g-dev:${{matrix.arch_debian}} libbz2-dev:${{matrix.arch_debian}} libgl1-mesa-dev:${{matrix.arch_debian}} libasound2-dev:${{matrix.arch_debian}} libpulse-dev:${{matrix.arch_debian}} -y
 
-      - name: Build everything else
+      - name: Build
         run: |
-          cd linux
-          source target-${{matrix.arch_mkxpz}}.sh
-          make
-
-      - name: Build executable
-        run: |
-          source linux/target-${{matrix.arch_mkxpz}}.sh
-          source linux/vars.sh
-          meson setup --cross-file linux/$ARCH_MESON_TOOLCHAIN build --bindir=. --prefix=$GITHUB_WORKSPACE/build/local
+          meson setup --cross-file linux/$ARCH_MESON_TOOLCHAIN build --prefix=/
           cd build
-          ninja
-          ninja install
-          cp "$MKXPZ_PREFIX/lib/$("$ARCH_CONFIGURE-objdump" -p local/mkxp-z* | grep -i NEEDED | grep -Eo 'libruby.so.[0-9\.]+')" local/lib*/
-          cp "/usr/lib/$ARCH_CONFIGURE/$("$ARCH_CONFIGURE-objdump" -p local/lib*/libruby.so* | grep -i NEEDED | grep -Eo 'libcrypt.so.[0-9\.]+')" local/lib*/
+          ninja -v
 
       - name: Prepare archive
         run: |
-          cd build/local
-          cp -r ../../linux/build-${{matrix.arch_mkxpz}}/lib/ruby/3.1.0 .
+          mkdir build/artifact
+          cd build/artifact
+          cp ../subprojects/ruby/dist/lib/libruby.so.* .
+          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
+          cp ../mkxp-z.${{ matrix.arch_mkxpz }} .
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -260,7 +221,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: mkxp-z.linux.ubuntu.22.04.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
-          path: build/local
+          path: build/artifact
 
   build-linux-native-container:
     name: Debian Trixie x86_64
@@ -278,36 +239,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - uses: actions/cache@v4
-        with:
-          path: |
-            linux/build-x86_64
-            linux/downloads
-          key: lin-debian-trixie-x86_64-${{ hashFiles('linux/Makefile') }}
-
       - name: Install apt dependencies
         run: |
           apt update
           apt install git wget build-essential cmake meson autoconf automake libtool pkg-config ruby bison xxd zlib1g-dev libbz2-dev xorg-dev libgl1-mesa-dev libasound2-dev libpulse-dev -y
 
-      - name: Build everything else
+      - name: Build
         run: |
-          cd linux
-          make
-
-      - name: Build executable
-        run: |
-          source linux/vars.sh
-          meson setup build --bindir=. --prefix=$GITHUB_WORKSPACE/build/local
+          meson setup build --prefix=/
           cd build
-          ninja
-          ninja install
+          ninja -v
 
       - name: Prepare archive
         run: |
-          cd build/local
-          cp -r ../../linux/build-x86_64/lib/ruby/3.1.0 .
+          mkdir build/artifact
+          cd build/artifact
+          cp ../subprojects/ruby/dist/lib/libruby.so.* .
+          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
+          cp ../mkxp-z.x86_64 .
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -315,7 +265,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: mkxp-z.linux.debian.trixie.x86_64.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
-          path: build/local
+          path: build/artifact
 
   build-linux-cross-container:
     name: Debian Trixie ${{matrix.arch_mkxpz}}
@@ -372,13 +322,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - uses: actions/cache@v4
-        with:
-          path: |
-            linux/build-${{matrix.arch_mkxpz}}
-            linux/downloads
-          key: lin-debian-trixie-${{matrix.arch_mkxpz}}-${{ hashFiles('linux/Makefile', 'linux/target*', 'linux/toolchain*') }}
-
       - name: Install apt dependencies
         run: |
           dpkg --add-architecture ${{matrix.arch_debian}}
@@ -387,28 +330,20 @@ jobs:
           apt install libfontenc-dev:${{matrix.arch_debian}} libfs-dev:${{matrix.arch_debian}} libice-dev:${{matrix.arch_debian}} libsm-dev:${{matrix.arch_debian}} libx11-dev:${{matrix.arch_debian}} libxau-dev:${{matrix.arch_debian}} libxaw7-dev:${{matrix.arch_debian}} libxcomposite-dev:${{matrix.arch_debian}} libxcursor-dev:${{matrix.arch_debian}} libxdamage-dev:${{matrix.arch_debian}} libxdmcp-dev:${{matrix.arch_debian}} libxext-dev:${{matrix.arch_debian}} libxfixes-dev:${{matrix.arch_debian}} libxfont-dev:${{matrix.arch_debian}} libxft-dev:${{matrix.arch_debian}} libxi-dev:${{matrix.arch_debian}} libxinerama-dev:${{matrix.arch_debian}} libxkbfile-dev:${{matrix.arch_debian}} libxmu-dev:${{matrix.arch_debian}} libxmuu-dev:${{matrix.arch_debian}} libxpm-dev:${{matrix.arch_debian}} libxrandr-dev:${{matrix.arch_debian}} libxrender-dev:${{matrix.arch_debian}} libxres-dev:${{matrix.arch_debian}} libxss-dev:${{matrix.arch_debian}} libxt-dev:${{matrix.arch_debian}} libxtst-dev:${{matrix.arch_debian}} libxv-dev:${{matrix.arch_debian}} libxvmc-dev:${{matrix.arch_debian}} libxxf86dga-dev:${{matrix.arch_debian}} libxxf86vm-dev:${{matrix.arch_debian}} x11proto-dev:${{matrix.arch_debian}} xserver-xorg-dev:${{matrix.arch_debian}} xtrans-dev:${{matrix.arch_debian}} -y
           apt install gcc-${{matrix.arch_gcc}} g++-${{matrix.arch_gcc}} zlib1g-dev:${{matrix.arch_debian}} libbz2-dev:${{matrix.arch_debian}} libgl1-mesa-dev:${{matrix.arch_debian}} libasound2-dev:${{matrix.arch_debian}} libpulse-dev:${{matrix.arch_debian}} -y
 
-      - name: Build everything else
+      - name: Build
         run: |
-          cd linux
-          source target-${{matrix.arch_mkxpz}}.sh
-          make
-
-      - name: Build executable
-        run: |
-          source linux/target-${{matrix.arch_mkxpz}}.sh
-          source linux/vars.sh
-          meson setup --cross-file linux/$ARCH_MESON_TOOLCHAIN build --bindir=. --prefix=$GITHUB_WORKSPACE/build/local
+          meson setup --cross-file linux/$ARCH_MESON_TOOLCHAIN build --prefix=/
           cd build
-          ninja
-          ninja install
-          cp "$MKXPZ_PREFIX/lib/$("$ARCH_CONFIGURE-objdump" -p local/mkxp-z* | grep -i NEEDED | grep -Eo 'libruby.so.[0-9\.]+')" local/lib*/
-          cp "/usr/lib/$ARCH_CONFIGURE/$("$ARCH_CONFIGURE-objdump" -p local/lib*/libruby.so* | grep -i NEEDED | grep -Eo 'libcrypt.so.[0-9\.]+')" local/lib*/
+          ninja -v
 
       - name: Prepare archive
         run: |
-          cd build/local
-          cp -r ../../linux/build-${{matrix.arch_mkxpz}}/lib/ruby/3.1.0 .
+          mkdir build/artifact
+          cd build/artifact
+          cp ../subprojects/ruby/dist/lib/libruby.so.* .
+          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
+          cp ../mkxp-z.${{ matrix.arch_mkxpz }} .
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -416,7 +351,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: mkxp-z.linux.debian.trixie.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
-          path: build/local
+          path: build/artifact
 
   build-macos:
     name: macOS
@@ -427,44 +362,34 @@ jobs:
         with:
           length: 7
 
-      - name: Remove pre-existing homebrew packages
-        run: brew remove --force $(brew list)
-
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - uses: actions/cache@v4
-        with:
-          path: |
-            macos/Dependencies/build-macosx-x86_64
-            macos/Dependencies/build-macosx-arm64
-            macos/Dependencies/build-macosx-universal
-            macos/Dependencies/downloads
-          key: mac-${{ hashFiles('macos/Dependencies/*.make', 'macos/Dependencies/*.sh') }}
-
-      - name: Install Homebrew tools
+      - name: Install dependencies
         run: |
-          cd macos/Dependencies
-          brew bundle
+          brew uninstall -f --ignore-dependencies libtool cmake meson automake autoconf pkg-config vim
+          brew install -q libtool cmake meson automake autoconf pkg-config vim
 
-      - name: Build all dependencies
+      - name: Build
         run: |
-          cd macos/Dependencies
-          ./setup.sh
+          meson setup build --prefix=/
+          cd build
+          ninja -v
 
-      - name: Build app
+      - name: Prepare archive
         run: |
-          cd macos
-          xcodebuild -project mkxp-z.xcodeproj -configuration "Release" -scheme "Universal" -derivedDataPath "$GITHUB_WORKSPACE/build"
-
-      - name: Compress app
-        run: |
-          cd build/Build/Products/Release
-          cp ../../../../assets/LICENSE.mkxp-z-with-https.txt ./Z-universal.app/
-          ditto -c -k --sequesterRsrc --keepParent Z-universal.app Z-universal.app.zip
+          mkdir build/artifact
+          cd build/artifact
+          cp ../subprojects/ruby/dist/lib/libruby.* .
+          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
+          mv ./3.1.0 ./stdlib
+          cp ../mkxp-z .
+          cp ../../mkxp.json .
+          cp -r ../../scripts .
+          cp ../../assets/LICENSE.mkxp-z-with-https.txt .
 
       - name: Upload archive
         uses: actions/upload-artifact@v4
         with:
           name: mkxp-z.macos.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
-          path: build/Build/Products/Release/Z-universal.app.zip
+          path: build/artifact

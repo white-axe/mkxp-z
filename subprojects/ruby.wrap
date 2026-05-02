@@ -1,0 +1,6 @@
+[wrap-git]
+url = https://github.com/ruby/ruby
+revision = v3_1_3
+depth = 1
+patch_directory = ruby
+diff_files = ruby.patch

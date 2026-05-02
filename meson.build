@@ -1,21 +1,19 @@
-project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=0.56.0', default_options: ['cpp_std=c++14', 'buildtype=release'])
+project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=1.2.0', default_options: ['cpp_std=c++14', 'buildtype=release'])
 
 host_system = host_machine.system()
+host_endian = host_machine.endian()
 
-if host_system == 'darwin'
-    error('\nThis Meson project no longer supports macOS. Please use the Xcode project instead.')
-endif
+use_pic = true
 
 xxd = find_program('xxd', native: true)
-
-git_hash = run_command('git', 'rev-parse', '--short', 'HEAD').stdout().strip()
 
 compilers = {'cpp': meson.get_compiler('cpp')}
 
 global_sources = []
-global_dependencies = []
+global_dependencies = [declare_dependency(sources: vcs_tag(command: ['git', 'rev-parse', '--short=7', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h'))]
 global_include_dirs = []
 global_args = []
+global_cpp_args = []
 global_link_args = []
 
 sizeof = {'void*': compilers['cpp'].sizeof('void*'),
@@ -25,7 +23,6 @@ win64 = (sizeof['void*'] != sizeof['long'])
 
 global_args += '-DMKXPZ_BUILD_MESON'
 global_args += '-DMKXPZ_VERSION="@0@"'.format(meson.project_version())
-global_args += '-DMKXPZ_GIT_HASH="@0@"'.format(git_hash)
 global_args += '-DHAVE_NANOSLEEP'
 # ====================
 # Ext libs
@@ -124,23 +121,6 @@ global_include_dirs += include_directories('src', 'binding')
 
 rpath = ''
 
-if host_system == 'windows'
-    windows_resource_directory = '../' + get_option('windows_resource_directory')
-    subdir('windows')
-    global_sources += windows_resources
-    global_include_dirs += include_directories('windows')
-else
-    subdir('linux')
-    rpath = '$ORIGIN/lib'
-    if get_option('appimage') != true
-        if sizeof['long'] == 8 and get_option('force32') != true
-            rpath += '64'
-        else
-            rpath += '32'
-        endif
-    endif
-endif
-
 exe_name = meson.project_name()
 
 if host_system == 'linux' and get_option('appimage') == false
@@ -189,9 +169,9 @@ executable(exe_name,
     include_directories: global_include_dirs,
     install_rpath: rpath,
     link_args: global_link_args,
-    cpp_args: global_args,
+    cpp_args: global_args + global_cpp_args,
     objc_args: global_args,
-    objcpp_args: global_args,
+    objcpp_args: global_args + global_cpp_args,
     win_subsystem: 'windows',
     install: (host_system != 'windows')
 )

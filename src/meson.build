@@ -1,56 +1,287 @@
-physfs = dependency('physfs', version: '>=2.1', static: build_static)
-openal = dependency('openal', static: build_static, method: 'pkg-config')
-theora = dependency('theora', static: build_static)
-vorbisfile = dependency('vorbisfile', static: build_static)
-vorbis = dependency('vorbis', static: build_static)
-ogg = dependency('ogg', static: build_static)
-sdl2 = dependency('SDL2', static: build_static)
-sdl_sound = compilers['cpp'].find_library('SDL2_sound')
-sdl2_ttf = dependency('SDL2_ttf', static: build_static)
-freetype = dependency('freetype2', static: build_static)
-pixman = dependency('pixman-1', static: build_static)
-png = dependency('libpng', static: build_static)
-zlib = dependency('zlib', static: build_static)
-uchardet = dependency('uchardet', static: build_static)
+cmake = import('cmake')
 
-# As no pkg-config file is generated for static sdl2_image, and pkg-config is
-# the default option for meson detecting dependencies, pkg-config will fail to
-# find sdl2_image.pc in the build's lib/pkgconfig folder and instead pull it
-# from the locally installed packages if it exists.
-# To work around this, we first check to see if cmake can find our sdl2_image
-# sub project and use that, then check using pkg-config as normal if we are not
-# building the sub project.
-# It looks like upstream SDL_image fixed this for SDL3, so we can hopefully
-# remove this workaround after eventually upgrading to SDL3.
-sdl2_image = dependency('SDL2_image', modules: ['SDL2_image::SDL2_image-static', 'SDL2_image::brotlidec-static', 'SDL2_image::brotlicommon-static', 'SDL2_image::hwy', 'SDL2_image::jxl_dec-static'], static: build_static, method: 'cmake', required: false)
-if sdl2_image.found() == false
-    sdl2_image = dependency('SDL2_image', modules: ['SDL2_image::SDL2_image-static', 'SDL2_image::brotlidec-static', 'SDL2_image::brotlicommon-static', 'SDL2_image::hwy', 'SDL2_image::jxl_dec-static'], static: build_static)
-endif
+cmake_base_options = {
+    'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
+    'CMAKE_OSX_SYSROOT': '/nonexistent',
+    'CMAKE_C_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
+    'CMAKE_CXX_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
+    'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
+}
 
-if host_system == 'windows'
-    bz2 = dependency('bzip2', static: build_static)
-    iconv = compilers['cpp'].find_library('iconv', static: build_static)
-else
-    bz2 = compilers['cpp'].find_library('bz2')
-    # FIXME: Specifically asking for static doesn't work if iconv isn't
-    # installed in the system prefix somewhere
-    iconv = compilers['cpp'].find_library('iconv')
-    global_dependencies += compilers['cpp'].find_library('charset')
-endif
+meson_base_options = {
+    'default_library': 'static',
+    'b_staticpic': use_pic,
+}
+
+physfs_options = cmake.subproject_options()
+physfs_options.add_cmake_defines(cmake_base_options + {
+    'CMAKE_C_FLAGS': ' '.join(global_args),
+    'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
+    'PHYSFS_BUILD_STATIC': true,
+    'PHYSFS_BUILD_SHARED': false,
+    'PHYSFS_BUILD_TEST': false,
+    'PHYSFS_BUILD_DOCS': false,
+})
+global_dependencies += cmake.subproject('physfs', options: physfs_options).dependency('physfs-static')
+
+pipewire = dependency('libpipewire-0.3', version: '>=0.3.23', method: 'pkg-config', required: false)
+openal_options = cmake.subproject_options()
+openal_options.add_cmake_defines(cmake_base_options + {
+    'CMAKE_C_FLAGS': ' '.join(global_args),
+    'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
+    'LIBTYPE': 'STATIC',
+    'ALSOFT_DLOPEN': false,
+    'ALSOFT_UTILS': false,
+    'ALSOFT_NO_CONFIG_UTIL': true,
+    'ALSOFT_EXAMPLES': false,
+    'ALSOFT_UPDATE_BUILD_VERSION': false,
+    'ALSOFT_EMBED_HRTF_DATA': false,
+    'ALSOFT_RTKIT': false,
+    'ALSOFT_BACKEND_PIPEWIRE': pipewire.found(),
+    'ALSOFT_BACKEND_PULSEAUDIO': true,
+    'ALSOFT_BACKEND_ALSA': true,
+    'ALSOFT_BACKEND_OSS': true,
+    'ALSOFT_BACKEND_SOLARIS': true,
+    'ALSOFT_BACKEND_SNDIO': true,
+    'ALSOFT_BACKEND_WINMM': true,
+    'ALSOFT_BACKEND_DSOUND': true,
+    'ALSOFT_BACKEND_WASAPI': true,
+    'ALSOFT_BACKEND_OTHERIO': true,
+    'ALSOFT_BACKEND_JACK': true,
+    'ALSOFT_BACKEND_COREAUDIO': true,
+    'ALSOFT_BACKEND_OBOE': true,
+    'ALSOFT_BACKEND_OPENSL': true,
+    'ALSOFT_BACKEND_PORTAUDIO': true,
+    'ALSOFT_BACKEND_SDL3': false,
+    'ALSOFT_BACKEND_SDL2': false,
+    'ALSOFT_BACKEND_WAVE': true,
+})
+global_dependencies += pipewire
+global_dependencies += cmake.subproject('openal-soft', options: openal_options).dependency('OpenAL')
+global_dependencies += cmake.subproject('openal-soft', options: openal_options).dependency('alsoft.fmt')
+
+ogg_options = cmake.subproject_options()
+ogg_options.add_cmake_defines(cmake_base_options + {
+    'CMAKE_C_FLAGS': ' '.join(global_args),
+    'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
+    'BUILD_SHARED_LIBS': false,
+    'BUILD_TESTING': false,
+    'BUILD_FRAMEWORK': false,
+})
+global_dependencies += cmake.subproject('ogg', options: ogg_options).dependency('ogg')
+ogg_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'ogg' / 'include', '-I' + meson.global_build_root() / 'subprojects' / 'ogg' / '__CMake_build' / 'include']
+
+vorbis_options = cmake.subproject_options()
+vorbis_options.add_cmake_defines(cmake_base_options + {
+    'CMAKE_C_FLAGS': ' '.join(ogg_includes + global_args),
+    'CMAKE_CXX_FLAGS': ' '.join(ogg_includes + global_args + global_cpp_args),
+    'BUILD_SHARED_LIBS': false,
+    'BUILD_TESTING': false,
+    'BUILD_FRAMEWORK': false,
+})
+global_dependencies += cmake.subproject('vorbis', options: vorbis_options).dependency('vorbis')
+global_dependencies += cmake.subproject('vorbis', options: vorbis_options).dependency('vorbisfile')
+
+sdl2_options = cmake.subproject_options()
+sdl2_options.add_cmake_defines(cmake_base_options + {
+    'CMAKE_C_FLAGS': ' '.join(global_args),
+    'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
+    'LIBTYPE': 'STATIC',
+    'BUILD_SHARED_LIBS': false,
+    'SDL_DBUS': true,
+    'SDL_DISKAUDIO': false,
+    'SDL_DUMMYAUDIO': false,
+    'SDL_DIRECTFB': false,
+    'SDL_DIRECTFB_SHARED': false,
+    'SDL_DUMMYVIDEO': false,
+    'SDL_IBUS': true,
+    'SDL_SYSTEM_ICONV': false,
+    'SDL_OPENGL': true,
+    'SDL_OPENGLES': true,
+    'SDL_OSS': false,
+    'SDL_ALSA': false,
+    'SDL_ALSA_SHARED': false,
+    'SDL_JACK': false,
+    'SDL_JACK_SHARED': false,
+    'SDL_ESD': false,
+    'SDL_ESD_SHARED': false,
+    'SDL_PIPEWIRE': false,
+    'SDL_PIPEWIRE_SHARED': false,
+    'SDL_PULSEAUDIO': false,
+    'SDL_PULSEAUDIO_SHARED': false,
+    'SDL_ARTS': false,
+    'SDL_ARTS_SHARED': false,
+    'SDL_NAS': false,
+    'SDL_NAS_SHARED': false,
+    'SDL_SNDIO': false,
+    'SDL_SNDIO_SHARED': false,
+    'SDL_FUSIONSOUND': false,
+    'SDL_FUSIONSOUND_SHARED': false,
+    'SDL_LIBSAMPLERATE': false,
+    'SDL_LIBSAMPLERATE_SHARED': false,
+})
+global_dependencies += cmake.subproject('sdl2', options: sdl2_options).dependency('SDL2-static')
+sdl2_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'sdl2' / 'include', '-I' + meson.global_build_root() / 'subprojects' / 'sdl2' / '__CMake_build' / 'include-config-release' / 'SDL2']
+
+sdl2_sound_options = cmake.subproject_options()
+sdl2_sound_options.add_cmake_defines(cmake_base_options + {
+    'CMAKE_C_FLAGS': ' '.join(sdl2_includes + global_args),
+    'CMAKE_CXX_FLAGS': ' '.join(sdl2_includes + global_args + global_cpp_args),
+    'SDLSOUND_BUILD_SHARED': false,
+    'SDLSOUND_BUILD_TEST': false,
+})
+global_dependencies += cmake.subproject('sdl2_sound', options: sdl2_sound_options).dependency('SDL2_sound-static')
+
+freetype_options = meson_base_options + {
+    'cflags': global_args,
+    'cppflags': global_args + global_cpp_args,
+    'brotli': 'disabled',
+    'bzip2': 'disabled',
+    'harfbuzz': 'disabled',
+    'mmap': 'disabled',
+    'png': 'disabled',
+    'tests': 'disabled',
+    'zlib': 'disabled',
+}
+global_dependencies += subproject('freetype', default_options: freetype_options).get_variable('freetype_dep')
+freetype_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'freetype' / 'include']
+
+sdl2_ttf_options = cmake.subproject_options()
+sdl2_ttf_options.add_cmake_defines(cmake_base_options + {
+    'CMAKE_C_FLAGS': ' '.join(sdl2_includes + freetype_includes + global_args),
+    'CMAKE_CXX_FLAGS': ' '.join(sdl2_includes + freetype_includes + global_args + global_cpp_args),
+    'BUILD_SHARED_LIBS': false,
+    'BUILD_TESTING': false,
+})
+global_dependencies += cmake.subproject('sdl2_ttf', options: sdl2_ttf_options).dependency('SDL2_ttf')
+
+pixman_options = meson_base_options + {
+    'cflags': global_args,
+    'cppflags': global_args + global_cpp_args,
+    'libpng': 'disabled',
+    'tls': 'disabled',
+}
+global_dependencies += subproject('pixman', default_options: pixman_options).get_variable('idep_pixman')
+
+zlib_options = cmake.subproject_options()
+zlib_options.add_cmake_defines(cmake_base_options + {
+    'CMAKE_C_FLAGS': ' '.join(global_args),
+    'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
+    'BUILD_SHARED_LIBS': false,
+    'ZLIB_BUILD_EXAMPLES': false,
+})
+global_dependencies += cmake.subproject('zlib', options: zlib_options).dependency('z')
+zlib_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'zlib', '-I' + meson.global_build_root() / 'subprojects' / 'zlib' / '__CMake_build']
+zlib_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'zlib']
+
+uchardet_options = cmake.subproject_options()
+uchardet_options.add_cmake_defines(cmake_base_options + {
+    'CMAKE_C_FLAGS': ' '.join(global_args),
+    'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
+    'BUILD_BINARY': false,
+    'BUILD_SHARED_LIBS': false,
+})
+global_dependencies += cmake.subproject('uchardet', options: uchardet_options).dependency('libuchardet')
+
+theora_options = meson_base_options + {
+    'cflags': global_args,
+    'cppflags': global_args + global_cpp_args,
+}
+global_dependencies += subproject('theora', default_options: theora_options).get_variable('theoradec')
+
+libiconv_options = meson_base_options + {
+    'cflags': global_args,
+    'cppflags': global_args + global_cpp_args,
+}
+global_dependencies += subproject('libiconv', default_options: libiconv_options).get_variable('libiconv')
+
+sdl2_image_options = cmake.subproject_options()
+sdl2_image_options.add_cmake_defines(cmake_base_options + {
+    'CMAKE_C_FLAGS': ' '.join(sdl2_includes + global_args),
+    'CMAKE_CXX_FLAGS': ' '.join(sdl2_includes + global_args + global_cpp_args),
+    'BUILD_SHARED_LIBS': false,
+    'SDL2IMAGE_JPG_SAVE': true,
+    'SDL2IMAGE_PNG_SAVE': true,
+    'SDL2IMAGE_PNG_SHARED': false,
+    'SDL2IMAGE_JPG_SHARED': false,
+    'SDL2IMAGE_JXL': true,
+    'SDL2IMAGE_JXL_SHARED': false,
+    'SDL2IMAGE_VENDORED': true,
+    'JPEGXL_ENABLE_DEVTOOLS': false,
+    'JPEGXL_ENABLE_EXAMPLES': false,
+    'JPEGXL_ENABLE_FUZZERS': false,
+    'JPEGXL_ENABLE_MANPAGES': false,
+    'JPEGXL_ENABLE_TOOLS': false,
+})
+global_dependencies += cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('SDL2_image')
+
+fluidsynth_options = cmake.subproject_options()
+fluidsynth_options.add_cmake_defines(cmake_base_options + {
+    'CMAKE_C_FLAGS': ' '.join(global_args),
+    'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
+    'BUILD_SHARED_LIBS': false,
+    'enable-alsa': false,
+    'enable-aufile': false,
+    'enable-dbus': false,
+    'enable-ipv6 ': false,
+    'enable-jack': false,
+    'enable-ladspa': false,
+    'enable-libinstpatch': false,
+    'enable-libsndfile': false,
+    'enable-midishare': false,
+    'enable-opensles': false,
+    'enable-oboe': false,
+    'enable-network': false,
+    'enable-oss': false,
+    'enable-dsound': false,
+    'enable-waveout': false,
+    'enable-winmidi': false,
+    'enable-sdl3': false,
+    'enable-pulseaudio': false,
+    'enable-pipewire': false,
+    'enable-readline': false,
+    'enable-threads': false,
+    'enable-openmp': false,
+    'enable-unicode': false,
+    'enable-native-dls': false,
+    'enable-systemd': false,
+    'enable-coreaudio': false,
+    'enable-coremidi': false,
+    'enable-framework': false,
+    'enable-dart': false,
+    'enable-kai': false,
+    'osal': 'embedded',
+})
+global_dependencies += cmake.subproject('fluidsynth', options: fluidsynth_options).dependency('libfluidsynth')
 
 # If OpenSSL is present, you get HTTPS support
 if get_option('enable-https') == true
-    openssl = dependency('openssl', required: false, static: build_static)
-    if openssl.found() == true
-        global_dependencies += openssl
-        global_args += '-DMKXPZ_SSL'
-        if host_system == 'windows'
-            global_link_args += '-lcrypt32'
-        endif
-    else
-        warning('Could not locate OpenSSL. HTTPS will be disabled.')
-    endif
+    openssl_options = meson_base_options
+    global_dependencies += subproject('openssl', default_options: openssl_options).get_variable('openssl_dep')
+    global_args += '-DMKXPZ_SSL'
 endif
+
+libyaml_options = cmake.subproject_options()
+libyaml_options.add_cmake_defines(cmake_base_options + {
+    'CMAKE_C_FLAGS': ' '.join(sdl2_includes + global_args),
+    'CMAKE_CXX_FLAGS': ' '.join(sdl2_includes + global_args + global_cpp_args),
+    'BUILD_SHARED_LIBS': false,
+})
+global_dependencies += cmake.subproject('libyaml', options: libyaml_options).dependency('yaml')
+libyaml_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'libyaml' / 'include', '-I' + meson.global_build_root() / 'subprojects' / 'libyaml' / '__CMake_build' / 'include']
+libyaml_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libyaml']
+
+libxcrypt_options = meson_base_options
+global_dependencies += subproject('libxcrypt', default_options: libxcrypt_options).get_variable('libxcrypt')
+libxcrypt_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + get_option('prefix') / 'include']
+libxcrypt_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + get_option('prefix') / 'lib']
+
+ruby_options = meson_base_options + {
+    'cflags': zlib_includes + libyaml_includes + libxcrypt_includes,
+    'cppflags': zlib_includes + libyaml_includes + libxcrypt_includes,
+    'ldflags': zlib_libs + libyaml_libs + libxcrypt_libs,
+}
+global_dependencies += subproject('ruby', default_options: ruby_options).get_variable('ruby')
 
 # Windows needs to be treated like a special needs child here
 explicit_libs = ''
@@ -74,14 +305,7 @@ foreach l : explicit_libs.split(';')
         endif
 endforeach
 
-alcdev_struct = 'ALCdevice_struct'
-if openal.type_name() == 'pkgconfig'
-    if openal.version().version_compare('>=1.20.1')
-        alcdev_struct = 'ALCdevice'
-    endif
-endif
-
-global_args += '-DMKXPZ_ALCDEVICE=' + alcdev_struct
+global_args += '-DMKXPZ_ALCDEVICE=ALCdevice'
 
 
 global_include_dirs += include_directories('.',
@@ -96,22 +320,10 @@ global_include_dirs += include_directories('.',
     'util', 'util/sigslot', 'util/sigslot/adapter'
 )
 
-global_dependencies += [openal, zlib, bz2, sdl2, sdl_sound, pixman, physfs, theora, vorbisfile, vorbis, ogg, sdl2_ttf, freetype, sdl2_image, png, iconv, uchardet]
-if host_system == 'windows'
-    global_dependencies += compilers['cpp'].find_library('wsock32')
-endif
-
-if get_option('shared_fluid') == true
-    fluidsynth = dependency('fluidsynth', static: build_static)
-    add_project_arguments('-DSHARED_FLUID', language: 'cpp')
-    global_dependencies += fluidsynth
-    if host_system == 'windows'
-        global_dependencies += compilers['cpp'].find_library('dsound')
-    endif
-endif
+global_cpp_args += '-DSHARED_FLUID'
 
 if get_option('cjk_fallback_font') == true
-    add_project_arguments('-DMKXPZ_CJK_FONT', language: 'cpp')
+    global_cpp_args += '-DMKXPZ_CJK_FONT'
 endif
 
 main_source = files(

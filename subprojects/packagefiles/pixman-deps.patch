@@ -1,0 +1,13 @@
+diff --git a/meson.build b/meson.build
+index 15bd4df..4e56555 100644
+--- a/meson.build
++++ b/meson.build
+@@ -436,7 +436,7 @@ if dep_png.found()
+   config.set('HAVE_LIBPNG', 1)
+ endif
+ dep_m = cc.find_library('m', required : false)
+-dep_threads = dependency('threads')
++dep_threads = null_dep
+ 
+ # MSVC-style compilers do not come with pthreads, so we must link
+ # to it explicitly, currently pthreads-win32 is supported
