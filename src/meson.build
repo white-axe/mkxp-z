@@ -215,6 +215,10 @@ sdl2_image_options.add_cmake_defines(cmake_base_options + {
     'JPEGXL_ENABLE_TOOLS': false,
 })
 global_dependencies += cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('SDL2_image')
+global_dependencies += cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('brotlicommon-static')
+global_dependencies += cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('brotlidec-static')
+global_dependencies += cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('hwy')
+global_dependencies += cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('jxl_dec-static')
 
 fluidsynth_options = cmake.subproject_options()
 fluidsynth_options.add_cmake_defines(cmake_base_options + {
