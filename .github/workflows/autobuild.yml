@@ -202,7 +202,7 @@ jobs:
 
       - name: Build
         run: |
-          meson setup --cross-file linux/$ARCH_MESON_TOOLCHAIN build --prefix=/
+          meson setup --cross-file linux/${{ matrix.arch_mkxpz }} build --prefix=/
           cd build
           CLICOLOR_FORCE=1 ninja -v
 
@@ -332,7 +332,7 @@ jobs:
 
       - name: Build
         run: |
-          meson setup --cross-file linux/$ARCH_MESON_TOOLCHAIN build --prefix=/
+          meson setup --cross-file linux/${{ matrix.arch_mkxpz }} build --prefix=/
           cd build
           CLICOLOR_FORCE=1 ninja -v
 
