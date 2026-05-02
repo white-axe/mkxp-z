@@ -9,5 +9,5 @@ cmake = 'cmake'
 [host_machine]
 system = 'linux'
 cpu_family = 'aarch64'
-cpu = 'generic-armv8-a'
+cpu = 'aarch64'
 endian = 'little'

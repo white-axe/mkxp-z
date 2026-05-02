@@ -27,5 +27,8 @@ libxcrypt = import('unstable-external_project').add_project(
         '--disable-shared',
         'CFLAGS=' + ' '.join(cflags),
     ],
+    cross_configure_options: [
+        '--host=@HOST@',
+    ],
     verbose: true,
 ).dependency('crypt')

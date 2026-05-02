@@ -9,5 +9,5 @@ cmake = 'cmake'
 [host_machine]
 system = 'linux'
 cpu_family = 's390x'
-cpu = 'z196'
+cpu = 's390x'
 endian = 'big'

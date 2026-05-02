@@ -9,5 +9,5 @@ cmake = 'cmake'
 [host_machine]
 system = 'linux'
 cpu_family = 'arm'
-cpu = 'generic-armv7-a+neon'
+cpu = 'arm'
 endian = 'little'

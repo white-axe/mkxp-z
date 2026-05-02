@@ -39,9 +39,8 @@ ruby = import('unstable-external_project').add_project(
         'CFLAGS=' + ' '.join(cflags),
         'LDFLAGS=' + ' '.join(get_option('ldflags')),
     ],
-    env: {
-        # Allows Ruby's build system to find our vendored zlib and libyaml
-        'PKG_CONFIG_PATH': meson.global_build_root() / 'meson-uninstalled',
-    },
+    cross_configure_options: [
+        '--host=@HOST@',
+    ],
     verbose: true,
 ).dependency('ruby')

@@ -9,5 +9,5 @@ cmake = 'cmake'
 [host_machine]
 system = 'linux'
 cpu_family = 'riscv64'
-cpu = 'rv64gc'
+cpu = 'riscv64'
 endian = 'little'

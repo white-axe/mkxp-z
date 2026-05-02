@@ -9,5 +9,5 @@ cmake = 'cmake'
 [host_machine]
 system = 'linux'
 cpu_family = 'ppc64'
-cpu = 'power8'
+cpu = 'powerpc64le'
 endian = 'little'
