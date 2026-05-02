@@ -28,4 +28,4 @@ libxcrypt = import('unstable-external_project').add_project(
         'CFLAGS=' + ' '.join(cflags),
     ],
     verbose: true,
-).dependency('crypt'),
+).dependency('crypt')
