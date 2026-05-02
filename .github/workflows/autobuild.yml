@@ -213,7 +213,7 @@ jobs:
           cp -P ../subprojects/ruby/dist/**/libruby.so.* .
           cp -r ../subprojects/ruby/dist/**/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
-          cp ../mkxp-z.${{ matrix.arch_mkxpz }} .
+          find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -343,7 +343,7 @@ jobs:
           cp -P ../subprojects/ruby/dist/**/libruby.so.* .
           cp -r ../subprojects/ruby/dist/**/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
-          cp ../mkxp-z.${{ matrix.arch_mkxpz }} .
+          find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
