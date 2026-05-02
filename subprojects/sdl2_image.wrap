@@ -3,4 +3,4 @@ url = https://github.com/libsdl-org/SDL_image
 revision = release-2.6.3
 depth = 1
 clone-recursive = true
-diff_files = sdl2_image-libjxl.patch
+diff_files = sdl2_image-deps.patch, sdl2_image-libjxl.patch

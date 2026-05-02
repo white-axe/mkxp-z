@@ -207,6 +207,7 @@ sdl2_image_options.add_cmake_defines(cmake_base_options + {
     'SDL2IMAGE_JXL': true,
     'SDL2IMAGE_JXL_SHARED': false,
     'SDL2IMAGE_VENDORED': true,
+    'SDL2IMAGE_SAMPLES': false,
     'JPEGXL_ENABLE_DEVTOOLS': false,
     'JPEGXL_ENABLE_EXAMPLES': false,
     'JPEGXL_ENABLE_FUZZERS': false,
