@@ -16,20 +16,16 @@ endif
 
 cflags += get_option('cflags')
 
-libxcrypt = declare_dependency(
-    dependencies: [
-        import('unstable-external_project').add_project(
-            'configure',
-            configure_options: [
-                '--prefix=' + '@PREFIX@',
-                '--bindir=' + '@PREFIX@' / '@BINDIR@',
-                '--libdir=' + '@PREFIX@' / '@LIBDIR@',
-                '--includedir=' + '@PREFIX@' / '@INCLUDEDIR@',
-                '--enable-static',
-                '--disable-shared',
-                'CFLAGS=' + ' '.join(cflags),
-            ],
-            verbose: true,
-        ).dependency('crypt'),
+libxcrypt = import('unstable-external_project').add_project(
+    'configure',
+    configure_options: [
+        '--prefix=' + '@PREFIX@',
+        '--bindir=' + '@PREFIX@' / '@BINDIR@',
+        '--libdir=' + '@PREFIX@' / '@LIBDIR@',
+        '--includedir=' + '@PREFIX@' / '@INCLUDEDIR@',
+        '--enable-static',
+        '--disable-shared',
+        'CFLAGS=' + ' '.join(cflags),
     ],
-)
+    verbose: true,
+).dependency('crypt'),
