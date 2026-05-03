@@ -31,7 +31,6 @@ physfs = cmake.subproject('physfs', options: physfs_options).dependency('physfs-
 meson.override_dependency('physfs', physfs, static: true)
 global_dependencies += physfs
 
-pipewire = dependency('libpipewire-0.3', version: '>=0.3.23', method: 'pkg-config', required: false)
 openal_options = cmake.subproject_options()
 openal_options.add_cmake_defines(cmake_base_options + {
     'CMAKE_C_FLAGS': ' '.join(global_args),
@@ -44,27 +43,26 @@ openal_options.add_cmake_defines(cmake_base_options + {
     'ALSOFT_UPDATE_BUILD_VERSION': false,
     'ALSOFT_EMBED_HRTF_DATA': false,
     'ALSOFT_RTKIT': false,
-    'ALSOFT_BACKEND_PIPEWIRE': pipewire.found(),
-    'ALSOFT_BACKEND_PULSEAUDIO': true,
+    'ALSOFT_BACKEND_PIPEWIRE': false,
+    'ALSOFT_BACKEND_PULSEAUDIO': false,
     'ALSOFT_BACKEND_ALSA': true,
-    'ALSOFT_BACKEND_OSS': true,
-    'ALSOFT_BACKEND_SOLARIS': true,
-    'ALSOFT_BACKEND_SNDIO': true,
-    'ALSOFT_BACKEND_WINMM': true,
+    'ALSOFT_BACKEND_OSS': false,
+    'ALSOFT_BACKEND_SOLARIS': false,
+    'ALSOFT_BACKEND_SNDIO': false,
+    'ALSOFT_BACKEND_WINMM': false,
     'ALSOFT_BACKEND_DSOUND': true,
-    'ALSOFT_BACKEND_WASAPI': true,
-    'ALSOFT_BACKEND_OTHERIO': true,
-    'ALSOFT_BACKEND_JACK': true,
+    'ALSOFT_BACKEND_WASAPI': false,
+    'ALSOFT_BACKEND_OTHERIO': false,
+    'ALSOFT_BACKEND_JACK': false,
     'ALSOFT_BACKEND_COREAUDIO': true,
-    'ALSOFT_BACKEND_OBOE': true,
+    'ALSOFT_BACKEND_OBOE': false,
     'ALSOFT_BACKEND_OPENSL': true,
-    'ALSOFT_BACKEND_PORTAUDIO': true,
+    'ALSOFT_BACKEND_PORTAUDIO': false,
     'ALSOFT_BACKEND_SDL3': false,
     'ALSOFT_BACKEND_SDL2': false,
-    'ALSOFT_BACKEND_WAVE': true,
+    'ALSOFT_BACKEND_WAVE': false,
 })
 openal = declare_dependency(dependencies: [
-    pipewire,
     cmake.subproject('openal-soft', options: openal_options).dependency('OpenAL'),
     cmake.subproject('openal-soft', options: openal_options).dependency('alsoft.fmt'),
 ])
