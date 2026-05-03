@@ -261,6 +261,7 @@ sdl2_image = declare_dependency(dependencies: [
     cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('hwy'),
     cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('jxl_dec-static'),
 ])
+meson.override_dependency('SDL2_image', sdl2_image, static: true)
 global_dependencies += sdl2_image
 
 fluidsynth_options = cmake.subproject_options()
@@ -344,7 +345,13 @@ ruby_options = meson_base_options + {
 }
 ruby = subproject('ruby', default_options: ruby_options).get_variable('ruby')
 meson.override_dependency('ruby-3.1', ruby, static: true)
-global_dependencies += ruby
+global_dependencies += declare_dependency(dependencies: [
+    libxcrypt,
+    libffi,
+    libyaml,
+    zlib,
+    ruby,
+])
 
 # Windows needs to be treated like a special needs child here
 explicit_libs = ''

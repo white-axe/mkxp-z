@@ -20,40 +20,90 @@ cflags += get_option('cflags')
 # Ruby versions that are valid C23 are 3.2.9+, 3.3.9+, 3.4.5+, and 3.5.0+.
 cflags += '-std=gnu99'
 
-ruby = import('unstable-external_project').add_project(
-    'configure',
-    configure_options: [
-        '--prefix=' + meson.project_build_root() / 'dist' + '@PREFIX@',
-        '--bindir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@BINDIR@',
-        '--libdir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@LIBDIR@',
-        '--includedir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
-        '--with-rubyhdrdir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
-        '--with-rubyarchhdrdir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
-        '--with-baseruby=' + find_program('ruby', required: true).full_path(),
-        '--enable-shared',
-        '--disable-install-doc',
-        '--with-out-ext=openssl,readline,dbm,gdbm',
-        '--with-static-linked-ext',
-        '--disable-rubygems',
-        '--without-gmp',
-        'CFLAGS=' + ' '.join(cflags),
-        'LDFLAGS=' + ' '.join(get_option('ldflags')),
-    ],
-    cross_configure_options: [
-        '--host=@HOST@',
-    ],
-    depends: [
-        # Force Meson to fully build all of our vendored dependencies that are required by Ruby before building Ruby itself
-        executable(
-            'deps',
-            sources: 'deps-stub.c',
-            dependencies: [
-                dependency('libcrypt', required: true).partial_dependency(compile_args: true, includes: true, sources: true),
-                dependency('libffi', required: true).partial_dependency(compile_args: true, includes: true, sources: true),
-                dependency('libyaml', required: true),
-                dependency('z', required: true),
+ruby = declare_dependency(
+    dependencies: [
+        import('unstable-external_project').add_project(
+            'configure',
+            configure_options: [
+                '--prefix=' + meson.project_build_root() / 'dist' + '@PREFIX@',
+                '--bindir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@BINDIR@',
+                '--libdir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@LIBDIR@',
+                '--includedir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
+                '--with-rubyhdrdir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
+                '--with-rubyarchhdrdir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
+                '--with-baseruby=' + find_program('ruby', required: true).full_path(),
+                '--disable-shared',
+                '--disable-install-doc',
+                '--with-out-ext=openssl,readline,dbm,gdbm',
+                '--with-static-linked-ext',
+                '--disable-rubygems',
+                '--without-gmp',
+                'CFLAGS=' + ' '.join(cflags),
+                'LDFLAGS=' + ' '.join(get_option('ldflags')),
             ],
+            cross_configure_options: [
+                '--host=@HOST@',
+            ],
+            depends: [
+                # Force Meson to fully build all of our vendored dependencies that are required by Ruby before building Ruby itself
+                executable(
+                    'deps',
+                    sources: [
+                        'deps-stub.c',
+                    ],
+                    dependencies: [
+                        dependency('libcrypt', required: true),
+                        dependency('libffi', required: true),
+                        dependency('libyaml', required: true),
+                        dependency('z', required: true),
+                    ],
+                ),
+            ],
+            verbose: true,
+        ).dependency('ruby-static').partial_dependency(
+            compile_args: true,
+            includes: true,
+            sources: true,
         ),
     ],
-    verbose: true,
-).dependency('ruby')
+    link_args: [
+        meson.project_build_root() / 'build' / 'ext' / 'extinit.o',
+        meson.project_build_root() / 'build' / 'ext' / 'bigdecimal' / 'bigdecimal.a',
+        meson.project_build_root() / 'build' / 'ext' / 'cgi' / 'escape' / 'escape.a',
+        meson.project_build_root() / 'build' / 'ext' / 'continuation' / 'continuation.a',
+        meson.project_build_root() / 'build' / 'ext' / 'coverage' / 'coverage.a',
+        meson.project_build_root() / 'build' / 'ext' / 'date' / 'date_core.a',
+        meson.project_build_root() / 'build' / 'ext' / 'digest' / 'digest.a',
+        meson.project_build_root() / 'build' / 'ext' / 'digest' / 'bubblebabble' / 'bubblebabble.a',
+        meson.project_build_root() / 'build' / 'ext' / 'digest' / 'md5' / 'md5.a',
+        meson.project_build_root() / 'build' / 'ext' / 'digest' / 'rmd160' / 'rmd160.a',
+        meson.project_build_root() / 'build' / 'ext' / 'digest' / 'sha1' / 'sha1.a',
+        meson.project_build_root() / 'build' / 'ext' / 'digest' / 'sha2' / 'sha2.a',
+        meson.project_build_root() / 'build' / 'ext' / 'etc' / 'etc.a',
+        meson.project_build_root() / 'build' / 'ext' / 'fcntl' / 'fcntl.a',
+        meson.project_build_root() / 'build' / 'ext' / 'fiddle' / 'fiddle.a',
+        meson.project_build_root() / 'build' / 'ext' / 'io' / 'console' / 'console.a',
+        meson.project_build_root() / 'build' / 'ext' / 'io' / 'nonblock' / 'nonblock.a',
+        meson.project_build_root() / 'build' / 'ext' / 'io' / 'wait' / 'wait.a',
+        meson.project_build_root() / 'build' / 'ext' / 'json' / 'generator' / 'generator.a',
+        meson.project_build_root() / 'build' / 'ext' / 'json' / 'parser' / 'parser.a',
+        meson.project_build_root() / 'build' / 'ext' / 'monitor' / 'monitor.a',
+        meson.project_build_root() / 'build' / 'ext' / 'nkf' / 'nkf.a',
+        meson.project_build_root() / 'build' / 'ext' / 'objspace' / 'objspace.a',
+        meson.project_build_root() / 'build' / 'ext' / 'pathname' / 'pathname.a',
+        meson.project_build_root() / 'build' / 'ext' / 'psych' / 'psych.a',
+        meson.project_build_root() / 'build' / 'ext' / 'pty' / 'pty.a',
+        meson.project_build_root() / 'build' / 'ext' / 'racc' / 'cparse' / 'cparse.a',
+        meson.project_build_root() / 'build' / 'ext' / 'rbconfig' / 'sizeof' / 'sizeof.a',
+        meson.project_build_root() / 'build' / 'ext' / 'ripper' / 'ripper.a',
+        meson.project_build_root() / 'build' / 'ext' / 'socket' / 'socket.a',
+        meson.project_build_root() / 'build' / 'ext' / 'stringio' / 'stringio.a',
+        meson.project_build_root() / 'build' / 'ext' / 'strscan' / 'strscan.a',
+        meson.project_build_root() / 'build' / 'ext' / 'syslog' / 'syslog.a',
+        meson.project_build_root() / 'build' / 'ext' / 'zlib' / 'zlib.a',
+        meson.project_build_root() / 'build' / 'enc' / 'encinit.o',
+        meson.project_build_root() / 'build' / 'enc' / 'libenc.a',
+        meson.project_build_root() / 'build' / 'enc' / 'libtrans.a',
+        meson.project_build_root() / 'build' / 'libruby-static.a',
+    ],
+)

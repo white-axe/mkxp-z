@@ -119,7 +119,6 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          find ../subprojects/ruby/dist -type f,l -name 'libruby.so.*' | xargs -I {} cp -P {} .
           find ../subprojects/ruby/dist -type d -path '**/ruby/3.1.0' | xargs -I {} cp -r {} .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z.x86_64 .
@@ -210,7 +209,6 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          find ../subprojects/ruby/dist -type f,l -name 'libruby.so.*' | xargs -I {} cp -P {} .
           find ../subprojects/ruby/dist -type d -path '**/ruby/3.1.0' | xargs -I {} cp -r {} .
           mv ./3.1.0 ./stdlib
           find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
@@ -254,7 +252,6 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          find ../subprojects/ruby/dist -type f,l -name 'libruby.so.*' | xargs -I {} cp -P {} .
           find ../subprojects/ruby/dist -type d -path '**/ruby/3.1.0' | xargs -I {} cp -r {} .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z.x86_64 .
@@ -340,7 +337,6 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          find ../subprojects/ruby/dist -type f,l -name 'libruby.so.*' | xargs -I {} cp -P {} .
           find ../subprojects/ruby/dist -type d -path '**/ruby/3.1.0' | xargs -I {} cp -r {} .
           mv ./3.1.0 ./stdlib
           find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
@@ -380,7 +376,6 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          find ../subprojects/ruby/dist -type f,l -name 'libruby.*' | xargs -I {} cp -a {} .
           find ../subprojects/ruby/dist -type d -path '**/ruby/3.1.0' | xargs -I {} cp -r {} .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z .
