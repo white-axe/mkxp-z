@@ -22,7 +22,9 @@ physfs_options.add_cmake_defines(cmake_base_options + {
     'PHYSFS_BUILD_TEST': false,
     'PHYSFS_BUILD_DOCS': false,
 })
-global_dependencies += cmake.subproject('physfs', options: physfs_options).dependency('physfs-static')
+physfs = cmake.subproject('physfs', options: physfs_options).dependency('physfs-static')
+meson.override_dependency('physfs', physfs, static: true)
+global_dependencies += physfs
 
 pipewire = dependency('libpipewire-0.3', version: '>=0.3.23', method: 'pkg-config', required: false)
 openal_options = cmake.subproject_options()
@@ -56,9 +58,12 @@ openal_options.add_cmake_defines(cmake_base_options + {
     'ALSOFT_BACKEND_SDL2': false,
     'ALSOFT_BACKEND_WAVE': true,
 })
-global_dependencies += pipewire
-global_dependencies += cmake.subproject('openal-soft', options: openal_options).dependency('OpenAL')
-global_dependencies += cmake.subproject('openal-soft', options: openal_options).dependency('alsoft.fmt')
+openal = declare_dependency(dependencies: [
+    pipewire,
+    cmake.subproject('openal-soft', options: openal_options).dependency('OpenAL'),
+    cmake.subproject('openal-soft', options: openal_options).dependency('alsoft.fmt'),
+])
+global_dependencies += openal
 
 ogg_options = cmake.subproject_options()
 ogg_options.add_cmake_defines(cmake_base_options + {
@@ -68,8 +73,10 @@ ogg_options.add_cmake_defines(cmake_base_options + {
     'BUILD_TESTING': false,
     'BUILD_FRAMEWORK': false,
 })
-global_dependencies += cmake.subproject('ogg', options: ogg_options).dependency('ogg')
+ogg = cmake.subproject('ogg', options: ogg_options).dependency('ogg')
 ogg_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'ogg' / 'include', '-I' + meson.global_build_root() / 'subprojects' / 'ogg' / '__CMake_build' / 'include']
+meson.override_dependency('ogg', ogg, static: true)
+global_dependencies += ogg
 
 vorbis_options = cmake.subproject_options()
 vorbis_options.add_cmake_defines(cmake_base_options + {
@@ -79,8 +86,17 @@ vorbis_options.add_cmake_defines(cmake_base_options + {
     'BUILD_TESTING': false,
     'BUILD_FRAMEWORK': false,
 })
-global_dependencies += cmake.subproject('vorbis', options: vorbis_options).dependency('vorbis')
-global_dependencies += cmake.subproject('vorbis', options: vorbis_options).dependency('vorbisfile')
+vorbis = declare_dependency(dependencies: [
+    ogg,
+    cmake.subproject('vorbis', options: vorbis_options).dependency('vorbis'),
+])
+vorbisfile = declare_dependency(dependencies: [
+    vorbis,
+    cmake.subproject('vorbis', options: vorbis_options).dependency('vorbisfile'),
+])
+meson.override_dependency('vorbis', vorbis, static: true)
+meson.override_dependency('vorbisfile', vorbisfile, static: true)
+global_dependencies += [vorbis, vorbisfile]
 
 sdl2_options = cmake.subproject_options()
 sdl2_options.add_cmake_defines(cmake_base_options + {
@@ -120,8 +136,10 @@ sdl2_options.add_cmake_defines(cmake_base_options + {
     'SDL_LIBSAMPLERATE': false,
     'SDL_LIBSAMPLERATE_SHARED': false,
 })
-global_dependencies += cmake.subproject('sdl2', options: sdl2_options).dependency('SDL2-static')
+sdl2 = cmake.subproject('sdl2', options: sdl2_options).dependency('SDL2-static')
 sdl2_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'sdl2' / 'include', '-I' + meson.global_build_root() / 'subprojects' / 'sdl2' / '__CMake_build' / 'include-config-release' / 'SDL2']
+meson.override_dependency('SDL2', sdl2, static: true)
+global_dependencies += sdl2
 
 sdl2_sound_options = cmake.subproject_options()
 sdl2_sound_options.add_cmake_defines(cmake_base_options + {
@@ -130,7 +148,12 @@ sdl2_sound_options.add_cmake_defines(cmake_base_options + {
     'SDLSOUND_BUILD_SHARED': false,
     'SDLSOUND_BUILD_TEST': false,
 })
-global_dependencies += cmake.subproject('sdl2_sound', options: sdl2_sound_options).dependency('SDL2_sound-static')
+sdl2_sound = declare_dependency(dependencies: [
+    sdl2,
+    cmake.subproject('sdl2_sound', options: sdl2_sound_options).dependency('SDL2_sound-static'),
+])
+meson.override_dependency('SDL2_sound', sdl2_sound, static: true)
+global_dependencies += sdl2_sound
 
 freetype_options = meson_base_options + {
     'cflags': global_args,
@@ -143,17 +166,24 @@ freetype_options = meson_base_options + {
     'tests': 'disabled',
     'zlib': 'disabled',
 }
-global_dependencies += subproject('freetype', default_options: freetype_options).get_variable('freetype_dep')
+freetype = subproject('freetype', default_options: freetype_options).get_variable('freetype_dep')
 freetype_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'freetype' / 'include']
+global_dependencies += freetype
 
 sdl2_ttf_options = cmake.subproject_options()
 sdl2_ttf_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': ' '.join(sdl2_includes + freetype_includes + global_args),
-    'CMAKE_CXX_FLAGS': ' '.join(sdl2_includes + freetype_includes + global_args + global_cpp_args),
+    'CMAKE_C_FLAGS': ' '.join(freetype_includes + sdl2_includes + global_args),
+    'CMAKE_CXX_FLAGS': ' '.join(freetype_includes + sdl2_includes + global_args + global_cpp_args),
     'BUILD_SHARED_LIBS': false,
     'BUILD_TESTING': false,
 })
-global_dependencies += cmake.subproject('sdl2_ttf', options: sdl2_ttf_options).dependency('SDL2_ttf')
+sdl2_ttf = declare_dependency(dependencies: [
+    freetype,
+    sdl2,
+    cmake.subproject('sdl2_ttf', options: sdl2_ttf_options).dependency('SDL2_ttf'),
+])
+meson.override_dependency('SDL2_ttf', sdl2_ttf, static: true)
+global_dependencies += sdl2_ttf
 
 pixman_options = meson_base_options + {
     'cflags': global_args,
@@ -161,7 +191,8 @@ pixman_options = meson_base_options + {
     'libpng': 'disabled',
     'tls': 'disabled',
 }
-global_dependencies += subproject('pixman', default_options: pixman_options).get_variable('idep_pixman')
+pixman = subproject('pixman', default_options: pixman_options).get_variable('idep_pixman')
+global_dependencies += pixman
 
 zlib_options = cmake.subproject_options()
 zlib_options.add_cmake_defines(cmake_base_options + {
@@ -170,9 +201,11 @@ zlib_options.add_cmake_defines(cmake_base_options + {
     'BUILD_SHARED_LIBS': false,
     'ZLIB_BUILD_EXAMPLES': false,
 })
-global_dependencies += cmake.subproject('zlib', options: zlib_options).dependency('z')
+zlib = cmake.subproject('zlib', options: zlib_options).dependency('z')
 zlib_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'zlib', '-I' + meson.global_build_root() / 'subprojects' / 'zlib' / '__CMake_build']
 zlib_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'zlib']
+meson.override_dependency('z', zlib, static: true)
+global_dependencies += zlib
 
 uchardet_options = cmake.subproject_options()
 uchardet_options.add_cmake_defines(cmake_base_options + {
@@ -181,19 +214,25 @@ uchardet_options.add_cmake_defines(cmake_base_options + {
     'BUILD_BINARY': false,
     'BUILD_SHARED_LIBS': false,
 })
-global_dependencies += cmake.subproject('uchardet', options: uchardet_options).dependency('libuchardet')
+uchardet = cmake.subproject('uchardet', options: uchardet_options).dependency('libuchardet')
+meson.override_dependency('uchardet', uchardet, static: true)
+global_dependencies += uchardet
 
 theora_options = meson_base_options + {
     'cflags': global_args,
     'cppflags': global_args + global_cpp_args,
 }
-global_dependencies += subproject('theora', default_options: theora_options).get_variable('theoradec')
+theora = subproject('theora', default_options: theora_options).get_variable('theoradec')
+meson.override_dependency('theora', theora, static: true)
+global_dependencies += theora
 
 libiconv_options = meson_base_options + {
     'cflags': global_args,
     'cppflags': global_args + global_cpp_args,
 }
-global_dependencies += subproject('libiconv', default_options: libiconv_options).get_variable('libiconv')
+libiconv = subproject('libiconv', default_options: libiconv_options).get_variable('libiconv')
+meson.override_dependency('iconv', libiconv, static: true)
+global_dependencies += libiconv
 
 sdl2_image_options = cmake.subproject_options()
 sdl2_image_options.add_cmake_defines(cmake_base_options + {
@@ -214,11 +253,15 @@ sdl2_image_options.add_cmake_defines(cmake_base_options + {
     'JPEGXL_ENABLE_MANPAGES': false,
     'JPEGXL_ENABLE_TOOLS': false,
 })
-global_dependencies += cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('SDL2_image')
-global_dependencies += cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('brotlicommon-static')
-global_dependencies += cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('brotlidec-static')
-global_dependencies += cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('hwy')
-global_dependencies += cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('jxl_dec-static')
+sdl2_image = declare_dependency(dependencies: [
+    sdl2,
+    cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('SDL2_image'),
+    cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('brotlicommon-static'),
+    cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('brotlidec-static'),
+    cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('hwy'),
+    cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('jxl_dec-static'),
+])
+global_dependencies += sdl2_image
 
 fluidsynth_options = cmake.subproject_options()
 fluidsynth_options.add_cmake_defines(cmake_base_options + {
@@ -257,41 +300,51 @@ fluidsynth_options.add_cmake_defines(cmake_base_options + {
     'enable-kai': false,
     'osal': 'embedded',
 })
-global_dependencies += cmake.subproject('fluidsynth', options: fluidsynth_options).dependency('libfluidsynth')
+fluidsynth = cmake.subproject('fluidsynth', options: fluidsynth_options).dependency('libfluidsynth')
+meson.override_dependency('fluidsynth', fluidsynth, static: true)
+global_dependencies += fluidsynth
 
 # If OpenSSL is present, you get HTTPS support
 if get_option('enable-https') == true
     openssl_options = meson_base_options
-    global_dependencies += subproject('openssl', default_options: openssl_options).get_variable('openssl_dep')
+    openssl = subproject('openssl', default_options: openssl_options).get_variable('openssl_dep')
+    meson.override_dependency('openssl', openssl, static: true)
+    global_dependencies += openssl
     global_args += '-DMKXPZ_SSL'
 endif
 
 libyaml_options = cmake.subproject_options()
 libyaml_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': ' '.join(sdl2_includes + global_args),
-    'CMAKE_CXX_FLAGS': ' '.join(sdl2_includes + global_args + global_cpp_args),
+    'CMAKE_C_FLAGS': ' '.join(global_args),
+    'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
     'BUILD_SHARED_LIBS': false,
 })
-global_dependencies += cmake.subproject('libyaml', options: libyaml_options).dependency('yaml')
+libyaml = cmake.subproject('libyaml', options: libyaml_options).dependency('yaml')
 libyaml_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'libyaml' / 'include', '-I' + meson.global_build_root() / 'subprojects' / 'libyaml' / '__CMake_build' / 'include']
 libyaml_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libyaml']
+meson.override_dependency('libyaml', libyaml, static: true)
 
 libxcrypt_options = meson_base_options
-global_dependencies += subproject('libxcrypt', default_options: libxcrypt_options).get_variable('libxcrypt')
+libxcrypt = subproject('libxcrypt', default_options: libxcrypt_options).get_variable('libxcrypt')
 libxcrypt_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + get_option('prefix') / get_option('includedir')]
 libxcrypt_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + get_option('prefix') / get_option('libdir')]
+meson.override_dependency('libcrypt', libxcrypt, static: true)
+meson.override_dependency('libxcrypt', libxcrypt, static: true)
 
 libffi_options = meson_base_options
-global_dependencies += subproject('libffi', default_options: libffi_options).get_variable('libffi')
+libffi = subproject('libffi', default_options: libffi_options).get_variable('libffi')
 libffi_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' + get_option('prefix') / get_option('includedir')]
 libffi_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' + get_option('prefix') / get_option('libdir')]
+meson.override_dependency('libffi', libffi, static: true)
 
 ruby_options = meson_base_options + {
     'cflags': zlib_includes + libyaml_includes + libxcrypt_includes + libffi_includes,
     'cppflags': zlib_includes + libyaml_includes + libxcrypt_includes + libffi_includes,
     'ldflags': zlib_libs + libyaml_libs + libxcrypt_libs + libffi_libs,
 }
-global_dependencies += subproject('ruby', default_options: ruby_options).get_variable('ruby')
+ruby = subproject('ruby', default_options: ruby_options).get_variable('ruby')
+meson.override_dependency('ruby-3.1', ruby, static: true)
+global_dependencies += ruby
 
 # Windows needs to be treated like a special needs child here
 explicit_libs = ''

@@ -42,5 +42,18 @@ ruby = import('unstable-external_project').add_project(
     cross_configure_options: [
         '--host=@HOST@',
     ],
+    depends: [
+        # Force Meson to fully build all of our vendored dependencies that are required by Ruby before building Ruby itself
+        executable(
+            'deps',
+            sources: 'deps-stub.c',
+            dependencies: [
+                dependency('libcrypt', required: true).partial_dependency(compile_args: true, includes: true, sources: true),
+                dependency('libffi', required: true).partial_dependency(compile_args: true, includes: true, sources: true),
+                dependency('libyaml', required: true),
+                dependency('z', required: true),
+            ],
+        ),
+    ],
     verbose: true,
 ).dependency('ruby')
