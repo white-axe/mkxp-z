@@ -39,7 +39,7 @@ jobs:
       - name: Build
         shell: msys2 {0}
         run: |
-          meson setup build
+          meson setup build --prefix=/
           cd build
           CLICOLOR_FORCE=1 ninja -v
           strip ./mkxp-z.exe
