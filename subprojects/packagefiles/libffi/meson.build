@@ -24,6 +24,7 @@ libffi = declare_dependency(
                 '--prefix=' + '@PREFIX@',
                 '--bindir=' + '@PREFIX@' / '@BINDIR@',
                 '--libdir=' + '@PREFIX@' / '@LIBDIR@',
+                '--libdir=' + '@PREFIX@' / 'lib',
                 '--includedir=' + '@PREFIX@' / '@INCLUDEDIR@',
                 '--enable-static',
                 '--disable-shared',
@@ -40,6 +41,6 @@ libffi = declare_dependency(
         ),
     ],
     link_args: [
-        meson.project_build_root() / 'dist' + get_option('prefix') / get_option('libdir') / 'libffi.a',
+        meson.project_build_root() / 'dist' + get_option('prefix') / 'lib' / 'libffi.a',
     ],
 )

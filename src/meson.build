@@ -335,7 +335,7 @@ meson.override_dependency('libxcrypt', libxcrypt, static: true)
 libffi_options = meson_base_options
 libffi = subproject('libffi', default_options: libffi_options).get_variable('libffi')
 libffi_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' + get_option('prefix') / get_option('includedir')]
-libffi_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' + get_option('prefix') / get_option('libdir')]
+libffi_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' + get_option('prefix') / 'lib']
 meson.override_dependency('libffi', libffi, static: true)
 
 ruby_options = meson_base_options + {
