@@ -281,10 +281,15 @@ global_dependencies += subproject('libxcrypt', default_options: libxcrypt_option
 libxcrypt_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + get_option('prefix') / get_option('includedir')]
 libxcrypt_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + get_option('prefix') / get_option('libdir')]
 
+libffi_options = meson_base_options
+global_dependencies += subproject('libffi', default_options: libffi_options).get_variable('libffi')
+libffi_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' + get_option('prefix') / get_option('includedir')]
+libffi_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' + get_option('prefix') / get_option('libdir')]
+
 ruby_options = meson_base_options + {
-    'cflags': zlib_includes + libyaml_includes + libxcrypt_includes,
-    'cppflags': zlib_includes + libyaml_includes + libxcrypt_includes,
-    'ldflags': zlib_libs + libyaml_libs + libxcrypt_libs,
+    'cflags': zlib_includes + libyaml_includes + libxcrypt_includes + libffi_includes,
+    'cppflags': zlib_includes + libyaml_includes + libxcrypt_includes + libffi_includes,
+    'ldflags': zlib_libs + libyaml_libs + libxcrypt_libs + libffi_libs,
 }
 global_dependencies += subproject('ruby', default_options: ruby_options).get_variable('ruby')
 
