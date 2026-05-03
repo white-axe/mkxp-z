@@ -20,17 +20,28 @@ cflags += get_option('cflags')
 # Ruby versions that are valid C23 are 3.2.9+, 3.3.9+, 3.4.5+, and 3.5.0+.
 cflags += '-std=gnu99'
 
+prefix = get_option('prefix')
+if not import('fs').is_absolute(prefix)
+    prefix = meson.global_source_root() / prefix
+endif
+
 ruby = declare_dependency(
     dependencies: [
         import('unstable-external_project').add_project(
             'configure',
             configure_options: [
                 '--prefix=' + meson.project_build_root() / 'dist' + '@PREFIX@',
+                '--prefix=' + meson.project_build_root() / 'dist' + prefix,
                 '--bindir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@BINDIR@',
+                '--bindir=' + meson.project_build_root() / 'dist' + prefix / get_option('bindir'),
                 '--libdir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@LIBDIR@',
+                '--libdir=' + meson.project_build_root() / 'dist' + prefix / get_option('libdir'),
                 '--includedir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
+                '--includedir=' + meson.project_build_root() / 'dist' + prefix / get_option('includedir'),
                 '--with-rubyhdrdir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
+                '--with-rubyhdrdir=' + meson.project_build_root() / 'dist' + prefix / get_option('includedir'),
                 '--with-rubyarchhdrdir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
+                '--with-rubyarchhdrdir=' + meson.project_build_root() / 'dist' + prefix / get_option('includedir'),
                 '--with-baseruby=' + find_program('ruby', required: true).full_path(),
                 '--disable-shared',
                 '--disable-install-doc',

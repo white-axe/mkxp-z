@@ -16,16 +16,24 @@ endif
 
 cflags += get_option('cflags')
 
+prefix = get_option('prefix')
+if not import('fs').is_absolute(prefix)
+    prefix = meson.global_source_root() / prefix
+endif
+
 libffi = declare_dependency(
     dependencies: [
         import('unstable-external_project').add_project(
             'configure',
             configure_options: [
                 '--prefix=' + '@PREFIX@',
+                '--prefix=' + prefix,
                 '--bindir=' + '@PREFIX@' / '@BINDIR@',
+                '--bindir=' + prefix / get_option('bindir'),
                 '--libdir=' + '@PREFIX@' / '@LIBDIR@',
-                '--libdir=' + '@PREFIX@' / 'lib',
+                '--libdir=' + prefix / 'lib',
                 '--includedir=' + '@PREFIX@' / '@INCLUDEDIR@',
+                '--includedir=' + prefix / get_option('includedir'),
                 '--enable-static',
                 '--disable-shared',
                 'CFLAGS=' + ' '.join(cflags),
@@ -41,6 +49,6 @@ libffi = declare_dependency(
         ),
     ],
     link_args: [
-        meson.project_build_root() / 'dist' + get_option('prefix') / 'lib' / 'libffi.a',
+        meson.project_build_root() / 'dist' + prefix / 'lib' / 'libffi.a',
     ],
 )

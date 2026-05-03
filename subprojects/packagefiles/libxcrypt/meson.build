@@ -16,15 +16,24 @@ endif
 
 cflags += get_option('cflags')
 
+prefix = get_option('prefix')
+if not import('fs').is_absolute(prefix)
+    prefix = meson.global_source_root() / prefix
+endif
+
 libxcrypt = declare_dependency(
     dependencies: [
         import('unstable-external_project').add_project(
             'configure',
             configure_options: [
                 '--prefix=' + '@PREFIX@',
+                '--prefix=' + prefix,
                 '--bindir=' + '@PREFIX@' / '@BINDIR@',
+                '--bindir=' + prefix / get_option('bindir'),
                 '--libdir=' + '@PREFIX@' / '@LIBDIR@',
+                '--libdir=' + prefix / get_option('libdir'),
                 '--includedir=' + '@PREFIX@' / '@INCLUDEDIR@',
+                '--includedir=' + prefix / get_option('includedir'),
                 '--enable-static',
                 '--disable-shared',
                 'CFLAGS=' + ' '.join(cflags),
@@ -40,6 +49,6 @@ libxcrypt = declare_dependency(
         ),
     ],
     link_args: [
-        meson.project_build_root() / 'dist' + get_option('prefix') / get_option('libdir') / 'libcrypt.a',
+        meson.project_build_root() / 'dist' + prefix / get_option('libdir') / 'libcrypt.a',
     ],
 )

@@ -1,5 +1,10 @@
 cmake = import('cmake')
 
+prefix = get_option('prefix')
+if not import('fs').is_absolute(prefix)
+    prefix = meson.global_source_root() / prefix
+endif
+
 cmake_base_options = {
     'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
     'CMAKE_OSX_SYSROOT': '/nonexistent',
@@ -327,15 +332,15 @@ meson.override_dependency('libyaml', libyaml, static: true)
 
 libxcrypt_options = meson_base_options
 libxcrypt = subproject('libxcrypt', default_options: libxcrypt_options).get_variable('libxcrypt')
-libxcrypt_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + get_option('prefix') / get_option('includedir')]
-libxcrypt_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + get_option('prefix') / get_option('libdir')]
+libxcrypt_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + prefix / get_option('includedir')]
+libxcrypt_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + prefix / get_option('libdir')]
 meson.override_dependency('libcrypt', libxcrypt, static: true)
 meson.override_dependency('libxcrypt', libxcrypt, static: true)
 
 libffi_options = meson_base_options
 libffi = subproject('libffi', default_options: libffi_options).get_variable('libffi')
-libffi_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' + get_option('prefix') / get_option('includedir')]
-libffi_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' + get_option('prefix') / 'lib']
+libffi_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' + prefix / get_option('includedir')]
+libffi_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' + prefix / 'lib']
 meson.override_dependency('libffi', libffi, static: true)
 
 ruby_options = meson_base_options + {
