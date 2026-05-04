@@ -2,7 +2,7 @@
 
 --- a/meson.build
 +++ b/meson.build
-@@ -474,15 +474,15 @@ if cc.has_function('dladdr', dependencies : dl_dep)
+@@ -474,21 +474,21 @@ if cc.has_function('dladdr', dependencies : dl_dep)
  endif
  
  have_iconv = false
@@ -27,3 +27,10 @@
  if have_iconv
    cdata.set('HAVE_ICONV', 1)
    iconvconsttest = '''#include <iconv.h>
+ size_t iconv (iconv_t cd, char * *inbuf, size_t *inbytesleft, char * *outbuf, size_t *outbytesleft);
+ '''
+-  if cc.compiles(iconvconsttest, dependencies : iconv_dep)
++  if true
+     cdata.set('ICONV_CONST', '')
+   else
+     cdata.set('ICONV_CONST', 'const')

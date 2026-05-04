@@ -61,6 +61,13 @@ meson_base_options = {
     'b_staticpic': use_pic,
 }
 
+libiconv_options = meson_base_options + {
+    'cflags': global_args,
+    'cppflags': global_args + global_cpp_args,
+}
+libiconv = subproject('libiconv', default_options: libiconv_options).get_variable('libiconv')
+global_dependencies += libiconv
+
 # If OpenSSL is present, you get HTTPS support
 if get_option('enable-https')
     openssl_options = meson_base_options
@@ -318,14 +325,6 @@ theora_options = meson_base_options + {
 theora = subproject('theora', default_options: theora_options).get_variable('theoradec')
 meson.override_dependency('theora', theora, static: true)
 global_dependencies += theora
-
-libiconv_options = meson_base_options + {
-    'cflags': global_args,
-    'cppflags': global_args + global_cpp_args,
-}
-libiconv = subproject('libiconv', default_options: libiconv_options).get_variable('libiconv')
-meson.override_dependency('iconv', libiconv, static: true)
-global_dependencies += libiconv
 
 sdl2_image_options = cmake.subproject_options()
 sdl2_image_options.add_cmake_defines(cmake_base_options + {

@@ -58,3 +58,5 @@ libiconv = declare_dependency(
         gnu_symbol_visibility: 'hidden',
     ),
 )
+
+meson.override_dependency('iconv', libiconv)
