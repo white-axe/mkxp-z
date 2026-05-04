@@ -41,6 +41,9 @@ libxcrypt = declare_dependency(
             cross_configure_options: [
                 '--host=@HOST@',
             ],
+            env: {
+                'CONFIG_SITE': ' ',
+            },
             verbose: true,
         ).dependency('crypt').partial_dependency(
             compile_args: true,

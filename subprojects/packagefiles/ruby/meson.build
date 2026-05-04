@@ -55,6 +55,9 @@ ruby = declare_dependency(
             cross_configure_options: [
                 '--host=@HOST@',
             ],
+            env: {
+                'CONFIG_SITE': ' ',
+            },
             depends: [
                 # Force Meson to fully build all of our vendored dependencies that are required by Ruby before building Ruby itself
                 executable(

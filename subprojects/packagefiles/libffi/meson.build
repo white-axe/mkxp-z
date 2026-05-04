@@ -41,6 +41,9 @@ libffi = declare_dependency(
             cross_configure_options: [
                 '--host=@HOST@',
             ],
+            env: {
+                'CONFIG_SITE': ' ',
+            },
             verbose: true,
         ).dependency('ffi').partial_dependency(
             compile_args: true,
