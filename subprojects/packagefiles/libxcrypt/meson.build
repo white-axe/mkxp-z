@@ -59,6 +59,7 @@ libxcrypt = declare_dependency(
                 '--includedir=' + prefix / get_option('includedir'),
                 '--enable-static',
                 '--disable-shared',
+                '--disable-werror',
                 'CFLAGS=' + ' '.join(cflags),
             ],
             cross_configure_options: [
