@@ -1,92 +1,52 @@
 project('jack1', 'c', meson_version: '>=1.2.0')
 
-cflags = []
-
-if get_option('b_lto')
-    if get_option('b_lto_mode') == 'thin'
-        cflags += '-flto=thin'
-    else
-        cflags += '-flto'
-    endif
-endif
-
-if get_option('b_staticpic')
-    cflags += '-fPIC'
-endif
-
-cflags += get_option('cflags')
-
-srcdir = meson.project_source_root()
-if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
-    srcdir = import('fs').as_posix(srcdir)
-    if not srcdir.startswith('/')
-        srcdir = '/' + srcdir
-    endif
-    if srcdir.contains(':')
-        srcdir_components_in = srcdir.split(':')
-        srcdir_components_out = []
-        i = 0
-        foreach srcdir_component : srcdir_components_in
-            if i == 0
-                srcdir_components_out += srcdir_component.to_lower()
-            else
-                srcdir_components_out += srcdir_component
-            endif
-            i += 1
-        endforeach
-        srcdir = ''.join(srcdir_components_out)
-    endif
-endif
-
-prefix = get_option('prefix')
-if not import('fs').is_absolute(prefix)
-    prefix = meson.global_source_root() / prefix
-endif
-
 jack1 = declare_dependency(
-    dependencies: [
-        import('unstable-external_project').add_project(
-            'configure',
-            configure_options: [
-                '--srcdir=' + srcdir,
-                '--prefix=' + '@PREFIX@',
-                '--prefix=' + prefix,
-                '--bindir=' + '@PREFIX@' / '@BINDIR@',
-                '--bindir=' + prefix / get_option('bindir'),
-                '--libdir=' + '@PREFIX@' / '@LIBDIR@',
-                '--libdir=' + prefix / get_option('libdir'),
-                '--includedir=' + '@PREFIX@' / '@INCLUDEDIR@',
-                '--includedir=' + prefix / get_option('includedir'),
-                '--enable-static',
-                '--disable-shared',
-                '--enable-force-install',
-                '--disable-alsa',
-                '--disable-coreaudio',
-                '--disable-firewire',
-                '--disable-freebob',
-                '--disable-oss',
-                '--disable-portaudio',
-                '--disable-sndio',
-                '--disable-sun',
-                'CFLAGS=' + ' '.join(cflags),
-            ],
-            cross_configure_options: [
-                '--host=@HOST@',
-            ],
-            env: {
-                'CONFIG_SITE': ' ',
-                'PKG_CONFIG': '',
-            },
-            verbose: true,
-        ).dependency('jack').partial_dependency(
-            compile_args: true,
-            includes: true,
-            sources: true,
-        ),
-    ],
-    link_args: [
-        meson.project_build_root() / 'dist' + prefix / get_option('libdir') / 'libjack.a',
-    ],
+    include_directories: '.',
+    link_with: library(
+        'jack',
+        c_args: get_option('cflags') + [
+            '-DDEFAULT_TMP_DIR="/tmp"',
+            '-DDO_BUFFER_RESIZE',
+            '-DHAVE_CLOCK_GETTIME',
+            '-DHAVE_POSIX_MEMALIGN',
+            '-DHAVE_STDINT_H',
+            '-DJACK_DEFAULT_DRIVER="dummy"',
+            '-DJACK_LOCATION="/usr/bin"',
+            '-DJACK_SEMAPHORE_KEY=0x282929',
+            '-DJACK_SHM_TYPE="POSIX"',
+            '-DJACK_THREAD_STACK_TOUCH=' + (host_machine.system() == 'darwin' or host_machine.system() == 'openbsd' ? '10000' : '500000'),
+            '-DOLD_TRANSPORT',
+            '-DUSE_MLOCK',
+            '-DUSE_POSIX_SHM',
+            '-Djack_protocol_version=25',
+        ],
+        include_directories: [
+            '.',
+            'config',
+            'include',
+        ],
+        sources: [
+            'libjack/client.c',
+            'libjack/driver.c',
+            'libjack/intclient.c',
+            'libjack/messagebuffer.c',
+            'libjack/midiport.c',
+            'libjack/pool.c',
+            'libjack/port.c',
+            'libjack/ringbuffer.c',
+            'libjack/sanitycheck.c',
+            'libjack/shm.c',
+            'libjack/simd.c',
+            'libjack/systemtest.c',
+            'libjack/thread.c',
+            'libjack/time.c',
+            'libjack/transclient.c',
+            'libjack/unlock.c',
+            'libjack/uuid.c',
+        ],
+        pic: get_option('b_staticpic'),
+        gnu_symbol_visibility: 'hidden',
+    ),
 )
 
-meson.override_dependency('jack', jack1, static: true)
+meson.override_dependency('jack', jack1)
