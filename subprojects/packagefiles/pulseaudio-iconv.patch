@@ -1,0 +1,29 @@
+# Makes PulseAudio use the same version of iconv that we use.
+
+--- a/meson.build
++++ b/meson.build
+@@ -474,15 +474,15 @@ if cc.has_function('dladdr', dependencies : dl_dep)
+ endif
+ 
+ have_iconv = false
+-if cc.has_function('iconv_open')
+-  iconv_dep = dependency('', required : false)
+-  have_iconv = true
+-  # tell the libiconv header to pretend to be libc iconv
+-  cdata.set('LIBICONV_PLUG', 1)
+-else
+-  iconv_dep = cc.find_library('iconv', required : false)
+-  have_iconv = iconv_dep.found()
+-endif
++iconv_dep = dependency('iconv', required : false)
++have_iconv = iconv_dep.found()
++
++
++
++
++
++
++
+ if have_iconv
+   cdata.set('HAVE_ICONV', 1)
+   iconvconsttest = '''#include <iconv.h>

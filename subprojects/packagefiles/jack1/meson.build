@@ -1,4 +1,4 @@
-project('libffi', 'c', meson_version: '>=1.2.0')
+project('jack1', 'c', meson_version: '>=1.2.0')
 
 cflags = []
 
@@ -43,7 +43,7 @@ if not import('fs').is_absolute(prefix)
     prefix = meson.global_source_root() / prefix
 endif
 
-libffi = declare_dependency(
+jack1 = declare_dependency(
     dependencies: [
         import('unstable-external_project').add_project(
             'configure',
@@ -54,11 +54,20 @@ libffi = declare_dependency(
                 '--bindir=' + '@PREFIX@' / '@BINDIR@',
                 '--bindir=' + prefix / get_option('bindir'),
                 '--libdir=' + '@PREFIX@' / '@LIBDIR@',
-                '--libdir=' + prefix / 'lib',
+                '--libdir=' + prefix / get_option('libdir'),
                 '--includedir=' + '@PREFIX@' / '@INCLUDEDIR@',
                 '--includedir=' + prefix / get_option('includedir'),
                 '--enable-static',
                 '--disable-shared',
+                '--enable-force-install',
+                '--disable-alsa',
+                '--disable-coreaudio',
+                '--disable-firewire',
+                '--disable-freebob',
+                '--disable-oss',
+                '--disable-portaudio',
+                '--disable-sndio',
+                '--disable-sun',
                 'CFLAGS=' + ' '.join(cflags),
             ],
             cross_configure_options: [
@@ -66,17 +75,18 @@ libffi = declare_dependency(
             ],
             env: {
                 'CONFIG_SITE': ' ',
+                'PKG_CONFIG': '',
             },
             verbose: true,
-        ).dependency('ffi').partial_dependency(
+        ).dependency('jack').partial_dependency(
             compile_args: true,
             includes: true,
             sources: true,
         ),
     ],
     link_args: [
-        meson.project_build_root() / 'dist' + prefix / 'lib' / 'libffi.a',
+        meson.project_build_root() / 'dist' + prefix / get_option('libdir') / 'libjack.a',
     ],
 )
 
-meson.override_dependency('libffi', libffi, static: true)
+meson.override_dependency('jack', jack1, static: true)

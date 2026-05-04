@@ -5,6 +5,49 @@ if not import('fs').is_absolute(prefix)
     prefix = meson.global_source_root() / prefix
 endif
 
+null_dep = dependency('', required: false)
+foreach dep_name : [
+    host_system != 'linux' ? 'alsa' : '',
+    'audioio',
+    'avahi-client',
+    'dbus-1',
+    'epoll-shim',
+    'fftw3f',
+    'gio-2.0',
+    'glib-2.0',
+    'gtk+-3.0',
+    'intl',
+    host_system != 'linux' ? 'jack' : '',
+    'libapparmor',
+    'libasyncns',
+    'libcanberra',
+    'libdrm',
+    'libffado',
+    'libinotify',
+    host_system != 'linux' ? 'libpulse' : '',
+    'libselinux',
+    'libsystemd',
+    'libusb-1.0',
+    'ncursesw',
+    'oboe',
+    host_system != 'android' ? 'opensl' : '',
+    not get_option('enable-https') ? 'openssl' : '',
+    'opus',
+    'oss',
+    'portaudio',
+    'sdl3',
+    'snapd-glib',
+    'snapd-glib-2',
+    host_system != 'linux' ? 'sndfile' : '',
+    host_system != 'dragonfly' and host_system != 'freebsd' and host_system != 'netbsd' and host_system != 'openbsd' ? 'sndio' : '',
+    'x11-xcb',
+    'xfixes',
+]
+    if dep_name != ''
+        meson.override_dependency(dep_name, null_dep, static: true)
+    endif
+endforeach
+
 cmake_base_options = {
     'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
     'CMAKE_OSX_SYSROOT': '/nonexistent',
@@ -17,6 +60,15 @@ meson_base_options = {
     'default_library': 'static',
     'b_staticpic': use_pic,
 }
+
+# If OpenSSL is present, you get HTTPS support
+if get_option('enable-https')
+    openssl_options = meson_base_options
+    openssl = subproject('openssl', default_options: openssl_options).get_variable('openssl_dep')
+    meson.override_dependency('openssl', openssl, static: true)
+    global_dependencies += openssl
+    global_args += '-DMKXPZ_SSL'
+endif
 
 physfs_options = cmake.subproject_options()
 physfs_options.add_cmake_defines(cmake_base_options + {
@@ -31,75 +83,20 @@ physfs = cmake.subproject('physfs', options: physfs_options).dependency('physfs-
 meson.override_dependency('physfs', physfs, static: true)
 global_dependencies += physfs
 
-openal_options = cmake.subproject_options()
-openal_options.add_cmake_defines(cmake_base_options + {
+fmt_options = cmake.subproject_options()
+fmt_options.add_cmake_defines(cmake_base_options + {
     'CMAKE_C_FLAGS': ' '.join(global_args),
     'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
     'LIBTYPE': 'STATIC',
-    'ALSOFT_DLOPEN': false,
-    'ALSOFT_UTILS': false,
-    'ALSOFT_NO_CONFIG_UTIL': true,
-    'ALSOFT_EXAMPLES': false,
-    'ALSOFT_UPDATE_BUILD_VERSION': false,
-    'ALSOFT_EMBED_HRTF_DATA': false,
-    'ALSOFT_RTKIT': false,
-    'ALSOFT_BACKEND_PIPEWIRE': false,
-    'ALSOFT_BACKEND_PULSEAUDIO': false,
-    'ALSOFT_BACKEND_ALSA': true,
-    'ALSOFT_BACKEND_OSS': false,
-    'ALSOFT_BACKEND_SOLARIS': false,
-    'ALSOFT_BACKEND_SNDIO': false,
-    'ALSOFT_BACKEND_WINMM': false,
-    'ALSOFT_BACKEND_DSOUND': true,
-    'ALSOFT_BACKEND_WASAPI': false,
-    'ALSOFT_BACKEND_OTHERIO': false,
-    'ALSOFT_BACKEND_JACK': false,
-    'ALSOFT_BACKEND_COREAUDIO': true,
-    'ALSOFT_BACKEND_OBOE': false,
-    'ALSOFT_BACKEND_OPENSL': true,
-    'ALSOFT_BACKEND_PORTAUDIO': false,
-    'ALSOFT_BACKEND_SDL3': false,
-    'ALSOFT_BACKEND_SDL2': false,
-    'ALSOFT_BACKEND_WAVE': false,
+    'FMT_DOC': false,
+    'FMT_TEST': false,
+    'FMT_FUZZ': false,
+    'FMT_CUDA_TEST': false,
+    'FMT_MODULE': false,
+    'FMT_WERROR': false,
 })
-openal = declare_dependency(dependencies: [
-    cmake.subproject('openal-soft', options: openal_options).dependency('OpenAL'),
-    cmake.subproject('openal-soft', options: openal_options).dependency('alsoft.fmt'),
-])
-global_dependencies += openal
-
-ogg_options = cmake.subproject_options()
-ogg_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': ' '.join(global_args),
-    'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
-    'BUILD_SHARED_LIBS': false,
-    'BUILD_TESTING': false,
-    'BUILD_FRAMEWORK': false,
-})
-ogg = cmake.subproject('ogg', options: ogg_options).dependency('ogg')
-ogg_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'ogg' / 'include', '-I' + meson.global_build_root() / 'subprojects' / 'ogg' / '__CMake_build' / 'include']
-meson.override_dependency('ogg', ogg, static: true)
-global_dependencies += ogg
-
-vorbis_options = cmake.subproject_options()
-vorbis_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': ' '.join(ogg_includes + global_args),
-    'CMAKE_CXX_FLAGS': ' '.join(ogg_includes + global_args + global_cpp_args),
-    'BUILD_SHARED_LIBS': false,
-    'BUILD_TESTING': false,
-    'BUILD_FRAMEWORK': false,
-})
-vorbis = declare_dependency(dependencies: [
-    ogg,
-    cmake.subproject('vorbis', options: vorbis_options).dependency('vorbis'),
-])
-vorbisfile = declare_dependency(dependencies: [
-    vorbis,
-    cmake.subproject('vorbis', options: vorbis_options).dependency('vorbisfile'),
-])
-meson.override_dependency('vorbis', vorbis, static: true)
-meson.override_dependency('vorbisfile', vorbisfile, static: true)
-global_dependencies += [vorbis, vorbisfile]
+fmt = cmake.subproject('fmt', options: fmt_options).dependency('fmt')
+meson.override_dependency('fmt', fmt, static: true)
 
 sdl2_options = cmake.subproject_options()
 sdl2_options.add_cmake_defines(cmake_base_options + {
@@ -141,8 +138,101 @@ sdl2_options.add_cmake_defines(cmake_base_options + {
 })
 sdl2 = cmake.subproject('sdl2', options: sdl2_options).dependency('SDL2-static')
 sdl2_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'sdl2' / 'include', '-I' + meson.global_build_root() / 'subprojects' / 'sdl2' / '__CMake_build' / 'include-config-release' / 'SDL2']
-meson.override_dependency('SDL2', sdl2, static: true)
+meson.override_dependency('sdl2', sdl2, static: true)
 global_dependencies += sdl2
+
+if host_system == 'linux'
+    libsndfile_options = cmake.subproject_options()
+    libsndfile_options.add_cmake_defines(cmake_base_options + {
+        'CMAKE_C_FLAGS': ' '.join(global_args),
+        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
+        'BUILD_SHARED_LIBS': false,
+        'BUILD_PROGRAMS': false,
+        'BUILD_EXAMPLES': false,
+        'BUILD_REGTEST': false,
+        'BUILD_TESTING': false,
+        'ENABLE_CPACK': false,
+        'ENABLE_PACKAGE_CONFIG': false,
+        'INSTALL_PKGCONFIG_MODULE': false,
+        'ENABLE_EXTERNAL_LIBS': false,
+        'ENABLE_MPEG': false,
+        'ENABLE_EXPERIMENTAL': false,
+    })
+    libsndfile = cmake.subproject('libsndfile', options: libsndfile_options).dependency('sndfile')
+    meson.override_dependency('sndfile', libsndfile, static: true)
+
+    alsa_lib_options = meson_base_options
+    alsa_lib = subproject('alsa-lib', default_options: alsa_lib_options).get_variable('alsa_lib')
+
+    jack1_options = meson_base_options
+    jack1 = subproject('jack1', default_options: jack1_options).get_variable('jack1')
+
+    pulseaudio_options = meson_base_options + {
+        'daemon': false,
+        'client': true,
+        'doxygen': false,
+        'gcov': false,
+        'man': false,
+        'tests': false,
+    }
+    pulseaudio = subproject('pulseaudio', default_options: pulseaudio_options).get_variable('libpulse_dep')
+    meson.override_dependency('libpulse', pulseaudio, static: true)
+
+    pipewire_options = meson_base_options + {
+        'docs': 'disabled',
+        'man': 'disabled',
+        'examples': 'disabled',
+        'tests': 'disabled',
+        'spa-plugins': 'disabled',
+        'pipewire-jack': 'disabled',
+        'pipewire-v4l2': 'disabled',
+        'ffmpeg': 'disabled',
+        'dbus': 'disabled',
+        'pw-cat-ffmpeg': 'disabled',
+        'echo-cancel-webrtc': 'disabled',
+        'session-managers': [],
+        'flatpak': 'disabled',
+        'readline': 'disabled',
+    }
+    pipewire = subproject('pipewire', default_options: pipewire_options).get_variable('pipewire_dep')
+endif
+
+openal_options = meson_base_options
+openal = subproject('openal-soft', default_options: openal_options).get_variable('openal_dep')
+global_dependencies += openal
+
+ogg_options = cmake.subproject_options()
+ogg_options.add_cmake_defines(cmake_base_options + {
+    'CMAKE_C_FLAGS': ' '.join(global_args),
+    'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
+    'BUILD_SHARED_LIBS': false,
+    'BUILD_TESTING': false,
+    'BUILD_FRAMEWORK': false,
+})
+ogg = cmake.subproject('ogg', options: ogg_options).dependency('ogg')
+ogg_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'ogg' / 'include', '-I' + meson.global_build_root() / 'subprojects' / 'ogg' / '__CMake_build' / 'include']
+meson.override_dependency('ogg', ogg, static: true)
+global_dependencies += ogg
+
+vorbis_options = cmake.subproject_options()
+vorbis_options.add_cmake_defines(cmake_base_options + {
+    'CMAKE_C_FLAGS': ' '.join(ogg_includes + global_args),
+    'CMAKE_CXX_FLAGS': ' '.join(ogg_includes + global_args + global_cpp_args),
+    'BUILD_SHARED_LIBS': false,
+    'BUILD_TESTING': false,
+    'BUILD_FRAMEWORK': false,
+})
+vorbis = declare_dependency(dependencies: [
+    ogg,
+    cmake.subproject('vorbis', options: vorbis_options).dependency('vorbis'),
+])
+vorbisfile = declare_dependency(dependencies: [
+    vorbis,
+    cmake.subproject('vorbis', options: vorbis_options).dependency('vorbisfile'),
+])
+meson.override_dependency('vorbis', vorbis, static: true)
+meson.override_dependency('vorbisfile', vorbisfile, static: true)
+global_dependencies += [vorbis, vorbisfile]
 
 sdl2_sound_options = cmake.subproject_options()
 sdl2_sound_options.add_cmake_defines(cmake_base_options + {
@@ -308,15 +398,6 @@ fluidsynth = cmake.subproject('fluidsynth', options: fluidsynth_options).depende
 meson.override_dependency('fluidsynth', fluidsynth, static: true)
 global_dependencies += fluidsynth
 
-# If OpenSSL is present, you get HTTPS support
-if get_option('enable-https') == true
-    openssl_options = meson_base_options
-    openssl = subproject('openssl', default_options: openssl_options).get_variable('openssl_dep')
-    meson.override_dependency('openssl', openssl, static: true)
-    global_dependencies += openssl
-    global_args += '-DMKXPZ_SSL'
-endif
-
 libyaml_options = cmake.subproject_options()
 libyaml_options.add_cmake_defines(cmake_base_options + {
     'CMAKE_C_FLAGS': ' '.join(global_args),
@@ -332,14 +413,11 @@ libxcrypt_options = meson_base_options
 libxcrypt = subproject('libxcrypt', default_options: libxcrypt_options).get_variable('libxcrypt')
 libxcrypt_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + prefix / get_option('includedir')]
 libxcrypt_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + prefix / get_option('libdir')]
-meson.override_dependency('libcrypt', libxcrypt, static: true)
-meson.override_dependency('libxcrypt', libxcrypt, static: true)
 
 libffi_options = meson_base_options
 libffi = subproject('libffi', default_options: libffi_options).get_variable('libffi')
 libffi_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' + prefix / get_option('includedir')]
 libffi_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' + prefix / 'lib']
-meson.override_dependency('libffi', libffi, static: true)
 
 ruby_options = meson_base_options + {
     'cflags': zlib_includes + libyaml_includes + libxcrypt_includes + libffi_includes,
@@ -347,14 +425,7 @@ ruby_options = meson_base_options + {
     'ldflags': zlib_libs + libyaml_libs + libxcrypt_libs + libffi_libs,
 }
 ruby = subproject('ruby', default_options: ruby_options).get_variable('ruby')
-meson.override_dependency('ruby-3.1', ruby, static: true)
-global_dependencies += declare_dependency(dependencies: [
-    libxcrypt,
-    libffi,
-    libyaml,
-    zlib,
-    ruby,
-])
+global_dependencies += ruby
 
 # Windows needs to be treated like a special needs child here
 explicit_libs = ''
@@ -366,10 +437,7 @@ if build_static == true
     if host_system == 'windows'
         # '-static-libgcc', '-static-libstdc++' are here to avoid needing to ship a separate libgcc_s_seh-1.dll on Windows; it still works without those flags if you have the dll.
         global_link_args += ['-static-libgcc', '-static-libstdc++', '-Wl,-Bstatic', '-lgcc', '-lstdc++', '-lpthread', '-Wl,-Bdynamic']
-    else
-        global_link_args += ['-static-libgcc', '-static-libstdc++']
     endif
-    global_args += '-DAL_LIBTYPE_STATIC'
 endif
 
 foreach l : explicit_libs.split(';')

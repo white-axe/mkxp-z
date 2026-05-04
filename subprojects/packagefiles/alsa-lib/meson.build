@@ -1,4 +1,4 @@
-project('libffi', 'c', meson_version: '>=1.2.0')
+project('alsa-lib', 'c', meson_version: '>=1.2.0')
 
 cflags = []
 
@@ -43,7 +43,7 @@ if not import('fs').is_absolute(prefix)
     prefix = meson.global_source_root() / prefix
 endif
 
-libffi = declare_dependency(
+alsa_lib = declare_dependency(
     dependencies: [
         import('unstable-external_project').add_project(
             'configure',
@@ -54,7 +54,7 @@ libffi = declare_dependency(
                 '--bindir=' + '@PREFIX@' / '@BINDIR@',
                 '--bindir=' + prefix / get_option('bindir'),
                 '--libdir=' + '@PREFIX@' / '@LIBDIR@',
-                '--libdir=' + prefix / 'lib',
+                '--libdir=' + prefix / get_option('libdir'),
                 '--includedir=' + '@PREFIX@' / '@INCLUDEDIR@',
                 '--includedir=' + prefix / get_option('includedir'),
                 '--enable-static',
@@ -68,15 +68,15 @@ libffi = declare_dependency(
                 'CONFIG_SITE': ' ',
             },
             verbose: true,
-        ).dependency('ffi').partial_dependency(
+        ).dependency('crypt').partial_dependency(
             compile_args: true,
             includes: true,
             sources: true,
         ),
     ],
     link_args: [
-        meson.project_build_root() / 'dist' + prefix / 'lib' / 'libffi.a',
+        meson.project_build_root() / 'dist' + prefix / get_option('libdir') / 'libasound.a',
     ],
 )
 
-meson.override_dependency('libffi', libffi, static: true)
+meson.override_dependency('alsa', alsa_lib, static: true)

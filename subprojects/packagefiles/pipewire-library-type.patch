@@ -1,0 +1,13 @@
+# Makes libpipewire a shared library or static library depending on the `default_library` option instead of always being a shared library.
+
+--- a/src/pipewire/meson.build
++++ b/src/pipewire/meson.build
+@@ -103,7 +103,7 @@ if host_machine.system() != 'freebsd' and host_machine.system() != 'midnightbsd'
+   ]
+ endif
+ 
+-libpipewire = shared_library(pipewire_name, pipewire_sources,
++libpipewire = library(pipewire_name, pipewire_sources,
+   version : libversion,
+   soversion : soversion,
+   c_args : libpipewire_c_args,

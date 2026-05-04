@@ -1,0 +1,4 @@
+[wrap-git]
+url = https://github.com/fmtlib/fmt
+revision = 12.1.0
+depth = 1

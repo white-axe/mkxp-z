@@ -47,8 +47,16 @@ if not import('fs').is_absolute(prefix)
     prefix = meson.global_source_root() / prefix
 endif
 
+ruby_deps = [
+    dependency('libcrypt', required: true),
+    dependency('libffi', required: true),
+    dependency('libyaml', required: true),
+    dependency('z', required: true),
+]
+
 ruby = declare_dependency(
     dependencies: [
+        ruby_deps,
         import('unstable-external_project').add_project(
             'configure',
             configure_options: [
@@ -89,10 +97,7 @@ ruby = declare_dependency(
                         'deps-stub.c',
                     ],
                     dependencies: [
-                        dependency('libcrypt', required: true),
-                        dependency('libffi', required: true),
-                        dependency('libyaml', required: true),
-                        dependency('z', required: true),
+                        ruby_deps,
                     ],
                 ),
             ],
@@ -144,3 +149,5 @@ ruby = declare_dependency(
         meson.project_build_root() / 'build' / 'libruby-static.a',
     ],
 )
+
+meson.override_dependency('ruby-3.1', ruby, static: true)

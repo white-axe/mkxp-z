@@ -79,3 +79,6 @@ libxcrypt = declare_dependency(
         meson.project_build_root() / 'dist' + prefix / get_option('libdir') / 'libcrypt.a',
     ],
 )
+
+meson.override_dependency('libcrypt', libxcrypt, static: true)
+meson.override_dependency('libxcrypt', libxcrypt, static: true)

@@ -1,0 +1,33 @@
+# Disables all of OpenAL Soft's Windows audio backends except for DirectSound.
+# GitHub user Tayruu has reported that the WASAPI audio backend has poor audio quality.
+
+--- a/meson.build
++++ b/meson.build
+@@ -42,9 +42,9 @@ jack_dep = dependency(
+   'jack',
+   required: get_option('jack'),
+ )
+-mm_dep = cpp.find_library(
+-  'winmm',
+-  required: get_option('winmm'),
++mm_dep = dependency(
++  '',
++  required: false,
+ )
+ oboe_dep = dependency(
+   'oboe',
+@@ -263,10 +263,10 @@ cdata.set(
+ )
+ cdata.set(
+   'HAVE_WASAPI',
+-  cpp.has_header(
+-    'wasapi.h',
+-    dependencies: mm_dep,
+-  ),
++  false,
++
++
++
+ )
+ configure_file(
+   input: 'config_backends.h.in',
