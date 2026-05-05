@@ -1,0 +1,14 @@
+# Changes the C++ standard for OpenAL Soft from c++17 to gnu++17.
+# Otherwise we get compilation errors when building for PowerPC targets.
+
+--- a/meson.build
++++ b/meson.build
+@@ -6,7 +6,7 @@ project(
+   meson_version: '>=0.58',
+ )
+ 
+-cpp_std = 'cpp_std=c++17'
++cpp_std = 'cpp_std=gnu++17'
+ 
+ cpp = meson.get_compiler('cpp')
+ if meson.version().version_compare('>= 0.62')
