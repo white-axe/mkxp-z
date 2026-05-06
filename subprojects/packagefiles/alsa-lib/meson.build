@@ -18,7 +18,7 @@ cflags += get_option('cflags')
 
 srcdir = meson.project_source_root()
 if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
-    srcdir = import('fs').as_posix(srcdir)
+    srcdir = srcdir.replace('\\', '/')
     if not srcdir.startswith('/')
         srcdir = '/' + srcdir
     endif
@@ -43,7 +43,7 @@ if not import('fs').is_absolute(prefix)
     prefix = srcdir / prefix
 endif
 if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
-    prefix = import('fs').as_posix(prefix)
+    prefix = prefix.replace('\\', '/')
     if not prefix.startswith('/')
         prefix = '/' + prefix
     endif

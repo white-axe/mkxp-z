@@ -22,7 +22,7 @@ cflags += '-std=gnu99'
 
 srcdir = meson.project_source_root()
 if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
-    srcdir = import('fs').as_posix(srcdir)
+    srcdir = srcdir.replace('\\', '/')
     if not srcdir.startswith('/')
         srcdir = '/' + srcdir
     endif
@@ -47,7 +47,7 @@ if not import('fs').is_absolute(prefix)
     prefix = srcdir / prefix
 endif
 if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
-    prefix = import('fs').as_posix(prefix)
+    prefix = prefix.replace('\\', '/')
     if not prefix.startswith('/')
         prefix = '/' + prefix
     endif
@@ -69,7 +69,7 @@ endif
 
 builddir = meson.project_build_root()
 if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
-    builddir = import('fs').as_posix(builddir)
+    builddir = builddir.replace('\\', '/')
     if not builddir.startswith('/')
         builddir = '/' + builddir
     endif
@@ -86,6 +86,28 @@ if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
             i += 1
         endforeach
         builddir = ''.join(builddir_components_out)
+    endif
+endif
+
+baseruby = find_program('ruby', required: true).full_path()
+if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
+    baseruby = baseruby.replace('\\', '/')
+    if not baseruby.startswith('/')
+        baseruby = '/' + baseruby
+    endif
+    if baseruby.contains(':')
+        baseruby_components_in = baseruby.split(':')
+        baseruby_components_out = []
+        i = 0
+        foreach baseruby_component : baseruby_components_in
+            if i == 0
+                baseruby_components_out += baseruby_component.to_lower()
+            else
+                baseruby_components_out += baseruby_component
+            endif
+            i += 1
+        endforeach
+        baseruby = ''.join(baseruby_components_out)
     endif
 endif
 
@@ -115,7 +137,7 @@ ruby = declare_dependency(
                 '--with-rubyhdrdir=' + builddir / 'dist' + prefix / get_option('includedir'),
                 '--with-rubyarchhdrdir=' + builddir / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
                 '--with-rubyarchhdrdir=' + builddir / 'dist' + prefix / get_option('includedir'),
-                '--with-baseruby=' + find_program('ruby', required: true).full_path(),
+                '--with-baseruby=' + baseruby,
                 '--disable-shared',
                 '--disable-install-doc',
                 '--with-out-ext=openssl,readline,dbm,gdbm',
