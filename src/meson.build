@@ -1,6 +1,26 @@
 cmake = import('cmake')
 
 prefix = get_option('prefix')
+if host_system == 'windows' or host_system == 'cygwin'
+    prefix = prefix.replace('\\', '/')
+    if not prefix.startswith('/')
+        prefix = '/' + prefix
+    endif
+    if prefix.contains(':')
+        prefix_components_in = prefix.split(':')
+        prefix_components_out = []
+        i = 0
+        foreach prefix_component : prefix_components_in
+            if i == 0
+                prefix_components_out += prefix_component.to_lower()
+            else
+                prefix_components_out += prefix_component
+            endif
+            i += 1
+        endforeach
+        prefix = ''.join(prefix_components_out)
+    endif
+endif
 
 null_dep = dependency('', required: false)
 foreach dep_name : [
