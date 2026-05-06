@@ -44,7 +44,49 @@ endif
 
 prefix = get_option('prefix')
 if not import('fs').is_absolute(prefix)
-    prefix = meson.global_source_root() / prefix
+    prefix = srcdir / prefix
+endif
+if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
+    prefix = import('fs').as_posix(prefix)
+    if not prefix.startswith('/')
+        prefix = '/' + prefix
+    endif
+    if prefix.contains(':')
+        prefix_components_in = prefix.split(':')
+        prefix_components_out = []
+        i = 0
+        foreach prefix_component : prefix_components_in
+            if i == 0
+                prefix_components_out += prefix_component.to_lower()
+            else
+                prefix_components_out += prefix_component
+            endif
+            i += 1
+        endforeach
+        prefix = ''.join(prefix_components_out)
+    endif
+endif
+
+builddir = meson.project_build_root()
+if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
+    builddir = import('fs').as_posix(builddir)
+    if not builddir.startswith('/')
+        builddir = '/' + builddir
+    endif
+    if builddir.contains(':')
+        builddir_components_in = builddir.split(':')
+        builddir_components_out = []
+        i = 0
+        foreach builddir_component : builddir_components_in
+            if i == 0
+                builddir_components_out += builddir_component.to_lower()
+            else
+                builddir_components_out += builddir_component
+            endif
+            i += 1
+        endforeach
+        builddir = ''.join(builddir_components_out)
+    endif
 endif
 
 ruby_deps = [
@@ -61,18 +103,18 @@ ruby = declare_dependency(
             'configure',
             configure_options: [
                 '--srcdir=' + srcdir,
-                '--prefix=' + meson.project_build_root() / 'dist' + '@PREFIX@',
-                '--prefix=' + meson.project_build_root() / 'dist' + prefix,
-                '--bindir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@BINDIR@',
-                '--bindir=' + meson.project_build_root() / 'dist' + prefix / get_option('bindir'),
-                '--libdir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@LIBDIR@',
-                '--libdir=' + meson.project_build_root() / 'dist' + prefix / get_option('libdir'),
-                '--includedir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
-                '--includedir=' + meson.project_build_root() / 'dist' + prefix / get_option('includedir'),
-                '--with-rubyhdrdir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
-                '--with-rubyhdrdir=' + meson.project_build_root() / 'dist' + prefix / get_option('includedir'),
-                '--with-rubyarchhdrdir=' + meson.project_build_root() / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
-                '--with-rubyarchhdrdir=' + meson.project_build_root() / 'dist' + prefix / get_option('includedir'),
+                '--prefix=' + builddir / 'dist' + '@PREFIX@',
+                '--prefix=' + builddir / 'dist' + prefix,
+                '--bindir=' + builddir / 'dist' + '@PREFIX@' / '@BINDIR@',
+                '--bindir=' + builddir / 'dist' + prefix / get_option('bindir'),
+                '--libdir=' + builddir / 'dist' + '@PREFIX@' / '@LIBDIR@',
+                '--libdir=' + builddir / 'dist' + prefix / get_option('libdir'),
+                '--includedir=' + builddir / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
+                '--includedir=' + builddir / 'dist' + prefix / get_option('includedir'),
+                '--with-rubyhdrdir=' + builddir / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
+                '--with-rubyhdrdir=' + builddir / 'dist' + prefix / get_option('includedir'),
+                '--with-rubyarchhdrdir=' + builddir / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
+                '--with-rubyarchhdrdir=' + builddir / 'dist' + prefix / get_option('includedir'),
                 '--with-baseruby=' + find_program('ruby', required: true).full_path(),
                 '--disable-shared',
                 '--disable-install-doc',

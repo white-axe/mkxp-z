@@ -40,7 +40,27 @@ endif
 
 prefix = get_option('prefix')
 if not import('fs').is_absolute(prefix)
-    prefix = meson.global_source_root() / prefix
+    prefix = srcdir / prefix
+endif
+if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
+    prefix = import('fs').as_posix(prefix)
+    if not prefix.startswith('/')
+        prefix = '/' + prefix
+    endif
+    if prefix.contains(':')
+        prefix_components_in = prefix.split(':')
+        prefix_components_out = []
+        i = 0
+        foreach prefix_component : prefix_components_in
+            if i == 0
+                prefix_components_out += prefix_component.to_lower()
+            else
+                prefix_components_out += prefix_component
+            endif
+            i += 1
+        endforeach
+        prefix = ''.join(prefix_components_out)
+    endif
 endif
 
 libxcrypt = declare_dependency(
