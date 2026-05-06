@@ -79,11 +79,6 @@ global_args += ['-Wno-non-virtual-dtor', '-Wno-reorder', '-Wno-uninitialized', '
 if compilers['cpp'].get_id() == 'clang'
     global_args += ['-Wno-undefined-var-template', '-Wno-delete-non-abstract-non-virtual-dtor']
 endif
-if host_system == 'windows'
-    if compilers['cpp'].get_id() != 'clang'
-        global_args += '-masm=intel'
-    endif
-endif
 
 # Decide whether or not to use MiniFFI
 miniffi = get_option('use_miniffi')
