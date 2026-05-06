@@ -39,9 +39,6 @@ if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
 endif
 
 prefix = get_option('prefix')
-if not import('fs').is_absolute(prefix)
-    prefix = srcdir / prefix
-endif
 if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
     prefix = prefix.replace('\\', '/')
     if not prefix.startswith('/')

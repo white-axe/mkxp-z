@@ -1,9 +1,6 @@
 cmake = import('cmake')
 
 prefix = get_option('prefix')
-if not import('fs').is_absolute(prefix)
-    prefix = meson.global_source_root() / prefix
-endif
 
 null_dep = dependency('', required: false)
 foreach dep_name : [
