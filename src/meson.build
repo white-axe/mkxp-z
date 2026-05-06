@@ -2,71 +2,7 @@ cmake = import('cmake')
 
 prefix = get_option('prefix')
 if not import('fs').is_absolute(prefix)
-    prefix = srcdir / prefix
-endif
-if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
-    prefix = prefix.replace('\\', '/')
-    if not prefix.startswith('/')
-        prefix = '/' + prefix
-    endif
-    if prefix.contains(':')
-        prefix_components_in = prefix.split(':')
-        prefix_components_out = []
-        i = 0
-        foreach prefix_component : prefix_components_in
-            if i == 0
-                prefix_components_out += prefix_component.to_lower()
-            else
-                prefix_components_out += prefix_component
-            endif
-            i += 1
-        endforeach
-        prefix = ''.join(prefix_components_out)
-    endif
-endif
-
-srcdir = meson.project_source_root()
-if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
-    srcdir = srcdir.replace('\\', '/')
-    if not srcdir.startswith('/')
-        srcdir = '/' + srcdir
-    endif
-    if srcdir.contains(':')
-        srcdir_components_in = srcdir.split(':')
-        srcdir_components_out = []
-        i = 0
-        foreach srcdir_component : srcdir_components_in
-            if i == 0
-                srcdir_components_out += srcdir_component.to_lower()
-            else
-                srcdir_components_out += srcdir_component
-            endif
-            i += 1
-        endforeach
-        srcdir = ''.join(srcdir_components_out)
-    endif
-endif
-
-builddir = meson.global_build_root()
-if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
-    builddir = builddir.replace('\\', '/')
-    if not builddir.startswith('/')
-        builddir = '/' + builddir
-    endif
-    if builddir.contains(':')
-        builddir_components_in = builddir.split(':')
-        builddir_components_out = []
-        i = 0
-        foreach builddir_component : builddir_components_in
-            if i == 0
-                builddir_components_out += builddir_component.to_lower()
-            else
-                builddir_components_out += builddir_component
-            endif
-            i += 1
-        endforeach
-        builddir = ''.join(builddir_components_out)
-    endif
+    prefix = meson.global_source_root() / prefix
 endif
 
 null_dep = dependency('', required: false)
@@ -208,7 +144,7 @@ sdl2_options.add_cmake_defines(cmake_base_options + {
     'SDL_LIBSAMPLERATE_SHARED': false,
 })
 sdl2 = cmake.subproject('sdl2', options: sdl2_options).dependency('SDL2-static')
-sdl2_includes = ['-I' + srcdir / 'subprojects' / 'sdl2' / 'include', '-I' + builddir / 'subprojects' / 'sdl2' / '__CMake_build' / 'include-config-release' / 'SDL2']
+sdl2_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'sdl2' / 'include', '-I' + meson.global_build_root() / 'subprojects' / 'sdl2' / '__CMake_build' / 'include-config-release' / 'SDL2']
 meson.override_dependency('sdl2', sdl2, static: true)
 global_dependencies += sdl2
 
@@ -281,7 +217,7 @@ ogg_options.add_cmake_defines(cmake_base_options + {
     'BUILD_FRAMEWORK': false,
 })
 ogg = cmake.subproject('ogg', options: ogg_options).dependency('ogg')
-ogg_includes = ['-I' + srcdir / 'subprojects' / 'ogg' / 'include', '-I' + builddir / 'subprojects' / 'ogg' / '__CMake_build' / 'include']
+ogg_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'ogg' / 'include', '-I' + meson.global_build_root() / 'subprojects' / 'ogg' / '__CMake_build' / 'include']
 meson.override_dependency('ogg', ogg, static: true)
 global_dependencies += ogg
 
@@ -331,7 +267,7 @@ freetype_options = meson_base_options + {
     'zlib': 'disabled',
 }
 freetype = subproject('freetype', default_options: freetype_options).get_variable('freetype_dep')
-freetype_includes = ['-I' + srcdir / 'subprojects' / 'freetype' / 'include']
+freetype_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'freetype' / 'include']
 global_dependencies += freetype
 
 sdl2_ttf_options = cmake.subproject_options()
@@ -366,8 +302,8 @@ zlib_options.add_cmake_defines(cmake_base_options + {
     'ZLIB_BUILD_EXAMPLES': false,
 })
 zlib = cmake.subproject('zlib', options: zlib_options).dependency('z')
-zlib_includes = ['-I' + srcdir / 'subprojects' / 'zlib', '-I' + builddir / 'subprojects' / 'zlib' / '__CMake_build']
-zlib_libs = ['-L' + builddir / 'subprojects' / 'zlib']
+zlib_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'zlib', '-I' + meson.global_build_root() / 'subprojects' / 'zlib' / '__CMake_build']
+zlib_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'zlib']
 meson.override_dependency('z', zlib, static: true)
 global_dependencies += zlib
 
@@ -468,19 +404,19 @@ libyaml_options.add_cmake_defines(cmake_base_options + {
     'BUILD_SHARED_LIBS': false,
 })
 libyaml = cmake.subproject('libyaml', options: libyaml_options).dependency('yaml')
-libyaml_includes = ['-I' + srcdir / 'subprojects' / 'libyaml' / 'include', '-I' + builddir / 'subprojects' / 'libyaml' / '__CMake_build' / 'include']
-libyaml_libs = ['-L' + builddir / 'subprojects' / 'libyaml']
+libyaml_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'libyaml' / 'include', '-I' + meson.global_build_root() / 'subprojects' / 'libyaml' / '__CMake_build' / 'include']
+libyaml_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libyaml']
 meson.override_dependency('libyaml', libyaml, static: true)
 
 libxcrypt_options = meson_base_options
 libxcrypt = subproject('libxcrypt', default_options: libxcrypt_options).get_variable('libxcrypt')
-libxcrypt_includes = ['-I' + builddir / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + prefix / get_option('includedir')]
-libxcrypt_libs = ['-L' + builddir / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + prefix / get_option('libdir')]
+libxcrypt_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + prefix / get_option('includedir')]
+libxcrypt_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + prefix / get_option('libdir')]
 
 libffi_options = meson_base_options
 libffi = subproject('libffi', default_options: libffi_options).get_variable('libffi')
-libffi_includes = ['-I' + builddir / 'subprojects' / 'libffi-3.5.2' / 'dist' + prefix / get_option('includedir')]
-libffi_libs = ['-L' + builddir / 'subprojects' / 'libffi-3.5.2' / 'dist' + prefix / 'lib']
+libffi_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' + prefix / get_option('includedir')]
+libffi_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' + prefix / 'lib']
 
 ruby_options = meson_base_options + {
     'cflags': zlib_includes + libyaml_includes + libxcrypt_includes + libffi_includes,
