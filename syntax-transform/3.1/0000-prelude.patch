@@ -115,10 +115,12 @@
  
 --- a/include/ruby/ruby.h
 +++ b/include/ruby/ruby.h
-@@ -306,6 +306,10 @@ __extension__({ \
+@@ -306,6 +306,12 @@ __extension__({ \
  # include "ruby/backward.h"
  #endif
  
++void mkxp_syntax_transform_set_next_eval(int next_eval);
++
 +bool mkxp_ec_is_syntax_transform_active(unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny);
 +
 +[[noreturn]] void mkxp_raise_no_method_exception(VALUE receiver, const char *method_name);
@@ -197,7 +199,7 @@
  #define intern_cstr(n,l,en) rb_intern3(n,l,en)
  
  #define STR_NEW(ptr,len) rb_enc_str_new((ptr),(len),p->enc)
-@@ -8209,6 +8228,17 @@ parser_set_compile_option_flag(struct parser_params *p, const char *name, const
+@@ -8208,6 +8227,17 @@ parser_set_compile_option_flag(struct parser_params *p, const char *name, const
  		 RBOOL(b));
  }
  
@@ -228,10 +230,10 @@
  	unsigned int size;
 --- a/vm_eval.c
 +++ b/vm_eval.c
-@@ -1,3 +1,13 @@
+@@ -1,3 +1,19 @@
 +RUBY_FUNC_EXPORTED unsigned int mkxp_syntax_transform_target_ruby_version_major = -1, mkxp_syntax_transform_target_ruby_version_minor = -1, mkxp_syntax_transform_target_ruby_version_teeny = -1;
 +
-+RUBY_FUNC_EXPORTED
++static
 +#if __STDC_VERSION__ >= 202311L
 +thread_local
 +#else
@@ -239,10 +241,16 @@
 +#endif
 +int mkxp_syntax_transform_next_eval = 0;
 +
++void
++mkxp_syntax_transform_set_next_eval(int next_eval)
++{
++    mkxp_syntax_transform_next_eval = next_eval;
++}
++
  /**********************************************************************
  
    vm_eval.c -
-@@ -1704,6 +1714,22 @@ eval_make_iseq(VALUE src, VALUE fname, int line, const rb_binding_t *bind,
+@@ -1707,6 +1723,22 @@ eval_make_iseq(VALUE src, VALUE fname, int line, const rb_binding_t *bind,
          fname = eval_default_path;
      }
  
