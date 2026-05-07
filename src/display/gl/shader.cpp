@@ -112,7 +112,7 @@ static void printProgramLog(GLuint program)
 	std::clog << "Program log:\n" << log;
 }
 
-Shader::Shader()
+Shader::Shader() : initialized(false)
 {
 #ifdef MKXPZ_BUILD_XCODE
     if (Shader::shaderCommon.empty())
@@ -193,6 +193,15 @@ void Shader::init(const unsigned char *vert, int vertSize,
                   const char *vertName, const char *fragName,
                   const char *programName)
 {
+	if (initialized)
+	{
+		/* Calling Shader::init() more than once causes a small number of graphics drivers to encounter linking errors.
+		 * In particular, the Nintendo Switch homebrew toolchain's Mesa driver has this problem.
+		 * So we throw this exception on every platform to reduce the probability of regressions. */
+		throw Exception(Exception::MKXPError,
+	                    "Attempted to call Shader::init() more than once");
+	}
+
 	GLint success;
 
 	/* Compile vertex shader */
@@ -242,6 +251,8 @@ void Shader::init(const unsigned char *vert, int vertSize,
 	                    "GLSL: An error occurred while linking program '%s' (vertex '%s', fragment '%s')",
 	                    programName, vertName, fragName);
 	}
+
+	initialized = true;
 }
 
 void Shader::initFromFile(const char *_vertFile, const char *_fragFile,
@@ -354,6 +365,10 @@ SimpleShader::SimpleShader()
 	GET_U(texOffsetX);
 }
 
+SimpleShader::SimpleShader(const ShaderNoConstructTag &)
+{
+}
+
 void SimpleShader::setTexOffsetX(int value)
 {
 	gl.Uniform1f(u_texOffsetX, value);
@@ -385,12 +400,16 @@ SimpleSpriteShader::SimpleSpriteShader()
 	GET_U(spriteMat);
 }
 
+SimpleSpriteShader::SimpleSpriteShader(const ShaderNoConstructTag &)
+{
+}
+
 void SimpleSpriteShader::setSpriteMat(const float value[16])
 {
 	gl.UniformMatrix4fv(u_spriteMat, 1, GL_FALSE, value);
 }
 
-BicubicSpriteShader::BicubicSpriteShader()
+BicubicSpriteShader::BicubicSpriteShader() : Lanczos3SpriteShader(ShaderNoConstructTag())
 {
 	INIT_SHADER(sprite, bicubic, BicubicSpriteShader);
 
@@ -406,7 +425,7 @@ void BicubicSpriteShader::setSharpness(int sharpness)
 	gl.Uniform2f(u_bc, 1.f - sharpness * 0.01f, sharpness * 0.005f);
 }
 
-Lanczos3SpriteShader::Lanczos3SpriteShader()
+Lanczos3SpriteShader::Lanczos3SpriteShader() : SimpleSpriteShader(ShaderNoConstructTag())
 {
 	INIT_SHADER(sprite, lanczos3, Lanczos3SpriteShader);
 
@@ -416,6 +435,10 @@ Lanczos3SpriteShader::Lanczos3SpriteShader()
 	GET_U(sourceSize);
 }
 
+Lanczos3SpriteShader::Lanczos3SpriteShader(const ShaderNoConstructTag &) : SimpleSpriteShader(ShaderNoConstructTag())
+{
+}
+
 void Lanczos3SpriteShader::setTexSize(const Vec2i &value)
 {
 	ShaderBase::setTexSize(value);
@@ -423,7 +446,7 @@ void Lanczos3SpriteShader::setTexSize(const Vec2i &value)
 }
 
 #ifdef MKXPZ_SSL
-XbrzSpriteShader::XbrzSpriteShader()
+XbrzSpriteShader::XbrzSpriteShader() : Lanczos3SpriteShader(ShaderNoConstructTag())
 {
 	INIT_SHADER(sprite, xbrz, XbrzSpriteShader);
 
@@ -806,6 +829,10 @@ BltShader::BltShader()
 	init();
 }
 
+BltShader::BltShader(const ShaderNoConstructTag &)
+{
+}
+
 void BltShader::init()
 {
 	ShaderBase::init();
@@ -850,7 +877,7 @@ KglCompressAlphaShader::KglCompressAlphaShader()
 	ShaderBase::init();
 }
 
-KglSubtractShader::KglSubtractShader()
+KglSubtractShader::KglSubtractShader() : BltShader(ShaderNoConstructTag())
 {
 	INIT_SHADER(simple, kglSubtract, KglSubtractShader);
 
@@ -923,7 +950,7 @@ void KglShadowShaderV::setParams(int y1, int y2, int x, bool wall, bool soft, in
 	gl.Uniform1f(u_slope2, slope2);
 }
 
-BicubicShader::BicubicShader()
+BicubicShader::BicubicShader() : Lanczos3Shader(ShaderNoConstructTag())
 {
 	INIT_SHADER(simple, bicubic, BicubicShader);
 
@@ -939,7 +966,7 @@ void BicubicShader::setSharpness(int sharpness)
 	gl.Uniform2f(u_bc, 1.f - sharpness * 0.01f, sharpness * 0.005f);
 }
 
-Lanczos3Shader::Lanczos3Shader()
+Lanczos3Shader::Lanczos3Shader() : SimpleShader(ShaderNoConstructTag())
 {
 	INIT_SHADER(simple, lanczos3, Lanczos3Shader);
 
@@ -949,6 +976,10 @@ Lanczos3Shader::Lanczos3Shader()
 	GET_U(sourceSize);
 }
 
+Lanczos3Shader::Lanczos3Shader(const ShaderNoConstructTag &) : SimpleShader(ShaderNoConstructTag())
+{
+}
+
 void Lanczos3Shader::setTexSize(const Vec2i &value)
 {
 	ShaderBase::setTexSize(value);
@@ -956,7 +987,7 @@ void Lanczos3Shader::setTexSize(const Vec2i &value)
 }
 
 #ifdef MKXPZ_SSL
-XbrzShader::XbrzShader()
+XbrzShader::XbrzShader() : Lanczos3Shader(ShaderNoConstructTag())
 {
 	INIT_SHADER(simple, xbrz, XbrzShader);
 

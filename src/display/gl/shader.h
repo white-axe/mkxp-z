@@ -26,6 +26,8 @@
 #include "gl-util.h"
 #include "glstate.h"
 
+class ShaderNoConstructTag {};
+
 class Shader
 {
 public:
@@ -58,6 +60,7 @@ protected:
 
 	GLuint vertShader, fragShader;
 	GLuint program;
+	bool initialized;
     
 private:
 #ifdef MKXPZ_BUILD_XCODE
@@ -111,6 +114,7 @@ class SimpleShader : public ShaderBase
 {
 public:
 	SimpleShader();
+	SimpleShader(const ShaderNoConstructTag &);
 
 	void setTexOffsetX(int value);
 
@@ -134,6 +138,7 @@ class SimpleSpriteShader : public ShaderBase
 {
 public:
 	SimpleSpriteShader();
+	SimpleSpriteShader(const ShaderNoConstructTag &);
 
 	void setSpriteMat(const float value[16]);
 
@@ -320,6 +325,7 @@ class BltShader : public ShaderBase
 {
 public:
 	BltShader();
+	BltShader(const ShaderNoConstructTag &);
 
 	void init();
 
@@ -377,6 +383,7 @@ class Lanczos3Shader : public SimpleShader
 {
 public:
 	Lanczos3Shader();
+	Lanczos3Shader(const ShaderNoConstructTag &);
 
 	void setTexSize(const Vec2i &value);
 
@@ -412,6 +419,7 @@ class Lanczos3SpriteShader : public SimpleSpriteShader
 {
 public:
 	Lanczos3SpriteShader();
+	Lanczos3SpriteShader(const ShaderNoConstructTag &);
 
 	void setTexSize(const Vec2i &value);
 
