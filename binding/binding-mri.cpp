@@ -1068,10 +1068,6 @@ bool evalScript(VALUE string, const char *filename)
 
 #define SCRIPT_SECTION_FMT (rgssVer >= 3 ? "{%04ld}" : "Section%03ld")
 
-#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
-extern "C" mkxp_syntax_transform_set_next_eval(int next_eval);
-#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
-
 static void runRMXPScripts(BacktraceData &btData) {
     const Config &conf = shState->rtData().config;
     const std::string &scriptPack = conf.game.scripts;
