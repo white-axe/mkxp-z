@@ -137,11 +137,13 @@
  
 --- a/include/ruby/ruby.h
 +++ b/include/ruby/ruby.h
-@@ -426,6 +426,12 @@ __extension__({ \
+@@ -426,6 +426,14 @@ __extension__({ \
  # include "ruby/backward.h"
  #endif
  
 +void mkxp_warn(const char *message);
++
++void mkxp_syntax_transform_set_next_eval(int next_eval);
 +
 +bool mkxp_ec_is_syntax_transform_active(unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny);
 +
@@ -275,10 +277,10 @@
          unsigned int size;
 --- a/vm_eval.c
 +++ b/vm_eval.c
-@@ -1,3 +1,13 @@
+@@ -1,3 +1,19 @@
 +RUBY_FUNC_EXPORTED unsigned int mkxp_syntax_transform_target_ruby_version_major = -1, mkxp_syntax_transform_target_ruby_version_minor = -1, mkxp_syntax_transform_target_ruby_version_teeny = -1;
 +
-+RUBY_FUNC_EXPORTED
++static
 +#if __STDC_VERSION__ >= 202311L
 +thread_local
 +#else
@@ -286,10 +288,16 @@
 +#endif
 +int mkxp_syntax_transform_next_eval = 0;
 +
++void
++mkxp_syntax_transform_set_next_eval(int next_eval)
++{
++    mkxp_syntax_transform_next_eval = next_eval;
++}
++
  /**********************************************************************
  
    vm_eval.c -
-@@ -1684,6 +1694,22 @@ eval_make_iseq(VALUE src, VALUE fname, int line, const rb_binding_t *bind,
+@@ -1686,6 +1702,22 @@ eval_make_iseq(VALUE src, VALUE fname, int line, const rb_binding_t *bind,
          coverage_enabled = FALSE;
      }
  

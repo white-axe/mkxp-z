@@ -53,7 +53,7 @@
      rb_define_method(rb_cArray, "to_ary", rb_ary_to_ary_m, 0);
 --- a/hash.c
 +++ b/hash.c
-@@ -3508,6 +3508,12 @@ rb_hash_inspect(VALUE hash)
+@@ -3490,6 +3490,12 @@ rb_hash_inspect(VALUE hash)
      return rb_exec_recursive(inspect_hash, hash, 0);
  }
  
@@ -66,7 +66,7 @@
  /*
   *  call-seq:
   *    hash.to_hash -> self
-@@ -7214,7 +7220,7 @@ Init_Hash(void)
+@@ -7196,7 +7202,7 @@ Init_Hash(void)
      rb_define_method(rb_cHash, "to_h", rb_hash_to_h, 0);
      rb_define_method(rb_cHash, "to_a", rb_hash_to_a, 0);
      rb_define_method(rb_cHash, "inspect", rb_hash_inspect, 0);

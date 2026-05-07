@@ -31,7 +31,7 @@
 
 --- a/compile.c
 +++ b/compile.c
-@@ -1907,12 +1907,18 @@ iseq_set_arguments_keywords(rb_iseq_t *iseq, LINK_ANCHOR *const optargs,
+@@ -1879,12 +1879,18 @@ iseq_set_arguments_keywords(rb_iseq_t *iseq, LINK_ANCHOR *const optargs,
      return arg_size;
  }
  

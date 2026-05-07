@@ -26,7 +26,7 @@
 
 --- a/hash.c
 +++ b/hash.c
-@@ -2771,8 +2771,18 @@ keep_if_i(VALUE key, VALUE value, VALUE hash)
+@@ -2757,8 +2757,18 @@ keep_if_i(VALUE key, VALUE value, VALUE hash)
   *    e.each {|key, value| value < 2 } # => {:foo=>0, :bar=>1}
   */
  
@@ -46,7 +46,7 @@
  {
      VALUE result;
  
-@@ -2804,6 +2814,21 @@ rb_hash_select(VALUE hash)
+@@ -2789,6 +2799,21 @@ rb_hash_select(VALUE hash)
   *    e.each { |key, value| value < 2 } # => {:foo=>0, :bar=>1}
   */
  

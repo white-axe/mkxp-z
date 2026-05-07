@@ -57,7 +57,7 @@
 
 --- a/vm_insnhelper.c
 +++ b/vm_insnhelper.c
-@@ -4026,6 +4026,21 @@ vm_callee_setup_block_arg(rb_execution_context_t *ec, struct rb_calling_info *ca
+@@ -4024,6 +4024,21 @@ vm_callee_setup_block_arg(rb_execution_context_t *ec, struct rb_calling_info *ca
          CALLER_SETUP_ARG(cfp, calling, ci);
          CALLER_REMOVE_EMPTY_KW_SPLAT(cfp, calling, ci);
  

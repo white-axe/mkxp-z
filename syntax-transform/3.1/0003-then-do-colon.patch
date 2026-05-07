@@ -98,7 +98,7 @@
  		| keyword_do_cond
  		;
  
-@@ -9978,7 +9985,7 @@ parser_yylex(struct parser_params *p)
+@@ -9972,7 +9979,7 @@ parser_yylex(struct parser_params *p)
  	    pushback(p, c);
  	    c = warn_balanced(':', ":", "symbol literal");
  	    SET_LEX_STATE(EXPR_BEG);

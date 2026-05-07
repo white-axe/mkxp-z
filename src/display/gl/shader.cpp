@@ -131,7 +131,7 @@ static void printProgramLog(GLuint program)
 #endif // MKXPZ_RETRO
 }
 
-Shader::Shader()
+Shader::Shader() : initialized(false)
 {
 #ifdef MKXPZ_BUILD_XCODE
     if (Shader::shaderCommon.empty())
@@ -213,6 +213,16 @@ void Shader::init(Exception &exception,
                   const char *vertName, const char *fragName,
                   const char *programName)
 {
+	if (initialized)
+	{
+		/* Calling Shader::init() more than once causes a small number of graphics drivers to encounter linking errors.
+		 * In particular, the Nintendo Switch homebrew toolchain's Mesa driver has this problem.
+		 * So we throw this exception on every platform to reduce the probability of regressions. */
+		exception = Exception(Exception::MKXPError,
+	                    "Attempted to call Shader::init() more than once");
+		return;
+	}
+
 	GLint success;
 
 	/* Compile vertex shader */
@@ -265,6 +275,8 @@ void Shader::init(Exception &exception,
 	                    programName, vertName, fragName);
 		return;
 	}
+
+	initialized = true;
 }
 
 void Shader::initFromFile(Exception &exception,

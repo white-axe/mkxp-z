@@ -52,7 +52,7 @@
 
 --- a/hash.c
 +++ b/hash.c
-@@ -4751,7 +4751,7 @@ hash_proc_call(RB_BLOCK_CALL_FUNC_ARGLIST(key, hash))
+@@ -4733,7 +4733,7 @@ hash_proc_call(RB_BLOCK_CALL_FUNC_ARGLIST(key, hash))
  static VALUE
  rb_hash_to_proc(VALUE hash)
  {

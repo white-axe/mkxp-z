@@ -24,7 +24,7 @@
 
 --- a/class.c
 +++ b/class.c
-@@ -1689,6 +1689,17 @@ class_instance_method_list(int argc, const VALUE *argv, VALUE mod, int obj, int
+@@ -1655,6 +1655,17 @@ class_instance_method_list(int argc, const VALUE *argv, VALUE mod, int obj, int
      st_foreach(me_arg.list, func, ary);
      st_free_table(me_arg.list);
  
@@ -42,7 +42,7 @@
      return ary;
  }
  
-@@ -1926,6 +1937,17 @@ rb_obj_singleton_methods(int argc, const VALUE *argv, VALUE obj)
+@@ -1892,6 +1903,17 @@ rb_obj_singleton_methods(int argc, const VALUE *argv, VALUE obj)
      st_foreach(me_arg.list, ins_methods_i, ary);
      st_free_table(me_arg.list);
  
@@ -86,7 +86,7 @@
  }
  
  /*!
-@@ -1876,7 +1891,20 @@ f_current_dirname(VALUE _)
+@@ -1868,7 +1883,20 @@ f_current_dirname(VALUE _)
  static VALUE
  f_global_variables(VALUE _)
  {
@@ -161,7 +161,7 @@
  }
  
  static int
-@@ -3697,7 +3723,22 @@ rb_mod_class_variables(int argc, const VALUE *argv, VALUE mod)
+@@ -3696,7 +3722,22 @@ rb_mod_class_variables(int argc, const VALUE *argv, VALUE mod)
      else {
  	tbl = mod_cvar_at(mod, 0);
      }
@@ -187,7 +187,7 @@
  /*
 --- a/vm_eval.c
 +++ b/vm_eval.c
-@@ -2512,7 +2512,22 @@ rb_f_local_variables(VALUE _)
+@@ -2521,7 +2521,22 @@ rb_f_local_variables(VALUE _)
  	    break;
  	}
      }
