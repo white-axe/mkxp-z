@@ -150,6 +150,8 @@ ruby = declare_dependency(
             ],
             env: {
                 'CONFIG_SITE': ' ',
+                'rb_cv_broken_crypt': 'no',
+                'ac_cv_lib_crypt_crypt': 'yes',
             },
             depends: [
                 # Force Meson to fully build all of our vendored dependencies that are required by Ruby before building Ruby itself
