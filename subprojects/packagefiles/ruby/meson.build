@@ -135,6 +135,7 @@ ruby = declare_dependency(
                 '--with-rubyarchhdrdir=' + builddir / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
                 '--with-rubyarchhdrdir=' + builddir / 'dist' + prefix / get_option('includedir'),
                 '--with-baseruby=' + baseruby,
+                '--with-soname=ruby',
                 '--disable-shared',
                 '--disable-install-doc',
                 '--with-out-ext=openssl,readline,dbm,gdbm',
@@ -195,15 +196,22 @@ ruby = declare_dependency(
         meson.project_build_root() / 'build' / 'ext' / 'objspace' / 'objspace.a',
         meson.project_build_root() / 'build' / 'ext' / 'pathname' / 'pathname.a',
         meson.project_build_root() / 'build' / 'ext' / 'psych' / 'psych.a',
-        meson.project_build_root() / 'build' / 'ext' / 'pty' / 'pty.a',
         meson.project_build_root() / 'build' / 'ext' / 'racc' / 'cparse' / 'cparse.a',
         meson.project_build_root() / 'build' / 'ext' / 'rbconfig' / 'sizeof' / 'sizeof.a',
         meson.project_build_root() / 'build' / 'ext' / 'ripper' / 'ripper.a',
         meson.project_build_root() / 'build' / 'ext' / 'socket' / 'socket.a',
         meson.project_build_root() / 'build' / 'ext' / 'stringio' / 'stringio.a',
         meson.project_build_root() / 'build' / 'ext' / 'strscan' / 'strscan.a',
-        meson.project_build_root() / 'build' / 'ext' / 'syslog' / 'syslog.a',
         meson.project_build_root() / 'build' / 'ext' / 'zlib' / 'zlib.a',
+        host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
+            ? [
+                meson.project_build_root() / 'build' / 'ext' / 'win32' / 'resolv' / 'resolv.a',
+                meson.project_build_root() / 'build' / 'ext' / 'win32ole' / 'win32ole.a',
+            ]
+            : [
+                meson.project_build_root() / 'build' / 'ext' / 'pty' / 'pty.a',
+                meson.project_build_root() / 'build' / 'ext' / 'syslog' / 'syslog.a',
+            ],
         meson.project_build_root() / 'build' / 'enc' / 'encinit.o',
         meson.project_build_root() / 'build' / 'enc' / 'libenc.a',
         meson.project_build_root() / 'build' / 'enc' / 'libtrans.a',

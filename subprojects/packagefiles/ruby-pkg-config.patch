@@ -1,0 +1,42 @@
+# Disables the forced generation of a pkgconf entry for Ruby so that no compilation errors if pkg-config isn't installed.
+
+--- a/template/Makefile.in
++++ b/template/Makefile.in
+@@ -324,13 +324,13 @@ $(LIBRUBY_$(LIBRUBY_WITH_EXT)): $(LIBRUBY_SO_UPDATE)
+ 
+ PKG_CONFIG = @PKG_CONFIG@
+ ruby_pc = @ruby_pc@
+-$(ruby_pc): config.status Makefile
+-	$(Q)./config.status --file=-:$(srcdir)/template/ruby.pc.in | \
+-	sed -e 's/\$$(\([A-Za-z_][A-Za-z0-9_]*\))/$${\1}/g' \
+-	    -e 's|^prefix=.*|prefix=$(prefix)|' \
+-	    > ruby.tmp.pc
+-	$(Q)pkg_config=${PKG_CONFIG} && PKG_CONFIG_PATH=. $${pkg_config:-:} --print-errors ruby.tmp
+-	$(Q)$(MV) -f ruby.tmp.pc $(ruby_pc)
++
++
++
++
++
++
++
+ 
+ pre-install-local:: pkgconfig-data
+ 
+--- a/win32/Makefile.sub
++++ b/win32/Makefile.sub
+@@ -1232,10 +1232,10 @@ update-benchmark-driver:
+ 	$(GIT) clone https://github.com/benchmark-driver/benchmark-driver $(srcdir)/benchmark/benchmark-driver || \
+ 	  $(GIT) -C $(srcdir)/benchmark/benchmark-driver pull origin master
+ 
+-$(ruby_pc): $(RBCONFIG)
+-	@$(BOOTSTRAPRUBY) $(tooldir)/expand-config.rb \
+-		-output=$@ -mode=$(INSTALL_DATA_MODE) -config=rbconfig.rb \
+-		$(srcdir)/template/ruby.pc.in
++
++
++
++
+ 
+ {$(srcdir)/coroutine/win32}.asm{coroutine/win32}.obj:
+ 	$(ECHO) assembling $(<:\=/)
