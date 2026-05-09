@@ -1,27 +1,5 @@
 cmake = import('cmake')
 
-prefix = get_option('prefix')
-if host_system == 'windows' or host_system == 'cygwin'
-    prefix = prefix.replace('\\', '/')
-    if not prefix.startswith('/')
-        prefix = '/' + prefix
-    endif
-    if prefix.contains(':')
-        prefix_components_in = prefix.split(':')
-        prefix_components_out = []
-        i = 0
-        foreach prefix_component : prefix_components_in
-            if i == 0
-                prefix_components_out += prefix_component.to_lower()
-            else
-                prefix_components_out += prefix_component
-            endif
-            i += 1
-        endforeach
-        prefix = ''.join(prefix_components_out)
-    endif
-endif
-
 null_dep = dependency('', required: false)
 foreach dep_name : [
     host_system != 'linux' ? 'alsa' : '',
@@ -427,13 +405,13 @@ meson.override_dependency('libyaml', libyaml, static: true)
 
 libxcrypt_options = meson_base_options
 libxcrypt = subproject('libxcrypt', default_options: libxcrypt_options).get_variable('libxcrypt')
-libxcrypt_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + prefix / get_option('includedir')]
-libxcrypt_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' + prefix / get_option('libdir')]
+libxcrypt_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' / 'include']
+libxcrypt_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' / 'lib']
 
 libffi_options = meson_base_options
 libffi = subproject('libffi', default_options: libffi_options).get_variable('libffi')
-libffi_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' + prefix / get_option('includedir')]
-libffi_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' + prefix / 'lib']
+libffi_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' / 'include']
+libffi_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' / 'lib']
 
 ruby_options = meson_base_options + {
     'cflags': zlib_includes + libyaml_includes + libxcrypt_includes + libffi_includes,

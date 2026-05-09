@@ -38,28 +38,6 @@ if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
     endif
 endif
 
-prefix = get_option('prefix')
-if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
-    prefix = prefix.replace('\\', '/')
-    if not prefix.startswith('/')
-        prefix = '/' + prefix
-    endif
-    if prefix.contains(':')
-        prefix_components_in = prefix.split(':')
-        prefix_components_out = []
-        i = 0
-        foreach prefix_component : prefix_components_in
-            if i == 0
-                prefix_components_out += prefix_component.to_lower()
-            else
-                prefix_components_out += prefix_component
-            endif
-            i += 1
-        endforeach
-        prefix = ''.join(prefix_components_out)
-    endif
-endif
-
 libxcrypt = declare_dependency(
     dependencies: [
         import('unstable-external_project').add_project(
@@ -67,13 +45,13 @@ libxcrypt = declare_dependency(
             configure_options: [
                 '--srcdir=' + srcdir,
                 '--prefix=' + '@PREFIX@',
-                '--prefix=' + prefix,
+                '--prefix=/',
                 '--bindir=' + '@PREFIX@' / '@BINDIR@',
-                '--bindir=' + prefix / get_option('bindir'),
+                '--bindir=/bin',
                 '--libdir=' + '@PREFIX@' / '@LIBDIR@',
-                '--libdir=' + prefix / get_option('libdir'),
+                '--libdir=/lib',
                 '--includedir=' + '@PREFIX@' / '@INCLUDEDIR@',
-                '--includedir=' + prefix / get_option('includedir'),
+                '--includedir=/include',
                 '--enable-static',
                 '--disable-shared',
                 '--disable-werror',
@@ -87,13 +65,14 @@ libxcrypt = declare_dependency(
             },
             verbose: true,
         ).dependency('crypt').partial_dependency(
-            compile_args: true,
-            includes: true,
             sources: true,
         ),
     ],
+    compile_args: [
+        '-I' + meson.project_build_root() / 'dist' / 'include',
+    ],
     link_args: [
-        meson.project_build_root() / 'dist' + prefix / get_option('libdir') / 'libcrypt.a',
+        meson.project_build_root() / 'dist' / 'lib' / 'libcrypt.a',
     ],
 )
 

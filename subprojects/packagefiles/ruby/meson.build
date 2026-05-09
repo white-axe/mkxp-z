@@ -42,28 +42,6 @@ if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
     endif
 endif
 
-prefix = get_option('prefix')
-if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
-    prefix = prefix.replace('\\', '/')
-    if not prefix.startswith('/')
-        prefix = '/' + prefix
-    endif
-    if prefix.contains(':')
-        prefix_components_in = prefix.split(':')
-        prefix_components_out = []
-        i = 0
-        foreach prefix_component : prefix_components_in
-            if i == 0
-                prefix_components_out += prefix_component.to_lower()
-            else
-                prefix_components_out += prefix_component
-            endif
-            i += 1
-        endforeach
-        prefix = ''.join(prefix_components_out)
-    endif
-endif
-
 builddir = meson.project_build_root()
 if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
     builddir = builddir.replace('\\', '/')
@@ -123,17 +101,15 @@ ruby = declare_dependency(
             configure_options: [
                 '--srcdir=' + srcdir,
                 '--prefix=' + builddir / 'dist' + '@PREFIX@',
-                '--prefix=' + builddir / 'dist' + prefix,
+                '--prefix=' + builddir / 'dist',
                 '--bindir=' + builddir / 'dist' + '@PREFIX@' / '@BINDIR@',
-                '--bindir=' + builddir / 'dist' + prefix / get_option('bindir'),
+                '--bindir=' + builddir / 'dist' / 'bin',
                 '--libdir=' + builddir / 'dist' + '@PREFIX@' / '@LIBDIR@',
-                '--libdir=' + builddir / 'dist' + prefix / get_option('libdir'),
+                '--libdir=' + builddir / 'dist' / 'lib',
                 '--includedir=' + builddir / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
-                '--includedir=' + builddir / 'dist' + prefix / get_option('includedir'),
-                '--with-rubyhdrdir=' + builddir / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
-                '--with-rubyhdrdir=' + builddir / 'dist' + prefix / get_option('includedir'),
-                '--with-rubyarchhdrdir=' + builddir / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
-                '--with-rubyarchhdrdir=' + builddir / 'dist' + prefix / get_option('includedir'),
+                '--includedir=' + builddir / 'dist' / 'include',
+                '--with-rubyhdrdir=' + builddir / 'dist' / 'include',
+                '--with-rubyarchhdrdir=' + builddir / 'dist' / 'include',
                 '--with-baseruby=' + baseruby,
                 '--with-soname=ruby',
                 '--disable-shared',
@@ -167,10 +143,11 @@ ruby = declare_dependency(
             ],
             verbose: true,
         ).dependency('ruby-static').partial_dependency(
-            compile_args: true,
-            includes: true,
             sources: true,
         ),
+    ],
+    compile_args: [
+        '-I' + meson.project_build_root() / 'dist' / 'include',
     ],
     link_args: [
         meson.project_build_root() / 'build' / 'ext' / 'extinit.o',
