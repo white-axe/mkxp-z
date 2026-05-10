@@ -115,7 +115,6 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          cp ../subprojects/ruby/dist/lib/x64-msvcrt-ruby310.dll .
           cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z.exe .
@@ -185,7 +184,7 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          find ../subprojects/ruby/dist -type d -path '**/ruby/3.1.0' | xargs -I {} cp -r {} .
+          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z.x86_64 .
           cp ../../mkxp.json .
@@ -275,7 +274,7 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          find ../subprojects/ruby/dist -type d -path '**/ruby/3.1.0' | xargs -I {} cp -r {} .
+          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
           cp ../../mkxp.json .
