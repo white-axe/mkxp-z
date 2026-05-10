@@ -140,10 +140,7 @@ sdl2_options.add_cmake_defines(cmake_base_options + {
     'SDL_LIBSAMPLERATE': false,
     'SDL_LIBSAMPLERATE_SHARED': false,
 })
-sdl2 = declare_dependency(dependencies: [
-    cmake.subproject('sdl2', options: sdl2_options).dependency('SDL2main'),
-    cmake.subproject('sdl2', options: sdl2_options).dependency('SDL2-static'),
-])
+sdl2 = cmake.subproject('sdl2', options: sdl2_options).dependency('SDL2-static')
 sdl2_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'sdl2' / 'include', '-I' + meson.global_build_root() / 'subprojects' / 'sdl2' / '__CMake_build' / 'include-config-release' / 'SDL2']
 meson.override_dependency('sdl2', sdl2, static: true)
 global_dependencies += sdl2
