@@ -121,6 +121,7 @@ if host_system == 'windows'
     subdir('windows')
     global_sources += windows_resources
     global_include_dirs += include_directories('windows')
+    global_link_args += '-lmingw32'
 endif
 
 exe_name = meson.project_name()
