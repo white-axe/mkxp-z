@@ -167,14 +167,17 @@ if steamworks == true
 endif
 
 executable(exe_name,
-    sources: global_sources,
-    dependencies: global_dependencies,
-    include_directories: global_include_dirs,
+    link_with: static_library(
+        'mkxp-z',
+        sources: global_sources,
+        dependencies: global_dependencies,
+        include_directories: global_include_dirs,
+        link_args: global_link_args,
+        cpp_args: global_args + global_cpp_args,
+        objc_args: global_args,
+        objcpp_args: global_args + global_cpp_args,
+    ),
     install_rpath: rpath,
-    link_args: global_link_args,
-    cpp_args: global_args + global_cpp_args,
-    objc_args: global_args,
-    objcpp_args: global_args + global_cpp_args,
     win_subsystem: 'windows',
     install: (host_system != 'windows')
 )
