@@ -16,6 +16,7 @@ foreach dep_name : [
     'libapparmor',
     'libasyncns',
     'libcanberra',
+    host_system == 'windows' or host_system == 'cygwin' ? 'libcrypt' : '',
     'libdrm',
     'libffado',
     'libinotify',
@@ -23,6 +24,7 @@ foreach dep_name : [
     'libselinux',
     'libsystemd',
     'libusb-1.0',
+    host_system == 'windows' or host_system == 'cygwin' ? 'libxcrypt' : '',
     'ncursesw',
     'oboe',
     host_system != 'android' ? 'opensl' : '',
@@ -403,10 +405,15 @@ libyaml_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'libyam
 libyaml_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libyaml']
 meson.override_dependency('libyaml', libyaml, static: true)
 
-libxcrypt_options = meson_base_options
-libxcrypt = subproject('libxcrypt', default_options: libxcrypt_options).get_variable('libxcrypt')
-libxcrypt_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' / 'include']
-libxcrypt_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' / 'lib']
+if host_system != 'windows' and host_system != 'cygwin'
+    libxcrypt_options = meson_base_options
+    libxcrypt = subproject('libxcrypt', default_options: libxcrypt_options).get_variable('libxcrypt')
+    libxcrypt_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' / 'include']
+    libxcrypt_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' / 'lib']
+else
+    libxcrypt_includes = []
+    libxcrypt_libs = []
+endif
 
 libffi_options = meson_base_options
 libffi = subproject('libffi', default_options: libffi_options).get_variable('libffi')

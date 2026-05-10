@@ -70,7 +70,7 @@ if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
 endif
 
 ruby_deps = [
-    dependency('libcrypt', required: true),
+    host_machine.system() != 'windows' and host_machine.system() != 'cygwin' ? dependency('libcrypt', required: true) : [],
     dependency('libffi', required: true),
     dependency('libyaml', required: true),
     dependency('z', required: true),
