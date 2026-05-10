@@ -26,7 +26,6 @@
 #include <alc.h>
 
 #include <SDL.h>
-#include <SDL_main.h>
 #include <SDL_image.h>
 #include <SDL_sound.h>
 #include <SDL_ttf.h>
