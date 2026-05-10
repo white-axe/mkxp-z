@@ -179,6 +179,16 @@ ruby = declare_dependency(
         meson.project_build_root() / 'build' / 'enc' / 'libenc.a',
         meson.project_build_root() / 'build' / 'enc' / 'libtrans.a',
         meson.project_build_root() / 'build' / 'libruby-static.a',
+        host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
+            ? [
+                '-lshell32',
+                '-lws2_32',
+                '-liphlpapi',
+                '-limagehlp',
+                '-lshlwapi',
+                '-lbcrypt',
+            ]
+            : [],
     ],
 )
 
