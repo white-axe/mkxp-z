@@ -42,26 +42,9 @@ if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
     endif
 endif
 
-builddir = meson.project_build_root()
+destdir = meson.project_build_root() / 'dist'
 if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
-    builddir = builddir.replace('\\', '/')
-    if not builddir.startswith('/')
-        builddir = '/' + builddir
-    endif
-    if builddir.contains(':')
-        builddir_components_in = builddir.split(':')
-        builddir_components_out = []
-        i = 0
-        foreach builddir_component : builddir_components_in
-            if i == 0
-                builddir_components_out += builddir_component.to_lower()
-            else
-                builddir_components_out += builddir_component
-            endif
-            i += 1
-        endforeach
-        builddir = ''.join(builddir_components_out)
-    endif
+    destdir = destdir.replace('\\', '/')
 endif
 
 baseruby = find_program('ruby', required: true).full_path()
@@ -100,16 +83,17 @@ ruby = declare_dependency(
             'configure',
             configure_options: [
                 '--srcdir=' + srcdir,
-                '--prefix=' + builddir / 'dist' + '@PREFIX@',
-                '--prefix=' + builddir / 'dist',
-                '--bindir=' + builddir / 'dist' + '@PREFIX@' / '@BINDIR@',
-                '--bindir=' + builddir / 'dist' / 'bin',
-                '--libdir=' + builddir / 'dist' + '@PREFIX@' / '@LIBDIR@',
-                '--libdir=' + builddir / 'dist' / 'lib',
-                '--includedir=' + builddir / 'dist' + '@PREFIX@' / '@INCLUDEDIR@',
-                '--includedir=' + builddir / 'dist' / 'include',
-                '--with-rubyhdrdir=' + builddir / 'dist' / 'include',
-                '--with-rubyarchhdrdir=' + builddir / 'dist' / 'include',
+                '--prefix=' + '@PREFIX@',
+                '--prefix=/',
+                '--bindir=' + '@PREFIX@' / '@BINDIR@',
+                '--bindir=/bin',
+                '--libdir=' + '@PREFIX@' / '@LIBDIR@',
+                '--libdir=/lib',
+                '--includedir=' + '@PREFIX@' / '@INCLUDEDIR@',
+                '--includedir=/include',
+                '--with-rubyhdrdir=/include',
+                '--with-rubyarchhdrdir=/include',
+                '--with-destdir=' + destdir,
                 '--with-baseruby=' + baseruby,
                 '--with-soname=ruby',
                 '--disable-shared',

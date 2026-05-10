@@ -41,7 +41,7 @@ jobs:
         run: |
           meson setup build
           cd build
-          CLICOLOR_FORCE=1 ninja -v || find / -type f -name 'ruby.h'
+          CLICOLOR_FORCE=1 ninja -v
           strip ./mkxp-z.exe
 
       - name: Prepare archive
