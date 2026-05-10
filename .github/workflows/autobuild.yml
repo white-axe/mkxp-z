@@ -11,6 +11,72 @@ on:
   workflow_dispatch:
 
 jobs:
+  verify-ruby-configure-scripts:
+    name: Verify Ruby configure scripts
+    runs-on: ubuntu-latest
+    container:
+      image: nixos/nix:2.32.8
+      options: -u root --privileged
+      volumes:
+        - /etc/ca-certificates:/etc/ca-certificates
+        - /etc/ssl:/etc/ssl
+    steps:
+      - name: Checkout repository
+        uses: taiki-e/checkout-action@v1
+
+      - name: Enable Nix sandboxing
+        run: |
+          echo 'sandbox = true' >> /etc/nix/nix.conf
+
+      - name: Install dependencies
+        run: |
+          nix-channel --add https://nixos.org/channels/nixos-25.11 nixpkgs
+          nix-channel --update nixpkgs
+          nix-shell -p autoconf meson --run ''
+
+      - name: Verify
+        run: |
+          nix-shell -p autoconf meson --run '
+            meson subprojects download ruby
+            cd subprojects/ruby
+            old_configure_hash="$(sha256sum configure)"
+            echo "old: $old_configure_hash"
+            rm configure
+            old_config_guess_hash="$(sha256sum tool/config.guess)"
+            echo "old: $old_config_guess_hash"
+            rm tool/config.guess
+            old_config_sub_hash="$(sha256sum tool/config.sub)"
+            echo "old: $old_config_sub_hash"
+            rm tool/config.sub
+            autoreconf -i
+            new_configure_hash="$(sha256sum configure)"
+            echo "new: $new_configure_hash"
+            new_config_guess_hash="$(sha256sum tool/config.guess)"
+            echo "new: $new_config_guess_hash"
+            new_config_sub_hash="$(sha256sum tool/config.sub)"
+            echo "new: $new_config_sub_hash"
+            error_flag=
+            if [ "$old_configure_hash" != "$new_configure_hash" ]
+            then
+              echo "::error::configure hash does not match"
+              error_flag=1
+            fi
+            if [ "$old_config_guess_hash" != "$new_config_guess_hash" ]
+            then
+              echo "::error::tool/config.guess hash does not match"
+              error_flag=1
+            fi
+            if [ "$old_config_sub_hash" != "$new_config_sub_hash" ]
+            then
+              echo "::error::tool/config.sub hash does not match"
+              error_flag=1
+            fi
+            if [ -n "$error_flag" ]
+            then
+              exit 1
+            fi
+          '
+
   build-windows:
     name: Windows
     runs-on: windows-latest
