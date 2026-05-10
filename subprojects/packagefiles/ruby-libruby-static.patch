@@ -1,36 +1,14 @@
-# Makes sure executables generated during Ruby's build process are linked against libruby-static instead of libruby.
+# Makes sure executables generated during Ruby's build process are linked against libruby-static instead of libruby on Windows.
 # On Windows, linking executables against libruby instead of libruby-static results in build errors if Ruby is configured with `--with-static-linked-ext`.
 
---- a/common.mk
-+++ b/common.mk
-@@ -351,7 +351,7 @@ program: $(SHOWFLAGS) $(PROGRAM)
- wprogram: $(SHOWFLAGS) $(WPROGRAM)
- mini: PHONY miniruby$(EXEEXT)
- 
--$(PROGRAM) $(WPROGRAM): $(LIBRUBY) $(MAINOBJ) $(OBJS) $(EXTOBJS) $(SETUP) $(PREP)
-+$(PROGRAM) $(WPROGRAM): $(LIBRUBY_A) $(MAINOBJ) $(OBJS) $(EXTOBJS) $(SETUP) $(PREP)
- 
- $(LIBRUBY_A):	$(LIBRUBY_A_OBJS) $(MAINOBJ) $(INITOBJS) $(ARCHFILE)
- 
---- a/cygwin/GNUmakefile.in
-+++ b/cygwin/GNUmakefile.in
-@@ -65,7 +65,7 @@ $(WPROGRAM): $(RUBYW_INSTALL_NAME).res.@OBJEXT@
- 	@rm -f $@
- 	$(ECHO) linking $@
- 	$(Q) $(PURIFY) $(CC) -mwindows -e $(SYMBOL_PREFIX)mainCRTStartup $(LDFLAGS) $(XLDFLAGS) \
--	  $(MAINOBJ) $(EXTOBJS) $(LIBRUBYARG) $(LIBS) -o $@
-+	  $(MAINOBJ) $(EXTOBJS) $(LIBRUBYARG_STATIC) $(LIBS) -o $@
- $(STUBPROGRAM): $(RUBY_INSTALL_NAME).res.@OBJEXT@
- 
- $(RUBY_EXP): $(LIBRUBY_A)
---- a/template/Makefile.in
-+++ b/template/Makefile.in
-@@ -286,7 +286,7 @@ miniruby$(EXEEXT):
- $(PROGRAM):
- 		@$(RM) $@
- 		$(ECHO) linking $@
--		$(Q) $(PURIFY) $(CC) $(EXE_LDFLAGS) $(XLDFLAGS) $(MAINOBJ) $(EXTOBJS) $(LIBRUBYARG) $(MAINLIBS) $(LIBS) $(EXTLIBS) $(OUTFLAG)$@
-+		$(Q) $(PURIFY) $(CC) $(EXE_LDFLAGS) $(XLDFLAGS) $(MAINOBJ) $(EXTOBJS) $(LIBRUBYARG_STATIC) $(MAINLIBS) $(LIBS) $(EXTLIBS) $(OUTFLAG)$@
- 		$(Q) $(POSTLINK)
- 
- $(PROGRAM): @XRUBY_LIBPATHENV_WRAPPER@
+--- a/configure.ac
++++ b/configure.ac
+@@ -3806,7 +3806,7 @@ AS_CASE(["$target_os"],
+ 	], [
+ 	    LIBRUBY_SO=dummy
+ 	    LIBRUBY='lib$(RUBY_SO_NAME).a'
+-	    LIBRUBYARG='-l$(RUBY_SO_NAME)'
++	    LIBRUBYARG='$(LIBRUBYARG_STATIC)'
+ 	])
+ 	],
+     [hpux*], [
