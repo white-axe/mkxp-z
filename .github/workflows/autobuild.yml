@@ -480,7 +480,7 @@ jobs:
           path: artifact-x86_64
 
       - name: Build universal binary
-        run:
+        run: |
           lipo artifact-arm64/mkxp-z.aarch64 artifact-x86_64/mkxp-z.x86_64 -output artifact-arm64/mkxp-z.universal -create
           rm artifact-arm64/mkxp-z.aarch64
 
