@@ -9,8 +9,10 @@ xxd = find_program('xxd', native: true)
 
 compilers = {'cpp': meson.get_compiler('cpp')}
 
+git_hash_file = vcs_tag(command: ['git', 'rev-parse', '--short=7', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h')
+
 global_sources = []
-global_dependencies = [declare_dependency(sources: vcs_tag(command: ['git', 'rev-parse', '--short=7', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h'))]
+global_dependencies = [declare_dependency(sources: git_hash_file)]
 global_include_dirs = []
 global_args = []
 global_cpp_args = []
@@ -174,6 +176,7 @@ if host_system == 'darwin'
 endif
 
 executable(exe_name,
+    sources: git_hash_file, # Dummy source file just so that Meson doesn't complain about the executable not having any sources
     link_with: static_library(
         meson.project_name(),
         sources: global_sources,
