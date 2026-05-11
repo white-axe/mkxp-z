@@ -1,8 +1,8 @@
 [binaries]
-c = ['xcrun', '--sdk', 'macosx', 'clang', '--target=x86_64-apple-macos10.7']
-cpp = ['xcrun', '--sdk', 'macosx', 'clang++', '--target=x86_64-apple-macos10.7']
-objc = ['xcrun', '--sdk', 'macosx', 'clang', '--target=x86_64-apple-macos10.7']
-objcpp = ['xcrun', '--sdk', 'macosx', 'clang++', '--target=x86_64-apple-macos10.7']
+c = ['xcrun', '--sdk', 'macosx', 'clang', '--target=x86_64-apple-macos10.13']
+cpp = ['xcrun', '--sdk', 'macosx', 'clang++', '--target=x86_64-apple-macos10.13']
+objc = ['xcrun', '--sdk', 'macosx', 'clang', '--target=x86_64-apple-macos10.13']
+objcpp = ['xcrun', '--sdk', 'macosx', 'clang++', '--target=x86_64-apple-macos10.13']
 ar = 'ar'
 cmake = 'cmake'
 
