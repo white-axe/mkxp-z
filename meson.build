@@ -128,6 +128,8 @@ if host_system == 'linux' and get_option('appimage') == false
     exe_name += '.' + host_machine.cpu_family()
 endif
 
+meson.override_dependency('global-include-dirs', declare_dependency(include_directories: global_include_dirs), static: true)
+
 if steamworks == true
     exe_name = 'steam_' + exe_name
     la = ''
@@ -162,6 +164,13 @@ if steamworks == true
         link_args: la.split(),
         win_subsystem: shim_ws,
         install: (host_system != 'windows'))
+endif
+
+if host_system == 'darwin'
+    apple_impl_options = {
+        'objcppflags': global_args + global_cpp_args,
+    }
+    global_dependencies = [subproject('apple-impl', default_options: apple_impl_options).get_variable('apple_impl')] + global_dependencies
 endif
 
 executable(exe_name,
