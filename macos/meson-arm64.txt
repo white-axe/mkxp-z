@@ -1,0 +1,13 @@
+[binaries]
+c = ['xcrun', '--sdk', 'macosx', 'clang', '--target=arm64-apple-macos11.0']
+cpp = ['xcrun', '--sdk', 'macosx', 'clang++', '--target=arm64-apple-macos11.0']
+objc = ['xcrun', '--sdk', 'macosx', 'clang', '--target=arm64-apple-macos11.0']
+objcpp = ['xcrun', '--sdk', 'macosx', 'clang++', '--target=arm64-apple-macos11.0']
+ar = 'ar'
+cmake = 'cmake'
+
+[host_machine]
+system = 'darwin'
+cpu_family = 'aarch64'
+cpu = 'aarch64'
+endian = 'little'

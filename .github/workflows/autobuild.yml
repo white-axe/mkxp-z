@@ -273,7 +273,7 @@ jobs:
           cd build/artifact
           cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
-          find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
+          cp ../mkxp-z.${{ matrix.arch_mkxpz }} .
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -314,7 +314,7 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          find ../subprojects/ruby/dist -type d -path '**/ruby/3.1.0' | xargs -I {} cp -r {} .
+          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z.x86_64 .
           cp ../../mkxp.json .
@@ -399,9 +399,9 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          find ../subprojects/ruby/dist -type d -path '**/ruby/3.1.0' | xargs -I {} cp -r {} .
+          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
-          find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
+          cp ../mkxp-z.${{ matrix.arch_mkxpz }} .
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -412,8 +412,14 @@ jobs:
           path: build/artifact
 
   build-macos:
-    name: macOS
+    name: macOS ${{ matrix.arch_mkxpz }}
     runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch_mkxpz: arm64
+          - arch_mkxpz: x86_64
     steps:
       - uses: benjlevesque/short-sha@v2.2
         id: short-sha
@@ -430,7 +436,7 @@ jobs:
 
       - name: Build
         run: |
-          meson setup build
+          meson setup --cross-file macos/meson-${{ matrix.arch_mkxpz }}.txt build
           cd build
           CLICOLOR_FORCE=1 ninja -v
 
@@ -438,9 +444,9 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          find ../subprojects/ruby/dist -type d -path '**/ruby/3.1.0' | xargs -I {} cp -r {} .
+          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
-          cp ../mkxp-z .
+          cp ../mkxp-z.${{ matrix.arch_mkxpz }} .
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -448,5 +454,38 @@ jobs:
       - name: Upload archive
         uses: actions/upload-artifact@v4
         with:
-          name: mkxp-z.macos.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          name: mkxp-z.macos.${{ matrix.arch_mkxpz }}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/artifact
+
+  build-macos-universal:
+    name: macOS universal
+    runs-on: macos-latest
+    needs: build-macos
+    steps:
+      - uses: benjlevesque/short-sha@v2.2
+        id: short-sha
+        with:
+          length: 7
+
+      - name: Download arm64 build
+        uses: actions/download-artifact@v4
+        with:
+          name: mkxp-z.macos.arm64.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          path: artifact-arm64
+
+      - name: Download x86_64 build
+        uses: actions/download-artifact@v4
+        with:
+          name: mkxp-z.macos.x86_64.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          path: artifact-x86_64
+
+      - name: Build universal binary
+        run:
+          lipo artifact-arm64/mkxp-z.arm64 artifact-x86_64/mkxp-z.x86_64 -output artifact-arm64/mkxp-z.universal -create
+          rm artifact-arm64/mkxp-z.arm64
+
+      - name: Upload archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: mkxp-z.macos.universal.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          path: artifact-arm64

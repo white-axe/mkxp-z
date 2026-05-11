@@ -126,7 +126,7 @@ endif
 
 exe_name = meson.project_name()
 
-if host_system == 'linux' and get_option('appimage') == false
+if (host_system == 'linux' or host_system == 'darwin') and get_option('appimage') == false
     exe_name += '.' + host_machine.cpu_family()
 endif
 
