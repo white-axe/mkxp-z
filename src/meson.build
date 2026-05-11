@@ -83,7 +83,19 @@ physfs_options.add_cmake_defines(cmake_base_options + {
     'PHYSFS_BUILD_TEST': false,
     'PHYSFS_BUILD_DOCS': false,
 })
-physfs = cmake.subproject('physfs', options: physfs_options).dependency('physfs-static')
+physfs = declare_dependency(dependencies: [
+    cmake.subproject('physfs', options: physfs_options).dependency('physfs-static'),
+    host_system == 'darwin'
+        ? dependency(
+            'appleframeworks',
+            modules: [
+                'Foundation',
+                'IOKit',
+            ],
+            required: true,
+        )
+        : [],
+])
 meson.override_dependency('physfs', physfs, static: true)
 global_dependencies += physfs
 
@@ -134,7 +146,27 @@ sdl2main = declare_dependency(
         ? ['-lmingw32']
         : [],
 )
-sdl2 = cmake.subproject('sdl2', options: sdl2_options).dependency('SDL2-static')
+sdl2 = declare_dependency(dependencies: [
+    cmake.subproject('sdl2', options: sdl2_options).dependency('SDL2-static'),
+    host_system == 'darwin'
+        ? dependency(
+            'appleframeworks',
+            modules: [
+                'Carbon',
+                'Cocoa',
+                'CoreHaptics',
+                'CoreVideo',
+                'ForceFeedback',
+                'Foundation',
+                'GameController',
+                'IOKit',
+                'Metal',
+                'QuartzCore',
+            ],
+            required: true,
+        )
+        : [],
+])
 sdl2_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'sdl2' / 'include', '-I' + meson.global_build_root() / 'subprojects' / 'sdl2' / '__CMake_build' / 'include-config-release' / 'SDL2']
 meson.override_dependency('sdl2', sdl2, static: true)
 global_dependencies += [sdl2main, sdl2]
@@ -336,6 +368,8 @@ sdl2_image_options.add_cmake_defines(cmake_base_options + {
     'SDL2IMAGE_JXL_SHARED': false,
     'SDL2IMAGE_VENDORED': true,
     'SDL2IMAGE_SAMPLES': false,
+    'SDL2IMAGE_BACKEND_WIC': false,
+    'SDL2IMAGE_BACKEND_IMAGEIO': false,
     'JPEGXL_ENABLE_DEVTOOLS': false,
     'JPEGXL_ENABLE_EXAMPLES': false,
     'JPEGXL_ENABLE_FUZZERS': false,

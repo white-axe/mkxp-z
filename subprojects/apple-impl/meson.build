@@ -17,7 +17,17 @@ apple_impl = declare_dependency(
         include_directories: include_dirs,
         objcpp_args: get_option('objcppflags'),
         dependencies: [
-            dependency('mkxp-global-dependencies', static: true),
+            dependency('mkxp-global-dependencies', required: true, static: true),
+            dependency(
+                'appleframeworks',
+                modules: [
+                    'AppKit',
+                    'Foundation',
+                    'GameController',
+                    'Metal',
+                ],
+                required: true,
+            ),
         ],
     ),
 )
