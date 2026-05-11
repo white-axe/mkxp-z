@@ -130,7 +130,14 @@ if host_system == 'linux' and get_option('appimage') == false
     exe_name += '.' + host_machine.cpu_family()
 endif
 
-meson.override_dependency('global-include-dirs', declare_dependency(include_directories: global_include_dirs), static: true)
+meson.override_dependency(
+    'mkxp-global-dependencies',
+    declare_dependency(
+        dependencies: global_dependencies,
+        include_directories: global_include_dirs,
+    ),
+    static: true,
+)
 
 if steamworks == true
     exe_name = 'steam_' + exe_name

@@ -17,7 +17,7 @@ apple_impl = declare_dependency(
         include_directories: include_dirs,
         objcpp_args: get_option('objcppflags'),
         dependencies: [
-            dependency('global-include-dirs', static: true),
+            dependency('mkxp-global-dependencies', static: true),
         ],
     ),
 )
