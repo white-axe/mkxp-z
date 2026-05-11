@@ -38,10 +38,6 @@
 #include <array>
 #include <unordered_map>
 
-#ifdef MKXPZ_BUILD_XCODE
-#include "filesystem/filesystem.h"
-#endif
-
 #include <SDL_ttf.h>
 
 #include <ft2build.h>
@@ -50,7 +46,6 @@
 #include FT_TRUETYPE_TABLES_H
 #include FT_TRUETYPE_IDS_H
 
-#ifndef MKXPZ_BUILD_XCODE
 #ifndef MKXPZ_CJK_FONT
 #include "liberation.ttf.xxd"
 #else
@@ -77,19 +72,13 @@ BUNDLED_FONT_DECL(liberation)
 #define BNDL_F_D(f) BUNDLED_FONT_D(f)
 #define BNDL_F_L(f) BUNDLED_FONT_L(f)
 
-#endif
-
 /* Dirty hack to get the FT_Face.
  * SDL_ttf will probably never move it from the beginning of the struct. */
 #define TTF_FONT_TO_FT_FACE(font) (*reinterpret_cast<FT_Face *>(font))
 
 static SDL_RWops *openBundledFont()
 {
-#ifndef MKXPZ_BUILD_XCODE
     return SDL_RWFromConstMem(BNDL_F_D(BUNDLED_FONT), BNDL_F_L(BUNDLED_FONT));
-#else
-    return SDL_RWFromFile(mkxp_fs::getPathForAsset("Fonts/liberation", "ttf").c_str(), "rb");
-#endif
 }
 
 

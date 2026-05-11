@@ -39,7 +39,7 @@ bool isRosetta();
 WineHostType getRealHostType();
 }
 
-#ifdef MKXPZ_BUILD_XCODE
+#ifdef __APPLE__
 std::string getPlistValue(const char *key);
 void openSettingsWindow();
 bool isMetalSupported();

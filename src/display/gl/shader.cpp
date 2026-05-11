@@ -30,7 +30,6 @@
 #include <string.h>
 #include <iostream>
 
-#ifndef MKXPZ_BUILD_XCODE
 #include "common.h.xxd"
 #include "sprite.frag.xxd"
 #include "hue.frag.xxd"
@@ -66,29 +65,14 @@
 #include "kglSubtract.frag.xxd"
 #include "kglShadowH.frag.xxd"
 #include "kglShadowV.frag.xxd"
-#endif
 
-#ifdef MKXPZ_BUILD_XCODE
-#include "filesystem/filesystem.h"
-#define INIT_SHADER(vert, frag, name) \
-{ \
-    std::string v = mkxp_fs::contentsOfAssetAsString("Shaders/" #vert, "vert"); \
-    std::string f = mkxp_fs::contentsOfAssetAsString("Shaders/" #frag, "frag"); \
-    Shader::init((const unsigned char*)v.c_str(), v.length(), (const unsigned char*)f.c_str(), f.length(), #vert, #frag, #name); \
-}
-#else
 #define INIT_SHADER(vert, frag, name) \
 { \
 	Shader::init(___shader_##vert##_vert, ___shader_##vert##_vert_len, ___shader_##frag##_frag, ___shader_##frag##_frag_len, \
 	#vert, #frag, #name); \
 }
-#endif
 
 #define GET_U(name) u_##name = gl.GetUniformLocation(program, #name)
-
-#ifdef MKXPZ_BUILD_XCODE
-    std::string Shader::shaderCommon = "";
-#endif
 
 static void printShaderLog(GLuint shader)
 {
@@ -114,10 +98,6 @@ static void printProgramLog(GLuint program)
 
 Shader::Shader() : initialized(false)
 {
-#ifdef MKXPZ_BUILD_XCODE
-    if (Shader::shaderCommon.empty())
-        Shader::shaderCommon = mkxp_fs::contentsOfAssetAsString("Shaders/common", "h");
-#endif
 	vertShader = gl.CreateShader(GL_VERTEX_SHADER);
 	fragShader = gl.CreateShader(GL_FRAGMENT_SHADER);
 
@@ -141,12 +121,6 @@ void Shader::unbind()
 	gl.ActiveTexture(GL_TEXTURE0);
 	glState.program.set(0);
 }
-
-#ifdef MKXPZ_BUILD_XCODE
-std::string &Shader::commonHeader() {
-    return Shader::shaderCommon;
-}
-#endif
 
 static void setupShaderSource(GLuint shader, GLenum type,
                               const unsigned char *body, int bodySize)
@@ -172,13 +146,8 @@ static void setupShaderSource(GLuint shader, GLenum type,
 		++i;
 	}
 
-#ifndef MKXPZ_BUILD_XCODE
 	shaderSrc[i] = (const GLchar*) ___shader_common_h;
 	shaderSrcSize[i] = ___shader_common_h_len;
-#else
-    shaderSrc[i] = (const GLchar*) Shader::commonHeader().c_str();
-    shaderSrcSize[i] = Shader::commonHeader().length();
-#endif
 	++i;
 
 	shaderSrc[i] = (const GLchar*) body;

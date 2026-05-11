@@ -277,12 +277,7 @@ static void mriBindingInit() {
     
     rb_gv_set("BTEST", rb_bool_new(shState->config().editor.battleTest));
     
-#ifdef MKXPZ_BUILD_XCODE
-    std::string version = std::string(MKXPZ_VERSION "/") + getPlistValue("GIT_COMMIT_HASH");
-    VALUE vers = rb_utf8_str_new_cstr(version.c_str());
-#else
     VALUE vers = rb_utf8_str_new_cstr(MKXPZ_VERSION "/" MKXPZ_GIT_HASH);
-#endif
     rb_str_freeze(vers);
     rb_define_const(mod, "VERSION", vers);
     
@@ -1266,7 +1261,7 @@ static void mriBindingExecute() {
     VALUE lpaths = rb_gv_get(":");
     rb_ary_clear(lpaths);
     
-#if defined(MKXPZ_BUILD_XCODE) && RAPI_MAJOR >= 2
+#if defined(__APPLE__) && RAPI_MAJOR >= 2
     std::string resPath = mkxp_fs::getResourcePath();
     resPath += "/Ruby/" + std::to_string(RAPI_MAJOR) + "." + std::to_string(RAPI_MINOR) + ".0";
     rb_ary_push(lpaths, rb_str_new(resPath.c_str(), resPath.size()));

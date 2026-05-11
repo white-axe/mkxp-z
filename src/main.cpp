@@ -19,9 +19,7 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MKXPZ_BUILD_XCODE
 #include "icon.png.xxd"
-#endif
 
 #include <alc.h>
 
@@ -66,7 +64,7 @@ __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 #include "steamshim_child.h"
 #endif
 
-#ifdef MKXPZ_BUILD_XCODE
+#ifdef __APPLE__
 #include <Availability.h>
 #include "TouchBar.h"
 #if !defined(__MAC_10_15) || __MAC_OS_X_VERSION_MAX_ALLOWED < __MAC_10_15
@@ -185,11 +183,7 @@ static void setupWindowIcon(const Config &conf, SDL_Window *win) {
   SDL_RWops *iconSrc;
 
   if (conf.iconPath.empty())
-#ifndef MKXPZ_BUILD_XCODE
     iconSrc = SDL_RWFromConstMem(___assets_icon_png, ___assets_icon_png_len);
-#else
-    iconSrc = SDL_RWFromFile(mkxp_fs::getPathForAsset("icon", "png").c_str(), "rb");
-#endif
   else
     iconSrc = SDL_RWFromFile(conf.iconPath.c_str(), "rb");
 
@@ -335,7 +329,7 @@ int main(int argc, char *argv[]) {
 
     // LoadLibrary properly initializes EGL, it won't work otherwise.
     // Doesn't completely do it though, needs a small patch to SDL
-#ifdef MKXPZ_BUILD_XCODE
+#ifdef __APPLE__
     SDL_setenv("ANGLE_DEFAULT_PLATFORM", (conf.preferMetalRenderer) ? "metal" : "opengl", true);
     SDL_GL_LoadLibrary("@rpath/libEGL.dylib");
 #endif
@@ -354,7 +348,7 @@ int main(int argc, char *argv[]) {
       return 0;
     }
     
-#ifdef MKXPZ_BUILD_XCODE
+#ifdef __APPLE__
     {
         std::string downloadsPath = "/Users/" + mkxp_sys::getUserName() + "/Downloads";
         
@@ -371,7 +365,7 @@ int main(int argc, char *argv[]) {
     }
 #endif
     
-#if defined(MKXPZ_BUILD_XCODE)
+#ifdef __APPLE__
 #define DEBUG_FSELECT_MSG "Select the folder from which to load game files. This is the folder containing the game's INI."
 #define DEBUG_FSELECT_PROMPT "Load Game"
     if (conf.manualFolderSelect) {
@@ -437,7 +431,7 @@ int main(int argc, char *argv[]) {
     /* Load and post key bindings */
     rtData.bindingUpdateMsg.post(loadBindings(conf));
     
-#ifdef MKXPZ_BUILD_XCODE
+#ifdef __APPLE__
     // Create Touch Bar
     initTouchBar(win, conf);
 #endif

@@ -61,11 +61,6 @@ protected:
 	GLuint vertShader, fragShader;
 	GLuint program;
 	bool initialized;
-    
-private:
-#ifdef MKXPZ_BUILD_XCODE
-    static std::string shaderCommon;
-#endif
 };
 
 class ShaderBase : public Shader
