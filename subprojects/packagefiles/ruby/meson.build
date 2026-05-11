@@ -143,7 +143,7 @@ ruby = declare_dependency(
         '-I' + meson.project_build_root() / 'dist' / 'include',
     ],
     link_args: [
-        meson.project_build_root() / 'build' / 'ext' / 'extinit.o',
+        meson.project_build_root() / 'build' / 'ext' / 'extinit.a',
         meson.project_build_root() / 'build' / 'ext' / 'bigdecimal' / 'bigdecimal.a',
         meson.project_build_root() / 'build' / 'ext' / 'cgi' / 'escape' / 'escape.a',
         meson.project_build_root() / 'build' / 'ext' / 'continuation' / 'continuation.a',
@@ -184,7 +184,7 @@ ruby = declare_dependency(
                 meson.project_build_root() / 'build' / 'ext' / 'pty' / 'pty.a',
                 meson.project_build_root() / 'build' / 'ext' / 'syslog' / 'syslog.a',
             ],
-        meson.project_build_root() / 'build' / 'enc' / 'encinit.o',
+        meson.project_build_root() / 'build' / 'enc' / 'encinit.a',
         meson.project_build_root() / 'build' / 'enc' / 'libenc.a',
         meson.project_build_root() / 'build' / 'enc' / 'libtrans.a',
         meson.project_build_root() / 'build' / 'libruby-static.a',
