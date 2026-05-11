@@ -273,7 +273,7 @@ jobs:
           cd build/artifact
           cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
-          cp ../mkxp-z.${{ matrix.arch_mkxpz }} .
+          find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -401,7 +401,7 @@ jobs:
           cd build/artifact
           cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
-          cp ../mkxp-z.${{ matrix.arch_mkxpz }} .
+          find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -446,7 +446,7 @@ jobs:
           cd build/artifact
           cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
-          cp ../mkxp-z.${{ matrix.arch_mkxpz }} .
+          find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -481,8 +481,8 @@ jobs:
 
       - name: Build universal binary
         run:
-          lipo artifact-arm64/mkxp-z.arm64 artifact-x86_64/mkxp-z.x86_64 -output artifact-arm64/mkxp-z.universal -create
-          rm artifact-arm64/mkxp-z.arm64
+          lipo artifact-arm64/mkxp-z.aarch64 artifact-x86_64/mkxp-z.x86_64 -output artifact-arm64/mkxp-z.universal -create
+          rm artifact-arm64/mkxp-z.aarch64
 
       - name: Upload archive
         uses: actions/upload-artifact@v4
