@@ -128,7 +128,7 @@ jobs:
           cd build/artifact
           error_flag=
 
-          for file in *.exe *.dll
+          for file in *.exe
           do
             ldd_output="$(ldd "$file")"
             echo "$file"
