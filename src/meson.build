@@ -293,7 +293,13 @@ pixman_options = meson_base_options + {
     'cppflags': global_args + global_cpp_args,
     'libpng': 'disabled',
     'tls': 'disabled',
-}
+} + (
+    host_system == 'darwin'
+        ? {
+            'a64-neon': 'disabled',
+        }
+        : {}
+)
 pixman = subproject('pixman', default_options: pixman_options).get_variable('idep_pixman')
 global_dependencies += pixman
 
