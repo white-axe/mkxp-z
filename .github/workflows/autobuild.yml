@@ -41,14 +41,11 @@ jobs:
             cd subprojects/ruby
             old_configure_hash="$(sha256sum configure)"
             echo "old: $old_configure_hash"
-            rm configure
             old_config_guess_hash="$(sha256sum tool/config.guess)"
             echo "old: $old_config_guess_hash"
-            rm tool/config.guess
             old_config_sub_hash="$(sha256sum tool/config.sub)"
             echo "old: $old_config_sub_hash"
-            rm tool/config.sub
-            autoreconf -i
+            autoreconf -fi
             new_configure_hash="$(sha256sum configure)"
             echo "new: $new_configure_hash"
             new_config_guess_hash="$(sha256sum tool/config.guess)"
