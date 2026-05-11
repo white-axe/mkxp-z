@@ -16,7 +16,7 @@ foreach dep_name : [
     'libapparmor',
     'libasyncns',
     'libcanberra',
-    host_system == 'windows' or host_system == 'cygwin' ? 'libcrypt' : '',
+    host_system == 'windows' or host_system == 'cygwin' or host_system == 'darwin' ? 'libcrypt' : '',
     'libdrm',
     'libffado',
     'libinotify',
@@ -24,7 +24,7 @@ foreach dep_name : [
     'libselinux',
     'libsystemd',
     'libusb-1.0',
-    host_system == 'windows' or host_system == 'cygwin' ? 'libxcrypt' : '',
+    host_system == 'windows' or host_system == 'cygwin' or host_system == 'darwin' ? 'libxcrypt' : '',
     'ncursesw',
     'oboe',
     host_system != 'android' ? 'opensl' : '',
@@ -411,7 +411,7 @@ libyaml_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'libyam
 libyaml_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libyaml']
 meson.override_dependency('libyaml', libyaml, static: true)
 
-if host_system != 'windows' and host_system != 'cygwin'
+if host_system != 'windows' and host_system != 'cygwin' and host_system != 'darwin'
     libxcrypt_options = meson_base_options
     libxcrypt = subproject('libxcrypt', default_options: libxcrypt_options).get_variable('libxcrypt')
     libxcrypt_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' / 'include']
