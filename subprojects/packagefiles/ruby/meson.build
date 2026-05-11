@@ -20,6 +20,15 @@ cflags += get_option('cflags')
 # Ruby versions that are valid C23 are 3.2.9+, 3.3.9+, 3.4.5+, and 3.5.0+.
 cflags += '-std=gnu99'
 
+ldflags = []
+
+linker_id = meson.get_compiler('c').get_linker_id()
+if linker_id == 'ld64' or linker_id == 'ld64.lld'
+    ldflags += '-Wl,-w'
+endif
+
+ldflags += get_option('ldflags')
+
 srcdir = meson.project_source_root()
 if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
     srcdir = srcdir.replace('\\', '/')
@@ -103,7 +112,7 @@ ruby = declare_dependency(
                 '--disable-rubygems',
                 '--without-gmp',
                 'CFLAGS=' + ' '.join(cflags),
-                'LDFLAGS=' + ' '.join(get_option('ldflags')),
+                'LDFLAGS=' + ' '.join(ldflags),
             ],
             cross_configure_options: [
                 '--host=@HOST@',
