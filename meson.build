@@ -168,7 +168,7 @@ endif
 
 executable(exe_name,
     link_with: static_library(
-        'mkxp-z',
+        meson.project_name(),
         sources: global_sources,
         dependencies: global_dependencies,
         include_directories: global_include_dirs,
