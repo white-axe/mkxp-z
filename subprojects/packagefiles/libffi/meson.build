@@ -1,5 +1,8 @@
 project('libffi', 'c', meson_version: '>=1.2.0')
 
+find_program('cmp', required: true)
+find_program('diff', required: true)
+
 cflags = []
 
 if get_option('b_lto')
