@@ -35,6 +35,15 @@
  
  if meson.get_external_property('threads_dep_is_broken', false)
      if opt_threads.disabled()
+@@ -1016,7 +1017,7 @@ if extra_deps.contains(vulkan_dep)
+     sys_video += 'vulkan'
+ endif
+ 
+-if extra_deps.contains(x11_dep)
++if x11_dep.found() and extra_deps.contains(x11_dep)
+     sys_video_driver += 'x11'
+     if extra_deps.contains(glx_dep)
+         sys_gl_wsi += 'glx'
 @@ -1044,7 +1045,7 @@ if extra_deps.contains(x11_dep)
          sys_video_driver += 'x11_xcursor'
      endif
