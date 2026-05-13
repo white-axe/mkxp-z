@@ -175,7 +175,12 @@ sdl2_options = meson_base_options + {
     'prefer_dlopen': is_nix,
     'system_iconv': 'enabled',
 }
-sdl2main = subproject('sdl2', default_options: sdl2_options).get_variable('sdl2main_dep')
+sdl2main = declare_dependency(
+    dependencies: subproject('sdl2', default_options: sdl2_options).get_variable('sdl2main_dep'),
+    link_args: host_system == 'windows' or host_system == 'cygwin'
+        ? ['-lmingw32']
+        : [],
+)
 sdl2 = subproject('sdl2', default_options: sdl2_options).get_variable('sdl2_dep')
 sdl2_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'SDL2-2.28.1' / 'include', '-I' + meson.project_source_root() / 'subprojects' / 'SDL2-2.28.1' / 'include']
 global_dependencies += [sdl2main, sdl2]
