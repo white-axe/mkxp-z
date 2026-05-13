@@ -89,7 +89,7 @@ jobs:
           install: >-
             mingw-w64-x86_64-git
             mingw-w64-x86_64-ruby
-            mingw-w64-x86_64-bison
+            bison
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-make
             mingw-w64-x86_64-cmake
