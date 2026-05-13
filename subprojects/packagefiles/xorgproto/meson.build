@@ -1,4 +1,4 @@
-project('xorgproto', 'c', meson_version: '>=1.10.0')
+project('xorgproto', 'c', meson_version: '>=1.2.0')
 
 if meson.get_compiler('c').compiles('''
     #include <sys/select.h>

@@ -1,4 +1,4 @@
-project('ruby', 'c', meson_version: '>=1.10.0')
+project('ruby', 'c', meson_version: '>=1.2.0')
 
 cflags = []
 

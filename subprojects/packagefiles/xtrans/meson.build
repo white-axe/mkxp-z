@@ -1,4 +1,4 @@
-project('xtrans', 'c', meson_version: '>=1.10.0')
+project('xtrans', 'c', meson_version: '>=1.2.0')
 
 xtrans = declare_dependency(
     include_directories: 'include',

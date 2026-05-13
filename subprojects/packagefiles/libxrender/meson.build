@@ -1,4 +1,4 @@
-project('libxrender', 'c', meson_version: '>=1.10.0')
+project('libxrender', 'c', meson_version: '>=1.2.0')
 
 libxrender = declare_dependency(
     include_directories: [

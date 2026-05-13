@@ -1,1 +1,1 @@
-project('libxss', 'c', meson_version: '>=1.10.0')
+project('libxss', 'c', meson_version: '>=1.2.0')

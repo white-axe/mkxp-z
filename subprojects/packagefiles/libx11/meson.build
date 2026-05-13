@@ -1,4 +1,4 @@
-project('libx11', 'c', meson_version: '>=1.10.0')
+project('libx11', 'c', meson_version: '>=1.2.0')
 
 includes = [
     '.',

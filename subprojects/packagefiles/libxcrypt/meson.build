@@ -1,4 +1,4 @@
-project('libxcrypt', 'c', meson_version: '>=1.10.0')
+project('libxcrypt', 'c', meson_version: '>=1.2.0')
 
 cflags = []
 

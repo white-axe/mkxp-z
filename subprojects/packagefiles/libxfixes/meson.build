@@ -1,4 +1,4 @@
-project('libxfixes', 'c', meson_version: '>=1.10.0')
+project('libxfixes', 'c', meson_version: '>=1.2.0')
 
 libxfixes = declare_dependency(
     include_directories: [
