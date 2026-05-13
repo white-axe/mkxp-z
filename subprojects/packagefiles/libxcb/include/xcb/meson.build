@@ -1,7 +1,7 @@
 foreach name : xcb_proto_sources
     xcb_proto_generated += custom_target(
         name + '.h',
-        output: [name + '.c', name + '.h'],
+        output: name + '.h',
         command: [
             files('../../xcbgen.sh')[0],
             python,

@@ -33,14 +33,6 @@ xorgproto = declare_dependency(
     ],
 )
 
-keysymdefs = files(
-    'include/X11/keysymdef.h',
-    'include/X11/XF86keysym.h',
-    'include/X11/Sunkeysym.h',
-    'include/X11/DECkeysym.h',
-    'include/X11/HPkeysym.h',
-)
-
 meson.override_dependency('applewmproto', xorgproto, static: true)
 meson.override_dependency('bigreqsproto', xorgproto, static: true)
 meson.override_dependency('compositeproto', xorgproto, static: true)

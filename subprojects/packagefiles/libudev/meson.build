@@ -6,4 +6,4 @@ libudev = declare_dependency(
     ],
 )
 
-meson.override_dependency('libudev', libudev)
+meson.override_dependency('libudev', libudev, static: true)

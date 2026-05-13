@@ -54,7 +54,7 @@ foreach dep_name : [
     not is_nix ? 'xrandr' : '',
     not is_nix ? 'xrender' : '',
     'xscrnsaver',
-    not is_nix ? 'xtrans' : '',
+    'xtrans',
 ]
     if dep_name != ''
         meson.override_dependency(dep_name, null_dep, static: true)
@@ -135,7 +135,6 @@ meson.override_dependency('fmt', fmt, static: true)
 if is_nix
     subproject('libudev', default_options: meson_base_options)
     subproject('xorgproto', default_options: meson_base_options)
-    subproject('xtrans', default_options: meson_base_options)
     subproject('libxau', default_options: meson_base_options)
     subproject('libxcb', default_options: meson_base_options)
     subproject('libx11', default_options: meson_base_options)
@@ -218,6 +217,8 @@ if is_nix
         'gcov': false,
         'man': false,
         'tests': false,
+        'udev': 'disabled',
+        'x11': 'disabled',
     }
     pulseaudio = subproject('pulseaudio', default_options: pulseaudio_options).get_variable('libpulse_dep')
     meson.override_dependency('libpulse', pulseaudio, static: true)
@@ -237,6 +238,7 @@ if is_nix
         'session-managers': [],
         'flatpak': 'disabled',
         'readline': 'disabled',
+        'udev': 'disabled',
         'x11': 'disabled',
         'x11-xfixes': 'disabled',
     }
