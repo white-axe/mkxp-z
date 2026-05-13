@@ -1,0 +1,18 @@
+xcb_proto_generated += custom_target(
+    'xproto.h',
+    output: 'xproto.h',
+    command: [
+        files('../xcbgen.sh')[0],
+        python,
+        files('../src/c_client.py')[0],
+        '@PRIVATE_DIR@',
+        '@OUTDIR@',
+        xcb_proto_root,
+        'xproto',
+    ],
+    depend_files: [
+        xcb_proto_root / 'src' / ('xproto.xml'),
+    ],
+)
+
+subdir('xcb')

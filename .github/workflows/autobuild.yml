@@ -298,8 +298,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt update
-          apt install -y git diffutils ruby bison gcc g++ make cmake ninja-build python3-pip
-          pip3 install --break-system-packages meson
+          apt install -y git diffutils ruby bison gcc g++ make cmake meson
 
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -382,8 +381,7 @@ jobs:
         run: |
           dpkg --add-architecture ${{matrix.arch_debian}}
           apt update
-          apt install -y git diffutils ruby bison gcc g++ make cmake ninja-build python3-pip
-          pip3 install --break-system-packages meson
+          apt install -y git diffutils ruby bison gcc g++ make cmake meson
           apt install -y gcc-${{matrix.arch_gcc}} g++-${{matrix.arch_gcc}}
 
       - name: Checkout repository

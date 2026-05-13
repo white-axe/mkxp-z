@@ -22,19 +22,14 @@ else
     error('failed to determine how to access the contents of fd_set')
 endif
 
+subdir('include/X11')
+
 xorgproto = declare_dependency(
     include_directories: [
-        '.',
         'include',
     ],
     sources: [
-        configure_file(
-            input: 'include/X11/Xpoll.h.in',
-            output: 'Xpoll.h',
-            configuration: {
-                'USE_FDS_BITS': use_fds_bits
-            },
-        ),
+        xpoll,
     ],
 )
 
