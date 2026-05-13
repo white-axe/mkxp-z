@@ -111,7 +111,7 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
+          cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z.exe .
           cp ../../mkxp.json .
@@ -180,7 +180,7 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
+          cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z.x86_64 .
           cp ../../mkxp.json .
@@ -269,7 +269,7 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
+          cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
           cp ../../mkxp.json .
@@ -313,7 +313,7 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
+          cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z.x86_64 .
           cp ../../mkxp.json .
@@ -398,7 +398,7 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
+          cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
           cp ../../mkxp.json .
@@ -443,7 +443,7 @@ jobs:
         run: |
           mkdir build/artifact
           cd build/artifact
-          cp -r ../subprojects/ruby/dist/lib/ruby/3.1.0 .
+          cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
           cp ../../mkxp.json .
