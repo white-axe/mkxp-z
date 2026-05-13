@@ -470,7 +470,7 @@ ruby_options = meson_base_options + {
     'cppflags': zlib_includes + libyaml_includes + libxcrypt_includes + libffi_includes,
     'ldflags': zlib_libs + libyaml_libs + libxcrypt_libs + libffi_libs,
 }
-ruby = subproject('ruby', default_options: ruby_options).get_variable('ruby')
+ruby = subproject('ruby-3.1', default_options: ruby_options).get_variable('ruby')
 global_dependencies += ruby
 
 if build_static == true

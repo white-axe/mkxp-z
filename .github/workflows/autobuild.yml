@@ -12,7 +12,7 @@ on:
 
 jobs:
   verify-ruby-configure-scripts:
-    name: Verify Ruby configure scripts
+    name: Verify Ruby 3.1 configure scripts
     runs-on: ubuntu-latest
     container:
       image: nixos/nix:2.32.8
@@ -37,8 +37,8 @@ jobs:
       - name: Verify
         run: |
           nix-shell -p autoconf meson --run '
-            meson subprojects download ruby
-            cd subprojects/ruby
+            meson subprojects download ruby-3.1
+            cd subprojects/ruby-3.1
             old_configure_hash="$(sha256sum configure)"
             echo "old: $old_configure_hash"
             old_config_guess_hash="$(sha256sum tool/config.guess)"
