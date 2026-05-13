@@ -142,7 +142,11 @@ ruby = declare_dependency(
             env: {
                 'CONFIG_SITE': ' ',
                 'YACC': bison,
+                'ac_cv_func_crypt': 'yes',
+                'ac_cv_func_crypt_r': 'yes',
+                'ac_cv_header_crypt_h': 'yes',
                 'ac_cv_lib_crypt_crypt': 'yes',
+                'ac_cv_lib_z_uncompress': 'yes',
                 'rb_cv_broken_crypt': 'no',
             },
             depends: [
