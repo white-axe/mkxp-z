@@ -1,4 +1,4 @@
-project('ruby', 'c', meson_version: '>=1.2.0')
+project('ruby', 'c', meson_version: '>=1.10.0')
 
 cflags = []
 
@@ -78,6 +78,28 @@ if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
     endif
 endif
 
+bison = find_program('bison', required: true).full_path()
+if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
+    bison = bison.replace('\\', '/')
+    if not bison.startswith('/')
+        bison = '/' + bison
+    endif
+    if bison.contains(':')
+        bison_components_in = bison.split(':')
+        bison_components_out = []
+        i = 0
+        foreach bison_component : bison_components_in
+            if i == 0
+                bison_components_out += bison_component.to_lower()
+            else
+                bison_components_out += bison_component
+            endif
+            i += 1
+        endforeach
+        bison = ''.join(bison_components_out)
+    endif
+endif
+
 ruby_deps = [
     host_machine.system() != 'windows' and host_machine.system() != 'cygwin' and host_machine.system() != 'darwin' ? dependency('libcrypt', required: true) : [],
     dependency('libffi', required: true),
@@ -119,8 +141,9 @@ ruby = declare_dependency(
             ],
             env: {
                 'CONFIG_SITE': ' ',
-                'rb_cv_broken_crypt': 'no',
+                'YACC': bison,
                 'ac_cv_lib_crypt_crypt': 'yes',
+                'rb_cv_broken_crypt': 'no',
             },
             depends: [
                 # Force Meson to fully build all of our vendored dependencies that are required by Ruby before building Ruby itself

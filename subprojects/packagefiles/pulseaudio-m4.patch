@@ -1,0 +1,14 @@
+# Removes PulseAudio's dependency on m4.
+# We don't actually need the files that PulseAudio's build system generates using m4.
+
+--- a/meson.build
++++ b/meson.build
+@@ -898,7 +898,7 @@ if get_option('client')
+ 
+   # CMake files
+ 
+-  m4 = find_program('m4', required: true)
++  m4 = disabler()
+ 
+   cmakedir = join_paths(libdir, 'cmake', 'PulseAudio')
+ 

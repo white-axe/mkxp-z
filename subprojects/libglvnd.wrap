@@ -1,0 +1,7 @@
+[wrap-file]
+source_url = http://deb.debian.org/debian/pool/main/libg/libglvnd/libglvnd_1.7.0.orig.tar.gz
+source_fallback_url = https://mirrors.ocf.berkeley.edu/debian/pool/main/libg/libglvnd/libglvnd_1.7.0.orig.tar.gz
+source_filename = libglvnd.tar.gz
+source_hash = 073e7292788d4d3eeb45ea6c7bdcce9bfdb3b3eef8d7dbd47f2f30dce046ef98
+directory = libglvnd-1.7.0
+patch_directory = libglvnd

@@ -183,7 +183,7 @@ static void setupWindowIcon(const Config &conf, SDL_Window *win) {
   SDL_RWops *iconSrc;
 
   if (conf.iconPath.empty())
-    iconSrc = SDL_RWFromConstMem(___assets_icon_png, ___assets_icon_png_len);
+    iconSrc = SDL_RWFromConstMem(mkxp_assets_icon_png, mkxp_assets_icon_png_len);
   else
     iconSrc = SDL_RWFromFile(conf.iconPath.c_str(), "rb");
 
@@ -198,10 +198,6 @@ static void setupWindowIcon(const Config &conf, SDL_Window *win) {
 int main(int argc, char *argv[]) {
     SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
     SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
-
-#ifdef GLES2_HEADER
-    SDL_SetHint(SDL_HINT_OPENGL_ES_DRIVER, "1");
-#endif
 
     SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
 
@@ -321,19 +317,6 @@ int main(int argc, char *argv[]) {
       winFlags |= SDL_WINDOW_RESIZABLE;
     if (conf.fullscreen)
       winFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-    
-#ifdef GLES2_HEADER
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-
-    // LoadLibrary properly initializes EGL, it won't work otherwise.
-    // Doesn't completely do it though, needs a small patch to SDL
-#ifdef __APPLE__
-    SDL_setenv("ANGLE_DEFAULT_PLATFORM", (conf.preferMetalRenderer) ? "metal" : "opengl", true);
-    SDL_GL_LoadLibrary("@rpath/libEGL.dylib");
-#endif
-#endif
     
     win = SDL_CreateWindow(conf.windowTitle.c_str(), SDL_WINDOWPOS_UNDEFINED,
                            SDL_WINDOWPOS_UNDEFINED, conf.defScreenW,

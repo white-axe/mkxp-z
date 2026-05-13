@@ -3,4 +3,4 @@ url = https://github.com/ruby/ruby
 revision = v3_1_3
 depth = 1
 patch_directory = ruby
-diff_files = ruby-bundle.patch, ruby-dllexport.patch, ruby-exp.patch, ruby-fake.patch, ruby-init.patch, ruby-libruby-static.patch, ruby-pkg-config.patch, ruby-rbinstall.patch, ruby-reconfig.patch, ruby-round.patch, ruby-mkxp-z-patches.patch, ruby-clock-gettime.patch
+diff_files = ruby-bison.patch, ruby-bundle.patch, ruby-deps.patch, ruby-dllexport.patch, ruby-exp.patch, ruby-fake.patch, ruby-init.patch, ruby-libruby-static.patch, ruby-pkg-config.patch, ruby-rbinstall.patch, ruby-reconfig.patch, ruby-round.patch, ruby-mkxp-z-patches.patch, ruby-clock-gettime.patch

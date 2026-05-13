@@ -23,20 +23,3 @@
  
  pre-install-local:: pkgconfig-data
  
---- a/win32/Makefile.sub
-+++ b/win32/Makefile.sub
-@@ -1232,10 +1232,10 @@ update-benchmark-driver:
- 	$(GIT) clone https://github.com/benchmark-driver/benchmark-driver $(srcdir)/benchmark/benchmark-driver || \
- 	  $(GIT) -C $(srcdir)/benchmark/benchmark-driver pull origin master
- 
--$(ruby_pc): $(RBCONFIG)
--	@$(BOOTSTRAPRUBY) $(tooldir)/expand-config.rb \
--		-output=$@ -mode=$(INSTALL_DATA_MODE) -config=rbconfig.rb \
--		$(srcdir)/template/ruby.pc.in
-+
-+
-+
-+
- 
- {$(srcdir)/coroutine/win32}.asm{coroutine/win32}.obj:
- 	$(ECHO) assembling $(<:\=/)

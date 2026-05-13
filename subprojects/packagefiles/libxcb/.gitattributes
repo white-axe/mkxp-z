@@ -1,0 +1,2 @@
+# Makes GitHub ignore changes in xproto.h in commit diffs, and makes GitHub Linguist exclude xproto.h from the language breakdown
+/src/xproto.h

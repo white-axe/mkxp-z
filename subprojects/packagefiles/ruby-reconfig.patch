@@ -30,28 +30,3 @@
  
  $(srcdir)/$(CONFIGURE): $(srcdir)/configure.ac
  	$(CHDIR) $(srcdir) && exec $(AUTOCONF) -o $(@F)
---- a/win32/Makefile.sub
-+++ b/win32/Makefile.sub
-@@ -573,14 +573,14 @@ $(SCRIPTPROGRAMS): $(STUBPROGRAM)
- update-src::
- 	@cd "$(srcdir:/=\)" && set LC_TIME=C && $(VCSUP)
- 
--.PHONY: reconfig
--reconfig $(MKFILES): $(srcdir)/common.mk $(srcdir)/version.h \
--	    $(win_srcdir)/Makefile.sub $(win_srcdir)/configure.bat \
--	    $(win_srcdir)/setup.mak $(win_srcdir)/enc-setup.mak \
--	    $(srcdir)/enc/Makefile.in
--	$(COMSPEC) /C $(win_srcdir:/=\)\configure.bat $(configure_args)
--	@fc Makefile Makefile.old > nul && echo Makefile unchanged || \
--	(echo $(MKFILES) was updated, re-run $(MAKE). & exit 1)
-+
-+
-+
-+
-+
-+
-+
-+
- 
- RUBY_CONFIG_H = $(arch_hdrdir)/ruby/config.h
- CONFIG_H = ./.config.h.time

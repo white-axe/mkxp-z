@@ -1,0 +1,5 @@
+[wrap-git]
+url = https://github.com/systemd/systemd
+revision = v260.1
+depth = 1
+patch_directory = libudev

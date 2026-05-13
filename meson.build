@@ -1,11 +1,9 @@
-project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=1.2.0', default_options: ['cpp_std=c++14', 'buildtype=release'])
+project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=1.10.0', default_options: ['cpp_std=c++14', 'buildtype=release'])
 
 host_system = host_machine.system()
 host_endian = host_machine.endian()
 
 use_pic = true
-
-xxd = find_program('xxd', native: true)
 
 compilers = {'cpp': meson.get_compiler('cpp')}
 
@@ -61,16 +59,6 @@ if steamworks_path != ''
     endif
 endif
 
-# GLES
-gfx_backend = get_option('gfx_backend')
-if gfx_backend == 'gles'
-    # Needs to be manually set up for now
-    global_args += '-DGLES2_HEADER'
-elif gfx_backend == 'gl'
-    global_dependencies += dependency('gl')
-    # boop
-endif
-
 # ====================
 # Main source
 # ====================
@@ -108,6 +96,7 @@ endif
 
 global_args += '-DMKXPZ_INIT_GL_LATER'
 
+subdir('tools')
 subdir('src')
 subdir('binding')
 subdir('shader')

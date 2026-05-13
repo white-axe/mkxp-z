@@ -1,4 +1,4 @@
-project('theora', 'c', meson_version: '>=1.2.0')
+project('theora', 'c', meson_version: '>=1.10.0')
 
 theoradec = declare_dependency(
     include_directories: 'include',

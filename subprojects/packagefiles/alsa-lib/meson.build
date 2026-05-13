@@ -1,4 +1,4 @@
-project('alsa-lib', 'c', meson_version: '>=1.2.0')
+project('alsa-lib', 'c', meson_version: '>=1.10.0')
 
 cflags = []
 

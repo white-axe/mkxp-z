@@ -30,7 +30,7 @@
  size_t iconv (iconv_t cd, char * *inbuf, size_t *inbytesleft, char * *outbuf, size_t *outbytesleft);
  '''
 -  if cc.compiles(iconvconsttest, dependencies : iconv_dep)
-+  if true
++  if iconv_dep.type_name() == 'internal' or cc.compiles(iconvconsttest, dependencies : iconv_dep)
      cdata.set('ICONV_CONST', '')
    else
      cdata.set('ICONV_CONST', 'const')

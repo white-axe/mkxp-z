@@ -1,8 +1,10 @@
 cmake = import('cmake')
 
+is_nix = host_system != 'windows' and host_system != 'cygwin' and host_system != 'darwin'
+
 null_dep = dependency('', required: false)
 foreach dep_name : [
-    host_system != 'linux' ? 'alsa' : '',
+    not is_nix ? 'alsa' : '',
     'audioio',
     'avahi-client',
     'dbus-1',
@@ -12,19 +14,21 @@ foreach dep_name : [
     'glib-2.0',
     'gtk+-3.0',
     'intl',
-    host_system != 'linux' ? 'jack' : '',
+    not is_nix ? 'jack' : '',
     'libapparmor',
     'libasyncns',
     'libcanberra',
-    host_system == 'windows' or host_system == 'cygwin' or host_system == 'darwin' ? 'libcrypt' : '',
+    not is_nix ? 'libcrypt' : '',
     'libdrm',
     'libffado',
     'libinotify',
-    host_system != 'linux' ? 'libpulse' : '',
+    not is_nix ? 'libpulse' : '',
+    'libpulse-simple',
     'libselinux',
     'libsystemd',
+    not is_nix ? 'libudev' : '',
     'libusb-1.0',
-    host_system == 'windows' or host_system == 'cygwin' or host_system == 'darwin' ? 'libxcrypt' : '',
+    not is_nix ? 'libxcrypt' : '',
     'ncursesw',
     'oboe',
     host_system != 'android' ? 'opensl' : '',
@@ -35,10 +39,22 @@ foreach dep_name : [
     'sdl3',
     'snapd-glib',
     'snapd-glib-2',
-    host_system != 'linux' ? 'sndfile' : '',
+    not is_nix ? 'sndfile' : '',
     host_system != 'dragonfly' and host_system != 'freebsd' and host_system != 'netbsd' and host_system != 'openbsd' ? 'sndio' : '',
-    'x11-xcb',
-    'xfixes',
+    'vulkan',
+    not is_nix ? 'x11' : '',
+    not is_nix ? 'x11-xcb' : '',
+    not is_nix ? 'xau' : '',
+    not is_nix ? 'xcb' : '',
+    not is_nix ? 'xcursor' : '',
+    not is_nix ? 'xext' : '',
+    not is_nix ? 'xfixes' : '',
+    not is_nix ? 'xi' : '',
+    'xkbcommon',
+    not is_nix ? 'xrandr' : '',
+    not is_nix ? 'xrender' : '',
+    'xscrnsaver',
+    not is_nix ? 'xtrans' : '',
 ]
     if dep_name != ''
         meson.override_dependency(dep_name, null_dep, static: true)
@@ -57,6 +73,8 @@ meson_base_options = {
     'default_library': 'static',
     'b_staticpic': use_pic,
 }
+
+subproject('libglvnd', default_options: meson_base_options)
 
 libiconv_options = meson_base_options + {
     'cflags': global_args,
@@ -114,64 +132,55 @@ fmt_options.add_cmake_defines(cmake_base_options + {
 fmt = cmake.subproject('fmt', options: fmt_options).dependency('fmt')
 meson.override_dependency('fmt', fmt, static: true)
 
-sdl2_options = cmake.subproject_options()
-sdl2_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': ' '.join(global_args),
-    'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
-    'LIBTYPE': 'STATIC',
-    'BUILD_SHARED_LIBS': false,
-    'SDL_ATOMIC': true,
-    'SDL_AUDIO': false,
-    'SDL_VIDEO': true,
-    'SDL_RENDER': true,
-    'SDL_EVENTS': true,
-    'SDL_JOYSTICK': true,
-    'SDL_HAPTIC': false,
-    'SDL_HIDAPI': false,
-    'SDL_POWER': true,
-    'SDL_THREADS': true,
-    'SDL_TIMERS': true,
-    'SDL_FILE': true,
-    'SDL_LOADSO': true,
-    'SDL_CPUINFO': true,
-    'SDL_FILESYSTEM': true,
-    'SDL_SENSOR': false,
-    'SDL_LOCALE': false,
-    'SDL_MISC': false,
-    'SDL_SYSTEM_ICONV': false,
-})
-sdl2main = declare_dependency(
-    dependencies: cmake.subproject('sdl2', options: sdl2_options).dependency('SDL2main'),
-    link_args: host_system == 'windows' or host_system == 'cygwin'
-        ? ['-lmingw32']
-        : [],
-)
-sdl2 = declare_dependency(dependencies: [
-    cmake.subproject('sdl2', options: sdl2_options).dependency('SDL2-static'),
-    host_system == 'darwin'
-        ? dependency(
-            'appleframeworks',
-            modules: [
-                'Carbon',
-                'Cocoa',
-                'CoreHaptics',
-                'CoreVideo',
-                'ForceFeedback',
-                'Foundation',
-                'GameController',
-                'IOKit',
-                'Metal',
-                'QuartzCore',
-            ],
-            required: true,
-        )
-        : [],
-])
-sdl2_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'sdl2' / 'include', '-I' + meson.global_build_root() / 'subprojects' / 'sdl2' / '__CMake_build' / 'include-config-release' / 'SDL2']
-meson.override_dependency('sdl2', sdl2, static: true)
+if is_nix
+    subproject('libudev', default_options: meson_base_options)
+    subproject('xorgproto', default_options: meson_base_options)
+    subproject('xtrans', default_options: meson_base_options)
+    subproject('libxau', default_options: meson_base_options)
+    subproject('libxcb', default_options: meson_base_options)
+    subproject('libx11', default_options: meson_base_options)
+    subproject('libxfixes', default_options: meson_base_options)
+    subproject('libxext', default_options: meson_base_options)
+    subproject('libxi', default_options: meson_base_options)
+    subproject('libxrender', default_options: meson_base_options)
+    subproject('libxrandr', default_options: meson_base_options)
+    subproject('libxcursor', default_options: meson_base_options)
+endif
+
+sdl2_options = meson_base_options + {
+    'use_atomic': 'enabled',
+    'use_audio': 'disabled',
+    'use_cpuinfo': 'enabled',
+    'use_events': 'enabled',
+    'use_file': 'enabled',
+    'use_filesystem': 'enabled',
+    'use_joystick': 'enabled',
+    'use_haptic': 'disabled',
+    'use_hidapi': 'disabled',
+    'use_loadso': 'enabled',
+    'use_locale': 'disabled',
+    'use_render': 'enabled',
+    'use_power': 'enabled',
+    'use_sensor': 'disabled',
+    'use_threads': 'enabled',
+    'use_timers': 'enabled',
+    'use_video': 'enabled',
+    'use_video_x11': 'enabled',
+    'use_video_wayland': 'disabled',
+    'use_video_wayland_libdecor': 'disabled',
+    'use_video_opengl': 'enabled',
+    'use_video_openglesv2': 'enabled',
+    'use_video_vulkan': 'disabled',
+    'use_video_offscreen': 'disabled',
+    'prefer_dlopen': is_nix,
+    'system_iconv': 'enabled',
+}
+sdl2main = subproject('sdl2', default_options: sdl2_options).get_variable('sdl2main_dep')
+sdl2 = subproject('sdl2', default_options: sdl2_options).get_variable('sdl2_dep')
+sdl2_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'SDL2-2.28.1' / 'include', '-I' + meson.project_source_root() / 'subprojects' / 'SDL2-2.28.1' / 'include']
 global_dependencies += [sdl2main, sdl2]
 
-if host_system == 'linux'
+if is_nix
     libsndfile_options = cmake.subproject_options()
     libsndfile_options.add_cmake_defines(cmake_base_options + {
         'CMAKE_C_FLAGS': ' '.join(global_args),
@@ -223,6 +232,8 @@ if host_system == 'linux'
         'session-managers': [],
         'flatpak': 'disabled',
         'readline': 'disabled',
+        'x11': 'disabled',
+        'x11-xfixes': 'disabled',
     }
     pipewire = subproject('pipewire', default_options: pipewire_options).get_variable('pipewire_dep')
 endif
@@ -439,7 +450,7 @@ libyaml_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'libyam
 libyaml_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libyaml']
 meson.override_dependency('libyaml', libyaml, static: true)
 
-if host_system != 'windows' and host_system != 'cygwin' and host_system != 'darwin'
+if is_nix
     libxcrypt_options = meson_base_options
     libxcrypt = subproject('libxcrypt', default_options: libxcrypt_options).get_variable('libxcrypt')
     libxcrypt_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' / 'include']
@@ -496,7 +507,7 @@ main_source = files(
     'eventthread.cpp',
     'settingsmenu.cpp',
     'sharedstate.cpp',
-    
+
     'audio/alstream.cpp',
     'audio/audio.cpp',
     'audio/audiostream.cpp',
@@ -539,13 +550,13 @@ main_source = files(
 
     'util/iniconfig.cpp',
     'util/win-consoleutils.cpp',
-    
+
     'etc/etc.cpp',
     'etc/table.cpp',
 
     'filesystem/filesystem.cpp',
     host_system != 'darwin' ? 'filesystem/filesystemImpl.cpp' : [],
-    
+
     'input/input.cpp',
     'input/keybindings.cpp',
 

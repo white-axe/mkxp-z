@@ -182,7 +182,7 @@ void EventThread::process(RGSSThreadData &rtData)
     bool terminate = false;
     
     SDL_GameControllerAddMappingsFromRW(
-        SDL_RWFromConstMem(___assets_gamecontrollerdb_txt, ___assets_gamecontrollerdb_txt_len),
+        SDL_RWFromConstMem(mkxp_assets_gamecontrollerdb_txt, mkxp_assets_gamecontrollerdb_txt_len),
     1);
     
     SDL_JoystickUpdate();
