@@ -1,7 +1,0 @@
-[wrap-file]
-source_url = https://github.com/besser82/libxcrypt/releases/download/v4.5.2/libxcrypt-4.5.2.tar.xz
-source_filename = libxcrypt.tar.xz
-source_hash = 71513a31c01a428bccd5367a32fd95f115d6dac50fb5b60c779d5c7942aec071
-directory = libxcrypt-4.5.2
-patch_directory = libxcrypt
-diff_files = libxcrypt-const.patch

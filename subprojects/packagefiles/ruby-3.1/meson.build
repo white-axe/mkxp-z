@@ -1,7 +1,5 @@
 project('ruby-3.1', 'c', meson_version: '>=1.2.0')
 
-needs_libcrypt = host_machine.system() != 'windows' and host_machine.system() != 'cygwin' and host_machine.system() != 'darwin'
-
 cflags = []
 
 if get_option('b_lto')
@@ -103,7 +101,6 @@ if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
 endif
 
 ruby_deps = [
-    needs_libcrypt ? dependency('libcrypt', required: true) : [],
     dependency('libffi', required: true),
     dependency('libyaml', required: true),
     dependency('z', required: true),
@@ -144,10 +141,10 @@ ruby = declare_dependency(
             env: {
                 'CONFIG_SITE': ' ',
                 'YACC': bison,
-                'ac_cv_func_crypt': needs_libcrypt ? 'yes' : 'no',
-                'ac_cv_func_crypt_r': needs_libcrypt ? 'yes' : 'no',
-                'ac_cv_header_crypt_h': needs_libcrypt ? 'yes' : 'no',
-                'ac_cv_lib_crypt_crypt': needs_libcrypt ? 'yes' : 'no',
+                'ac_cv_func_crypt': 'no',
+                'ac_cv_func_crypt_r': 'no',
+                'ac_cv_header_crypt_h': 'no',
+                'ac_cv_lib_crypt_crypt': 'no',
                 'ac_cv_lib_z_uncompress': 'yes',
                 'rb_cv_broken_crypt': 'no',
             },

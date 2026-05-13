@@ -18,7 +18,7 @@ foreach dep_name : [
     'libapparmor',
     'libasyncns',
     'libcanberra',
-    not is_nix ? 'libcrypt' : '',
+    'libcrypt',
     'libdrm',
     'libffado',
     'libinotify',
@@ -28,7 +28,7 @@ foreach dep_name : [
     'libsystemd',
     not is_nix ? 'libudev' : '',
     'libusb-1.0',
-    not is_nix ? 'libxcrypt' : '',
+    'libxcrypt',
     'ncursesw',
     'oboe',
     host_system != 'android' ? 'opensl' : '',
@@ -450,25 +450,15 @@ libyaml_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'libyam
 libyaml_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libyaml']
 meson.override_dependency('libyaml', libyaml, static: true)
 
-if is_nix
-    libxcrypt_options = meson_base_options
-    libxcrypt = subproject('libxcrypt', default_options: libxcrypt_options).get_variable('libxcrypt')
-    libxcrypt_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' / 'include']
-    libxcrypt_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libxcrypt-4.5.2' / 'dist' / 'lib']
-else
-    libxcrypt_includes = []
-    libxcrypt_libs = []
-endif
-
 libffi_options = meson_base_options
 libffi = subproject('libffi', default_options: libffi_options).get_variable('libffi')
 libffi_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' / 'include']
 libffi_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' / 'lib']
 
 ruby_options = meson_base_options + {
-    'cflags': zlib_includes + libyaml_includes + libxcrypt_includes + libffi_includes,
-    'cppflags': zlib_includes + libyaml_includes + libxcrypt_includes + libffi_includes,
-    'ldflags': zlib_libs + libyaml_libs + libxcrypt_libs + libffi_libs,
+    'cflags': zlib_includes + libyaml_includes + libffi_includes,
+    'cppflags': zlib_includes + libyaml_includes + libffi_includes,
+    'ldflags': zlib_libs + libyaml_libs + libffi_libs,
 }
 ruby = subproject('ruby-3.1', default_options: ruby_options).get_variable('ruby')
 global_dependencies += ruby
