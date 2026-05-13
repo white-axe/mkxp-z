@@ -15,7 +15,9 @@ apple_impl = declare_dependency(
             'views/TouchBar.mm',
         ],
         include_directories: include_dirs,
-        objcpp_args: get_option('objcppflags'),
+        objcpp_args: get_option('objcppflags') + [
+            '-fobjc-arc',
+        ],
         dependencies: [
             dependency('mkxp-global-dependencies', required: true, static: true),
             dependency(
