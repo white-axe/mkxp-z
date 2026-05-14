@@ -102,7 +102,7 @@ jobs:
       - name: Build
         shell: msys2 {0}
         run: |
-          meson setup build
+          meson setup --buildtype release -Db_lto=true build
           cd build
           CLICOLOR_FORCE=1 ninja -v
           strip ./mkxp-z.exe
@@ -173,7 +173,7 @@ jobs:
 
       - name: Build
         run: |
-          meson setup build
+          meson setup --buildtype release -Db_lto=true build
           cd build
           CLICOLOR_FORCE=1 ninja -v
 
@@ -262,7 +262,7 @@ jobs:
 
       - name: Build
         run: |
-          meson setup --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt build
+          meson setup --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Db_lto=true build
           cd build
           CLICOLOR_FORCE=1 ninja -v
 
@@ -305,7 +305,7 @@ jobs:
 
       - name: Build
         run: |
-          meson setup build
+          meson setup --buildtype release -Db_lto=true build
           cd build
           CLICOLOR_FORCE=1 ninja -v
 
@@ -389,7 +389,7 @@ jobs:
 
       - name: Build
         run: |
-          meson setup --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt build
+          meson setup --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Db_lto=true build
           cd build
           CLICOLOR_FORCE=1 ninja -v
 
@@ -434,7 +434,7 @@ jobs:
 
       - name: Build
         run: |
-          meson setup --cross-file macos/meson-${{ matrix.arch_mkxpz }}.txt build
+          meson setup --cross-file macos/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Db_lto=true build
           cd build
           CLICOLOR_FORCE=1 ninja -v
 
