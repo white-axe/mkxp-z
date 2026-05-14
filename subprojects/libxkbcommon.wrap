@@ -1,0 +1,5 @@
+[wrap-git]
+url = https://github.com/xkbcommon/libxkbcommon
+revision = xkbcommon-1.13.1
+depth = 1
+patch_directory = libxkbcommon

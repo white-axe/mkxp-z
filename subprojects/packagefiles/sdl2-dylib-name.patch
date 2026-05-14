@@ -12,7 +12,7 @@
 +    match (name, host_system):
 +        case ('asound', 'linux'):
 +            return 'libasound.so.2'
-+        case ('decor', 'linux'):
++        case ('decor-0', 'linux'):
 +            return 'libdecor-0.so.0'
 +        case ('jack', 'linux'):
 +            return 'libjack.so.0'

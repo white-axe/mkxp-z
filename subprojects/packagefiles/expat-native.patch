@@ -1,0 +1,27 @@
+# Builds expat for the build machine instead of for the host machine.
+
+--- a/meson.build
++++ b/meson.build
+@@ -225,7 +225,7 @@ libexpat = library(
+   version: dllver,
+   soversion: host_machine.system() != 'windows' ? '1' : '',
+   vs_module_defs: dfile,
+-  install: true,
++  native: true,
+   gnu_symbol_visibility: 'hidden',
+ )
+ 
+@@ -234,10 +234,10 @@ expat_dep = declare_dependency(
+   include_directories: incdir,
+   compile_args: expat_static_args,
+ )
+-meson.override_dependency('expat', expat_dep)
++meson.override_dependency('expat', expat_dep, native: true)
++
++
+ 
+-pkg = import('pkgconfig')
+-pkg.generate(libexpat)
+ 
+ if get_option('build_tests')
+   add_languages('cpp')

@@ -19,6 +19,7 @@ foreach dep_name : [
     'libasyncns',
     'libcanberra',
     'libcrypt',
+    not is_nix ? 'libdecor-0' : '',
     'libdrm',
     'libffado',
     'libinotify',
@@ -42,6 +43,13 @@ foreach dep_name : [
     not is_nix ? 'sndfile' : '',
     host_system != 'dragonfly' and host_system != 'freebsd' and host_system != 'netbsd' and host_system != 'openbsd' ? 'sndio' : '',
     'vulkan',
+    not is_nix ? 'wayland-client' : '',
+    not is_nix ? 'wayland-cursor' : '',
+    not is_nix ? 'wayland-egl' : '',
+    not is_nix ? 'wayland-egl-backend' : '',
+    not is_nix ? 'wayland-protocols' : '',
+    not is_nix ? 'wayland-scanner' : '',
+    not is_nix ? 'wayland-server' : '',
     not is_nix ? 'x11' : '',
     not is_nix ? 'x11-xcb' : '',
     not is_nix ? 'xau' : '',
@@ -50,7 +58,8 @@ foreach dep_name : [
     not is_nix ? 'xext' : '',
     not is_nix ? 'xfixes' : '',
     not is_nix ? 'xi' : '',
-    'xkbcommon',
+    not is_nix ? 'xkbcommon' : '',
+    not is_nix ? 'xkbcommon-x11' : '',
     not is_nix ? 'xrandr' : '',
     not is_nix ? 'xrender' : '',
     'xscrnsaver',
@@ -133,6 +142,7 @@ fmt = cmake.subproject('fmt', options: fmt_options).dependency('fmt')
 meson.override_dependency('fmt', fmt, static: true)
 
 if is_nix
+    subproject('expat', default_options: meson_base_options)
     subproject('libudev', default_options: meson_base_options)
     subproject('xorgproto', default_options: meson_base_options)
     subproject('libxau', default_options: meson_base_options)
@@ -144,6 +154,9 @@ if is_nix
     subproject('libxrender', default_options: meson_base_options)
     subproject('libxrandr', default_options: meson_base_options)
     subproject('libxcursor', default_options: meson_base_options)
+    subproject('wayland', default_options: meson_base_options)
+    subproject('libxkbcommon', default_options: meson_base_options)
+    subproject('libdecor', default_options: meson_base_options)
 endif
 
 sdl2_options = meson_base_options + {
@@ -165,8 +178,8 @@ sdl2_options = meson_base_options + {
     'use_timers': 'enabled',
     'use_video': 'enabled',
     'use_video_x11': is_nix ? 'enabled' : 'disabled',
-    'use_video_wayland': 'disabled',
-    'use_video_wayland_libdecor': 'disabled',
+    'use_video_wayland': is_nix ? 'enabled' : 'disabled',
+    'use_video_wayland_libdecor': is_nix ? 'enabled' : 'disabled',
     'use_video_opengl': 'enabled',
     'use_video_openglesv2': 'enabled',
     'use_video_vulkan': 'disabled',
