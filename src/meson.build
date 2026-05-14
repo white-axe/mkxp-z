@@ -70,6 +70,8 @@ foreach dep_name : [
     endif
 endforeach
 
+meson.override_dependency('atomic', declare_dependency(), static: true)
+
 cmake_base_options = {
     'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
     'CMAKE_OSX_SYSROOT': '/nonexistent',
