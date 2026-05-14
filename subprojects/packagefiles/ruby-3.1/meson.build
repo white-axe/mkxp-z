@@ -4,6 +4,24 @@ find_program('cmp', required: true)
 
 cflags = []
 
+if get_option('optimization') == '0'
+    cflags += '-O0'
+elif get_option('optimization') == 'g'
+    cflags += '-Og'
+elif get_option('optimization') == '1'
+    cflags += '-O1'
+elif get_option('optimization') == '2'
+    cflags += '-O2'
+elif get_option('optimization') == '3'
+    cflags += '-O3'
+elif get_option('optimization') == 's'
+    cflags += '-Os'
+endif
+
+if get_option('debug')
+    cflags += '-g'
+endif
+
 if get_option('b_lto')
     if get_option('b_lto_mode') == 'thin'
         cflags += '-flto=thin'
@@ -16,11 +34,13 @@ if get_option('b_staticpic')
     cflags += '-fPIC'
 endif
 
-cflags += get_option('cflags')
-
 # -std=gnu99 is needed with GCC 15 and higher (which default to gnu23), for Ruby versions that aren't valid C23.
 # Ruby versions that are valid C23 are 3.2.9+, 3.3.9+, 3.4.5+, and 3.5.0+.
 cflags += '-std=gnu99'
+
+cflags += get_option('c_args')
+
+cflags += get_option('cflags')
 
 ldflags = []
 
@@ -28,6 +48,8 @@ linker_id = meson.get_compiler('c').get_linker_id()
 if linker_id == 'ld64' or linker_id == 'ld64.lld'
     ldflags += '-Wl,-w'
 endif
+
+ldflags += get_option('c_link_args')
 
 ldflags += get_option('ldflags')
 

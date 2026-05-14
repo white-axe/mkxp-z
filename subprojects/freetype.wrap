@@ -2,4 +2,4 @@
 url = https://github.com/freetype/freetype
 revision = VER-2-14-1
 depth = 1
-diff_files = freetype-flags.patch, freetype-ftdebug.patch
+diff_files = freetype-ftdebug.patch

@@ -2,4 +2,3 @@
 url = https://gitlab.freedesktop.org/pixman/pixman
 revision = pixman-0.42.2
 depth = 1
-diff_files = pixman-flags.patch

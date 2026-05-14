@@ -5,6 +5,24 @@ find_program('diff', required: true)
 
 cflags = []
 
+if get_option('optimization') == '0'
+    cflags += '-O0'
+elif get_option('optimization') == 'g'
+    cflags += '-Og'
+elif get_option('optimization') == '1'
+    cflags += '-O1'
+elif get_option('optimization') == '2'
+    cflags += '-O2'
+elif get_option('optimization') == '3'
+    cflags += '-O3'
+elif get_option('optimization') == 's'
+    cflags += '-Os'
+endif
+
+if get_option('debug')
+    cflags += '-g'
+endif
+
 if get_option('b_lto')
     if get_option('b_lto_mode') == 'thin'
         cflags += '-flto=thin'
@@ -16,6 +34,8 @@ endif
 if get_option('b_staticpic')
     cflags += '-fPIC'
 endif
+
+cflags += get_option('c_args')
 
 cflags += get_option('cflags')
 

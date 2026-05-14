@@ -76,6 +76,7 @@ cmake_base_options = {
     'CMAKE_C_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
     'CMAKE_CXX_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
     'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
+    'CMAKE_BUILD_TYPE': 'Custom',
 }
 
 meson_base_options = {
@@ -85,10 +86,7 @@ meson_base_options = {
 
 subproject('libglvnd', default_options: meson_base_options)
 
-libiconv_options = meson_base_options + {
-    'cflags': global_args,
-    'cppflags': global_args + global_cpp_args,
-}
+libiconv_options = meson_base_options
 libiconv = subproject('libiconv', default_options: libiconv_options).get_variable('libiconv')
 global_dependencies += libiconv
 
@@ -103,8 +101,6 @@ endif
 
 physfs_options = cmake.subproject_options()
 physfs_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': ' '.join(global_args),
-    'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
     'PHYSFS_BUILD_STATIC': true,
     'PHYSFS_BUILD_SHARED': false,
     'PHYSFS_BUILD_TEST': false,
@@ -128,8 +124,6 @@ global_dependencies += physfs
 
 fmt_options = cmake.subproject_options()
 fmt_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': ' '.join(global_args),
-    'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
     'LIBTYPE': 'STATIC',
     'FMT_DOC': false,
     'FMT_TEST': false,
@@ -200,8 +194,6 @@ global_dependencies += [sdl2main, sdl2]
 if is_nix
     libsndfile_options = cmake.subproject_options()
     libsndfile_options.add_cmake_defines(cmake_base_options + {
-        'CMAKE_C_FLAGS': ' '.join(global_args),
-        'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
         'BUILD_SHARED_LIBS': false,
         'BUILD_PROGRAMS': false,
         'BUILD_EXAMPLES': false,
@@ -264,8 +256,6 @@ global_dependencies += openal
 
 ogg_options = cmake.subproject_options()
 ogg_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': ' '.join(global_args),
-    'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
     'BUILD_SHARED_LIBS': false,
     'BUILD_TESTING': false,
     'BUILD_FRAMEWORK': false,
@@ -277,8 +267,8 @@ global_dependencies += ogg
 
 vorbis_options = cmake.subproject_options()
 vorbis_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': ' '.join(ogg_includes + global_args),
-    'CMAKE_CXX_FLAGS': ' '.join(ogg_includes + global_args + global_cpp_args),
+    'CMAKE_C_FLAGS': ' '.join(ogg_includes),
+    'CMAKE_CXX_FLAGS': ' '.join(ogg_includes),
     'BUILD_SHARED_LIBS': false,
     'BUILD_TESTING': false,
     'BUILD_FRAMEWORK': false,
@@ -297,8 +287,8 @@ global_dependencies += [vorbis, vorbisfile]
 
 sdl2_sound_options = cmake.subproject_options()
 sdl2_sound_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': ' '.join(sdl2_includes + global_args),
-    'CMAKE_CXX_FLAGS': ' '.join(sdl2_includes + global_args + global_cpp_args),
+    'CMAKE_C_FLAGS': ' '.join(sdl2_includes),
+    'CMAKE_CXX_FLAGS': ' '.join(sdl2_includes),
     'SDLSOUND_BUILD_SHARED': false,
     'SDLSOUND_BUILD_TEST': false,
 })
@@ -310,8 +300,6 @@ meson.override_dependency('SDL2_sound', sdl2_sound, static: true)
 global_dependencies += sdl2_sound
 
 freetype_options = meson_base_options + {
-    'cflags': global_args,
-    'cppflags': global_args + global_cpp_args,
     'brotli': 'disabled',
     'bzip2': 'disabled',
     'harfbuzz': 'disabled',
@@ -326,8 +314,8 @@ global_dependencies += freetype
 
 sdl2_ttf_options = cmake.subproject_options()
 sdl2_ttf_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': ' '.join(freetype_includes + sdl2_includes + global_args),
-    'CMAKE_CXX_FLAGS': ' '.join(freetype_includes + sdl2_includes + global_args + global_cpp_args),
+    'CMAKE_C_FLAGS': ' '.join(freetype_includes + sdl2_includes),
+    'CMAKE_CXX_FLAGS': ' '.join(freetype_includes + sdl2_includes),
     'BUILD_SHARED_LIBS': false,
     'BUILD_TESTING': false,
 })
@@ -340,8 +328,6 @@ meson.override_dependency('SDL2_ttf', sdl2_ttf, static: true)
 global_dependencies += sdl2_ttf
 
 pixman_options = meson_base_options + {
-    'cflags': global_args,
-    'cppflags': global_args + global_cpp_args,
     'libpng': 'disabled',
     'tls': 'disabled',
 } + (
@@ -356,8 +342,6 @@ global_dependencies += pixman
 
 zlib_options = cmake.subproject_options()
 zlib_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': ' '.join(global_args),
-    'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
     'BUILD_SHARED_LIBS': false,
     'ZLIB_BUILD_EXAMPLES': false,
 })
@@ -369,8 +353,6 @@ global_dependencies += zlib
 
 uchardet_options = cmake.subproject_options()
 uchardet_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': ' '.join(global_args),
-    'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
     'BUILD_BINARY': false,
     'BUILD_SHARED_LIBS': false,
 })
@@ -378,18 +360,15 @@ uchardet = cmake.subproject('uchardet', options: uchardet_options).dependency('l
 meson.override_dependency('uchardet', uchardet, static: true)
 global_dependencies += uchardet
 
-theora_options = meson_base_options + {
-    'cflags': global_args,
-    'cppflags': global_args + global_cpp_args,
-}
+theora_options = meson_base_options
 theora = subproject('theora', default_options: theora_options).get_variable('theoradec')
 meson.override_dependency('theora', theora, static: true)
 global_dependencies += theora
 
 sdl2_image_options = cmake.subproject_options()
 sdl2_image_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': ' '.join(sdl2_includes + global_args),
-    'CMAKE_CXX_FLAGS': ' '.join(sdl2_includes + global_args + global_cpp_args),
+    'CMAKE_C_FLAGS': ' '.join(sdl2_includes),
+    'CMAKE_CXX_FLAGS': ' '.join(sdl2_includes),
     'BUILD_SHARED_LIBS': false,
     'SDL2IMAGE_JPG_SAVE': true,
     'SDL2IMAGE_PNG_SAVE': true,
@@ -420,8 +399,6 @@ global_dependencies += sdl2_image
 
 fluidsynth_options = cmake.subproject_options()
 fluidsynth_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': ' '.join(global_args),
-    'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
     'BUILD_SHARED_LIBS': false,
     'enable-alsa': false,
     'enable-aufile': false,
@@ -461,8 +438,6 @@ global_dependencies += fluidsynth
 
 libyaml_options = cmake.subproject_options()
 libyaml_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': ' '.join(global_args),
-    'CMAKE_CXX_FLAGS': ' '.join(global_args + global_cpp_args),
     'BUILD_SHARED_LIBS': false,
 })
 libyaml = cmake.subproject('libyaml', options: libyaml_options).dependency('yaml')
