@@ -1,0 +1,13 @@
+# Instead of always building libpulse as a shared library, this patch makes libpulse be built as either static or shared depending on the default library type.
+
+--- a/src/pulse/meson.build
++++ b/src/pulse/meson.build
+@@ -80,7 +80,7 @@ else
+   versioning_link_args = []
+ endif
+ 
+-libpulse = shared_library('pulse',
++libpulse = library('pulse',
+   libpulse_sources,
+   libpulse_headers,
+   version : libpulse_version,
