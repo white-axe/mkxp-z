@@ -49,6 +49,14 @@ if linker_id == 'ld64' or linker_id == 'ld64.lld'
     ldflags += '-Wl,-w'
 endif
 
+if get_option('b_lto')
+    if get_option('b_lto_mode') == 'thin'
+        ldflags += '-flto=thin'
+    else
+        ldflags += '-flto'
+    endif
+endif
+
 ldflags += get_option('c_link_args')
 
 ldflags += get_option('ldflags')
