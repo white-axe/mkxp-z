@@ -23,8 +23,10 @@ if get_option('debug')
 endif
 
 if get_option('b_lto')
-    if get_option('b_lto_mode') == 'thin'
+    if get_option('b_lto_mode') == 'thin' and meson.get_compiler('c').has_argument('-flto=thin')
         cflags += '-flto=thin'
+    elif meson.get_compiler('c').has_argument('-flto=auto')
+        cflags += '-flto=auto'
     else
         cflags += '-flto'
     endif
@@ -50,8 +52,10 @@ if linker_id == 'ld64' or linker_id == 'ld64.lld'
 endif
 
 if get_option('b_lto')
-    if get_option('b_lto_mode') == 'thin'
+    if get_option('b_lto_mode') == 'thin' and meson.get_compiler('c').has_argument('-flto=thin')
         ldflags += '-flto=thin'
+    elif meson.get_compiler('c').has_argument('-flto=auto')
+        ldflags += '-flto=auto'
     else
         ldflags += '-flto'
     endif
