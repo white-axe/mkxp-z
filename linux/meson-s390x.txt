@@ -1,9 +1,7 @@
 [binaries]
-c = 's390x-linux-gnu-gcc'
-cpp = 's390x-linux-gnu-g++'
+c = ['ccache', 's390x-linux-gnu-gcc']
+cpp = ['ccache', 's390x-linux-gnu-g++']
 ar = 's390x-linux-gnu-ar'
-strip = 's390x-linux-gnu-strip'
-pkgconfig = 'pkg-config'
 cmake = 'cmake'
 
 [host_machine]

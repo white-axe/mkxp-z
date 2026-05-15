@@ -1,9 +1,7 @@
 [binaries]
-c = 'arm-linux-gnueabihf-gcc'
-cpp = 'arm-linux-gnueabihf-g++'
+c = ['ccache', 'arm-linux-gnueabihf-gcc']
+cpp = ['ccache', 'arm-linux-gnueabihf-g++']
 ar = 'arm-linux-gnueabihf-ar'
-strip = 'arm-linux-gnueabihf-strip'
-pkgconfig = 'pkg-config'
 cmake = 'cmake'
 
 [host_machine]
