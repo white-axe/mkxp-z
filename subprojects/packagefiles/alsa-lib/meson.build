@@ -76,7 +76,8 @@ alsa_lib = declare_dependency(
                 '--includedir=/include',
                 '--enable-static',
                 '--disable-shared',
-                'CFLAGS=' + ' '.join(cflags),
+                'CC=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), host_machine.system(), 'true', meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
+                'CFLAGS=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), host_machine.system(), 'false', cflags, check: true).stdout().strip(),
             ],
             cross_configure_options: [
                 '--host=@HOST@',

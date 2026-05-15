@@ -1,4 +1,4 @@
-project('libffi', 'c', meson_version: '>=1.2.0')
+project('libffi', 'c', 'cpp', meson_version: '>=1.2.0')
 
 find_program('cmp', required: true)
 find_program('diff', required: true)
@@ -79,7 +79,9 @@ libffi = declare_dependency(
                 '--includedir=/include',
                 '--enable-static',
                 '--disable-shared',
-                'CFLAGS=' + ' '.join(cflags),
+                'CC=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), host_machine.system(), 'true', meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
+                'CXX=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), host_machine.system(), 'true', meson.get_compiler('cpp').cmd_array(), check: true).stdout().strip(),
+                'CFLAGS=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), host_machine.system(), 'false', cflags, check: true).stdout().strip(),
             ],
             cross_configure_options: [
                 '--host=@HOST@',

@@ -5,3 +5,5 @@
 
 !/apple-impl
 !/apple-impl/**
+!/tools
+!/tools/**

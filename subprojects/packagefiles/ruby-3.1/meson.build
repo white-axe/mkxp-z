@@ -1,4 +1,4 @@
-project('ruby-3.1', 'c', meson_version: '>=1.2.0')
+project('ruby-3.1', 'c', 'cpp', meson_version: '>=1.2.0')
 
 find_program('cmp', required: true)
 
@@ -168,8 +168,10 @@ ruby = declare_dependency(
                 '--with-static-linked-ext',
                 '--disable-rubygems',
                 '--without-gmp',
-                'CFLAGS=' + ' '.join(cflags),
-                'LDFLAGS=' + ' '.join(ldflags),
+                'CC=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), host_machine.system(), 'true', meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
+                'CXX=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), host_machine.system(), 'true', meson.get_compiler('cpp').cmd_array(), check: true).stdout().strip(),
+                'CFLAGS=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), host_machine.system(), 'false', cflags, check: true).stdout().strip(),
+                'LDFLAGS=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), host_machine.system(), 'false', ldflags, check: true).stdout().strip(),
             ],
             cross_configure_options: [
                 '--host=@HOST@',

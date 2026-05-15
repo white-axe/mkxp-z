@@ -16,6 +16,10 @@ global_args = []
 global_cpp_args = []
 global_link_args = []
 
+python = subproject('tools').get_variable('python')
+embedtool = subproject('tools').get_variable('embedtool')
+quotetool = subproject('tools').get_variable('quotetool')
+
 sizeof = {'void*': compilers['cpp'].sizeof('void*'),
           'long': compilers['cpp'].sizeof('long')
          }
@@ -96,7 +100,6 @@ endif
 
 global_args += '-DMKXPZ_INIT_GL_LATER'
 
-subdir('tools')
 subdir('src')
 subdir('binding')
 subdir('shader')
