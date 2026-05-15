@@ -83,7 +83,8 @@ jobs:
         with:
           length: 7
 
-      - uses: msys2/setup-msys2@v2
+      - name: Install dependencies
+        uses: msys2/setup-msys2@v2
         with:
           msystem: mingw64
           install: >-
@@ -99,13 +100,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Build
+      - name: Restore from cache
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            build
+            subprojects
+          key: win-${{ hashFiles('.github/workflows/autobuild.yml', '**/meson.build', '**/meson_options.txt', 'subprojects') }}
+
+      - name: Configure
+        if: steps.cache.outputs.cache-hit != 'true'
         shell: msys2 {0}
         run: |
           meson setup --buildtype release -Db_lto=true build
+
+      - name: Build
+        shell: msys2 {0}
+        run: |
           cd build
           CLICOLOR_FORCE=1 ninja -v
-          strip ./mkxp-z.exe
 
       - name: Prepare archive
         shell: msys2 {0}
@@ -171,9 +185,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Build
+      - name: Restore from cache
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            build
+            subprojects
+          key: lin-x86_64-${{ hashFiles('.github/workflows/autobuild.yml', '**/meson.build', '**/meson_options.txt', 'subprojects') }}
+
+      - name: Configure
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           meson setup --buildtype release -Db_lto=true build
+
+      - name: Build
+        run: |
           cd build
           CLICOLOR_FORCE=1 ninja -v
 
@@ -260,9 +287,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Build
+      - name: Restore from cache
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            build
+            subprojects
+          key: lin-${{ matrix.arch_mkxpz }}-${{ hashFiles('.github/workflows/autobuild.yml', '**/meson.build', '**/meson_options.txt', 'subprojects') }}
+
+      - name: Configure
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           meson setup --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Db_lto=true build
+
+      - name: Build
+        run: |
           cd build
           CLICOLOR_FORCE=1 ninja -v
 
@@ -303,9 +343,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Build
+      - name: Restore from cache
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            build
+            subprojects
+          key: lin-debian-trixie-x86_64-${{ hashFiles('.github/workflows/autobuild.yml', '**/meson.build', '**/meson_options.txt', 'subprojects') }}
+
+      - name: Configure
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           meson setup --buildtype release -Db_lto=true build
+
+      - name: Build
+        run: |
           cd build
           CLICOLOR_FORCE=1 ninja -v
 
@@ -387,9 +440,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Build
+      - name: Restore from cache
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            build
+            subprojects
+          key: lin-debian-trixie-${{ matrix.arch_mkxpz }}-${{ hashFiles('.github/workflows/autobuild.yml', '**/meson.build', '**/meson_options.txt', 'subprojects') }}
+
+      - name: Configure
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           meson setup --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Db_lto=true build
+
+      - name: Build
+        run: |
           cd build
           CLICOLOR_FORCE=1 ninja -v
 
@@ -432,9 +498,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Build
+      - name: Restore from cache
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            build
+            subprojects
+          key: mac-${{ matrix.arch_mkxpz }}-${{ hashFiles('.github/workflows/autobuild.yml', '**/meson.build', '**/meson_options.txt', 'subprojects') }}
+
+      - name: Configure
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           meson setup --cross-file macos/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Db_lto=true build
+
+      - name: Build
+        run: |
           cd build
           CLICOLOR_FORCE=1 ninja -v
 
@@ -477,7 +556,7 @@ jobs:
           name: mkxp-z.macos.x86_64.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: artifact-x86_64
 
-      - name: Build universal binary
+      - name: Build
         run: |
           lipo artifact-arm64/mkxp-z.aarch64 artifact-x86_64/mkxp-z.x86_64 -output artifact-arm64/mkxp-z.universal -create
           rm artifact-arm64/mkxp-z.aarch64
