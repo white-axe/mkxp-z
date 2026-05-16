@@ -1,4 +1,4 @@
-project('quote', meson_version: '>=1.2.0')
+project('tools', meson_version: '>=1.2.0')
 
 python = import('python').find_installation(required: true)
 
