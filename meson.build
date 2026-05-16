@@ -112,8 +112,9 @@ rpath = ''
 if host_system == 'windows'
     windows_resource_directory = '../' + get_option('windows_resource_directory')
     subdir('windows')
-    global_sources += windows_resources
     global_include_dirs += include_directories('windows')
+else
+    windows_resources = []
 endif
 
 exe_name = meson.project_name()
@@ -175,7 +176,10 @@ if host_system == 'darwin'
 endif
 
 executable(exe_name,
-    sources: git_hash_file, # Dummy source file just so that Meson doesn't complain about the executable not having any sources
+    sources: [
+        git_hash_file, # Dummy source file just so that Meson doesn't complain about the executable not having any sources in non-Windows builds
+        windows_resources,
+    ],
     link_with: static_library(
         meson.project_name(),
         sources: global_sources,
