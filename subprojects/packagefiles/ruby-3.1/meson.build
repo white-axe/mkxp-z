@@ -207,7 +207,7 @@ ruby = declare_dependency(
         '-I' + meson.project_build_root() / 'dist' / 'include',
     ],
     link_args: [
-        host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
+        (host_machine.system() == 'windows' or host_machine.system() == 'cygwin') and not meson.get_compiler('c').has_header_symbol('math.h', 'lgamma_r')
             ? [
                 meson.project_build_root() / 'build' / 'lgamma_r.o',
             ]
