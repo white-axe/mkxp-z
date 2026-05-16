@@ -207,6 +207,11 @@ ruby = declare_dependency(
         '-I' + meson.project_build_root() / 'dist' / 'include',
     ],
     link_args: [
+        host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
+            ? [
+                meson.project_build_root() / 'build' / 'lgamma_r.o',
+            ]
+            : [],
         meson.project_build_root() / 'build' / 'ext' / 'extinit.a',
         meson.project_build_root() / 'build' / 'ext' / 'bigdecimal' / 'bigdecimal.a',
         meson.project_build_root() / 'build' / 'ext' / 'cgi' / 'escape' / 'escape.a',
