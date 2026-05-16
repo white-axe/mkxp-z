@@ -1,10 +1,10 @@
 cmake = import('cmake')
 
-is_nix = host_system != 'windows' and host_system != 'cygwin' and host_system != 'darwin'
+is_nix = host_system != 'windows' and host_system != 'cygwin' and host_system != 'darwin' and host_system != 'android'
 
 null_dep = dependency('', required: false)
 foreach dep_name : [
-    not is_nix ? 'alsa' : '',
+    host_system != 'linux' ? 'alsa' : '',
     'audioio',
     'avahi-client',
     'dbus-1',
@@ -191,6 +191,11 @@ sdl2 = subproject('sdl2', default_options: sdl2_options).get_variable('sdl2_dep'
 sdl2_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'SDL2-2.28.1' / 'include', '-I' + meson.project_source_root() / 'subprojects' / 'SDL2-2.28.1' / 'include']
 global_dependencies += [sdl2main, sdl2]
 
+if host_system == 'linux'
+    alsa_lib_options = meson_base_options
+    alsa_lib = subproject('alsa-lib', default_options: alsa_lib_options).get_variable('alsa_lib')
+endif
+
 if is_nix
     libsndfile_options = cmake.subproject_options()
     libsndfile_options.add_cmake_defines(cmake_base_options + {
@@ -208,9 +213,6 @@ if is_nix
     })
     libsndfile = cmake.subproject('libsndfile', options: libsndfile_options).dependency('sndfile')
     meson.override_dependency('sndfile', libsndfile, static: true)
-
-    alsa_lib_options = meson_base_options
-    alsa_lib = subproject('alsa-lib', default_options: alsa_lib_options).get_variable('alsa_lib')
 
     jack1_options = meson_base_options
     jack1 = subproject('jack1', default_options: jack1_options).get_variable('jack1')
