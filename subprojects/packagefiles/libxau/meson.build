@@ -9,4 +9,4 @@ libxau = declare_dependency(
     ],
 )
 
-meson.override_dependency('xau', libxau)
+meson.override_dependency('xau', libxau, static: true)
