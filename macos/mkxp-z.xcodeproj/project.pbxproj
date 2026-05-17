@@ -43,6 +43,11 @@
 		3B10ECE82568E83D00372D13 /* tilemapvx.vert in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3B10EC962568E7B500372D13 /* tilemapvx.vert */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		3B10ECE92568E83D00372D13 /* trans.frag in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3B10ECA22568E7B600372D13 /* trans.frag */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		3B10ECEA2568E83D00372D13 /* transSimple.frag in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3B10EC922568E7B500372D13 /* transSimple.frag */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		3B10ECEB2568E83D00372D13 /* kglCompressAlpha.frag in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3B10ECA62568E7B600372D13 /* kglCompressAlpha.frag */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		3B10ECEC2568E83D00372D13 /* kglInvert.frag in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3B10ECA72568E7B600372D13 /* kglInvert.frag */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		3B10ECED2568E83D00372D13 /* kglShadowH.frag in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3B10ECA82568E7B600372D13 /* kglShadowH.frag */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		3B10ECEE2568E83D00372D13 /* kglShadowV.frag in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3B10ECA92568E7B600372D13 /* kglShadowV.frag */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		3B10ECEF2568E83D00372D13 /* kglSubtract.frag in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3B10ECAA2568E7B600372D13 /* kglSubtract.frag */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		3B10ECF52568E86B00372D13 /* liberation.ttf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3B10EC842568E78400372D13 /* liberation.ttf */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		3B10EDA62568E95E00372D13 /* eventthread.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3B10ED352568E95D00372D13 /* eventthread.cpp */; };
 		3B10EDA72568E95E00372D13 /* rgssad.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3B10ED382568E95D00372D13 /* rgssad.cpp */; };
@@ -767,6 +772,11 @@
 				3B10ECE82568E83D00372D13 /* tilemapvx.vert in CopyFiles */,
 				3B10ECE92568E83D00372D13 /* trans.frag in CopyFiles */,
 				3B10ECEA2568E83D00372D13 /* transSimple.frag in CopyFiles */,
+				3B10ECEB2568E83D00372D13 /* kglCompressAlpha.frag in CopyFiles */,
+				3B10ECEC2568E83D00372D13 /* kglInvert.frag in CopyFiles */,
+				3B10ECED2568E83D00372D13 /* kglShadowH.frag in CopyFiles */,
+				3B10ECEE2568E83D00372D13 /* kglShadowV.frag in CopyFiles */,
+				3B10ECEF2568E83D00372D13 /* kglSubtract.frag in CopyFiles */,
 				3F7F41D98CEDE6F418AAB0D2 /* bicubic.frag in CopyFiles */,
 				3D094509A210271690AF48F7 /* xbrz.frag in CopyFiles */,
 			);
@@ -882,6 +892,11 @@
 		3B10ECA32568E7B600372D13 /* common.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = common.h; path = ../shader/common.h; sourceTree = "<group>"; };
 		3B10ECA42568E7B600372D13 /* gray.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; name = gray.frag; path = ../shader/gray.frag; sourceTree = "<group>"; };
 		3B10ECA52568E7B600372D13 /* simpleColor.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; name = simpleColor.vert; path = ../shader/simpleColor.vert; sourceTree = "<group>"; };
+		3B10ECA62568E7B600372D13 /* kglCompressAlpha.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; name = kglCompressAlpha.frag; path = ../shader/kglCompressAlpha.frag; sourceTree = "<group>"; };
+		3B10ECA72568E7B600372D13 /* kglInvert.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; name = kglInvert.frag; path = ../shader/kglInvert.frag; sourceTree = "<group>"; };
+		3B10ECA82568E7B600372D13 /* kglShadowH.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; name = kglShadowH.frag; path = ../shader/kglShadowH.frag; sourceTree = "<group>"; };
+		3B10ECA92568E7B600372D13 /* kglShadowV.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; name = kglShadowV.frag; path = ../shader/kglShadowV.frag; sourceTree = "<group>"; };
+		3B10ECAA2568E7B600372D13 /* kglSubtract.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; name = kglSubtract.frag; path = ../shader/kglSubtract.frag; sourceTree = "<group>"; };
 		3B10ED352568E95D00372D13 /* eventthread.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eventthread.cpp; sourceTree = "<group>"; };
 		3B10ED372568E95D00372D13 /* rgssad.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = rgssad.h; sourceTree = "<group>"; };
 		3B10ED382568E95D00372D13 /* rgssad.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = rgssad.cpp; sourceTree = "<group>"; };
@@ -1397,6 +1412,11 @@
 				3B10EC982568E7B500372D13 /* sprite.vert */,
 				3B10ECA02568E7B600372D13 /* tilemap.vert */,
 				3B10EC962568E7B500372D13 /* tilemapvx.vert */,
+				3B10ECA62568E7B600372D13 /* kglCompressAlpha.frag */,
+				3B10ECA72568E7B600372D13 /* kglInvert.frag */,
+				3B10ECA82568E7B600372D13 /* kglShadowH.frag */,
+				3B10ECA92568E7B600372D13 /* kglShadowV.frag */,
+				3B10ECAA2568E7B600372D13 /* kglSubtract.frag */,
 				CBEA4C45BE737EE0FF5A8A4C /* bicubic.frag */,
 				88734C4B8039751FD0A59FA7 /* xbrz.frag */,
 			);
