@@ -110,6 +110,8 @@ jobs:
       - name: Set up ccache
         shell: msys2 {0}
         run: |
+          ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
+          ccache --set-config=compiler_check=content
           echo 'CCACHE_DIR=${{ runner.temp }}/ccache' >> "$GITHUB_ENV"
 
       - name: Configure
@@ -195,7 +197,8 @@ jobs:
 
       - name: Set up ccache
         run: |
-          echo 'CCACHE_DIR=${{ runner.temp }}/ccache' >> "$GITHUB_ENV"
+          ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
+          ccache --set-config=compiler_check=content
 
       - name: Configure
         run: |
@@ -286,7 +289,8 @@ jobs:
 
       - name: Set up ccache
         run: |
-          echo 'CCACHE_DIR=${{ runner.temp }}/ccache' >> "$GITHUB_ENV"
+          ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
+          ccache --set-config=compiler_check=content
 
       - name: Configure
         run: |
@@ -342,7 +346,8 @@ jobs:
 
       - name: Set up ccache
         run: |
-          echo 'CCACHE_DIR=${{ runner.temp }}/ccache' >> "$GITHUB_ENV"
+          ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
+          ccache --set-config=compiler_check=content
 
       - name: Configure
         run: |
@@ -428,7 +433,8 @@ jobs:
 
       - name: Set up ccache
         run: |
-          echo 'CCACHE_DIR=${{ runner.temp }}/ccache' >> "$GITHUB_ENV"
+          ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
+          ccache --set-config=compiler_check=content
 
       - name: Configure
         run: |
@@ -486,7 +492,8 @@ jobs:
 
       - name: Set up ccache
         run: |
-          echo 'CCACHE_DIR=${{ runner.temp }}/ccache' >> "$GITHUB_ENV"
+          ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
+          ccache --set-config=compiler_check=content
 
       - name: Configure
         run: |
