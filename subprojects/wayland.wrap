@@ -1,5 +1,5 @@
 [wrap-file]
-source_url = http://deb.debian.org/debian/pool/main/w/wayland/wayland_1.23.1.orig.tar.gz
+source_url = https://deb.debian.org/debian/pool/main/w/wayland/wayland_1.23.1.orig.tar.gz
 source_fallback_url = https://mirrors.ocf.berkeley.edu/debian/pool/main/w/wayland/wayland_1.23.1.orig.tar.gz
 source_filename = wayland.tar.gz
 source_hash = 158ec49af498f2558c7fbf7e8b070d010d4e270cc6076003a18a6c813f87e244
