@@ -226,6 +226,7 @@ if is_nix
         'tests': false,
         'udev': 'disabled',
         'x11': 'disabled',
+        'oss-output': 'disabled',
     }
     pulseaudio = subproject('pulseaudio', default_options: pulseaudio_options).get_variable('libpulse_dep')
     meson.override_dependency('libpulse', pulseaudio, static: true)
