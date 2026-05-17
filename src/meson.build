@@ -7,12 +7,16 @@ foreach dep_name : [
     host_system != 'linux' ? 'alsa' : '',
     'audioio',
     'avahi-client',
-    'dbus-1',
+    not is_nix ? 'dbus-1' : '',
     'epoll-shim',
     'fftw3f',
     'gio-2.0',
+    'girepository-2.0',
     'glib-2.0',
+    'gmodule-2.0',
+    'gobject-2.0',
     'gtk+-3.0',
+    'ibus-1.0',
     'intl',
     not is_nix ? 'jack' : '',
     'libapparmor',
@@ -140,6 +144,7 @@ meson.override_dependency('fmt', fmt, static: true)
 if is_nix
     subproject('expat', default_options: meson_base_options)
     subproject('libudev', default_options: meson_base_options)
+    subproject('dbus', default_options: meson_base_options)
     subproject('xorgproto', default_options: meson_base_options)
     subproject('libxau', default_options: meson_base_options)
     subproject('libxcb', default_options: meson_base_options)
@@ -229,6 +234,8 @@ if is_nix
         'udev': 'disabled',
         'x11': 'disabled',
         'oss-output': 'disabled',
+        'dbus': 'disabled',
+        'glib': 'disabled',
     }
     pulseaudio = subproject('pulseaudio', default_options: pulseaudio_options).get_variable('libpulse_dep')
     meson.override_dependency('libpulse', pulseaudio, static: true)
@@ -256,6 +263,7 @@ if is_nix
 endif
 
 openal_options = meson_base_options + {
+    'rtkit': 'disabled',
     'sdl2': 'disabled',
     'utils': false,
     'winmm': 'disabled',
