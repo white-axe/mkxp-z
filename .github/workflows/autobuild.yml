@@ -225,7 +225,6 @@ jobs:
   build-linux-cross:
     name: Ubuntu 22.04 ${{matrix.arch_mkxpz}}
     runs-on: ubuntu-22.04
-    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
@@ -233,37 +232,27 @@ jobs:
           - arch_mkxpz: armv6
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
-            experimental: false
           - arch_mkxpz: armv7
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
-            experimental: false
           - arch_mkxpz: armv7-neon
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
-            experimental: false
           - arch_mkxpz: arm64
             arch_debian: arm64
             arch_gcc: aarch64-linux-gnu
-            experimental: false
           - arch_mkxpz: power8le
             arch_debian: ppc64el
             arch_gcc: powerpc64le-linux-gnu
-            experimental: false
           - arch_mkxpz: power9le
             arch_debian: ppc64el
             arch_gcc: powerpc64le-linux-gnu
-            experimental: false
           - arch_mkxpz: s390x
             arch_debian: s390x
             arch_gcc: s390x-linux-gnu
-            experimental: false
           - arch_mkxpz: riscv64
             arch_debian: riscv64
             arch_gcc: riscv64-linux-gnu
-            # libjxl/highway compatibility issue, TODO check if fixed in later SDL_image.
-            # Also probably an OpenSSL arch name issue, which might be fixed by now.
-            experimental: true
     steps:
       - uses: benjlevesque/short-sha@v2.2
         id: short-sha
@@ -387,7 +376,6 @@ jobs:
     defaults:
       run:
         shell: bash
-    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
@@ -395,37 +383,27 @@ jobs:
           - arch_mkxpz: armv6
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
-            experimental: false
           - arch_mkxpz: armv7
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
-            experimental: false
           - arch_mkxpz: armv7-neon
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
-            experimental: false
           - arch_mkxpz: arm64
             arch_debian: arm64
             arch_gcc: aarch64-linux-gnu
-            experimental: false
           - arch_mkxpz: power8le
             arch_debian: ppc64el
             arch_gcc: powerpc64le-linux-gnu
-            experimental: false
           - arch_mkxpz: power9le
             arch_debian: ppc64el
             arch_gcc: powerpc64le-linux-gnu
-            experimental: false
           - arch_mkxpz: s390x
             arch_debian: s390x
             arch_gcc: s390x-linux-gnu
-            experimental: false
           - arch_mkxpz: riscv64
             arch_debian: riscv64
             arch_gcc: riscv64-linux-gnu
-            # libjxl/highway compatibility issue, TODO check if fixed in later SDL_image.
-            # Also probably an OpenSSL arch name issue, which might be fixed by now.
-            experimental: true
     steps:
       - uses: benjlevesque/short-sha@v2.2
         id: short-sha
