@@ -394,6 +394,7 @@ sdl2_image_options.add_cmake_defines(cmake_base_options + {
     'JPEGXL_ENABLE_FUZZERS': false,
     'JPEGXL_ENABLE_MANPAGES': false,
     'JPEGXL_ENABLE_TOOLS': false,
+    'JPEGXL_STATIC': true,
 })
 sdl2_image = declare_dependency(dependencies: [
     sdl2,
