@@ -10,13 +10,15 @@ foreach dep_name : [
     not is_nix ? 'dbus-1' : '',
     'epoll-shim',
     'fftw3f',
-    'gio-2.0',
+    not is_nix ? 'gio-2.0' : '',
     'girepository-2.0',
-    'glib-2.0',
-    'gmodule-2.0',
-    'gobject-2.0',
+    not is_nix ? 'glib-2.0' : '',
+    not is_nix ? 'gmodule-2.0' : '',
+    not is_nix ? 'gobject-2.0' : '',
+    'gobject-introspection-1.0',
+    'gthread-2.0',
     'gtk+-3.0',
-    'ibus-1.0',
+    not is_nix ? 'ibus-1.0' : '',
     'intl',
     not is_nix ? 'jack' : '',
     'libapparmor',
@@ -27,6 +29,7 @@ foreach dep_name : [
     'libdrm',
     'libffado',
     'libinotify',
+    'libpcre2-8',
     not is_nix ? 'libpulse' : '',
     'libpulse-simple',
     'libselinux',
@@ -34,6 +37,7 @@ foreach dep_name : [
     not is_nix ? 'libudev' : '',
     'libusb-1.0',
     'libxcrypt',
+    'mount',
     'ncursesw',
     'oboe',
     host_system != 'android' ? 'opensl' : '',
@@ -96,6 +100,22 @@ libiconv_options = meson_base_options
 libiconv = subproject('libiconv', default_options: libiconv_options).get_variable('libiconv')
 global_dependencies += libiconv
 
+zlib_options = cmake.subproject_options()
+zlib_options.add_cmake_defines(cmake_base_options + {
+    'BUILD_SHARED_LIBS': false,
+    'ZLIB_BUILD_EXAMPLES': false,
+})
+zlib = cmake.subproject('zlib', options: zlib_options).dependency('z')
+zlib_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'zlib', '-I' + meson.global_build_root() / 'subprojects' / 'zlib' / '__CMake_build']
+zlib_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'zlib']
+meson.override_dependency('z', zlib, static: true)
+global_dependencies += zlib
+
+libffi_options = meson_base_options
+libffi = subproject('libffi', default_options: libffi_options).get_variable('libffi')
+libffi_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' / 'include']
+libffi_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' / 'lib']
+
 # If OpenSSL is present, you get HTTPS support
 if get_option('enable-https')
     openssl_options = meson_base_options
@@ -145,6 +165,20 @@ if is_nix
     subproject('expat', default_options: meson_base_options)
     subproject('libudev', default_options: meson_base_options)
     subproject('dbus', default_options: meson_base_options)
+    subproject('glib', default_options: meson_base_options + {
+        'bsymbolic_functions': false,
+        'dtrace': 'disabled',
+        'glib_assert': false,
+        'glib_checks': false,
+        'glib_debug': 'disabled',
+        'introspection': 'disabled',
+        'libelf': 'disabled',
+        'sysprof': 'disabled',
+        'systemtap': 'disabled',
+        'tests': false,
+        'xattr': false,
+    })
+    subproject('ibus', default_options: meson_base_options)
     subproject('xorgproto', default_options: meson_base_options)
     subproject('libxau', default_options: meson_base_options)
     subproject('libxcb', default_options: meson_base_options)
@@ -245,6 +279,8 @@ if is_nix
         'man': 'disabled',
         'examples': 'disabled',
         'tests': 'disabled',
+        'gstreamer': 'disabled',
+        'gstreamer-device-provider': 'disabled',
         'spa-plugins': 'disabled',
         'pipewire-jack': 'disabled',
         'pipewire-v4l2': 'disabled',
@@ -255,6 +291,7 @@ if is_nix
         'session-managers': [],
         'flatpak': 'disabled',
         'readline': 'disabled',
+        'gsettings': 'disabled',
         'udev': 'disabled',
         'x11': 'disabled',
         'x11-xfixes': 'disabled',
@@ -357,17 +394,6 @@ pixman_options = meson_base_options + {
 pixman = subproject('pixman', default_options: pixman_options).get_variable('idep_pixman')
 global_dependencies += pixman
 
-zlib_options = cmake.subproject_options()
-zlib_options.add_cmake_defines(cmake_base_options + {
-    'BUILD_SHARED_LIBS': false,
-    'ZLIB_BUILD_EXAMPLES': false,
-})
-zlib = cmake.subproject('zlib', options: zlib_options).dependency('z')
-zlib_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'zlib', '-I' + meson.global_build_root() / 'subprojects' / 'zlib' / '__CMake_build']
-zlib_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'zlib']
-meson.override_dependency('z', zlib, static: true)
-global_dependencies += zlib
-
 uchardet_options = cmake.subproject_options()
 uchardet_options.add_cmake_defines(cmake_base_options + {
     'BUILD_BINARY': false,
@@ -462,11 +488,6 @@ libyaml = cmake.subproject('libyaml', options: libyaml_options).dependency('yaml
 libyaml_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'libyaml' / 'include', '-I' + meson.global_build_root() / 'subprojects' / 'libyaml' / '__CMake_build' / 'include']
 libyaml_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libyaml']
 meson.override_dependency('libyaml', libyaml, static: true)
-
-libffi_options = meson_base_options
-libffi = subproject('libffi', default_options: libffi_options).get_variable('libffi')
-libffi_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' / 'include']
-libffi_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' / 'lib']
 
 ruby_options = meson_base_options + {
     'cflags': zlib_includes + libyaml_includes + libffi_includes,

@@ -1,0 +1,7 @@
+[wrap-file]
+source_url = https://deb.debian.org/debian/pool/main/i/ibus/ibus_1.5.32.orig.tar.gz
+source_fallback_url = https://mirrors.ocf.berkeley.edu/debian/pool/main/i/ibus/ibus_1.5.32.orig.tar.gz
+source_filename = ibus.tar.gz
+source_hash = b24f41ae38b236b254c09f1a8f53c2354b69b0789e89cea888d0494b09d15d67
+directory = ibus-1.5.32
+patch_directory = ibus
