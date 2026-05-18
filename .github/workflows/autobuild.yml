@@ -133,6 +133,7 @@ jobs:
           cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z.exe .
+          strip mkxp-z.exe
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -216,6 +217,7 @@ jobs:
           cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z.x86_64 .
+          strip mkxp-z.x86_64
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -308,6 +310,7 @@ jobs:
           cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
+          find . -type f -name 'mkxp-z.*' | xargs ${{ matrix.arch_gcc }}-strip
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -365,6 +368,7 @@ jobs:
           cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z.x86_64 .
+          strip mkxp-z.x86_64
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -452,6 +456,7 @@ jobs:
           cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
+          find . -type f -name 'mkxp-z.*' | xargs ${{ matrix.arch_gcc }}-strip
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -511,6 +516,7 @@ jobs:
           cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
+          find . -type f -name 'mkxp-z.*' | xargs strip -x
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
