@@ -108,7 +108,7 @@ zlib_options.add_cmake_defines(cmake_base_options + {
 zlib = cmake.subproject('zlib', options: zlib_options).dependency('z')
 zlib_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'zlib', '-I' + meson.global_build_root() / 'subprojects' / 'zlib' / '__CMake_build']
 zlib_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'zlib']
-meson.override_dependency('z', zlib, static: true)
+meson.override_dependency('zlib', zlib, static: true)
 global_dependencies += zlib
 
 libffi_options = meson_base_options

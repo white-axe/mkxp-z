@@ -139,7 +139,7 @@ endif
 ruby_deps = [
     dependency('libffi', required: true),
     dependency('libyaml', required: true),
-    dependency('z', required: true),
+    dependency('zlib', required: true),
 ]
 
 ruby = declare_dependency(
