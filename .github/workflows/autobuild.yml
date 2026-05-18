@@ -112,7 +112,6 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
-          echo 'CCACHE_DIR=${{ runner.temp }}/ccache' >> "$GITHUB_ENV"
 
       - name: Configure
         shell: msys2 {0}
