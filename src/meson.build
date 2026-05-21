@@ -599,7 +599,7 @@ main_source = files(
     'etc/table.cpp',
 
     'filesystem/filesystem.cpp',
-    host_system != 'darwin' ? 'filesystem/filesystemImpl.cpp' : [],
+    host_system == 'darwin' ? 'filesystem/filesystemImplApple.mm' : 'filesystem/filesystemImpl.cpp',
 
     'input/input.cpp',
     'input/keybindings.cpp',
@@ -607,7 +607,7 @@ main_source = files(
     'net/LUrlParser.cpp',
     'net/net.cpp',
 
-    host_system != 'darwin' ? 'system/systemImpl.cpp' : [],
+    host_system == 'darwin' ? 'system/systemImplApple.mm' : 'system/systemImpl.cpp',
 )
 
 global_sources += main_source

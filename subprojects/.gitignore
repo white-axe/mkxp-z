@@ -3,7 +3,5 @@
 !/packagefiles/**
 /.wraplock
 
-!/apple-impl
-!/apple-impl/**
 !/tools
 !/tools/**

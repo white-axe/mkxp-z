@@ -1,4 +1,7 @@
 project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=1.2.0', default_options: ['cpp_std=c++14', 'buildtype=release'])
+if host_machine.system() == 'darwin'
+    add_languages('objcpp', native: false)
+endif
 
 host_system = host_machine.system()
 host_endian = host_machine.endian()
@@ -14,6 +17,8 @@ global_dependencies = [declare_dependency(sources: git_hash_file)]
 global_include_dirs = []
 global_args = []
 global_cpp_args = []
+global_objc_args = ['-fobjc-arc']
+global_objcpp_args = []
 global_link_args = []
 
 python = subproject('tools').get_variable('python')
@@ -117,20 +122,15 @@ else
     windows_resources = []
 endif
 
+if host_system == 'darwin'
+    subdir('macos/views')
+endif
+
 exe_name = meson.project_name()
 
 if (host_system == 'linux' or host_system == 'darwin') and get_option('appimage') == false
     exe_name += '.' + host_machine.cpu_family()
 endif
-
-meson.override_dependency(
-    'mkxp-global-dependencies',
-    declare_dependency(
-        dependencies: global_dependencies,
-        include_directories: global_include_dirs,
-    ),
-    static: true,
-)
 
 if steamworks == true
     exe_name = 'steam_' + exe_name
@@ -168,13 +168,6 @@ if steamworks == true
         install: (host_system != 'windows'))
 endif
 
-if host_system == 'darwin'
-    apple_impl_options = {
-        'objcppflags': global_args + global_cpp_args,
-    }
-    global_dependencies = [subproject('apple-impl', default_options: apple_impl_options).get_variable('apple_impl')] + global_dependencies
-endif
-
 executable(exe_name,
     sources: [
         git_hash_file, # Dummy source file just so that Meson doesn't complain about the executable not having any sources in non-Windows builds
@@ -187,6 +180,8 @@ executable(exe_name,
         include_directories: global_include_dirs,
         c_args: global_args,
         cpp_args: global_args + global_cpp_args,
+        objc_args: global_args + global_objc_args,
+        objcpp_args: global_args + global_objc_args + global_cpp_args + global_objcpp_args,
     ),
     include_directories: global_include_dirs,
     link_args: global_link_args,
