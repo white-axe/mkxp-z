@@ -123,6 +123,16 @@ else
 endif
 
 if host_system == 'darwin'
+    global_dependencies += dependency(
+        'appleframeworks',
+        modules: [
+            'AppKit',
+            'Foundation',
+            'GameController',
+            'Metal',
+        ],
+        required: true,
+    )
     subdir('macos/views')
 endif
 
