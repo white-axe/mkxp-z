@@ -1,0 +1,24 @@
+# Adds a global variable `mkxp_angle_egl_is_wayland` to choose whether ANGLE should use X11 or Wayland if both are supported.
+
+--- a/src/libANGLE/Display.cpp
++++ b/src/libANGLE/Display.cpp
+@@ -91,7 +91,7 @@
+ #if defined(ANGLE_ENABLE_METAL)
+ #    include "libANGLE/renderer/metal/DisplayMtl_api.h"
+ #endif  // defined(ANGLE_ENABLE_METAL)
+-
++int mkxp_angle_egl_is_wayland;
+ namespace egl
+ {
+ 
+@@ -377,8 +377,8 @@ EGLAttrib GetDeviceTypeFromEnvironment()
+ 
+ EGLAttrib GetPlatformTypeFromEnvironment()
+ {
+-#if defined(ANGLE_USE_OZONE)
+-    return 0;
++#if defined(ANGLE_USE_X11) && defined(ANGLE_USE_WAYLAND)
++    return mkxp_angle_egl_is_wayland ? EGL_PLATFORM_WAYLAND_EXT : EGL_PLATFORM_X11_EXT;
+ #elif defined(ANGLE_USE_X11)
+     return EGL_PLATFORM_X11_EXT;
+ #elif defined(ANGLE_USE_WAYLAND)

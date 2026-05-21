@@ -52,7 +52,6 @@ foreach dep_name : [
     not is_nix ? 'sndfile' : '',
     host_system != 'dragonfly' and host_system != 'freebsd' and host_system != 'netbsd' and host_system != 'openbsd' ? 'sndio' : '',
     'systemd',
-    'vulkan',
     not is_nix ? 'wayland-client' : '',
     not is_nix ? 'wayland-cursor' : '',
     not is_nix ? 'wayland-egl' : '',
@@ -60,6 +59,7 @@ foreach dep_name : [
     not is_nix ? 'wayland-protocols' : '',
     not is_nix ? 'wayland-scanner' : '',
     not is_nix ? 'wayland-server' : '',
+    'vulkan',
     not is_nix ? 'x11' : '',
     not is_nix ? 'x11-xcb' : '',
     not is_nix ? 'xau' : '',
@@ -196,7 +196,24 @@ if is_nix
     subproject('libdecor', default_options: meson_base_options)
 endif
 
+subproject('xxhash', default_options: meson_base_options)
+spirv_headers = subproject('spirv-headers', default_options: meson_base_options).get_variable('spirv_headers')
+spirv_tools_options = cmake.subproject_options()
+spirv_tools_options.add_cmake_defines(cmake_base_options + {
+    'CMAKE_C_FLAGS': run_command(python, quotetool, host_system, 'false', '-I' + meson.project_source_root() / 'subprojects' / 'spirv-headers' / 'include', check: true).stdout().strip(),
+    'CMAKE_CXX_FLAGS': run_command(python, quotetool, host_system, 'false', '-I' + meson.project_source_root() / 'subprojects' / 'spirv-headers' / 'include', check: true).stdout().strip(),
+    'SPIRV-Headers_SOURCE_DIR': meson.project_source_root() / 'subprojects' / 'spirv-headers',
+    'BUILD_SHARED_LIBS': false,
+    'BUILD_TESTING': false,
+    'SPIRV-TOOLS_USE_MIMALLOC': false,
+})
+meson.override_dependency('SPIRV-Tools', cmake.subproject('spirv-tools', options: spirv_tools_options).dependency('SPIRV-Tools-static'), static: true)
+subproject('volk', default_options: meson_base_options)
+subproject('angle', default_options: meson_base_options)
+
 sdl2_options = meson_base_options + {
+    'test': false,
+    'run_test': false,
     'use_atomic': 'enabled',
     'use_audio': 'disabled',
     'use_cpuinfo': 'enabled',
@@ -223,6 +240,7 @@ sdl2_options = meson_base_options + {
     'use_video_offscreen': 'disabled',
     'prefer_dlopen': is_nix,
     'system_iconv': 'enabled',
+    'angle': 'auto',
 }
 sdl2main = declare_dependency(
     dependencies: subproject('sdl2', default_options: sdl2_options).get_variable('sdl2main_dep'),

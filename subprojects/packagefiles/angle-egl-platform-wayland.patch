@@ -1,0 +1,25 @@
+# SDL uses EGL_PLATFORM_WAYLAND_EXT as the platform type when targeting Wayland.
+# ANGLE does not recognize EGL_PLATFORM_WAYLAND_EXT as a supported platform when ANGLE is targeting OpenGL or OpenGL ES (instead of Vulkan),
+# so SDL will be unable to initialize the OpenGL context if SDL is using Wayland and ANGLE is targeting OpenGL/OpenGL ES.
+# This patch fixes that problem.
+
+--- a/src/libANGLE/Display.cpp
++++ b/src/libANGLE/Display.cpp
+@@ -434,7 +434,7 @@ rx::DisplayImpl *CreateDisplayFromAttribs(EGLAttrib displayType,
+                 impl = new rx::DisplayEGL(state);
+                 break;
+             }
+-            if (platformType == EGL_PLATFORM_GBM_KHR)
++            if (platformType == EGL_PLATFORM_GBM_KHR || platformType == EGL_PLATFORM_WAYLAND_EXT)
+             {
+                 impl = new rx::DisplayEGL(state);
+                 break;
+@@ -485,7 +485,7 @@ rx::DisplayImpl *CreateDisplayFromAttribs(EGLAttrib displayType,
+                 impl = new rx::DisplayEGL(state);
+                 break;
+             }
+-            if (platformType == EGL_PLATFORM_GBM_KHR)
++            if (platformType == EGL_PLATFORM_GBM_KHR || platformType == EGL_PLATFORM_WAYLAND_EXT)
+             {
+                 impl = new rx::DisplayEGL(state);
+                 break;

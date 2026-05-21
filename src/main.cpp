@@ -201,6 +201,8 @@ int main(int argc, char *argv[]) {
 
     SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
 
+    SDL_SetHint(SDL_HINT_VIDEO_X11_FORCE_EGL, "1");
+
     /* initialize SDL first */
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_TIMER) < 0) {
       showInitError(std::string("Error initializing SDL: ") + SDL_GetError());
@@ -317,6 +319,8 @@ int main(int argc, char *argv[]) {
       winFlags |= SDL_WINDOW_RESIZABLE;
     if (conf.fullscreen)
       winFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
     
     win = SDL_CreateWindow(conf.windowTitle.c_str(), SDL_WINDOWPOS_UNDEFINED,
                            SDL_WINDOWPOS_UNDEFINED, conf.defScreenW,
