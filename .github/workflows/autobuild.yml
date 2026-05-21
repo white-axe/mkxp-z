@@ -112,6 +112,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
+          ccache --zero-stats
 
       - name: Configure
         shell: msys2 {0}
@@ -123,6 +124,11 @@ jobs:
         run: |
           cd build
           CLICOLOR_FORCE=1 ninja -v
+
+      - name: Show ccache statistics
+        shell: msys2 {0}
+        run: |
+          ccache --show-stats --verbose
 
       - name: Prepare archive
         shell: msys2 {0}
@@ -199,6 +205,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
+          ccache --zero-stats
 
       - name: Configure
         run: |
@@ -208,6 +215,10 @@ jobs:
         run: |
           cd build
           CLICOLOR_FORCE=1 ninja -v
+
+      - name: Show ccache statistics
+        run: |
+          ccache --show-stats --verbose
 
       - name: Prepare archive
         run: |
@@ -292,6 +303,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
+          ccache --zero-stats
 
       - name: Configure
         run: |
@@ -301,6 +313,10 @@ jobs:
         run: |
           cd build
           CLICOLOR_FORCE=1 ninja -v
+
+      - name: Show ccache statistics
+        run: |
+          ccache --show-stats --verbose
 
       - name: Prepare archive
         run: |
@@ -350,6 +366,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
+          ccache --zero-stats
 
       - name: Configure
         run: |
@@ -359,6 +376,10 @@ jobs:
         run: |
           cd build
           CLICOLOR_FORCE=1 ninja -v
+
+      - name: Show ccache statistics
+        run: |
+          ccache --show-stats --verbose
 
       - name: Prepare archive
         run: |
@@ -438,6 +459,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
+          ccache --zero-stats
 
       - name: Configure
         run: |
@@ -447,6 +469,10 @@ jobs:
         run: |
           cd build
           CLICOLOR_FORCE=1 ninja -v
+
+      - name: Show ccache statistics
+        run: |
+          ccache --show-stats --verbose
 
       - name: Prepare archive
         run: |
@@ -498,6 +524,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
+          ccache --zero-stats
 
       - name: Configure
         run: |
@@ -507,6 +534,10 @@ jobs:
         run: |
           cd build
           CLICOLOR_FORCE=1 ninja -v
+
+      - name: Show ccache statistics
+        run: |
+          ccache --show-stats --verbose
 
       - name: Prepare archive
         run: |
