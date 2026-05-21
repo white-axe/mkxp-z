@@ -21,10 +21,6 @@ args = [
     '-DGL_GLEXT_PROTOTYPES',
 ]
 
-if meson.get_compiler('cpp').get_define('M_PI', args: ['-D_USE_MATH_DEFINES'], prefix: '#include <math.h>') == ''
-    args += '-DM_PI=3.14159265358979323846'
-endif
-
 angle_compression_utils = subproject('angle-compression-utils').get_variable('angle_compression_utils_portable')
 xxhash = dependency('libxxhash', required: true)
 
@@ -1118,7 +1114,9 @@ angle_egl = static_library(
 angle_util = static_library(
     'angle_util',
     include_directories: includes,
-    cpp_args: args,
+    cpp_args: args + [
+        '-DM_PI=3.14159265358979323846',
+    ],
     sources: [
         'util/EGLWindow.cpp',
         'util/Matrix.cpp',
