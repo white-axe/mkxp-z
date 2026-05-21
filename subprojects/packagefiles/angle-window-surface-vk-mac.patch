@@ -14,3 +14,14 @@
  namespace rx
  {
  
+--- a/src/libANGLE/renderer/vulkan/mac/WindowSurfaceVkMac.mm
++++ b/src/libANGLE/renderer/vulkan/mac/WindowSurfaceVkMac.mm
+@@ -10,7 +10,7 @@
+ #include "libANGLE/renderer/vulkan/mac/WindowSurfaceVkMac.h"
+ 
+ #include <Metal/Metal.h>
+-#include <QuartzCore/CAMetalLayer.h>
++
+ 
+ #include "libANGLE/renderer/vulkan/vk_renderer.h"
+ #include "libANGLE/renderer/vulkan/vk_utils.h"
