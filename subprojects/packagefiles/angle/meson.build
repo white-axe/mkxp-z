@@ -520,6 +520,7 @@ angle_common = static_library(
             ],
             required: true,
         ) : [],
+        host_machine_is_windows ? meson.get_compiler('cpp').find_library('synchronization', required: true) : [],
     ],
     cpp_args: args,
     objcpp_args: args,
@@ -1141,6 +1142,12 @@ angle = library(
     dependencies: [
         angle_compression_utils,
         xxhash,
+        host_machine_is_windows
+            ? [
+                meson.get_compiler('cpp').find_library('gdi32', required: true),
+                meson.get_compiler('cpp').find_library('user32', required: true),
+            ]
+            : [],
     ],
     link_with: [
         angle_common,
