@@ -67,11 +67,6 @@ if have_any_opengl
     args += '-DANGLE_ENABLE_OPENGL'
 endif
 
-have_webgpu = get_option('webgpu').allowed()
-if have_webgpu
-    args += '-DANGLE_ENABLE_WGPU'
-endif
-
 spirv_headers = dependency('SPIRV-Headers', required: get_option('vulkan'))
 spirv_tools = dependency('SPIRV-Tools', required: get_option('vulkan'))
 volk = dependency('volk', required: get_option('vulkan'))
@@ -82,11 +77,22 @@ if have_vulkan
         '-DANGLE_ENABLE_VULKAN',
         '-DANGLE_SHARED_LIBVULKAN',
     ]
+    if host_machine_is_macos
+        args += [
+            '-DVK_USE_PLATFORM_METAL_EXT',
+            '-DVK_USE_PLATFORM_MACOS_MVK',
+        ]
+    endif
 else
     spirv_headers = dependency('', required: false)
     spirv_tools = dependency('', required: false)
     volk = dependency('', required: false)
     vulkan_memory_allocator = dependency('', required: false)
+endif
+
+have_webgpu = get_option('webgpu').allowed()
+if have_webgpu
+    args += '-DANGLE_ENABLE_WGPU'
 endif
 
 x11 = have_any_opengl and not host_machine_is_windows and host_machine.system() != 'darwin' and host_machine.system() != 'android' ? dependency('x11', required: get_option('x11')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
@@ -503,6 +509,15 @@ angle_translator = static_library(
 angle_common = static_library(
     'angle_common',
     include_directories: includes,
+    dependencies: [
+        host_machine.system() == 'darwin' ? dependency(
+            'appleframeworks',
+            modules: [
+                'Metal',
+            ],
+            required: true,
+        ) : [],
+    ],
     cpp_args: args,
     sources: [
         'src/common/Float16ToFloat32.cpp',
@@ -631,6 +646,21 @@ angle_gpu_info_util = static_library(
     include_directories: includes,
     dependencies: [
         volk,
+        host_machine.system() == 'darwin' ? dependency(
+            'appleframeworks',
+            modules: [
+                'CoreFoundation',
+                'CoreGraphics',
+            ],
+            required: true,
+        ) : [],
+        host_machine_is_macos ? dependency(
+            'appleframeworks',
+            modules: [
+                'IOKit',
+            ],
+            required: true,
+        ) : [],
     ],
     link_with: [
         have_vulkan ? angle_vulkan_icd : [],
@@ -893,6 +923,15 @@ angle_vulkan_backend = static_library(
         wayland_egl,
         xcb,
         xxhash,
+        host_machine_is_macos ? dependency(
+            'appleframeworks',
+            modules: [
+                'Cocoa',
+                'IOSurface',
+                'QuartzCore',
+            ],
+            required: true,
+        ) : [],
     ],
     link_with: [
         angle_dma_buf,
