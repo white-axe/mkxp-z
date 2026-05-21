@@ -323,7 +323,6 @@ openal_options = meson_base_options + {
     'rtkit': 'disabled',
     'sdl2': 'disabled',
     'utils': false,
-    'winmm': 'disabled',
 }
 openal = subproject('openal-soft', default_options: openal_options).get_variable('openal_dep')
 global_dependencies += openal
