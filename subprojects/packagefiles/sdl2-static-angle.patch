@@ -12,7 +12,7 @@
      all_sources,
      include_directories : core_inc,
 -    c_args : core_args,
-+    c_args : core_args + (angle_dep.found() ? ['-DSDL_VIDEO_STATIC_ANGLE'] : []),
++    c_args : core_args + (angle_dep.found() ? ['-DSDL_VIDEO_STATIC_ANGLE', '-DKHRONOS_STATIC'] : []),
      link_args : core_ldflags,
 -    dependencies : deps,
 +    dependencies : deps + [angle_dep],
