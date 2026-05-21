@@ -21,6 +21,10 @@ args = [
     '-DGL_GLEXT_PROTOTYPES',
 ]
 
+if get_option('default_library') == 'static'
+    args += '-DANGLE_PLATFORM_EXPORT='
+endif
+
 angle_compression_utils = subproject('angle-compression-utils').get_variable('angle_compression_utils_portable')
 xxhash = dependency('libxxhash', required: true)
 
