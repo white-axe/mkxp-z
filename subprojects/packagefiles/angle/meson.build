@@ -3,7 +3,7 @@ if host_machine.system() == 'darwin'
     add_languages('objcpp', native: false)
 endif
 
-host_machine_is_macos = host_machine.system() == 'darwin' and meson.get_compiler('cpp').get_define('TARGET_OS_OSX', prefix: '#include <TargetConditionals.h>') == '1'
+host_machine_is_macos = host_machine.system() == 'darwin' and meson.get_compiler('cpp').get_define('TARGET_OS_OSX', prefix: '#include <TargetConditionals.h>') not in ['', '0']
 host_machine_is_ios = host_machine.system() == 'darwin' and not host_machine_is_macos
 host_machine_is_windows = host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
 
@@ -20,6 +20,10 @@ args = [
     '-DGL_GLES_PROTOTYPES',
     '-DGL_GLEXT_PROTOTYPES',
 ]
+
+if meson.get_compiler('cpp').get_define('M_PI', args: ['-D_USE_MATH_DEFINES'], prefix: '#include <math.h>') == ''
+    args += '-DM_PI=3.14159265358979323846'
+endif
 
 angle_compression_utils = subproject('angle-compression-utils').get_variable('angle_compression_utils_portable')
 xxhash = dependency('libxxhash', required: true)
