@@ -83,6 +83,9 @@ if have_vulkan
             '-DVK_USE_PLATFORM_MACOS_MVK',
         ]
     endif
+    if host_machine_is_windows
+        args += '-DVK_USE_PLATFORM_WIN32_KHR'
+    endif
 else
     spirv_headers = dependency('', required: false)
     spirv_tools = dependency('', required: false)
@@ -519,6 +522,7 @@ angle_common = static_library(
         ) : [],
     ],
     cpp_args: args,
+    objcpp_args: args,
     sources: [
         'src/common/Float16ToFloat32.cpp',
         'src/common/MemoryBuffer.cpp',
@@ -667,6 +671,7 @@ angle_gpu_info_util = static_library(
         have_vulkan ? angle_libvulkan_loader : [],
     ],
     cpp_args: args,
+    objcpp_args: args,
     sources: [
         'src/gpu_info_util/SystemInfo.cpp',
         host_machine_is_windows
@@ -940,6 +945,7 @@ angle_vulkan_backend = static_library(
         angle_vk_mem_alloc_wrapper,
     ],
     cpp_args: args,
+    objcpp_args: args,
     sources: [
         'src/libANGLE/renderer/vulkan/AllocatorHelperPool.cpp',
         'src/libANGLE/renderer/vulkan/BufferVk.cpp',

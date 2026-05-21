@@ -25,7 +25,6 @@ volk = declare_dependency(
                 '.',
             ],
             c_args: [
-                '-DVK_USE_PLATFORM_WAYLAND_KHR',
                 '-DVK_USE_PLATFORM_IOS_MVK',
                 '-DVK_USE_PLATFORM_MACOS_MVK',
                 '-DVK_USE_PLATFORM_METAL_EXT',
