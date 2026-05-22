@@ -213,9 +213,10 @@ int main(int argc, char *argv[]) {
     SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
     SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
 
-    SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
-
+    SDL_SetHint(SDL_HINT_OPENGL_ES_DRIVER, "1");
     SDL_SetHint(SDL_HINT_VIDEO_X11_FORCE_EGL, "1");
+
+    SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
 
     /* initialize SDL first */
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_TIMER) < 0) {
