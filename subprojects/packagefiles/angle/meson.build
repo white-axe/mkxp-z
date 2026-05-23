@@ -28,12 +28,18 @@ endif
 angle_compression_utils = subproject('angle-compression-utils').get_variable('angle_compression_utils_portable')
 xxhash = dependency('libxxhash', required: true)
 
-have_direct3d9 = get_option('direct3d9').allowed() and host_machine_is_windows
+d3d9 = host_machine_is_windows ? meson.get_compiler('cpp').find_library('d3d9', required: get_option('direct3d9')) : dependency('', required: false)
+delayimp = host_machine_is_windows ? meson.get_compiler('cpp').find_library('delayimp', required: get_option('direct3d9')) : dependency('', required: false)
+have_direct3d9 = d3d9.found() and delayimp.found()
 if have_direct3d9
     args += '-DANGLE_ENABLE_D3D9'
+else
+    d3d9 = dependency('', required: false)
+    delayimp = dependency('', required: false)
 endif
 
-have_direct3d11 = get_option('direct3d11').allowed() and host_machine_is_windows
+dxguid = host_machine_is_windows ? meson.get_compiler('cpp').find_library('dxguid.lib', required: get_option('direct3d11')) : dependency('', required: false)
+have_direct3d11 = dxguid.found()
 if have_direct3d11
     args += '-DANGLE_ENABLE_D3D11'
 endif
@@ -728,6 +734,162 @@ angle_dma_buf = host_machine_is_windows or host_machine.system() == 'darwin' ? [
     build_by_default: false,
 )
 
+angle_d3d_format_tables = static_library(
+    'angle_d3d_format_tables',
+    include_directories: includes,
+    cpp_args: args,
+    sources: [
+        'src/libANGLE/renderer/dxgi_format_map_autogen.cpp',
+        'src/libANGLE/renderer/dxgi_support_table_autogen.cpp',
+        true
+            ? [
+                'src/libANGLE/renderer/d3d_format.cpp',
+            ]
+            : [],
+    ],
+    build_by_default: false,
+)
+
+angle_d3d_shared = static_library(
+    'angle_d3d_shared',
+    include_directories: includes,
+    dependencies: [
+        xxhash,
+    ],
+    link_with: [
+        angle_d3d_format_tables,
+    ],
+    cpp_args: args,
+    sources: [
+        'src/libANGLE/renderer/d3d/BufferD3D.cpp',
+        'src/libANGLE/renderer/d3d/CompilerD3D.cpp',
+        'src/libANGLE/renderer/d3d/DisplayD3D.cpp',
+        'src/libANGLE/renderer/d3d/DynamicHLSL.cpp',
+        'src/libANGLE/renderer/d3d/DynamicImage2DHLSL.cpp',
+        'src/libANGLE/renderer/d3d/EGLImageD3D.cpp',
+        'src/libANGLE/renderer/d3d/FramebufferD3D.cpp',
+        'src/libANGLE/renderer/d3d/HLSLCompiler.cpp',
+        'src/libANGLE/renderer/d3d/ImageD3D.cpp',
+        'src/libANGLE/renderer/d3d/IndexBuffer.cpp',
+        'src/libANGLE/renderer/d3d/IndexDataManager.cpp',
+        'src/libANGLE/renderer/d3d/NativeWindowD3D.cpp',
+        'src/libANGLE/renderer/d3d/ProgramD3D.cpp',
+        'src/libANGLE/renderer/d3d/ProgramExecutableD3D.cpp',
+        'src/libANGLE/renderer/d3d/RenderTargetD3D.cpp',
+        'src/libANGLE/renderer/d3d/RenderbufferD3D.cpp',
+        'src/libANGLE/renderer/d3d/RendererD3D.cpp',
+        'src/libANGLE/renderer/d3d/ShaderD3D.cpp',
+        'src/libANGLE/renderer/d3d/ShaderExecutableD3D.cpp',
+        'src/libANGLE/renderer/d3d/SurfaceD3D.cpp',
+        'src/libANGLE/renderer/d3d/SwapChainD3D.cpp',
+        'src/libANGLE/renderer/d3d/TextureD3D.cpp',
+        'src/libANGLE/renderer/d3d/VertexBuffer.cpp',
+        'src/libANGLE/renderer/d3d/VertexDataManager.cpp',
+        'src/libANGLE/renderer/d3d/driver_utils_d3d.cpp',
+    ],
+    build_by_default: false,
+)
+
+angle_d3d9_backend = static_library(
+    'angle_d3d9_backend',
+    include_directories: includes,
+    dependencies: [
+        d3d9,
+        delayimp,
+        xxhash,
+    ],
+    link_with: [
+        angle_d3d_shared,
+    ],
+    cpp_args: args,
+    sources: [
+        'src/libANGLE/renderer/d3d/d3d9/Blit9.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/Buffer9.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/Context9.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/DebugAnnotator9.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/Device9.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/Fence9.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/Framebuffer9.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/Image9.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/IndexBuffer9.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/NativeWindow9.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/Query9.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/RenderTarget9.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/Renderer9.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/ShaderExecutable9.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/StateManager9.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/SwapChain9.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/TextureStorage9.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/VertexBuffer9.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/VertexDeclarationCache.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/formatutils9.cpp',
+        'src/libANGLE/renderer/d3d/d3d9/renderer9_utils.cpp',
+    ],
+    build_by_default: false,
+)
+
+angle_d3d11_backend = static_library(
+    'angle_d3d11_backend',
+    include_directories: includes,
+    dependencies: [
+        dxguid,
+        xxhash,
+    ],
+    link_with: [
+        angle_d3d_shared,
+    ],
+    cpp_args: args + [
+        '-DANGLE_ENABLE_D3D11_COMPOSITOR_NATIVE_WINDOW',
+    ],
+    sources: [
+        'src/libANGLE/renderer/d3d/d3d11/Blit11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/Buffer11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/Clear11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/Context11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/DebugAnnotator11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/Device11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/ExternalImageSiblingImpl11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/Fence11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/Framebuffer11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/Image11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/IndexBuffer11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/InputLayoutCache.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/PixelTransfer11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/Program11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/ProgramPipeline11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/Query11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/RenderStateCache.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/RenderTarget11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/Renderer11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/ResourceManager11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/ShaderExecutable11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/StateManager11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/StreamProducerD3DTexture.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/SwapChain11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/TextureStorage11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/TransformFeedback11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/Trim11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/VertexArray11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/VertexBuffer11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/formatutils11.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/renderer11_utils.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/texture_format_table.cpp',
+        'src/libANGLE/renderer/d3d/d3d11/texture_format_table_autogen.cpp',
+        false
+            ? [
+                'src/libANGLE/renderer/d3d/d3d11/winrt/CoreWindowNativeWindow.cpp',
+                'src/libANGLE/renderer/d3d/d3d11/winrt/InspectableNativeWindow.cpp',
+                'src/libANGLE/renderer/d3d/d3d11/winrt/NativeWindow11WinRT.cpp',
+                'src/libANGLE/renderer/d3d/d3d11/winrt/SwapChainPanelNativeWindow.cpp',
+            ]
+            : [
+                'src/libANGLE/renderer/d3d/d3d11/win32/NativeWindow11Win32.cpp',
+            ],
+        'src/libANGLE/renderer/d3d/d3d11/converged/CompositorNativeWindow11.cpp',
+    ],
+    build_by_default: false,
+)
+
 angle_null_backend = static_library(
     'angle_null_backend',
     include_directories: includes,
@@ -760,6 +922,79 @@ angle_null_backend = static_library(
     build_by_default: false,
 )
 
+if host_machine.system() != 'darwin'
+    angle_metal_backend = []
+else
+    angle_metal_backend = static_library(
+        'angle_metal_backend',
+        include_directories: includes,
+        dependencies: [
+            xxhash,
+            dependency(
+                'appleframeworks',
+                modules: [
+                    'IOSurface',
+                    'Metal',
+                    'QuartzCore',
+                ],
+                required: true,
+            ),
+            host_machine_is_macos ? dependency(
+                'appleframeworks',
+                modules: [
+                    'Cocoa',
+                ],
+                required: true,
+            ) : [],
+        ],
+        cpp_args: args,
+        objcpp_args: args + [
+            '-fno-objc-arc',
+        ],
+        sources: [
+            'src/libANGLE/renderer/metal/BufferMtl.mm',
+            'src/libANGLE/renderer/metal/CompilerMtl.mm',
+            'src/libANGLE/renderer/metal/ContextMtl.mm',
+            'src/libANGLE/renderer/metal/DeviceMtl.mm',
+            'src/libANGLE/renderer/metal/DisplayMtl.mm',
+            'src/libANGLE/renderer/metal/FrameBufferMtl.mm',
+            'src/libANGLE/renderer/metal/IOSurfaceSurfaceMtl.mm',
+            'src/libANGLE/renderer/metal/ImageMtl.mm',
+            'src/libANGLE/renderer/metal/ProgramExecutableMtl.mm',
+            'src/libANGLE/renderer/metal/ProgramMtl.mm',
+            'src/libANGLE/renderer/metal/ProvokingVertexHelper.mm',
+            'src/libANGLE/renderer/metal/QueryMtl.mm',
+            'src/libANGLE/renderer/metal/RenderBufferMtl.mm',
+            'src/libANGLE/renderer/metal/RenderTargetMtl.mm',
+            'src/libANGLE/renderer/metal/SamplerMtl.mm',
+            'src/libANGLE/renderer/metal/ShaderMtl.mm',
+            'src/libANGLE/renderer/metal/SurfaceMtl.mm',
+            'src/libANGLE/renderer/metal/SyncMtl.mm',
+            'src/libANGLE/renderer/metal/TextureMtl.mm',
+            'src/libANGLE/renderer/metal/TransformFeedbackMtl.mm',
+            'src/libANGLE/renderer/metal/VertexArrayMtl.mm',
+            'src/libANGLE/renderer/metal/blocklayoutMetal.cpp',
+            'src/libANGLE/renderer/metal/mtl_buffer_manager.mm',
+            'src/libANGLE/renderer/metal/mtl_buffer_pool.mm',
+            'src/libANGLE/renderer/metal/mtl_command_buffer.mm',
+            'src/libANGLE/renderer/metal/mtl_common.mm',
+            'src/libANGLE/renderer/metal/mtl_context_device.mm',
+            'src/libANGLE/renderer/metal/mtl_format_table_autogen.mm',
+            'src/libANGLE/renderer/metal/mtl_format_utils.mm',
+            'src/libANGLE/renderer/metal/mtl_library_cache.mm',
+            'src/libANGLE/renderer/metal/mtl_msl_utils.mm',
+            'src/libANGLE/renderer/metal/mtl_occlusion_query_pool.mm',
+            'src/libANGLE/renderer/metal/mtl_pipeline_cache.mm',
+            'src/libANGLE/renderer/metal/mtl_render_utils.mm',
+            'src/libANGLE/renderer/metal/mtl_resources.mm',
+            'src/libANGLE/renderer/metal/mtl_state_cache.mm',
+            'src/libANGLE/renderer/metal/mtl_utils.mm',
+            'src/libANGLE/renderer/metal/renderermtl_utils.cpp',
+        ],
+        build_by_default: false,
+    )
+endif
+
 angle_gl_backend = static_library(
     'angle_gl_backend',
     include_directories: includes,
@@ -769,6 +1004,7 @@ angle_gl_backend = static_library(
         xxhash,
     ],
     link_with: [
+        angle_d3d_format_tables,
         angle_dma_buf,
     ],
     cpp_args: args,
@@ -1165,7 +1401,10 @@ angle = library(
         angle_version_info,
         angle_translator,
         angle_util,
+        have_direct3d9 ? angle_d3d9_backend : [],
+        have_direct3d11 ? angle_d3d11_backend : [],
         have_null ? angle_null_backend : [],
+        have_metal ? angle_metal_backend : [],
         have_any_opengl ? angle_gl_backend : [],
         have_vulkan ? angle_vulkan_backend : [],
     ],
