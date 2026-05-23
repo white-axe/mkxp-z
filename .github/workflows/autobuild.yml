@@ -105,7 +105,7 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: windows-x86_64-${{ github.sha }}
+          key: windows-x86_64-
           restore-keys: windows-x86_64-
 
       - name: Set up ccache
@@ -128,18 +128,19 @@ jobs:
           cd build
           exit_code=0
           CLICOLOR_FORCE=1 ninja -v || exit_code=$?
-          echo "exit-code=$exit_code" >> "$GITHUB_OUTPUT"
-
-      - name: Show ccache statistics
-        shell: msys2 {0}
-        run: |
-          ccache --show-stats --verbose
+          echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
+          date --utc +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
       - name: Save to cache
         uses: actions/cache/save@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: windows-x86_64-${{ github.sha }}
+          key: windows-x86_64-${{ github.sha }}-${{ steps.build.outputs.time }}
+
+      - name: Show ccache statistics
+        shell: msys2 {0}
+        run: |
+          ccache --show-stats --verbose
 
       - name: Check build status
         shell: msys2 {0}
@@ -215,7 +216,7 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: ubuntu-jammy-x86_64-${{ github.sha }}
+          key: ubuntu-jammy-x86_64-
           restore-keys: ubuntu-jammy-x86_64-
 
       - name: Set up ccache
@@ -235,17 +236,18 @@ jobs:
           cd build
           exit_code=0
           CLICOLOR_FORCE=1 ninja -v || exit_code=$?
-          echo "exit-code=$exit_code" >> "$GITHUB_OUTPUT"
-
-      - name: Show ccache statistics
-        run: |
-          ccache --show-stats --verbose
+          echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
+          date --utc +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
       - name: Save to cache
         uses: actions/cache/save@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: ubuntu-jammy-x86_64-${{ github.sha }}
+          key: ubuntu-jammy-x86_64-${{ github.sha }}-${{ steps.build.outputs.time }}
+
+      - name: Show ccache statistics
+        run: |
+          ccache --show-stats --verbose
 
       - name: Check build status
         run: |
@@ -328,7 +330,7 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: ubuntu-jammy-${{ matrix.arch_mkxpz }}-${{ github.sha }}
+          key: ubuntu-jammy-${{ matrix.arch_mkxpz }}-
           restore-keys: ubuntu-jammy-${{ matrix.arch_mkxpz }}-
 
       - name: Set up ccache
@@ -348,17 +350,18 @@ jobs:
           cd build
           exit_code=0
           CLICOLOR_FORCE=1 ninja -v || exit_code=$?
-          echo "exit-code=$exit_code" >> "$GITHUB_OUTPUT"
-
-      - name: Show ccache statistics
-        run: |
-          ccache --show-stats --verbose
+          echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
+          date --utc +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
       - name: Save to cache
         uses: actions/cache/save@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: ubuntu-jammy-${{ matrix.arch_mkxpz }}-${{ github.sha }}
+          key: ubuntu-jammy-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
+
+      - name: Show ccache statistics
+        run: |
+          ccache --show-stats --verbose
 
       - name: Check build status
         run: |
@@ -406,7 +409,7 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: debian-trixie-x86_64-${{ github.sha }}
+          key: debian-trixie-x86_64-
           restore-keys: debian-trixie-x86_64-
 
       - name: Set up ccache
@@ -426,17 +429,18 @@ jobs:
           cd build
           exit_code=0
           CLICOLOR_FORCE=1 ninja -v || exit_code=$?
-          echo "exit-code=$exit_code" >> "$GITHUB_OUTPUT"
-
-      - name: Show ccache statistics
-        run: |
-          ccache --show-stats --verbose
+          echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
+          date --utc +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
       - name: Save to cache
         uses: actions/cache/save@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: debian-trixie-x86_64-${{ github.sha }}
+          key: debian-trixie-x86_64-${{ github.sha }}-${{ steps.build.outputs.time }}
+
+      - name: Show ccache statistics
+        run: |
+          ccache --show-stats --verbose
 
       - name: Check build status
         run: |
@@ -514,7 +518,7 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: debian-trixie-${{ matrix.arch_mkxpz }}-${{ github.sha }}
+          key: debian-trixie-${{ matrix.arch_mkxpz }}-
           restore-keys: debian-trixie-${{ matrix.arch_mkxpz }}-
 
       - name: Set up ccache
@@ -534,17 +538,18 @@ jobs:
           cd build
           exit_code=0
           CLICOLOR_FORCE=1 ninja -v || exit_code=$?
-          echo "exit-code=$exit_code" >> "$GITHUB_OUTPUT"
-
-      - name: Show ccache statistics
-        run: |
-          ccache --show-stats --verbose
+          echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
+          date --utc +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
       - name: Save to cache
         uses: actions/cache/save@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: debian-trixie-${{ matrix.arch_mkxpz }}-${{ github.sha }}
+          key: debian-trixie-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
+
+      - name: Show ccache statistics
+        run: |
+          ccache --show-stats --verbose
 
       - name: Check build status
         run: |
@@ -594,7 +599,7 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: macos-${{ matrix.arch_mkxpz }}-${{ github.sha }}
+          key: macos-${{ matrix.arch_mkxpz }}-
           restore-keys: macos-${{ matrix.arch_mkxpz }}-
 
       - name: Set up ccache
@@ -614,17 +619,18 @@ jobs:
           cd build
           exit_code=0
           CLICOLOR_FORCE=1 ninja -v || exit_code=$?
-          echo "exit-code=$exit_code" >> "$GITHUB_OUTPUT"
-
-      - name: Show ccache statistics
-        run: |
-          ccache --show-stats --verbose
+          echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
+          date --utc +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
       - name: Save to cache
         uses: actions/cache/save@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: macos-${{ matrix.arch_mkxpz }}-${{ github.sha }}
+          key: macos-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
+
+      - name: Show ccache statistics
+        run: |
+          ccache --show-stats --verbose
 
       - name: Check build status
         run: |
