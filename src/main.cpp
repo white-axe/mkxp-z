@@ -218,6 +218,22 @@ int main(int argc, char *argv[]) {
 
     SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
 
+    {
+      char *angle_default_platform = getenv("ANGLE_DEFAULT_PLATFORM");
+      if (angle_default_platform == nullptr || angle_default_platform[0] == 0) {
+#ifdef __APPLE__
+        setenv("ANGLE_DEFAULT_PLATFORM", "metal", true);
+#elif !defined(_WIN32)
+        setenv("ANGLE_DEFAULT_PLATFORM", "vulkan", true);
+#endif
+      }
+#ifndef _WIN32
+      else if (strcmp(angle_default_platform, "gl") == 0) {
+        unsetenv("ANGLE_DEFAULT_PLATFORM");
+      }
+#endif
+    }
+
     /* initialize SDL first */
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_TIMER) < 0) {
       showInitError(std::string("Error initializing SDL: ") + SDL_GetError());
