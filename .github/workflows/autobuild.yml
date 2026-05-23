@@ -120,7 +120,7 @@ jobs:
       - name: Configure
         shell: msys2 {0}
         run: |
-          meson setup --buildtype debugoptimized build
+          meson setup --buildtype release build
 
       - name: Build
         id: build
@@ -157,7 +157,7 @@ jobs:
           cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z.exe .
-          #strip mkxp-z.exe
+          strip mkxp-z.exe
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -231,7 +231,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --buildtype debugoptimized build
+          meson setup --buildtype release build
 
       - name: Build
         id: build
@@ -264,7 +264,7 @@ jobs:
           cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z.x86_64 .
-          #strip mkxp-z.x86_64
+          strip mkxp-z.x86_64
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -355,7 +355,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype debugoptimized build
+          meson setup --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release build
 
       - name: Build
         id: build
@@ -388,7 +388,7 @@ jobs:
           cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
-          #find . -type f -name 'mkxp-z.*' | xargs ${{ matrix.arch_gcc }}-strip
+          find . -type f -name 'mkxp-z.*' | xargs ${{ matrix.arch_gcc }}-strip
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -436,7 +436,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --buildtype debugoptimized build
+          meson setup --buildtype release build
 
       - name: Build
         id: build
@@ -469,7 +469,7 @@ jobs:
           cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           cp ../mkxp-z.x86_64 .
-          #strip mkxp-z.x86_64
+          strip mkxp-z.x86_64
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -555,7 +555,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype debugoptimized build
+          meson setup --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release build
 
       - name: Build
         id: build
@@ -588,7 +588,7 @@ jobs:
           cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
-          #find . -type f -name 'mkxp-z.*' | xargs ${{ matrix.arch_gcc }}-strip
+          find . -type f -name 'mkxp-z.*' | xargs ${{ matrix.arch_gcc }}-strip
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
@@ -640,7 +640,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --cross-file macos/meson-${{ matrix.arch_mkxpz }}.txt --buildtype debugoptimized build
+          meson setup --cross-file macos/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release build
 
       - name: Build
         id: build
@@ -673,7 +673,7 @@ jobs:
           cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
           mv ./3.1.0 ./stdlib
           find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
-          #find . -type f -name 'mkxp-z.*' | xargs strip -x
+          find . -type f -name 'mkxp-z.*' | xargs strip -x
           cp ../../mkxp.json .
           cp -r ../../scripts .
           cp ../../assets/LICENSE.mkxp-z-with-https.txt .
