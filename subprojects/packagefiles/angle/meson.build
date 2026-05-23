@@ -69,22 +69,11 @@ if host_machine.system() == 'darwin'
 endif
 if have_opengl
     args += [
+        '-DANGLE_ENABLE_OPENGL',
         '-DANGLE_ENABLE_GL_DESKTOP_BACKEND',
+        '-DANGLE_ENABLE_ESSL',
         '-DANGLE_ENABLE_GLSL',
     ]
-endif
-
-have_opengles = host_machine_is_windows ? meson.get_compiler('cpp').find_library('dxgi', required: get_option('opengles')).found() : get_option('opengles').allowed()
-if host_machine.system() == 'darwin'
-    have_opengles = false
-endif
-if have_opengles
-    args += '-DANGLE_ENABLE_ESSL'
-endif
-
-have_any_opengl = have_opengl or have_opengles
-if have_any_opengl
-    args += '-DANGLE_ENABLE_OPENGL'
 endif
 
 spirv_headers = dependency('SPIRV-Headers', required: get_option('vulkan'))
@@ -118,10 +107,10 @@ if have_webgpu
     args += '-DANGLE_ENABLE_WGPU'
 endif
 
-glx = have_any_opengl and not host_machine_is_windows and host_machine.system() != 'darwin' and host_machine.system() != 'android' ? dependency('glx', required: get_option('x11')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
-x11 = have_any_opengl and not host_machine_is_windows and host_machine.system() != 'darwin' and host_machine.system() != 'android' ? dependency('x11', required: get_option('x11')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
+glx = have_opengl and not host_machine_is_windows and host_machine.system() != 'darwin' and host_machine.system() != 'android' ? dependency('glx', required: get_option('x11')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
+x11 = have_opengl and not host_machine_is_windows and host_machine.system() != 'darwin' and host_machine.system() != 'android' ? dependency('x11', required: get_option('x11')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
 xcb = have_vulkan and not host_machine_is_windows and host_machine.system() != 'darwin' and host_machine.system() != 'android' ? dependency('x11-xcb', required: get_option('x11')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
-have_x11 = get_option('x11').allowed() and (not have_any_opengl or (glx.found() and x11.found())) and (not have_vulkan or xcb.found())
+have_x11 = get_option('x11').allowed() and (not have_opengl or (glx.found() and x11.found())) and (not have_vulkan or xcb.found())
 if have_x11
     args += [
         '-DANGLE_USE_X11',
@@ -400,7 +389,7 @@ angle_translator = static_library(
                 'src/compiler/translator/SymbolTable_autogen.cpp',
             ]
             : [],
-        have_opengles
+        have_opengl
             ? [
                 'src/compiler/translator/glsl/OutputESSL.cpp',
                 'src/compiler/translator/glsl/TranslatorESSL.cpp',
@@ -520,7 +509,7 @@ angle_translator = static_library(
                 'src/compiler/translator/wgsl/WGSLProgramPrelude.cpp',
             ]
             : [],
-        have_any_opengl
+        have_opengl
             ? [
                 'src/compiler/translator/glsl/OutputGLSLBase.cpp',
             ]
@@ -1426,7 +1415,7 @@ angle = library(
         have_direct3d11 ? angle_d3d11_backend : [],
         have_null ? angle_null_backend : [],
         have_metal ? angle_metal_backend : [],
-        have_any_opengl ? angle_gl_backend : [],
+        have_opengl ? angle_gl_backend : [],
         have_vulkan ? angle_vulkan_backend : [],
     ],
     cpp_args: args,
