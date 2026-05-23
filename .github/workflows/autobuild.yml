@@ -129,7 +129,7 @@ jobs:
           exit_code=0
           CLICOLOR_FORCE=1 ninja -v || exit_code=$?
           echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
-          date --utc +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
+          date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
       - name: Save to cache
         uses: actions/cache/save@v5
@@ -237,7 +237,7 @@ jobs:
           exit_code=0
           CLICOLOR_FORCE=1 ninja -v || exit_code=$?
           echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
-          date --utc +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
+          date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
       - name: Save to cache
         uses: actions/cache/save@v5
@@ -351,7 +351,7 @@ jobs:
           exit_code=0
           CLICOLOR_FORCE=1 ninja -v || exit_code=$?
           echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
-          date --utc +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
+          date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
       - name: Save to cache
         uses: actions/cache/save@v5
@@ -430,7 +430,7 @@ jobs:
           exit_code=0
           CLICOLOR_FORCE=1 ninja -v || exit_code=$?
           echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
-          date --utc +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
+          date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
       - name: Save to cache
         uses: actions/cache/save@v5
@@ -539,7 +539,7 @@ jobs:
           exit_code=0
           CLICOLOR_FORCE=1 ninja -v || exit_code=$?
           echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
-          date --utc +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
+          date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
       - name: Save to cache
         uses: actions/cache/save@v5
@@ -620,7 +620,7 @@ jobs:
           exit_code=0
           CLICOLOR_FORCE=1 ninja -v || exit_code=$?
           echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
-          date --utc +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
+          date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
       - name: Save to cache
         uses: actions/cache/save@v5
