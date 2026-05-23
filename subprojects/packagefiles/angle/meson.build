@@ -118,15 +118,16 @@ if have_webgpu
     args += '-DANGLE_ENABLE_WGPU'
 endif
 
+glx = have_any_opengl and not host_machine_is_windows and host_machine.system() != 'darwin' and host_machine.system() != 'android' ? dependency('glx', required: get_option('x11')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
 x11 = have_any_opengl and not host_machine_is_windows and host_machine.system() != 'darwin' and host_machine.system() != 'android' ? dependency('x11', required: get_option('x11')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
 xcb = have_vulkan and not host_machine_is_windows and host_machine.system() != 'darwin' and host_machine.system() != 'android' ? dependency('x11-xcb', required: get_option('x11')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
-have_x11 = get_option('x11').allowed() and (not have_any_opengl or x11.found()) and (not have_vulkan or xcb.found())
+have_x11 = get_option('x11').allowed() and (not have_any_opengl or (glx.found() and x11.found())) and (not have_vulkan or xcb.found())
 if have_x11
     args += [
         '-DANGLE_USE_X11',
         '-DVK_USE_PLATFORM_XCB_KHR',
     ]
-    if x11.found()
+    if glx.found() and x11.found()
         x11 = declare_dependency(
             dependencies: x11,
             link_with: static_library(
@@ -160,6 +161,9 @@ if have_x11
         ]
             args += '-D' + func + '=mkxp_angle_x11_shim_' + func
         endforeach
+    else
+        glx = dependency('', required: false)
+        x11 = dependency('', required: false)
     endif
     if xcb.found()
         xcb = declare_dependency(
@@ -198,6 +202,7 @@ if have_x11
         endforeach
     endif
 else
+    glx = dependency('', required: false)
     x11 = dependency('', required: false)
     xcb = dependency('', required: false)
 endif
@@ -1014,6 +1019,7 @@ angle_gl_backend = static_library(
     'angle_gl_backend',
     include_directories: includes,
     dependencies: [
+        glx,
         volk,
         x11,
         xxhash,
