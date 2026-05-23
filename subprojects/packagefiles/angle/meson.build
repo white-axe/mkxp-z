@@ -67,7 +67,7 @@ if have_opengl
     ]
 endif
 
-have_opengles = get_option('opengles').allowed()
+have_opengles = host_machine_is_windows ? meson.get_compiler('cpp').find_library('dxguid', required: get_option('opengles')).found() : get_option('opengles').allowed()
 if have_opengles
     args += '-DANGLE_ENABLE_ESSL'
 endif
@@ -894,38 +894,6 @@ angle_d3d11_backend = static_library(
     build_by_default: false,
 )
 
-angle_null_backend = static_library(
-    'angle_null_backend',
-    include_directories: includes,
-    dependencies: [
-        xxhash,
-    ],
-    cpp_args: args,
-    sources: [
-        'src/libANGLE/renderer/null/BufferNULL.cpp',
-        'src/libANGLE/renderer/null/CompilerNULL.cpp',
-        'src/libANGLE/renderer/null/ContextNULL.cpp',
-        'src/libANGLE/renderer/null/DeviceNULL.cpp',
-        'src/libANGLE/renderer/null/DisplayNULL.cpp',
-        'src/libANGLE/renderer/null/FenceNVNULL.cpp',
-        'src/libANGLE/renderer/null/FramebufferNULL.cpp',
-        'src/libANGLE/renderer/null/ImageNULL.cpp',
-        'src/libANGLE/renderer/null/ProgramExecutableNULL.cpp',
-        'src/libANGLE/renderer/null/ProgramNULL.cpp',
-        'src/libANGLE/renderer/null/ProgramPipelineNULL.cpp',
-        'src/libANGLE/renderer/null/QueryNULL.cpp',
-        'src/libANGLE/renderer/null/RenderbufferNULL.cpp',
-        'src/libANGLE/renderer/null/SamplerNULL.cpp',
-        'src/libANGLE/renderer/null/ShaderNULL.cpp',
-        'src/libANGLE/renderer/null/SurfaceNULL.cpp',
-        'src/libANGLE/renderer/null/SyncNULL.cpp',
-        'src/libANGLE/renderer/null/TextureNULL.cpp',
-        'src/libANGLE/renderer/null/TransformFeedbackNULL.cpp',
-        'src/libANGLE/renderer/null/VertexArrayNULL.cpp',
-    ],
-    build_by_default: false,
-)
-
 if host_machine.system() != 'darwin'
     angle_metal_backend = []
 else
@@ -998,6 +966,38 @@ else
         build_by_default: false,
     )
 endif
+
+angle_null_backend = static_library(
+    'angle_null_backend',
+    include_directories: includes,
+    dependencies: [
+        xxhash,
+    ],
+    cpp_args: args,
+    sources: [
+        'src/libANGLE/renderer/null/BufferNULL.cpp',
+        'src/libANGLE/renderer/null/CompilerNULL.cpp',
+        'src/libANGLE/renderer/null/ContextNULL.cpp',
+        'src/libANGLE/renderer/null/DeviceNULL.cpp',
+        'src/libANGLE/renderer/null/DisplayNULL.cpp',
+        'src/libANGLE/renderer/null/FenceNVNULL.cpp',
+        'src/libANGLE/renderer/null/FramebufferNULL.cpp',
+        'src/libANGLE/renderer/null/ImageNULL.cpp',
+        'src/libANGLE/renderer/null/ProgramExecutableNULL.cpp',
+        'src/libANGLE/renderer/null/ProgramNULL.cpp',
+        'src/libANGLE/renderer/null/ProgramPipelineNULL.cpp',
+        'src/libANGLE/renderer/null/QueryNULL.cpp',
+        'src/libANGLE/renderer/null/RenderbufferNULL.cpp',
+        'src/libANGLE/renderer/null/SamplerNULL.cpp',
+        'src/libANGLE/renderer/null/ShaderNULL.cpp',
+        'src/libANGLE/renderer/null/SurfaceNULL.cpp',
+        'src/libANGLE/renderer/null/SyncNULL.cpp',
+        'src/libANGLE/renderer/null/TextureNULL.cpp',
+        'src/libANGLE/renderer/null/TransformFeedbackNULL.cpp',
+        'src/libANGLE/renderer/null/VertexArrayNULL.cpp',
+    ],
+    build_by_default: false,
+)
 
 angle_gl_backend = static_library(
     'angle_gl_backend',
