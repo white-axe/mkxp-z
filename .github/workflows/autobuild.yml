@@ -102,7 +102,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Restore from cache
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/ccache
           key: windows-x86_64-${{ github.sha }}
@@ -121,15 +121,29 @@ jobs:
           meson setup --buildtype debugoptimized build
 
       - name: Build
+        id: build
         shell: msys2 {0}
         run: |
           cd build
-          CLICOLOR_FORCE=1 ninja -v
+          exit_code=0
+          CLICOLOR_FORCE=1 ninja -v || exit_code=$?
+          echo "exit-code=$exit_code" >> "$GITHUB_OUTPUT"
 
       - name: Show ccache statistics
         shell: msys2 {0}
         run: |
           ccache --show-stats --verbose
+
+      - name: Save to cache
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ runner.temp }}/ccache
+          key: windows-x86_64-${{ github.sha }}
+
+      - name: Check build status
+        shell: msys2 {0}
+        run: |
+          exit ${{ steps.build.outputs.exit-code }}
 
       - name: Prepare archive
         shell: msys2 {0}
@@ -197,7 +211,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Restore from cache
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/ccache
           key: ubuntu-jammy-x86_64-${{ github.sha }}
@@ -214,13 +228,26 @@ jobs:
           meson setup --buildtype debugoptimized build
 
       - name: Build
+        id: build
         run: |
           cd build
-          CLICOLOR_FORCE=1 ninja -v
+          exit_code=0
+          CLICOLOR_FORCE=1 ninja -v || exit_code=$?
+          echo "exit-code=$exit_code" >> "$GITHUB_OUTPUT"
 
       - name: Show ccache statistics
         run: |
           ccache --show-stats --verbose
+
+      - name: Save to cache
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ runner.temp }}/ccache
+          key: ubuntu-jammy-x86_64-${{ github.sha }}
+
+      - name: Check build status
+        run: |
+          exit ${{ steps.build.outputs.exit-code }}
 
       - name: Prepare archive
         run: |
@@ -296,7 +323,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Restore from cache
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/ccache
           key: ubuntu-jammy-${{ matrix.arch_mkxpz }}-${{ github.sha }}
@@ -313,13 +340,26 @@ jobs:
           meson setup --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype debugoptimized build
 
       - name: Build
+        id: build
         run: |
           cd build
-          CLICOLOR_FORCE=1 ninja -v
+          exit_code=0
+          CLICOLOR_FORCE=1 ninja -v || exit_code=$?
+          echo "exit-code=$exit_code" >> "$GITHUB_OUTPUT"
 
       - name: Show ccache statistics
         run: |
           ccache --show-stats --verbose
+
+      - name: Save to cache
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ runner.temp }}/ccache
+          key: ubuntu-jammy-${{ matrix.arch_mkxpz }}-${{ github.sha }}
+
+      - name: Check build status
+        run: |
+          exit ${{ steps.build.outputs.exit-code }}
 
       - name: Prepare archive
         run: |
@@ -360,7 +400,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Restore from cache
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/ccache
           key: debian-trixie-x86_64-${{ github.sha }}
@@ -377,13 +417,26 @@ jobs:
           meson setup --buildtype debugoptimized build
 
       - name: Build
+        id: build
         run: |
           cd build
-          CLICOLOR_FORCE=1 ninja -v
+          exit_code=0
+          CLICOLOR_FORCE=1 ninja -v || exit_code=$?
+          echo "exit-code=$exit_code" >> "$GITHUB_OUTPUT"
 
       - name: Show ccache statistics
         run: |
           ccache --show-stats --verbose
+
+      - name: Save to cache
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ runner.temp }}/ccache
+          key: debian-trixie-x86_64-${{ github.sha }}
+
+      - name: Check build status
+        run: |
+          exit ${{ steps.build.outputs.exit-code }}
 
       - name: Prepare archive
         run: |
@@ -454,7 +507,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Restore from cache
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/ccache
           key: debian-trixie-${{ matrix.arch_mkxpz }}-${{ github.sha }}
@@ -471,13 +524,26 @@ jobs:
           meson setup --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype debugoptimized build
 
       - name: Build
+        id: build
         run: |
           cd build
-          CLICOLOR_FORCE=1 ninja -v
+          exit_code=0
+          CLICOLOR_FORCE=1 ninja -v || exit_code=$?
+          echo "exit-code=$exit_code" >> "$GITHUB_OUTPUT"
 
       - name: Show ccache statistics
         run: |
           ccache --show-stats --verbose
+
+      - name: Save to cache
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ runner.temp }}/ccache
+          key: debian-trixie-${{ matrix.arch_mkxpz }}-${{ github.sha }}
+
+      - name: Check build status
+        run: |
+          exit ${{ steps.build.outputs.exit-code }}
 
       - name: Prepare archive
         run: |
@@ -520,7 +586,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Restore from cache
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/ccache
           key: macos-${{ matrix.arch_mkxpz }}-${{ github.sha }}
@@ -537,13 +603,26 @@ jobs:
           meson setup --cross-file macos/meson-${{ matrix.arch_mkxpz }}.txt --buildtype debugoptimized build
 
       - name: Build
+        id: build
         run: |
           cd build
-          CLICOLOR_FORCE=1 ninja -v
+          exit_code=0
+          CLICOLOR_FORCE=1 ninja -v || exit_code=$?
+          echo "exit-code=$exit_code" >> "$GITHUB_OUTPUT"
 
       - name: Show ccache statistics
         run: |
           ccache --show-stats --verbose
+
+      - name: Save to cache
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ runner.temp }}/ccache
+          key: macos-${{ matrix.arch_mkxpz }}-${{ github.sha }}
+
+      - name: Check build status
+        run: |
+          exit ${{ steps.build.outputs.exit-code }}
 
       - name: Prepare archive
         run: |
