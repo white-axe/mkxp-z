@@ -64,6 +64,9 @@ if have_null
 endif
 
 have_opengl = host_machine_is_windows ? meson.get_compiler('cpp').find_library('dxgi', required: get_option('opengl')).found() : get_option('opengl').allowed()
+if host_machine.system() == 'darwin'
+    have_opengl = false
+endif
 if have_opengl
     args += [
         '-DANGLE_ENABLE_GL_DESKTOP_BACKEND',
@@ -72,6 +75,9 @@ if have_opengl
 endif
 
 have_opengles = host_machine_is_windows ? meson.get_compiler('cpp').find_library('dxgi', required: get_option('opengles')).found() : get_option('opengles').allowed()
+if host_machine.system() == 'darwin'
+    have_opengles = false
+endif
 if have_opengles
     args += '-DANGLE_ENABLE_ESSL'
 endif
