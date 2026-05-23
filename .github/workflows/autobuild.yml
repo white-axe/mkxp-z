@@ -102,6 +102,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Restore from cache
+        if: true
         uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/ccache
@@ -113,7 +114,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
-          ccache --set-config=max_size=512MiB
+          ccache --set-config=max_size=1536MiB
           ccache --zero-stats
 
       - name: Configure
@@ -132,6 +133,7 @@ jobs:
           date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
       - name: Save to cache
+        if: true
         uses: actions/cache/save@v5
         with:
           path: ${{ runner.temp }}/ccache
@@ -213,6 +215,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Restore from cache
+        if: true
         uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/ccache
@@ -223,7 +226,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
-          ccache --set-config=max_size=512MiB
+          ccache --set-config=max_size=1536MiB
           ccache --zero-stats
 
       - name: Configure
@@ -240,6 +243,7 @@ jobs:
           date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
       - name: Save to cache
+        if: true
         uses: actions/cache/save@v5
         with:
           path: ${{ runner.temp }}/ccache
@@ -280,27 +284,35 @@ jobs:
           - arch_mkxpz: armv6
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
+            cache: false
           - arch_mkxpz: armv7
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
+            cache: false
           - arch_mkxpz: armv7-neon
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
+            cache: false
           - arch_mkxpz: arm64
             arch_debian: arm64
             arch_gcc: aarch64-linux-gnu
+            cache: true
           - arch_mkxpz: power8le
             arch_debian: ppc64el
             arch_gcc: powerpc64le-linux-gnu
+            cache: false
           - arch_mkxpz: power9le
             arch_debian: ppc64el
             arch_gcc: powerpc64le-linux-gnu
+            cache: false
           - arch_mkxpz: s390x
             arch_debian: s390x
             arch_gcc: s390x-linux-gnu
+            cache: false
           - arch_mkxpz: riscv64
             arch_debian: riscv64
             arch_gcc: riscv64-linux-gnu
+            cache: false
     steps:
       - uses: benjlevesque/short-sha@v2.2
         id: short-sha
@@ -327,6 +339,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Restore from cache
+        if: ${{ matrix.cache }}
         uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/ccache
@@ -337,7 +350,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
-          ccache --set-config=max_size=512MiB
+          ccache --set-config=max_size=1536MiB
           ccache --zero-stats
 
       - name: Configure
@@ -354,6 +367,7 @@ jobs:
           date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
       - name: Save to cache
+        if: ${{ matrix.cache }}
         uses: actions/cache/save@v5
         with:
           path: ${{ runner.temp }}/ccache
@@ -406,6 +420,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Restore from cache
+        if: false
         uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/ccache
@@ -416,7 +431,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
-          ccache --set-config=max_size=512MiB
+          ccache --set-config=max_size=1536MiB
           ccache --zero-stats
 
       - name: Configure
@@ -433,6 +448,7 @@ jobs:
           date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
       - name: Save to cache
+        if: false
         uses: actions/cache/save@v5
         with:
           path: ${{ runner.temp }}/ccache
@@ -477,27 +493,35 @@ jobs:
           - arch_mkxpz: armv6
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
+            cache: false
           - arch_mkxpz: armv7
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
+            cache: false
           - arch_mkxpz: armv7-neon
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
+            cache: false
           - arch_mkxpz: arm64
             arch_debian: arm64
             arch_gcc: aarch64-linux-gnu
+            cache: false
           - arch_mkxpz: power8le
             arch_debian: ppc64el
             arch_gcc: powerpc64le-linux-gnu
+            cache: false
           - arch_mkxpz: power9le
             arch_debian: ppc64el
             arch_gcc: powerpc64le-linux-gnu
+            cache: false
           - arch_mkxpz: s390x
             arch_debian: s390x
             arch_gcc: s390x-linux-gnu
+            cache: false
           - arch_mkxpz: riscv64
             arch_debian: riscv64
             arch_gcc: riscv64-linux-gnu
+            cache: false
     steps:
       - uses: benjlevesque/short-sha@v2.2
         id: short-sha
@@ -515,6 +539,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Restore from cache
+        if: ${{ matrix.cache }}
         uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/ccache
@@ -525,7 +550,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
-          ccache --set-config=max_size=512MiB
+          ccache --set-config=max_size=1536MiB
           ccache --zero-stats
 
       - name: Configure
@@ -542,6 +567,7 @@ jobs:
           date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
       - name: Save to cache
+        if: ${{ matrix.cache }}
         uses: actions/cache/save@v5
         with:
           path: ${{ runner.temp }}/ccache
@@ -580,7 +606,9 @@ jobs:
       matrix:
         include:
           - arch_mkxpz: arm64
+            cache: true
           - arch_mkxpz: x86_64
+            cache: true
     steps:
       - uses: benjlevesque/short-sha@v2.2
         id: short-sha
@@ -596,6 +624,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Restore from cache
+        if: ${{ matrix.cache }}
         uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/ccache
@@ -606,7 +635,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
-          ccache --set-config=max_size=512MiB
+          ccache --set-config=max_size=1536MiB
           ccache --zero-stats
 
       - name: Configure
@@ -623,6 +652,7 @@ jobs:
           date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
       - name: Save to cache
+        if: ${{ matrix.cache }}
         uses: actions/cache/save@v5
         with:
           path: ${{ runner.temp }}/ccache
