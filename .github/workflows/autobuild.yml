@@ -105,7 +105,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: win
+          key: windows-x86_64-${{ github.sha }}
+          restore-keys: windows-x86_64-
 
       - name: Set up ccache
         shell: msys2 {0}
@@ -199,7 +200,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: lin-x86_64
+          key: ubuntu-jammy-x86_64-${{ github.sha }}
+          restore-keys: ubuntu-jammy-x86_64-
 
       - name: Set up ccache
         run: |
@@ -297,7 +299,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: lin-${{ matrix.arch_mkxpz }}
+          key: ubuntu-jammy-${{ matrix.arch_mkxpz }}-${{ github.sha }}
+          restore-keys: ubuntu-jammy-${{ matrix.arch_mkxpz }}-
 
       - name: Set up ccache
         run: |
@@ -360,7 +363,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: lin-debian-trixie-x86_64
+          key: debian-trixie-x86_64-${{ github.sha }}
+          restore-keys: debian-trixie-x86_64-
 
       - name: Set up ccache
         run: |
@@ -453,7 +457,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: lin-debian-trixie-${{ matrix.arch_mkxpz }}
+          key: debian-trixie-${{ matrix.arch_mkxpz }}-${{ github.sha }}
+          restore-keys: debian-trixie-${{ matrix.arch_mkxpz }}-
 
       - name: Set up ccache
         run: |
@@ -518,7 +523,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: mac-${{ matrix.arch_mkxpz }}
+          key: macos-${{ matrix.arch_mkxpz }}-${{ github.sha }}
+          restore-keys: macos-${{ matrix.arch_mkxpz }}-
 
       - name: Set up ccache
         run: |
