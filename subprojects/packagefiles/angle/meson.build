@@ -38,10 +38,14 @@ else
     delayimp = dependency('', required: false)
 endif
 
+dxgi = host_machine_is_windows ? meson.get_compiler('cpp').find_library('dxgi', required: get_option('direct3d11')) : dependency('', required: false)
 dxguid = host_machine_is_windows ? meson.get_compiler('cpp').find_library('dxguid', required: get_option('direct3d11')) : dependency('', required: false)
-have_direct3d11 = dxguid.found()
+have_direct3d11 = dxgi.found() and dxguid.found()
 if have_direct3d11
     args += '-DANGLE_ENABLE_D3D11'
+else
+    dxgi = dependency('', required: false)
+    dxguid = dependency('', required: false)
 endif
 
 have_any_direct3d = have_direct3d9 or have_direct3d11
@@ -59,7 +63,7 @@ if have_null
     args += '-DANGLE_ENABLE_NULL'
 endif
 
-have_opengl = host_machine_is_windows ? meson.get_compiler('cpp').find_library('dxguid', required: get_option('opengl')).found() : get_option('opengl').allowed()
+have_opengl = host_machine_is_windows ? meson.get_compiler('cpp').find_library('dxgi', required: get_option('opengl')).found() : get_option('opengl').allowed()
 if have_opengl
     args += [
         '-DANGLE_ENABLE_GL_DESKTOP_BACKEND',
@@ -67,7 +71,7 @@ if have_opengl
     ]
 endif
 
-have_opengles = host_machine_is_windows ? meson.get_compiler('cpp').find_library('dxguid', required: get_option('opengles')).found() : get_option('opengles').allowed()
+have_opengles = host_machine_is_windows ? meson.get_compiler('cpp').find_library('dxgi', required: get_option('opengles')).found() : get_option('opengles').allowed()
 if have_opengles
     args += '-DANGLE_ENABLE_ESSL'
 endif
@@ -835,6 +839,7 @@ angle_d3d11_backend = static_library(
     'angle_d3d11_backend',
     include_directories: includes,
     dependencies: [
+        dxgi,
         dxguid,
         xxhash,
     ],
