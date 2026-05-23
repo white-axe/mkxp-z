@@ -1,67 +1,25 @@
 # Changes the build system to determine the shared object names using a hardcoded table instead of using the compiler.
 # That way, these shared objects can be linked against even if they don't exist on the build machine.
 
---- /dev/null
-+++ b/find-dylib-name-hardcoded.py
-@@ -0,0 +1,44 @@
-+import sys
-+
-+def main():
-+    name = sys.argv[1]
-+    host_system = sys.argv[2]
-+    match (name, host_system):
-+        case ('asound', 'linux'):
-+            return 'libasound.so.2'
-+        case ('decor-0', 'linux'):
-+            return 'libdecor-0.so.0'
-+        case ('jack', 'linux'):
-+            return 'libjack.so.0'
-+        case ('pipewire-0.3', 'linux'):
-+            return 'libpipewire-0.3.so.0'
-+        case ('pulse-simple', 'linux'):
-+            return 'libpulse-simple.so.0'
-+        case ('usb-1.0', 'linux'):
-+            return 'libusb-1.0.so.0'
-+        case ('wayland-client', 'linux'):
-+            return 'libwayland-client.so.0'
-+        case ('wayland-cursor', 'linux'):
-+            return 'libwayland-cursor.so.0'
-+        case ('wayland-egl', 'linux'):
-+            return 'libwayland-egl.so.1'
-+        case ('X11', 'linux'):
-+            return 'libX11.so.6'
-+        case ('Xcursor', 'linux'):
-+            return 'libXcursor.so.1'
-+        case ('Xext', 'linux'):
-+            return 'libXext.so.6'
-+        case ('Xfixes', 'linux'):
-+            return 'libXfixes.so.3'
-+        case ('Xi', 'linux'):
-+            return 'libXi.so.6'
-+        case ('xkbcommon', 'linux'):
-+            return 'libxkbcommon.so.0'
-+        case ('Xrandr', 'linux'):
-+            return 'libXrandr.so.2'
-+        case ('udev', 'linux'):
-+            return 'libudev.so.1'
-+        case _:
-+            raise 'Unknown library ' + name + ' for ' + host_system
-+
-+print(main())
 --- a/meson.build
 +++ b/meson.build
-@@ -316,12 +316,12 @@ dlopen_table = [
+@@ -316,15 +316,15 @@ dlopen_table = [
  ]
  
  if get_option('prefer_dlopen')
 -    find_dylib_name = find_program('./find-dylib-name.py', required : true)
-+    python = import('python').find_installation(required: true)
++
  
      foreach dep_entry : dlopen_table
          dep = get_variable(dep_entry['dep_var'])
          if dep.found()
 -            r = run_command(find_dylib_name, dep_entry['lib'], cc.cmd_array(), check: false)
-+            r = run_command(python, files('find-dylib-name-hardcoded.py')[0], dep_entry['lib'], host_machine.system(), check: true)
++            lib = 'lib' + dep_entry['lib'] + '.so'
++
++            if true
  
-             if r.returncode() == 0
-                 lib = r.stdout().strip()
+-            if r.returncode() == 0
+-                lib = r.stdout().strip()
+                 cdata.set_quoted(dep_entry['conf_var'], lib)
+                 set_variable(dep_entry['dep_var'], dep.partial_dependency(
+                     compile_args : true, includes : true, sources : true
