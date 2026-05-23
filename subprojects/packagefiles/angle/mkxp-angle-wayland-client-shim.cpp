@@ -1,5 +1,5 @@
 #include <dlfcn.h>
-#include <wayland-client.h>
+#include <wayland-client-core.h>
 
 static struct wl_display *(*_wl_display_connect)(const char *name) = nullptr;
 static void (*_wl_display_disconnect)(struct wl_display *display) = nullptr;
