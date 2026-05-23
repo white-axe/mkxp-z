@@ -36,7 +36,6 @@ struct Config {
     
     bool debugMode;
     bool winConsole;
-    bool preferMetalRenderer;
     bool displayFPS;
     bool printFPS;
     
