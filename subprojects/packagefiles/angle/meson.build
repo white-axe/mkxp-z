@@ -38,7 +38,7 @@ else
     delayimp = dependency('', required: false)
 endif
 
-dxguid = host_machine_is_windows ? meson.get_compiler('cpp').find_library('dxguid.lib', required: get_option('direct3d11')) : dependency('', required: false)
+dxguid = host_machine_is_windows ? meson.get_compiler('cpp').find_library('dxguid', required: get_option('direct3d11')) : dependency('', required: false)
 have_direct3d11 = dxguid.found()
 if have_direct3d11
     args += '-DANGLE_ENABLE_D3D11'
@@ -59,7 +59,7 @@ if have_null
     args += '-DANGLE_ENABLE_NULL'
 endif
 
-have_opengl = get_option('opengl').allowed()
+have_opengl = host_machine_is_windows ? meson.get_compiler('cpp').find_library('dxguid', required: get_option('opengl')).found() : get_option('opengl').allowed()
 if have_opengl
     args += [
         '-DANGLE_ENABLE_GL_DESKTOP_BACKEND',
@@ -734,18 +734,23 @@ angle_dma_buf = host_machine_is_windows or host_machine.system() == 'darwin' ? [
     build_by_default: false,
 )
 
-angle_d3d_format_tables = static_library(
-    'angle_d3d_format_tables',
+angle_d3d9_format_tables = static_library(
+    'angle_d3d9_format_tables',
+    include_directories: includes,
+    cpp_args: args,
+    sources: [
+        'src/libANGLE/renderer/d3d_format.cpp',
+    ],
+    build_by_default: false,
+)
+
+angle_d3d11_format_tables = static_library(
+    'angle_d3d11_format_tables',
     include_directories: includes,
     cpp_args: args,
     sources: [
         'src/libANGLE/renderer/dxgi_format_map_autogen.cpp',
         'src/libANGLE/renderer/dxgi_support_table_autogen.cpp',
-        true
-            ? [
-                'src/libANGLE/renderer/d3d_format.cpp',
-            ]
-            : [],
     ],
     build_by_default: false,
 )
@@ -755,9 +760,6 @@ angle_d3d_shared = static_library(
     include_directories: includes,
     dependencies: [
         xxhash,
-    ],
-    link_with: [
-        angle_d3d_format_tables,
     ],
     cpp_args: args,
     sources: [
@@ -800,6 +802,7 @@ angle_d3d9_backend = static_library(
     ],
     link_with: [
         angle_d3d_shared,
+        angle_d3d9_format_tables,
     ],
     cpp_args: args,
     sources: [
@@ -837,6 +840,7 @@ angle_d3d11_backend = static_library(
     ],
     link_with: [
         angle_d3d_shared,
+        angle_d3d11_format_tables,
     ],
     cpp_args: args + [
         '-DANGLE_ENABLE_D3D11_COMPOSITOR_NATIVE_WINDOW',
@@ -1004,7 +1008,7 @@ angle_gl_backend = static_library(
         xxhash,
     ],
     link_with: [
-        angle_d3d_format_tables,
+        angle_d3d11_format_tables,
         angle_dma_buf,
     ],
     cpp_args: args,
