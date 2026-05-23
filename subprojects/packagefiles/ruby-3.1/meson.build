@@ -259,12 +259,12 @@ ruby = declare_dependency(
         meson.project_build_root() / 'build' / 'libruby-static.a',
         host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
             ? [
-                '-lshell32',
-                '-lws2_32',
-                '-liphlpapi',
-                '-limagehlp',
-                '-lshlwapi',
-                '-lbcrypt',
+                meson.get_compiler('c').find_library('shell32', required: true),
+                meson.get_compiler('c').find_library('ws2_32', required: true),
+                meson.get_compiler('c').find_library('iphlpapi', required: true),
+                meson.get_compiler('c').find_library('imagehlp', required: true),
+                meson.get_compiler('c').find_library('shlwapi', required: true),
+                meson.get_compiler('c').find_library('bcrypt', required: true),
             ]
             : [],
     ],
