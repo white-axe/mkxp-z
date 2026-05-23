@@ -738,7 +738,7 @@ angle_dma_buf = host_machine_is_windows or host_machine.system() == 'darwin' ? [
     build_by_default: false,
 )
 
-angle_d3d9_format_tables = not host_machine_is_windows ? [] : static_library(
+angle_d3d9_format_tables = static_library(
     'angle_d3d9_format_tables',
     include_directories: includes,
     cpp_args: args,
@@ -748,7 +748,7 @@ angle_d3d9_format_tables = not host_machine_is_windows ? [] : static_library(
     build_by_default: false,
 )
 
-angle_d3d11_format_tables = not host_machine_is_windows ? [] : static_library(
+angle_d3d11_format_tables = static_library(
     'angle_d3d11_format_tables',
     include_directories: includes,
     cpp_args: args,
@@ -1013,7 +1013,7 @@ angle_gl_backend = static_library(
         xxhash,
     ],
     link_with: [
-        angle_d3d11_format_tables,
+        host_machine_is_windows ? angle_d3d11_format_tables : [],
         angle_dma_buf,
     ],
     cpp_args: args,
