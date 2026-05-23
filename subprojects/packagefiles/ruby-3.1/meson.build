@@ -202,6 +202,16 @@ ruby = declare_dependency(
         ).dependency('ruby-static').partial_dependency(
             sources: true,
         ),
+        host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
+            ? [
+                meson.get_compiler('c').find_library('shell32', required: true),
+                meson.get_compiler('c').find_library('ws2_32', required: true),
+                meson.get_compiler('c').find_library('iphlpapi', required: true),
+                meson.get_compiler('c').find_library('imagehlp', required: true),
+                meson.get_compiler('c').find_library('shlwapi', required: true),
+                meson.get_compiler('c').find_library('bcrypt', required: true),
+            ]
+            : [],
     ],
     compile_args: [
         '-I' + meson.project_build_root() / 'dist' / 'include',
@@ -257,16 +267,6 @@ ruby = declare_dependency(
         meson.project_build_root() / 'build' / 'enc' / 'libenc.a',
         meson.project_build_root() / 'build' / 'enc' / 'libtrans.a',
         meson.project_build_root() / 'build' / 'libruby-static.a',
-        host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
-            ? [
-                meson.get_compiler('c').find_library('shell32', required: true),
-                meson.get_compiler('c').find_library('ws2_32', required: true),
-                meson.get_compiler('c').find_library('iphlpapi', required: true),
-                meson.get_compiler('c').find_library('imagehlp', required: true),
-                meson.get_compiler('c').find_library('shlwapi', required: true),
-                meson.get_compiler('c').find_library('bcrypt', required: true),
-            ]
-            : [],
     ],
 )
 
