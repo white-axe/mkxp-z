@@ -120,7 +120,7 @@ jobs:
       - name: Configure
         shell: msys2 {0}
         run: |
-          meson setup --buildtype release build
+          meson setup --buildtype release -Db_lto=true build
 
       - name: Build
         id: build
@@ -231,7 +231,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --buildtype release build
+          meson setup --buildtype release -Db_lto=true build
 
       - name: Build
         id: build
@@ -355,7 +355,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release build
+          meson setup --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Db_lto=true build
 
       - name: Build
         id: build
@@ -436,7 +436,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --buildtype release build
+          meson setup --buildtype release -Db_lto=true build
 
       - name: Build
         id: build
@@ -555,7 +555,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release build
+          meson setup --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Db_lto=true build
 
       - name: Build
         id: build
@@ -640,7 +640,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --cross-file macos/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release build
+          meson setup --cross-file macos/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Db_lto=true build
 
       - name: Build
         id: build
