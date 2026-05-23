@@ -113,6 +113,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
+          ccache --set-config=max_size=512MiB
           ccache --zero-stats
 
       - name: Configure
@@ -221,6 +222,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
+          ccache --set-config=max_size=512MiB
           ccache --zero-stats
 
       - name: Configure
@@ -333,6 +335,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
+          ccache --set-config=max_size=512MiB
           ccache --zero-stats
 
       - name: Configure
@@ -410,6 +413,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
+          ccache --set-config=max_size=512MiB
           ccache --zero-stats
 
       - name: Configure
@@ -517,6 +521,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
+          ccache --set-config=max_size=512MiB
           ccache --zero-stats
 
       - name: Configure
@@ -596,6 +601,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
+          ccache --set-config=max_size=512MiB
           ccache --zero-stats
 
       - name: Configure
