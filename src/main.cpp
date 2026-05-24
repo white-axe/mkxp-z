@@ -73,6 +73,10 @@ __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 #endif
 #endif
 
+#if !defined(__APPLE__) && !defined(_WIN32)
+#  include <dlfcn.h>
+#endif
+
 #ifndef MKXPZ_INIT_GL_LATER
 #define GLINIT_SHOWERROR(s) showInitError(s)
 #else
@@ -217,6 +221,28 @@ int main(int argc, char *argv[]) {
     SDL_SetHint(SDL_HINT_VIDEO_X11_FORCE_EGL, "1");
 
     SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
+
+#if !defined(__APPLE__) && !defined(_WIN32)
+    /* Select SDL's Wayland video driver if SDL_VIDEODRIVER is unset and Wayland support is available on the user's machine */
+    {
+      char *sdl_videodriver = getenv("SDL_VIDEODRIVER");
+      if (sdl_videodriver == nullptr || sdl_videodriver[0] == 0) {
+        void *wayland_client = dlopen("libwayland-client.so", RTLD_LAZY);
+        if (wayland_client != nullptr) {
+          void *(*const _wl_display_connect)(const char *name) = reinterpret_cast<void *(*)(const char *name)>(dlsym(wayland_client, "wl_display_connect"));
+          void (*const _wl_display_disconnect)(void *display) = reinterpret_cast<void (*)(void *display)>(dlsym(wayland_client, "wl_display_disconnect"));
+          if (_wl_display_connect != nullptr && _wl_display_disconnect != nullptr) {
+            void *display = _wl_display_connect(nullptr);
+            if (display != nullptr) {
+              _wl_display_disconnect(display);
+              setenv("SDL_VIDEODRIVER", "wayland", true);
+            }
+          }
+          dlclose(wayland_client);
+        }
+      }
+    }
+#endif
 
     {
       char *angle_default_platform = getenv("ANGLE_DEFAULT_PLATFORM");
