@@ -102,11 +102,6 @@ else
     vulkan_memory_allocator = dependency('', required: false)
 endif
 
-have_webgpu = get_option('webgpu').allowed()
-if have_webgpu
-    args += '-DANGLE_ENABLE_WGPU'
-endif
-
 glx = have_opengl and not host_machine_is_windows and host_machine.system() != 'darwin' and host_machine.system() != 'android' ? dependency('glx', required: get_option('x11')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
 x11 = have_opengl and not host_machine_is_windows and host_machine.system() != 'darwin' and host_machine.system() != 'android' ? dependency('x11', required: get_option('x11')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
 xcb = have_vulkan and not host_machine_is_windows and host_machine.system() != 'darwin' and host_machine.system() != 'android' ? dependency('x11-xcb', required: get_option('x11')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
@@ -494,19 +489,6 @@ angle_translator = static_library(
                 'src/compiler/translator/tree_ops/msl/SeparateCompoundExpressions.cpp',
                 'src/compiler/translator/tree_ops/msl/TransposeRowMajorMatrices.cpp',
                 'src/compiler/translator/tree_ops/msl/WrapMain.cpp',
-            ]
-            : [],
-        have_webgpu
-            ? [
-                'src/compiler/translator/tree_ops/wgsl/EmulateMutableFunctionParams.cpp',
-                'src/compiler/translator/tree_ops/wgsl/PullExpressionsIntoFunctions.cpp',
-                'src/compiler/translator/tree_ops/wgsl/RewriteMixedTypeMathExprs.cpp',
-                'src/compiler/translator/tree_ops/wgsl/RewriteMultielementSwizzleAssignment.cpp',
-                'src/compiler/translator/wgsl/OutputUniformBlocks.cpp',
-                'src/compiler/translator/wgsl/RewritePipelineVariables.cpp',
-                'src/compiler/translator/wgsl/TranslatorWGSL.cpp',
-                'src/compiler/translator/wgsl/Utils.cpp',
-                'src/compiler/translator/wgsl/WGSLProgramPrelude.cpp',
             ]
             : [],
         have_opengl
