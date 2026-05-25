@@ -781,7 +781,7 @@ static void mkxp_thread_stop_waiting(rb_thread_t *th) {
  *   - If it returns 0, the original function is done running and you may proceed as usual.
  *   - If it returns 1, the original function is not done running. To continue running it, you need to call the original function again with the same arguments and then call `mkxp_sandbox_yield()` again.
  *   - If it returns 2, the original function is not done running. To continue running it, you need to wait until the next video frame and then call `mkxp_sandbox_yield()` again without calling the original function.
- * The return value 2 is only used to handle the edge case where all of the VM threads are sleeping at the same time, so if you can make sure that doesn't happen, you can safely assume the return value will not be 2.
+ * The return value 2 is only used to handle the edge case where all of the VM threads are sleeping at the same time or if `SANDBOX_YIELD` is used from outside of the root fiber of the main thread, so if you can make sure that doesn't happen, you can safely assume the return value will not be 2.
  * Note: This function must be called from the root fiber of the main thread. */
 MKXP_SANDBOX_API __attribute__((noinline)) uint8_t mkxp_sandbox_yield(void) {
     static bool unwound;
@@ -798,20 +798,25 @@ MKXP_SANDBOX_API __attribute__((noinline)) uint8_t mkxp_sandbox_yield(void) {
     unwound = false;
 
     while (1) {
-        if (!unwound) {
-            unwound = true;
-        } else if (mkxp_sandbox_fiber_entry_point != NULL) {
-            mkxp_sandbox_fiber_entry_point(mkxp_sandbox_fiber_arg0, mkxp_sandbox_fiber_arg1);
-        }
 #ifdef MKXPZ_RUBY_HAVE_USER_THREADS
-        else if (mkxp_sandbox_thread != NULL) {
-            void mkxp_thread_entry_point(rb_thread_t *);
-            mkxp_thread_entry_point(mkxp_sandbox_thread);
-        }
+        if (!all_threads_sleeping)
 #endif /* MKXPZ_RUBY_HAVE_USER_THREADS */
-        else {
-            return 1;
+        {
+            if (mkxp_sandbox_fiber_entry_point != NULL) {
+                mkxp_sandbox_fiber_entry_point(mkxp_sandbox_fiber_arg0, mkxp_sandbox_fiber_arg1);
+            }
+#ifdef MKXPZ_RUBY_HAVE_USER_THREADS
+            else if (mkxp_sandbox_thread != NULL) {
+                void mkxp_thread_entry_point(rb_thread_t *);
+                mkxp_thread_entry_point(mkxp_sandbox_thread);
+            }
+#endif /* MKXPZ_RUBY_HAVE_USER_THREADS */
+            else if (unwound) {
+                return 1;
+            }
         }
+
+        unwound = true;
 
 #ifdef MKXPZ_RUBY_HAVE_USER_THREADS
         if (all_threads_sleeping) {
@@ -821,7 +826,16 @@ MKXP_SANDBOX_API __attribute__((noinline)) uint8_t mkxp_sandbox_yield(void) {
 #endif /* MKXPZ_RUBY_HAVE_USER_THREADS */
         {
             if (rb_asyncify_unwind_buf == NULL) {
-                return 0;
+                return (
+                    (
+                        mkxp_sandbox_fiber_entry_point != NULL
+#ifdef MKXPZ_RUBY_HAVE_USER_THREADS
+                            || mkxp_sandbox_thread != NULL
+#endif /* MKXPZ_RUBY_HAVE_USER_THREADS */
+                    )
+                        ? 2
+                        : 0
+                );
             }
 
             asyncify_stop_unwind();

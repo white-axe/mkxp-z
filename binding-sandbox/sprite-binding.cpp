@@ -120,6 +120,7 @@ SANDBOX_DEF_GFX_PROP_B(Sprite, Invert, invert);
 SANDBOX_DEF_GFX_PROP_I(Sprite, WaveAmp, wave_amp);
 SANDBOX_DEF_GFX_PROP_I(Sprite, WaveLength, wave_length);
 SANDBOX_DEF_GFX_PROP_I(Sprite, WaveSpeed, wave_speed);
+SANDBOX_DEF_GFX_PROP_F(Sprite, WavePhase, wave_phase);
 
 void sprite_binding_init::operator()() {
     BOOST_ASIO_CORO_REENTER (this) {
@@ -165,5 +166,6 @@ void sprite_binding_init::operator()() {
         SANDBOX_INIT_PROP_BIND(sprite_class, wave_amp);
         SANDBOX_INIT_PROP_BIND(sprite_class, wave_length);
         SANDBOX_INIT_PROP_BIND(sprite_class, wave_speed);
+        SANDBOX_INIT_PROP_BIND(sprite_class, wave_phase);
     }
 }

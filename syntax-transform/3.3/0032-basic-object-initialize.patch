@@ -16,7 +16,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
-#
+
 # In Ruby 1.9.2 specifically (not in earlier or later versions),
 # `BasicObject#initialize` takes an unlimited number of arguments instead of
 # zero arguments. So this code throws an error in Ruby versions other than 1.9.2
