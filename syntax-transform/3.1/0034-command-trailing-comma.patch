@@ -43,7 +43,8 @@
 #
 # It is also not allowed to have more than one trailing comma in those three
 # versions of Ruby. Only zero or one trailing commas are permitted. Also, there
-# must be at least argument in the command for trailing commas to be permitted.
+# must be at least one argument in the command for trailing commas to be
+# permitted.
 
 --- a/parse.y
 +++ b/parse.y
