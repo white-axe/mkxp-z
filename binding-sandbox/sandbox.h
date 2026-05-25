@@ -88,6 +88,7 @@ namespace mkxp_sandbox {
 
         // Internal utility method of the `SANDBOX_YIELD` macro.
         inline void _end_yield() {
+            assert(!yielding);
             w2c_ruby_asyncify_stop_rewind(ruby.get());
         }
 
@@ -113,9 +114,10 @@ namespace mkxp_sandbox {
                     }
                 }
                 if ((sandbox_yield_state = w2c_ruby_mkxp_sandbox_yield(ruby.get())) == 2) {
+                    yielding = false;
                     return boost::none;
                 }
-                assert(sandbox_yield_state != 0);
+                assert(sandbox_yield_state == 1);
             }
         }
     };
