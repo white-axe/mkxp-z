@@ -33,6 +33,7 @@ SYNTAX_TRANSFORM_PATCHES := \
 	$(SYNTAX_TRANSFORM_DIR)/0031-retry-redo.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0032-basic-object-initialize.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0033-nil-true-false-to-s.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0034-command-trailing-comma.patch \
 
 HAVE_SYNTAX_TRANSFORM ?= 1
 
