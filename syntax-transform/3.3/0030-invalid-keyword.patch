@@ -175,12 +175,38 @@
 +}
 --- a/parse.y
 +++ b/parse.y
-@@ -4619,7 +4619,7 @@ k_end		: keyword_end
+@@ -1797,7 +1797,7 @@ clear_block_exit(struct parser_params *p, bool error)
+ {
+     rb_node_exits_t *exits = p->exits;
+     if (!exits) return;
+-    if (error && !compile_for_eval) {
++    if (!mkxp_parser_is_syntax_transform_active(p, 1, 8, -1) && error && !compile_for_eval) {
+         for (NODE *e = RNODE(exits); (e = RNODE_EXITS(e)->nd_chain) != 0; ) {
+             switch (nd_type(e)) {
+               case NODE_BREAK:
+@@ -4414,7 +4414,7 @@ primary		: literal
+                     }
+                 | keyword_retry
+                     {
+-                        if (!p->ctxt.in_defined) {
++                        if (!mkxp_parser_is_syntax_transform_active(p, 1, 8, -1) && !p->ctxt.in_defined) {
+                             switch (p->ctxt.in_rescue) {
+                               case before_rescue: yyerror1(&@1, "Invalid retry without rescue"); break;
+                               case after_rescue: /* ok */ break;
+@@ -4619,14 +4619,14 @@ k_end		: keyword_end
  
  k_return	: keyword_return
                      {
 -                        if (p->ctxt.in_class && !p->ctxt.in_def && !dyna_in_block(p))
 +                        if (!mkxp_parser_is_syntax_transform_active(p, 1, 8, -1) && p->ctxt.in_class && !p->ctxt.in_def && !dyna_in_block(p))
                              yyerror1(&@1, "Invalid return in class/module body");
+                     }
+                 ;
+ 
+ k_yield 	: keyword_yield
+                     {
+-                        if (!p->ctxt.in_defined && !p->ctxt.in_def && !compile_for_eval)
++                        if (!mkxp_parser_is_syntax_transform_active(p, 1, 8, -1) && !p->ctxt.in_defined && !p->ctxt.in_def && !compile_for_eval)
+                             yyerror1(&@1, "Invalid yield");
                      }
                  ;
