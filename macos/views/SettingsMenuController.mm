@@ -32,6 +32,8 @@
 
 #import "assert.h"
 
+#include "settingsmenu.nib.xxd"
+
 static const int inputMapRowToCode[] {
     Input::Down, Input::Left, Input::Right, Input::Up,
     Input::A, Input:: B, Input::C, Input::X, Input::Y, Input::Z,
@@ -71,7 +73,7 @@ typedef NSMutableArray<NSNumber*> BindingIndexArray;
 }
 
 +(SettingsMenu*)openWindow {
-    SettingsMenu *s = [[SettingsMenu alloc] initWithNibName:@"settingsmenu" bundle:NSBundle.mainBundle];
+    SettingsMenu *s = [[SettingsMenu alloc] initWithNibName:nil bundle:nil];
     // Show the window as a sheet, window events will be sucked up by SDL though
     //[NSApplication.sharedApplication.mainWindow beginSheet:s.view.window completionHandler:^(NSModalResponse _){}];
     
@@ -86,6 +88,13 @@ typedef NSMutableArray<NSNumber*> BindingIndexArray;
     [win makeKeyAndOrderFront:self];
     [s checkController];
     return s;
+}
+
+-(void)loadView {
+    [super loadView];
+    NSData *data = [NSData dataWithBytesNoCopy:(void *)mkxp_macos_settingsmenu_nib length:mkxp_macos_settingsmenu_nib_len freeWhenDone:false];
+    NSArray *objects;
+    [[[NSNib alloc] initWithNibData:data bundle:nil] instantiateWithOwner:self topLevelObjects:&objects];
 }
 
 -(SettingsMenu*)raise {
