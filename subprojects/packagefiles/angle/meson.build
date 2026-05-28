@@ -224,6 +224,44 @@ else
     wayland_egl = dependency('', required: false)
 endif
 
+export_args = [
+    '-DANGLE_EXPORT=',
+    '-DANGLE_STATIC=1',
+    '-DANGLE_UTIL_EXPORT=',
+    '-DEGLAPI=',
+    '-DGL_APICALL=',
+    '-DGL_API=',
+]
+
+egl_args = []
+egl_shim_args = []
+foreach func : [
+    'eglBindAPI',
+    'eglChooseConfig',
+    'eglCreateContext',
+    'eglCreatePbufferSurface',
+    'eglCreateWindowSurface',
+    'eglDestroyContext',
+    'eglDestroySurface',
+    'eglGetConfigAttrib',
+    'eglGetError',
+    'eglGetDisplay',
+    'eglGetPlatformDisplay',
+    'eglGetProcAddress',
+    'eglInitialize',
+    'eglMakeCurrent',
+    'eglQueryAPI',
+    'eglQueryString',
+    'eglSwapBuffers',
+    'eglSwapInterval',
+    'eglTerminate',
+    'eglWaitGL',
+    'eglWaitNative',
+]
+    egl_args += '-D' + func + '=mkxp_angle_' + func
+    egl_shim_args += '-D' + func + '=MKXP_EGL_SHIM_MANGLE(' + func + ')'
+endforeach
+
 angle_version_info = static_library(
     'angle_version_info',
     include_directories: includes,
@@ -1286,14 +1324,7 @@ angle_glesv2_thin = static_library(
     dependencies: [
         xxhash,
     ],
-    cpp_args: args + [
-        '-DANGLE_EXPORT=',
-        '-DANGLE_STATIC=1',
-        '-DANGLE_UTIL_EXPORT=',
-        '-DEGLAPI=',
-        '-DGL_APICALL=',
-        '-DGL_API=',
-    ],
+    cpp_args: args + export_args,
     sources: [
         'src/libGLESv2/egl_ext_stubs.cpp',
         'src/libGLESv2/egl_stubs.cpp',
@@ -1324,20 +1355,24 @@ angle_glesv2 = static_library(
     build_by_default: false,
 )
 
+mkxp_angle_egl_shim = static_library(
+    'mkxp-angle-egl-shim',
+    include_directories: includes,
+    cpp_args: args + export_args + egl_shim_args,
+    sources: [
+        'mkxp-angle-egl-shim.cpp',
+    ],
+    build_by_default: false,
+)
+
 angle_egl = static_library(
     'EGL',
     include_directories: includes,
     link_with: [
         angle_glesv2,
+        mkxp_angle_egl_shim,
     ],
-    cpp_args: args + [
-        '-DANGLE_EXPORT=',
-        '-DANGLE_STATIC=1',
-        '-DANGLE_UTIL_EXPORT=',
-        '-DEGLAPI=',
-        '-DGL_APICALL=',
-        '-DGL_API=',
-    ],
+    cpp_args: args + export_args + egl_args,
     sources: [
         'src/libEGL/libEGL_autogen.cpp',
     ],

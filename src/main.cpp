@@ -84,6 +84,8 @@ __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 #define GLINIT_SHOWERROR(s) rgssThreadError(threadData, s)
 #endif
 
+bool mkxp_use_angle = true;
+
 static void rgssThreadError(RGSSThreadData *rtData, const std::string &msg);
 static void showInitError(const std::string &msg);
 
@@ -218,9 +220,6 @@ int main(int argc, char *argv[]) {
     SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
     SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
 
-    SDL_SetHint(SDL_HINT_OPENGL_ES_DRIVER, "1");
-    SDL_SetHint(SDL_HINT_VIDEO_X11_FORCE_EGL, "1");
-
     SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
 
 #ifdef MKXPZ_CHECK_FOR_WAYLAND_SUPPORT
@@ -253,12 +252,14 @@ int main(int argc, char *argv[]) {
 #elif !defined(_WIN32)
         setenv("ANGLE_DEFAULT_PLATFORM", "vulkan", true);
 #endif
+      } else if (strcmp(angle_default_platform, "gl") == 0) {
+        mkxp_use_angle = false;
       }
-#ifndef _WIN32
-      else if (strcmp(angle_default_platform, "gl") == 0) {
-        unsetenv("ANGLE_DEFAULT_PLATFORM");
-      }
-#endif
+    }
+
+    if (mkxp_use_angle) {
+      SDL_SetHint(SDL_HINT_OPENGL_ES_DRIVER, "1");
+      SDL_SetHint(SDL_HINT_VIDEO_X11_FORCE_EGL, "1");
     }
 
     /* initialize SDL first */
@@ -378,7 +379,9 @@ int main(int argc, char *argv[]) {
     if (conf.fullscreen)
       winFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+    if (mkxp_use_angle) {
+      SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+    }
     
     win = SDL_CreateWindow(conf.windowTitle.c_str(), SDL_WINDOWPOS_UNDEFINED,
                            SDL_WINDOWPOS_UNDEFINED, conf.defScreenW,
