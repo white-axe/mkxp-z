@@ -33,7 +33,6 @@
 #include <string.h>
 #include <string>
 #include <unistd.h>
-#include <regex>
 
 #include "binding.h"
 #include "sharedstate.h"
