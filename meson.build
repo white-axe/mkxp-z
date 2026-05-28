@@ -10,7 +10,12 @@ use_pic = true
 
 compilers = {'cpp': meson.get_compiler('cpp')}
 
-git_hash_file = vcs_tag(command: ['git', 'rev-parse', '--short=7', 'HEAD'], fallback: 'unknown', input: 'src/git-hash.h.in', output: 'git-hash.h')
+git_hash_file = vcs_tag(
+    input: 'src/git-hash.h.in',
+    output: 'git-hash.h',
+    command: ['git', 'rev-parse', '--short=7', 'HEAD'],
+    fallback: 'unknown',
+)
 
 global_sources = []
 global_dependencies = [declare_dependency(sources: git_hash_file)]
@@ -114,6 +119,8 @@ global_include_dirs += include_directories('src', 'binding')
 
 rpath = ''
 
+exe_name = meson.project_name()
+
 if host_system == 'windows'
     windows_resource_directory = '../' + get_option('windows_resource_directory')
     subdir('windows')
@@ -134,9 +141,21 @@ if host_system == 'darwin'
         required: true,
     )
     subdir('macos/views')
-endif
 
-exe_name = meson.project_name()
+    configure_file(
+        input: 'Info.plist.in',
+        output: 'Info.plist',
+        configuration: {
+            'CFBundleExecutable': meson.project_name(),
+            'CFBundleGetInfoString': meson.project_name(),
+            'CFBundleIdentifier': meson.project_name(),
+            'CFBundleName': meson.project_name(),
+            'CFBundleShortVersionString': meson.project_version(),
+        },
+        install: true,
+        install_dir: (exe_name + '.app') / 'Contents',
+    )
+endif
 
 if (host_system == 'linux' or host_system == 'darwin') and get_option('appimage') == false
     exe_name += '.' + host_machine.cpu_family()
