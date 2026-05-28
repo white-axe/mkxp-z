@@ -40,9 +40,7 @@ WineHostType getRealHostType();
 }
 
 #ifdef __APPLE__
-std::string getPlistValue(const char *key);
 void openSettingsWindow();
-bool isMetalSupported();
 #endif
 
 namespace mkxp_sys = systemImpl;

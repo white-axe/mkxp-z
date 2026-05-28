@@ -25,11 +25,6 @@ std::string normalizePath(const char *path, bool preferred, bool absolute);
 std::string getDefaultGameRoot();
 
 #ifdef __APPLE__
-std::string getPathForAsset(const char *baseName, const char *ext);
-std::string contentsOfAssetAsString(const char *baseName, const char *ext);
-
-std::string getResourcePath();
-
 std::string selectPath(SDL_Window *win, const char *msg, const char *prompt);
 #endif
 

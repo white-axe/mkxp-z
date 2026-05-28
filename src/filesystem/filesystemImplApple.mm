@@ -62,53 +62,16 @@ std::string filesystemImpl::normalizePath(const char *path, bool preferred, bool
 }
 
 std::string filesystemImpl::getDefaultGameRoot() {
+    if ([[NSBundle mainBundle] bundleIdentifier] == nil) {
+        char *p = SDL_GetBasePath();
+        std::string ret(p);
+        SDL_free(p);
+        return ret;
+    }
+
     @autoreleasepool {
         NSString *p = [NSString stringWithFormat: @"%@/%s", NSBundle.mainBundle.bundlePath, "Contents/Game"];
         return std::string(NSTOPATH(p));
-    }
-}
-
-NSString *getPathForAsset_internal(const char *baseName, const char *ext) {
-    NSBundle *assetBundle = [NSBundle bundleWithPath:
-                             [NSString stringWithFormat:
-                              @"%@/%s",
-                              NSBundle.mainBundle.resourcePath,
-                              "Assets.bundle"
-                             ]
-                            ];
-    
-    if (assetBundle == nil)
-        return nil;
-    
-    return [assetBundle pathForResource: @(baseName) ofType: @(ext)];
-}
-
-std::string filesystemImpl::getPathForAsset(const char *baseName, const char *ext) {
-    @autoreleasepool {
-        NSString *assetPath = getPathForAsset_internal(baseName, ext);
-        if (assetPath == nil)
-            throw Exception(Exception::NoFileError, "Failed to find the asset named %s.%s", baseName, ext);
-        
-        return std::string(NSTOPATH(getPathForAsset_internal(baseName, ext)));
-    }
-}
-
-std::string filesystemImpl::contentsOfAssetAsString(const char *baseName, const char *ext) {
-    @autoreleasepool {
-        NSString *path = getPathForAsset_internal(baseName, ext);
-        NSString *fileContents = [NSString stringWithContentsOfFile: path];
-        
-        // This should never fail
-        if (fileContents == nil)
-            throw Exception(Exception::MKXPError, "Failed to read file at %s", path.UTF8String);
-        
-        return std::string(fileContents.UTF8String);
-    }
-}
-
-std::string filesystemImpl::getResourcePath() {
-    @autoreleasepool {
-        return std::string(NSTOPATH(NSBundle.mainBundle.resourcePath));
     }
 }
 
