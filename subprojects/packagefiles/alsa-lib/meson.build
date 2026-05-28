@@ -86,7 +86,7 @@ alsa_lib = declare_dependency(
                 'CONFIG_SITE': ' ',
             },
             verbose: true,
-        ).dependency('crypt').partial_dependency(
+        ).dependency('asound').partial_dependency(
             sources: true,
         ),
     ],
