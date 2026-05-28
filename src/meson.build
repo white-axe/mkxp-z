@@ -426,8 +426,14 @@ global_dependencies += uchardet
 
 theora_options = meson_base_options
 theora = subproject('theora', default_options: theora_options).get_variable('theoradec')
-meson.override_dependency('theora', theora, static: true)
 global_dependencies += theora
+
+theoraplay_options = meson_base_options + {'thread': 'disabled'}
+theoraplay = subproject('theoraplay', default_options: theoraplay_options).get_variable('theoraplay')
+if not subproject('theoraplay', default_options: theoraplay_options).get_variable('have_thread')
+    global_args += '-DMKXPZ_THEORAPLAY_NO_THREAD'
+endif
+global_dependencies += theoraplay
 
 sdl2_image_options = cmake.subproject_options()
 sdl2_image_options.add_cmake_defines(cmake_base_options + {
@@ -561,7 +567,6 @@ main_source = files(
     'audio/sdlsoundsource.cpp',
     'audio/soundemitter.cpp',
     'audio/vorbissource.cpp',
-    'theoraplay/theoraplay.c',
 
     'crypto/rgssad.cpp',
 

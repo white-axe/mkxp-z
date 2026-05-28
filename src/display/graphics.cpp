@@ -41,7 +41,6 @@
 #include "shader.h"
 #include "sharedstate.h"
 #include "texpool.h"
-#include "theoraplay/theoraplay.h"
 #include "util.h"
 #include "input.h"
 #include "sprite.h"
@@ -56,6 +55,8 @@
 #ifdef MKXPZ_STEAM
 #include "steamshim_child.h"
 #endif
+
+#include <theoraplay.h>
 
 #include <algorithm>
 #include <errno.h>
@@ -136,7 +137,11 @@ struct Movie
         io->read = readMovie;
         io->close = closeMovie;
         io->userdata = &srcOps;
-        decoder = THEORAPLAY_startDecode(io, DEF_MAX_VIDEO_FRAMES, THEORAPLAY_VIDFMT_RGBA);
+#ifdef MKXPZ_THEORAPLAY_NO_THREAD
+        decoder = THEORAPLAY_startDecode(io, DEF_MAX_VIDEO_FRAMES, THEORAPLAY_VIDFMT_RGBA, nullptr, false);
+#else
+        decoder = THEORAPLAY_startDecode(io, DEF_MAX_VIDEO_FRAMES, THEORAPLAY_VIDFMT_RGBA, nullptr, true);
+#endif // MKXPZ_THEORAPLAY_NO_THREAD
         if (!decoder) {
             SDL_RWclose(&srcOps);
             return false;
@@ -144,7 +149,11 @@ struct Movie
         
         // Wait until the decoder has parsed out some basic truths from the file.
         while (!THEORAPLAY_isInitialized(decoder)) {
+#ifdef MKXPZ_THEORAPLAY_NO_THREAD
+            THEORAPLAY_pumpDecode(decoder, DEF_MAX_VIDEO_FRAMES);
+#else
             SDL_Delay(VIDEO_DELAY);
+#endif // MKXPZ_THEORAPLAY_NO_THREAD
         }
         
         // Once we're initialized, we can tell if this file has audio and/or video.
@@ -157,7 +166,11 @@ struct Movie
                 if ((THEORAPLAY_availableVideo(decoder) >= DEF_MAX_VIDEO_FRAMES)) {
                     break;  // we'll never progress, there's no audio yet but we've prebuffered as much as we plan to.
                 }
+#ifdef MKXPZ_THEORAPLAY_NO_THREAD
+                THEORAPLAY_pumpDecode(decoder, DEF_MAX_VIDEO_FRAMES);
+#else
                 SDL_Delay(VIDEO_DELAY);
+#endif // MKXPZ_THEORAPLAY_NO_THREAD
             }
         }
         
@@ -169,14 +182,22 @@ struct Movie
         
         // Wait until we have video
         while ((video = THEORAPLAY_getVideo(decoder)) == NULL) {
+#ifdef MKXPZ_THEORAPLAY_NO_THREAD
+            THEORAPLAY_pumpDecode(decoder, DEF_MAX_VIDEO_FRAMES);
+#else
             SDL_Delay(VIDEO_DELAY);
+#endif // MKXPZ_THEORAPLAY_NO_THREAD
         }
         
         // Wait until we have audio, if applicable
         audio = NULL;
         if (hasAudio) {
             while ((audio = THEORAPLAY_getAudio(decoder)) == NULL && THEORAPLAY_availableVideo(decoder) < DEF_MAX_VIDEO_FRAMES) {
+#ifdef MKXPZ_THEORAPLAY_NO_THREAD
+                THEORAPLAY_pumpDecode(decoder, DEF_MAX_VIDEO_FRAMES);
+#else
                 SDL_Delay(VIDEO_DELAY);
+#endif // MKXPZ_THEORAPLAY_NO_THREAD
             }
         }
         // Create this Bitmap without a hires replacement, because we don't
@@ -331,7 +352,11 @@ struct Movie
                 shState->input().update();
                 if  (shState->input().isTriggered(Input::C) || shState->input().isTriggered(Input::B)) break;
             }
-            
+
+#ifdef MKXPZ_THEORAPLAY_NO_THREAD
+            THEORAPLAY_pumpDecode(decoder, DEF_MAX_VIDEO_FRAMES);
+#endif // MKXPZ_THEORAPLAY_NO_THREAD
+
             const Uint32 now = SDL_GetTicks() - baseTicks;
             
             if (!video) {

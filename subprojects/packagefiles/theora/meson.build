@@ -2,8 +2,14 @@ project('theora', 'c', meson_version: '>=1.2.0')
 
 theoradec = declare_dependency(
     include_directories: 'include',
+    dependencies: [
+        dependency('ogg', required: true),
+    ],
     link_with: library(
         'theoradec',
+        dependencies: [
+            dependency('ogg', required: true),
+        ],
         c_args: get_option('cflags'),
         include_directories: 'include',
         sources: [
@@ -23,8 +29,8 @@ theoradec = declare_dependency(
         ],
         pic: get_option('b_staticpic'),
         gnu_symbol_visibility: 'hidden',
-        dependencies: [
-            import('cmake').subproject('ogg').dependency('ogg'),
-        ],
     ),
 )
+
+meson.override_dependency('theora', theoradec)
+meson.override_dependency('theoradec', theoradec)
