@@ -1261,12 +1261,6 @@ static void mriBindingExecute() {
     VALUE lpaths = rb_gv_get(":");
     rb_ary_clear(lpaths);
     
-#if defined(__APPLE__) && RAPI_MAJOR >= 2
-    std::string resPath = mkxp_fs::getResourcePath();
-    resPath += "/Ruby/" + std::to_string(RAPI_MAJOR) + "." + std::to_string(RAPI_MINOR) + ".0";
-    rb_ary_push(lpaths, rb_str_new(resPath.c_str(), resPath.size()));
-#endif
-    
     if (!conf.rubyLoadpaths.empty()) {
         /* Setup custom load paths */
         for (size_t i = 0; i < conf.rubyLoadpaths.size(); ++i) {
