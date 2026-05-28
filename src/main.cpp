@@ -68,9 +68,6 @@ __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 #ifdef __APPLE__
 #include <Availability.h>
 #include "TouchBar.h"
-#if !defined(__MAC_10_15) || __MAC_OS_X_VERSION_MAX_ALLOWED < __MAC_10_15
-#define MKXPZ_INIT_GL_LATER
-#endif
 #endif
 
 #if !defined(__ANDROID__) && !defined(__APPLE__) && !defined(_WIN32)
