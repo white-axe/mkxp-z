@@ -143,7 +143,7 @@ if host_system == 'darwin'
     subdir('macos/views')
 
     configure_file(
-        input: 'Info.plist.in',
+        input: 'macos/Info.plist.in',
         output: 'Info.plist',
         configuration: {
             'CFBundleExecutable': meson.project_name(),
