@@ -85,6 +85,7 @@ __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 #endif
 
 bool mkxp_use_angle = true;
+bool mkxp_angle_egl_is_wayland = false;
 
 static void rgssThreadError(RGSSThreadData *rtData, const std::string &msg);
 static void showInitError(const std::string &msg);
@@ -227,6 +228,7 @@ int main(int argc, char *argv[]) {
     {
       char *sdl_videodriver = getenv("SDL_VIDEODRIVER");
       if (sdl_videodriver == nullptr || sdl_videodriver[0] == 0) {
+        setenv("SDL_VIDEODRIVER", "x11", true);
         void *wayland_client = dlopen("libwayland-client.so", RTLD_LAZY);
         if (wayland_client != nullptr) {
           void *(*_wl_display_connect)(const char *name) = reinterpret_cast<void *(*)(const char *name)>(dlsym(wayland_client, "wl_display_connect"));
@@ -236,6 +238,7 @@ int main(int argc, char *argv[]) {
             if (display != nullptr) {
               _wl_display_disconnect(display);
               setenv("SDL_VIDEODRIVER", "wayland", true);
+              mkxp_angle_egl_is_wayland = true;
             }
           }
           dlclose(wayland_client);

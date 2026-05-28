@@ -7,7 +7,7 @@
  #    include "libANGLE/renderer/metal/DisplayMtl_api.h"
  #endif  // defined(ANGLE_ENABLE_METAL)
 -
-+int mkxp_angle_egl_is_wayland;
++extern bool mkxp_angle_egl_is_wayland;
  namespace egl
  {
  
