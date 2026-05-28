@@ -1,6 +1,6 @@
 [wrap-file]
-source_url = https://deb.debian.org/debian/pool/main/libx/libxi/libxi_1.8.2.orig.tar.gz
-source_fallback_url = https://mirrors.ocf.berkeley.edu/debian/pool/main/libx/libxi/libxi_1.8.2.orig.tar.gz
+source_url = https://www.x.org/releases/individual/lib/libXi-1.8.2.tar.gz
+source_fallback_url = https://xorg.freedesktop.org/releases/individual/lib/libXi-1.8.2.tar.gz
 source_filename = libxi.tar.gz
 source_hash = 5542daec66febfeb6f51d57abfa915826efe2e3af57534f4105b82240ea3188d
 directory = libXi-1.8.2

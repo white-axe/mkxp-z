@@ -1,7 +1,7 @@
 [wrap-file]
-source_url = https://deb.debian.org/debian/pool/main/p/pipewire/pipewire_1.6.5.orig.tar.gz
-source_fallback_url = https://mirrors.ocf.berkeley.edu/debian/pool/main/p/pipewire/pipewire_1.6.5.orig.tar.gz
+source_url = https://gitlab.freedesktop.org/pipewire/pipewire/-/archive/1.6.5/pipewire-1.6.5.tar.gz
+source_fallback_url = https://github.com/PipeWire/pipewire/archive/refs/tags/1.6.5.tar.gz
 source_filename = pipewire.tar.gz
-source_hash = 493c2af6f1cb767ca1ab6f82ab40668132dfa407409f714f2c7acf691697976d
-directory = pipewire-1.6.5-55848f4260a2d2302f9f6bd304d82616976ef9af
+source_hash = 4c9f7e85a760a4169cd4bc668bafea90fe4838aaf3f08a93f11bb9222809d490
+directory = pipewire-1.6.5
 diff_files = pipewire-library-type.patch, pipewire-plugin-dependencies.patch

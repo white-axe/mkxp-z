@@ -1,6 +1,6 @@
 [wrap-file]
-source_url = https://deb.debian.org/debian/pool/main/d/dbus/dbus_1.16.2.orig.tar.xz
-source_fallback_url = https://mirrors.ocf.berkeley.edu/debian/pool/main/d/dbus/dbus_1.16.2.orig.tar.xz
+source_url = https://dbus.freedesktop.org/releases/dbus/dbus-1.16.2.tar.xz
+source_fallback_url = https://mirrors.ocf.berkeley.edu/ubuntu/pool/main/d/dbus/dbus_1.16.2.orig.tar.xz
 source_filename = dbus.tar.xz
 source_hash = 0ba2a1a4b16afe7bceb2c07e9ce99a8c2c3508e5dec290dbb643384bd6beb7e2
 directory = dbus-1.16.2
