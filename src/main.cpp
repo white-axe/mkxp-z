@@ -92,25 +92,9 @@ static inline const char *glGetStringInt(GLenum name) {
 }
 
 static void printGLInfo() {
-    const std::string renderer(glGetStringInt(GL_RENDERER));
-    const std::string version(glGetStringInt(GL_VERSION));
-    std::regex rgx("ANGLE \\((.+), ANGLE Metal Renderer: (.+), Version (.+)\\)");
-        
-    std::smatch matches;
-    if (std::regex_search(renderer, matches, rgx)) {
-        
-        Debug() << "Backend           :" << "Metal";
-        Debug() << "Metal Device      :" << matches[2] << "(" + matches[1].str() + ")";
-        Debug() << "Renderer Version  :" << matches[3].str();
-        
-    std::smatch vmatches;
-        if (std::regex_search(version, vmatches, std::regex("\\(ANGLE (.+) git hash: .+\\)"))) {
-            Debug() << "ANGLE Version     :" << vmatches[1].str();
-        }
-        return;
-    }
-    
-  Debug() << "Backend      :" << "OpenGL";
+  const std::string renderer(glGetStringInt(GL_RENDERER));
+  const std::string version(glGetStringInt(GL_VERSION));
+
   Debug() << "GL Vendor    :" << glGetStringInt(GL_VENDOR);
   Debug() << "GL Renderer  :" << renderer;
   Debug() << "GL Version   :" << version;
