@@ -280,13 +280,12 @@ if host_system == 'darwin'
         install_tag: meson.project_name() + '-bundle',
     )
 
-    custom_target(
-        meson.project_name() + '-bundle',
-        output: meson.project_name() + '-bundle',
-        command: ['cp', exe, '@OUTPUT@'],
-        install: true,
-        install_mode: 'rwxr-xr-x',
-        install_dir: (exe_name + '.app') / 'Contents' / 'MacOS',
+    meson.add_install_script(
+        python,
+        files('assets/install-executable.py'),
+        meson.project_build_root() / exe_name,
+        (exe_name + '.app') / 'Contents' / 'MacOS' / meson.project_name(),
+        get_option('strip') ? find_program('strip') : [],
         install_tag: meson.project_name() + '-bundle',
     )
 endif
