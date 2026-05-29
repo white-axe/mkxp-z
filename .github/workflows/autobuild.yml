@@ -120,7 +120,7 @@ jobs:
       - name: Configure
         shell: msys2 {0}
         run: |
-          meson setup --prefix "$(realpath .)" --buildtype release -Db_lto=true build
+          meson setup --prefix "$(realpath .)" --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
@@ -225,7 +225,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --prefix "$(realpath .)/build/artifact" --buildtype release -Db_lto=true build
+          meson setup --prefix "$(realpath .)/build/artifact" --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
@@ -343,7 +343,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --prefix "$(realpath .)/build/artifact" --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Db_lto=true build
+          meson setup --prefix "$(realpath .)/build/artifact" --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
@@ -418,7 +418,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --prefix "$(realpath .)/build/artifact" --buildtype release -Db_lto=true build
+          meson setup --prefix "$(realpath .)/build/artifact" --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
@@ -531,7 +531,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --prefix "$(realpath .)/build/artifact" --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Db_lto=true build
+          meson setup --prefix "$(realpath .)/build/artifact" --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
@@ -610,7 +610,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --prefix "$(realpath .)/build/artifact" --cross-file macos/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Db_lto=true build
+          meson setup --prefix "$(realpath .)/build/artifact" --cross-file macos/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
