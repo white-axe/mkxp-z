@@ -66,7 +66,7 @@ ldflags += get_option('c_link_args')
 ldflags += get_option('ldflags')
 
 srcdir = meson.project_source_root()
-if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
+if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
     srcdir = srcdir.replace('\\', '/')
     if not srcdir.startswith('/')
         srcdir = '/' + srcdir
@@ -88,12 +88,12 @@ if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
 endif
 
 destdir = meson.project_build_root() / 'dist'
-if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
+if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
     destdir = destdir.replace('\\', '/')
 endif
 
 baseruby = find_program('ruby', required: true).full_path()
-if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
+if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
     baseruby = baseruby.replace('\\', '/')
     if not baseruby.startswith('/')
         baseruby = '/' + baseruby
@@ -115,7 +115,7 @@ if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
 endif
 
 bison = find_program('bison', required: true).full_path()
-if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
+if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
     bison = bison.replace('\\', '/')
     if not bison.startswith('/')
         bison = '/' + bison
@@ -168,10 +168,10 @@ ruby = declare_dependency(
                 '--with-static-linked-ext',
                 '--disable-rubygems',
                 '--without-gmp',
-                'CC=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), host_machine.system(), 'true', meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
-                'CXX=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), host_machine.system(), 'true', meson.get_compiler('cpp').cmd_array(), check: true).stdout().strip(),
-                'CFLAGS=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), host_machine.system(), 'false', cflags, check: true).stdout().strip(),
-                'LDFLAGS=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), host_machine.system(), 'false', ldflags, check: true).stdout().strip(),
+                'CC=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
+                'CXX=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', meson.get_compiler('cpp').cmd_array(), check: true).stdout().strip(),
+                'CFLAGS=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', cflags, check: true).stdout().strip(),
+                'LDFLAGS=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', ldflags, check: true).stdout().strip(),
             ],
             cross_configure_options: [
                 '--host=@HOST@',

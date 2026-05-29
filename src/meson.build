@@ -200,8 +200,8 @@ subproject('xxhash', default_options: meson_base_options)
 spirv_headers = subproject('spirv-headers', default_options: meson_base_options).get_variable('spirv_headers')
 spirv_tools_options = cmake.subproject_options()
 spirv_tools_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': run_command(python, quotetool, host_system, 'false', '-I' + meson.project_source_root() / 'subprojects' / 'spirv-headers' / 'include', check: true).stdout().strip(),
-    'CMAKE_CXX_FLAGS': run_command(python, quotetool, host_system, 'false', '-I' + meson.project_source_root() / 'subprojects' / 'spirv-headers' / 'include', check: true).stdout().strip(),
+    'CMAKE_C_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', '-I' + meson.project_source_root() / 'subprojects' / 'spirv-headers' / 'include', check: true).stdout().strip(),
+    'CMAKE_CXX_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', '-I' + meson.project_source_root() / 'subprojects' / 'spirv-headers' / 'include', check: true).stdout().strip(),
     'SPIRV-Headers_SOURCE_DIR': meson.project_source_root() / 'subprojects' / 'spirv-headers',
     'BUILD_SHARED_LIBS': false,
     'BUILD_TESTING': false,
@@ -342,8 +342,8 @@ global_dependencies += ogg
 
 vorbis_options = cmake.subproject_options()
 vorbis_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': run_command(python, quotetool, host_system, 'false', ogg_includes, check: true).stdout().strip(),
-    'CMAKE_CXX_FLAGS': run_command(python, quotetool, host_system, 'false', ogg_includes, check: true).stdout().strip(),
+    'CMAKE_C_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', ogg_includes, check: true).stdout().strip(),
+    'CMAKE_CXX_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', ogg_includes, check: true).stdout().strip(),
     'BUILD_SHARED_LIBS': false,
     'BUILD_TESTING': false,
     'BUILD_FRAMEWORK': false,
@@ -362,8 +362,8 @@ global_dependencies += [vorbis, vorbisfile]
 
 sdl2_sound_options = cmake.subproject_options()
 sdl2_sound_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': run_command(python, quotetool, host_system, 'false', sdl2_includes, check: true).stdout().strip(),
-    'CMAKE_CXX_FLAGS': run_command(python, quotetool, host_system, 'false', sdl2_includes, check: true).stdout().strip(),
+    'CMAKE_C_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', sdl2_includes, check: true).stdout().strip(),
+    'CMAKE_CXX_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', sdl2_includes, check: true).stdout().strip(),
     'SDLSOUND_BUILD_SHARED': false,
     'SDLSOUND_BUILD_TEST': false,
 })
@@ -389,8 +389,8 @@ global_dependencies += freetype
 
 sdl2_ttf_options = cmake.subproject_options()
 sdl2_ttf_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': run_command(python, quotetool, host_system, 'false', freetype_includes + sdl2_includes, check: true).stdout().strip(),
-    'CMAKE_CXX_FLAGS': run_command(python, quotetool, host_system, 'false', freetype_includes + sdl2_includes, check: true).stdout().strip(),
+    'CMAKE_C_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', freetype_includes + sdl2_includes, check: true).stdout().strip(),
+    'CMAKE_CXX_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', freetype_includes + sdl2_includes, check: true).stdout().strip(),
     'BUILD_SHARED_LIBS': false,
     'BUILD_TESTING': false,
 })
@@ -437,8 +437,8 @@ global_dependencies += theoraplay
 
 sdl2_image_options = cmake.subproject_options()
 sdl2_image_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': run_command(python, quotetool, host_system, 'false', sdl2_includes, check: true).stdout().strip(),
-    'CMAKE_CXX_FLAGS': run_command(python, quotetool, host_system, 'false', sdl2_includes, check: true).stdout().strip(),
+    'CMAKE_C_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', sdl2_includes, check: true).stdout().strip(),
+    'CMAKE_CXX_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', sdl2_includes, check: true).stdout().strip(),
     'BUILD_SHARED_LIBS': false,
     'SDL2IMAGE_JPG_SAVE': true,
     'SDL2IMAGE_PNG_SAVE': true,

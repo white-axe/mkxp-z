@@ -39,7 +39,7 @@ cflags += get_option('c_args')
 cflags += get_option('cflags')
 
 srcdir = meson.project_source_root()
-if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
+if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
     srcdir = srcdir.replace('\\', '/')
     if not srcdir.startswith('/')
         srcdir = '/' + srcdir
@@ -76,8 +76,8 @@ alsa_lib = declare_dependency(
                 '--includedir=/include',
                 '--enable-static',
                 '--disable-shared',
-                'CC=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), host_machine.system(), 'true', meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
-                'CFLAGS=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), host_machine.system(), 'false', cflags, check: true).stdout().strip(),
+                'CC=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
+                'CFLAGS=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', cflags, check: true).stdout().strip(),
             ],
             cross_configure_options: [
                 '--host=@HOST@',
