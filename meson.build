@@ -251,7 +251,7 @@ foreach install_tag : global_install_tags
         meson.add_install_script(
             python,
             files('assets/install-directory.py'),
-            meson.global_build_root() / 'subprojects' / ('ruby-' + ruby_version) / 'dist' / 'lib' / 'ruby' / (ruby_version + '.0'),
+            meson.project_build_root() / 'subprojects' / ('ruby-' + ruby_version) / 'dist' / 'lib' / 'ruby' / (ruby_version + '.0'),
             'stdlib',
             install_tag: install_tag,
         )

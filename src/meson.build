@@ -108,15 +108,15 @@ zlib_options.add_cmake_defines(cmake_base_options + {
     'ZLIB_BUILD_EXAMPLES': false,
 })
 zlib = cmake.subproject('zlib', options: zlib_options).dependency('z')
-zlib_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'zlib', '-I' + meson.global_build_root() / 'subprojects' / 'zlib' / '__CMake_build']
-zlib_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'zlib']
+zlib_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'zlib', '-I' + meson.project_build_root() / 'subprojects' / 'zlib' / '__CMake_build']
+zlib_libs = ['-L' + meson.project_build_root() / 'subprojects' / 'zlib']
 meson.override_dependency('zlib', zlib, static: true)
 global_dependencies += zlib
 
 libffi_options = meson_base_options
 libffi = subproject('libffi', default_options: libffi_options).get_variable('libffi')
-libffi_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' / 'include']
-libffi_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' / 'lib']
+libffi_includes = ['-I' + meson.project_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' / 'include']
+libffi_libs = ['-L' + meson.project_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' / 'lib']
 
 # If OpenSSL is present, you get HTTPS support
 if get_option('enable-https')
@@ -249,7 +249,7 @@ sdl2main = declare_dependency(dependencies: [
     host_system == 'windows' or host_system == 'cygwin' ? meson.get_compiler('c').find_library('mingw32') : [],
 ])
 sdl2 = subproject('sdl2', default_options: sdl2_options).get_variable('sdl2_dep')
-sdl2_includes = ['-I' + meson.global_build_root() / 'subprojects' / 'SDL2-2.28.1' / 'include', '-I' + meson.project_source_root() / 'subprojects' / 'SDL2-2.28.1' / 'include']
+sdl2_includes = ['-I' + meson.project_build_root() / 'subprojects' / 'SDL2-2.28.1' / 'include', '-I' + meson.project_source_root() / 'subprojects' / 'SDL2-2.28.1' / 'include']
 global_dependencies += [sdl2main, sdl2]
 
 if host_system == 'linux'
@@ -340,7 +340,7 @@ ogg_options.add_cmake_defines(cmake_base_options + {
     'BUILD_FRAMEWORK': false,
 })
 ogg = cmake.subproject('ogg', options: ogg_options).dependency('ogg')
-ogg_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'ogg' / 'include', '-I' + meson.global_build_root() / 'subprojects' / 'ogg' / '__CMake_build' / 'include']
+ogg_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'ogg' / 'include', '-I' + meson.project_build_root() / 'subprojects' / 'ogg' / '__CMake_build' / 'include']
 meson.override_dependency('ogg', ogg, static: true)
 global_dependencies += ogg
 
@@ -516,8 +516,8 @@ libyaml_options.add_cmake_defines(cmake_base_options + {
     'BUILD_SHARED_LIBS': false,
 })
 libyaml = cmake.subproject('libyaml', options: libyaml_options).dependency('yaml')
-libyaml_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'libyaml' / 'include', '-I' + meson.global_build_root() / 'subprojects' / 'libyaml' / '__CMake_build' / 'include']
-libyaml_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libyaml']
+libyaml_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'libyaml' / 'include', '-I' + meson.project_build_root() / 'subprojects' / 'libyaml' / '__CMake_build' / 'include']
+libyaml_libs = ['-L' + meson.project_build_root() / 'subprojects' / 'libyaml']
 meson.override_dependency('libyaml', libyaml, static: true)
 
 ruby_options = meson_base_options + {
