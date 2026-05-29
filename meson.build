@@ -3,6 +3,8 @@ if host_machine.system() == 'darwin'
     add_languages('objcpp', native: false)
 endif
 
+gplv3_features = []
+
 host_system = host_machine.system()
 host_endian = host_machine.endian()
 
@@ -121,6 +123,10 @@ rpath = ''
 
 exe_name = meson.project_name()
 
+if (host_system == 'linux' or host_system == 'darwin') and get_option('appimage') == false
+    exe_name += '.' + host_machine.cpu_family()
+endif
+
 if host_system == 'windows'
     windows_resource_directory = '../' + get_option('windows_resource_directory')
     subdir('windows')
@@ -141,24 +147,6 @@ if host_system == 'darwin'
         required: true,
     )
     subdir('macos/views')
-
-    configure_file(
-        input: 'macos/Info.plist.in',
-        output: 'Info.plist',
-        configuration: {
-            'CFBundleExecutable': meson.project_name(),
-            'CFBundleGetInfoString': meson.project_name(),
-            'CFBundleIdentifier': meson.project_name(),
-            'CFBundleName': meson.project_name(),
-            'CFBundleShortVersionString': meson.project_version(),
-        },
-        install: true,
-        install_dir: (exe_name + '.app') / 'Contents',
-    )
-endif
-
-if (host_system == 'linux' or host_system == 'darwin') and get_option('appimage') == false
-    exe_name += '.' + host_machine.cpu_family()
 endif
 
 if steamworks == true
@@ -194,10 +182,13 @@ if steamworks == true
         cpp_args: shim_args,
         link_args: la.split(),
         win_subsystem: shim_ws,
-        install: (host_system != 'windows'))
+        install: true,
+        install_dir: '.',
+        install_tag: meson.project_name(),
+    )
 endif
 
-executable(exe_name,
+exe = executable(exe_name,
     sources: [
         git_hash_file, # Dummy source file just so that Meson doesn't complain about the executable not having any sources in non-Windows builds
         windows_resources,
@@ -216,5 +207,85 @@ executable(exe_name,
     link_args: global_link_args,
     install_rpath: rpath,
     win_subsystem: 'windows',
-    install: (host_system != 'windows')
+    install: true,
+    install_dir: '.',
+    install_tag: meson.project_name(),
 )
+
+global_install_tags = [meson.project_name()]
+if host_system == 'darwin'
+    global_install_tags += meson.project_name() + '-bundle'
+endif
+
+summary('HTTPS support', get_option('enable-https'), bool_yn: true)
+summary('License', gplv3_features.length() != 0 ? 'GPL-3.0-or-later' : 'GPL-2.0-or-later')
+if gplv3_features.length() != 0
+    summary('Enabled features requiring GPLv3', gplv3_features)
+endif
+
+foreach install_tag : global_install_tags
+    install_data(
+        gplv3_features.length() != 0 ? 'assets/LICENSE.mkxp-z-with-https.txt' : 'COPYING',
+        rename: 'LICENSE.txt',
+        install_dir: '.',
+        install_tag: install_tag,
+    )
+
+    install_data(
+        'mkxp.json',
+        install_dir: '.',
+        install_tag: install_tag,
+    )
+
+    meson.add_install_script(
+        python,
+        files('assets/install-directory.py'),
+        meson.project_source_root() / 'scripts',
+        'scripts',
+        install_tag: install_tag,
+    )
+
+    if ruby.type_name() == 'internal'
+        ruby_version = ruby.version().split('.')[0] + '.' + ruby.version().split('.')[1]
+        meson.add_install_script(
+            python,
+            files('assets/install-directory.py'),
+            meson.global_build_root() / 'subprojects' / ('ruby-' + ruby_version) / 'dist' / 'lib' / 'ruby' / (ruby_version + '.0'),
+            'stdlib',
+            install_tag: install_tag,
+        )
+    endif
+endforeach
+
+if host_system == 'darwin'
+    configure_file(
+        input: 'macos/Info.plist.in',
+        output: 'Info.plist',
+        configuration: {
+            'CFBundleExecutable': meson.project_name() + '-bundle',
+            'CFBundleGetInfoString': meson.project_name(),
+            'CFBundleIdentifier': meson.project_name(),
+            'CFBundleName': meson.project_name(),
+            'CFBundleShortVersionString': meson.project_version(),
+        },
+        install: true,
+        install_dir: (exe_name + '.app') / 'Contents',
+        install_tag: meson.project_name() + '-bundle',
+    )
+
+    install_data(
+        'macos/icon.icns',
+        install_dir: (exe_name + '.app') / 'Contents' / 'Resources',
+        install_tag: meson.project_name() + '-bundle',
+    )
+
+    custom_target(
+        meson.project_name() + '-bundle',
+        output: meson.project_name() + '-bundle',
+        command: ['cp', exe, '@OUTPUT@'],
+        install: true,
+        install_mode: 'rwxr-xr-x',
+        install_dir: (exe_name + '.app') / 'Contents' / 'MacOS',
+        install_tag: meson.project_name() + '-bundle',
+    )
+endif

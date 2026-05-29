@@ -8,8 +8,6 @@
 #import <AppKit/AppKit.h>
 #import <SDL_syswm.h>
 
-#import <SDL_filesystem.h>
-
 #import "filesystemImpl.h"
 #import "util/exception.h"
 
@@ -62,16 +60,23 @@ std::string filesystemImpl::normalizePath(const char *path, bool preferred, bool
 }
 
 std::string filesystemImpl::getDefaultGameRoot() {
-    if ([[NSBundle mainBundle] bundleIdentifier] == nil) {
-        char *p = SDL_GetBasePath();
-        std::string ret(p);
-        SDL_free(p);
-        return ret;
-    }
-
     @autoreleasepool {
-        NSString *p = [NSString stringWithFormat: @"%@/%s", NSBundle.mainBundle.bundlePath, "Contents/Game"];
-        return std::string(NSTOPATH(p));
+        NSString *defaultGameRoot = nil;
+        if ([[NSBundle mainBundle] bundleIdentifier] == nil) {
+            /* The executable isn't inside of a bundle; use the directory containing the executable as the default game root */
+            defaultGameRoot = [[NSBundle mainBundle] bundlePath];
+        } else {
+            NSString *contentsGamePath = [[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"Contents"] stringByAppendingPathComponent:@"Game"];
+            bool isDir;
+            if ([NSFileManager.defaultManager fileExistsAtPath:contentsGamePath isDirectory:&isDir] && isDir) {
+                /* The executable is inside of a bundle and Contents/Game exists inside the bundle; use Contents/Game in the bundle as the default game root */
+                defaultGameRoot = contentsGamePath;
+            } else {
+                /* The executable is inside of a bundle and Contents/Game doesn't exist inside the bundle; use the directory that contains the bundle as the default game root */
+                defaultGameRoot = [[[NSBundle mainBundle] bundlePath] stringByDeletingLastPathComponent];
+            }
+        }
+        return std::string(NSTOPATH(defaultGameRoot));
     }
 }
 

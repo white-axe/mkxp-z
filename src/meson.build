@@ -120,6 +120,7 @@ libffi_libs = ['-L' + meson.global_build_root() / 'subprojects' / 'libffi-3.5.2'
 
 # If OpenSSL is present, you get HTTPS support
 if get_option('enable-https')
+    gplv3_features += 'HTTPS support'
     openssl_options = meson_base_options
     openssl = subproject('openssl', default_options: openssl_options).get_variable('openssl_dep')
     meson.override_dependency('openssl', openssl, static: true)
@@ -210,6 +211,7 @@ spirv_tools_options.add_cmake_defines(cmake_base_options + {
 meson.override_dependency('SPIRV-Tools', cmake.subproject('spirv-tools', options: spirv_tools_options).dependency('SPIRV-Tools-static'), static: true)
 subproject('volk', default_options: meson_base_options)
 subproject('angle', default_options: meson_base_options)
+gplv3_features += 'ANGLE Vulkan backend'
 
 sdl2_options = meson_base_options + {
     'test': false,
@@ -288,6 +290,8 @@ if is_nix
         'oss-output': 'disabled',
         'dbus': 'disabled',
         'glib': 'disabled',
+        'bashcompletiondir': 'no',
+        'zshcompletiondir': 'no',
     }
     pulseaudio = subproject('pulseaudio', default_options: pulseaudio_options).get_variable('libpulse_dep')
     meson.override_dependency('libpulse', pulseaudio, static: true)
@@ -528,6 +532,7 @@ if build_static == true
     if host_system == 'windows'
         # '-static-libgcc', '-static-libstdc++' are here to avoid needing to ship a separate libgcc_s_seh-1.dll on Windows; it still works without those flags if you have the dll.
         global_link_args += ['-static-libgcc', '-static-libstdc++', '-Wl,-Bstatic', '-lgcc', '-lstdc++', '-lpthread', '-Wl,-Bdynamic']
+        gplv3_features += 'static libstdc++'
     endif
 endif
 

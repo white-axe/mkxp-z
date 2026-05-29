@@ -120,7 +120,7 @@ jobs:
       - name: Configure
         shell: msys2 {0}
         run: |
-          meson setup --buildtype release -Db_lto=true build
+          meson setup --prefix "$(realpath build/artifact)" --buildtype release -Db_lto=true build
 
       - name: Build
         id: build
@@ -149,18 +149,11 @@ jobs:
         run: |
           exit ${{ steps.build.outputs.exit-code }}
 
-      - name: Prepare archive
+      - name: Prepare artifact
         shell: msys2 {0}
         run: |
-          mkdir build/artifact
-          cd build/artifact
-          cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
-          mv ./3.1.0 ./stdlib
-          cp ../mkxp-z.exe .
-          strip mkxp-z.exe
-          cp ../../mkxp.json .
-          cp -r ../../scripts .
-          cp ../../assets/LICENSE.mkxp-z-with-https.txt .
+          cd build
+          meson install --no-rebuild --tags mkxp-z
 
       - name: Check for DLLs missing from the artifact
         shell: msys2 {0}
@@ -191,7 +184,8 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
           name: mkxp-z.windows.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/artifact
@@ -231,7 +225,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --buildtype release -Db_lto=true build
+          meson setup --prefix "$(realpath build/artifact)" --buildtype release -Db_lto=true build
 
       - name: Build
         id: build
@@ -257,19 +251,13 @@ jobs:
         run: |
           exit ${{ steps.build.outputs.exit-code }}
 
-      - name: Prepare archive
+      - name: Prepare artifact
         run: |
-          mkdir build/artifact
-          cd build/artifact
-          cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
-          mv ./3.1.0 ./stdlib
-          cp ../mkxp-z.x86_64 .
-          strip mkxp-z.x86_64
-          cp ../../mkxp.json .
-          cp -r ../../scripts .
-          cp ../../assets/LICENSE.mkxp-z-with-https.txt .
+          cd build
+          meson install --no-rebuild --tags mkxp-z
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
           name: mkxp-z.linux.ubuntu.22.04.x86_64.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/artifact
@@ -355,7 +343,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Db_lto=true build
+          meson setup --prefix "$(realpath build/artifact)" --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Db_lto=true build
 
       - name: Build
         id: build
@@ -381,19 +369,13 @@ jobs:
         run: |
           exit ${{ steps.build.outputs.exit-code }}
 
-      - name: Prepare archive
+      - name: Prepare artifact
         run: |
-          mkdir build/artifact
-          cd build/artifact
-          cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
-          mv ./3.1.0 ./stdlib
-          find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
-          find . -type f -name 'mkxp-z.*' | xargs ${{ matrix.arch_gcc }}-strip
-          cp ../../mkxp.json .
-          cp -r ../../scripts .
-          cp ../../assets/LICENSE.mkxp-z-with-https.txt .
+          cd build
+          meson install --no-rebuild --tags mkxp-z
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
           name: mkxp-z.linux.ubuntu.22.04.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/artifact
@@ -436,7 +418,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --buildtype release -Db_lto=true build
+          meson setup --prefix "$(realpath build/artifact)" --buildtype release -Db_lto=true build
 
       - name: Build
         id: build
@@ -462,19 +444,13 @@ jobs:
         run: |
           exit ${{ steps.build.outputs.exit-code }}
 
-      - name: Prepare archive
+      - name: Prepare artifact
         run: |
-          mkdir build/artifact
-          cd build/artifact
-          cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
-          mv ./3.1.0 ./stdlib
-          cp ../mkxp-z.x86_64 .
-          strip mkxp-z.x86_64
-          cp ../../mkxp.json .
-          cp -r ../../scripts .
-          cp ../../assets/LICENSE.mkxp-z-with-https.txt .
+          cd build
+          meson install --no-rebuild --tags mkxp-z
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
           name: mkxp-z.linux.debian.trixie.x86_64.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/artifact
@@ -555,7 +531,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Db_lto=true build
+          meson setup --prefix "$(realpath build/artifact)" --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Db_lto=true build
 
       - name: Build
         id: build
@@ -581,19 +557,13 @@ jobs:
         run: |
           exit ${{ steps.build.outputs.exit-code }}
 
-      - name: Prepare archive
+      - name: Prepare artifact
         run: |
-          mkdir build/artifact
-          cd build/artifact
-          cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
-          mv ./3.1.0 ./stdlib
-          find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
-          find . -type f -name 'mkxp-z.*' | xargs ${{ matrix.arch_gcc }}-strip
-          cp ../../mkxp.json .
-          cp -r ../../scripts .
-          cp ../../assets/LICENSE.mkxp-z-with-https.txt .
+          cd build
+          meson install --no-rebuild --tags mkxp-z
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
           name: mkxp-z.linux.debian.trixie.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/artifact
@@ -640,7 +610,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --cross-file macos/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Db_lto=true build
+          meson setup --prefix "$(realpath build/artifact)" --cross-file macos/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Db_lto=true build
 
       - name: Build
         id: build
@@ -666,23 +636,24 @@ jobs:
         run: |
           exit ${{ steps.build.outputs.exit-code }}
 
-      - name: Prepare archive
+      - name: Prepare artifacts
         run: |
-          mkdir build/artifact
-          cd build/artifact
-          cp -r ../subprojects/ruby-3.1/dist/lib/ruby/3.1.0 .
-          mv ./3.1.0 ./stdlib
-          find .. -type f -name 'mkxp-z.*' | xargs -I {} cp {} .
-          find . -type f -name 'mkxp-z.*' | xargs strip -x
-          cp ../../mkxp.json .
-          cp -r ../../scripts .
-          cp ../../assets/LICENSE.mkxp-z-with-https.txt .
+          cd build
+          meson install --no-rebuild --tags mkxp-z-bundle
+          mv artifact artifact-bundle
+          meson install --no-rebuild --tags mkxp-z
 
-      - name: Upload archive
+      - name: Upload standalone artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mkxp-z.macos.${{ matrix.arch_mkxpz }}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          name: mkxp-z.macos.${{ matrix.arch_mkxpz }}.standalone.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/artifact
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mkxp-z.macos.${{ matrix.arch_mkxpz }}.app.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          path: build/artifact-bundle
 
   build-macos-universal:
     name: macOS universal
@@ -694,25 +665,53 @@ jobs:
         with:
           length: 7
 
-      - name: Download arm64 build
+      - name: Download arm64 standalone artifact
         uses: actions/download-artifact@v4
         with:
-          name: mkxp-z.macos.arm64.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          name: mkxp-z.macos.arm64.standalone.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: artifact-arm64
 
-      - name: Download x86_64 build
+      - name: Download arm64 bundle artifact
         uses: actions/download-artifact@v4
         with:
-          name: mkxp-z.macos.x86_64.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          name: mkxp-z.macos.arm64.bundle.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          path: artifact-bundle-arm64
+
+      - name: Download x86_64 standalone artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mkxp-z.macos.x86_64.standalone.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: artifact-x86_64
+
+      - name: Download x86_64 bundle artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mkxp-z.macos.x86_64.bundle.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          path: artifact-bundle-x86_64
 
       - name: Build
         run: |
-          lipo artifact-arm64/mkxp-z.aarch64 artifact-x86_64/mkxp-z.x86_64 -output artifact-arm64/mkxp-z.universal -create
-          rm artifact-arm64/mkxp-z.aarch64
+          lipo artifact-arm64/mkxp-z.aarch64 artifact-x86_64/mkxp-z.x86_64 -output mkxp-z.universal -create
+          cp -p -R artifact-arm64/* artifact-x86_64/
+          mv artifact-x86_64 artifact
+          rm artifact/mkxp-z.aarch64
+          rm artifact/mkxp-z.x86_64
+          mv mkxp-z.universal artifact/
+          lipo artifact-bundle-arm64/mkxp-z.aarch64.app/Contents/MacOS/mkxp-z-bundle artifact-bundle-x86_64/mkxp-z.x86_64.app/Contents/MacOS/mkxp-z-bundle -output mkxp-z-bundle -create
+          mv artifact-bundle-arm64/mkxp-z.aarch64.app artifact-bundle-arm64/mkxp-z.universal.app
+          mv artifact-bundle-x86_64/mkxp-z.aarch64.app artifact-bundle-x86_64/mkxp-z.universal.app
+          cp -p -R artifact-bundle-arm64/* artifact-bundle-x86_64/*
+          mv artifact-bundle-x86_64 artifact-bundle
+          mv mkxp-z-bundle artifact-bundle/mkxp-z.universal.app/Contents/MacOS/
 
-      - name: Upload archive
+      - name: Upload standalone artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mkxp-z.macos.universal.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
-          path: artifact-arm64
+          name: mkxp-z.macos.universal.standalone.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          path: artifact
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mkxp-z.macos.universal.app.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          path: artifact-bundle
