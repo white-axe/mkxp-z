@@ -1,4 +1,4 @@
-project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=1.2.0', default_options: ['cpp_std=c++14', 'buildtype=release'])
+project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=1.2.0', default_options: ['cpp_std=c++14'])
 if host_machine.system() == 'darwin'
     add_languages('objcpp', native: false)
 endif
