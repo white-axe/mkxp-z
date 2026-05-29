@@ -674,7 +674,7 @@ jobs:
       - name: Download arm64 bundle artifact
         uses: actions/download-artifact@v4
         with:
-          name: mkxp-z.macos.arm64.bundle.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          name: mkxp-z.macos.arm64.app.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: artifact-bundle-arm64
 
       - name: Download x86_64 standalone artifact
@@ -686,7 +686,7 @@ jobs:
       - name: Download x86_64 bundle artifact
         uses: actions/download-artifact@v4
         with:
-          name: mkxp-z.macos.x86_64.bundle.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          name: mkxp-z.macos.x86_64.app.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: artifact-bundle-x86_64
 
       - name: Build
