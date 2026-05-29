@@ -7,10 +7,9 @@
  % }
  end
 -builddir = File.dirname(File.expand_path(__FILE__))
--srcdir = "<%=arg['srcdir']%>"
--top_srcdir = File.realpath(srcdir, builddir)
 +builddir = File.dirname(File.expand_path(__FILE__)); if /mswin|mingw/ =~ RUBY_PLATFORM then r, w = IO.pipe; Process.wait(Process.spawn('cygpath', '-m', builddir, out: w)); w.close; builddir = r.gets.strip; r.close end
-+srcdir = "<%=arg['srcdir']%>"; if /mswin|mingw/ =~ RUBY_PLATFORM && srcdir.start_with?('/') then r, w = IO.pipe; Process.wait(Process.spawn('cygpath', '-m', builddir, out: w)); w.close; builddir = r.gets.strip; r.close end
+ srcdir = "<%=arg['srcdir']%>"
+-top_srcdir = File.realpath(srcdir, builddir)
 +top_srcdir = File.realpath(srcdir)
  fake = File.join(top_srcdir, "tool/fake.rb")
  eval(File.binread(fake), nil, fake)
