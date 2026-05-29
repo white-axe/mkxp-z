@@ -43,24 +43,7 @@ cflags += get_option('cflags')
 
 srcdir = meson.project_source_root()
 if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
-    srcdir = srcdir.replace('\\', '/')
-    if not srcdir.startswith('/')
-        srcdir = '/' + srcdir
-    endif
-    if srcdir.contains(':')
-        srcdir_components_in = srcdir.split(':')
-        srcdir_components_out = []
-        i = 0
-        foreach srcdir_component : srcdir_components_in
-            if i == 0
-                srcdir_components_out += srcdir_component.to_lower()
-            else
-                srcdir_components_out += srcdir_component
-            endif
-            i += 1
-        endforeach
-        srcdir = ''.join(srcdir_components_out)
-    endif
+    srcdir = run_command(find_program('cygpath'), '-u', srcdir, check: true).stdout().strip()
 endif
 
 libffi = declare_dependency(

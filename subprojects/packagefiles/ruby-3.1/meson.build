@@ -67,73 +67,22 @@ ldflags += get_option('ldflags')
 
 srcdir = meson.project_source_root()
 if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
-    srcdir = srcdir.replace('\\', '/')
-    if not srcdir.startswith('/')
-        srcdir = '/' + srcdir
-    endif
-    if srcdir.contains(':')
-        srcdir_components_in = srcdir.split(':')
-        srcdir_components_out = []
-        i = 0
-        foreach srcdir_component : srcdir_components_in
-            if i == 0
-                srcdir_components_out += srcdir_component.to_lower()
-            else
-                srcdir_components_out += srcdir_component
-            endif
-            i += 1
-        endforeach
-        srcdir = ''.join(srcdir_components_out)
-    endif
+    srcdir = run_command(find_program('cygpath'), '-u', srcdir, check: true).stdout().strip()
 endif
 
 destdir = meson.project_build_root() / 'dist'
 if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
-    destdir = destdir.replace('\\', '/')
+    destdir = run_command(find_program('cygpath'), '-m', destdir, check: true).stdout().strip()
 endif
 
 baseruby = find_program('ruby', required: true).full_path()
 if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
-    baseruby = baseruby.replace('\\', '/')
-    if not baseruby.startswith('/')
-        baseruby = '/' + baseruby
-    endif
-    if baseruby.contains(':')
-        baseruby_components_in = baseruby.split(':')
-        baseruby_components_out = []
-        i = 0
-        foreach baseruby_component : baseruby_components_in
-            if i == 0
-                baseruby_components_out += baseruby_component.to_lower()
-            else
-                baseruby_components_out += baseruby_component
-            endif
-            i += 1
-        endforeach
-        baseruby = ''.join(baseruby_components_out)
-    endif
+    baseruby = run_command(find_program('cygpath'), '-u', baseruby, check: true).stdout().strip()
 endif
 
 bison = find_program('bison', required: true).full_path()
 if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
-    bison = bison.replace('\\', '/')
-    if not bison.startswith('/')
-        bison = '/' + bison
-    endif
-    if bison.contains(':')
-        bison_components_in = bison.split(':')
-        bison_components_out = []
-        i = 0
-        foreach bison_component : bison_components_in
-            if i == 0
-                bison_components_out += bison_component.to_lower()
-            else
-                bison_components_out += bison_component
-            endif
-            i += 1
-        endforeach
-        bison = ''.join(bison_components_out)
-    endif
+    bison = run_command(find_program('cygpath'), '-u', bison, check: true).stdout().strip()
 endif
 
 ruby_deps = [
