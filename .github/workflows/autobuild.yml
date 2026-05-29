@@ -120,7 +120,7 @@ jobs:
       - name: Configure
         shell: msys2 {0}
         run: |
-          meson setup --prefix "$(realpath .)" --buildtype release -Dstrip=true -Db_lto=true build
+          meson setup --prefix "$(realpath .)/build/artifact" --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
