@@ -263,7 +263,7 @@ if host_system == 'darwin'
         input: 'macos/Info.plist.in',
         output: 'Info.plist',
         configuration: {
-            'CFBundleExecutable': meson.project_name() + '-bundle',
+            'CFBundleExecutable': meson.project_name(),
             'CFBundleGetInfoString': meson.project_name(),
             'CFBundleIdentifier': meson.project_name(),
             'CFBundleName': meson.project_name(),
