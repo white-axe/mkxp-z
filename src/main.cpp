@@ -29,8 +29,8 @@
 #include <SDL_sound.h>
 #include <SDL_ttf.h>
 
-#include <assert.h>
-#include <string.h>
+#include <cassert>
+#include <cstring>
 #include <string>
 #include <unistd.h>
 
@@ -204,11 +204,12 @@ int main(int argc, char *argv[]) {
     SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
 
 #ifdef MKXPZ_CHECK_FOR_WAYLAND_SUPPORT
-    /* Select SDL's Wayland video driver if SDL_VIDEODRIVER is unset and Wayland support is available on the user's machine */
     {
       char *sdl_videodriver = getenv("SDL_VIDEODRIVER");
       if (sdl_videodriver == nullptr || sdl_videodriver[0] == 0) {
+        /* Select SDL's Wayland video driver if SDL_VIDEODRIVER is unset and Wayland support is available on the user's machine */
         setenv("SDL_VIDEODRIVER", "x11", true);
+        mkxp_angle_egl_is_wayland = false;
         void *wayland_client = dlopen("libwayland-client.so", RTLD_LAZY);
         if (wayland_client != nullptr) {
           void *(*_wl_display_connect)(const char *name) = reinterpret_cast<void *(*)(const char *name)>(dlsym(wayland_client, "wl_display_connect"));
@@ -223,6 +224,8 @@ int main(int argc, char *argv[]) {
           }
           dlclose(wayland_client);
         }
+      } else {
+        mkxp_angle_egl_is_wayland = std::strcmp(sdl_videodriver, "wayland") == 0;
       }
     }
 #endif
@@ -235,7 +238,7 @@ int main(int argc, char *argv[]) {
 #elif !defined(_WIN32)
         setenv("ANGLE_DEFAULT_PLATFORM", "vulkan", true);
 #endif
-      } else if (strcmp(angle_default_platform, "gl") == 0) {
+      } else if (std::strcmp(angle_default_platform, "gl") == 0) {
         mkxp_use_angle = false;
       }
     }
@@ -262,11 +265,11 @@ int main(int argc, char *argv[]) {
     char *tmp{};
     tmp = getenv("SRCDIR");
     if (tmp) {
-      strncpy(dataDir, tmp, sizeof(dataDir));
+      std::strncpy(dataDir, tmp, sizeof(dataDir));
     }
 #endif
     if (!dataDir[0]) {
-        strncpy(dataDir, mkxp_fs::getDefaultGameRoot().c_str(), sizeof(dataDir));
+      std::strncpy(dataDir, mkxp_fs::getDefaultGameRoot().c_str(), sizeof(dataDir));
     }
     mkxp_fs::setCurrentDirectory(dataDir);
 #endif
