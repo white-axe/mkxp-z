@@ -1,4 +1,4 @@
-project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=1.2.0', default_options: ['cpp_std=c++14'])
+project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=1.2.0')
 if host_machine.system() == 'darwin'
     add_languages('objcpp', native: false)
 endif
@@ -27,6 +27,7 @@ global_cpp_args = []
 global_objc_args = ['-fobjc-arc']
 global_objcpp_args = []
 global_link_args = []
+global_std = ['c_std=c99', 'cpp_std=c++14']
 
 python = subproject('tools').get_variable('python')
 embedtool = subproject('tools').get_variable('embedtool')
@@ -181,6 +182,7 @@ if steamworks == true
         dependencies: steamlib,
         cpp_args: shim_args,
         link_args: la.split(),
+        override_options: global_std,
         win_subsystem: shim_ws,
         install: true,
         install_dir: '.',
@@ -202,6 +204,7 @@ exe = executable(exe_name,
         cpp_args: global_args + global_cpp_args,
         objc_args: global_args + global_objc_args,
         objcpp_args: global_args + global_objc_args + global_cpp_args + global_objcpp_args,
+        override_options: global_std,
     ),
     include_directories: global_include_dirs,
     link_args: global_link_args,
