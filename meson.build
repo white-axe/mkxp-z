@@ -237,11 +237,9 @@ foreach install_tag : global_install_tags
         install_tag: install_tag,
     )
 
-    meson.add_install_script(
-        python,
-        files('assets/install-directory.py'),
-        meson.project_source_root() / 'scripts',
+    install_subdir(
         'scripts',
+        install_dir: '.',
         install_tag: install_tag,
     )
 

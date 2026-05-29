@@ -5,5 +5,4 @@ import sys
 srcdir = sys.argv[1]
 destdir = os.path.join(os.getenv('MESON_INSTALL_DESTDIR_PREFIX'), sys.argv[2])
 
-shutil.rmtree(destdir, ignore_errors=True)
 shutil.copytree(srcdir, destdir)
