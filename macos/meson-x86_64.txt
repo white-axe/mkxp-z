@@ -4,7 +4,7 @@ cpp = ['ccache', 'clang++', '--target=x86_64-apple-macos11.0']
 objc = ['ccache', 'clang', '--target=x86_64-apple-macos11.0']
 objcpp = ['ccache', 'clang++', '--target=x86_64-apple-macos11.0']
 ar = 'ar'
-strip = ['strip', '-x']
+strip = 'strip'
 cmake = 'cmake'
 
 [host_machine]
