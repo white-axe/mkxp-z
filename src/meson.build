@@ -378,7 +378,7 @@ else
         error('ANGLE support requires vendored SDL')
     endif
     have_angle = false
-    sdl2_includes = ['-I' + (sdl2.get_variable(pkgconfig: 'includedir') / 'SDL2')]
+    sdl2_includes = ['-I' + (sdl2.get_variable(pkgconfig: 'includedir') / 'SDL2'), '-I' + sdl2.get_variable(pkgconfig: 'includedir')]
 endif
 global_dependencies += [sdl2main, sdl2]
 
