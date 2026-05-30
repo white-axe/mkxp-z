@@ -214,14 +214,8 @@ exe = executable(exe_name,
     include_directories: global_include_dirs,
     link_args: global_link_args,
     win_subsystem: 'windows',
-)
-
-meson.add_install_script(
-    python,
-    files('assets/install-executable.py'),
-    exe,
-    exe_name,
-    strip,
+    install: true,
+    install_dir: '.',
     install_tag: meson.project_name(),
 )
 
