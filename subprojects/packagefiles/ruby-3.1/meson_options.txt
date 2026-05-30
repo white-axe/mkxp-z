@@ -1,3 +1,2 @@
-option('cflags', type: 'array', value: [])
-option('cppflags', type: 'array', value: [])
-option('ldflags', type: 'array', value: [])
+option('cflags', type: 'string', value: '')
+option('ldflags', type: 'string', value: '')

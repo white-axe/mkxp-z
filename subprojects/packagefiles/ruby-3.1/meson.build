@@ -42,8 +42,6 @@ cflags += '-std=gnu99'
 
 cflags += get_option('c_args')
 
-cflags += get_option('cflags')
-
 ldflags = []
 
 linker_id = meson.get_compiler('c').get_linker_id()
@@ -62,8 +60,6 @@ if get_option('b_lto')
 endif
 
 ldflags += get_option('c_link_args')
-
-ldflags += get_option('ldflags')
 
 srcdir = meson.project_source_root()
 if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
@@ -119,8 +115,9 @@ ruby = declare_dependency(
                 '--without-gmp',
                 'CC=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
                 'CXX=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', meson.get_compiler('cpp').cmd_array(), check: true).stdout().strip(),
-                'CFLAGS=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', cflags, check: true).stdout().strip(),
-                'LDFLAGS=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', ldflags, check: true).stdout().strip(),
+                'CFLAGS=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', cflags, check: true).stdout().strip() + ' ' + get_option('cflags'),
+                'CXXFLAGS=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', cflags, check: true).stdout().strip() + ' ' + get_option('cflags'),
+                'LDFLAGS=' + run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', ldflags, check: true).stdout().strip() + ' ' + get_option('ldflags'),
             ],
             cross_configure_options: [
                 '--host=@HOST@',

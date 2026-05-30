@@ -25,7 +25,7 @@ libiconv = declare_dependency(
                     libiconv_config,
                 ],
             ),
-            c_args: get_option('cflags') + ['-DBUILDING_LIBCHARSET'],
+            c_args: ['-DBUILDING_LIBCHARSET'],
             include_directories: 'libcharset/include',
             sources: [
                 'libcharset/lib/localcharset.c',
@@ -49,7 +49,7 @@ libiconv = declare_dependency(
                 ),
             ],
         ),
-        c_args: get_option('cflags') + ['-DBUILDING_LIBICONV', '-DBUILDING_LIBCHARSET', '-DICONV_CONST=' + configuration['ICONV_CONST'], '-DENABLE_EXTRA'],
+        c_args: ['-DBUILDING_LIBICONV', '-DBUILDING_LIBCHARSET', '-DICONV_CONST=' + configuration['ICONV_CONST'], '-DENABLE_EXTRA'],
         include_directories: 'include',
         sources: [
             'lib/iconv.c',

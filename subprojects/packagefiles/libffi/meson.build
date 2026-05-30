@@ -39,8 +39,6 @@ endif
 
 cflags += get_option('c_args')
 
-cflags += get_option('cflags')
-
 srcdir = meson.project_source_root()
 if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
     srcdir = run_command(find_program('cygpath'), '-u', srcdir, check: true).stdout().strip()

@@ -1,2 +1,0 @@
-option('cflags', type: 'array', value: [])
-option('cppflags', type: 'array', value: [])

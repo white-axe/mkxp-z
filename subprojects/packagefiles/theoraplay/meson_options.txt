@@ -1,2 +1,1 @@
-option('cflags', type: 'array', value: [])
 option('thread', type: 'feature', value: 'auto')

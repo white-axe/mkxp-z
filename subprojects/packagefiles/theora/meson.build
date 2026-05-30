@@ -10,7 +10,6 @@ theoradec = declare_dependency(
         dependencies: [
             dependency('ogg', required: true),
         ],
-        c_args: get_option('cflags'),
         include_directories: 'include',
         sources: [
             'lib/apiwrapper.c',

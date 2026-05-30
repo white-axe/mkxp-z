@@ -827,9 +827,8 @@ if not ruby.found()
         ruby_external_ldflags += libffi_libs
     endif
     ruby_options = meson_base_options + {
-        'cflags': ruby_internal_cflags + ruby_external_cflags,
-        'cppflags': ruby_internal_cflags + ruby_external_cflags,
-        'ldflags': ruby_internal_ldflags + ruby_external_ldflags,
+        'cflags': run_command(python, quotetool, build_machine.system(), 'false', ruby_internal_cflags + ruby_external_cflags, check: true).stdout().strip(),
+        'ldflags': run_command(python, quotetool, build_machine.system(), 'false', ruby_internal_ldflags + ruby_external_ldflags, check: true).stdout().strip()
     }
     ruby = subproject(ruby_dependency_name, default_options: ruby_options).get_variable('ruby')
 endif

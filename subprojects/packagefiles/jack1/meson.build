@@ -4,7 +4,7 @@ jack1 = declare_dependency(
     include_directories: '.',
     link_with: library(
         'jack',
-        c_args: get_option('cflags') + [
+        c_args: [
             '-DDEFAULT_TMP_DIR="/tmp"',
             '-DDO_BUFFER_RESIZE',
             '-DHAVE_CLOCK_GETTIME',

@@ -10,7 +10,7 @@ theoraplay = declare_dependency(
             dependency('theoradec', required: true),
             dependency('vorbis', required: true),
         ],
-        c_args: (have_thread ? ['-DTHEORAPLAY_ONLY_SINGLE_THREADED=0'] : ['-DTHEORAPLAY_ONLY_SINGLE_THREADED=1']) + get_option('cflags'),
+        c_args: have_thread ? ['-DTHEORAPLAY_ONLY_SINGLE_THREADED=0'] : ['-DTHEORAPLAY_ONLY_SINGLE_THREADED=1'],
         sources: [
             'theoraplay.c',
         ],
