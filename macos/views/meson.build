@@ -3,7 +3,6 @@ global_dependencies += declare_dependency(sources: [
         'settingsmenu.nib.xxd',
         output: 'settingsmenu.nib.xxd',
         command: [
-            python,
             embedtool,
             custom_target(
                 'settingsmenu.nib',
@@ -22,7 +21,6 @@ global_dependencies += declare_dependency(sources: [
         'gear.svg.xxd',
         output: 'gear.svg.xxd',
         command: [
-            python,
             embedtool,
             files('gear.svg'),
             '@OUTPUT@',
@@ -33,7 +31,6 @@ global_dependencies += declare_dependency(sources: [
         'gobackward.svg.xxd',
         output: 'gobackward.svg.xxd',
         command: [
-            python,
             embedtool,
             files('gobackward.svg'),
             '@OUTPUT@',
