@@ -75,13 +75,13 @@ baseruby = find_program('ruby', required: true).full_path()
 if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
     baseruby = run_command(find_program('cygpath'), '-u', baseruby, check: true).stdout().strip()
 endif
-baseruby = run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', baseruby, check: true).stdout().strip()
+baseruby = run_command(subproject('tools').get_variable('quotetool'), baseruby, check: true).stdout().strip()
 
 bison = find_program('bison', required: true).full_path()
 if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
     bison = run_command(find_program('cygpath'), '-u', bison, check: true).stdout().strip()
 endif
-bison = run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', bison, check: true).stdout().strip()
+bison = run_command(subproject('tools').get_variable('quotetool'), bison, check: true).stdout().strip()
 
 ruby_deps = [
     dependency('libffi', required: true),
@@ -115,11 +115,11 @@ ruby = declare_dependency(
                 '--with-static-linked-ext',
                 '--disable-rubygems',
                 '--without-gmp',
-                'CC=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
-                'CXX=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', meson.get_compiler('cpp').cmd_array(), check: true).stdout().strip(),
-                'CFLAGS=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', cflags, check: true).stdout().strip() + ' ' + get_option('cflags'),
-                'CXXFLAGS=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', cflags, check: true).stdout().strip() + ' ' + get_option('cflags'),
-                'LDFLAGS=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', ldflags, check: true).stdout().strip() + ' ' + get_option('ldflags'),
+                'CC=' + run_command(subproject('tools').get_variable('quotetool'), meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
+                'CXX=' + run_command(subproject('tools').get_variable('quotetool'), meson.get_compiler('cpp').cmd_array(), check: true).stdout().strip(),
+                'CFLAGS=' + run_command(subproject('tools').get_variable('quotetool'), cflags, check: true).stdout().strip() + ' ' + get_option('cflags'),
+                'CXXFLAGS=' + run_command(subproject('tools').get_variable('quotetool'), cflags, check: true).stdout().strip() + ' ' + get_option('cflags'),
+                'LDFLAGS=' + run_command(subproject('tools').get_variable('quotetool'), ldflags, check: true).stdout().strip() + ' ' + get_option('ldflags'),
             ],
             cross_configure_options: [
                 '--host=@HOST@',
