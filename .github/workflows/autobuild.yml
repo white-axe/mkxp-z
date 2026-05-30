@@ -688,7 +688,7 @@ jobs:
           lipo artifact-bundle-arm64/mkxp-z.aarch64.app/Contents/MacOS/mkxp-z artifact-bundle-x86_64/mkxp-z.x86_64.app/Contents/MacOS/mkxp-z -output mkxp-z -create
           mv artifact-bundle-arm64/mkxp-z.aarch64.app artifact-bundle-arm64/mkxp-z.universal.app
           mv artifact-bundle-x86_64/mkxp-z.x86_64.app artifact-bundle-x86_64/mkxp-z.universal.app
-          cp -p -R artifact-bundle-arm64/* artifact-bundle-x86_64/*
+          cp -p -R artifact-bundle-arm64/* artifact-bundle-x86_64/
           mv artifact-bundle-x86_64 artifact-bundle
           mv mkxp-z artifact-bundle/mkxp-z.universal.app/Contents/MacOS/
 
