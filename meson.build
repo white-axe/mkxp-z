@@ -29,7 +29,7 @@ global_objcpp_args = []
 global_link_args = []
 global_std = ['c_std=c99', 'cpp_std=c++14']
 
-python = subproject('tools').get_variable('embedtool')
+python = subproject('tools').get_variable('python')
 embedtool = subproject('tools').get_variable('embedtool')
 quotetool = subproject('tools').get_variable('quotetool')
 
