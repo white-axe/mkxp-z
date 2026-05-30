@@ -48,7 +48,7 @@ struct Config {
     int bitmapSmoothScalingDown;
     bool smoothScalingMipmaps;
     int bicubicSharpness;
-#ifdef MKXPZ_SSL
+#ifdef MKXPZ_HAVE_EXTRA_SHADERS
     double xbrzScalingFactor;
 #endif
     bool enableHires;

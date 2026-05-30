@@ -949,7 +949,7 @@ void Sprite::draw()
             base = &shader;
         }
             break;
-#ifdef MKXPZ_SSL
+#ifdef MKXPZ_HAVE_EXTRA_SHADERS
         case xBRZ:
         {
             XbrzSpriteShader &shader = shState->shaders().xbrzSprite;
@@ -979,7 +979,7 @@ void Sprite::draw()
     
     p->bitmap->bindTex(*base, false);
 
-#ifdef MKXPZ_SSL
+#ifdef MKXPZ_HAVE_EXTRA_SHADERS
     if (scalingMethod == xBRZ)
     {
         XbrzShader &shader = shState->shaders().xbrz;

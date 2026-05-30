@@ -397,7 +397,7 @@ protected:
 	GLint u_bc;
 };
 
-#ifdef MKXPZ_SSL
+#ifdef MKXPZ_HAVE_EXTRA_SHADERS
 class XbrzShader : public Lanczos3Shader
 {
 public:
@@ -472,12 +472,12 @@ struct ShaderSet
 	KglShadowShaderV kglShadowV;
 	BicubicShader bicubic;
 	Lanczos3Shader lanczos3;
-#ifdef MKXPZ_SSL
+#ifdef MKXPZ_HAVE_EXTRA_SHADERS
 	XbrzShader xbrz;
 #endif
 	Lanczos3SpriteShader lanczos3Sprite;
 	BicubicSpriteShader bicubicSprite;
-#ifdef MKXPZ_SSL
+#ifdef MKXPZ_HAVE_EXTRA_SHADERS
 	XbrzSpriteShader xbrzSprite;
 #endif
 };

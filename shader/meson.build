@@ -35,7 +35,10 @@ embedded_shaders = [
 ]
 
 # xBRZ shader is GPLv3.
-if get_option('enable-https') == true
+have_extra_shaders = get_option('extra_shaders').allowed()
+if have_extra_shaders
+    gplv3_features += 'Extra shaders'
+    global_args += '-DMKXPZ_HAVE_EXTRA_SHADERS'
     embedded_shaders += 'xbrz.frag'
 endif
 

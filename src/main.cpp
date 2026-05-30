@@ -80,8 +80,10 @@ __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 #define GLINIT_SHOWERROR(s) rgssThreadError(threadData, s)
 #endif
 
+#ifdef MKXPZ_HAVE_ANGLE
 bool mkxp_use_angle = true;
 bool mkxp_angle_egl_is_wayland = false;
+#endif // MKXPZ_HAVE_ANGLE
 
 static void rgssThreadError(RGSSThreadData *rtData, const std::string &msg);
 static void showInitError(const std::string &msg);
@@ -209,7 +211,9 @@ int main(int argc, char *argv[]) {
       if (sdl_videodriver == nullptr || sdl_videodriver[0] == 0) {
         /* Select SDL's Wayland video driver if SDL_VIDEODRIVER is unset and Wayland support is available on the user's machine */
         setenv("SDL_VIDEODRIVER", "x11", true);
+#ifdef MKXPZ_HAVE_ANGLE
         mkxp_angle_egl_is_wayland = false;
+#endif // MKXPZ_HAVE_ANGLE
         void *wayland_client = dlopen("libwayland-client.so", RTLD_LAZY);
         if (wayland_client != nullptr) {
           void *(*_wl_display_connect)(const char *name) = reinterpret_cast<void *(*)(const char *name)>(dlsym(wayland_client, "wl_display_connect"));
@@ -219,23 +223,28 @@ int main(int argc, char *argv[]) {
             if (display != nullptr) {
               _wl_display_disconnect(display);
               setenv("SDL_VIDEODRIVER", "wayland", true);
+#ifdef MKXPZ_HAVE_ANGLE
               mkxp_angle_egl_is_wayland = true;
+#endif // MKXPZ_HAVE_ANGLE
             }
           }
           dlclose(wayland_client);
         }
       } else {
+#ifdef MKXPZ_HAVE_ANGLE
         mkxp_angle_egl_is_wayland = std::strcmp(sdl_videodriver, "wayland") == 0;
+#endif // MKXPZ_HAVE_ANGLE
       }
     }
-#endif
+#endif // MKXPZ_CHECK_FOR_WAYLAND_SUPPORT
 
+#ifdef MKXPZ_HAVE_ANGLE
     {
       char *angle_default_platform = getenv("ANGLE_DEFAULT_PLATFORM");
       if (angle_default_platform == nullptr || angle_default_platform[0] == 0) {
-#ifdef __APPLE__
+#ifdef MKXPZ_HAVE_ANGLE_METAL
         setenv("ANGLE_DEFAULT_PLATFORM", "metal", true);
-#elif !defined(_WIN32)
+#elif defined(MKXPZ_HAVE_ANGLE_VULKAN) && !defined(MKXPZ_HAVE_ANGLE_DIRECT3D9) && !defined(MKXPZ_HAVE_ANGLE_DIRECT3D11)
         setenv("ANGLE_DEFAULT_PLATFORM", "vulkan", true);
 #endif
       } else if (std::strcmp(angle_default_platform, "gl") == 0) {
@@ -247,6 +256,7 @@ int main(int argc, char *argv[]) {
       SDL_SetHint(SDL_HINT_OPENGL_ES_DRIVER, "1");
       SDL_SetHint(SDL_HINT_VIDEO_X11_FORCE_EGL, "1");
     }
+#endif // MKXPZ_HAVE_ANGLE
 
     /* initialize SDL first */
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_TIMER) < 0) {
@@ -365,9 +375,11 @@ int main(int argc, char *argv[]) {
     if (conf.fullscreen)
       winFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 
+#ifdef MKXPZ_HAVE_ANGLE
     if (mkxp_use_angle) {
       SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
     }
+#endif // MKXPZ_HAVE_ANGLE
     
     win = SDL_CreateWindow(conf.windowTitle.c_str(), SDL_WINDOWPOS_UNDEFINED,
                            SDL_WINDOWPOS_UNDEFINED, conf.defScreenW,

@@ -2,30 +2,26 @@ cmake = import('cmake')
 
 is_nix = host_system != 'windows' and host_system != 'cygwin' and host_system != 'darwin' and host_system != 'android'
 
+default_system_disabled = get_option('default_system').disabled()
+default_system_enabled = get_option('default_system').enabled()
+
 null_dep = dependency('', required: false)
 foreach dep_name : [
     host_system != 'linux' ? 'alsa' : '',
     'audioio',
     'avahi-client',
-    not is_nix ? 'dbus-1' : '',
     'epoll-shim',
     'fftw3f',
-    not is_nix ? 'gio-2.0' : '',
     'girepository-2.0',
-    not is_nix ? 'glib-2.0' : '',
-    not is_nix ? 'gmodule-2.0' : '',
-    not is_nix ? 'gobject-2.0' : '',
     'gobject-introspection-1.0',
     'gthread-2.0',
     'gtk+-3.0',
-    not is_nix ? 'ibus-1.0' : '',
     'intl',
     not is_nix ? 'jack' : '',
     'libapparmor',
     'libasyncns',
     'libcanberra',
     'libcrypt',
-    not is_nix ? 'libdecor-0' : '',
     'libdrm',
     'libffado',
     'libinotify',
@@ -34,14 +30,12 @@ foreach dep_name : [
     'libpulse-simple',
     'libselinux',
     'libsystemd',
-    not is_nix ? 'libudev' : '',
     'libusb-1.0',
     'libxcrypt',
     'mount',
     'ncursesw',
     'oboe',
     host_system != 'android' ? 'opensl' : '',
-    not get_option('enable-https') ? 'openssl' : '',
     'opus',
     'oss',
     'portaudio',
@@ -52,26 +46,7 @@ foreach dep_name : [
     not is_nix ? 'sndfile' : '',
     host_system != 'dragonfly' and host_system != 'freebsd' and host_system != 'netbsd' and host_system != 'openbsd' ? 'sndio' : '',
     'systemd',
-    not is_nix ? 'wayland-client' : '',
-    not is_nix ? 'wayland-cursor' : '',
-    not is_nix ? 'wayland-egl' : '',
-    not is_nix ? 'wayland-egl-backend' : '',
-    not is_nix ? 'wayland-protocols' : '',
-    not is_nix ? 'wayland-scanner' : '',
-    not is_nix ? 'wayland-server' : '',
     'vulkan',
-    not is_nix ? 'x11' : '',
-    not is_nix ? 'x11-xcb' : '',
-    not is_nix ? 'xau' : '',
-    not is_nix ? 'xcb' : '',
-    not is_nix ? 'xcursor' : '',
-    not is_nix ? 'xext' : '',
-    not is_nix ? 'xfixes' : '',
-    not is_nix ? 'xi' : '',
-    not is_nix ? 'xkbcommon' : '',
-    not is_nix ? 'xkbcommon-x11' : '',
-    not is_nix ? 'xrandr' : '',
-    not is_nix ? 'xrender' : '',
     'xscrnsaver',
     'xtrans',
 ]
@@ -98,73 +73,79 @@ meson_base_options = {
 
 subproject('libglvnd', default_options: meson_base_options)
 
-libiconv_options = meson_base_options
-libiconv = subproject('libiconv', default_options: libiconv_options).get_variable('libiconv')
+libiconv = dependency('iconv', allow_fallback: false, required: get_option('iconv_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+if not libiconv.found()
+    libiconv_options = meson_base_options
+    libiconv = subproject('libiconv', default_options: libiconv_options).get_variable('libiconv')
+endif
 global_dependencies += libiconv
 
-zlib_options = cmake.subproject_options()
-zlib_options.add_cmake_defines(cmake_base_options + {
-    'BUILD_SHARED_LIBS': false,
-    'ZLIB_BUILD_EXAMPLES': false,
-})
-zlib = cmake.subproject('zlib', options: zlib_options).dependency('z')
-zlib_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'zlib', '-I' + meson.project_build_root() / 'subprojects' / 'zlib' / '__CMake_build']
-zlib_libs = ['-L' + meson.project_build_root() / 'subprojects' / 'zlib']
-meson.override_dependency('zlib', zlib, static: true)
+zlib = dependency('zlib', allow_fallback: false, method: 'pkg-config', required: get_option('zlib_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+if not zlib.found()
+    zlib_options = cmake.subproject_options()
+    zlib_options.add_cmake_defines(cmake_base_options + {
+        'BUILD_SHARED_LIBS': false,
+        'ZLIB_BUILD_EXAMPLES': false,
+    })
+    zlib = cmake.subproject('zlib', options: zlib_options).dependency('z')
+    zlib_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'zlib', '-I' + meson.project_build_root() / 'subprojects' / 'zlib' / '__CMake_build']
+    zlib_libs = ['-L' + meson.project_build_root() / 'subprojects' / 'zlib']
+    meson.override_dependency('zlib', zlib, static: true)
+else
+    zlib_includes = ['-I' + zlib.get_variable(pkgconfig: 'includedir')]
+    zlib_libs = ['-L' + zlib.get_variable(pkgconfig: 'libdir')]
+endif
 global_dependencies += zlib
 
-libffi_options = meson_base_options
-libffi = subproject('libffi', default_options: libffi_options).get_variable('libffi')
-libffi_includes = ['-I' + meson.project_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' / 'include']
-libffi_libs = ['-L' + meson.project_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' / 'lib']
-
-# If OpenSSL is present, you get HTTPS support
-if get_option('enable-https')
-    gplv3_features += 'HTTPS support'
+require_system_openssl = get_option('openssl_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
+if get_option('openssl').disabled() or (get_option('openssl').auto() and require_system_openssl.enabled())
+    require_system_openssl = get_option('openssl')
+endif
+openssl = dependency('openssl', allow_fallback: false, required: require_system_openssl)
+if not openssl.found() and not get_option('openssl_system').enabled()
     openssl_options = meson_base_options
     openssl = subproject('openssl', default_options: openssl_options).get_variable('openssl_dep')
     meson.override_dependency('openssl', openssl, static: true)
+endif
+have_openssl = openssl.found()
+if have_openssl
+    gplv3_features += 'OpenSSL'
     global_dependencies += openssl
     global_args += '-DMKXPZ_SSL'
+else
+    meson.override_dependency('openssl', null_dep, static: true)
 endif
 
-physfs_options = cmake.subproject_options()
-physfs_options.add_cmake_defines(cmake_base_options + {
-    'PHYSFS_BUILD_STATIC': true,
-    'PHYSFS_BUILD_SHARED': false,
-    'PHYSFS_BUILD_TEST': false,
-    'PHYSFS_BUILD_DOCS': false,
-})
-physfs = declare_dependency(dependencies: [
-    cmake.subproject('physfs', options: physfs_options).dependency('physfs-static'),
-    host_system == 'darwin'
-        ? dependency(
-            'appleframeworks',
-            modules: [
-                'Foundation',
-                'IOKit',
-            ],
-            required: true,
-        )
-        : [],
-])
-meson.override_dependency('physfs', physfs, static: true)
+physfs = dependency('physfs', allow_fallback: false, required: get_option('physfs_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+if not physfs.found()
+    physfs_options = cmake.subproject_options()
+    physfs_options.add_cmake_defines(cmake_base_options + {
+        'PHYSFS_BUILD_STATIC': true,
+        'PHYSFS_BUILD_SHARED': false,
+        'PHYSFS_BUILD_TEST': false,
+        'PHYSFS_BUILD_DOCS': false,
+    })
+    physfs = declare_dependency(dependencies: [
+        cmake.subproject('physfs', options: physfs_options).dependency('physfs-static'),
+        host_system == 'darwin'
+            ? dependency(
+                'appleframeworks',
+                modules: [
+                    'Foundation',
+                    'IOKit',
+                ],
+                required: true,
+            )
+            : [],
+    ])
+    meson.override_dependency('physfs', physfs, static: true)
+endif
 global_dependencies += physfs
 
-fmt_options = cmake.subproject_options()
-fmt_options.add_cmake_defines(cmake_base_options + {
-    'LIBTYPE': 'STATIC',
-    'FMT_DOC': false,
-    'FMT_TEST': false,
-    'FMT_FUZZ': false,
-    'FMT_CUDA_TEST': false,
-    'FMT_MODULE': false,
-    'FMT_WERROR': false,
-})
-fmt = cmake.subproject('fmt', options: fmt_options).dependency('fmt')
-meson.override_dependency('fmt', fmt, static: true)
+sdl2 = dependency('sdl2', allow_fallback: false, method: 'pkg-config', required: get_option('sdl_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+sdl2main = sdl2
 
-if is_nix
+if is_nix and (not sdl2.found() or not sdl2main.found())
     subproject('expat', default_options: meson_base_options)
     subproject('libudev', default_options: meson_base_options)
     subproject('dbus', default_options: meson_base_options)
@@ -195,241 +176,508 @@ if is_nix
     subproject('wayland', default_options: meson_base_options)
     subproject('libxkbcommon', default_options: meson_base_options)
     subproject('libdecor', default_options: meson_base_options)
+else
+    foreach dep_name : [
+        'dbus-1',
+        'gio-2.0',
+        'glib-2.0',
+        'gmodule-2.0',
+        'gobject-2.0',
+        'ibus-1.0',
+        'libdecor-0',
+        'libudev',
+        'wayland-client',
+        'wayland-cursor',
+        'wayland-egl',
+        'wayland-egl-backend',
+        'wayland-protocols',
+        'wayland-scanner',
+        'wayland-server',
+        'x11',
+        'x11-xcb',
+        'xau',
+        'xcb',
+        'xcursor',
+        'xext',
+        'xfixes',
+        'xi',
+        'xkbcommon',
+        'xkbcommon-x11',
+        'xrandr',
+        'xrender',
+    ]
+        meson.override_dependency(dep_name, null_dep, static: true)
+    endforeach
 endif
 
-subproject('xxhash', default_options: meson_base_options)
-spirv_headers = subproject('spirv-headers', default_options: meson_base_options).get_variable('spirv_headers')
-spirv_tools_options = cmake.subproject_options()
-spirv_tools_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', '-I' + meson.project_source_root() / 'subprojects' / 'spirv-headers' / 'include', check: true).stdout().strip(),
-    'CMAKE_CXX_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', '-I' + meson.project_source_root() / 'subprojects' / 'spirv-headers' / 'include', check: true).stdout().strip(),
-    'SPIRV-Headers_SOURCE_DIR': meson.project_source_root() / 'subprojects' / 'spirv-headers',
-    'BUILD_SHARED_LIBS': false,
-    'BUILD_TESTING': false,
-    'SPIRV-TOOLS_USE_MIMALLOC': false,
-})
-meson.override_dependency('SPIRV-Tools', cmake.subproject('spirv-tools', options: spirv_tools_options).dependency('SPIRV-Tools-static'), static: true)
-subproject('volk', default_options: meson_base_options)
-subproject('angle', default_options: meson_base_options)
-gplv3_features += 'ANGLE Vulkan backend'
+if not sdl2.found() or not sdl2main.found()
+    have_angle = get_option('angle').allowed()
 
-sdl2_options = meson_base_options + {
-    'test': false,
-    'run_test': false,
-    'use_atomic': 'enabled',
-    'use_audio': 'disabled',
-    'use_cpuinfo': 'enabled',
-    'use_events': 'enabled',
-    'use_file': 'enabled',
-    'use_filesystem': 'enabled',
-    'use_joystick': 'enabled',
-    'use_haptic': 'disabled',
-    'use_hidapi': 'disabled',
-    'use_loadso': 'enabled',
-    'use_locale': 'disabled',
-    'use_render': 'enabled',
-    'use_power': 'enabled',
-    'use_sensor': 'disabled',
-    'use_threads': 'enabled',
-    'use_timers': 'enabled',
-    'use_video': 'enabled',
-    'use_video_x11': is_nix ? 'enabled' : 'disabled',
-    'use_video_wayland': is_nix ? 'enabled' : 'disabled',
-    'use_video_wayland_libdecor': is_nix ? 'enabled' : 'disabled',
-    'use_video_opengl': 'enabled',
-    'use_video_openglesv2': 'enabled',
-    'use_video_vulkan': 'disabled',
-    'use_video_offscreen': 'disabled',
-    'prefer_dlopen': is_nix,
-    'system_iconv': 'enabled',
-    'angle': 'auto',
-}
-sdl2main = declare_dependency(dependencies: [
-    subproject('sdl2', default_options: sdl2_options).get_variable('sdl2main_dep'),
-    host_system == 'windows' or host_system == 'cygwin' ? meson.get_compiler('c').find_library('mingw32') : [],
-])
-sdl2 = subproject('sdl2', default_options: sdl2_options).get_variable('sdl2_dep')
-sdl2_includes = ['-I' + meson.project_build_root() / 'subprojects' / 'SDL2-2.28.1' / 'include', '-I' + meson.project_source_root() / 'subprojects' / 'SDL2-2.28.1' / 'include']
+    if have_angle
+        xxhash = dependency('libxxhash', allow_fallback: false, required: get_option('angle').auto() and get_option('xxhash_system').enabled() ? get_option('angle') : get_option('xxhash_system'))
+        if not xxhash.found()
+            if not get_option('xxhash_system').enabled()
+                subproject('xxhash', default_options: meson_base_options)
+            else
+                have_angle = false
+            endif
+        endif
+    endif
+
+    subproject('spirv-headers', default_options: meson_base_options).get_variable('spirv_headers')
+
+    if have_angle
+        have_angle_vulkan = get_option('angle_vulkan').allowed()
+        require_system_spirv_tools = get_option('spirv_tools_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
+        spirv_tools = dependency('SPIRV-Tools', allow_fallback: false, required: get_option('angle').auto() and require_system_spirv_tools.enabled() ? get_option('angle') : require_system_spirv_tools)
+        if not spirv_tools.found()
+            if not require_system_spirv_tools.enabled()
+                spirv_tools_options = cmake.subproject_options()
+                spirv_tools_options.add_cmake_defines(cmake_base_options + {
+                    'CMAKE_C_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', '-I' + meson.project_source_root() / 'subprojects' / 'spirv-headers' / 'include', check: true).stdout().strip(),
+                    'CMAKE_CXX_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', '-I' + meson.project_source_root() / 'subprojects' / 'spirv-headers' / 'include', check: true).stdout().strip(),
+                    'SPIRV-Headers_SOURCE_DIR': meson.project_source_root() / 'subprojects' / 'spirv-headers',
+                    'BUILD_SHARED_LIBS': false,
+                    'BUILD_TESTING': false,
+                    'SPIRV-TOOLS_USE_MIMALLOC': false,
+                })
+                meson.override_dependency('SPIRV-Tools', cmake.subproject('spirv-tools', options: spirv_tools_options).dependency('SPIRV-Tools-static'), static: true)
+            else
+                if get_option('angle_vulkan').enabled()
+                    error('SPIRV-Tools is required for ANGLE Vulkan backend')
+                endif
+                have_angle = false
+                have_angle_vulkan = false
+            endif
+        endif
+    endif
+
+    if have_angle and have_angle_vulkan
+        require_system_volk = get_option('volk_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
+        volk = dependency('volk', allow_fallback: false, required: get_option('angle').auto() and require_system_spirv_tools.enabled() ? get_option('angle') : require_system_spirv_tools)
+        if not volk.found()
+            if not require_system_volk.enabled()
+                subproject('volk', default_options: meson_base_options)
+            else
+                if get_option('angle_vulkan').enabled()
+                    error('volk is required for ANGLE Vulkan backend')
+                endif
+                have_angle = false
+                have_angle_vulkan = false
+            endif
+        endif
+    endif
+
+    if have_angle
+        if get_option('angle_direct3d9').disabled()
+            angle_direct3d9 = 'disabled'
+        elif get_option('angle_direct3d9').enabled()
+            angle_direct3d9 = 'enabled'
+        else
+            angle_direct3d9 = 'auto'
+        endif
+        if get_option('angle_direct3d11').disabled()
+            angle_direct3d11 = 'disabled'
+        elif get_option('angle_direct3d11').enabled()
+            angle_direct3d11 = 'enabled'
+        else
+            angle_direct3d11 = 'auto'
+        endif
+        if get_option('angle_metal').disabled()
+            angle_metal = 'disabled'
+        elif get_option('angle_metal').enabled()
+            angle_metal = 'enabled'
+        else
+            angle_metal = 'auto'
+        endif
+        if get_option('angle_null').disabled()
+            angle_null = 'disabled'
+        elif get_option('angle_null').enabled()
+            angle_null = 'enabled'
+        else
+            angle_null = 'auto'
+        endif
+        if get_option('angle_vulkan').disabled()
+            angle_vulkan = 'disabled'
+        elif get_option('angle_vulkan').enabled()
+            angle_vulkan = 'enabled'
+        else
+            angle_vulkan = 'auto'
+        endif
+        angle = subproject('angle', default_options: meson_base_options + {
+            'direct3d9': angle_direct3d9,
+            'direct3d11': angle_direct3d11,
+            'metal': angle_metal,
+            'null': angle_null,
+            'opengl': 'disabled',
+            'vulkan': have_angle_vulkan ? angle_vulkan : 'disabled',
+        })
+        have_angle_direct3d9 = angle.get_variable('have_direct3d9')
+        have_angle_direct3d11 = angle.get_variable('have_direct3d11')
+        have_angle_metal = angle.get_variable('have_metal')
+        have_angle_null = angle.get_variable('have_null')
+        have_angle_vulkan = angle.get_variable('have_vulkan')
+        global_args += '-DMKXPZ_HAVE_ANGLE'
+        if have_angle_direct3d9
+            global_args += '-DMKXPZ_HAVE_ANGLE_DIRECT3D9'
+        endif
+        if have_angle_direct3d11
+            global_args += '-DMKXPZ_HAVE_ANGLE_DIRECT3D11'
+        endif
+        if have_angle_metal
+            global_args += '-DMKXPZ_HAVE_ANGLE_METAL'
+        endif
+        if have_angle_null
+            global_args += '-DMKXPZ_HAVE_ANGLE_NULL'
+        endif
+        if have_angle_vulkan
+            gplv3_features += 'ANGLE Vulkan backend'
+            global_args += '-DMKXPZ_HAVE_ANGLE_VULKAN'
+        endif
+    endif
+
+    sdl2_options = meson_base_options + {
+        'test': false,
+        'run_test': false,
+        'use_atomic': 'enabled',
+        'use_audio': 'disabled',
+        'use_cpuinfo': 'enabled',
+        'use_events': 'enabled',
+        'use_file': 'enabled',
+        'use_filesystem': 'enabled',
+        'use_joystick': 'enabled',
+        'use_haptic': 'disabled',
+        'use_hidapi': 'disabled',
+        'use_loadso': 'enabled',
+        'use_locale': 'disabled',
+        'use_render': 'enabled',
+        'use_power': 'enabled',
+        'use_sensor': 'disabled',
+        'use_threads': 'enabled',
+        'use_timers': 'enabled',
+        'use_video': 'enabled',
+        'use_video_x11': is_nix ? 'enabled' : 'disabled',
+        'use_video_wayland': is_nix ? 'enabled' : 'disabled',
+        'use_video_wayland_libdecor': is_nix ? 'enabled' : 'disabled',
+        'use_video_opengl': 'enabled',
+        'use_video_openglesv2': 'enabled',
+        'use_video_vulkan': 'disabled',
+        'use_video_offscreen': 'disabled',
+        'prefer_dlopen': is_nix,
+        'system_iconv': 'enabled',
+        'angle': have_angle ? 'enabled' : 'disabled',
+    }
+    sdl2main = declare_dependency(dependencies: [
+        subproject('sdl2', default_options: sdl2_options).get_variable('sdl2main_dep'),
+        host_system == 'windows' or host_system == 'cygwin' ? meson.get_compiler('c').find_library('mingw32') : [],
+    ])
+    sdl2 = subproject('sdl2', default_options: sdl2_options).get_variable('sdl2_dep')
+    sdl2_includes = ['-I' + meson.project_build_root() / 'subprojects' / 'SDL2-2.28.1' / 'include', '-I' + meson.project_source_root() / 'subprojects' / 'SDL2-2.28.1' / 'include']
+else
+    if get_option('angle').enabled()
+        error('ANGLE support requires vendored SDL')
+    endif
+    have_angle = false
+    sdl2_includes = ['-I' + (sdl2.get_variable(pkgconfig: 'includedir') / 'SDL2')]
+endif
 global_dependencies += [sdl2main, sdl2]
 
 if host_system == 'linux'
-    alsa_lib_options = meson_base_options
-    alsa_lib = subproject('alsa-lib', default_options: alsa_lib_options).get_variable('alsa_lib')
+    require_system_alsa = get_option('alsa_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
+    if get_option('alsa').disabled() or (get_option('alsa').auto() and require_system_alsa.enabled())
+        require_system_alsa = get_option('alsa')
+    endif
+    alsa = dependency('alsa', allow_fallback: false, required: require_system_alsa)
+    if not alsa.found() and not get_option('alsa_system').enabled()
+        alsa_options = meson_base_options
+        alsa = subproject('alsa-lib', default_options: alsa_options).get_variable('alsa_lib')
+    endif
+    have_alsa = alsa.found()
+else
+    have_alsa = false
 endif
 
 if is_nix
-    libsndfile_options = cmake.subproject_options()
-    libsndfile_options.add_cmake_defines(cmake_base_options + {
-        'BUILD_SHARED_LIBS': false,
-        'BUILD_PROGRAMS': false,
-        'BUILD_EXAMPLES': false,
-        'BUILD_REGTEST': false,
-        'BUILD_TESTING': false,
-        'ENABLE_CPACK': false,
-        'ENABLE_PACKAGE_CONFIG': false,
-        'INSTALL_PKGCONFIG_MODULE': false,
-        'ENABLE_EXTERNAL_LIBS': false,
-        'ENABLE_MPEG': false,
-        'ENABLE_EXPERIMENTAL': false,
-    })
-    libsndfile = cmake.subproject('libsndfile', options: libsndfile_options).dependency('sndfile')
-    meson.override_dependency('sndfile', libsndfile, static: true)
+    require_system_jack = get_option('jack_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
+    if get_option('jack').disabled() or (get_option('jack').auto() and require_system_jack.enabled())
+        require_system_jack = get_option('jack')
+    endif
+    jack = dependency('jack', allow_fallback: false, required: require_system_jack)
+    if not jack.found() and not get_option('jack_system').enabled()
+        jack_options = meson_base_options
+        jack = subproject('jack1', default_options: jack_options).get_variable('jack1')
+    endif
+    have_jack = jack.found()
 
-    jack1_options = meson_base_options
-    jack1 = subproject('jack1', default_options: jack1_options).get_variable('jack1')
+    require_system_pulseaudio = get_option('pulseaudio_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
+    if get_option('pulseaudio').disabled() or (get_option('pulseaudio').auto() and require_system_pulseaudio.enabled())
+        require_system_pulseaudio = get_option('pulseaudio')
+    endif
+    pulseaudio = dependency('libpulse', allow_fallback: false, required: require_system_pulseaudio)
+    if not pulseaudio.found() and not get_option('pulseaudio_system').enabled()
+        libsndfile = dependency('sndfile', allow_fallback: false, required: get_option('libsndfile_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+        if not libsndfile.found() and not require_system_pulseaudio.auto()
+            libsndfile_options = cmake.subproject_options()
+            libsndfile_options.add_cmake_defines(cmake_base_options + {
+                'BUILD_SHARED_LIBS': false,
+                'BUILD_PROGRAMS': false,
+                'BUILD_EXAMPLES': false,
+                'BUILD_REGTEST': false,
+                'BUILD_TESTING': false,
+                'ENABLE_CPACK': false,
+                'ENABLE_PACKAGE_CONFIG': false,
+                'INSTALL_PKGCONFIG_MODULE': false,
+                'ENABLE_EXTERNAL_LIBS': false,
+                'ENABLE_MPEG': false,
+                'ENABLE_EXPERIMENTAL': false,
+            })
+            libsndfile = cmake.subproject('libsndfile', options: libsndfile_options).dependency('sndfile')
+            meson.override_dependency('sndfile', libsndfile, static: true)
+        endif
 
-    pulseaudio_options = meson_base_options + {
-        'daemon': false,
-        'client': true,
-        'doxygen': false,
-        'gcov': false,
-        'man': false,
-        'tests': false,
-        'udev': 'disabled',
-        'x11': 'disabled',
-        'oss-output': 'disabled',
-        'dbus': 'disabled',
-        'glib': 'disabled',
-        'bashcompletiondir': 'no',
-        'zshcompletiondir': 'no',
-    }
-    pulseaudio = subproject('pulseaudio', default_options: pulseaudio_options).get_variable('libpulse_dep')
-    meson.override_dependency('libpulse', pulseaudio, static: true)
+        if libsndfile.found()
+            pulseaudio_options = meson_base_options + {
+                'daemon': false,
+                'client': true,
+                'doxygen': false,
+                'gcov': false,
+                'man': false,
+                'tests': false,
+                'udev': 'disabled',
+                'x11': 'disabled',
+                'oss-output': 'disabled',
+                'dbus': 'disabled',
+                'glib': 'disabled',
+                'bashcompletiondir': 'no',
+                'zshcompletiondir': 'no',
+            }
+            pulseaudio = subproject('pulseaudio', default_options: pulseaudio_options).get_variable('libpulse_dep')
+            meson.override_dependency('libpulse', pulseaudio, static: true)
+        endif
+    endif
+    have_pulseaudio = pulseaudio.found()
 
-    pipewire_options = meson_base_options + {
-        'docs': 'disabled',
-        'man': 'disabled',
-        'examples': 'disabled',
-        'tests': 'disabled',
-        'gstreamer': 'disabled',
-        'gstreamer-device-provider': 'disabled',
-        'spa-plugins': 'disabled',
-        'pipewire-jack': 'disabled',
-        'pipewire-v4l2': 'disabled',
-        'ffmpeg': 'disabled',
-        'dbus': 'disabled',
-        'pw-cat': 'disabled',
-        'pw-cat-ffmpeg': 'disabled',
-        'sdl2': 'disabled',
-        'sndfile': 'disabled',
-        'libpulse': 'disabled',
-        'echo-cancel-webrtc': 'disabled',
-        'session-managers': [],
-        'flatpak': 'disabled',
-        'readline': 'disabled',
-        'gsettings': 'disabled',
-        'udev': 'disabled',
-        'x11': 'disabled',
-        'x11-xfixes': 'disabled',
-    }
-    pipewire = subproject('pipewire', default_options: pipewire_options).get_variable('pipewire_dep')
+    require_system_pipewire = get_option('pipewire_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
+    if get_option('pipewire').disabled() or (get_option('pipewire').auto() and require_system_pipewire.enabled())
+        require_system_pipewire = get_option('pipewire')
+    endif
+    pipewire = dependency('libpipewire-0.3', allow_fallback: false, required: require_system_pipewire)
+    if not pipewire.found() and not get_option('pipewire_system').enabled()
+        pipewire_options = meson_base_options + {
+            'docs': 'disabled',
+            'man': 'disabled',
+            'examples': 'disabled',
+            'tests': 'disabled',
+            'gstreamer': 'disabled',
+            'gstreamer-device-provider': 'disabled',
+            'spa-plugins': 'disabled',
+            'pipewire-jack': 'disabled',
+            'pipewire-v4l2': 'disabled',
+            'ffmpeg': 'disabled',
+            'dbus': 'disabled',
+            'pw-cat': 'disabled',
+            'pw-cat-ffmpeg': 'disabled',
+            'sdl2': 'disabled',
+            'sndfile': 'disabled',
+            'libpulse': 'disabled',
+            'echo-cancel-webrtc': 'disabled',
+            'session-managers': [],
+            'flatpak': 'disabled',
+            'readline': 'disabled',
+            'gsettings': 'disabled',
+            'udev': 'disabled',
+            'x11': 'disabled',
+            'x11-xfixes': 'disabled',
+        }
+        pipewire = subproject('pipewire', default_options: pipewire_options).get_variable('pipewire_dep')
+    endif
+    have_pipewire = pipewire.found()
+else
+    have_jack = false
+    have_pulseaudio = false
+    have_pipewire = false
 endif
 
-openal_options = meson_base_options + {
-    'rtkit': 'disabled',
-    'sdl2': 'disabled',
-    'utils': false,
-}
-openal = subproject('openal-soft', default_options: openal_options).get_variable('openal_dep')
+openal = dependency('openal', allow_fallback: false, required: get_option('openal_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+if not openal.found()
+    fmt = dependency('fmt', allow_fallback: false, required: get_option('fmt_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+    if not fmt.found()
+        fmt_options = cmake.subproject_options()
+        fmt_options.add_cmake_defines(cmake_base_options + {
+            'LIBTYPE': 'STATIC',
+            'FMT_DOC': false,
+            'FMT_TEST': false,
+            'FMT_FUZZ': false,
+            'FMT_CUDA_TEST': false,
+            'FMT_MODULE': false,
+            'FMT_WERROR': false,
+        })
+        fmt = cmake.subproject('fmt', options: fmt_options).dependency('fmt')
+        meson.override_dependency('fmt', fmt, static: true)
+    endif
+    openal_options = meson_base_options + {
+        'alsa': have_alsa ? 'enabled' : 'disabled',
+        'rtkit': 'disabled',
+        'sdl2': 'disabled',
+        'utils': false,
+    }
+    openal = subproject('openal-soft', default_options: openal_options).get_variable('openal_dep')
+endif
 global_dependencies += openal
 
-ogg_options = cmake.subproject_options()
-ogg_options.add_cmake_defines(cmake_base_options + {
-    'BUILD_SHARED_LIBS': false,
-    'BUILD_TESTING': false,
-    'BUILD_FRAMEWORK': false,
-})
-ogg = cmake.subproject('ogg', options: ogg_options).dependency('ogg')
-ogg_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'ogg' / 'include', '-I' + meson.project_build_root() / 'subprojects' / 'ogg' / '__CMake_build' / 'include']
-meson.override_dependency('ogg', ogg, static: true)
+ogg = dependency('ogg', allow_fallback: false, method: 'pkg-config', required: get_option('ogg_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+if not ogg.found()
+    ogg_options = cmake.subproject_options()
+    ogg_options.add_cmake_defines(cmake_base_options + {
+        'BUILD_SHARED_LIBS': false,
+        'BUILD_TESTING': false,
+        'BUILD_FRAMEWORK': false,
+    })
+    ogg = cmake.subproject('ogg', options: ogg_options).dependency('ogg')
+    ogg_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'ogg' / 'include', '-I' + meson.project_build_root() / 'subprojects' / 'ogg' / '__CMake_build' / 'include']
+    meson.override_dependency('ogg', ogg, static: true)
+else
+    ogg_includes = ['-I' + ogg.get_variable(pkgconfig: 'includedir')]
+endif
 global_dependencies += ogg
 
-vorbis_options = cmake.subproject_options()
-vorbis_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', ogg_includes, check: true).stdout().strip(),
-    'CMAKE_CXX_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', ogg_includes, check: true).stdout().strip(),
-    'BUILD_SHARED_LIBS': false,
-    'BUILD_TESTING': false,
-    'BUILD_FRAMEWORK': false,
-})
-vorbis = declare_dependency(dependencies: [
-    ogg,
-    cmake.subproject('vorbis', options: vorbis_options).dependency('vorbis'),
-])
-vorbisfile = declare_dependency(dependencies: [
-    vorbis,
-    cmake.subproject('vorbis', options: vorbis_options).dependency('vorbisfile'),
-])
-meson.override_dependency('vorbis', vorbis, static: true)
-meson.override_dependency('vorbisfile', vorbisfile, static: true)
+vorbis = dependency('vorbis', allow_fallback: false, required: get_option('vorbis_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+if not vorbis.found()
+    vorbis_internal_cflags = []
+    vorbis_external_cflags = []
+    if ogg.type_name() == 'internal'
+        vorbis_internal_cflags += ogg_includes
+    else
+        vorbis_external_cflags += ogg_includes
+    endif
+    vorbis_options = cmake.subproject_options()
+    vorbis_options.add_cmake_defines(cmake_base_options + {
+        'CMAKE_C_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', vorbis_internal_cflags + vorbis_external_cflags, check: true).stdout().strip(),
+        'CMAKE_CXX_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', vorbis_internal_cflags + vorbis_external_cflags, check: true).stdout().strip(),
+        'BUILD_SHARED_LIBS': false,
+        'BUILD_TESTING': false,
+        'BUILD_FRAMEWORK': false,
+    })
+    vorbis = declare_dependency(dependencies: [
+        ogg,
+        cmake.subproject('vorbis', options: vorbis_options).dependency('vorbis'),
+    ])
+    vorbisfile = declare_dependency(dependencies: [
+        vorbis,
+        cmake.subproject('vorbis', options: vorbis_options).dependency('vorbisfile'),
+    ])
+    meson.override_dependency('vorbis', vorbis, static: true)
+    meson.override_dependency('vorbisfile', vorbisfile, static: true)
+else
+    vorbisfile = dependency('vorbisfile', allow_fallback: false, required: true)
+endif
 global_dependencies += [vorbis, vorbisfile]
 
-sdl2_sound_options = cmake.subproject_options()
-sdl2_sound_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', sdl2_includes, check: true).stdout().strip(),
-    'CMAKE_CXX_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', sdl2_includes, check: true).stdout().strip(),
-    'SDLSOUND_BUILD_SHARED': false,
-    'SDLSOUND_BUILD_TEST': false,
-})
-sdl2_sound = declare_dependency(dependencies: [
-    sdl2,
-    cmake.subproject('sdl2_sound', options: sdl2_sound_options).dependency('SDL2_sound-static'),
-])
-meson.override_dependency('SDL2_sound', sdl2_sound, static: true)
+sdl2_sound = dependency('sdl2_sound', allow_fallback: false, required: get_option('sdl_sound_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+if not sdl2_sound.found()
+    sdl2_sound_internal_cflags = []
+    sdl2_sound_external_cflags = []
+    if sdl2.type_name() == 'internal'
+        sdl2_sound_internal_cflags += sdl2_includes
+    else
+        sdl2_sound_external_cflags += sdl2_includes
+    endif
+    sdl2_sound_options = cmake.subproject_options()
+    sdl2_sound_options.add_cmake_defines(cmake_base_options + {
+        'CMAKE_C_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', sdl2_sound_internal_cflags + sdl2_sound_external_cflags, check: true).stdout().strip(),
+        'CMAKE_CXX_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', sdl2_sound_internal_cflags + sdl2_sound_external_cflags, check: true).stdout().strip(),
+        'SDLSOUND_BUILD_SHARED': false,
+        'SDLSOUND_BUILD_TEST': false,
+    })
+    sdl2_sound = declare_dependency(dependencies: [
+        sdl2,
+        cmake.subproject('sdl2_sound', options: sdl2_sound_options).dependency('SDL2_sound-static'),
+    ])
+    meson.override_dependency('sdl2_sound', sdl2_sound, static: true)
+endif
 global_dependencies += sdl2_sound
 
-freetype_options = meson_base_options + {
-    'brotli': 'disabled',
-    'bzip2': 'disabled',
-    'harfbuzz': 'disabled',
-    'mmap': 'disabled',
-    'png': 'disabled',
-    'tests': 'disabled',
-    'zlib': 'disabled',
-}
-freetype = subproject('freetype', default_options: freetype_options).get_variable('freetype_dep')
-freetype_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'freetype' / 'include']
+freetype = dependency('freetype2', allow_fallback: false, method: 'pkg-config', required: get_option('freetype_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+if not freetype.found()
+    freetype_options = meson_base_options + {
+        'brotli': 'disabled',
+        'bzip2': 'disabled',
+        'harfbuzz': 'disabled',
+        'mmap': 'disabled',
+        'png': 'disabled',
+        'tests': 'disabled',
+        'zlib': 'disabled',
+    }
+    freetype = subproject('freetype', default_options: freetype_options).get_variable('freetype_dep')
+    freetype_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'freetype' / 'include']
+else
+    freetype_includes = ['-I' + freetype.get_variable(pkgconfig: 'includedir')]
+endif
 global_dependencies += freetype
 
-sdl2_ttf_options = cmake.subproject_options()
-sdl2_ttf_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', freetype_includes + sdl2_includes, check: true).stdout().strip(),
-    'CMAKE_CXX_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', freetype_includes + sdl2_includes, check: true).stdout().strip(),
-    'BUILD_SHARED_LIBS': false,
-    'BUILD_TESTING': false,
-})
-sdl2_ttf = declare_dependency(dependencies: [
-    freetype,
-    sdl2,
-    cmake.subproject('sdl2_ttf', options: sdl2_ttf_options).dependency('SDL2_ttf'),
-])
-meson.override_dependency('SDL2_ttf', sdl2_ttf, static: true)
+sdl2_ttf = dependency('sdl2_ttf', allow_fallback: false, required: get_option('sdl_ttf_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+if not sdl2_ttf.found()
+    sdl2_ttf_internal_cflags = []
+    sdl2_ttf_external_cflags = []
+    if freetype.type_name() == 'internal'
+        sdl2_ttf_internal_cflags += freetype_includes
+    else
+        sdl2_ttf_external_cflags += freetype_includes
+    endif
+    if sdl2.type_name() == 'internal'
+        sdl2_ttf_internal_cflags += sdl2_includes
+    else
+        sdl2_ttf_external_cflags += sdl2_includes
+    endif
+    sdl2_ttf_options = cmake.subproject_options()
+    sdl2_ttf_options.add_cmake_defines(cmake_base_options + {
+        'CMAKE_C_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', sdl2_ttf_internal_cflags + sdl2_ttf_external_cflags, check: true).stdout().strip(),
+        'CMAKE_CXX_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', sdl2_ttf_internal_cflags + sdl2_ttf_external_cflags, check: true).stdout().strip(),
+        'BUILD_SHARED_LIBS': false,
+        'BUILD_TESTING': false,
+    })
+    sdl2_ttf = declare_dependency(dependencies: [
+        freetype,
+        sdl2,
+        cmake.subproject('sdl2_ttf', options: sdl2_ttf_options).dependency('SDL2_ttf'),
+    ])
+    meson.override_dependency('sdl2_ttf', sdl2_ttf, static: true)
+endif
 global_dependencies += sdl2_ttf
 
-pixman_options = meson_base_options + {
-    'libpng': 'disabled',
-    'tls': 'disabled',
-} + (
-    host_system == 'darwin'
-        ? {
-            'a64-neon': 'disabled',
-        }
-        : {}
-)
-pixman = subproject('pixman', default_options: pixman_options).get_variable('idep_pixman')
+pixman = dependency('pixman-1', allow_fallback: false, required: get_option('pixman_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+if not pixman.found()
+    pixman_options = meson_base_options + {
+        'libpng': 'disabled',
+        'tls': 'disabled',
+    } + (
+        host_system == 'darwin'
+            ? {
+                'a64-neon': 'disabled',
+            }
+            : {}
+    )
+    pixman = subproject('pixman', default_options: pixman_options).get_variable('idep_pixman')
+endif
 global_dependencies += pixman
 
-uchardet_options = cmake.subproject_options()
-uchardet_options.add_cmake_defines(cmake_base_options + {
-    'BUILD_BINARY': false,
-    'BUILD_SHARED_LIBS': false,
-})
-uchardet = cmake.subproject('uchardet', options: uchardet_options).dependency('libuchardet')
-meson.override_dependency('uchardet', uchardet, static: true)
+uchardet = dependency('uchardet', allow_fallback: false, required: get_option('uchardet_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+if not uchardet.found()
+    uchardet_options = cmake.subproject_options()
+    uchardet_options.add_cmake_defines(cmake_base_options + {
+        'BUILD_BINARY': false,
+        'BUILD_SHARED_LIBS': false,
+    })
+    uchardet = cmake.subproject('uchardet', options: uchardet_options).dependency('libuchardet')
+    meson.override_dependency('uchardet', uchardet, static: true)
+endif
 global_dependencies += uchardet
 
-theora_options = meson_base_options
-theora = subproject('theora', default_options: theora_options).get_variable('theoradec')
+theora = dependency('theora', allow_fallback: false, required: get_option('theora_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+if not theora.found()
+    theora_options = meson_base_options
+    theora = subproject('theora', default_options: theora_options).get_variable('theoradec')
+endif
 global_dependencies += theora
 
 theoraplay_options = meson_base_options + {'thread': 'disabled'}
@@ -439,93 +687,152 @@ if not subproject('theoraplay', default_options: theoraplay_options).get_variabl
 endif
 global_dependencies += theoraplay
 
-sdl2_image_options = cmake.subproject_options()
-sdl2_image_options.add_cmake_defines(cmake_base_options + {
-    'CMAKE_C_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', sdl2_includes, check: true).stdout().strip(),
-    'CMAKE_CXX_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', sdl2_includes, check: true).stdout().strip(),
-    'BUILD_SHARED_LIBS': false,
-    'SDL2IMAGE_JPG_SAVE': true,
-    'SDL2IMAGE_PNG_SAVE': true,
-    'SDL2IMAGE_PNG_SHARED': false,
-    'SDL2IMAGE_JPG_SHARED': false,
-    'SDL2IMAGE_JXL': true,
-    'SDL2IMAGE_JXL_SHARED': false,
-    'SDL2IMAGE_VENDORED': true,
-    'SDL2IMAGE_SAMPLES': false,
-    'SDL2IMAGE_BACKEND_WIC': false,
-    'SDL2IMAGE_BACKEND_IMAGEIO': false,
-    'JPEGXL_ENABLE_DEVTOOLS': false,
-    'JPEGXL_ENABLE_EXAMPLES': false,
-    'JPEGXL_ENABLE_FUZZERS': false,
-    'JPEGXL_ENABLE_MANPAGES': false,
-    'JPEGXL_ENABLE_TOOLS': false,
-    'JPEGXL_STATIC': true,
-})
-sdl2_image = declare_dependency(dependencies: [
-    sdl2,
-    cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('SDL2_image'),
-    cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('brotlicommon-static'),
-    cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('brotlidec-static'),
-    cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('hwy'),
-    cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('jxl_dec-static'),
-])
-meson.override_dependency('SDL2_image', sdl2_image, static: true)
+sdl2_image = dependency('sdl2_image', allow_fallback: false, required: get_option('sdl_image_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+if not sdl2_image.found()
+    sdl2_image_internal_cflags = []
+    sdl2_image_external_cflags = []
+    if sdl2.type_name() == 'internal'
+        sdl2_image_internal_cflags += sdl2_includes
+    else
+        sdl2_image_external_cflags += sdl2_includes
+    endif
+    sdl2_image_options = cmake.subproject_options()
+    sdl2_image_options.add_cmake_defines(cmake_base_options + {
+        'CMAKE_C_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', sdl2_image_internal_cflags + sdl2_image_external_cflags, check: true).stdout().strip(),
+        'CMAKE_CXX_FLAGS': run_command(python, quotetool, build_machine.system(), 'false', sdl2_image_internal_cflags + sdl2_image_external_cflags, check: true).stdout().strip(),
+        'BUILD_SHARED_LIBS': false,
+        'SDL2IMAGE_JPG_SAVE': true,
+        'SDL2IMAGE_PNG_SAVE': true,
+        'SDL2IMAGE_PNG_SHARED': false,
+        'SDL2IMAGE_JPG_SHARED': false,
+        'SDL2IMAGE_JXL': true,
+        'SDL2IMAGE_JXL_SHARED': false,
+        'SDL2IMAGE_VENDORED': true,
+        'SDL2IMAGE_SAMPLES': false,
+        'SDL2IMAGE_BACKEND_WIC': false,
+        'SDL2IMAGE_BACKEND_IMAGEIO': false,
+        'JPEGXL_ENABLE_DEVTOOLS': false,
+        'JPEGXL_ENABLE_EXAMPLES': false,
+        'JPEGXL_ENABLE_FUZZERS': false,
+        'JPEGXL_ENABLE_MANPAGES': false,
+        'JPEGXL_ENABLE_TOOLS': false,
+        'JPEGXL_STATIC': true,
+    })
+    sdl2_image = declare_dependency(dependencies: [
+        sdl2,
+        cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('SDL2_image'),
+        cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('brotlicommon-static'),
+        cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('brotlidec-static'),
+        cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('hwy'),
+        cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('jxl_dec-static'),
+    ])
+    meson.override_dependency('SDL2_image', sdl2_image, static: true)
+endif
 global_dependencies += sdl2_image
 
-fluidsynth_options = cmake.subproject_options()
-fluidsynth_options.add_cmake_defines(cmake_base_options + {
-    'BUILD_SHARED_LIBS': false,
-    'enable-alsa': false,
-    'enable-aufile': false,
-    'enable-dbus': false,
-    'enable-ipv6 ': false,
-    'enable-jack': false,
-    'enable-ladspa': false,
-    'enable-libinstpatch': false,
-    'enable-libsndfile': false,
-    'enable-midishare': false,
-    'enable-opensles': false,
-    'enable-oboe': false,
-    'enable-network': false,
-    'enable-oss': false,
-    'enable-dsound': false,
-    'enable-waveout': false,
-    'enable-winmidi': false,
-    'enable-sdl3': false,
-    'enable-pulseaudio': false,
-    'enable-pipewire': false,
-    'enable-readline': false,
-    'enable-threads': false,
-    'enable-openmp': false,
-    'enable-unicode': false,
-    'enable-native-dls': false,
-    'enable-systemd': false,
-    'enable-coreaudio': false,
-    'enable-coremidi': false,
-    'enable-framework': false,
-    'enable-dart': false,
-    'enable-kai': false,
-    'osal': 'embedded',
-})
-fluidsynth = cmake.subproject('fluidsynth', options: fluidsynth_options).dependency('libfluidsynth')
-meson.override_dependency('fluidsynth', fluidsynth, static: true)
+fluidsynth = dependency('fluidsynth', allow_fallback: false, required: get_option('fluidsynth_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+if not fluidsynth.found()
+    fluidsynth_options = cmake.subproject_options()
+    fluidsynth_options.add_cmake_defines(cmake_base_options + {
+        'BUILD_SHARED_LIBS': false,
+        'enable-alsa': false,
+        'enable-aufile': false,
+        'enable-dbus': false,
+        'enable-ipv6 ': false,
+        'enable-jack': false,
+        'enable-ladspa': false,
+        'enable-libinstpatch': false,
+        'enable-libsndfile': false,
+        'enable-midishare': false,
+        'enable-opensles': false,
+        'enable-oboe': false,
+        'enable-network': false,
+        'enable-oss': false,
+        'enable-dsound': false,
+        'enable-waveout': false,
+        'enable-winmidi': false,
+        'enable-sdl3': false,
+        'enable-pulseaudio': false,
+        'enable-pipewire': false,
+        'enable-readline': false,
+        'enable-threads': false,
+        'enable-openmp': false,
+        'enable-unicode': false,
+        'enable-native-dls': false,
+        'enable-systemd': false,
+        'enable-coreaudio': false,
+        'enable-coremidi': false,
+        'enable-framework': false,
+        'enable-dart': false,
+        'enable-kai': false,
+        'osal': 'embedded',
+    })
+    fluidsynth = cmake.subproject('fluidsynth', options: fluidsynth_options).dependency('libfluidsynth')
+    meson.override_dependency('fluidsynth', fluidsynth, static: true)
+endif
 global_dependencies += fluidsynth
 
-libyaml_options = cmake.subproject_options()
-libyaml_options.add_cmake_defines(cmake_base_options + {
-    'BUILD_SHARED_LIBS': false,
-})
-libyaml = cmake.subproject('libyaml', options: libyaml_options).dependency('yaml')
-libyaml_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'libyaml' / 'include', '-I' + meson.project_build_root() / 'subprojects' / 'libyaml' / '__CMake_build' / 'include']
-libyaml_libs = ['-L' + meson.project_build_root() / 'subprojects' / 'libyaml']
-meson.override_dependency('libyaml', libyaml, static: true)
+ruby_dependency_name = 'ruby-3.1'
+ruby = dependency(ruby_dependency_name, allow_fallback: false, required: get_option('ruby_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+if not ruby.found()
+    libffi = dependency('libffi', allow_fallback: false, method: 'pkg-config', required: get_option('libffi_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+    if not libffi.found()
+        libffi_options = meson_base_options
+        libffi = subproject('libffi', default_options: libffi_options).get_variable('libffi')
+        libffi_includes = ['-I' + meson.project_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' / 'include']
+        libffi_libs = ['-L' + meson.project_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' / 'lib']
+    else
+        libffi_includes = ['-I' + libffi.get_variable(pkgconfig: 'includedir')]
+        libffi_libs = ['-L' + libffi.get_variable(pkgconfig: 'libdir')]
+    endif
 
-ruby_options = meson_base_options + {
-    'cflags': zlib_includes + libyaml_includes + libffi_includes,
-    'cppflags': zlib_includes + libyaml_includes + libffi_includes,
-    'ldflags': zlib_libs + libyaml_libs + libffi_libs,
-}
-ruby = subproject('ruby-3.1', default_options: ruby_options).get_variable('ruby')
+    libyaml = dependency('yaml-0.1', allow_fallback: false, method: 'pkg-config', required: get_option('libyaml_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+    if not libyaml.found()
+        libyaml_options = cmake.subproject_options()
+        libyaml_options.add_cmake_defines(cmake_base_options + {
+            'BUILD_SHARED_LIBS': false,
+        })
+        libyaml = cmake.subproject('libyaml', options: libyaml_options).dependency('yaml')
+        libyaml_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'libyaml' / 'include', '-I' + meson.project_build_root() / 'subprojects' / 'libyaml' / '__CMake_build' / 'include']
+        libyaml_libs = ['-L' + meson.project_build_root() / 'subprojects' / 'libyaml']
+        meson.override_dependency('yaml-0.1', libyaml, static: true)
+    else
+        libyaml_includes = ['-I' + libyaml.get_variable(pkgconfig: 'includedir')]
+        libyaml_libs = ['-L' + libyaml.get_variable(pkgconfig: 'libdir')]
+    endif
+
+    ruby_internal_cflags = []
+    ruby_external_cflags = []
+    ruby_internal_ldflags = []
+    ruby_external_ldflags = []
+    if zlib.type_name() == 'internal'
+        ruby_internal_cflags += zlib_includes
+        ruby_internal_ldflags += zlib_libs
+    else
+        ruby_external_cflags += zlib_includes
+        ruby_external_ldflags += zlib_libs
+    endif
+    if libyaml.type_name() == 'internal'
+        ruby_internal_cflags += libyaml_includes
+        ruby_internal_ldflags += libyaml_libs
+    else
+        ruby_external_cflags += libyaml_includes
+        ruby_external_ldflags += libyaml_libs
+    endif
+    if libffi.type_name() == 'internal'
+        ruby_internal_cflags += libffi_includes
+        ruby_internal_ldflags += libffi_libs
+    else
+        ruby_external_cflags += libffi_includes
+        ruby_external_ldflags += libffi_libs
+    endif
+    ruby_options = meson_base_options + {
+        'cflags': ruby_internal_cflags + ruby_external_cflags,
+        'cppflags': ruby_internal_cflags + ruby_external_cflags,
+        'ldflags': ruby_internal_ldflags + ruby_external_ldflags,
+    }
+    ruby = subproject(ruby_dependency_name, default_options: ruby_options).get_variable('ruby')
+endif
 global_dependencies += ruby
 
 if build_static == true

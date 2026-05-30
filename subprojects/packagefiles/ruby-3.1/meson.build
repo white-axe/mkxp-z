@@ -87,7 +87,7 @@ endif
 
 ruby_deps = [
     dependency('libffi', required: true),
-    dependency('libyaml', required: true),
+    dependency('yaml-0.1', required: true),
     dependency('zlib', required: true),
 ]
 

@@ -47,7 +47,7 @@
 #include "flashMap.frag.xxd"
 #include "bicubic.frag.xxd"
 #include "lanczos3.frag.xxd"
-#ifdef MKXPZ_SSL
+#ifdef MKXPZ_HAVE_EXTRA_SHADERS
 #include "xbrz.frag.xxd"
 #endif
 #include "minimal.vert.xxd"
@@ -414,7 +414,7 @@ void Lanczos3SpriteShader::setTexSize(const Vec2i &value)
 	gl.Uniform2f(u_sourceSize, (float)value.x, (float)value.y);
 }
 
-#ifdef MKXPZ_SSL
+#ifdef MKXPZ_HAVE_EXTRA_SHADERS
 XbrzSpriteShader::XbrzSpriteShader() : Lanczos3SpriteShader(ShaderNoConstructTag())
 {
 	INIT_SHADER(sprite, xbrz, XbrzSpriteShader);
@@ -955,7 +955,7 @@ void Lanczos3Shader::setTexSize(const Vec2i &value)
 	gl.Uniform2f(u_sourceSize, (float)value.x, (float)value.y);
 }
 
-#ifdef MKXPZ_SSL
+#ifdef MKXPZ_HAVE_EXTRA_SHADERS
 XbrzShader::XbrzShader() : Lanczos3Shader(ShaderNoConstructTag())
 {
 	INIT_SHADER(simple, xbrz, XbrzShader);

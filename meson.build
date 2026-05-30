@@ -224,7 +224,20 @@ if host_system == 'darwin'
     global_install_tags += meson.project_name() + '-bundle'
 endif
 
-summary('HTTPS support', get_option('enable-https'), bool_yn: true)
+summary('ALSA', have_alsa, bool_yn: true)
+summary('ANGLE', have_angle, bool_yn: true)
+if have_angle
+    summary('ANGLE Direct3D 9 backend', have_angle_direct3d9, bool_yn: true)
+    summary('ANGLE Direct3D 11 backend', have_angle_direct3d11, bool_yn: true)
+    summary('ANGLE Metal backend', have_angle_metal, bool_yn: true)
+    summary('ANGLE null backend', have_angle_null, bool_yn: true)
+    summary('ANGLE Vulkan backend', have_angle_vulkan, bool_yn: true)
+endif
+summary('Extra shaders', have_extra_shaders, bool_yn: true)
+summary('JACK Audio Connection Kit', have_jack, bool_yn: true)
+summary('PipeWire', have_pipewire, bool_yn: true)
+summary('PulseAudio', have_pulseaudio, bool_yn: true)
+summary('OpenSSL', have_openssl, bool_yn: true)
 summary('License', gplv3_features.length() != 0 ? 'GPL-3.0-or-later' : 'GPL-2.0-or-later')
 if gplv3_features.length() != 0
     summary('Enabled features requiring GPLv3', gplv3_features)

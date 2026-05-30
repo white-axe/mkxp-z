@@ -517,7 +517,7 @@ static int calc_ppem_for_height(Font_Container *font, int height)
 }
 /* /wine */
 
-_TTF_Font *SharedFontState::getFont(std::string family,
+TTF_Font *SharedFontState::getFont(std::string family,
                                     int size, float hiresMult, int outline_size)
 {
 	std::transform(family.begin(), family.end(), family.begin(),
@@ -669,7 +669,7 @@ bool SharedFontState::fontPresent(std::string family) const
 	return !set->empty();
 }
 
-_TTF_Font *SharedFontState::openBundled(int size)
+TTF_Font *SharedFontState::openBundled(int size)
 {
 	SDL_RWops *ops = openBundledFont();
 
@@ -980,9 +980,9 @@ void Font::initDefaults(const SharedFontState &sfs)
 	FontPrivate::defaultShadow  = (rgssVer == 2 ? true : false);
 }
 
-_TTF_Font *Font::getSdlFont(int outline_size)
+TTF_Font *Font::getSdlFont(int outline_size)
 {
-	_TTF_Font **font;
+	TTF_Font **font;
 	if (outline_size == 0)
 		font = &p->sdlFont;
 	else
