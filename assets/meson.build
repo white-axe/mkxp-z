@@ -13,6 +13,6 @@ foreach asset : embedded_assets
     global_dependencies += declare_dependency(sources: custom_target(
         '@0@.xxd'.format(asset),
         output: '@0@.xxd'.format(asset),
-        command: [python, embedtool, files(asset)[0], '@OUTPUT@', 'mkxp_assets_@0@'.format(asset.replace('.', '_'))],
+        command: [embedtool, files(asset), '@OUTPUT@', 'mkxp_assets_@0@'.format(asset.replace('.', '_'))],
     ))
 endforeach
