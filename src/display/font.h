@@ -29,7 +29,7 @@
 #include <string>
 
 struct SDL_RWops;
-struct TTF_Font;
+struct MKXPZ_TTF_FONT;
 struct Config;
 
 struct SharedFontStatePrivate;
@@ -47,12 +47,12 @@ public:
 	void initFontSetCB(SDL_RWops &ops,
 	                   const std::string &filename);
 
-	TTF_Font *getFont(std::string family,
+	MKXPZ_TTF_FONT *getFont(std::string family,
 	                   int size, float hiresMult, int outline_size = 0);
 
 	bool fontPresent(std::string family) const;
 
-	static TTF_Font *openBundled(int size);
+	static MKXPZ_TTF_FONT *openBundled(int size);
     void setDefaultFontFamily(const std::string &family);
 
 private:
@@ -117,7 +117,7 @@ public:
 	static void initDefaults(const SharedFontState &sfs);
 
 	/* internal */
-	TTF_Font *getSdlFont(int outline_size);
+	MKXPZ_TTF_FONT *getSdlFont(int outline_size);
 
 private:
 	FontPrivate *p;

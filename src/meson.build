@@ -645,6 +645,28 @@ if not sdl2_ttf.found()
 endif
 global_dependencies += sdl2_ttf
 
+if sdl2_ttf.type_name() == 'internal'
+    global_args += '-DMKXPZ_TTF_FONT=_TTF_Font'
+elif meson.get_compiler('c').compiles('''
+    #include <SDL_ttf.h>
+    int main(void) {
+        TTF_Font *font = TTF_OpenFont("", 0);
+        return font != NULL;
+    }
+''', name: 'TTF_Font test', dependencies: sdl2_ttf)
+    global_args += '-DMKXPZ_TTF_FONT=TTF_Font'
+elif meson.get_compiler('c').compiles('''
+    #include <SDL_ttf.h>
+    int main(void) {
+        _TTF_Font *font = TTF_OpenFont("", 0);
+        return font != NULL;
+    }
+''', name: '_TTF_Font test', dependencies: sdl2_ttf)
+    global_args += '-DMKXPZ_TTF_FONT=_TTF_Font'
+else
+    error('failed to determine the name of the TTF_Font type')
+endif
+
 pixman = dependency('pixman-1', allow_fallback: false, required: get_option('pixman_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
 if not pixman.found()
     pixman_options = meson_base_options + {
