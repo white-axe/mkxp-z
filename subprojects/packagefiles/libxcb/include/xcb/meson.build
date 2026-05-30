@@ -3,7 +3,8 @@ foreach name : xcb_proto_sources
         name + '.h',
         output: name + '.h',
         command: [
-            files('../../xcbgen.sh')[0],
+            python,
+            files('../../xcbgen.py')[0],
             python,
             files('../../src/c_client.py')[0],
             '@PRIVATE_DIR@',
