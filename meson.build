@@ -195,7 +195,7 @@ if steamworks == true
     )
 endif
 
-executable(exe_name,
+exe = executable(exe_name,
     sources: [
         git_hash_file, # Dummy source file just so that Meson doesn't complain about the executable not having any sources in non-Windows builds
         windows_resources,
@@ -216,6 +216,15 @@ executable(exe_name,
     win_subsystem: 'windows',
 )
 
+meson.add_install_script(
+    python,
+    files('assets/install-executable.py'),
+    exe,
+    exe_name,
+    strip,
+    install_tag: meson.project_name(),
+)
+
 global_install_tags = [meson.project_name()]
 if host_system == 'darwin'
     global_install_tags += meson.project_name() + '-bundle'
@@ -228,15 +237,6 @@ if gplv3_features.length() != 0
 endif
 
 foreach install_tag : global_install_tags
-    meson.add_install_script(
-        python,
-        files('assets/install-executable.py'),
-        meson.project_build_root() / exe_name,
-        exe_name,
-        strip,
-        install_tag: install_tag,
-    )
-
     install_data(
         gplv3_features.length() != 0 ? 'assets/LICENSE.mkxp-z-with-https.txt' : 'COPYING',
         rename: 'LICENSE.txt',
@@ -269,6 +269,15 @@ foreach install_tag : global_install_tags
 endforeach
 
 if host_system == 'darwin'
+    meson.add_install_script(
+        python,
+        files('assets/install-executable.py'),
+        exe,
+        (exe_name + '.app') / 'Contents' / 'MacOS' / meson.project_name(),
+        strip,
+        install_tag: meson.project_name() + '-bundle',
+    )
+
     configure_file(
         input: 'macos/Info.plist.in',
         output: 'Info.plist',
