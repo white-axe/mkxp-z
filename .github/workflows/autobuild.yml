@@ -126,9 +126,8 @@ jobs:
         id: build
         shell: msys2 {0}
         run: |
-          cd build
           exit_code=0
-          CLICOLOR_FORCE=1 ninja -v || exit_code=$?
+          CLICOLOR_FORCE=1 ninja -C build -v || exit_code=$?
           echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
           date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
@@ -152,8 +151,7 @@ jobs:
       - name: Prepare artifact
         shell: msys2 {0}
         run: |
-          cd build
-          meson install --no-rebuild --tags mkxp-z
+          meson install -C build --no-rebuild --tags mkxp-z
 
       - name: Check for DLLs missing from the artifact
         shell: msys2 {0}
@@ -230,9 +228,8 @@ jobs:
       - name: Build
         id: build
         run: |
-          cd build
           exit_code=0
-          CLICOLOR_FORCE=1 ninja -v || exit_code=$?
+          CLICOLOR_FORCE=1 ninja -C build -v || exit_code=$?
           echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
           date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
@@ -253,8 +250,7 @@ jobs:
 
       - name: Prepare artifact
         run: |
-          cd build
-          meson install --no-rebuild --tags mkxp-z
+          meson install -C build --no-rebuild --tags mkxp-z
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -348,9 +344,8 @@ jobs:
       - name: Build
         id: build
         run: |
-          cd build
           exit_code=0
-          CLICOLOR_FORCE=1 ninja -v || exit_code=$?
+          CLICOLOR_FORCE=1 ninja -C build -v || exit_code=$?
           echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
           date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
@@ -371,8 +366,7 @@ jobs:
 
       - name: Prepare artifact
         run: |
-          cd build
-          meson install --no-rebuild --tags mkxp-z
+          meson install -C build --no-rebuild --tags mkxp-z
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -423,9 +417,8 @@ jobs:
       - name: Build
         id: build
         run: |
-          cd build
           exit_code=0
-          CLICOLOR_FORCE=1 ninja -v || exit_code=$?
+          CLICOLOR_FORCE=1 ninja -C build -v || exit_code=$?
           echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
           date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
@@ -446,8 +439,7 @@ jobs:
 
       - name: Prepare artifact
         run: |
-          cd build
-          meson install --no-rebuild --tags mkxp-z
+          meson install -C build --no-rebuild --tags mkxp-z
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -536,9 +528,8 @@ jobs:
       - name: Build
         id: build
         run: |
-          cd build
           exit_code=0
-          CLICOLOR_FORCE=1 ninja -v || exit_code=$?
+          CLICOLOR_FORCE=1 ninja -C build -v || exit_code=$?
           echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
           date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
@@ -559,8 +550,7 @@ jobs:
 
       - name: Prepare artifact
         run: |
-          cd build
-          meson install --no-rebuild --tags mkxp-z
+          meson install -C build --no-rebuild --tags mkxp-z
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -615,9 +605,8 @@ jobs:
       - name: Build
         id: build
         run: |
-          cd build
           exit_code=0
-          CLICOLOR_FORCE=1 ninja -v || exit_code=$?
+          CLICOLOR_FORCE=1 ninja -C build -v || exit_code=$?
           echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
           date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
@@ -638,10 +627,9 @@ jobs:
 
       - name: Prepare artifacts
         run: |
-          cd build
-          meson install --no-rebuild --tags mkxp-z-bundle
-          mv artifact artifact-bundle
-          meson install --no-rebuild --tags mkxp-z
+          meson install -C build --no-rebuild --tags mkxp-z-bundle
+          mv build/artifact build/artifact-bundle
+          meson install -C build --no-rebuild --tags mkxp-z
 
       - name: Upload standalone artifact
         uses: actions/upload-artifact@v4
