@@ -33,6 +33,14 @@ python = subproject('tools').get_variable('python')
 embedtool = subproject('tools').get_variable('embedtool')
 quotetool = subproject('tools').get_variable('quotetool')
 
+strip = []
+if get_option('strip')
+    strip = find_program('strip', required: false)
+    if not strip.found()
+        strip = []
+    endif
+endif
+
 sizeof = {'void*': compilers['cpp'].sizeof('void*'),
           'long': compilers['cpp'].sizeof('long')
          }
@@ -184,13 +192,10 @@ if steamworks == true
         link_args: la.split(),
         override_options: global_std,
         win_subsystem: shim_ws,
-        install: true,
-        install_dir: '.',
-        install_tag: meson.project_name(),
     )
 endif
 
-exe = executable(exe_name,
+executable(exe_name,
     sources: [
         git_hash_file, # Dummy source file just so that Meson doesn't complain about the executable not having any sources in non-Windows builds
         windows_resources,
@@ -208,11 +213,7 @@ exe = executable(exe_name,
     ),
     include_directories: global_include_dirs,
     link_args: global_link_args,
-    install_rpath: rpath,
     win_subsystem: 'windows',
-    install: true,
-    install_dir: '.',
-    install_tag: meson.project_name(),
 )
 
 global_install_tags = [meson.project_name()]
@@ -227,6 +228,15 @@ if gplv3_features.length() != 0
 endif
 
 foreach install_tag : global_install_tags
+    meson.add_install_script(
+        python,
+        files('assets/install-executable.py'),
+        meson.project_build_root() / exe_name,
+        exe_name,
+        strip,
+        install_tag: install_tag,
+    )
+
     install_data(
         gplv3_features.length() != 0 ? 'assets/LICENSE.mkxp-z-with-https.txt' : 'COPYING',
         rename: 'LICENSE.txt',
@@ -277,15 +287,6 @@ if host_system == 'darwin'
     install_data(
         'macos/icon.icns',
         install_dir: (exe_name + '.app') / 'Contents' / 'Resources',
-        install_tag: meson.project_name() + '-bundle',
-    )
-
-    meson.add_install_script(
-        python,
-        files('assets/install-executable.py'),
-        meson.project_build_root() / exe_name,
-        (exe_name + '.app') / 'Contents' / 'MacOS' / meson.project_name(),
-        get_option('strip') ? find_program('strip') : [],
         install_tag: meson.project_name() + '-bundle',
     )
 endif
