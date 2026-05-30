@@ -71,12 +71,12 @@ if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
     destdir = run_command(find_program('cygpath'), '-m', destdir, check: true).stdout().strip()
 endif
 
-baseruby = find_program('ruby', required: true).full_path()
+baseruby = run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', find_program('ruby', required: true).full_path(), check: true).stdout().strip()
 if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
     baseruby = run_command(find_program('cygpath'), '-u', baseruby, check: true).stdout().strip()
 endif
 
-bison = find_program('bison', required: true).full_path()
+bison = run_command(subproject('tools').get_variable('python'), subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', find_program('bison', required: true).full_path(), check: true).stdout().strip()
 if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
     bison = run_command(find_program('cygpath'), '-u', bison, check: true).stdout().strip()
 endif
