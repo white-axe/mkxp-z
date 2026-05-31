@@ -1028,8 +1028,7 @@ if not fluidsynth.found()
 endif
 global_dependencies += fluidsynth
 
-ruby_dependency_name = 'ruby-3.1'
-ruby = dependency(ruby_dependency_name, allow_fallback: false, required: get_option('ruby_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+ruby = dependency('ruby-' + get_option('mri_version'), allow_fallback: false, required: get_option('ruby_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
 if not ruby.found()
     libffi = dependency('libffi', allow_fallback: false, method: 'pkg-config', required: get_option('libffi_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
     if not libffi.found()
@@ -1086,15 +1085,13 @@ if not ruby.found()
         'cflags': run_command(quotetool, build_machine.system(), 'false', ruby_internal_cflags + ruby_external_cflags, check: true).stdout().strip(),
         'ldflags': run_command(quotetool, build_machine.system(), 'false', ruby_internal_ldflags + ruby_external_ldflags, check: true).stdout().strip()
     }
-    ruby = subproject(ruby_dependency_name, default_options: ruby_options).get_variable('ruby')
+    ruby = subproject('ruby-' + get_option('mri_version'), default_options: ruby_options).get_variable('ruby')
 endif
 global_dependencies += ruby
 
-if build_static == true
-    if host_system == 'windows'
-        # '-static-libgcc', '-static-libstdc++' are here to avoid needing to ship a separate libgcc_s_seh-1.dll on Windows; it still works without those flags if you have the dll.
-        global_link_args += ['-static-libgcc', '-static-libstdc++', '-Wl,-Bstatic', '-lgcc', '-lstdc++', '-lpthread', '-Wl,-Bdynamic']
-    endif
+if host_system == 'windows'
+    # '-static-libgcc', '-static-libstdc++' are here to avoid needing to ship a separate libgcc_s_seh-1.dll on Windows; it still works without those flags if you have the dll.
+    global_link_args += ['-static-libgcc', '-static-libstdc++', '-Wl,-Bstatic', '-lgcc', '-lstdc++', '-lpthread', '-Wl,-Bdynamic']
 endif
 
 global_args += '-DMKXPZ_ALCDEVICE=ALCdevice'

@@ -82,11 +82,6 @@ if get_option('force32') == true
     global_args += '-m32'
 endif
 
-build_static = false
-if get_option('static_executable') == true
-    build_static = true
-endif
-
 global_args += '-DMKXPZ_INIT_GL_LATER'
 
 subdir('src')
@@ -98,11 +93,7 @@ global_include_dirs += include_directories('src', 'binding')
 
 rpath = meson.get_compiler('cpp').get_linker_id() in ['ld64', 'ld64.lld'] ? '@loader_path' : '$ORIGIN'
 
-exe_name = meson.project_name()
-
-if (host_system == 'linux' or host_system == 'darwin') and get_option('appimage') == false
-    exe_name += '.' + host_machine.cpu_family()
-endif
+exe_name = meson.project_name() + '.' + host_machine.cpu_family()
 
 if host_system == 'windows'
     windows_resource_directory = '../' + get_option('windows_resource_directory')
@@ -212,11 +203,10 @@ foreach install_tag : global_install_tags
     )
 
     if ruby.type_name() == 'internal'
-        ruby_version = ruby.version().split('.')[0] + '.' + ruby.version().split('.')[1]
         meson.add_install_script(
             python,
             files('assets/install-directory.py'),
-            meson.project_build_root() / 'subprojects' / ('ruby-' + ruby_version) / 'dist' / 'lib' / 'ruby' / (ruby_version + '.0'),
+            meson.project_build_root() / 'subprojects' / ('ruby-' + get_option('mri_version')) / 'dist' / 'lib' / 'ruby' / (get_option('mri_version') + '.0'),
             'stdlib',
             install_tag: install_tag,
         )
