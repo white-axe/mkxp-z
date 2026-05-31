@@ -68,7 +68,7 @@ std::string filesystemImpl::getDefaultGameRoot() {
         } else {
             NSString *contentsGamePath = [[[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"Contents"] stringByAppendingPathComponent:@"Game"];
             BOOL isDir;
-            if ([NSFileManager.defaultManager fileExistsAtPath:contentsGamePath isDirectory:&isDir] && isDir) {
+            if ([[NSFileManager defaultManager] fileExistsAtPath:contentsGamePath isDirectory:&isDir] && isDir) {
                 /* The executable is inside of a bundle and Contents/Game exists inside the bundle; use Contents/Game in the bundle as the default game root */
                 defaultGameRoot = contentsGamePath;
             } else {
