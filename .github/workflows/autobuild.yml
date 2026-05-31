@@ -269,10 +269,6 @@ jobs:
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
             cache: false
-          - arch_mkxpz: armv7
-            arch_debian: armhf
-            arch_gcc: arm-linux-gnueabihf
-            cache: false
           - arch_mkxpz: armv7-neon
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
@@ -282,10 +278,6 @@ jobs:
             arch_gcc: aarch64-linux-gnu
             cache: true
           - arch_mkxpz: power8le
-            arch_debian: ppc64el
-            arch_gcc: powerpc64le-linux-gnu
-            cache: false
-          - arch_mkxpz: power9le
             arch_debian: ppc64el
             arch_gcc: powerpc64le-linux-gnu
             cache: false
@@ -468,10 +460,6 @@ jobs:
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
             cache: false
-          - arch_mkxpz: armv7
-            arch_debian: armhf
-            arch_gcc: arm-linux-gnueabihf
-            cache: false
           - arch_mkxpz: armv7-neon
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
@@ -481,10 +469,6 @@ jobs:
             arch_gcc: aarch64-linux-gnu
             cache: false
           - arch_mkxpz: power8le
-            arch_debian: ppc64el
-            arch_gcc: powerpc64le-linux-gnu
-            cache: false
-          - arch_mkxpz: power9le
             arch_debian: ppc64el
             arch_gcc: powerpc64le-linux-gnu
             cache: false
