@@ -251,15 +251,6 @@ if host_system == 'darwin'
         install_tag: meson.project_name() + '-bundle',
     )
 
-    meson.add_install_script(
-        python,
-        files('assets/install-executable.py'),
-        exe,
-        (exe_name + '.app') / 'Contents' / 'MacOS' / meson.project_name(),
-        strip,
-        install_tag: meson.project_name() + '-bundle',
-    )
-
     configure_file(
         input: 'macos/Info.plist.in',
         output: 'Info.plist',
