@@ -96,8 +96,6 @@ subdir('assets')
 
 global_include_dirs += include_directories('src', 'binding')
 
-rpath = ''
-
 exe_name = meson.project_name()
 
 if (host_system == 'linux' or host_system == 'darwin') and get_option('appimage') == false
@@ -160,29 +158,32 @@ if get_option('steamworks_path') != ''
     global_dependencies += steamshim.get_variable('steamshim_child')
 endif
 
-exe = executable(
+libmkxp = static_library(
+    meson.project_name(),
+    sources: global_sources,
+    dependencies: global_dependencies,
+    include_directories: global_include_dirs,
+    c_args: global_args,
+    cpp_args: global_args + global_cpp_args,
+    objc_args: global_args + global_objc_args,
+    objcpp_args: global_args + global_objc_args + global_cpp_args + global_objcpp_args,
+    override_options: global_std,
+)
+
+executable(
     exe_name,
     sources: [
         git_hash_file, # Dummy source file just so that Meson doesn't complain about the executable not having any sources in non-Windows builds
         windows_resources,
     ],
-    link_with: static_library(
-        meson.project_name(),
-        sources: global_sources,
-        dependencies: global_dependencies,
-        include_directories: global_include_dirs,
-        c_args: global_args,
-        cpp_args: global_args + global_cpp_args,
-        objc_args: global_args + global_objc_args,
-        objcpp_args: global_args + global_objc_args + global_cpp_args + global_objcpp_args,
-        override_options: global_std,
-    ),
+    link_with: libmkxp,
     include_directories: global_include_dirs,
     link_args: global_link_args,
     win_subsystem: 'windows',
     install: true,
     install_dir: '.',
     install_tag: meson.project_name(),
+    install_rpath: '.',
 )
 
 global_install_tags = [meson.project_name()]
@@ -227,7 +228,7 @@ if host_system == 'darwin'
         executable(
             'steam_bundle_' + meson.project_name(),
             sources: [
-                git_hash_file, # Dummy source file just so that Meson doesn't complain about the executable not having any sources in non-Windows builds
+                git_hash_file, # Dummy source file just so that Meson doesn't complain about the executable not having any sources
                 windows_resources,
             ],
             dependencies: [
@@ -246,6 +247,22 @@ if host_system == 'darwin'
         )
     endif
 
+    executable(
+        'bundle_' + meson.project_name(),
+        sources: [
+            git_hash_file, # Dummy source file just so that Meson doesn't complain about the executable not having any sources
+            windows_resources,
+        ],
+        link_with: libmkxp,
+        include_directories: global_include_dirs,
+        link_args: global_link_args,
+        win_subsystem: 'windows',
+        install: true,
+        install_dir: (exe_name + '.app') / 'Contents' / 'MacOS',
+        install_tag: meson.project_name() + '-bundle',
+        install_rpath: '.',
+    )
+
     meson.add_install_script(
         python,
         files('assets/install-executable.py'),
@@ -259,7 +276,7 @@ if host_system == 'darwin'
         input: 'macos/Info.plist.in',
         output: 'Info.plist',
         configuration: {
-            'CFBundleExecutable': get_option('steamworks_path') != '' ? 'steam_bundle_' + meson.project_name() : meson.project_name(),
+            'CFBundleExecutable': get_option('steamworks_path') != '' ? 'steam_bundle_' + meson.project_name() : 'bundle_' + meson.project_name(),
             'CFBundleGetInfoString': meson.project_name(),
             'CFBundleIdentifier': meson.project_name(),
             'CFBundleName': meson.project_name(),
