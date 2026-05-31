@@ -52,38 +52,6 @@ global_args += '-DHAVE_NANOSLEEP'
 # Ext libs
 # ====================
 
-# STEAMWORKS
-
-steamworks = false
-steamworks_path = get_option('steamworks_path')
-if steamworks_path != ''
-    libname = 'steam_api'
-    if host_system == 'linux'
-        if sizeof['void*'] == 4
-            bindir = 'linux32'
-        else
-            bindir = 'linux64'
-        endif
-    else
-        if win64 == true
-            bindir = 'win64'
-            libname += '64'
-        else
-            bindir = ''
-        endif
-    endif
-
-    steam_libpath = steamworks_path + '/redistributable_bin/' + bindir
-    steamlib = compilers['cpp'].find_library(libname, required: false, dirs: [steam_libpath])
-
-    if steamlib.found() == true
-        global_include_dirs += include_directories('steamshim')
-        global_args += '-DMKXPZ_STEAM'
-        global_sources += 'steamshim/steamshim_child.c'
-        steamworks = true
-    endif
-endif
-
 # ====================
 # Main source
 # ====================
@@ -158,44 +126,42 @@ if host_system == 'darwin'
     subdir('macos/views')
 endif
 
-if steamworks == true
-    exe_name = 'steam_' + exe_name
-    la = ''
-    if build_static == true
-        if host_system == 'windows'
-            la = '-static'
-        else
-            la = '-static-libgcc -static-libstdc++'
-        endif
-    endif
+if get_option('steamworks_path') != ''
+    global_args += '-DMKXPZ_STEAM'
 
-    shim_args = [
-        '-DGAME_LAUNCH_NAME="' + exe_name + '"',
-        '-I' + steamworks_path + '/public'
-        ]
-
-    if get_option('steam_appid') != ''
-        shim_args += '-DSTEAM_APPID=' + get_option('steam_appid')
-    endif
-
-    if get_option('steamshim_debug') == true
-        shim_args += '-DSTEAMSHIM_DEBUG'
-        shim_ws = 'console'
-    else
-        shim_ws = 'windows'
-    endif
-
-    executable(meson.project_name(),
-        sources: files('steamshim/steamshim_parent.cpp'),
-        dependencies: steamlib,
-        cpp_args: shim_args,
-        link_args: la.split(),
-        override_options: global_std,
-        win_subsystem: shim_ws,
+    steamshim = subproject(
+        'steamshim',
+        default_options: meson_base_options + {
+            'steamworks_path': get_option('steamworks_path'),
+        },
     )
+
+    executable(
+        'steam_' + exe_name,
+        sources: [
+            git_hash_file, # Dummy source file just so that Meson doesn't complain about the executable not having any sources in non-Windows builds
+            windows_resources,
+        ],
+        dependencies: [
+            steamshim.get_variable('steamshim_parent'),
+        ],
+        cpp_args: [
+            '-DGAME_LAUNCH_NAME="' + exe_name + '"',
+            '-DDEBUGPIPE=' + (get_option('steamshim_debug') ? '1' : '0'),
+        ],
+        link_args: global_link_args,
+        win_subsystem: 'windows',
+        install: true,
+        install_dir: '.',
+        install_tag: meson.project_name(),
+        install_rpath: '.',
+    )
+
+    global_dependencies += steamshim.get_variable('steamshim_child')
 endif
 
-exe = executable(exe_name,
+exe = executable(
+    exe_name,
     sources: [
         git_hash_file, # Dummy source file just so that Meson doesn't complain about the executable not having any sources in non-Windows builds
         windows_resources,
@@ -222,25 +188,6 @@ exe = executable(exe_name,
 global_install_tags = [meson.project_name()]
 if host_system == 'darwin'
     global_install_tags += meson.project_name() + '-bundle'
-endif
-
-summary('ALSA', have_alsa, bool_yn: true)
-summary('ANGLE', have_angle, bool_yn: true)
-if have_angle
-    summary('ANGLE Direct3D 9 backend', have_angle_direct3d9, bool_yn: true)
-    summary('ANGLE Direct3D 11 backend', have_angle_direct3d11, bool_yn: true)
-    summary('ANGLE Metal backend', have_angle_metal, bool_yn: true)
-    summary('ANGLE null backend', have_angle_null, bool_yn: true)
-    summary('ANGLE Vulkan backend', have_angle_vulkan, bool_yn: true)
-endif
-summary('Extra shaders', have_extra_shaders, bool_yn: true)
-summary('JACK Audio Connection Kit', have_jack, bool_yn: true)
-summary('OpenSSL', have_openssl, bool_yn: true)
-summary('PipeWire', have_pipewire, bool_yn: true)
-summary('PulseAudio', have_pulseaudio, bool_yn: true)
-summary('License', gplv3_features.length() != 0 ? 'GPL-3.0-or-later' : 'GPL-2.0-or-later')
-if gplv3_features.length() != 0
-    summary('Enabled features requiring GPLv3', gplv3_features)
 endif
 
 foreach install_tag : global_install_tags
@@ -276,6 +223,29 @@ foreach install_tag : global_install_tags
 endforeach
 
 if host_system == 'darwin'
+    if get_option('steamworks_path') != ''
+        executable(
+            'steam_bundle_' + meson.project_name(),
+            sources: [
+                git_hash_file, # Dummy source file just so that Meson doesn't complain about the executable not having any sources in non-Windows builds
+                windows_resources,
+            ],
+            dependencies: [
+                steamshim.get_variable('steamshim_parent'),
+            ],
+            cpp_args: [
+                '-DGAME_LAUNCH_NAME="' + meson.project_name() + '"',
+                '-DDEBUGPIPE=' + (get_option('steamshim_debug') ? '1' : '0'),
+            ],
+            link_args: global_link_args,
+            win_subsystem: 'windows',
+            install: true,
+            install_dir: (exe_name + '.app') / 'Contents' / 'MacOS',
+            install_tag: meson.project_name() + '-bundle',
+            install_rpath: '.',
+        )
+    endif
+
     meson.add_install_script(
         python,
         files('assets/install-executable.py'),
@@ -289,7 +259,7 @@ if host_system == 'darwin'
         input: 'macos/Info.plist.in',
         output: 'Info.plist',
         configuration: {
-            'CFBundleExecutable': meson.project_name(),
+            'CFBundleExecutable': get_option('steamworks_path') != '' ? 'steam_bundle_' + meson.project_name() : meson.project_name(),
             'CFBundleGetInfoString': meson.project_name(),
             'CFBundleIdentifier': meson.project_name(),
             'CFBundleName': meson.project_name(),
@@ -305,4 +275,23 @@ if host_system == 'darwin'
         install_dir: (exe_name + '.app') / 'Contents' / 'Resources',
         install_tag: meson.project_name() + '-bundle',
     )
+endif
+
+summary('ALSA', have_alsa, bool_yn: true)
+summary('ANGLE', have_angle, bool_yn: true)
+if have_angle
+    summary('ANGLE Direct3D 9 backend', have_angle_direct3d9, bool_yn: true)
+    summary('ANGLE Direct3D 11 backend', have_angle_direct3d11, bool_yn: true)
+    summary('ANGLE Metal backend', have_angle_metal, bool_yn: true)
+    summary('ANGLE null backend', have_angle_null, bool_yn: true)
+    summary('ANGLE Vulkan backend', have_angle_vulkan, bool_yn: true)
+endif
+summary('Extra shaders', have_extra_shaders, bool_yn: true)
+summary('JACK Audio Connection Kit', have_jack, bool_yn: true)
+summary('OpenSSL', have_openssl, bool_yn: true)
+summary('PipeWire', have_pipewire, bool_yn: true)
+summary('PulseAudio', have_pulseaudio, bool_yn: true)
+summary('License', gplv3_features.length() != 0 ? 'GPL-3.0-or-later' : 'GPL-2.0-or-later')
+if gplv3_features.length() != 0
+    summary('Enabled features requiring GPLv3', gplv3_features)
 endif

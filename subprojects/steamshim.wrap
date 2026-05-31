@@ -1,0 +1,6 @@
+[wrap-git]
+url = https://github.com/icculus/steamshim
+revision = c49d0dfffc0381ed38e333f82fdac0e12840780a
+depth = 1
+patch_directory = steamshim
+diff_files = steamshim-apple-chdir.patch

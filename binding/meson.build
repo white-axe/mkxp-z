@@ -35,7 +35,7 @@ binding_source = [files(
     'http-binding.cpp'
 )]
 
-if steamworks == true
+if get_option('steamworks_path') != ''
     binding_source += files('cusl-binding.cpp')
 endif
 
