@@ -80,5 +80,5 @@ option('theora_system', type: 'feature', value: 'auto', description: 'Use the sy
 option('uchardet_system', type: 'feature', value: 'auto', description: 'Use the system version of uchardet instead of the vendored version')
 option('volk_system', type: 'feature', value: 'auto', description: 'Use the system version of volk instead of the vendored version')
 option('vorbis_system', type: 'feature', value: 'auto', description: 'Use the system version of Vorbis instead of the vendored version')
-option('xxhash_system', type: 'feature', value: 'auto', description: 'Use the system version of xxhash instead of the vendored version')
+option('xxhash_system', type: 'feature', value: 'auto', description: 'Use the system version of xxHash instead of the vendored version')
 option('zlib_system', type: 'feature', value: 'auto', description: 'Use the system version of zlib instead of the vendored version')

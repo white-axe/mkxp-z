@@ -216,7 +216,8 @@ if not sdl2.found() or not sdl2main.found()
     have_angle = get_option('angle').allowed()
 
     if have_angle
-        xxhash = dependency('libxxhash', allow_fallback: false, required: get_option('angle').auto() and get_option('xxhash_system').enabled() ? get_option('angle') : get_option('xxhash_system'))
+        require_system_xxhash = get_option('xxhash_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
+        xxhash = dependency('libxxhash', allow_fallback: false, required: get_option('angle').auto() and require_system_xxhash.enabled() ? get_option('angle') : require_system_xxhash)
         if not xxhash.found()
             if not get_option('xxhash_system').enabled()
                 subproject('xxhash', default_options: meson_base_options)
