@@ -96,6 +96,8 @@ subdir('assets')
 
 global_include_dirs += include_directories('src', 'binding')
 
+rpath = meson.get_compiler('cpp').get_linker_id() in ['ld64', 'ld64.lld'] ? '@loader_path' : '$ORIGIN'
+
 exe_name = meson.project_name()
 
 if (host_system == 'linux' or host_system == 'darwin') and get_option('appimage') == false
@@ -149,10 +151,11 @@ if get_option('steamworks_path') != ''
         ],
         link_args: global_link_args,
         win_subsystem: 'windows',
+        build_rpath: rpath,
+        install_rpath: rpath,
         install: true,
         install_dir: '.',
         install_tag: meson.project_name(),
-        install_rpath: '.',
     )
 
     global_dependencies += steamshim.get_variable('steamshim_child')
@@ -180,10 +183,11 @@ executable(
     include_directories: global_include_dirs,
     link_args: global_link_args,
     win_subsystem: 'windows',
+    build_rpath: rpath,
+    install_rpath: rpath,
     install: true,
     install_dir: '.',
     install_tag: meson.project_name(),
-    install_rpath: '.',
 )
 
 global_install_tags = [meson.project_name()]
@@ -240,10 +244,11 @@ if host_system == 'darwin'
             ],
             link_args: global_link_args,
             win_subsystem: 'windows',
+            build_rpath: rpath,
+            install_rpath: rpath,
             install: true,
             install_dir: (exe_name + '.app') / 'Contents' / 'MacOS',
             install_tag: meson.project_name() + '-bundle',
-            install_rpath: '.',
         )
     endif
 
@@ -257,10 +262,11 @@ if host_system == 'darwin'
         include_directories: global_include_dirs,
         link_args: global_link_args,
         win_subsystem: 'windows',
+        build_rpath: rpath,
+        install_rpath: rpath,
         install: true,
         install_dir: (exe_name + '.app') / 'Contents' / 'MacOS',
         install_tag: meson.project_name() + '-bundle',
-        install_rpath: '.',
     )
 
     meson.add_install_script(
