@@ -138,10 +138,6 @@ if get_option('steamworks_path') != ''
 
     executable(
         'steam_' + exe_name,
-        sources: [
-            git_hash_file, # Dummy source file just so that Meson doesn't complain about the executable not having any sources in non-Windows builds
-            windows_resources,
-        ],
         dependencies: [
             steamshim.get_variable('steamshim_parent'),
         ],
@@ -231,10 +227,6 @@ if host_system == 'darwin'
     if get_option('steamworks_path') != ''
         executable(
             'steam_bundle_' + meson.project_name(),
-            sources: [
-                git_hash_file, # Dummy source file just so that Meson doesn't complain about the executable not having any sources
-                windows_resources,
-            ],
             dependencies: [
                 steamshim.get_variable('steamshim_parent'),
             ],
