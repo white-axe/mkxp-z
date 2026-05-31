@@ -333,9 +333,9 @@ jobs:
         run: |
           if [ '${{ matrix.arch_mkxpz }}' = 'armv7-neon' ]
           then
-            arm_neon=true
+            arm_neon=auto
           else
-            arm_neon=false
+            arm_neon=disabled
           fi
           meson setup --prefix "$(realpath .)/build/artifact" --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt -Darm_neon=$arm_neon --buildtype release -Dstrip=true -Db_lto=true build
 
@@ -515,9 +515,9 @@ jobs:
         run: |
           if [ '${{ matrix.arch_mkxpz }}' = 'armv7-neon' ]
           then
-            arm_neon=true
+            arm_neon=auto
           else
-            arm_neon=false
+            arm_neon=disabled
           fi
           meson setup --prefix "$(realpath .)/build/artifact" --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt  -Darm_neon=$arm_neon --buildtype release -Dstrip=true -Db_lto=true build
 
