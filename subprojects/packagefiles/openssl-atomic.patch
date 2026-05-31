@@ -11,3 +11,14 @@
  ]
  openssl_include_directories = [
    'generated-config/archs/linux-armv4/asm',
+--- a/generated-config/archs/linux-armv4/no-asm/meson.build
++++ b/generated-config/archs/linux-armv4/no-asm/meson.build
+@@ -968,7 +968,7 @@ openssl_cflags = [
+ ]
+ openssl_libraries = [
+   'dl',
+-  'atomic',
++
+ ]
+ openssl_include_directories = [
+   'generated-config/archs/linux-armv4/no-asm',
