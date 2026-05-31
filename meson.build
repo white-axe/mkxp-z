@@ -48,6 +48,9 @@ win64 = (sizeof['void*'] != sizeof['long'])
 
 global_args += '-DMKXPZ_VERSION="@0@"'.format(meson.project_version())
 global_args += '-DHAVE_NANOSLEEP'
+if get_option('gfx_backend') == 'gles'
+    global_args += '-DMKXPZ_USE_GLES_BY_DEFAULT'
+endif
 # ====================
 # Ext libs
 # ====================

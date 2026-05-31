@@ -205,12 +205,24 @@ int main(int argc, char *argv[]) {
 
     SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
 
+    SDL_SetHint(
+      SDL_HINT_OPENGL_ES_DRIVER,
+      SDL_GetHintBoolean(
+        SDL_HINT_OPENGL_ES_DRIVER,
+#ifdef MKXPZ_USE_GLES_BY_DEFAULT
+        SDL_TRUE
+#else
+        SDL_FALSE
+#endif // MKXPZ_USE_GLES_BY_DEFAULT
+      ) != SDL_FALSE ? "1" : "0"
+    );
+
 #ifdef MKXPZ_CHECK_FOR_WAYLAND_SUPPORT
     {
-      char *sdl_videodriver = getenv("SDL_VIDEODRIVER");
+      const char *sdl_videodriver = SDL_GetHint(SDL_HINT_VIDEODRIVER);
       if (sdl_videodriver == nullptr || sdl_videodriver[0] == 0) {
         /* Select SDL's Wayland video driver if SDL_VIDEODRIVER is unset and Wayland support is available on the user's machine */
-        setenv("SDL_VIDEODRIVER", "x11", true);
+        SDL_SetHintWithPriority(SDL_HINT_VIDEODRIVER, "x11", SDL_HINT_OVERRIDE);
 #ifdef MKXPZ_HAVE_ANGLE
         mkxp_angle_egl_is_wayland = false;
 #endif // MKXPZ_HAVE_ANGLE
@@ -222,7 +234,7 @@ int main(int argc, char *argv[]) {
             void *display = _wl_display_connect(nullptr);
             if (display != nullptr) {
               _wl_display_disconnect(display);
-              setenv("SDL_VIDEODRIVER", "wayland", true);
+              SDL_SetHintWithPriority(SDL_HINT_VIDEODRIVER, "wayland", SDL_HINT_OVERRIDE);
 #ifdef MKXPZ_HAVE_ANGLE
               mkxp_angle_egl_is_wayland = true;
 #endif // MKXPZ_HAVE_ANGLE
@@ -257,8 +269,8 @@ int main(int argc, char *argv[]) {
     }
 
     if (mkxp_use_angle) {
-      SDL_SetHint(SDL_HINT_OPENGL_ES_DRIVER, "1");
-      SDL_SetHint(SDL_HINT_VIDEO_X11_FORCE_EGL, "1");
+      SDL_SetHintWithPriority(SDL_HINT_OPENGL_ES_DRIVER, "1", SDL_HINT_OVERRIDE);
+      SDL_SetHintWithPriority(SDL_HINT_VIDEO_X11_FORCE_EGL, "1", SDL_HINT_OVERRIDE);
     }
 #endif // MKXPZ_HAVE_ANGLE
 
@@ -379,11 +391,9 @@ int main(int argc, char *argv[]) {
     if (conf.fullscreen)
       winFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 
-#ifdef MKXPZ_HAVE_ANGLE
-    if (mkxp_use_angle) {
+    if (SDL_GetHintBoolean(SDL_HINT_OPENGL_ES_DRIVER, SDL_FALSE)) {
       SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
     }
-#endif // MKXPZ_HAVE_ANGLE
     
     win = SDL_CreateWindow(conf.windowTitle.c_str(), SDL_WINDOWPOS_UNDEFINED,
                            SDL_WINDOWPOS_UNDEFINED, conf.defScreenW,
