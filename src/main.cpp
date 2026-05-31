@@ -242,11 +242,15 @@ int main(int argc, char *argv[]) {
     {
       char *angle_default_platform = getenv("ANGLE_DEFAULT_PLATFORM");
       if (angle_default_platform == nullptr || angle_default_platform[0] == 0) {
-#ifdef MKXPZ_HAVE_ANGLE_METAL
+#  ifdef MKXPZ_HAVE_ANGLE_METAL
         setenv("ANGLE_DEFAULT_PLATFORM", "metal", true);
-#elif defined(MKXPZ_HAVE_ANGLE_VULKAN) && !defined(MKXPZ_HAVE_ANGLE_DIRECT3D9) && !defined(MKXPZ_HAVE_ANGLE_DIRECT3D11)
+#  elif !defined(MKXPZ_HAVE_ANGLE_DIRECT3D9) && !defined(MKXPZ_HAVE_ANGLE_DIRECT3D11)
+#    ifdef MKXPZ_HAVE_ANGLE_VULKAN
         setenv("ANGLE_DEFAULT_PLATFORM", "vulkan", true);
-#endif
+#    else
+        setenv("ANGLE_DEFAULT_PLATFORM", "gl", true);
+#    endif
+#  endif
       } else if (std::strcmp(angle_default_platform, "gl") == 0) {
         mkxp_use_angle = false;
       }
