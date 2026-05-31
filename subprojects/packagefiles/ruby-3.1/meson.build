@@ -37,7 +37,7 @@ if get_option('b_staticpic')
 endif
 
 # -std=gnu99 is needed with GCC 15 and higher (which default to gnu23), for Ruby versions that aren't valid C23.
-# Ruby versions that are valid C23 are 3.2.9+, 3.3.9+, 3.4.5+, and 3.5.0+.
+# Ruby versions that are valid C23 are 3.2.9+, 3.3.9+, 3.4.5+, and 4.0.0+.
 cflags += '-std=gnu99'
 
 cflags += get_option('c_args')
