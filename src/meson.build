@@ -103,7 +103,9 @@ if get_option('openssl').disabled() or (get_option('openssl').auto() and require
 endif
 openssl = dependency('openssl', allow_fallback: false, required: require_system_openssl)
 if not openssl.found() and not get_option('openssl_system').enabled()
-    openssl_options = meson_base_options
+    openssl_options = meson_base_options + {
+        'asm': 'disabled',
+    }
     openssl = subproject('openssl', default_options: openssl_options).get_variable('openssl_dep')
     meson.override_dependency('openssl', openssl, static: true)
 endif
@@ -515,11 +517,111 @@ if not openal.found()
         fmt = cmake.subproject('fmt', options: fmt_options).dependency('fmt')
         meson.override_dependency('fmt', fmt, static: true)
     endif
+    neon = 'disabled'
+    if host_machine.cpu_family() == 'arm'
+        if get_option('arm_neon').disabled()
+            neon = 'disabled'
+        elif get_option('arm_neon').enabled()
+            neon = 'enabled'
+        else
+            neon = 'auto'
+        endif
+    endif
+    if host_machine.cpu_family() == 'aarch64'
+        if get_option('aarch64_neon').disabled()
+            neon = 'disabled'
+        elif get_option('aarch64_neon').enabled()
+            neon = 'enabled'
+        else
+            neon = 'auto'
+        endif
+    endif
+    sse = 'disabled'
+    if host_machine.cpu_family() == 'x86'
+        if get_option('x86_sse').disabled()
+            sse = 'disabled'
+        elif get_option('x86_sse').enabled()
+            sse = 'enabled'
+        else
+            sse = 'auto'
+        endif
+    endif
+    if host_machine.cpu_family() == 'x86_64'
+        if get_option('x86_64_sse').disabled()
+            sse = 'disabled'
+        elif get_option('x86_64_sse').enabled()
+            sse = 'enabled'
+        else
+            sse = 'auto'
+        endif
+    endif
+    sse2 = 'disabled'
+    if host_machine.cpu_family() == 'x86'
+        if get_option('x86_sse2').disabled()
+            sse2 = 'disabled'
+        elif get_option('x86_sse2').enabled()
+            sse2 = 'enabled'
+        else
+            sse2 = 'auto'
+        endif
+    endif
+    if host_machine.cpu_family() == 'x86_64'
+        if get_option('x86_64_sse2').disabled()
+            sse2 = 'disabled'
+        elif get_option('x86_64_sse2').enabled()
+            sse2 = 'enabled'
+        else
+            sse2 = 'auto'
+        endif
+    endif
+    sse3 = 'disabled'
+    if host_machine.cpu_family() == 'x86'
+        if get_option('x86_sse3').disabled()
+            sse3 = 'disabled'
+        elif get_option('x86_sse3').enabled()
+            sse3 = 'enabled'
+        else
+            sse3 = 'auto'
+        endif
+    endif
+    if host_machine.cpu_family() == 'x86_64'
+        if get_option('x86_64_sse3').disabled()
+            sse3 = 'disabled'
+        elif get_option('x86_64_sse3').enabled()
+            sse3 = 'enabled'
+        else
+            sse3 = 'auto'
+        endif
+    endif
+    sse41 = 'disabled'
+    if host_machine.cpu_family() == 'x86'
+        if get_option('x86_sse41').disabled()
+            sse41 = 'disabled'
+        elif get_option('x86_sse41').enabled()
+            sse41 = 'enabled'
+        else
+            sse41 = 'auto'
+        endif
+    endif
+    if host_machine.cpu_family() == 'x86_64'
+        if get_option('x86_64_sse41').disabled()
+            sse41 = 'disabled'
+        elif get_option('x86_64_sse41').enabled()
+            sse41 = 'enabled'
+        else
+            sse41 = 'auto'
+        endif
+    endif
     openal_options = meson_base_options + {
         'alsa': have_alsa ? 'enabled' : 'disabled',
         'rtkit': 'disabled',
         'sdl2': 'disabled',
         'utils': false,
+        'neon': neon,
+        'sse': sse,
+        'sse2': sse2,
+        'sse3': sse3,
+        'sse41': sse41,
     }
     openal = subproject('openal-soft', default_options: openal_options).get_variable('openal_dep')
 endif
@@ -669,16 +771,147 @@ endif
 
 pixman = dependency('pixman-1', allow_fallback: false, required: get_option('pixman_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
 if not pixman.found()
+    loongson_mmi = 'disabled'
+    if host_machine.cpu_family() == 'loongarch64'
+        if get_option('loongarch64_mmi').disabled()
+            loongson_mmi = 'disabled'
+        elif get_option('loongarch64_mmi').enabled()
+            loongson_mmi = 'enabled'
+        else
+            loongson_mmi = 'auto'
+        endif
+    endif
+    mmx = 'disabled'
+    if host_machine.cpu_family() == 'x86'
+        if get_option('x86_mmx').disabled()
+            mmx = 'disabled'
+        elif get_option('x86_mmx').enabled()
+            mmx = 'enabled'
+        else
+            mmx = 'auto'
+        endif
+    endif
+    if host_machine.cpu_family() == 'x86_64'
+        if get_option('x86_64_mmx').disabled()
+            mmx = 'disabled'
+        elif get_option('x86_64_mmx').enabled()
+            mmx = 'enabled'
+        else
+            mmx = 'auto'
+        endif
+    endif
+    sse2 = 'disabled'
+    if host_machine.cpu_family() == 'x86'
+        if get_option('x86_sse2').disabled()
+            sse2 = 'disabled'
+        elif get_option('x86_sse2').enabled()
+            sse2 = 'enabled'
+        else
+            sse2 = 'auto'
+        endif
+    endif
+    if host_machine.cpu_family() == 'x86_64'
+        if get_option('x86_64_sse2').disabled()
+            sse2 = 'disabled'
+        elif get_option('x86_64_sse2').enabled()
+            sse2 = 'enabled'
+        else
+            sse2 = 'auto'
+        endif
+    endif
+    ssse3 = 'disabled'
+    if host_machine.cpu_family() == 'x86'
+        if get_option('x86_ssse3').disabled()
+            ssse3 = 'disabled'
+        elif get_option('x86_ssse3').enabled()
+            ssse3 = 'enabled'
+        else
+            ssse3 = 'auto'
+        endif
+    endif
+    if host_machine.cpu_family() == 'x86_64'
+        if get_option('x86_64_ssse3').disabled()
+            ssse3 = 'disabled'
+        elif get_option('x86_64_ssse3').enabled()
+            ssse3 = 'enabled'
+        else
+            ssse3 = 'auto'
+        endif
+    endif
+    vmx = 'disabled'
+    if host_machine.cpu_family() in ['ppc', 'ppc64']
+        if get_option('ppc_altivec').disabled()
+            vmx = 'disabled'
+        elif get_option('ppc_altivec').enabled()
+            vmx = 'enabled'
+        else
+            vmx = 'auto'
+        endif
+    endif
+    arm_simd = 'disabled'
+    if host_machine.cpu_family() == 'arm'
+        if get_option('arm_armv6').disabled()
+            arm_simd = 'disabled'
+        elif get_option('arm_armv6').enabled()
+            arm_simd = 'enabled'
+        else
+            arm_simd = 'auto'
+        endif
+    endif
+    neon = 'disabled'
+    if host_machine.cpu_family() == 'arm'
+        if get_option('arm_neon').disabled()
+            neon = 'disabled'
+        elif get_option('arm_neon').enabled()
+            neon = 'enabled'
+        else
+            neon = 'auto'
+        endif
+    endif
+    a64_neon = 'disabled'
+    if host_machine.cpu_family() == 'aarch64'
+        if get_option('aarch64_neon').disabled()
+            a64_neon = 'disabled'
+        elif get_option('aarch64_neon').enabled()
+            a64_neon = 'enabled'
+        else
+            a64_neon = 'auto'
+        endif
+    endif
+    mips_dspr2 = 'disabled'
+    if host_machine.cpu_family() == 'mips'
+        if get_option('mips_dspr2').disabled()
+            mips_dspr2 = 'disabled'
+        elif get_option('mips_dspr2').enabled()
+            mips_dspr2 = 'enabled'
+        else
+            mips_dspr2 = 'auto'
+        endif
+    endif
+    rvv = 'disabled'
+    if host_machine.cpu_family() in ['riscv32', 'riscv64']
+        if get_option('riscv_rvv').disabled()
+            rvv = 'disabled'
+        elif get_option('riscv_rvv').enabled()
+            rvv = 'enabled'
+        else
+            rvv = 'auto'
+        endif
+    endif
     pixman_options = meson_base_options + {
         'libpng': 'disabled',
         'tls': 'disabled',
-    } + (
-        host_system == 'darwin'
-            ? {
-                'a64-neon': 'disabled',
-            }
-            : {}
-    )
+        'loongson-mmi': loongson_mmi,
+        'mmx': mmx,
+        'sse2': sse2,
+        'ssse3': ssse3,
+        'vmx': vmx,
+        'arm-simd': arm_simd,
+        'neon': neon,
+        'a64-neon': host_system == 'darwin' ? 'disabled' : a64_neon,
+        'mips-dspr2': mips_dspr2,
+        'rvv': rvv,
+    }
     pixman = subproject('pixman', default_options: pixman_options).get_variable('idep_pixman')
 endif
 global_dependencies += pixman
