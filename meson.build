@@ -33,14 +33,6 @@ python = subproject('tools').get_variable('python')
 embedtool = subproject('tools').get_variable('embedtool')
 quotetool = subproject('tools').get_variable('quotetool')
 
-strip = []
-if get_option('strip')
-    strip = find_program('strip', required: false)
-    if not strip.found()
-        strip = []
-    endif
-endif
-
 sizeof = {'void*': compilers['cpp'].sizeof('void*'),
           'long': compilers['cpp'].sizeof('long')
          }
