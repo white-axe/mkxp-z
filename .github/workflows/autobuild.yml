@@ -193,7 +193,7 @@ jobs:
             clang: true
             cache: true
           - arch_mkxpz: x86
-            clang: false
+            clang: true
             cache: false
           - arch_mkxpz: x86_64
             clang: false # FIXME: x86_64 binaries built with Clang cause Ruby to crash at run time
