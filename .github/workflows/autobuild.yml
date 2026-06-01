@@ -185,6 +185,7 @@ jobs:
   build-windows-cross:
     name: Windows ${{ matrix.arch_mkxpz }}
     runs-on: ubuntu-latest
+    container: debian:trixie
     strategy:
       fail-fast: false
       matrix:
@@ -206,9 +207,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt update
-          sudo apt install -y git diffutils ruby bison gcc g++ ccache make cmake ninja-build python3-pip
-          pip3 install meson
+          apt update
+          apt install -y git diffutils ruby bison gcc g++ ccache make cmake meson
 
           if [ '${{ matrix.clang }}' = 'true' ]
           then
@@ -220,7 +220,7 @@ jobs:
             "${{ runner.temp }}/llvm-mingw-$llvm_mingw_version/bin/clang" --version
             echo "PATH=${{ runner.temp }}/llvm-mingw-$llvm_mingw_version/bin:$PATH" >> "$GITHUB_ENV"
           else
-            sudo apt install -y mingw-w64
+            apt install -y mingw-w64
           fi
 
       - name: Checkout repository
@@ -471,7 +471,7 @@ jobs:
 
   build-linux-native-container:
     name: Debian Trixie x86_64
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     container: debian:trixie
     defaults:
       run:
@@ -544,7 +544,7 @@ jobs:
 
   build-linux-cross-container:
     name: Debian Trixie ${{matrix.arch_mkxpz}}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     container: debian:trixie
     defaults:
       run:
