@@ -190,10 +190,13 @@ jobs:
       matrix:
         include:
           - arch_mkxpz: arm64
+            clang: true
             cache: true
           - arch_mkxpz: x86
+            clang: false
             cache: false
           - arch_mkxpz: x86_64
+            clang: false # FIXME: x86_64 binaries built with Clang cause Ruby to crash at run time
             cache: true
     steps:
       - uses: benjlevesque/short-sha@v2.2
@@ -207,13 +210,18 @@ jobs:
           sudo apt install -y git diffutils ruby bison gcc g++ ccache make cmake ninja-build python3-pip
           pip3 install meson
 
-          llvm_mingw_version=20260224-msvcrt-ubuntu-22.04-x86_64
-          cd '${{ runner.temp }}'
-          curl -Lo llvm-mingw.tar.xz https://github.com/mstorsjo/llvm-mingw/releases/download/$(echo $llvm_mingw_version | cut -f 1 -d -)/llvm-mingw-$llvm_mingw_version.tar.xz
-          tar -xJf llvm-mingw.tar.xz
-          rm llvm-mingw.tar.xz
-          "${{ runner.temp }}/llvm-mingw-$llvm_mingw_version/bin/clang" --version
-          echo "PATH=${{ runner.temp }}/llvm-mingw-$llvm_mingw_version/bin:$PATH" >> "$GITHUB_ENV"
+          if [ '${{ matrix.clang }}' = 'true' ]
+          then
+            llvm_mingw_version=20260224-msvcrt-ubuntu-22.04-x86_64
+            cd '${{ runner.temp }}'
+            curl -Lo llvm-mingw.tar.xz https://github.com/mstorsjo/llvm-mingw/releases/download/$(echo $llvm_mingw_version | cut -f 1 -d -)/llvm-mingw-$llvm_mingw_version.tar.xz
+            tar -xJf llvm-mingw.tar.xz
+            rm llvm-mingw.tar.xz
+            "${{ runner.temp }}/llvm-mingw-$llvm_mingw_version/bin/clang" --version
+            echo "PATH=${{ runner.temp }}/llvm-mingw-$llvm_mingw_version/bin:$PATH" >> "$GITHUB_ENV"
+          else
+            sudo apt install -y mingw-w64
+          fi
 
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -235,7 +243,14 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --prefix "$(realpath .)/build/artifact" --cross-file windows/meson-clang-${{ matrix.arch_mkxpz }}.txt --buildtype release -Dstrip=true -Db_lto=true build
+          if [ '${{ matrix.clang }}' = 'true' ]
+          then
+            compiler=clang
+          else
+            compiler=gcc
+          fi
+
+          meson setup --prefix "$(realpath .)/build/artifact" --cross-file windows/meson-$compiler-${{ matrix.arch_mkxpz }}.txt --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
