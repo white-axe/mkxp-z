@@ -105,14 +105,14 @@ jobs:
         if: false
         uses: actions/cache/restore@v5
         with:
-          path: ${{ runner.temp }}/ccache
+          path: ccache
           key: windows-msys2-x86_64-
           restore-keys: windows-msys2-x86_64-
 
       - name: Set up ccache
         shell: msys2 {0}
         run: |
-          ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
+          ccache --set-config=cache_dir=ccache
           ccache --set-config=compiler_check=content
           ccache --set-config=max_size=1280MiB
           ccache --zero-stats
@@ -135,7 +135,7 @@ jobs:
         if: false
         uses: actions/cache/save@v5
         with:
-          path: ${{ runner.temp }}/ccache
+          path: ccache
           key: windows-msys2-x86_64-${{ github.sha }}-${{ steps.build.outputs.time }}
 
       - name: Show ccache statistics
@@ -214,12 +214,11 @@ jobs:
           then
             llvm_mingw_version=20260224-msvcrt-ubuntu-22.04-x86_64
             apt install -y curl tar xz-utils
-            cd ~
             curl -Lo llvm-mingw.tar.xz https://github.com/mstorsjo/llvm-mingw/releases/download/$(echo $llvm_mingw_version | cut -f 1 -d -)/llvm-mingw-$llvm_mingw_version.tar.xz
             tar -xJf llvm-mingw.tar.xz
             rm llvm-mingw.tar.xz
-            ~/llvm-mingw-$llvm_mingw_version/bin/clang --version
-            echo "PATH=~/llvm-mingw-$llvm_mingw_version/bin:$PATH" >> "$GITHUB_ENV"
+            ./llvm-mingw-$llvm_mingw_version/bin/clang --version
+            echo "PATH=$(pwd)/llvm-mingw-$llvm_mingw_version/bin:$PATH" >> "$GITHUB_ENV"
           else
             apt install -y mingw-w64
           fi
@@ -231,13 +230,13 @@ jobs:
         if: ${{ matrix.cache }}
         uses: actions/cache/restore@v5
         with:
-          path: ~/ccache
+          path: ccache
           key: windows-cross-${{ matrix.arch_mkxpz }}-
           restore-keys: windows-cross-${{ matrix.arch_mkxpz }}-
 
       - name: Set up ccache
         run: |
-          ccache --set-config=cache_dir='~/ccache'
+          ccache --set-config=cache_dir=ccache
           ccache --set-config=compiler_check=content
           ccache --set-config=max_size=1280MiB
           ccache --zero-stats
@@ -265,7 +264,7 @@ jobs:
         if: ${{ matrix.cache }}
         uses: actions/cache/save@v5
         with:
-          path: ~/ccache
+          path: ccache
           key: windows-cross-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
 
       - name: Show ccache statistics
@@ -308,13 +307,13 @@ jobs:
         if: true
         uses: actions/cache/restore@v5
         with:
-          path: ${{ runner.temp }}/ccache
+          path: ccache
           key: ubuntu-jammy-x86_64-
           restore-keys: ubuntu-jammy-x86_64-
 
       - name: Set up ccache
         run: |
-          ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
+          ccache --set-config=cache_dir=ccache
           ccache --set-config=compiler_check=content
           ccache --set-config=max_size=1280MiB
           ccache --zero-stats
@@ -335,7 +334,7 @@ jobs:
         if: true
         uses: actions/cache/save@v5
         with:
-          path: ${{ runner.temp }}/ccache
+          path: ccache
           key: ubuntu-jammy-x86_64-${{ github.sha }}-${{ steps.build.outputs.time }}
 
       - name: Show ccache statistics
@@ -416,13 +415,13 @@ jobs:
         if: ${{ matrix.cache }}
         uses: actions/cache/restore@v5
         with:
-          path: ${{ runner.temp }}/ccache
+          path: ccache
           key: ubuntu-jammy-${{ matrix.arch_mkxpz }}-
           restore-keys: ubuntu-jammy-${{ matrix.arch_mkxpz }}-
 
       - name: Set up ccache
         run: |
-          ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
+          ccache --set-config=cache_dir=ccache
           ccache --set-config=compiler_check=content
           ccache --set-config=max_size=1280MiB
           ccache --zero-stats
@@ -449,7 +448,7 @@ jobs:
         if: ${{ matrix.cache }}
         uses: actions/cache/save@v5
         with:
-          path: ${{ runner.temp }}/ccache
+          path: ccache
           key: ubuntu-jammy-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
 
       - name: Show ccache statistics
@@ -495,13 +494,13 @@ jobs:
         if: false
         uses: actions/cache/restore@v5
         with:
-          path: ~/ccache
+          path: ccache
           key: debian-trixie-x86_64-
           restore-keys: debian-trixie-x86_64-
 
       - name: Set up ccache
         run: |
-          ccache --set-config=cache_dir='~/ccache'
+          ccache --set-config=cache_dir=ccache
           ccache --set-config=compiler_check=content
           ccache --set-config=max_size=1280MiB
           ccache --zero-stats
@@ -522,7 +521,7 @@ jobs:
         if: false
         uses: actions/cache/save@v5
         with:
-          path: ~/ccache
+          path: ccache
           key: debian-trixie-x86_64-${{ github.sha }}-${{ steps.build.outputs.time }}
 
       - name: Show ccache statistics
@@ -598,13 +597,13 @@ jobs:
         if: ${{ matrix.cache }}
         uses: actions/cache/restore@v5
         with:
-          path: ~/ccache
+          path: ccache
           key: debian-trixie-${{ matrix.arch_mkxpz }}-
           restore-keys: debian-trixie-${{ matrix.arch_mkxpz }}-
 
       - name: Set up ccache
         run: |
-          ccache --set-config=cache_dir='~/ccache'
+          ccache --set-config=cache_dir=ccache
           ccache --set-config=compiler_check=content
           ccache --set-config=max_size=1280MiB
           ccache --zero-stats
@@ -631,7 +630,7 @@ jobs:
         if: ${{ matrix.cache }}
         uses: actions/cache/save@v5
         with:
-          path: ~/ccache
+          path: ccache
           key: debian-trixie-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
 
       - name: Show ccache statistics
@@ -681,13 +680,13 @@ jobs:
         if: ${{ matrix.cache }}
         uses: actions/cache/restore@v5
         with:
-          path: ${{ runner.temp }}/ccache
+          path: ccache
           key: macos-${{ matrix.arch_mkxpz }}-
           restore-keys: macos-${{ matrix.arch_mkxpz }}-
 
       - name: Set up ccache
         run: |
-          ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
+          ccache --set-config=cache_dir=ccache
           ccache --set-config=compiler_check=content
           ccache --set-config=max_size=1280MiB
           ccache --zero-stats
@@ -708,7 +707,7 @@ jobs:
         if: ${{ matrix.cache }}
         uses: actions/cache/save@v5
         with:
-          path: ${{ runner.temp }}/ccache
+          path: ccache
           key: macos-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
 
       - name: Show ccache statistics
