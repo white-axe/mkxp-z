@@ -231,13 +231,13 @@ jobs:
         if: ${{ matrix.cache }}
         uses: actions/cache/restore@v5
         with:
-          path: ${{ runner.temp }}/ccache
+          path: ~/ccache
           key: windows-cross-${{ matrix.arch_mkxpz }}-
           restore-keys: windows-cross-${{ matrix.arch_mkxpz }}-
 
       - name: Set up ccache
         run: |
-          ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
+          ccache --set-config=cache_dir='~/ccache'
           ccache --set-config=compiler_check=content
           ccache --set-config=max_size=1280MiB
           ccache --zero-stats
@@ -265,7 +265,7 @@ jobs:
         if: ${{ matrix.cache }}
         uses: actions/cache/save@v5
         with:
-          path: ${{ runner.temp }}/ccache
+          path: ~/ccache
           key: windows-cross-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
 
       - name: Show ccache statistics
