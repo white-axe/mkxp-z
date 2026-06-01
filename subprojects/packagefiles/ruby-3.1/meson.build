@@ -102,7 +102,7 @@ ruby = declare_dependency(
                 '--srcdir=' + srcdir,
                 '--prefix=' + '@PREFIX@',
                 '--prefix=/',
-                '--bindir=' + '@PREFIX@' / '@BINDIR@',
+                meson.version().version_compare('>=1.7.0') ? '--bindir=' + '@PREFIX@' / '@BINDIR@' : [],
                 '--bindir=/bin',
                 '--libdir=' + '@PREFIX@' / '@LIBDIR@',
                 '--libdir=/lib',
