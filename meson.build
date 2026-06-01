@@ -43,6 +43,10 @@ global_args += '-DHAVE_NANOSLEEP'
 if get_option('gfx_backend') == 'gles'
     global_args += '-DMKXPZ_USE_GLES_BY_DEFAULT'
 endif
+
+if host_system in ['windows', 'cygwin'] and host_machine.cpu_family() == 'x86'
+    global_args += '-masm=intel'
+endif
 # ====================
 # Ext libs
 # ====================
@@ -90,7 +94,7 @@ rpath = meson.get_compiler('cpp').get_linker_id() in ['ld64', 'ld64.lld'] ? '@lo
 
 exe_name = meson.project_name() + '.' + host_machine.cpu_family()
 
-if host_system == 'windows'
+if host_system in ['windows', 'cygwin']
     windows_resource_directory = '../' + get_option('windows_resource_directory')
     subdir('windows')
     global_include_dirs += include_directories('windows')
@@ -158,7 +162,7 @@ libmkxp = static_library(
 executable(
     exe_name,
     sources: [
-        git_hash_file, # Dummy source file just so that Meson doesn't complain about the executable not having any sources in non-Windows builds
+        git_hash_file, # Dummy source file just so that Meson doesn't complain about the executable not having any sources
         windows_resources,
     ],
     link_with: libmkxp,

@@ -21,6 +21,15 @@ args = [
     '-DGL_GLEXT_PROTOTYPES',
 ]
 
+if not meson.get_compiler('cpp').compiles('''
+    static_assert(0.49999997f < 0.5f);
+    static_assert(0.49999997f + 0.5f == 1.0f);
+    static_assert(0.49999999999999994 < 0.5);
+    static_assert(0.49999999999999994 + 0.5 == 1.0);
+''', name: 'optimized rounding test')
+    args += '-DMKXPZ_ANGLE_NO_OPTIMIZED_ROUND'
+endif
+
 if get_option('default_library') == 'static'
     args += '-DANGLE_PLATFORM_EXPORT='
 endif
@@ -761,6 +770,9 @@ angle_dma_buf = host_machine_is_windows or host_machine.system() == 'darwin' ? [
 angle_d3d9_format_tables = static_library(
     'angle_d3d9_format_tables',
     include_directories: includes,
+    dependencies: [
+        xxhash,
+    ],
     cpp_args: args,
     sources: [
         'src/libANGLE/renderer/d3d_format.cpp',
@@ -771,6 +783,9 @@ angle_d3d9_format_tables = static_library(
 angle_d3d11_format_tables = static_library(
     'angle_d3d11_format_tables',
     include_directories: includes,
+    dependencies: [
+        xxhash,
+    ],
     cpp_args: args,
     sources: [
         'src/libANGLE/renderer/dxgi_format_map_autogen.cpp',
@@ -867,9 +882,7 @@ angle_d3d11_backend = static_library(
         angle_d3d_shared,
         angle_d3d11_format_tables,
     ],
-    cpp_args: args + [
-        '-DANGLE_ENABLE_D3D11_COMPOSITOR_NATIVE_WINDOW',
-    ],
+    cpp_args: args,
     sources: [
         'src/libANGLE/renderer/d3d/d3d11/Blit11.cpp',
         'src/libANGLE/renderer/d3d/d3d11/Buffer11.cpp',
@@ -914,7 +927,6 @@ angle_d3d11_backend = static_library(
             : [
                 'src/libANGLE/renderer/d3d/d3d11/win32/NativeWindow11Win32.cpp',
             ],
-        'src/libANGLE/renderer/d3d/d3d11/converged/CompositorNativeWindow11.cpp',
     ],
     build_by_default: false,
 )

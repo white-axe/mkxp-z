@@ -58,10 +58,13 @@ alsa_lib = declare_dependency(
                 '--enable-static',
                 '--disable-shared',
                 'CC=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
+                'AR=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', find_program('ar'), check: true).stdout().strip(),
+                'RANLIB=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', find_program('ranlib'), check: true).stdout().strip(),
                 'CFLAGS=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', cflags, check: true).stdout().strip(),
             ],
             cross_configure_options: [
                 '--host=@HOST@',
+                '--host=' + subproject('tools').get_variable('host_triplet'),
             ],
             env: {
                 'CONFIG_SITE': ' ',

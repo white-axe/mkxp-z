@@ -13,13 +13,12 @@ mffi_value miniffi_call_intern(MINIFFI_FUNC target, MiniFFIFuncArgs *p, int npar
                                  p->params[13], p->params[14], p->params[15]);
 }
 #else // 32-bit Windows
-#define INTEL_ASM ".intel_syntax noprefix\n"
 __attribute__((noinline))
 mffi_value miniffi_call_intern(MINIFFI_FUNC target, MiniFFIFuncArgs *p, int nparams) {
     mffi_value ret;
     void *old_esp = 0;
 
-    asm volatile(INTEL_ASM
+    asm volatile(
 
                 "mov [edi], esp\n"
                 "test ebx, ebx\n"
@@ -46,7 +45,7 @@ mffi_value miniffi_call_intern(MINIFFI_FUNC target, MiniFFIFuncArgs *p, int npar
 
     // If esp doesn't match, this was probably a cdecl and not a stdcall.
     // Move the stack pointer back to where it should be
-    asm volatile(INTEL_ASM
+    asm volatile(
                 "mov edx, [edi]\n"
                 "cmp edx, esp\n"
                 "cmovne esp, edx"

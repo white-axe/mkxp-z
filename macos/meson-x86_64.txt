@@ -4,6 +4,7 @@ cpp = ['ccache', 'clang++', '--target=x86_64-apple-macos11.0']
 objc = ['ccache', 'clang', '--target=x86_64-apple-macos11.0']
 objcpp = ['ccache', 'clang++', '--target=x86_64-apple-macos11.0']
 ar = 'ar'
+ranlib = 'ranlib'
 strip = 'strip'
 cmake = 'cmake'
 

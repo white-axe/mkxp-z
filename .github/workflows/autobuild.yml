@@ -74,8 +74,8 @@ jobs:
             fi
           '
 
-  build-windows:
-    name: Windows
+  build-windows-msys2:
+    name: Windows MSYS2
     runs-on: windows-latest
     steps:
       - uses: benjlevesque/short-sha@v2.2
@@ -102,19 +102,19 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Restore from cache
-        if: true
+        if: false
         uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: windows-x86_64-
-          restore-keys: windows-x86_64-
+          key: windows-msys2-x86_64-
+          restore-keys: windows-msys2-x86_64-
 
       - name: Set up ccache
         shell: msys2 {0}
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
-          ccache --set-config=max_size=1536MiB
+          ccache --set-config=max_size=1280MiB
           ccache --zero-stats
 
       - name: Configure
@@ -132,11 +132,11 @@ jobs:
           date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
       - name: Save to cache
-        if: true
+        if: false
         uses: actions/cache/save@v5
         with:
           path: ${{ runner.temp }}/ccache
-          key: windows-x86_64-${{ github.sha }}-${{ steps.build.outputs.time }}
+          key: windows-msys2-x86_64-${{ github.sha }}-${{ steps.build.outputs.time }}
 
       - name: Show ccache statistics
         shell: msys2 {0}
@@ -182,10 +182,92 @@ jobs:
             exit 1
           fi
 
+  build-windows-cross:
+    name: Windows ${{ matrix.arch_mkxpz }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch_mkxpz: arm64
+            cache: true
+          - arch_mkxpz: x86
+            cache: false
+          - arch_mkxpz: x86_64
+            cache: true
+    steps:
+      - uses: benjlevesque/short-sha@v2.2
+        id: short-sha
+        with:
+          length: 7
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git diffutils ruby bison gcc g++ ccache make cmake ninja-build python3-pip
+          pip3 install meson
+
+          llvm_mingw_version=20260224-msvcrt-ubuntu-22.04-x86_64
+          cd '${{ runner.temp }}'
+          curl -Lo llvm-mingw.tar.xz https://github.com/mstorsjo/llvm-mingw/releases/download/$(echo $llvm_mingw_version | cut -f 1 -d -)/llvm-mingw-$llvm_mingw_version.tar.xz
+          tar -xJf llvm-mingw.tar.xz
+          rm llvm-mingw.tar.xz
+          "${{ runner.temp }}/llvm-mingw-$llvm_mingw_version/bin/clang" --version
+          echo "PATH=${{ runner.temp }}/llvm-mingw-$llvm_mingw_version/bin:$PATH" >> "$GITHUB_ENV"
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Restore from cache
+        if: ${{ matrix.cache }}
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ runner.temp }}/ccache
+          key: windows-cross-${{ matrix.arch_mkxpz }}-
+          restore-keys: windows-cross-${{ matrix.arch_mkxpz }}-
+
+      - name: Set up ccache
+        run: |
+          ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
+          ccache --set-config=compiler_check=content
+          ccache --set-config=max_size=1280MiB
+          ccache --zero-stats
+
+      - name: Configure
+        run: |
+          meson setup --prefix "$(realpath .)/build/artifact" --cross-file windows/meson-clang-${{ matrix.arch_mkxpz }}.txt --buildtype release -Dstrip=true -Db_lto=true build
+
+      - name: Build
+        id: build
+        run: |
+          exit_code=0
+          CLICOLOR_FORCE=1 ninja -C build -v || exit_code=$?
+          echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
+          date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
+
+      - name: Save to cache
+        if: ${{ matrix.cache }}
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ runner.temp }}/ccache
+          key: windows-cross-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
+
+      - name: Show ccache statistics
+        run: |
+          ccache --show-stats --verbose
+
+      - name: Check build status
+        run: |
+          exit ${{ steps.build.outputs.exit-code }}
+
+      - name: Prepare artifact
+        run: |
+          meson install -C build --no-rebuild --tags mkxp-z
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mkxp-z.windows.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          name: mkxp-z.windows.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/artifact
 
   build-linux-native:
@@ -218,7 +300,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
-          ccache --set-config=max_size=1536MiB
+          ccache --set-config=max_size=1280MiB
           ccache --zero-stats
 
       - name: Configure
@@ -326,7 +408,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
-          ccache --set-config=max_size=1536MiB
+          ccache --set-config=max_size=1280MiB
           ccache --zero-stats
 
       - name: Configure
@@ -405,7 +487,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
-          ccache --set-config=max_size=1536MiB
+          ccache --set-config=max_size=1280MiB
           ccache --zero-stats
 
       - name: Configure
@@ -508,7 +590,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
-          ccache --set-config=max_size=1536MiB
+          ccache --set-config=max_size=1280MiB
           ccache --zero-stats
 
       - name: Configure
@@ -591,7 +673,7 @@ jobs:
         run: |
           ccache --set-config=cache_dir='${{ runner.temp }}/ccache'
           ccache --set-config=compiler_check=content
-          ccache --set-config=max_size=1536MiB
+          ccache --set-config=max_size=1280MiB
           ccache --zero-stats
 
       - name: Configure

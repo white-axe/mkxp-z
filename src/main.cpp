@@ -48,7 +48,7 @@
 
 #if defined(__WIN32__)
 #include "resource.h"
-#include <Winsock2.h>
+#include <winsock2.h>
 #include "util/win-consoleutils.h"
 
 // Try to work around buggy GL drivers that tend to be in Optimus laptops

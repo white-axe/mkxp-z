@@ -64,6 +64,7 @@ cmake_base_options = {
     'CMAKE_OBJCXX_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
     'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
     'CMAKE_BUILD_TYPE': 'Custom',
+    'CMAKE_RC_COMPILER': host_system in ['windows', 'cygwin'] ? run_command(quotetool, build_machine.system(), 'true', find_program('windres'), check: true).stdout().strip() : '',
 }
 
 meson_base_options = {
@@ -242,6 +243,7 @@ if not sdl2.found() or not sdl2main.found()
                     'SPIRV-Headers_SOURCE_DIR': meson.project_source_root() / 'subprojects' / 'spirv-headers',
                     'BUILD_SHARED_LIBS': false,
                     'BUILD_TESTING': false,
+                    'SKIP_SPIRV_TOOLS_INSTALL': true,
                     'SPIRV-TOOLS_USE_MIMALLOC': false,
                 })
                 meson.override_dependency('SPIRV-Tools', cmake.subproject('spirv-tools', options: spirv_tools_options).dependency('SPIRV-Tools-static'), static: true)
@@ -1089,9 +1091,8 @@ if not ruby.found()
 endif
 global_dependencies += ruby
 
-if host_system == 'windows'
-    # '-static-libgcc', '-static-libstdc++' are here to avoid needing to ship a separate libgcc_s_seh-1.dll on Windows; it still works without those flags if you have the dll.
-    global_link_args += ['-static-libgcc', '-static-libstdc++', '-Wl,-Bstatic', '-lgcc', '-lstdc++', '-lpthread', '-Wl,-Bdynamic']
+if host_system in ['windows', 'cygwin']
+    global_link_args += ['-static-libgcc', '-static-libstdc++', '-Wl,-Bstatic', meson.get_compiler('cpp').get_id() == 'clang' ? '-lc++' : [], '-lpthread', '-Wl,-Bdynamic']
 endif
 
 global_args += '-DMKXPZ_ALCDEVICE=ALCdevice'
