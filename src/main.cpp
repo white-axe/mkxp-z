@@ -261,6 +261,7 @@ int main(int argc, char *argv[]) {
         setenv("ANGLE_DEFAULT_PLATFORM", "vulkan", true);
 #    else
         setenv("ANGLE_DEFAULT_PLATFORM", "gl", true);
+        mkxp_use_angle = false;
 #    endif
 #  endif
       } else if (std::strcmp(angle_default_platform, "gl") == 0) {
