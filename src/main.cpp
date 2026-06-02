@@ -240,7 +240,16 @@ int main(int argc, char *argv[]) {
       /* Prevent ANGLE from using Wayland if we haven't selected SDL's Wayland video driver */
       sdl_videodriver = SDL_GetHint(SDL_HINT_VIDEODRIVER);
       assert(sdl_videodriver != nullptr && sdl_videodriver[0] != 0); /* Should already have been explicitly set by the Wayland check above */
-      if (std::strcmp(sdl_videodriver, "wayland") != 0) {
+      if (
+        (sdl_videodriver[0] != 'W' && sdl_videodriver[0] != 'w')
+          || (sdl_videodriver[1] != 'A' && sdl_videodriver[1] != 'a')
+          || (sdl_videodriver[2] != 'Y' && sdl_videodriver[2] != 'y')
+          || (sdl_videodriver[3] != 'L' && sdl_videodriver[3] != 'l')
+          || (sdl_videodriver[4] != 'A' && sdl_videodriver[4] != 'a')
+          || (sdl_videodriver[5] != 'N' && sdl_videodriver[5] != 'n')
+          || (sdl_videodriver[6] != 'D' && sdl_videodriver[6] != 'd')
+          || sdl_videodriver[7] != 0
+      ) {
         unsetenv("WAYLAND_DISPLAY");
       }
     }
