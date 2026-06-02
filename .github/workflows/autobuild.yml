@@ -212,7 +212,7 @@ jobs:
           if [ '${{ matrix.clang }}' = 'true' ]
           then
             llvm_mingw_version=20260224-msvcrt-ubuntu-22.04-x86_64
-            apt install -y curl tar xz-utils
+            sudo apt install -y curl tar xz-utils
             curl -Lo llvm-mingw.tar.xz https://github.com/mstorsjo/llvm-mingw/releases/download/$(echo $llvm_mingw_version | cut -f 1 -d -)/llvm-mingw-$llvm_mingw_version.tar.xz
             tar -xJf llvm-mingw.tar.xz
             rm llvm-mingw.tar.xz
@@ -220,7 +220,7 @@ jobs:
             ${{ runner.temp }}/llvm-mingw-$llvm_mingw_version/bin/clang --version
             echo "PATH=${{ runner.temp }}/llvm-mingw-$llvm_mingw_version/bin:$PATH" >> "$GITHUB_ENV"
           else
-            apt install -y mingw-w64
+            sudo apt install -y mingw-w64
           fi
 
       - name: Checkout repository
