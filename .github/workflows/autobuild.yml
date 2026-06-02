@@ -112,7 +112,7 @@ jobs:
       - name: Set up ccache
         shell: msys2 {0}
         run: |
-          ccache --set-config=cache_dir=ccache
+          ccache --set-config=cache_dir="$(pwd)/ccache"
           ccache --set-config=compiler_check=content
           ccache --set-config=max_size=1280MiB
           ccache --zero-stats
@@ -237,7 +237,7 @@ jobs:
 
       - name: Set up ccache
         run: |
-          ccache --set-config=cache_dir=ccache
+          ccache --set-config=cache_dir="$(pwd)/ccache"
           ccache --set-config=compiler_check=content
           ccache --set-config=max_size=1280MiB
           ccache --zero-stats
@@ -314,7 +314,7 @@ jobs:
 
       - name: Set up ccache
         run: |
-          ccache --set-config=cache_dir=ccache
+          ccache --set-config=cache_dir="$(pwd)/ccache"
           ccache --set-config=compiler_check=content
           ccache --set-config=max_size=1280MiB
           ccache --zero-stats
@@ -422,7 +422,7 @@ jobs:
 
       - name: Set up ccache
         run: |
-          ccache --set-config=cache_dir=ccache
+          ccache --set-config=cache_dir="$(pwd)/ccache"
           ccache --set-config=compiler_check=content
           ccache --set-config=max_size=1280MiB
           ccache --zero-stats
@@ -501,7 +501,7 @@ jobs:
 
       - name: Set up ccache
         run: |
-          ccache --set-config=cache_dir=ccache
+          ccache --set-config=cache_dir="$(pwd)/ccache"
           ccache --set-config=compiler_check=content
           ccache --set-config=max_size=1280MiB
           ccache --zero-stats
@@ -604,7 +604,7 @@ jobs:
 
       - name: Set up ccache
         run: |
-          ccache --set-config=cache_dir=ccache
+          ccache --set-config=cache_dir="$(pwd)/ccache"
           ccache --set-config=compiler_check=content
           ccache --set-config=max_size=1280MiB
           ccache --zero-stats
@@ -687,7 +687,7 @@ jobs:
 
       - name: Set up ccache
         run: |
-          ccache --set-config=cache_dir=ccache
+          ccache --set-config=cache_dir="$(pwd)/ccache"
           ccache --set-config=compiler_check=content
           ccache --set-config=max_size=1280MiB
           ccache --zero-stats
