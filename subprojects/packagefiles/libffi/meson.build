@@ -37,7 +37,10 @@ if get_option('b_staticpic')
     cflags += '-fPIC'
 endif
 
+cppflags = cflags
+
 cflags += get_option('c_args')
+cppflags += get_option('cpp_args')
 
 srcdir = meson.project_source_root()
 if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
@@ -65,6 +68,7 @@ libffi = declare_dependency(
                 'AR=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', find_program('ar'), check: true).stdout().strip(),
                 'RANLIB=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', find_program('ranlib'), check: true).stdout().strip(),
                 'CFLAGS=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', cflags, check: true).stdout().strip(),
+                'CXXFLAGS=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', cppflags, check: true).stdout().strip(),
             ],
             cross_configure_options: [
                 '--host=@HOST@',

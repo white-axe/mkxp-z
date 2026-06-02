@@ -36,11 +36,14 @@ if get_option('b_staticpic')
     cflags += '-fPIC'
 endif
 
+cppflags = cflags
+
 # -std=gnu99 is needed with GCC 15 and higher (which default to gnu23), for Ruby versions that aren't valid C23.
 # Ruby versions that are valid C23 are 3.2.9+, 3.3.9+, 3.4.5+, and 4.0.0+.
 cflags += '-std=gnu99'
 
 cflags += get_option('c_args')
+cppflags += get_option('cpp_args')
 
 ldflags = []
 
@@ -114,7 +117,7 @@ ruby = declare_dependency(
                 'AR=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', find_program('ar'), check: true).stdout().strip(),
                 'RANLIB=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', find_program('ranlib'), check: true).stdout().strip(),
                 'CFLAGS=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', cflags, check: true).stdout().strip() + ' ' + get_option('cflags'),
-                'CXXFLAGS=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', cflags, check: true).stdout().strip() + ' ' + get_option('cflags'),
+                'CXXFLAGS=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', cppflags, check: true).stdout().strip() + ' ' + get_option('cppflags'),
                 'LDFLAGS=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', ldflags, check: true).stdout().strip() + ' ' + get_option('ldflags'),
             ],
             cross_configure_options: [
