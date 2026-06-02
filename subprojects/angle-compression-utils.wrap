@@ -1,5 +1,5 @@
 [wrap-git]
 url = https://chromium.googlesource.com/chromium/src/third_party/zlib
-revision = 5c1dfd53066bf58d3d28197f715717dd88762443
+revision = 3246f1b60849cc505e231c5d19d0cbf358093555
 depth = 1
 patch_directory = angle-compression-utils

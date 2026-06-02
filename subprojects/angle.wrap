@@ -1,6 +1,6 @@
 [wrap-git]
 url = https://chromium.googlesource.com/angle/angle
-revision = chromium/7836
+revision = chromium/7871
 depth = 1
 patch_directory = angle
-diff_files = angle-egl-platform-wayland.patch, angle-framebuffer-assert.patch, angle-interm-node.patch, angle-round-to-nearest.patch, angle-vulkan-memory-allocator.patch, angle-window-surface-vk-mac.patch, angle-x11-wayland.patch
+diff_files = angle-framebuffer-assert.patch, angle-interm-node.patch, angle-round-to-nearest.patch, angle-vulkan-memory-allocator.patch, angle-window-surface-vk-mac.patch

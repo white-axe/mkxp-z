@@ -1,4 +1,4 @@
-project('angle', 'cpp', version: '7836', meson_version: '>= 1.2.0', default_options: ['cpp_std=c++20'])
+project('angle', 'cpp', version: '7871', meson_version: '>= 1.2.0', default_options: ['cpp_std=c++20'])
 if host_machine.system() == 'darwin'
     add_languages('objcpp', native: false)
 endif
@@ -225,6 +225,7 @@ if have_wayland
         'wl_display_connect',
         'wl_display_disconnect',
         'wl_display_get_error',
+        'wl_proxy_get_display',
     ]
         args += '-D' + func + '=mkxp_angle_wayland_client_shim_' + func
     endforeach

@@ -82,7 +82,6 @@ __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 
 #ifdef MKXPZ_HAVE_ANGLE
 bool mkxp_use_angle = true;
-bool mkxp_angle_egl_is_wayland = false;
 #endif // MKXPZ_HAVE_ANGLE
 
 static void rgssThreadError(RGSSThreadData *rtData, const std::string &msg);
@@ -223,9 +222,6 @@ int main(int argc, char *argv[]) {
       if (sdl_videodriver == nullptr || sdl_videodriver[0] == 0) {
         /* Select SDL's Wayland video driver if SDL_VIDEODRIVER is unset and Wayland support is available on the user's machine */
         SDL_SetHintWithPriority(SDL_HINT_VIDEODRIVER, "x11", SDL_HINT_OVERRIDE);
-#ifdef MKXPZ_HAVE_ANGLE
-        mkxp_angle_egl_is_wayland = false;
-#endif // MKXPZ_HAVE_ANGLE
         void *wayland_client = dlopen("libwayland-client.so", RTLD_LAZY);
         if (wayland_client != nullptr) {
           void *(*_wl_display_connect)(const char *name) = reinterpret_cast<void *(*)(const char *name)>(dlsym(wayland_client, "wl_display_connect"));
@@ -235,17 +231,17 @@ int main(int argc, char *argv[]) {
             if (display != nullptr) {
               _wl_display_disconnect(display);
               SDL_SetHintWithPriority(SDL_HINT_VIDEODRIVER, "wayland", SDL_HINT_OVERRIDE);
-#ifdef MKXPZ_HAVE_ANGLE
-              mkxp_angle_egl_is_wayland = true;
-#endif // MKXPZ_HAVE_ANGLE
             }
           }
           dlclose(wayland_client);
         }
-      } else {
-#ifdef MKXPZ_HAVE_ANGLE
-        mkxp_angle_egl_is_wayland = std::strcmp(sdl_videodriver, "wayland") == 0;
-#endif // MKXPZ_HAVE_ANGLE
+      }
+
+      /* Prevent ANGLE from using Wayland if we haven't selected SDL's Wayland video driver */
+      sdl_videodriver = SDL_GetHint(SDL_HINT_VIDEODRIVER);
+      assert(sdl_videodriver != nullptr && sdl_videodriver[0] != 0); /* Should already have been explicitly set by the Wayland check above */
+      if (std::strcmp(sdl_videodriver, "wayland") != 0) {
+        unsetenv("WAYLAND_DISPLAY");
       }
     }
 #endif // MKXPZ_CHECK_FOR_WAYLAND_SUPPORT
