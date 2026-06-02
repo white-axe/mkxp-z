@@ -77,16 +77,6 @@ if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
 endif
 baseruby = run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', baseruby, check: true).stdout().strip()
 
-if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
-    windres = find_program('windres').full_path()
-    if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
-        windres = run_command(find_program('cygpath'), '-u', windres, check: true).stdout().strip()
-    endif
-    windres = run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', windres, check: true).stdout().strip()
-else
-    windres = ''
-endif
-
 ruby_deps = [
     dependency('libffi', required: true),
     dependency('yaml-0.1', required: true),
