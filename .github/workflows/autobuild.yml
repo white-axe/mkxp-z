@@ -185,7 +185,6 @@ jobs:
   build-windows-cross:
     name: Windows ${{ matrix.arch_mkxpz }}
     runs-on: ubuntu-latest
-    container: debian:trixie
     strategy:
       fail-fast: false
       matrix:
@@ -207,8 +206,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          apt update
-          apt install -y git diffutils ruby bison gcc g++ ccache make cmake meson
+          sudo apt update
+          sudo apt install -y git diffutils ruby bison gcc g++ ccache make cmake meson
 
           if [ '${{ matrix.clang }}' = 'true' ]
           then
@@ -217,9 +216,9 @@ jobs:
             curl -Lo llvm-mingw.tar.xz https://github.com/mstorsjo/llvm-mingw/releases/download/$(echo $llvm_mingw_version | cut -f 1 -d -)/llvm-mingw-$llvm_mingw_version.tar.xz
             tar -xJf llvm-mingw.tar.xz
             rm llvm-mingw.tar.xz
-            mv llvm-mingw-$llvm_mingw_version /
-            /llvm-mingw-$llvm_mingw_version/bin/clang --version
-            echo "PATH=/llvm-mingw-$llvm_mingw_version/bin:$PATH" >> "$GITHUB_ENV"
+            mv llvm-mingw-$llvm_mingw_version ${{ runner.temp }}
+            ${{ runner.temp }}/llvm-mingw-$llvm_mingw_version/bin/clang --version
+            echo "PATH=${{ runner.temp }}/llvm-mingw-$llvm_mingw_version/bin:$PATH" >> "$GITHUB_ENV"
           else
             apt install -y mingw-w64
           fi
@@ -250,7 +249,6 @@ jobs:
           else
             compiler=gcc
           fi
-
           meson setup --prefix "$(realpath .)/build/artifact" --cross-file windows/meson-$compiler-${{ matrix.arch_mkxpz }}.txt --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
