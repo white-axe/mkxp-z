@@ -1092,7 +1092,7 @@ endif
 global_dependencies += ruby
 
 if host_system in ['windows', 'cygwin']
-    global_link_args += ['-static-libgcc', '-static-libstdc++', '-Wl,-Bstatic', meson.get_compiler('cpp').get_id() == 'clang' ? '-lc++' : [], '-lpthread', '-Wl,-Bdynamic']
+    global_link_args += ['-static-libgcc', '-static-libstdc++', '-Wl,-Bstatic', '-lpthread', '-Wl,-Bdynamic']
 endif
 
 global_args += '-DMKXPZ_ALCDEVICE=ALCdevice'

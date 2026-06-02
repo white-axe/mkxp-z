@@ -1,6 +1,6 @@
 [binaries]
 c = ['ccache', 'clang', '--target=i686-w64-mingw32']
-cpp = ['ccache', 'clang', '--target=i686-w64-mingw32']
+cpp = ['ccache', 'clang++', '--target=i686-w64-mingw32']
 ar = 'i686-w64-mingw32-ar'
 ranlib = 'i686-w64-mingw32-ranlib'
 windres = 'i686-w64-mingw32-windres'
