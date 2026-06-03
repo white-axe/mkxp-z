@@ -47,6 +47,14 @@ if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
     srcdir = run_command(find_program('cygpath'), '-u', srcdir, check: true).stdout().strip()
 endif
 
+libffi_includes = [
+    '-I' + meson.project_build_root() / 'dist' / 'include',
+]
+
+libffi_libs = [
+    '-L' + meson.project_build_root() / 'dist' / 'lib',
+]
+
 libffi = declare_dependency(
     dependencies: [
         import('unstable-external_project').add_project(
@@ -83,7 +91,7 @@ libffi = declare_dependency(
         ),
     ],
     compile_args: [
-        '-I' + meson.project_build_root() / 'dist' / 'include',
+        libffi_includes,
     ],
     link_args: [
         meson.project_build_root() / 'dist' / 'lib' / 'libffi.a',

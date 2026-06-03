@@ -377,7 +377,7 @@ if not sdl2.found() or not sdl2main.found()
         host_system == 'windows' or host_system == 'cygwin' ? meson.get_compiler('c').find_library('mingw32') : [],
     ])
     sdl2 = subproject('sdl2', default_options: sdl2_options).get_variable('sdl2_dep')
-    sdl2_includes = ['-I' + meson.project_build_root() / 'subprojects' / 'SDL2-2.28.1' / 'include', '-I' + meson.project_source_root() / 'subprojects' / 'SDL2-2.28.1' / 'include']
+    sdl2_includes = ['-I' + meson.project_build_root() / 'subprojects' / ('SDL2-' + sdl2.version()) / 'include', '-I' + meson.project_source_root() / 'subprojects' / ('SDL2-' + sdl2.version()) / 'include']
 else
     if get_option('angle').enabled()
         error('ANGLE support requires vendored SDL')
@@ -1041,8 +1041,8 @@ if not ruby.found()
     if not libffi.found()
         libffi_options = meson_base_options
         libffi = subproject('libffi', default_options: libffi_options).get_variable('libffi')
-        libffi_includes = ['-I' + meson.project_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' / 'include']
-        libffi_libs = ['-L' + meson.project_build_root() / 'subprojects' / 'libffi-3.5.2' / 'dist' / 'lib']
+        libffi_includes = subproject('libffi', default_options: libffi_options).get_variable('libffi_includes')
+        libffi_libs = subproject('libffi', default_options: libffi_options).get_variable('libffi_libs')
     else
         libffi_includes = ['-I' + libffi.get_variable(pkgconfig: 'includedir')]
         libffi_libs = ['-L' + libffi.get_variable(pkgconfig: 'libdir')]
