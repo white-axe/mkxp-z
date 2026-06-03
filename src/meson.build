@@ -383,7 +383,7 @@ else
         error('ANGLE support requires vendored SDL')
     endif
     have_angle = false
-    sdl2_includes = ['-I' + (sdl2.get_variable(pkgconfig: 'includedir') / 'SDL2'), '-I' + sdl2.get_variable(pkgconfig: 'includedir')]
+    sdl2_includes = ['-I' + sdl2.get_variable(pkgconfig: 'includedir'), '-I' + (sdl2.get_variable(pkgconfig: 'includedir') / 'SDL2')]
 endif
 global_dependencies += [sdl2main, sdl2]
 
@@ -716,7 +716,7 @@ if not freetype.found()
     freetype = subproject('freetype', default_options: freetype_options).get_variable('freetype_dep')
     freetype_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'freetype' / 'include']
 else
-    freetype_includes = ['-I' + freetype.get_variable(pkgconfig: 'includedir')]
+    freetype_includes = ['-I' + (freetype.get_variable(pkgconfig: 'includedir') / 'freetype2')]
 endif
 global_dependencies += freetype
 
