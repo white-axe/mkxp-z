@@ -423,8 +423,11 @@ if is_nix
         libsndfile = dependency('sndfile', allow_fallback: false, required: get_option('libsndfile_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
         if not libsndfile.found() and not require_system_pulseaudio.auto()
             sse2 = false
-            if host_machine.cpu_family() == 'x86'
-                sse2 = meson.get_compiler('c').has_argument('-msse2', required: get_option('x86_sse2'))
+            if host_machine.cpu_family() == 'x86' and get_option('x86_sse2').allowed()
+                sse2 = meson.get_compiler('c').has_argument('-msse2')
+                if not sse2 and get_option('x86_sse2').enabled()
+                    error('SSE2 support required but not supported')
+                endif
             endif
             libsndfile_options = cmake.subproject_options()
             libsndfile_options.add_cmake_defines(cmake_base_options + {
