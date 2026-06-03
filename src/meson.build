@@ -422,6 +422,10 @@ if is_nix
     if not pulseaudio.found() and not get_option('pulseaudio_system').enabled()
         libsndfile = dependency('sndfile', allow_fallback: false, required: get_option('libsndfile_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
         if not libsndfile.found() and not require_system_pulseaudio.auto()
+            sse2 = false
+            if host_machine.cpu_family() == 'x86'
+                sse2 = meson.get_compiler('c').has_argument('-msse2', required: get_option('x86_sse2'))
+            endif
             libsndfile_options = cmake.subproject_options()
             libsndfile_options.add_cmake_defines(cmake_base_options + {
                 'BUILD_SHARED_LIBS': false,
@@ -435,6 +439,7 @@ if is_nix
                 'ENABLE_EXTERNAL_LIBS': false,
                 'ENABLE_MPEG': false,
                 'ENABLE_EXPERIMENTAL': false,
+                'ENABLE_SSE2': sse2,
             })
             libsndfile = cmake.subproject('libsndfile', options: libsndfile_options).dependency('sndfile')
             meson.override_dependency('sndfile', libsndfile, static: true)
