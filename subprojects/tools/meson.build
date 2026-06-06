@@ -14,7 +14,7 @@ embedtool = [python, files('embedtool.py')[0]]
 quotetool_args = [python, files('quotetool.py')[0], build_machine.system(), 'false']
 
 # quotetool_command [ARGS...]
-#   This is the same thing as quotetool_args, except if the build machine is Windows, the first argument is converted to a Windows-style path with forward slashes (e.g. C:/Windows/System32.dll) to avoid problems with build tools such as CMake that cannot handle certain path formats correctly. If the build machine is not Windows, this is exactly equivalent to quotetool_args.
+#   This is the same thing as quotetool_args, except if the build machine is Windows, all backslashes in the first argument are replaced with forward slashes to avoid problems with build tools such as CMake that cannot handle certain path formats correctly. If the build machine is not Windows, this is exactly equivalent to quotetool_args.
 quotetool_command = [python, files('quotetool.py')[0], build_machine.system(), 'true']
 
 host_triplet_cpu = host_machine.cpu()
