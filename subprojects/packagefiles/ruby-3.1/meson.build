@@ -78,7 +78,7 @@ baseruby = find_program('ruby').full_path()
 if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
     baseruby = run_command(find_program('cygpath'), '-u', baseruby, check: true).stdout().strip()
 endif
-baseruby = run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', baseruby, check: true).stdout().strip()
+baseruby = run_command(subproject('tools').get_variable('quotetool_command'), baseruby, check: true).stdout().strip()
 
 ruby_deps = [
     dependency('libffi', required: true),
@@ -112,13 +112,13 @@ ruby = declare_dependency(
                 '--with-static-linked-ext',
                 '--disable-rubygems',
                 '--without-gmp',
-                'CC=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
-                'CXX=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', meson.get_compiler('cpp').cmd_array(), check: true).stdout().strip(),
-                'AR=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', find_program('ar'), check: true).stdout().strip(),
-                'RANLIB=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', find_program('ranlib'), check: true).stdout().strip(),
-                'CFLAGS=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', cflags, check: true).stdout().strip() + ' ' + get_option('cflags'),
-                'CXXFLAGS=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', cppflags, check: true).stdout().strip() + ' ' + get_option('cppflags'),
-                'LDFLAGS=' + run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'false', ldflags, check: true).stdout().strip() + ' ' + get_option('ldflags'),
+                'CC=' + run_command(subproject('tools').get_variable('quotetool_command'), meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
+                'CXX=' + run_command(subproject('tools').get_variable('quotetool_command'), meson.get_compiler('cpp').cmd_array(), check: true).stdout().strip(),
+                'AR=' + run_command(subproject('tools').get_variable('quotetool_command'), find_program('ar'), check: true).stdout().strip(),
+                'RANLIB=' + run_command(subproject('tools').get_variable('quotetool_command'), find_program('ranlib'), check: true).stdout().strip(),
+                'CFLAGS=' + run_command(subproject('tools').get_variable('quotetool_args'), cflags, check: true).stdout().strip() + ' ' + get_option('cflags'),
+                'CXXFLAGS=' + run_command(subproject('tools').get_variable('quotetool_args'), cppflags, check: true).stdout().strip() + ' ' + get_option('cppflags'),
+                'LDFLAGS=' + run_command(subproject('tools').get_variable('quotetool_args'), ldflags, check: true).stdout().strip() + ' ' + get_option('ldflags'),
             ],
             cross_configure_options: [
                 '--host=@HOST@',
@@ -126,8 +126,8 @@ ruby = declare_dependency(
             ],
             env: {
                 'CONFIG_SITE': ' ',
-                'WINDRES': host_machine.system() == 'windows' or host_machine.system() == 'cygwin' ? run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', find_program('windres'), check: true).stdout().strip() : '',
-                'YACC': run_command(subproject('tools').get_variable('quotetool'), build_machine.system(), 'true', find_program('bison'), check: true).stdout().strip(),
+                'WINDRES': host_machine.system() == 'windows' or host_machine.system() == 'cygwin' ? run_command(subproject('tools').get_variable('quotetool_command'), find_program('windres'), check: true).stdout().strip() : '',
+                'YACC': run_command(subproject('tools').get_variable('quotetool_command'), find_program('bison'), check: true).stdout().strip(),
                 'ac_cv_func_crypt': 'no',
                 'ac_cv_func_crypt_r': 'no',
                 'ac_cv_header_crypt_h': 'no',

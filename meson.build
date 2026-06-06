@@ -31,7 +31,8 @@ global_std = ['c_std=c99', 'cpp_std=c++14']
 
 python = subproject('tools').get_variable('python')
 embedtool = subproject('tools').get_variable('embedtool')
-quotetool = subproject('tools').get_variable('quotetool')
+quotetool_args = subproject('tools').get_variable('quotetool_args')
+quotetool_command = subproject('tools').get_variable('quotetool_command')
 
 sizeof = {'void*': compilers['cpp'].sizeof('void*'),
           'long': compilers['cpp'].sizeof('long')

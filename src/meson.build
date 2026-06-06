@@ -64,7 +64,7 @@ cmake_base_options = {
     'CMAKE_OBJCXX_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
     'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
     'CMAKE_BUILD_TYPE': 'Custom',
-    'CMAKE_RC_COMPILER': host_system in ['windows', 'cygwin'] ? run_command(quotetool, build_machine.system(), 'true', find_program('windres'), check: true).stdout().strip() : '',
+    'CMAKE_RC_COMPILER': host_system in ['windows', 'cygwin'] ? run_command(quotetool_command, find_program('windres'), check: true).stdout().strip() : '',
 }
 
 meson_base_options = {
@@ -238,8 +238,8 @@ if not sdl2.found() or not sdl2main.found()
             if not require_system_spirv_tools.enabled()
                 spirv_tools_options = cmake.subproject_options()
                 spirv_tools_options.add_cmake_defines(cmake_base_options + {
-                    'CMAKE_C_FLAGS': run_command(quotetool, build_machine.system(), 'false', '-I' + meson.project_source_root() / 'subprojects' / 'spirv-headers' / 'include', check: true).stdout().strip(),
-                    'CMAKE_CXX_FLAGS': run_command(quotetool, build_machine.system(), 'false', '-I' + meson.project_source_root() / 'subprojects' / 'spirv-headers' / 'include', check: true).stdout().strip(),
+                    'CMAKE_C_FLAGS': run_command(quotetool_args, '-I' + meson.project_source_root() / 'subprojects' / 'spirv-headers' / 'include', check: true).stdout().strip(),
+                    'CMAKE_CXX_FLAGS': run_command(quotetool_args, '-I' + meson.project_source_root() / 'subprojects' / 'spirv-headers' / 'include', check: true).stdout().strip(),
                     'SPIRV-Headers_SOURCE_DIR': meson.project_source_root() / 'subprojects' / 'spirv-headers',
                     'BUILD_SHARED_LIBS': false,
                     'BUILD_TESTING': false,
@@ -665,8 +665,8 @@ if not vorbis.found()
     endif
     vorbis_options = cmake.subproject_options()
     vorbis_options.add_cmake_defines(cmake_base_options + {
-        'CMAKE_C_FLAGS': run_command(quotetool, build_machine.system(), 'false', vorbis_internal_cflags + vorbis_external_cflags, check: true).stdout().strip(),
-        'CMAKE_CXX_FLAGS': run_command(quotetool, build_machine.system(), 'false', vorbis_internal_cflags + vorbis_external_cflags, check: true).stdout().strip(),
+        'CMAKE_C_FLAGS': run_command(quotetool_args, vorbis_internal_cflags + vorbis_external_cflags, check: true).stdout().strip(),
+        'CMAKE_CXX_FLAGS': run_command(quotetool_args, vorbis_internal_cflags + vorbis_external_cflags, check: true).stdout().strip(),
         'BUILD_SHARED_LIBS': false,
         'BUILD_TESTING': false,
         'BUILD_FRAMEWORK': false,
@@ -697,8 +697,8 @@ if not sdl2_sound.found()
     endif
     sdl2_sound_options = cmake.subproject_options()
     sdl2_sound_options.add_cmake_defines(cmake_base_options + {
-        'CMAKE_C_FLAGS': run_command(quotetool, build_machine.system(), 'false', sdl2_sound_internal_cflags + sdl2_sound_external_cflags, check: true).stdout().strip(),
-        'CMAKE_CXX_FLAGS': run_command(quotetool, build_machine.system(), 'false', sdl2_sound_internal_cflags + sdl2_sound_external_cflags, check: true).stdout().strip(),
+        'CMAKE_C_FLAGS': run_command(quotetool_args, sdl2_sound_internal_cflags + sdl2_sound_external_cflags, check: true).stdout().strip(),
+        'CMAKE_CXX_FLAGS': run_command(quotetool_args, sdl2_sound_internal_cflags + sdl2_sound_external_cflags, check: true).stdout().strip(),
         'SDLSOUND_BUILD_SHARED': false,
         'SDLSOUND_BUILD_TEST': false,
     })
@@ -744,8 +744,8 @@ if not sdl2_ttf.found()
     endif
     sdl2_ttf_options = cmake.subproject_options()
     sdl2_ttf_options.add_cmake_defines(cmake_base_options + {
-        'CMAKE_C_FLAGS': run_command(quotetool, build_machine.system(), 'false', sdl2_ttf_internal_cflags + sdl2_ttf_external_cflags, check: true).stdout().strip(),
-        'CMAKE_CXX_FLAGS': run_command(quotetool, build_machine.system(), 'false', sdl2_ttf_internal_cflags + sdl2_ttf_external_cflags, check: true).stdout().strip(),
+        'CMAKE_C_FLAGS': run_command(quotetool_args, sdl2_ttf_internal_cflags + sdl2_ttf_external_cflags, check: true).stdout().strip(),
+        'CMAKE_CXX_FLAGS': run_command(quotetool_args, sdl2_ttf_internal_cflags + sdl2_ttf_external_cflags, check: true).stdout().strip(),
         'BUILD_SHARED_LIBS': false,
         'BUILD_TESTING': false,
     })
@@ -964,8 +964,8 @@ if not sdl2_image.found()
     endif
     sdl2_image_options = cmake.subproject_options()
     sdl2_image_options.add_cmake_defines(cmake_base_options + {
-        'CMAKE_C_FLAGS': run_command(quotetool, build_machine.system(), 'false', sdl2_image_internal_cflags + sdl2_image_external_cflags, check: true).stdout().strip(),
-        'CMAKE_CXX_FLAGS': run_command(quotetool, build_machine.system(), 'false', sdl2_image_internal_cflags + sdl2_image_external_cflags, check: true).stdout().strip(),
+        'CMAKE_C_FLAGS': run_command(quotetool_args, sdl2_image_internal_cflags + sdl2_image_external_cflags, check: true).stdout().strip(),
+        'CMAKE_CXX_FLAGS': run_command(quotetool_args, sdl2_image_internal_cflags + sdl2_image_external_cflags, check: true).stdout().strip(),
         'BUILD_SHARED_LIBS': false,
         'SDL2IMAGE_JPG_SAVE': true,
         'SDL2IMAGE_PNG_SAVE': true,
@@ -1092,9 +1092,9 @@ if not ruby.found()
         ruby_external_ldflags += libffi_libs
     endif
     ruby_options = meson_base_options + {
-        'cflags': run_command(quotetool, build_machine.system(), 'false', ruby_internal_cflags + ruby_external_cflags, check: true).stdout().strip(),
-        'cppflags': run_command(quotetool, build_machine.system(), 'false', ruby_internal_cflags + ruby_external_cflags, check: true).stdout().strip(),
-        'ldflags': run_command(quotetool, build_machine.system(), 'false', ruby_internal_ldflags + ruby_external_ldflags, check: true).stdout().strip()
+        'cflags': run_command(quotetool_args, ruby_internal_cflags + ruby_external_cflags, check: true).stdout().strip(),
+        'cppflags': run_command(quotetool_args, ruby_internal_cflags + ruby_external_cflags, check: true).stdout().strip(),
+        'ldflags': run_command(quotetool_args, ruby_internal_ldflags + ruby_external_ldflags, check: true).stdout().strip()
     }
     ruby = subproject('ruby-' + get_option('mri_version'), default_options: ruby_options).get_variable('ruby')
 endif
