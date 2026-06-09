@@ -38,20 +38,21 @@ void bitmap_init_props::operator()(VALUE self) {
         SANDBOX_AWAIT(rb_iv_set, self, "font", SANDBOX_SLOT(0));
 
         // Leave property as default nil if hasHires() is false.
+        GFX_LOCK;
         bool hasHires;
-        SANDBOX_GUARD(hasHires = get_private_data<Bitmap>(self)->getHasHires(sb().e));
+        SANDBOX_GUARD_F(GFX_UNLOCK, hasHires = get_private_data<Bitmap>(self)->getHasHires(sb().e));
         if (hasHires) {
             get_private_data<Bitmap>(self)->assumeRubyGC();
-            SANDBOX_GUARD(SANDBOX_AWAIT_S(1, wrap_property, self, get_private_data<Bitmap>(self)->getHires(sb().e), "hires", bitmap_class));
+            SANDBOX_GUARD_F(GFX_UNLOCK, SANDBOX_AWAIT_S(1, wrap_property, self, get_private_data<Bitmap>(self)->getHires(sb().e), "hires", bitmap_class));
 
             SANDBOX_AWAIT_S(2, rb_class_new_instance, 0, nullptr, font_class);
             SANDBOX_AWAIT(rb_iv_set, SANDBOX_SLOT(1), "font", SANDBOX_SLOT(2));
             Bitmap *hires;
-            SANDBOX_GUARD(hires = get_private_data<Bitmap>(self)->getHires(sb().e));
+            SANDBOX_GUARD_F(GFX_UNLOCK, hires = get_private_data<Bitmap>(self)->getHires(sb().e));
             hires->setInitFont(get_private_data<Font>(SANDBOX_SLOT(2)));
         }
-
         get_private_data<Bitmap>(self)->setInitFont(get_private_data<Font>(SANDBOX_SLOT(0)));
+        GFX_UNLOCK;
     }
 }
 
