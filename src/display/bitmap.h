@@ -139,6 +139,9 @@ public:
 
 	void clear(Exception &exception);
 
+	/* Creates a surface and assigns it to p->surface */
+	void createSurface() const;
+
 	Color getPixel(Exception &exception, int x, int y) const;
 	void setPixel(Exception &exception, int x, int y, const Color &color);
     

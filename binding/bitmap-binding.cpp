@@ -50,12 +50,13 @@ void bitmapInitProps(Bitmap *b, VALUE self) {
     rb_iv_set(self, "font", fontObj);
 
     // Leave property as default nil if hasHires() is false.
+    GFX_LOCK;
     bool hasHires;
-    BINDING_GUARD(hasHires = b->getHasHires(e));
+    BINDING_GUARD_F(GFX_UNLOCK, hasHires = b->getHasHires(e));
     if (hasHires) {
         b->assumeRubyGC();
         Bitmap *hires;
-        BINDING_GUARD(hires = b->getHires(e));
+        BINDING_GUARD_F(GFX_UNLOCK, hires = b->getHires(e));
         wrapProperty(self, hires, "hires", BitmapType);
         
         VALUE hiresFontObj = rb_obj_alloc(fontKlass);
@@ -66,6 +67,7 @@ void bitmapInitProps(Bitmap *b, VALUE self) {
         
     }
     b->setInitFont(font);
+    GFX_UNLOCK;
 }
 
 RB_METHOD_GUARD(bitmapInitialize) {
@@ -542,7 +544,7 @@ RB_METHOD_GUARD(bitmapGetPlaying){
     
     VALUE ret;
 
-    BINDING_GUARD(ret = rb_bool_new(b->isPlaying(e)));
+    BINDING_GUARD_L(ret = rb_bool_new(b->isPlaying(e)));
 
     return ret;
 }
@@ -624,11 +626,11 @@ RB_METHOD_GUARD(bitmapFrames){
     
     Bitmap *b = getPrivateData<Bitmap>(self);
     
-    VALUE ret;
+    int ret;
 
-    BINDING_GUARD(ret = INT2NUM(b->numFrames(e)));
+    BINDING_GUARD_L(ret = b->numFrames(e));
 
-    return ret;
+    return INT2NUM(ret);
 }
 RB_METHOD_GUARD_END
 
@@ -639,11 +641,11 @@ RB_METHOD_GUARD(bitmapCurrentFrame){
     
     Bitmap *b = getPrivateData<Bitmap>(self);
     
-    VALUE ret;
+    int ret;
 
-    BINDING_GUARD(ret = INT2NUM(b->currentFrameI(e)));
+    BINDING_GUARD_L(ret = b->currentFrameI(e));
 
-    return ret;
+    return INT2NUM(ret);
 }
 RB_METHOD_GUARD_END
 
@@ -705,11 +707,11 @@ RB_METHOD_GUARD(bitmapNextFrame){
     
     BINDING_GUARD_L(b->nextFrame(e));
     
-    VALUE ret;
+    int ret;
 
-    BINDING_GUARD(ret = INT2NUM(b->currentFrameI(e)));
+    BINDING_GUARD_L(ret = b->currentFrameI(e));
 
-    return ret;
+    return INT2NUM(ret);
 }
 RB_METHOD_GUARD_END
 
@@ -722,11 +724,11 @@ RB_METHOD_GUARD(bitmapPreviousFrame){
     
     BINDING_GUARD_L(b->previousFrame(e));
     
-    VALUE ret;
+    int ret;
 
-    BINDING_GUARD(ret = INT2NUM(b->currentFrameI(e)));
+    BINDING_GUARD_L(ret = b->currentFrameI(e));
 
-    return ret;
+    return INT2NUM(ret);
 }
 RB_METHOD_GUARD_END
 
