@@ -98,6 +98,9 @@ public:
 
 	void clear();
 
+	/* Creates a surface and assigns it to p->surface */
+	void createSurface() const;
+
 	Color getPixel(int x, int y) const;
 	void setPixel(int x, int y, const Color &color);
     
