@@ -2,6 +2,15 @@
 
 --- a/meson.build
 +++ b/meson.build
+@@ -31,7 +31,7 @@ project(
+ dllver = '1.11.3'
+ 
+ config = configuration_data()
+-cc = meson.get_compiler('c')
++cc = meson.get_compiler('c', native: true)
+ 
+ config.set('PACKAGE_NAME', meson.project_name())
+ config.set('PACKAGE_TARNAME', meson.project_name())
 @@ -225,7 +225,7 @@ libexpat = library(
    version: dllver,
    soversion: host_machine.system() != 'windows' ? '1' : '',
