@@ -32,7 +32,11 @@
 		int volume = 100; \
 		int pitch = 100; \
 		double pos = 0.0; \
-		rb_get_args(argc, argv, "z|iif", &filename, &volume, &pitch, &pos RB_ARG_END); \
+		VALUE pos_value = Qnil; \
+		rb_get_args(argc, argv, "z|iio", &filename, &volume, &pitch, &pos_value RB_ARG_END); \
+		if (pos_value != Qnil) { \
+			rb_float_arg(pos_value, &pos, 3); \
+		} \
 		shState->audio().entity##Play(filename, volume, pitch, pos); \
 		return Qnil; \
 	} \
@@ -96,8 +100,12 @@ RB_METHOD_GUARD(audio_bgmPlay)
     int volume = 100;
     int pitch = 100;
     double pos = 0.0;
+    VALUE pos_value = Qnil;
     VALUE track = Qnil;
-    rb_get_args(argc, argv, "z|iifo", &filename, &volume, &pitch, &pos, &track RB_ARG_END);
+    rb_get_args(argc, argv, "z|iioo", &filename, &volume, &pitch, &pos_value, &track RB_ARG_END);
+    if (pos_value != Qnil) {
+        rb_float_arg(pos_value, &pos, 3);
+    }
     shState->audio().bgmPlay(filename, volume, pitch, pos, MAYBE_NIL_TRACK(track));
     return Qnil;
 }
