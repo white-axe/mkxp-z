@@ -4,7 +4,7 @@ configuration = {
     'BROKEN_WCHAR_H': 0,
     'DLL_VARIABLE': '',
     'EILSEQ': '',
-    'HAVE_VISIBILITY': meson.get_compiler('c').compiles('__attribute__((__visibility__("default"))) void f(void) {}', name: 'GNU visibility attribute support check') ? 1 : 0,
+    'HAVE_VISIBILITY': meson.get_compiler('c').has_function_attribute('visibility:default') and meson.get_compiler('c').has_function_attribute('visibility:hidden') ? 1 : 0,
     'ICONV_CONST': '',
     'USE_MBSTATE_T': 0,
 }
