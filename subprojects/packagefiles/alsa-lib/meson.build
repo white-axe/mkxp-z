@@ -5,7 +5,7 @@ cflags = subproject('tools').get_variable('base_cflags')
 cflags += get_option('c_args')
 
 srcdir = meson.project_source_root()
-if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
+if build_machine.system() in ['windows', 'cygwin']
     srcdir = run_command(find_program('cygpath'), '-u', srcdir, check: true).stdout().strip()
 endif
 

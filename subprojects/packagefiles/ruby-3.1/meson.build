@@ -17,17 +17,17 @@ ldflags = subproject('tools').get_variable('base_ldflags')
 ldflags += get_option('c_link_args')
 
 srcdir = meson.project_source_root()
-if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
+if build_machine.system() in ['windows', 'cygwin']
     srcdir = run_command(find_program('cygpath'), '-u', srcdir, check: true).stdout().strip()
 endif
 
 destdir = meson.project_build_root() / 'dist'
-if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
+if build_machine.system() in ['windows', 'cygwin']
     destdir = run_command(find_program('cygpath'), '-m', destdir, check: true).stdout().strip()
 endif
 
 baseruby = find_program('ruby').full_path()
-if build_machine.system() == 'windows' or build_machine.system() == 'cygwin'
+if build_machine.system() in ['windows', 'cygwin']
     baseruby = run_command(find_program('cygpath'), '-u', baseruby, check: true).stdout().strip()
 endif
 baseruby = run_command(subproject('tools').get_variable('quotetool_command'), baseruby, check: true).stdout().strip()
@@ -78,7 +78,7 @@ ruby = declare_dependency(
             ],
             env: {
                 'CONFIG_SITE': ' ',
-                'WINDRES': host_machine.system() == 'windows' or host_machine.system() == 'cygwin' ? run_command(subproject('tools').get_variable('quotetool_command'), find_program('windres'), check: true).stdout().strip() : '',
+                'WINDRES': host_machine.system() in ['windows', 'cygwin'] ? run_command(subproject('tools').get_variable('quotetool_command'), find_program('windres'), check: true).stdout().strip() : '',
                 'YACC': run_command(subproject('tools').get_variable('quotetool_command'), find_program('bison'), check: true).stdout().strip(),
                 'ac_cv_func_crypt': 'no',
                 'ac_cv_func_crypt_r': 'no',
@@ -103,7 +103,7 @@ ruby = declare_dependency(
         ).dependency('ruby-static').partial_dependency(
             sources: true,
         ),
-        host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
+        host_machine.system() in ['windows', 'cygwin']
             ? [
                 meson.get_compiler('c').find_library('shell32', required: true),
                 meson.get_compiler('c').find_library('ws2_32', required: true),
@@ -118,7 +118,7 @@ ruby = declare_dependency(
         '-I' + meson.project_build_root() / 'dist' / 'include',
     ],
     link_args: [
-        (host_machine.system() == 'windows' or host_machine.system() == 'cygwin') and not meson.get_compiler('c').has_header_symbol('math.h', 'lgamma_r')
+        (host_machine.system() in ['windows', 'cygwin']) and not meson.get_compiler('c').has_header_symbol('math.h', 'lgamma_r')
             ? [
                 meson.project_build_root() / 'build' / 'lgamma_r.o',
             ]
@@ -155,7 +155,7 @@ ruby = declare_dependency(
         meson.project_build_root() / 'build' / 'ext' / 'stringio' / 'stringio.a',
         meson.project_build_root() / 'build' / 'ext' / 'strscan' / 'strscan.a',
         meson.project_build_root() / 'build' / 'ext' / 'zlib' / 'zlib.a',
-        host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
+        host_machine.system() in ['windows', 'cygwin']
             ? [
                 meson.project_build_root() / 'build' / 'ext' / 'win32' / 'resolv' / 'resolv.a',
                 meson.project_build_root() / 'build' / 'ext' / 'win32ole' / 'win32ole.a',

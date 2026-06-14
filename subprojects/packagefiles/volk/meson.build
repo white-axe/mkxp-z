@@ -30,7 +30,7 @@ volk = declare_dependency(
                 '-DVK_USE_PLATFORM_METAL_EXT',
                 '-DVK_USE_PLATFORM_VI_NN',
                 '-DVK_USE_PLATFORM_WAYLAND_KHR',
-                host_machine.system() == 'windows' or host_machine.system() == 'cygwin' ? '-DVK_USE_PLATFORM_WIN32_KHR' : [],
+                host_machine.system() in ['windows', 'cygwin'] ? '-DVK_USE_PLATFORM_WIN32_KHR' : [],
                 xcb.found() ? '-DVK_USE_PLATFORM_XCB_KHR' : [],
                 x11.found() ? '-DVK_USE_PLATFORM_XLIB_KHR' : [],
                 x11.found() and xrandr.found() ? '-DVK_USE_PLATFORM_XLIB_XRANDR_EXT' : [],

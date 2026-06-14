@@ -1,6 +1,6 @@
 cmake = import('cmake')
 
-is_nix = host_system != 'windows' and host_system != 'cygwin' and host_system != 'darwin' and host_system != 'android'
+is_nix = host_system not in ['windows', 'cygwin', 'darwin', 'android']
 
 default_system_disabled = get_option('default_system').disabled()
 default_system_enabled = get_option('default_system').enabled()
@@ -374,7 +374,7 @@ if not sdl2.found() or not sdl2main.found()
     }
     sdl2main = declare_dependency(dependencies: [
         subproject('sdl2', default_options: sdl2_options).get_variable('sdl2main_dep'),
-        host_system == 'windows' or host_system == 'cygwin' ? meson.get_compiler('c').find_library('mingw32') : [],
+        host_system in ['windows', 'cygwin'] ? meson.get_compiler('c').find_library('mingw32') : [],
     ])
     sdl2 = subproject('sdl2', default_options: sdl2_options).get_variable('sdl2_dep')
     sdl2_includes = ['-I' + meson.project_build_root() / 'subprojects' / ('SDL2-' + sdl2.version()) / 'include', '-I' + meson.project_source_root() / 'subprojects' / ('SDL2-' + sdl2.version()) / 'include']

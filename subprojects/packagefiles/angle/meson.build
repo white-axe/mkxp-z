@@ -5,7 +5,7 @@ endif
 
 host_machine_is_macos = host_machine.system() == 'darwin' and meson.get_compiler('cpp').get_define('TARGET_OS_OSX', prefix: '#include <TargetConditionals.h>') not in ['', '0']
 host_machine_is_ios = host_machine.system() == 'darwin' and not host_machine_is_macos
-host_machine_is_windows = host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
+host_machine_is_windows = host_machine.system() in ['windows', 'cygwin']
 
 includes = [
     '.',
@@ -111,9 +111,9 @@ else
     vulkan_memory_allocator = dependency('', required: false)
 endif
 
-glx = have_opengl and not host_machine_is_windows and host_machine.system() != 'darwin' and host_machine.system() != 'android' ? dependency('glx', required: get_option('x11')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
-x11 = have_opengl and not host_machine_is_windows and host_machine.system() != 'darwin' and host_machine.system() != 'android' ? dependency('x11', required: get_option('x11')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
-xcb = have_vulkan and not host_machine_is_windows and host_machine.system() != 'darwin' and host_machine.system() != 'android' ? dependency('x11-xcb', required: get_option('x11')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
+glx = have_opengl and not host_machine_is_windows and host_machine.system() not in ['darwin', 'android'] ? dependency('glx', required: get_option('x11')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
+x11 = have_opengl and not host_machine_is_windows and host_machine.system() not in ['darwin', 'android'] ? dependency('x11', required: get_option('x11')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
+xcb = have_vulkan and not host_machine_is_windows and host_machine.system() not in ['darwin', 'android'] ? dependency('x11-xcb', required: get_option('x11')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
 have_x11 = get_option('x11').allowed() and (not have_opengl or (glx.found() and x11.found())) and (not have_vulkan or xcb.found())
 if have_x11
     args += [
@@ -200,8 +200,8 @@ else
     xcb = dependency('', required: false)
 endif
 
-wayland_client = not host_machine_is_windows and host_machine.system() != 'darwin' and host_machine.system() != 'android' ? dependency('wayland-client', required: get_option('wayland')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
-wayland_egl = not host_machine_is_windows and host_machine.system() != 'darwin' and host_machine.system() != 'android' ? dependency('wayland-egl', required: get_option('wayland')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
+wayland_client = not host_machine_is_windows and host_machine.system() not in ['darwin', 'android'] ? dependency('wayland-client', required: get_option('wayland')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
+wayland_egl = not host_machine_is_windows and host_machine.system() not in ['darwin', 'android'] ? dependency('wayland-egl', required: get_option('wayland')).partial_dependency(compile_args: true, includes: true, sources: true) : dependency('', required: false)
 have_wayland = wayland_client.found() and wayland_egl.found()
 if have_wayland
     wayland_client = declare_dependency(
@@ -729,7 +729,7 @@ angle_gpu_info_util = static_library(
                 'src/gpu_info_util/SystemInfo_android.cpp',
             ]
             : [],
-        not host_machine_is_windows and host_machine.system() != 'android' and host_machine.system() != 'darwin'
+        not host_machine_is_windows and host_machine.system() not in ['android', 'darwin']
             ? [
                 'src/gpu_info_util/SystemInfo_linux.cpp',
             ]
@@ -1282,7 +1282,7 @@ angle_vulkan_backend = static_library(
         'src/libANGLE/renderer/vulkan/vk_renderer.cpp',
         'src/libANGLE/renderer/vulkan/vk_resource.cpp',
         'src/libANGLE/renderer/vulkan/vk_utils.cpp',
-        not host_machine_is_windows and host_machine.system() != 'darwin' and host_machine.system() != 'android'
+        not host_machine_is_windows and host_machine.system() not in ['darwin', 'android']
             ? [
                 'src/libANGLE/renderer/vulkan/linux/DeviceVkLinux.cpp',
                 'src/libANGLE/renderer/vulkan/linux/DisplayVkLinux.cpp',
@@ -1406,7 +1406,7 @@ angle_util = static_library(
         'util/geometry_utils.cpp',
         'util/random_utils.cpp',
         'util/shader_utils.cpp',
-        not host_machine_is_windows and host_machine.system() != 'darwin' and host_machine.system() != 'android'
+        not host_machine_is_windows and host_machine.system() not in ['darwin', 'android']
             ? [
                 'util/display/DisplayPixmap.cpp',
                 'util/display/DisplayWindow.cpp',

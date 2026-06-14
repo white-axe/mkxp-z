@@ -14,7 +14,7 @@ jack1 = declare_dependency(
             '-DJACK_LOCATION="/usr/bin"',
             '-DJACK_SEMAPHORE_KEY=0x282929',
             '-DJACK_SHM_TYPE="POSIX"',
-            '-DJACK_THREAD_STACK_TOUCH=' + (host_machine.system() == 'darwin' or host_machine.system() == 'openbsd' ? '10000' : '500000'),
+            '-DJACK_THREAD_STACK_TOUCH=' + (host_machine.system() in ['darwin', 'openbsd'] ? '10000' : '500000'),
             '-DOLD_TRANSPORT',
             '-DUSE_MLOCK',
             '-DUSE_POSIX_SHM',
