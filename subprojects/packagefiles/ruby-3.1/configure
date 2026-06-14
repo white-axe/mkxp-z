@@ -32130,7 +32130,7 @@ esac
 done
 
 BTESTRUBY='$(MINIRUBY)'
-if test x"$cross_compiling" = xyes
+if true
 then :
 
   test x"$MINIRUBY" = x && MINIRUBY="${RUBY-$BASERUBY} -I`$CHDIR .; pwd` "-r'$(arch)-fake'
