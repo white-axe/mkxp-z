@@ -1,5 +1,16 @@
-# This patch makes Ruby assume that libyaml and zlib are present (because we take care of this in our own build system) instead of trying to look for them manually.
+# This patch makes Ruby assume that libffi, libyaml and zlib are present (because we take care of this in our own build system) instead of trying to look for them manually.
 
+--- a/ext/fiddle/extconf.rb
++++ b/ext/fiddle/extconf.rb
+@@ -47,7 +47,7 @@ end
+ libffi_version = nil
+ have_libffi = false
+ bundle = enable_config('bundled-libffi')
+-unless bundle
++if not bundle; libffi_version = `echo '#include <ffi.h>'$'\n''FFI_VERSION_STRING' | #{RbConfig::CONFIG['CC']} -E #{RbConfig::CONFIG['CFLAGS']} -`.lines[-1].split('"')[1]; ffi_header = 'ffi.h'; have_ffi_header = true; $libs = append_library($libs, 'ffi'); have_libffi = true; end; if false
+   dir_config 'libffi'
+ 
+   if pkg_config("libffi")
 --- a/ext/psych/extconf.rb
 +++ b/ext/psych/extconf.rb
 @@ -6,8 +6,8 @@ require 'fileutils'
