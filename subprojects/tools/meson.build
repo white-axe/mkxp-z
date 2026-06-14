@@ -71,7 +71,7 @@ endif
 if get_option('b_sanitize') != 'none'
     base_cflags += '-fsanitize=' + get_option('b_sanitize')
     base_ldflags += '-fsanitize=' + get_option('b_sanitize')
-    if 'address' in get_option('b_sanitize').split()
+    if 'address' in get_option('b_sanitize').split(',')
         base_cflags += '-fno-omit-frame-pointer'
     endif
 endif
