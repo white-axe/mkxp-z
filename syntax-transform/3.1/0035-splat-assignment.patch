@@ -35,9 +35,9 @@
 # This also applies to other objects: objects with a `.to_a` method are
 # converted to an array by calling `.to_a`, and objects with no `.to_a` method
 # are converted to an array containing the object as its only element. So this
-# code snippet prints `nil`, `0`, `nil`, `[1 => 1]` and `[[1 => 1], [2 => 2]]`
-# in Ruby 1.8 but `[]`, `[0]`, `[]`, `[[1 => 1]]` and `[[1 => 1], [2 => 2]]` in
-# later versions.
+# code snippet prints `nil`, `0`, `nil`, `[1, 1]` and `[[1, 1], [2, 2]]` in Ruby
+# 1.8 but `[]`, `[0]`, `[]`, `[[1, 1]]` and `[[1, 1], [2, 2]]` in later
+# versions.
 #
 #   a = *a
 #   p a
