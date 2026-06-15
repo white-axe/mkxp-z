@@ -1,4 +1,4 @@
-# This patch makes Ruby assume that libffi, libyaml and zlib are present (because we take care of this in our own build system) instead of trying to look for them manually.
+# This patch makes Ruby use the version of libffi from our build system instead of trying to look for libffi using pkg-config.
 
 --- a/ext/fiddle/extconf.rb
 +++ b/ext/fiddle/extconf.rb
@@ -7,42 +7,7 @@
  have_libffi = false
  bundle = enable_config('bundled-libffi')
 -unless bundle
-+if not bundle; ffi_header = 'ffi.h'; have_ffi_header = true; File.open('mkxp-libffi-version-test.c', 'w') do |f| f.write("#include <#{ffi_header}>\nFFI_VERSION_STRING") end; libffi_version_command = "#{RbConfig::CONFIG['CC']} -E #{RbConfig::CONFIG['CFLAGS']} mkxp-libffi-version-test.c"; $stderr.puts(libffi_version_command); libffi_version = `#{libffi_version_command}`.lines[-1].split('"')[1]; $libs = append_library($libs, 'ffi'); have_libffi = true; end; if false
++unless bundle; ffi_header = 'ffi.h'; have_ffi_header = true; File.open('mkxp-libffi-version-test.c', 'w') do |f| f.write("#include <#{ffi_header}>\nFFI_VERSION_STRING") end; libffi_version_command = "#{RbConfig::CONFIG['CC']} -E #{RbConfig::CONFIG['CFLAGS']} mkxp-libffi-version-test.c"; $stderr.puts(libffi_version_command); libffi_version = `#{libffi_version_command}`.lines[-1].split('"')[1]; $libs = append_library($libs, 'ffi'); have_libffi = true; end; if false
    dir_config 'libffi'
  
    if pkg_config("libffi")
---- a/ext/psych/extconf.rb
-+++ b/ext/psych/extconf.rb
-@@ -6,8 +6,8 @@ require 'fileutils'
- # :stopdoc:
- 
- dir_config 'libyaml'
--
--if enable_config("bundled-libyaml", false) || !(find_header('yaml.h') && find_library('yaml', 'yaml_get_version'))
-+$libs = append_library($libs, 'yaml')
-+if false
-   # Embed libyaml since we could not find it.
- 
-   $VPATH << "$(srcdir)/yaml"
---- a/ext/zlib/extconf.rb
-+++ b/ext/zlib/extconf.rb
-@@ -11,8 +11,8 @@ require 'rbconfig'
- dir_config 'zlib'
- 
- libs = $libs
--if %w'z libz zlib1 zlib zdll zlibwapi'.find {|z| have_library(z, 'deflateReset')} and
--    have_header('zlib.h') then
-+if true
-+  $libs = append_library($libs, 'z')
-   have_zlib = true
- else
-   $libs = libs
-@@ -117,7 +117,7 @@ if have_zlib
- 
-   $defs.concat(defines.collect{|d|' -D'+d})
- 
--  if zsrc
-+  if true
-     $defs << "-DHAVE_CRC32_COMBINE"
-     $defs << "-DHAVE_ADLER32_COMBINE"
-     $defs << "-DHAVE_TYPE_Z_CRC_T"
