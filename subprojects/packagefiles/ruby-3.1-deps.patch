@@ -7,7 +7,7 @@
  have_libffi = false
  bundle = enable_config('bundled-libffi')
 -unless bundle
-+if not bundle; libffi_version = `echo '#include <ffi.h>'$'\n''FFI_VERSION_STRING' | #{RbConfig::CONFIG['CC']} -E #{RbConfig::CONFIG['CFLAGS']} -`.lines[-1].split('"')[1]; ffi_header = 'ffi.h'; have_ffi_header = true; $libs = append_library($libs, 'ffi'); have_libffi = true; end; if false
++if not bundle; ffi_header = 'ffi.h'; have_ffi_header = true; File.open('mkxp-libffi-version-test.c', 'w') do |f| f.write("#include <#{ffi_header}>\nFFI_VERSION_STRING") end; libffi_version_command = "#{RbConfig::CONFIG['CC']} -E #{RbConfig::CONFIG['CFLAGS']} mkxp-libffi-version-test.c"; $stderr.puts(libffi_version_command); libffi_version = `#{libffi_version_command}`.lines[-1].split('"')[1]; $libs = append_library($libs, 'ffi'); have_libffi = true; end; if false
    dir_config 'libffi'
  
    if pkg_config("libffi")
