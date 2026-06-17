@@ -212,7 +212,8 @@ void Config::read(int argc, char *argv[]) {
             {"z", "Z"},
             {"l", "L"},
             {"r", "R"}
-        })}
+        })},
+        {"legacyDelta", 0},
     });
     
     auto &opts = optsJ.as_object();
@@ -320,6 +321,7 @@ try { exp } catch (...) {}
     SET_STRINGOPT(customScript, customScript);
     SET_OPT(useScriptNames, boolean);
     SET_OPT(dumpAtlas, boolean);
+    SET_OPT(delta, integer);
     
     fillStringVec(opts["preloadScript"], preloadScripts);
     fillStringVec(opts["postloadScript"], postloadScripts);

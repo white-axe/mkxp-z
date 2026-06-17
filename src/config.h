@@ -169,6 +169,8 @@ struct Config {
     
     std::string userConfPath;
     
+    int delta;
+    
     /* Internal */
     std::string customDataPath;
     
