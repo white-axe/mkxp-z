@@ -360,6 +360,9 @@ bool mkxp_use_legacy_delta() noexcept {
     return false;
   }
   value = rb_const_get(value, rb_intern("VERSION"));
+  if (!RB_TYPE_P(value, RUBY_T_STRING)) {
+    return false;
+  }
   const char *version = rb_string_value_ptr(&value);
   return strcmp(version, "19") == 0
     || strcmp(version, "19.1") == 0
