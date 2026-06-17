@@ -37,7 +37,7 @@ RB_METHOD(graphicsDelta) {
                 running = false;
                 break;
             case 2:
-                ret = RB_LONG2FIX(shState->graphics().getDelta() * 1000000.0);
+                ret = RB_ULL2NUM(shState->graphics().getDelta() * 1000000.0);
                 running = false;
                 break;
             default:

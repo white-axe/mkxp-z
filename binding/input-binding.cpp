@@ -38,7 +38,7 @@ RB_METHOD(inputDelta) {
             case 1:
                 return rb_float_new(shState->input().getDelta());
             case 2:
-                return RB_LONG2FIX(shState->input().getDelta() * 1000000.0);
+                return RB_ULL2NUM(shState->input().getDelta() * 1000000.0);
             default:
                 shState->config().delta = mkxp_use_legacy_delta() ? 2 : 1;
                 break;
