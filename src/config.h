@@ -33,6 +33,7 @@ struct Config {
     json5pp::value raw;
     
     int rgssVersion;
+    int delta;
     
     bool debugMode;
     bool winConsole;
@@ -168,8 +169,6 @@ struct Config {
     } kbActionNames;
     
     std::string userConfPath;
-    
-    int delta;
     
     /* Internal */
     std::string customDataPath;

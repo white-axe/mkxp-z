@@ -128,6 +128,7 @@ Config::Config() {}
 void Config::read(int argc, char *argv[]) {
     auto optsJ = json::object({
         {"rgssVersion", 0},
+        {"delta", 0},
         {"debugMode", false},
         {"displayFPS", false},
         {"printFPS", false},
@@ -212,8 +213,7 @@ void Config::read(int argc, char *argv[]) {
             {"z", "Z"},
             {"l", "L"},
             {"r", "R"}
-        })},
-        {"legacyDelta", 0},
+        })}
     });
     
     auto &opts = optsJ.as_object();
@@ -257,6 +257,7 @@ try { exp } catch (...) {}
     SET_OPT_CUSTOMKEY(jit.minCalls, JITMinCalls, integer);
     SET_OPT_CUSTOMKEY(yjit.enabled, YJITEnable, boolean);
     SET_OPT(rgssVersion, integer);
+    SET_OPT(delta, integer);
     SET_OPT(defScreenW, integer);
     SET_OPT(defScreenH, integer);
     
@@ -321,7 +322,6 @@ try { exp } catch (...) {}
     SET_STRINGOPT(customScript, customScript);
     SET_OPT(useScriptNames, boolean);
     SET_OPT(dumpAtlas, boolean);
-    SET_OPT(delta, integer);
     
     fillStringVec(opts["preloadScript"], preloadScripts);
     fillStringVec(opts["postloadScript"], postloadScripts);
