@@ -19,6 +19,11 @@
 # TOLERATE_ERRORS=false
 # LOG_NATIVE=true
 
+unless Win32API.method_defined? :mkxp_native_call
+
+$win32Input = Input
+$win32InputInstance = InputInstance.new
+
 module Scancodes
 	SDL = { :UNKNOWN => 0x00,
 		:A => 0x04, :B => 0x05, :C => 0x06, :D => 0x07,
@@ -169,6 +174,7 @@ module Graphics
 		alias_method(:win32wrap_update, :update)
 		def update
 			win32wrap_update
+			$win32InputInstance.update
 			$win32KeyStates = nil
 		end
 	end
@@ -176,7 +182,7 @@ end
 
 def get_raw_keystates
 	if $win32KeyStates == nil
-		$win32KeyStates = Input.raw_key_states
+		$win32KeyStates = $win32InputInstance.raw_key_states
 	end
 
 	return $win32KeyStates
@@ -189,11 +195,11 @@ def common_keystate(vkey)
 	pressed = false
 
 	if vkey_name == :LBUTTON
-		pressed = Input.press?(Input::MOUSELEFT)
+		pressed = $win32InputInstance.press?($win32Input::MOUSELEFT)
 	elsif vkey_name == :RBUTTON
-		pressed = Input.press?(Input::MOUSERIGHT)
+		pressed = $win32InputInstance.press?($win32Input::MOUSERIGHT)
 	elsif vkey_name == :MBUTTON
-		pressed = Input.press?(Input::MOUSEMIDDLE)
+		pressed = $win32InputInstance.press?($win32Input::MOUSEMIDDLE)
 	elsif vkey_name == :SHIFT
 		pressed = double_state(states, :LSHIFT, :RSHIFT)
 	elsif vkey_name == :MENU
@@ -304,7 +310,7 @@ module Win32API_Impl
 
 		class GetCursorPos
 			def call(args)
-				out = [Input.mouse_x, Input.mouse_y].pack('ll')
+				out = [$win32InputInstance.mouse_x, $win32InputInstance.mouse_y].pack('ll')
 				memcpy_string(args[0], out)
 				return 1
 			end
@@ -361,14 +367,17 @@ class Win32API
 		dll = kappatalize(dll.chomp(".dll"))
 		func = kappatalize(func)
 
-		if !System.is_windows? or !NATIVE_ON_WINDOWS
-			if Win32API_Impl.const_defined?(dll)
-				dll_impl = Win32API_Impl.const_get(dll)
-				if dll_impl.const_defined?(func)
-					@mkxp_wrap_impl = dll_impl.const_get(func).new
-					return
+		begin
+			if !System.is_windows? or !NATIVE_ON_WINDOWS
+				if Win32API_Impl.const_defined?(dll)
+					dll_impl = Win32API_Impl.const_get(dll)
+					if dll_impl.const_defined?(func)
+						@mkxp_wrap_impl = dll_impl.const_get(func).new
+						return
+					end
 				end
 			end
+		rescue Exception
 		end
 
 		@mkxp_native_available = false
@@ -376,7 +385,7 @@ class Win32API
 			mkxp_native_initialize(@dll, @func, *args)
 			@mkxp_native_available = true
 			return
-		rescue
+		rescue Exception
 		end
 
 	end
@@ -402,4 +411,6 @@ class Win32API
 			raise RuntimeError, "[Win32API] [#{@dll}:#{@func}] #{args.to_s}"
 		end
 	end
+end
+
 end
