@@ -343,16 +343,12 @@ void ShaderBase::applyViewportProj()
 {
 	// High-res: scale the matrix if we're rendering to the PingPong framebuffer.
 	const IntRect &vp = glState.viewport.get();
-#ifndef MKXPZ_RETRO
 	if (shState->config().enableHires && shState->graphics().isPingPongFramebufferActive() && framebufferScalingAllowed()) {
 		projMat.set(Vec2i(shState->graphics().width(), shState->graphics().height()));
 	}
 	else {
-#endif // MKXPZ_RETRO
 		projMat.set(Vec2i(vp.w, vp.h));
-#ifndef MKXPZ_RETRO
 	}
-#endif // MKXPZ_RETRO
 }
 
 bool ShaderBase::framebufferScalingAllowed()

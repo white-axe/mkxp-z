@@ -36,7 +36,6 @@ void GLClearColor::apply(const Vec4 &value) {
 }
 
 void GLScissorBox::apply(const IntRect &value) {
-#ifndef MKXPZ_RETRO
   // High-res: scale the scissorbox if we're rendering to the PingPong framebuffer.
   if (shState) {
     const double framebufferScalingFactor = shState->config().framebufferScalingFactor;
@@ -44,15 +43,12 @@ void GLScissorBox::apply(const IntRect &value) {
       gl.Scissor((int)lround(framebufferScalingFactor * value.x), (int)lround(framebufferScalingFactor * value.y), (int)lround(framebufferScalingFactor * value.w), (int)lround(framebufferScalingFactor * value.h));
     }
     else {
-#endif // MKXPZ_RETRO
       gl.Scissor(value.x, value.y, value.w, value.h);
-#ifndef MKXPZ_RETRO
     }
   }
   else {
     gl.Scissor(value.x, value.y, value.w, value.h);
   }
-#endif // MKXPZ_RETRO
 }
 
 void GLScissorBox::setIntersect(const IntRect &value) {
