@@ -34,6 +34,9 @@
 		double pos = 0.0; \
 		VALUE pos_value = Qnil; \
 		rb_get_args(argc, argv, "z|iio", &filename, &volume, &pitch, &pos_value RB_ARG_END); \
+		/* In the original RPG Maker VX Ace runtime, the fourth argument of \
+		 * `Audio.bgm_play` and `Audio.bgs_play` can be `nil`; this should be \
+		 * interpreted as 0. See <https://github.com/Ancurio/mkxp/pull/227>. */ \
 		if (pos_value != Qnil) { \
 			rb_float_arg(pos_value, &pos, 3); \
 		} \
@@ -103,6 +106,9 @@ RB_METHOD_GUARD(audio_bgmPlay)
     VALUE pos_value = Qnil;
     VALUE track = Qnil;
     rb_get_args(argc, argv, "z|iioo", &filename, &volume, &pitch, &pos_value, &track RB_ARG_END);
+    /* In the original RPG Maker VX Ace runtime, the fourth argument of
+     * `Audio.bgm_play` and `Audio.bgs_play` can be `nil`; this should be
+     * interpreted as 0. See <https://github.com/Ancurio/mkxp/pull/227>. */
     if (pos_value != Qnil) {
         rb_float_arg(pos_value, &pos, 3);
     }
