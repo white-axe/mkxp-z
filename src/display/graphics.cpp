@@ -87,6 +87,11 @@
 #define GUARD_V(value, expression) do { expression; if (exception.is_error()) return value; } while (0)
 #define GUARD(expression) GUARD_V(, expression)
 
+#ifdef MKXPZ_RETRO
+#  define scSize scRes
+#  define winSize scRes
+#endif // MKXPZ_RETRO
+
 typedef struct AudioQueue
 {
     const THEORAPLAY_AudioPacket *audio;
@@ -966,6 +971,7 @@ struct GraphicsPrivate {
     Vec2i scRes;
     Vec2i scResLores;
     
+#ifndef MKXPZ_RETRO
     /* Screen size, to which the rendered frames are scaled up.
      * This can be smaller than the window size when fixed aspect
      * ratio is enforced */
@@ -973,6 +979,7 @@ struct GraphicsPrivate {
     
     /* Actual physical size of the game window */
     Vec2i winSize;
+#endif // MKXPZ_RETRO
     
     /* Offset in the game window at which the scaled game screen
      * is blitted inside the game window */
@@ -1034,8 +1041,10 @@ struct GraphicsPrivate {
     : scResLores(DEF_SCREEN_W, DEF_SCREEN_H),
     scRes(rtData->config.enableHires ? (int)lround(rtData->config.framebufferScalingFactor * DEF_SCREEN_W) : DEF_SCREEN_W,
         rtData->config.enableHires ? (int)lround(rtData->config.framebufferScalingFactor * DEF_SCREEN_H) : DEF_SCREEN_H),
+#ifndef MKXPZ_RETRO
     scSize(scRes),
     winSize(rtData->config.defScreenW, rtData->config.defScreenH),
+#endif // MKXPZ_RETRO
     screen(scRes.x, scRes.y), threadData(rtData),
 #ifndef MKXPZ_RETRO
     glCtx(SDL_GL_GetCurrentContext()),

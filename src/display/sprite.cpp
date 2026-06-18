@@ -887,13 +887,10 @@ void Sprite::draw(Exception &exception)
         scaleIsSpecial = DownScale;
     }
 
-#ifndef MKXPZ_RETRO // TODO
     switch (scaleIsSpecial)
     {
     case SameScale:
-#endif // MKXPZ_RETRO
         scalingMethod = NearestNeighbor;
-#ifndef MKXPZ_RETRO
         break;
     case DownScale:
         scalingMethod = shState->config().bitmapSmoothScalingDown;
@@ -906,7 +903,6 @@ void Sprite::draw(Exception &exception)
     {
         scalingMethod = shState->config().bitmapSmoothScaling;
     }
-#endif // MKXPZ_RETRO
 
     if (renderEffect)
     {

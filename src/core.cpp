@@ -59,6 +59,10 @@
 
 #define THREADED_AUDIO_SAMPLES (((size_t)sample_rate * (size_t)AUDIO_SLEEP) / (size_t)1000)
 
+#define DEF_SCREEN_W (rgssVer == 1 ? 640 : 544)
+#define DEF_SCREEN_H (rgssVer == 1 ? 480 : 416)
+#define DEF_FRAMERATE (rgssVer == 1 ? 40 : 60)
+
 using namespace mkxp_retro;
 using namespace mkxp_sandbox;
 
@@ -1411,13 +1415,13 @@ static bool init_sandbox() {
     mkxp_retro::sandbox.emplace(*conf);
     Font::initDefaultDynAttribs();
 
-    av_info.geometry.base_width = screen_width = conf->defScreenW;
-    av_info.geometry.base_height = screen_height = conf->defScreenH;
+    av_info.geometry.base_width = screen_width = conf->enableHires ? (int)lround(conf->framebufferScalingFactor * DEF_SCREEN_W) : DEF_SCREEN_W;
+    av_info.geometry.base_height = screen_height = conf->enableHires ? (int)lround(conf->framebufferScalingFactor * DEF_SCREEN_H) : DEF_SCREEN_H;
     av_info.geometry.max_width = av_info.geometry.base_width;
     av_info.geometry.max_height = av_info.geometry.base_height;
     av_info.geometry.aspect_ratio = (float)av_info.geometry.base_width / (float)av_info.geometry.base_height;
     av_info.timing.sample_rate = sample_rate;
-    frame_time_callback.reference = 1000000 / (rgssVer == 1 ? 40 : 60);
+    frame_time_callback.reference = 1000000 / DEF_FRAMERATE;
     frame_time_callback_enabled = environment(RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK, &frame_time_callback);
 
     sound_buf = (int16_t *)mkxp_aligned_malloc(16, (threaded_audio_enabled ? THREADED_AUDIO_SAMPLES : (size_t)std::ceil(av_info.timing.sample_rate / av_info.timing.fps)) * 2 * sizeof(int16_t));
@@ -1661,8 +1665,8 @@ extern "C" RETRO_API void retro_run() {
         }
     }
     if (mkxp_retro::sandbox.has_value()) {
-        screen_width = shState->graphics().width();
-        screen_height = shState->graphics().height();
+        screen_width = shState->graphics().displayContentWidth();
+        screen_height = shState->graphics().displayContentHeight();
     }
     video_refresh(fb, screen_width, screen_height, screen_width * 4);
 
