@@ -426,6 +426,10 @@ inline void rb_int_arg(VALUE arg, int *out, int argPos = 0) {
 }
 
 inline void rb_bool_arg(VALUE arg, bool *out, int argPos = 0) {
+    /* In all of the original Ruby-based RPG Maker runtimes, if a non-Boolean
+     * object is passed to a binding expecting a Boolean argument, such as the
+     * `visible=` method of the `Sprite` class, it should be cast to a Boolean
+     * by treating `false` and `nil` as falsy and everything else as truthy. */
     *out = arg != Qfalse && arg != Qnil;
 }
 
