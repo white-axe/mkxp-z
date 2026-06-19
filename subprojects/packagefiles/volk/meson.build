@@ -22,7 +22,7 @@ volk = declare_dependency(
             'volk',
             dependencies: [
                 deps,
-                meson.get_compiler('cpp').find_library(host_machine.system() in ['windows', 'cygwin'] ? 'kernel32' : 'dl', required: true),
+                meson.get_compiler('c').find_library(host_machine.system() in ['windows', 'cygwin'] ? 'kernel32' : 'dl', required: true),
             ],
             include_directories: [
                 '.',
