@@ -70,7 +70,6 @@ __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 #endif
 
 #if !defined(__ANDROID__) && !defined(__APPLE__) && !defined(_WIN32)
-#  include <dlfcn.h>
 #  define MKXPZ_CHECK_FOR_WAYLAND_SUPPORT
 #endif
 
@@ -222,10 +221,10 @@ int main(int argc, char *argv[]) {
       if (sdl_videodriver == nullptr || sdl_videodriver[0] == 0) {
         /* Select SDL's Wayland video driver if SDL_VIDEODRIVER is unset and Wayland support is available on the user's machine */
         SDL_SetHintWithPriority(SDL_HINT_VIDEODRIVER, "x11", SDL_HINT_OVERRIDE);
-        void *wayland_client = dlopen("libwayland-client.so", RTLD_LAZY);
+        void *wayland_client = SDL_LoadObject("libwayland-client.so");
         if (wayland_client != nullptr) {
-          void *(*_wl_display_connect)(const char *name) = reinterpret_cast<void *(*)(const char *name)>(dlsym(wayland_client, "wl_display_connect"));
-          void (*_wl_display_disconnect)(void *display) = reinterpret_cast<void (*)(void *display)>(dlsym(wayland_client, "wl_display_disconnect"));
+          void *(*_wl_display_connect)(const char *name) = reinterpret_cast<void *(*)(const char *name)>(SDL_LoadFunction(wayland_client, "wl_display_connect"));
+          void (*_wl_display_disconnect)(void *display) = reinterpret_cast<void (*)(void *display)>(SDL_LoadFunction(wayland_client, "wl_display_disconnect"));
           if (_wl_display_connect != nullptr && _wl_display_disconnect != nullptr) {
             void *display = _wl_display_connect(nullptr);
             if (display != nullptr) {
@@ -233,7 +232,7 @@ int main(int argc, char *argv[]) {
               SDL_SetHintWithPriority(SDL_HINT_VIDEODRIVER, "wayland", SDL_HINT_OVERRIDE);
             }
           }
-          dlclose(wayland_client);
+          SDL_UnloadObject(wayland_client);
         }
       }
 

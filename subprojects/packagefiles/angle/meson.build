@@ -35,6 +35,7 @@ if get_option('default_library') == 'static'
 endif
 
 angle_compression_utils = subproject('angle-compression-utils').get_variable('angle_compression_utils_portable')
+dl = meson.get_compiler('cpp').find_library(host_machine_is_windows ? 'kernel32' : 'dl', required: true)
 xxhash = dependency('libxxhash', required: true)
 
 d3d9 = host_machine_is_windows ? meson.get_compiler('cpp').find_library('d3d9', required: get_option('direct3d9')) : dependency('', required: false)
@@ -126,6 +127,7 @@ if have_x11
             link_with: static_library(
                 'mkxp-angle-x11-shim',
                 dependencies: [
+                    dl,
                     x11,
                 ],
                 sources: [
@@ -164,6 +166,7 @@ if have_x11
             link_with: static_library(
                 'mkxp-angle-xcb-shim',
                 dependencies: [
+                    dl,
                     xcb,
                 ],
                 sources: [
@@ -209,6 +212,7 @@ if have_wayland
         link_with: static_library(
             'mkxp-angle-wayland-client-shim',
             dependencies: [
+                dl,
                 wayland_client,
             ],
             sources: [
@@ -1370,6 +1374,9 @@ angle_glesv2 = static_library(
 
 mkxp_angle_egl_shim = static_library(
     'mkxp-angle-egl-shim',
+    dependencies: [
+        dl,
+    ],
     include_directories: includes,
     cpp_args: args + export_args + egl_shim_args,
     sources: [
