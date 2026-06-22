@@ -531,23 +531,23 @@ jobs:
             release_id=$(ghcurl ${{ github.api_url }}/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }} | jq -r '.id')
           elif [ '${{ github.event_name == 'push' && github.ref_name == 'dev' }}' = 'true' ]
           then
-            # Don't update the nightly tag if the current nightly tag is not an ancestor of the current commit
-            if git rev-parse refs/tags/nightly > /dev/null 2>&1 && ! git merge-base --is-ancestor refs/tags/nightly HEAD
+            # Don't update the v9999.9999.9999-nightly tag if the current v9999.9999.9999-nightly tag is not an ancestor of the current commit in order to prevent the v9999.9999.9999-nightly tag from reverting to an earlier commit
+            if git rev-parse refs/tags/v9999.9999.9999-nightly > /dev/null 2>&1 && ! git merge-base --is-ancestor refs/tags/v9999.9999.9999-nightly HEAD
             then
-              echo '::warning::Not uploading artifacts because the nightly tag is not an ancestor of the current commit'
+              echo '::warning::Not uploading artifacts because the v9999.9999.9999-nightly tag is not an ancestor of the current commit'
             else
-              # If there already is a release for the nightly tag, delete it
-              nightly_release_info="$(ghcurl ${{ github.api_url }}/repos/${{ github.repository }}/releases/tags/nightly)" || nightly_release_info=
+              # If there already is a release for the v9999.9999.9999-nightly tag, delete it
+              nightly_release_info="$(ghcurl ${{ github.api_url }}/repos/${{ github.repository }}/releases/tags/v9999.9999.9999-nightly)" || nightly_release_info=
               if [ -n "$nightly_release_info" ]
               then
                 ghcurl -X DELETE ${{ github.api_url }}/repos/${{ github.repository }}/releases/$(echo "$nightly_release_info" | jq -r .id)
               fi
-              # Tag the current commit as nightly
-              git tag -f nightly
-              git push -f origin tag nightly
-              # Create a new release with the nightly tag
+              # Tag the current commit as v9999.9999.9999-nightly
+              git tag -f v9999.9999.9999-nightly
+              git push -f origin tag v9999.9999.9999-nightly
+              # Create a new release with the v9999.9999.9999-nightly tag
               release_id=$(ghcurl -X POST ${{ github.api_url }}/repos/${{ github.repository }}/releases -d '{
-                "tag_name": "nightly",
+                "tag_name": "v9999.9999.9999-nightly",
                 "target_commitish": "${{ github.ref_name }}",
                 "name": "Nightly build",
                 "body": "This is the latest development build, built from commit [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}).",
