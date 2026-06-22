@@ -532,7 +532,7 @@ jobs:
             # Don't update the nightly tag if the current nightly tag is not an ancestor of the current commit
             if git rev-parse refs/tags/nightly > /dev/null 2>&1 && ! git merge-base --is-ancestor refs/tags/nightly HEAD
             then
-              echo '::warning::Not uploading artifacts because the current commit is not an ancestor of the nightly tag'
+              echo '::warning::Not uploading artifacts because the nightly tag is not an ancestor of the current commit'
             else
               # If there already is a release for the nightly tag, delete it
               nightly_release_info="$(ghcurl ${{ github.api_url }}/repos/${{ github.repository }}/releases/tags/nightly)" || nightly_release_info=
