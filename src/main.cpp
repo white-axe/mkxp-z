@@ -48,6 +48,7 @@
 
 #if defined(__WIN32__)
 #include "resource.h"
+#include <processenv.h>
 #include <winsock2.h>
 #include "util/win-consoleutils.h"
 
@@ -85,6 +86,18 @@ bool mkxp_use_angle = true;
 
 static void rgssThreadError(RGSSThreadData *rtData, const std::string &msg);
 static void showInitError(const std::string &msg);
+
+static void mkxp_setenv(const char *key, const char *value) {
+#ifdef _WIN32
+  SetEnvironmentVariableA(key, value);
+#else
+  if (value != nullptr) {
+    setenv(key, value, true);
+  } else {
+    unsetenv(key);
+  }
+#endif
+}
 
 static inline const char *glGetStringInt(GLenum name) {
   return (const char *)gl.GetString(name);
@@ -268,61 +281,52 @@ int main(int argc, char *argv[]) {
           || (sdl_videodriver[6] != 'D' && sdl_videodriver[6] != 'd')
           || sdl_videodriver[7] != 0
       ) {
-        unsetenv("WAYLAND_DISPLAY");
+        mkxp_setenv("WAYLAND_DISPLAY", nullptr);
       }
     }
 #endif // MKXPZ_CHECK_FOR_WAYLAND_SUPPORT
 
 #ifdef MKXPZ_HAVE_ANGLE
     {
-#  ifdef MKXPZ_HAVE_ANGLE_METAL
-      static const char *default_backend = "metal";
-#  elif !defined(MKXPZ_HAVE_ANGLE_DIRECT3D9) && !defined(MKXPZ_HAVE_ANGLE_DIRECT3D11)
-#    ifdef MKXPZ_HAVE_ANGLE_VULKAN
-      static const char *default_backend = "vulkan";
-#    else
-      static const char *default_backend = "gl";
-#    endif
-#  endif
       const char *angle_default_platform = getenv("ANGLE_DEFAULT_PLATFORM");
       switch (conf.renderer) {
         default:
           if (angle_default_platform == nullptr || angle_default_platform[0] == 0) {
 #  ifdef MKXPZ_HAVE_ANGLE_METAL
-            setenv("ANGLE_DEFAULT_PLATFORM", "metal", true);
+            mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "metal");
 #  elif !defined(MKXPZ_HAVE_ANGLE_DIRECT3D9) && !defined(MKXPZ_HAVE_ANGLE_DIRECT3D11)
 #    ifdef MKXPZ_HAVE_ANGLE_VULKAN
-            setenv("ANGLE_DEFAULT_PLATFORM", "vulkan", true);
+            mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "vulkan");
 #    else
-            setenv("ANGLE_DEFAULT_PLATFORM", "gl", true);
+            mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "gl");
 #    endif
 #  endif
           }
           break;
 #ifdef MKXPZ_HAVE_ANGLE_NULL
         case 1:
-          setenv("ANGLE_DEFAULT_PLATFORM", "null", true);
+          mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "null");
           break;
 #endif // MKXPZ_HAVE_ANGLE_NULL
         case 2:
-          setenv("ANGLE_DEFAULT_PLATFORM", "gl", true);
+          mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "gl");
           break;
 #ifdef MKXPZ_HAVE_ANGLE_VULKAN
         case 3:
-          setenv("ANGLE_DEFAULT_PLATFORM", "vulkan", true);
+          mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "vulkan");
           break;
 #endif // MKXPZ_HAVE_ANGLE_VULKAN
 #ifdef MKXPZ_HAVE_ANGLE_METAL
         case 4:
-          setenv("ANGLE_DEFAULT_PLATFORM", "metal", true);
+          mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "metal");
           break;
 #elif defined(MKXPZ_HAVE_ANGLE_DIRECT3D9) || defined(MKXPZ_HAVE_ANGLE_DIRECT3D11)
         case 4:
-          unsetenv("ANGLE_DEFAULT_PLATFORM");
+          mkxp_setenv("ANGLE_DEFAULT_PLATFORM", nullptr);
           break;
 #elif defined(MKXPZ_HAVE_ANGLE_VULKAN)
         case 4:
-          setenv("ANGLE_DEFAULT_PLATFORM", "vulkan", true);
+          mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "vulkan");
           break;
 #endif // MKXPZ_HAVE_ANGLE_METAL
       }
