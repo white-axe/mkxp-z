@@ -500,12 +500,16 @@ jobs:
           pattern: mkxp-z.**
 
       - name: Prepare files
+        shell: bash
         run: |
           cd ${{ runner.temp }}/artifacts
           for artifact in *
           do
             pushd "$artifact"
-            GLOBIGNORE='.:..' zip -r9 "../$artifact.zip" *
+            old_dotglob="$(shopt -p dotglob)"
+            shopt -s dotglob
+            zip -r9 "../$artifact.zip" *
+            eval "$old_dotglob"
             popd
             rm -r "$artifact"
           done
