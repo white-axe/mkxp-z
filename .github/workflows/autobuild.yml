@@ -530,7 +530,9 @@ jobs:
           elif [ '${{ github.event_name == 'push' && github.ref_name == 'dev' }}' = 'true' ]
           then
             # Don't update the nightly tag if the current nightly tag is not an ancestor of the current commit
-            if ! git rev-parse refs/tags/nightly > /dev/null 2>&1 || git merge-base --is-ancestor refs/tags/nightly HEAD
+            if git rev-parse refs/tags/nightly > /dev/null 2>&1 && ! git merge-base --is-ancestor refs/tags/nightly HEAD
+              echo '::warning::Not uploading artifacts because the current commit is not an ancestor of the nightly tag'
+            else
               # If there already is a release for the nightly tag, delete it
               nightly_release_info="$(ghcurl ${{ github.api_url }}/repos/${{ github.repository }}/releases/tags/nightly)" || nightly_release_info=
               if [ -n "$nightly_release_info" ]
@@ -551,6 +553,8 @@ jobs:
                 "generate_release_notes": false
               }' | jq -r .id)
             fi
+          else
+            echo '::warning::Not uploading artifacts because artifact uploading is disabled for the ${{ github.event_name }} trigger on ${{ github.ref_name }}'
           fi
           if [ -n "$release_id" ]
           then
