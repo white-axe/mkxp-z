@@ -505,12 +505,12 @@ jobs:
           cd ${{ runner.temp }}/artifacts
           for artifact in *
           do
-            pushd "$artifact"
+            cd "$artifact"
             old_dotglob="$(shopt -p dotglob)"
             shopt -s dotglob
             zip -r9 "../$artifact.zip" *
             eval "$old_dotglob"
-            popd
+            cd ..
             rm -r "$artifact"
           done
 
