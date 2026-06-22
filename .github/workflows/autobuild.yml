@@ -529,25 +529,28 @@ jobs:
             release_id=$(ghcurl ${{ github.api_url }}/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }} | jq -r '.id')
           elif [ '${{ github.event_name == 'push' && github.ref_name == 'dev' }}' = 'true' ]
           then
-            # If there already is a release for the nightly tag, delete it
-            curl_output="$(ghcurl ${{ github.api_url }}/repos/${{ github.repository }}/releases/tags/nightly)" || curl_output=
-            if [ -n "$curl_output" ]
-            then
-              ghcurl -X DELETE ${{ github.api_url }}/repos/${{ github.repository }}/releases/$(echo "$curl_output" | jq -r .id)
+            # Don't update the nightly tag if the current nightly tag is not an ancestor of the current commit
+            if ! git rev-parse refs/tags/nightly > /dev/null 2>&1 || git merge-base --is-ancestor refs/tags/nightly HEAD
+              # If there already is a release for the nightly tag, delete it
+              nightly_release_info="$(ghcurl ${{ github.api_url }}/repos/${{ github.repository }}/releases/tags/nightly)" || nightly_release_info=
+              if [ -n "$nightly_release_info" ]
+              then
+                ghcurl -X DELETE ${{ github.api_url }}/repos/${{ github.repository }}/releases/$(echo "$nightly_release_info" | jq -r .id)
+              fi
+              # Tag the current commit as nightly
+              git tag -f nightly
+              git push -f origin tag nightly
+              # Create a new release with the nightly tag
+              release_id=$(ghcurl -X POST ${{ github.api_url }}/repos/${{ github.repository }}/releases -d '{
+                "tag_name": "nightly",
+                "target_commitish": "dev",
+                "name": "Nightly build",
+                "body": "This is the latest development build, built from commit [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}).",
+                "draft": false,
+                "prerelease": true,
+                "generate_release_notes": false
+              }' | jq -r .id)
             fi
-            # Tag the current commit as nightly
-            git tag -f nightly
-            git push -f origin tag nightly
-            # Create a new release with the nightly tag
-            release_id=$(ghcurl -X POST ${{ github.api_url }}/repos/${{ github.repository }}/releases -d '{
-              "tag_name": "nightly",
-              "target_commitish": "dev",
-              "name": "Nightly build",
-              "body": "This is the latest development build, built from commit [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}).",
-              "draft": false,
-              "prerelease": true,
-              "generate_release_notes": false
-            }' | jq -r .id)
           fi
           if [ -n "$release_id" ]
           then
