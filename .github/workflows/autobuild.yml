@@ -506,7 +506,7 @@ jobs:
           for artifact in *
           do
             cd "$artifact"
-            old_dotglob="$(shopt -p dotglob)"
+            old_dotglob="$(shopt -p dotglob || :)"
             shopt -s dotglob
             zip -r9 "../$artifact.zip" *
             eval "$old_dotglob"
