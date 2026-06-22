@@ -8,6 +8,8 @@ on:
   pull_request:
     branches: ['dev', 'autobuild']
     paths-ignore: ['*.md', '*.json', '*.png']
+  release:
+    types: ['published']
   workflow_dispatch:
 
 jobs:
