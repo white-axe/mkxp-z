@@ -280,8 +280,8 @@ angle_version_info = static_library(
     'angle_version_info',
     include_directories: includes,
     dependencies: [
-        declare_dependency(sources: vcs_tag(command: ['git', 'rev-parse', '--short=12', 'HEAD'], fallback: 'unknown', input: 'angle_commit.h.in', output: 'angle_commit.h')),
-        declare_dependency(sources: vcs_tag(command: ['git', 'rev-parse', '--short=12', 'HEAD'], fallback: 'unknown', input: 'ANGLEShaderProgramVersion.h.in', output: 'ANGLEShaderProgramVersion.h')),
+        declare_dependency(sources: vcs_tag(command: [find_program('git'), 'rev-parse', '--short=12', 'HEAD'], fallback: 'unknown', input: 'angle_commit.h.in', output: 'angle_commit.h')),
+        declare_dependency(sources: vcs_tag(command: [find_program('git'), 'rev-parse', '--short=12', 'HEAD'], fallback: 'unknown', input: 'ANGLEShaderProgramVersion.h.in', output: 'ANGLEShaderProgramVersion.h')),
     ],
     cpp_args: args + [
         '-DANGLE_REVISION=' + meson.project_version(),

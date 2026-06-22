@@ -15,7 +15,7 @@ compilers = {'cpp': meson.get_compiler('cpp')}
 git_hash_file = vcs_tag(
     input: 'src/git-hash.h.in',
     output: 'git-hash.h',
-    command: ['git', 'rev-parse', '--short=7', 'HEAD'],
+    command: [find_program('git'), 'rev-parse', '--short=7', 'HEAD'],
     fallback: 'unknown',
 )
 
