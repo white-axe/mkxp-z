@@ -519,7 +519,6 @@ jobs:
           then
             # Find the release ID for the current release
             release_id=$(ghcurl ${{ github.api_url }}/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }} | jq -r '.id')
-            do_upload=true
           elif [ '${{ github.event_name == 'push' && github.ref_name == 'dev' }}' = 'true' ]
           then
             # If there already is a release for the nightly tag, delete it
@@ -541,7 +540,6 @@ jobs:
               "prerelease": true,
               "generate_release_notes": false
             }' | jq -r .id)
-            do_upload=true
           fi
           if [ -n "$release_id" ]
           then
