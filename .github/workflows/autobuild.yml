@@ -10,9 +10,6 @@ on:
     paths-ignore: ['*.md', '*.json', '*.png']
   workflow_dispatch:
 
-permissions:
-  contents: write # Needed to modify Git tags and GitHub releases in the upload-artifacts job
-
 jobs:
   build-windows:
     name: Windows
@@ -490,6 +487,8 @@ jobs:
     concurrency:
       group: upload-artifacts
       cancel-in-progress: false
+    permissions:
+      contents: write # Needed to modify Git tags and GitHub releases
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
