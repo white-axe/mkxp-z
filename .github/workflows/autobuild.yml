@@ -179,7 +179,8 @@ jobs:
           - arch_mkxpz: armv7-neon
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
-            experimental: false
+            # Theora fails to build for this target currently.
+            experimental: true
           - arch_mkxpz: arm64
             arch_debian: arm64
             arch_gcc: aarch64-linux-gnu
@@ -335,15 +336,19 @@ jobs:
           - arch_mkxpz: armv6
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
-            experimental: false
+            # Pixman fails to compile for 32-bit ARM Debian Trixie targets due to a bug that has been fixed in the latest version of Pixman. We can fix this by updating Pixman.
+            experimental: true
           - arch_mkxpz: armv7
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
-            experimental: false
+            # Pixman fails to compile for 32-bit ARM Debian Trixie targets due to a bug that has been fixed in the latest version of Pixman. We can fix this by updating Pixman.
+            experimental: true
           - arch_mkxpz: armv7-neon
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
-            experimental: false
+            # Pixman fails to compile for 32-bit ARM Debian Trixie targets due to a bug that has been fixed in the latest version of Pixman. We can fix this by updating Pixman.
+            # Also, Theora fails to build for this target currently.
+            experimental: true
           - arch_mkxpz: arm64
             arch_debian: arm64
             arch_gcc: aarch64-linux-gnu
