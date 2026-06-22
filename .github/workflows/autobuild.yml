@@ -543,7 +543,7 @@ jobs:
               # Create a new release with the nightly tag
               release_id=$(ghcurl -X POST ${{ github.api_url }}/repos/${{ github.repository }}/releases -d '{
                 "tag_name": "nightly",
-                "target_commitish": "dev",
+                "target_commitish": "${{ github.ref_name }}",
                 "name": "Nightly build",
                 "body": "This is the latest development build, built from commit [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}).",
                 "draft": false,
