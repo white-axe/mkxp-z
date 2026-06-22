@@ -10,6 +10,9 @@ on:
     paths-ignore: ['*.md', '*.json', '*.png']
   workflow_dispatch:
 
+permissions:
+  contents: write # Needed to modify Git tags and GitHub releases in the upload-artifacts job
+
 jobs:
   build-windows:
     name: Windows
@@ -468,3 +471,83 @@ jobs:
         with:
           name: mkxp-z.macos.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/Build/Products/Release/Z-universal.app.zip
+
+  upload-artifacts:
+    name: Upload artifacts
+    runs-on: ubuntu-slim
+    needs:
+      - build-windows
+      - build-linux-native
+      - build-linux-cross
+      - build-linux-native-container
+      - build-linux-cross-container
+      - build-macos
+    concurrency:
+      group: upload-artifacts
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}/artifacts
+          pattern: mkxp-z.**
+
+      - name: Prepare files
+        run: |
+          cd ${{ runner.temp }}/artifacts
+          for artifact in *
+          do
+            pushd "$artifact"
+            GLOBIGNORE='.:..' zip -r9 "../$artifact.zip" *
+            popd
+            rm -r "$artifact"
+          done
+
+      - name: Upload
+        shell: bash
+        run: |
+          ghcurl () {
+            command="curl --no-progress-meter -f -L -H 'Accept: application/vnd.github+json' -H 'Authorization: Bearer ${{ github.token }}' -H 'GitHub-Api-Version: 2026-03-10' ${@@Q}"
+            echo "$command" >&2
+            eval "$command"
+          }
+          release_id=
+          if [ '${{ github.event_name == 'release' }}' = 'true' ]
+          then
+            # Find the release ID for the current release
+            release_id=$(ghcurl ${{ github.api_url }}/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }} | jq -r '.id')
+            do_upload=true
+          elif [ '${{ github.event_name == 'push' && github.ref_name == 'dev' }}' = 'true' ]
+          then
+            # If there already is a release for the nightly tag, delete it
+            curl_output="$(ghcurl ${{ github.api_url }}/repos/${{ github.repository }}/releases/tags/nightly)" || curl_output=
+            if [ -n "$curl_output" ]
+            then
+              ghcurl -X DELETE ${{ github.api_url }}/repos/${{ github.repository }}/releases/$(echo "$curl_output" | jq -r .id)
+            fi
+            # Tag the current commit as nightly
+            git tag -f nightly
+            git push -f origin tag nightly
+            # Create a new release with the nightly tag
+            release_id=$(ghcurl -X POST ${{ github.api_url }}/repos/${{ github.repository }}/releases -d '{
+              "tag_name": "nightly",
+              "target_commitish": "dev",
+              "name": "Nightly build",
+              "body": "This is the latest development build, built from commit [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}).",
+              "draft": false,
+              "prerelease": true,
+              "generate_release_notes": false
+            }' | jq -r .id)
+            do_upload=true
+          fi
+          if [ -n "$release_id" ]
+          then
+            cd ${{ runner.temp }}/artifacts
+            for artifact in *
+            do
+              ghcurl -X POST -H 'Content-Type: application/octet-stream' https://uploads.github.com/repos/${{ github.repository }}/releases/$release_id/assets?name="$artifact" --data-binary "@$artifact" > /dev/null
+            done
+          fi
