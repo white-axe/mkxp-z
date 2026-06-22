@@ -215,6 +215,25 @@ int main(int argc, char *argv[]) {
       ) != SDL_FALSE ? "1" : "0"
     );
 
+#ifndef WORKDIR_CURRENT
+    char dataDir[512]{};
+#if defined(__linux__)
+    char *tmp{};
+    tmp = getenv("SRCDIR");
+    if (tmp) {
+      std::strncpy(dataDir, tmp, sizeof(dataDir));
+    }
+#endif
+    if (!dataDir[0]) {
+      std::strncpy(dataDir, mkxp_fs::getDefaultGameRoot().c_str(), sizeof(dataDir));
+    }
+    mkxp_fs::setCurrentDirectory(dataDir);
+#endif
+
+    /* now we load the config */
+    Config conf;
+    conf.read(argc, argv);
+
 #ifdef MKXPZ_CHECK_FOR_WAYLAND_SUPPORT
     {
       const char *sdl_videodriver = SDL_GetHint(SDL_HINT_VIDEODRIVER);
@@ -256,19 +275,59 @@ int main(int argc, char *argv[]) {
 
 #ifdef MKXPZ_HAVE_ANGLE
     {
-      char *angle_default_platform = getenv("ANGLE_DEFAULT_PLATFORM");
-      if (angle_default_platform == nullptr || angle_default_platform[0] == 0) {
 #  ifdef MKXPZ_HAVE_ANGLE_METAL
-        setenv("ANGLE_DEFAULT_PLATFORM", "metal", true);
+      static const char *default_backend = "metal";
 #  elif !defined(MKXPZ_HAVE_ANGLE_DIRECT3D9) && !defined(MKXPZ_HAVE_ANGLE_DIRECT3D11)
 #    ifdef MKXPZ_HAVE_ANGLE_VULKAN
-        setenv("ANGLE_DEFAULT_PLATFORM", "vulkan", true);
+      static const char *default_backend = "vulkan";
 #    else
-        setenv("ANGLE_DEFAULT_PLATFORM", "gl", true);
-        mkxp_use_angle = false;
+      static const char *default_backend = "gl";
 #    endif
 #  endif
-      } else if (std::strcmp(angle_default_platform, "gl") == 0) {
+      const char *angle_default_platform = getenv("ANGLE_DEFAULT_PLATFORM");
+      switch (conf.renderer) {
+        default:
+          if (angle_default_platform == nullptr || angle_default_platform[0] == 0) {
+#  ifdef MKXPZ_HAVE_ANGLE_METAL
+            setenv("ANGLE_DEFAULT_PLATFORM", "metal", true);
+#  elif !defined(MKXPZ_HAVE_ANGLE_DIRECT3D9) && !defined(MKXPZ_HAVE_ANGLE_DIRECT3D11)
+#    ifdef MKXPZ_HAVE_ANGLE_VULKAN
+            setenv("ANGLE_DEFAULT_PLATFORM", "vulkan", true);
+#    else
+            setenv("ANGLE_DEFAULT_PLATFORM", "gl", true);
+#    endif
+#  endif
+          }
+          break;
+#ifdef MKXPZ_HAVE_ANGLE_NULL
+        case 1:
+          setenv("ANGLE_DEFAULT_PLATFORM", "null", true);
+          break;
+#endif // MKXPZ_HAVE_ANGLE_NULL
+        case 2:
+          setenv("ANGLE_DEFAULT_PLATFORM", "gl", true);
+          break;
+#ifdef MKXPZ_HAVE_ANGLE_VULKAN
+        case 3:
+          setenv("ANGLE_DEFAULT_PLATFORM", "vulkan", true);
+          break;
+#endif // MKXPZ_HAVE_ANGLE_VULKAN
+#ifdef MKXPZ_HAVE_ANGLE_METAL
+        case 4:
+          setenv("ANGLE_DEFAULT_PLATFORM", "metal", true);
+          break;
+#elif defined(MKXPZ_HAVE_ANGLE_DIRECT3D9) || defined(MKXPZ_HAVE_ANGLE_DIRECT3D11)
+        case 4:
+          unsetenv("ANGLE_DEFAULT_PLATFORM");
+          break;
+#elif defined(MKXPZ_HAVE_ANGLE_VULKAN)
+        case 4:
+          setenv("ANGLE_DEFAULT_PLATFORM", "vulkan", true);
+          break;
+#endif // MKXPZ_HAVE_ANGLE_METAL
+      }
+      angle_default_platform = getenv("ANGLE_DEFAULT_PLATFORM");
+      if (angle_default_platform != nullptr && std::strcmp(angle_default_platform, "gl") == 0) {
         mkxp_use_angle = false;
       }
     }
@@ -289,25 +348,6 @@ int main(int argc, char *argv[]) {
       showInitError("Error allocating SDL user events");
       return 0;
     }
-
-#ifndef WORKDIR_CURRENT
-    char dataDir[512]{};
-#if defined(__linux__)
-    char *tmp{};
-    tmp = getenv("SRCDIR");
-    if (tmp) {
-      std::strncpy(dataDir, tmp, sizeof(dataDir));
-    }
-#endif
-    if (!dataDir[0]) {
-      std::strncpy(dataDir, mkxp_fs::getDefaultGameRoot().c_str(), sizeof(dataDir));
-    }
-    mkxp_fs::setCurrentDirectory(dataDir);
-#endif
-    
-    /* now we load the config */
-    Config conf;
-    conf.read(argc, argv);
 
 #if defined(__WIN32__)
     // Create a debug console in debug mode

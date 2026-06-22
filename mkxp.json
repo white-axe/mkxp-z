@@ -223,21 +223,15 @@
     // ],
 
 
-    // Prefer the use of Metal over OpenGL on macOS.
-    // This defaults to false under Intel machines,
-    // and true under ARM/Apple Silicon ones (which
-    // merely emulate OpenGL anyway)
+    // Choose the graphics backend to use.
+    // 0: Automatically choose
+    // 1: ANGLE null (disables video output)
+    // 2: OpenGL
+    // 3: Vulkan
+    // 4: Direct3D if using Windows, Metal if using macOS, or Vulkan otherwise
+    // (default: 0)
     //
-    // Try changing this if you have graphics problems.
-    // Metal is far better, but ANGLE may not initialize correctly
-    // on some Intel machines.
-    //
-    // On Apple Silicon it's probably better to not touch it.
-    // Emulated OpenGL is buggy, and it will also break things like
-    // the Steam overlay.
-    // (default: true if Apple Silicon, false if Intel)
-    //
-    // "preferMetalRenderer": true,
+    // "renderer": 0,
 
 
     // Work around buggy graphics drivers which don't

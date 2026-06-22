@@ -36,6 +36,7 @@ struct Config {
     
     bool debugMode;
     bool winConsole;
+    int renderer;
     bool displayFPS;
     bool printFPS;
     
