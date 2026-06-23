@@ -56,6 +56,7 @@ bool Bitmap::sandbox_serialize_without_hires(void *&data, mkxp_sandbox::wasm_siz
     }
 
     if (!mkxp_sandbox::sandbox_serialize(p->font == &shState->defaultFont() ? nullptr : p->font, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->pChild, data, max_size)) return false;
 
     return true;
 }
@@ -342,6 +343,7 @@ bool Bitmap::sandbox_deserialize_without_hires(const void *&data, mkxp_sandbox::
     if (p->font == nullptr) {
         p->font = &shState->defaultFont();
     }
+    if (!mkxp_sandbox::sandbox_deserialize(p->pChild, data, max_size)) return false;
 
     return true;
 }

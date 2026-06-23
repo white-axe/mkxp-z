@@ -499,6 +499,22 @@ template <> bool mkxp_sandbox::sandbox_deserialize(Vec2i &value, const void *&da
     return true;
 }
 
+template <> bool mkxp_sandbox::sandbox_serialize(const FloatRect &value, void *&data, wasm_size_t &max_size) {
+    if (!sandbox_serialize(value.x, data, max_size)) return false;
+    if (!sandbox_serialize(value.y, data, max_size)) return false;
+    if (!sandbox_serialize(value.w, data, max_size)) return false;
+    if (!sandbox_serialize(value.h, data, max_size)) return false;
+    return true;
+}
+
+template <> bool mkxp_sandbox::sandbox_deserialize(FloatRect &value, const void *&data, wasm_size_t &max_size) {
+    if (!sandbox_deserialize(value.x, data, max_size)) return false;
+    if (!sandbox_deserialize(value.y, data, max_size)) return false;
+    if (!sandbox_deserialize(value.w, data, max_size)) return false;
+    if (!sandbox_deserialize(value.h, data, max_size)) return false;
+    return true;
+}
+
 template <> bool mkxp_sandbox::sandbox_serialize(const IntRect &value, void *&data, wasm_size_t &max_size) {
     if (!sandbox_serialize((int32_t)value.x, data, max_size)) return false;
     if (!sandbox_serialize((int32_t)value.y, data, max_size)) return false;

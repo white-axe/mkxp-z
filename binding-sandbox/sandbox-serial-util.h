@@ -49,6 +49,7 @@
 #define SANDBOX_TYPENUM_TYPES \
     (Bitmap) \
     (Color) \
+    (ChildPrivate) \
     (Font) \
     (Plane) \
     (Rect) \

@@ -160,6 +160,7 @@ struct WindowVXPrivate
 	Bitmap *windowskin;
 
 	Bitmap *contents;
+	Bitmap *realContents;
 	
 	sigslot::connection windowskinDispCon;
 	sigslot::connection contentsDispCon;
@@ -178,6 +179,7 @@ struct WindowVXPrivate
 
 	/* ox / oy */
 	Vec2i contentsOff;
+	Vec2i realContentsOff;
 
 	int padding;
 	int paddingBottom;
@@ -240,10 +242,12 @@ struct WindowVXPrivate
 	uint8_t cursorAlphaIdx;
 
 	Vec2i sceneOffset;
+	bool contentsVisible;
 
 	WindowVXPrivate(int x, int y, int w, int h)
 	    : windowskin(0),
 	      contents(0),
+	      realContents(0),
 	      cursorRect(&tmp.rect),
 	      active(true),
 	      arrowsVisible(true),
@@ -311,8 +315,43 @@ struct WindowVXPrivate
 
 	void contentsDisposal()
 	{
-		contents = 0;
+		if (contents != realContents)
+		{
+			delete contents;
+		}
+		realContents = contents = 0;
 		contentsDispCon.disconnect();
+	}
+
+	void updateChild(Exception &exception)
+	{
+		if (!contentsOpacity)
+		{
+			contentsOff = realContentsOff;
+			contentsVisible = false;
+			return;
+		}
+		
+		if (contents == realContents || !contents->getChildInfo())
+		{
+			contentsOff = realContentsOff;
+			contentsVisible = true;
+			return;
+		}
+		
+		ChildPublic &shared = *contents->getChildInfo();
+		
+		shared.realOffset = realContentsOff;
+		shared.offset = contentsOff;
+		shared.x = clipRect.x;
+		shared.y = clipRect.y;
+		shared.width = clipRect.w;
+		shared.height = clipRect.h;
+		
+		GUARD(contents->childUpdate(exception));
+		
+		contentsOff = Vec2i(shared.offset.x, shared.offset.y);
+		contentsVisible = shared.isVisible;
 	}
 
 	void invalidateCursorVert()
@@ -557,15 +596,15 @@ struct WindowVXPrivate
 
 		if (!nullOrDisposed(contents) && arrowsVisible)
 		{
-			if (contentsOff.x > 0)
+			if (realContentsOff.x > 0)
 				i += Quad::setTexPosRect(&vert[i*4], scrollArrowSrc.l, arrowPos.l);
-			if (contentsOff.y > 0)
+			if (realContentsOff.y > 0)
 				i += Quad::setTexPosRect(&vert[i*4], scrollArrowSrc.t, arrowPos.t);
 
-			if (padRect.w < (contents->width() - contentsOff.x))
+			if (padRect.w < (realContents->width() - realContentsOff.x))
 				i += Quad::setTexPosRect(&vert[i*4], scrollArrowSrc.r, arrowPos.r);
 
-			if (padRect.h < (contents->height() - contentsOff.y))
+			if (padRect.h < (realContents->height() - realContentsOff.y))
 				i += Quad::setTexPosRect(&vert[i*4], scrollArrowSrc.b, arrowPos.b);
 		}
 
@@ -733,6 +772,12 @@ struct WindowVXPrivate
 			clipRectDirty = false;
 		}
 
+		{
+			// Ignore errors
+			Exception e;
+			updateChild(e);
+		}
+
 		if (ctrlVertDirty)
 		{
 			rebuildCtrlVert();
@@ -766,7 +811,7 @@ struct WindowVXPrivate
 			return;
 
 		bool windowskinValid = !nullOrDisposed(windowskin);
-		bool contentsValid = !nullOrDisposed(contents);
+		bool contentsValid = !nullOrDisposed(contents) && contentsVisible;
 
 		Vec2i trans = geo.pos() + sceneOffset;
 
@@ -821,7 +866,7 @@ struct WindowVXPrivate
 				contTrans.y += cursorRect->y;
 
 				if (rgssVer >= 3)
-					contTrans -= contentsOff;
+					contTrans -= realContentsOff;
 
 				shader.setTranslation(contTrans);
 
@@ -927,14 +972,14 @@ DEF_ATTR_SIMPLE(WindowVX, CursorRect, Rect&,  *p->cursorRect)
 DEF_ATTR_SIMPLE(WindowVX, Tone,       Tone&,  *p->tone)
 
 DEF_ATTR_RD_SIMPLE(WindowVX, Windowskin,      Bitmap*, p->windowskin)
-DEF_ATTR_RD_SIMPLE(WindowVX, Contents,        Bitmap*, p->contents)
+DEF_ATTR_RD_SIMPLE(WindowVX, Contents,        Bitmap*, p->realContents)
 DEF_ATTR_RD_SIMPLE(WindowVX, Active,          bool,    p->active)
 DEF_ATTR_RD_SIMPLE(WindowVX, ArrowsVisible,   bool,    p->arrowsVisible)
 DEF_ATTR_RD_SIMPLE(WindowVX, Pause,           bool,    p->pause)
 DEF_ATTR_RD_SIMPLE(WindowVX, Width,           int,     p->width)
 DEF_ATTR_RD_SIMPLE(WindowVX, Height,          int,     p->height)
-DEF_ATTR_RD_SIMPLE(WindowVX, OX,              int,     p->contentsOff.x)
-DEF_ATTR_RD_SIMPLE(WindowVX, OY,              int,     p->contentsOff.y)
+DEF_ATTR_RD_SIMPLE(WindowVX, OX,              int,     p->realContentsOff.x)
+DEF_ATTR_RD_SIMPLE(WindowVX, OY,              int,     p->realContentsOff.y)
 DEF_ATTR_RD_SIMPLE(WindowVX, Padding,         int,     p->padding)
 DEF_ATTR_RD_SIMPLE(WindowVX, PaddingBottom,   int,     p->paddingBottom)
 DEF_ATTR_RD_SIMPLE(WindowVX, Opacity,         int,     p->opacity)
@@ -967,20 +1012,33 @@ void WindowVX::setContents(Exception &exception, Bitmap *value)
 {
 	GUARD(guardDisposed(exception));
 
-	if (p->contents == value)
+	if (p->realContents == value)
 		return;
 
+	if (p->contents != p->realContents)
+		delete p->contents;
+
 	p->contents = value;
+	p->realContents = value;
 
 	p->contentsDispCon.disconnect();
 
 	if (nullOrDisposed(value))
 	{
-		p->contents = 0;
+		p->realContents = p->contents = 0;
 		return;
 	}
 
 	p->contentsDispCon = value->wasDisposed.connect(&WindowVXPrivate::contentsDisposal, p);
+
+	if (value->isMega())
+	{
+		GUARD(p->contents = value->spawnChild(exception));
+		
+		ChildPublic &shared = *p->contents->getChildInfo();
+		shared.sceneElementType = ChildPublic::WINDOWVX;
+		shared.sceneElement = this;
+	}
 
 	FloatRect rect = p->contents->rect();
 	p->contentsQuad.setTexPosRect(rect, rect);
@@ -1059,10 +1117,10 @@ void WindowVX::setOX(Exception &exception, int value)
 {
 	GUARD(guardDisposed(exception));
 
-	if (p->contentsOff.x == value)
+	if (p->realContentsOff.x == value)
 		return;
 
-	p->contentsOff.x = value;
+	p->realContentsOff.x = value;
 	p->ctrlVertDirty = true;
 }
 
@@ -1070,10 +1128,10 @@ void WindowVX::setOY(Exception &exception, int value)
 {
 	GUARD(guardDisposed(exception));
 
-	if (p->contentsOff.y == value)
+	if (p->realContentsOff.y == value)
 		return;
 
-	p->contentsOff.y = value;
+	p->realContentsOff.y = value;
 	p->ctrlVertDirty = true;
 }
 
@@ -1154,6 +1212,16 @@ void WindowVX::initDynAttribs()
 		p->tone = new Tone;
 		p->refreshToneCon();
 	}
+}
+
+const IntRect *WindowVX::sceneRect() const noexcept
+{
+	return &scene->getGeometry().rect;
+}
+
+const Vec2i *WindowVX::sceneOrig() const noexcept
+{
+	return &scene->getGeometry().orig;
 }
 
 void WindowVX::draw(Exception &exception)
