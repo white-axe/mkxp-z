@@ -73,7 +73,7 @@ public:
 	                                   const Vec4& /* flash */,
 	                                   const Vec4& /* tone */) {}
 
-	const Geometry &getGeometry() const { return geometry; }
+	const Geometry &getGeometry() const noexcept { return geometry; }
 
 	void reinsert(SceneElement &element);
 

@@ -31,6 +31,7 @@ bool WindowVX::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_siz
 	if (!mkxp_sandbox::sandbox_serialize(p->pause, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->geo, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->contentsOff, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->realContentsOff, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize((int32_t)p->padding, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize((int32_t)p->paddingBottom, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->opacity, data, max_size)) return false;
@@ -41,11 +42,13 @@ bool WindowVX::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_siz
 	if (!mkxp_sandbox::sandbox_serialize(p->pauseQuadIdx, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->cursorAlphaIdx, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->sceneOffset, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->contentsVisible, data, max_size)) return false;
 
 	if (!sandbox_serialize_viewport_element(data, max_size)) return false;
 
 	if (!mkxp_sandbox::sandbox_serialize(p->windowskin, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->contents, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->realContents, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->cursorRect == &p->tmp.rect ? nullptr : p->cursorRect, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->tone == &p->tmp.tone ? nullptr : p->tone, data, max_size)) return false;
 
@@ -82,10 +85,11 @@ bool WindowVX::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t 
 		p->width = p->geo.w;
 		p->height = p->geo.h;
 	}
+	if (!mkxp_sandbox::sandbox_deserialize(p->contentsOff, data, max_size)) return false;
 	{
-		Vec2i value = p->contentsOff;
-		if (!mkxp_sandbox::sandbox_deserialize(p->contentsOff, data, max_size)) return false;
-		if (p->contentsOff != value) {
+		Vec2i value = p->realContentsOff;
+		if (!mkxp_sandbox::sandbox_deserialize(p->realContentsOff, data, max_size)) return false;
+		if (p->realContentsOff != value) {
 			p->ctrlVertDirty = true;
 		}
 	}
@@ -138,11 +142,13 @@ bool WindowVX::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t 
 	if (!mkxp_sandbox::sandbox_deserialize(p->cursorAlphaIdx, data, max_size)) return false;
 	p->cursorAlphaIdx %= cursorAlphaN;
 	if (!mkxp_sandbox::sandbox_deserialize(p->sceneOffset, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->contentsVisible, data, max_size)) return false;
 
 	if (!sandbox_deserialize_viewport_element(data, max_size)) return false;
 
 	if (!mkxp_sandbox::sandbox_deserialize(p->windowskin, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->contents, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->realContents, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->cursorRect, data, max_size)) return false;
 	if (p->cursorRect == nullptr) {
 		p->cursorRect = &p->tmp.rect;

@@ -49,6 +49,7 @@ global_sources += custom_target(
         'sandbox-serial-audio.h',
         'sandbox-serial-audiostream.h',
         'sandbox-serial-bitmap.h',
+        'sandbox-serial-child-private.h',
         'sandbox-serial-core.h',
         'sandbox-serial-etc.h',
         'sandbox-serial-font.h',

@@ -62,6 +62,9 @@ public:
 
 	void initDynAttribs();
 
+	const IntRect *sceneRect() const noexcept;
+	const Vec2i *sceneOrig() const noexcept;
+
 	void setZ(Exception &exception, int value);
 	void setVisible(Exception &exception, bool value);
 

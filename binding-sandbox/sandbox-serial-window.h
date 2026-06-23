@@ -33,9 +33,11 @@ bool Window::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
 	if (!mkxp_sandbox::sandbox_serialize(p->position, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->size, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->contentsOffset, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->realContentsOffset, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->opacity, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->backOpacity, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->contentsOpacity, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->contentsVisible, data, max_size)) return false;
 
 	if (!p->controlsElement.sandbox_serialize_viewport_element(data, max_size)) return false;
 
@@ -47,6 +49,7 @@ bool Window::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
 
 	if (!mkxp_sandbox::sandbox_serialize(p->windowskin, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->contents, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_serialize(p->realContents, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_serialize(p->cursorRect == &p->tmp.rect ? nullptr : p->cursorRect, data, max_size)) return false;
 
 	return true;
@@ -85,6 +88,7 @@ bool Window::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
 			p->controlsVertDirty = true;
 		}
 	}
+	if (!mkxp_sandbox::sandbox_deserialize(p->realContentsOffset, data, max_size)) return false;
 	{
 		bool value = p->opacity;
 		if (!mkxp_sandbox::sandbox_deserialize(p->opacity, data, max_size)) return false;
@@ -106,6 +110,7 @@ bool Window::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
 			p->contentsQuad.setColor(Vec4(1, 1, 1, p->contentsOpacity.norm));
 		}
 	}
+	if (!mkxp_sandbox::sandbox_deserialize(p->contentsVisible, data, max_size)) return false;
 
 	if (!p->controlsElement.sandbox_deserialize_viewport_element(data, max_size)) return false;
 
@@ -120,6 +125,7 @@ bool Window::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
 
 	if (!mkxp_sandbox::sandbox_deserialize(p->windowskin, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->contents, data, max_size)) return false;
+	if (!mkxp_sandbox::sandbox_deserialize(p->realContents, data, max_size)) return false;
 	if (!mkxp_sandbox::sandbox_deserialize(p->cursorRect, data, max_size)) return false;
 	if (p->cursorRect == nullptr) {
 		p->cursorRect = &p->tmp.rect;

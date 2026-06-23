@@ -46,12 +46,18 @@ bool Sprite::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size)
     if (!mkxp_sandbox::sandbox_serialize(p->invert, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->sceneGeo, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->isVisible, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize((int32_t)p->realOX, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize((int32_t)p->realOY, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->realZoomX, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->realZoomY, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->srcRect, data, max_size)) return false;
 
     if (!sandbox_serialize_viewport_element(data, max_size)) return false;
 
     if (!mkxp_sandbox::sandbox_serialize(p->bitmap, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->realBitmap, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->pattern, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_serialize(p->srcRect == &p->tmp.rect ? nullptr : p->srcRect, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize(p->realSrcRect == &p->tmp.rect ? nullptr : p->realSrcRect, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->color == &p->tmp.color ? nullptr : p->color, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(p->tone == &p->tmp.tone ? nullptr : p->tone, data, max_size)) return false;
 
@@ -105,24 +111,9 @@ bool Sprite::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
 
     {
         float old_y = p->trans.getPosition().y;
-        float old_oy = p->trans.getOrigin().y;
-        Vec2 old_zoom = p->trans.getScale();
         if (!mkxp_sandbox::sandbox_deserialize(p->trans, data, max_size)) return false;
         if (p->trans.getPosition().y != old_y) {
             p->deserYChanged = true;
-            if (p->wave.active) {
-                p->wave.dirty = true;
-            }
-        }
-        if (p->trans.getOrigin().y != old_oy) {
-            if (p->wave.active) {
-                p->wave.dirty = true;
-            }
-        }
-        if (p->trans.getScale() != old_zoom) {
-            if (p->trans.getScale().y != old_zoom.y) {
-                p->deserBushDepthChanged = true;
-            }
             if (p->wave.active) {
                 p->wave.dirty = true;
             }
@@ -156,14 +147,45 @@ bool Sprite::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
     if (!mkxp_sandbox::sandbox_deserialize(p->invert, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_deserialize(p->sceneGeo, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_deserialize(p->isVisible, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->realOX, data, max_size)) return false;
+    {
+        int32_t value = p->realOY;
+        if (!mkxp_sandbox::sandbox_deserialize((int32_t &)p->realOY, data, max_size)) return false;
+        if ((int32_t)p->realOY != value) {
+            if (p->wave.active) {
+                p->wave.dirty = true;
+            }
+        }
+    }
+    {
+        float value = p->realZoomX;
+        if (!mkxp_sandbox::sandbox_deserialize(p->realZoomX, data, max_size)) return false;
+        if (p->realZoomX != value) {
+            if (p->wave.active) {
+                p->wave.dirty = true;
+            }
+        }
+    }
+    {
+        float value = p->realZoomY;
+        if (!mkxp_sandbox::sandbox_deserialize(p->realZoomY, data, max_size)) return false;
+        if (p->realZoomY != value) {
+            p->deserBushDepthChanged = true;
+            if (p->wave.active) {
+                p->wave.dirty = true;
+            }
+        }
+    }
+    if (!mkxp_sandbox::sandbox_deserialize(p->srcRect, data, max_size)) return false;
 
     if (!sandbox_deserialize_viewport_element(data, max_size)) return false;
 
     if (!mkxp_sandbox::sandbox_deserialize(p->bitmap, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize(p->realBitmap, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_deserialize(p->pattern, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_deserialize(p->srcRect, data, max_size)) return false;
-    if (p->srcRect == nullptr) {
-        p->srcRect = &p->tmp.rect;
+    if (!mkxp_sandbox::sandbox_deserialize(p->realSrcRect, data, max_size)) return false;
+    if (p->realSrcRect == nullptr) {
+        p->realSrcRect = &p->tmp.rect;
     }
     if (!mkxp_sandbox::sandbox_deserialize(p->color, data, max_size)) return false;
     if (p->color == nullptr) {
@@ -186,8 +208,8 @@ void Sprite::sandbox_deserialize_begin()
     p->bitmapDispCon.disconnect();
 
     p->srcRectCon.disconnect();
-    if (p->srcRect != nullptr) {
-        p->deserSavedSrcRect = *p->srcRect;
+    if (p->realSrcRect != nullptr) {
+        p->deserSavedSrcRect = *p->realSrcRect;
     } else {
         p->deserSavedSrcRect.set(0, 0, 0, 0);
     }
@@ -218,9 +240,9 @@ void Sprite::sandbox_deserialize_end()
     }
 
     if (isDisposed()) return;
-    if (p->srcRect != nullptr) {
-        p->srcRectCon = p->srcRect->valueChanged.connect(&SpritePrivate::onSrcRectChange, p);
-        if (*p->srcRect != p->deserSavedSrcRect) {
+    if (p->realSrcRect != nullptr && p->realBitmap == p->bitmap) {
+        p->srcRectCon = p->realSrcRect->valueChanged.connect(&SpritePrivate::onSrcRectChange, p);
+        if (*p->realSrcRect != p->deserSavedSrcRect) {
             p->onSrcRectChange();
         }
     }

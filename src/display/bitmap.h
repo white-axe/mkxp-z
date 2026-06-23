@@ -54,10 +54,119 @@ struct BitmapFrame
 };
 
 struct BitmapPrivate;
+
+struct ChildPublic
+{
+    // The real offset and zoom. Initialized to -1.0f, to determine if it's a Window.
+    Vec2i realOffset;
+    Vec2 realZoom;
+    
+    // The effective offset and zoom, after adjusting for the child's size, position, and shrinkage.
+    Vec2 offset;
+    Vec2 zoom;
+    
+    // The window's dimensions. Used by Windows.
+    int width;
+    int height;
+    
+    // Needed for Sprites, initialized to the parent's dimensions and used by everything.
+    IntRect realSrcRect;
+    IntRect srcRect;
+    
+    enum {
+        NONE,
+        PLANE,
+        SPRITE,
+        WINDOW,
+        WINDOWVX,
+    } sceneElementType;
+    void *sceneElement;
+    
+    // The Sprite or Window's position, for modifying the offset and as the origin for rotations.
+    // Also used for Planes instead of realOffset, due to how zooming interacts with it.
+    // (Planes still output to offset, though)
+    int x;
+    int y;
+    // Should the child wrap around. Only used by Planes.
+    bool wrap;
+    
+    // Will the child be mirrored. Used by Sprites.
+    bool mirrored;
+    
+    // Used by Sprites.
+    float angle;
+    int waveAmp;
+    
+    // If the child won't even be visible, then we can skip all drawing operations for it.
+    bool isVisible;
+    
+    ChildPublic()
+    :
+    width(0),
+    height(0),
+    x(0),
+    y(0),
+    sceneElementType(NONE),
+    sceneElement(nullptr),
+    wrap(false),
+    mirrored(false),
+    angle(0),
+    waveAmp(0),
+    isVisible(true)
+    {
+    	realZoom.x = realZoom.y = -1.0f;
+    	zoom.x = zoom.y = -1.0f;
+    }
+
+    // sceneRect is the viewport, used for determining what's actually visible.
+    const IntRect *sceneRect() const noexcept;
+
+    // sceneOrig is the viewport's offset, and functions similarly to x/y.
+    const Vec2i *sceneOrig() const noexcept;
+};
+
+/* "Child" bitmaps are a hack to support mega surfaces in Windows, Planes, and Sprites.
+ * They determine which part of the parent will be visible, manually shrink it if necessary,
+ * and send back new values for zoom and offsets. */
+struct ChildPrivate
+{
+    Bitmap *self;
+    Bitmap *parent;
+
+    ChildPublic shared;
+
+    sigslot::connection dirtyCon;
+    sigslot::connection disposeCon;
+
+    Vec2i parentPos;
+    IntRect srcRect;
+    IntRect oldSrcRect;
+    bool dirty;
+    Vec2 maxShrink;
+    Vec2 currentShrink;
+    bool mirrored;
+    IntRect oldVR;
+    Vec2i oldOff;
+
+    ChildPrivate();
+    ~ChildPrivate();
+    void init(Bitmap *self, Bitmap *parent);
+    void childDirty();
+    void parentDisposed();
+
+#ifdef MKXPZ_RETRO
+    bool sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max_size) const;
+    bool sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &max_size);
+    void sandbox_deserialize_begin();
+    void sandbox_deserialize_end();
+#endif // MKXPZ_RETRO
+};
+
 // FIXME make this class use proper RGSS classes again
 class Bitmap : public Disposable
 {
 	friend struct BitmapPrivate;
+	friend class Plane;
 	friend struct PlanePrivate;
 	friend class Sprite;
 	friend struct SpritePrivate;
@@ -67,6 +176,7 @@ class Bitmap : public Disposable
 	friend struct WindowPrivate;
 	friend class WindowVX;
 	friend struct WindowVXPrivate;
+	friend struct ChildPrivate;
 
 public:
 	Bitmap(Exception &exception, const char *filename, bool useDiff = true);
@@ -84,6 +194,10 @@ public:
 	void initFromFilename(Exception &exception, const char *filename, bool useDiff = true);
 	void initFromDimensions(Exception &exception, int width = 1, int height = 1, bool isHires = false, bool useDiff = true);
 	void initFromSurface(Exception &exception, SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool forceMega = false, bool useDiff = true);
+
+	Bitmap *spawnChild(Exception &exception);
+	ChildPublic *getChildInfo();
+	void childUpdate(Exception &exception);
 
 	int getWidth(Exception &exception)  const;
 	int getHeight(Exception &exception) const;

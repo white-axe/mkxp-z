@@ -53,7 +53,10 @@ static float fwrap(float value, float range)
 
 struct PlanePrivate
 {
+	Plane *plane;
+
 	Bitmap *bitmap;
+	Bitmap *realBitmap;
 
 	sigslot::connection bitmapDispCon;
 
@@ -62,8 +65,12 @@ struct PlanePrivate
 	Color *color;
 	Tone *tone;
 
-	int ox, oy;
+	float ox, oy;
+	int realOX, realOY;
 	float zoomX, zoomY;
+	float realZoomX, realZoomY;
+	
+	bool isVisible;
 
 	Scene::Geometry sceneGeo;
 
@@ -75,14 +82,19 @@ struct PlanePrivate
 
 	sigslot::connection prepareCon;
 
-	PlanePrivate()
-	    : bitmap(0),
+	PlanePrivate(Plane *plane)
+	    : plane(plane),
+	      bitmap(0),
+	      realBitmap(0),
 	      opacity(255),
 	      blendType(BlendNormal),
 	      color(&tmp.color),
 	      tone(&tmp.tone),
 	      ox(0), oy(0),
+	      realOX(0), realOY(0),
+	      realZoomX(1), realZoomY(1),
 	      zoomX(1), zoomY(1),
+	      isVisible(true),
 	      quadSourceDirty(false)
 	{
 		prepareCon = shState->prepareDraw.connect
@@ -100,7 +112,11 @@ struct PlanePrivate
 
 	void bitmapDisposal()
 	{
-		bitmap = 0;
+        if (bitmap != realBitmap)
+        {
+            delete bitmap;
+        }
+        realBitmap = bitmap = 0;
 		bitmapDispCon.disconnect();
 	}
 
@@ -155,9 +171,70 @@ struct PlanePrivate
 		qArray.commit();
 	}
 
+	void updateChild(Exception &exception)
+	{
+		if (!opacity || !realZoomX || !realZoomY)
+		{
+			isVisible = false;
+		}
+		
+		if (bitmap == realBitmap)
+		{
+			ox = realOX;
+			oy = realOY;
+			zoomX = realZoomX;
+			zoomY = realZoomY;
+			isVisible = true;
+			return;
+		}
+		
+		ChildPublic &shared = *bitmap->getChildInfo();
+		
+		shared.sceneElementType = ChildPublic::PLANE;
+		shared.sceneElement = plane;
+		
+		// Unlike Sprites, ox/oy in Planes is unaffected by zoom. So we treat it as x/y like Sprites instead.
+		shared.x = -realOX;
+		shared.y = -realOY;
+		shared.realZoom = Vec2(realZoomX, realZoomY);
+		
+		shared.width = sceneGeo.rect.w;
+		shared.height = sceneGeo.rect.h;
+		GUARD(bitmap->childUpdate(exception));
+		
+		isVisible = shared.isVisible;
+		
+		if (!isVisible)
+		{
+			return;
+		}
+		
+		if (ox != shared.offset.x || oy != shared.offset.y ||
+		    zoomX != shared.zoom.x || zoomY != shared.zoom.y)
+			quadSourceDirty = true;
+		
+		// Leaving these as floats increases precision when zoomed
+		ox = shared.offset.x;
+		oy = shared.offset.y;
+		
+		zoomX = shared.zoom.x;
+		zoomY = shared.zoom.y;
+		
+		
+	}
+
 	void prepare()
 	{
 		if (nullOrDisposed(bitmap))
+			return;
+		
+		{
+			// Ignore errors
+			Exception e;
+			updateChild(e);
+		}
+		
+		if (!isVisible)
 			return;
 		
 		if (quadSourceDirty)
@@ -176,16 +253,16 @@ static void disposePtr(void *ptr)
 Plane::Plane(Viewport *viewport)
     : ViewportElement(disposePtr, viewport)
 {
-	p = new PlanePrivate();
+	p = new PlanePrivate(this);
 
 	onGeometryChange(scene->getGeometry());
 }
 
-DEF_ATTR_RD_SIMPLE(Plane, Bitmap,    Bitmap*, p->bitmap)
-DEF_ATTR_RD_SIMPLE(Plane, OX,        int,     p->ox)
-DEF_ATTR_RD_SIMPLE(Plane, OY,        int,     p->oy)
-DEF_ATTR_RD_SIMPLE(Plane, ZoomX,     float,   p->zoomX)
-DEF_ATTR_RD_SIMPLE(Plane, ZoomY,     float,   p->zoomY)
+DEF_ATTR_RD_SIMPLE(Plane, Bitmap,    Bitmap*, p->realBitmap)
+DEF_ATTR_RD_SIMPLE(Plane, OX,        int,     p->realOX)
+DEF_ATTR_RD_SIMPLE(Plane, OY,        int,     p->realOY)
+DEF_ATTR_RD_SIMPLE(Plane, ZoomX,     float,   p->realZoomX)
+DEF_ATTR_RD_SIMPLE(Plane, ZoomY,     float,   p->realZoomY)
 DEF_ATTR_RD_SIMPLE(Plane, BlendType, int,     p->blendType)
 
 DEF_ATTR_SIMPLE(Plane, Opacity,   int,     p->opacity)
@@ -201,29 +278,37 @@ void Plane::setBitmap(Exception &exception, Bitmap *value)
 {
 	GUARD(guardDisposed(exception));
 
+	if (p->bitmap != p->realBitmap)
+		delete p->bitmap;
+
 	p->bitmap = value;
+	p->realBitmap = value;
 
 	p->bitmapDispCon.disconnect();
 
 	if (nullOrDisposed(value))
 	{
-		p->bitmap = 0;
+		p->realBitmap = p->bitmap = 0;
 		return;
 	}
 
 	p->bitmapDispCon = value->wasDisposed.connect(&PlanePrivate::bitmapDisposal, p);
 
-	GUARD(value->ensureNonMega(exception));
+	if (value->isMega())
+	{
+		GUARD(p->bitmap = value->spawnChild(exception));
+		p->bitmap->getChildInfo()->wrap = true;
+	}
 }
 
 void Plane::setOX(Exception &exception, int value)
 {
 	GUARD(guardDisposed(exception));
 
-	if (p->ox == value)
+	if (p->realOX == value)
 	        return;
 
-	p->ox = value;
+	p->realOX = value;
 	p->quadSourceDirty = true;
 }
 
@@ -231,10 +316,10 @@ void Plane::setOY(Exception &exception, int value)
 {
 	GUARD(guardDisposed(exception));
 
-	if (p->oy == value)
+	if (p->realOY == value)
 	        return;
 
-	p->oy = value;
+	p->realOY = value;
 	p->quadSourceDirty = true;
 }
 
@@ -242,10 +327,13 @@ void Plane::setZoomX(Exception &exception, float value)
 {
 	GUARD(guardDisposed(exception));
 
-	if (p->zoomX == value)
+	// RGSS hangs if you set this below 0
+	value = std::max(value, 0.0f);
+
+	if (p->realZoomX == value)
 	        return;
 
-	p->zoomX = value;
+	p->realZoomX = value;
 	p->quadSourceDirty = true;
 }
 
@@ -253,10 +341,13 @@ void Plane::setZoomY(Exception &exception, float value)
 {
 	GUARD(guardDisposed(exception));
 
-	if (p->zoomY == value)
+	// RGSS hangs if you set this below 0
+	value = std::max(value, 0.0f);
+
+	if (p->realZoomY == value)
 	        return;
 
-	p->zoomY = value;
+	p->realZoomY = value;
 	p->quadSourceDirty = true;
 }
 
@@ -285,12 +376,22 @@ void Plane::initDynAttribs()
 	p->tone = new Tone;
 }
 
+const IntRect *Plane::sceneRect() const noexcept
+{
+	return &p->sceneGeo.rect;
+}
+
+const Vec2i *Plane::sceneOrig() const noexcept
+{
+	return &p->sceneGeo.orig;
+}
+
 void Plane::draw(Exception &exception)
 {
 	if (nullOrDisposed(p->bitmap))
 		return;
 
-	if (!p->opacity)
+	if (!p->isVisible)
 		return;
 
 	ShaderBase *base;
