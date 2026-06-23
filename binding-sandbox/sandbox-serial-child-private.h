@@ -40,7 +40,7 @@ bool ChildPrivate::sandbox_serialize(void *&data, mkxp_sandbox::wasm_size_t &max
     if (!mkxp_sandbox::sandbox_serialize(shared.wrap, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(shared.mirrored, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(shared.angle, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_serialize(shared.waveAmp, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_serialize((int32_t)shared.waveAmp, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_serialize(shared.isVisible, data, max_size)) return false;
 
     if (!mkxp_sandbox::sandbox_serialize(parentPos, data, max_size)) return false;
@@ -92,7 +92,7 @@ bool ChildPrivate::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_siz
     if (!mkxp_sandbox::sandbox_deserialize(shared.wrap, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_deserialize(shared.mirrored, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_deserialize(shared.angle, data, max_size)) return false;
-    if (!mkxp_sandbox::sandbox_deserialize(shared.waveAmp, data, max_size)) return false;
+    if (!mkxp_sandbox::sandbox_deserialize((int32_t &)shared.waveAmp, data, max_size)) return false;
     if (!mkxp_sandbox::sandbox_deserialize(shared.isVisible, data, max_size)) return false;
 
     if (!mkxp_sandbox::sandbox_deserialize(parentPos, data, max_size)) return false;
