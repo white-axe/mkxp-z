@@ -20,6 +20,10 @@
  */
 
 #include "bitmap.h"
+#include "plane.h"
+#include "sprite.h"
+#include "window.h"
+#include "windowvx.h"
 
 #ifdef MKXPZ_RETRO
 #  include "stb_image_malloc.h"
