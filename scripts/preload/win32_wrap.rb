@@ -15,9 +15,10 @@
 # To tweak behavior, you can set the following Win32API class constants in an
 # earlier preload script (these are usually only helpful for debugging):
 #
-# NATIVE_ON_WINDOWS=false
 # TOLERATE_ERRORS=false
 # LOG_NATIVE=true
+
+unless Win32API.method_defined? :mkxp_native_call
 
 module Scancodes
 	SDL = { :UNKNOWN => 0x00,
@@ -348,7 +349,6 @@ def kappatalize(s)
 end
 
 class Win32API
-	NATIVE_ON_WINDOWS = true unless const_defined?("NATIVE_ON_WINDOWS")
 	TOLERATE_ERRORS = true unless const_defined?("TOLERATE_ERRORS")
 	LOG_NATIVE = false unless const_defined?("LOG_NATIVE")
 
@@ -361,7 +361,15 @@ class Win32API
 		dll = kappatalize(dll.chomp(".dll"))
 		func = kappatalize(func)
 
-		if !System.is_windows? or !NATIVE_ON_WINDOWS
+		@mkxp_native_available = false
+		begin
+			mkxp_native_initialize(@dll, @func, *args)
+			@mkxp_native_available = true
+			return
+		rescue Exception
+		end
+
+		begin
 			if Win32API_Impl.const_defined?(dll)
 				dll_impl = Win32API_Impl.const_get(dll)
 				if dll_impl.const_defined?(func)
@@ -369,16 +377,8 @@ class Win32API
 					return
 				end
 			end
+		rescue Exception
 		end
-
-		@mkxp_native_available = false
-		begin
-			mkxp_native_initialize(@dll, @func, *args)
-			@mkxp_native_available = true
-			return
-		rescue
-		end
-
 	end
 
 	alias_method :mkxp_native_call, :call
@@ -402,4 +402,6 @@ class Win32API
 			raise RuntimeError, "[Win32API] [#{@dll}:#{@func}] #{args.to_s}"
 		end
 	end
+end
+
 end
