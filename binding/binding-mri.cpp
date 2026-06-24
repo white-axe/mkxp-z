@@ -65,8 +65,10 @@ extern "C" {
 #include <SDL_loadso.h>
 #include <SDL_power.h>
 
+#ifndef MKXPZ_BUILD_XCODE
 #include "scripts/preload/win32_wrap.rb.xxd"
 #include "scripts/preload/kgl2_wrap.rb.xxd"
+#endif
 
 extern const char module_rpg1[];
 extern const char module_rpg2[];
