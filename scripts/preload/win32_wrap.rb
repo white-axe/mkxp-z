@@ -15,6 +15,7 @@
 # To tweak behavior, you can set the following Win32API class constants in an
 # earlier preload script (these are usually only helpful for debugging):
 #
+# NATIVE_ON_WINDOWS=false
 # TOLERATE_ERRORS=false
 # LOG_NATIVE=true
 
@@ -349,6 +350,7 @@ def kappatalize(s)
 end
 
 class Win32API
+	NATIVE_ON_WINDOWS = true unless const_defined?("NATIVE_ON_WINDOWS")
 	TOLERATE_ERRORS = true unless const_defined?("TOLERATE_ERRORS")
 	LOG_NATIVE = false unless const_defined?("LOG_NATIVE")
 
@@ -361,6 +363,19 @@ class Win32API
 		dll = kappatalize(dll.chomp(".dll"))
 		func = kappatalize(func)
 
+		begin
+			if !System.is_windows? or !NATIVE_ON_WINDOWS
+				if Win32API_Impl.const_defined?(dll)
+					dll_impl = Win32API_Impl.const_get(dll)
+					if dll_impl.const_defined?(func)
+						@mkxp_wrap_impl = dll_impl.const_get(func).new
+						return
+					end
+				end
+			end
+		rescue Exception
+		end
+
 		@mkxp_native_available = false
 		begin
 			mkxp_native_initialize(@dll, @func, *args)
@@ -369,16 +384,6 @@ class Win32API
 		rescue Exception
 		end
 
-		begin
-			if Win32API_Impl.const_defined?(dll)
-				dll_impl = Win32API_Impl.const_get(dll)
-				if dll_impl.const_defined?(func)
-					@mkxp_wrap_impl = dll_impl.const_get(func).new
-					return
-				end
-			end
-		rescue Exception
-		end
 	end
 
 	alias_method :mkxp_native_call, :call
