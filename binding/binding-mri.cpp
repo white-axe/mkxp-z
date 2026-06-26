@@ -1049,7 +1049,7 @@ static void runRMXPScripts(BacktraceData &btData) {
 #  define LOAD_BUILTIN_SCRIPT(name) do { \
             if (disabledBuiltInScripts.count(#name) == 0 || (strcmp(#name, "win32_wrap") == 0 && disabledBuiltInScripts.size() != 0)) { \
                 std::string script = mkxp_fs::contentsOfAssetAsString("scripts/preload/" #name, "rb");
-                evalString(rb_utf8_str_new(script.c_str(), script.length(), rb_utf8_str_new_cstr(#name ".rb"), &state); \
+                evalString(rb_utf8_str_new(script.c_str(), script.length()), rb_utf8_str_new_cstr(#name ".rb"), &state); \
                 if (state) { \
                     showMsg("Failed to load " #name ".rb"); \
                 } \
