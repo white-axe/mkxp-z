@@ -31,10 +31,6 @@
 #include "sharedstate.h"
 #include "src/util/util.h"
 
-static VALUE module;
-static VALUE submod;
-static VALUE klass;
-
 #if RAPI_FULL > 187
 DEF_TYPE(Input);
 #else
@@ -48,7 +44,7 @@ RB_METHOD(inputInitialize) {
 }
 
 static Input &getInput(VALUE self) {
-    return self == module || self == submod ? shState->input() : *getPrivateDataCheck<Input>(self, InputType);
+    return rb_typeddata_is_kind_of(self, &InputType) ? *getPrivateDataNoRaise<Input>(self) : shState->input();
 }
 
 RB_METHOD(inputDelta) {
@@ -601,8 +597,8 @@ static elementsN(buttonCodes);
 } while (0)
 
 void inputBindingInit() {
-    module = rb_define_module("Input");
-    klass = rb_define_class("InputInstance", rb_cObject);
+    VALUE module = rb_define_module("Input");
+    VALUE klass = rb_define_class("InputInstance", rb_cObject);
 #if RAPI_FULL > 187
     rb_define_alloc_func(klass, classAllocate<&InputType>);
 #else
@@ -635,7 +631,7 @@ void inputBindingInit() {
 
     DEFINE_INPUT_BINDING(raw_key_states, inputRawKeyStates);
 
-    submod = rb_define_module_under(module, "Controller");
+    VALUE submod = rb_define_module_under(module, "Controller");
     DEFINE_CONTROLLER_BINDING(connected?, inputControllerConnected);
     DEFINE_CONTROLLER_BINDING(name, inputControllerName);
     DEFINE_CONTROLLER_BINDING(power_level, inputControllerPowerLevel);
