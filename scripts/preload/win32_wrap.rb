@@ -21,6 +21,10 @@
 
 unless Win32API.method_defined? :mkxp_native_call
 
+$win32Graphics = Graphics.dup
+$win32Input = Input.dup
+$win32System = System.dup
+
 module Scancodes
 	SDL = { :UNKNOWN => 0x00,
 		:A => 0x04, :B => 0x05, :C => 0x06, :D => 0x07,
@@ -178,7 +182,7 @@ end
 
 def get_raw_keystates
 	if $win32KeyStates == nil
-		$win32KeyStates = Input.raw_key_states
+		$win32KeyStates = $win32Input.raw_key_states
 	end
 
 	return $win32KeyStates
@@ -191,11 +195,11 @@ def common_keystate(vkey)
 	pressed = false
 
 	if vkey_name == :LBUTTON
-		pressed = Input.press?(Input::MOUSELEFT)
+		pressed = $win32Input.press?($win32Input::MOUSELEFT)
 	elsif vkey_name == :RBUTTON
-		pressed = Input.press?(Input::MOUSERIGHT)
+		pressed = $win32Input.press?($win32Input::MOUSERIGHT)
 	elsif vkey_name == :MBUTTON
-		pressed = Input.press?(Input::MOUSEMIDDLE)
+		pressed = $win32Input.press?($win32Input::MOUSEMIDDLE)
 	elsif vkey_name == :SHIFT
 		pressed = double_state(states, :LSHIFT, :RSHIFT)
 	elsif vkey_name == :MENU
@@ -259,7 +263,7 @@ module Win32API_Impl
 
 				if @index == 4
 					@index = 0
-					Graphics.fullscreen = !Graphics.fullscreen
+					$win32Graphics.fullscreen = !$win32Graphics.fullscreen
 				end
 			end
 		end
@@ -300,13 +304,13 @@ module Win32API_Impl
 					@cursor_count -= 1
 				end
 
-				Graphics.show_cursor = @cursor_count >= 0
+				$win32Graphics.show_cursor = @cursor_count >= 0
 			end
 		end
 
 		class GetCursorPos
 			def call(args)
-				out = [Input.mouse_x, Input.mouse_y].pack('ll')
+				out = [$win32Input.mouse_x, $win32Input.mouse_y].pack('ll')
 				memcpy_string(args[0], out)
 				return 1
 			end
@@ -317,8 +321,8 @@ module Win32API_Impl
 				return 0 if args[0] != 42
 				rect = [0, 0, 640, 480]
 				begin
-					rect[2] = Graphics.width
-					rect[3] = Graphics.height
+					rect[2] = $win32Graphics.width
+					rect[3] = $win32Graphics.height
 				rescue
 				end
 				memcpy_string(args[1], rect.pack('l4'))
@@ -364,7 +368,7 @@ class Win32API
 		func = kappatalize(func)
 
 		begin
-			if !System.is_windows? or !NATIVE_ON_WINDOWS
+			if !$win32System.is_windows? or !NATIVE_ON_WINDOWS
 				if Win32API_Impl.const_defined?(dll)
 					dll_impl = Win32API_Impl.const_get(dll)
 					if dll_impl.const_defined?(func)
@@ -394,13 +398,13 @@ class Win32API
 
 		if @mkxp_native_available
 			if LOG_NATIVE
-				System.puts("[Win32API] [#{@dll}:#{@func}] #{args.to_s}")
+				$win32System.puts("[Win32API] [#{@dll}:#{@func}] #{args.to_s}")
 			end
 			return mkxp_native_call(*args)
 		end
 
 		if TOLERATE_ERRORS
-			System.puts("[Win32API] [#{@dll}:#{@func}] #{args.to_s}") if !@called
+			$win32System.puts("[Win32API] [#{@dll}:#{@func}] #{args.to_s}") if !@called
 			@called = true
 			return 0
 		else
