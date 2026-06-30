@@ -86,7 +86,7 @@ static std::string resolveRtpPath(
 #endif // _WIN32
 )
 {
-	std::string rtp = rtpRaw;
+	std::string rtp(rtpRaw);
 	for (char &c : rtp) {
 		if (c == '\\') {
 			c = '/';
@@ -106,14 +106,14 @@ static std::string resolveRtpPath(
 #ifdef _WIN32
 		/* Check in the Windows registry */
 		if (hkey != HKEY_LOCAL_MACHINE) {
-			std::string rtpUtf16Le(Encoding::convertStringToUtf16Le(rtp, "UTF-8"));
-			rtpUtf16Le.push_back(0);
+			std::string rtpRawUtf16Le(Encoding::convertStringToUtf16Le(rtpRaw, "UTF-8"));
+			rtpRawUtf16Le.push_back(0);
 			std::vector<char> buffer;
 			DWORD size;
 			LSTATUS error = RegGetValueW(
 				hkey,
 				nullptr,
-				(const wchar_t *)rtpUtf16Le.data(),
+				(const wchar_t *)rtpRawUtf16Le.data(),
 				RRF_RT_REG_SZ,
 				nullptr,
 				nullptr,
@@ -127,7 +127,7 @@ static std::string resolveRtpPath(
 					error = RegGetValueW(
 						hkey,
 						nullptr,
-						(const wchar_t *)rtpUtf16Le.data(),
+						(const wchar_t *)rtpRawUtf16Le.data(),
 						RRF_RT_REG_SZ,
 						nullptr,
 						buffer.data(),
