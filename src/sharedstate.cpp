@@ -236,7 +236,7 @@ struct SharedStatePrivate
 		fileSystem.addPath(".");
 
 		{
-			char *prefDir = SDL_GetPrefPath("mkxp-z", "mkxp-z");
+			char *prefDir = SDL_GetPrefPath(nullptr, "mkxp-z");
 			fs::path rtpDir;
 			if (prefDir != nullptr) {
 				rtpDir = std::string(prefDir) + "RTP";
