@@ -98,45 +98,47 @@ static std::string resolveRtpPath(
 		}
 
 		/* Search for the RTP in the pref path */
-		if (fs::exists(rtpDir / rtp)) {
+		if (!rtpDir.empty() && fs::exists(rtpDir / rtp)) {
 			return rtpDir / rtp;
 		}
 
 #ifdef _WIN32
 		/* Check in the Windows registry */
-		std::vector<char> buffer;
-		DWORD size;
-		LSTATUS error = RegGetValueA(
-			hkey,
-			nullptr,
-			rtp.c_str(),
-			RRF_RT_REG_SZ,
-			nullptr,
-			nullptr,
-			&size
-		);
-		if (error != ERROR_SUCCESS) {
-			buffer.clear();
-		} else {
-			do {
-				buffer.resize(size);
-				error = RegGetValueA(
-					hkey,
-					nullptr,
-					rtp.c_str(),
-					RRF_RT_REG_SZ,
-					nullptr,
-					buffer.data(),
-					&size
-				);
-			} while (error == ERROR_MORE_DATA);
+		if (hkey != HKEY_LOCAL_MACHINE) {
+			std::vector<char> buffer;
+			DWORD size;
+			LSTATUS error = RegGetValueA(
+				hkey,
+				nullptr,
+				rtp.c_str(),
+				RRF_RT_REG_SZ,
+				nullptr,
+				nullptr,
+				&size
+			);
 			if (error != ERROR_SUCCESS) {
 				buffer.clear();
+			} else {
+				do {
+					buffer.resize(size);
+					error = RegGetValueA(
+						hkey,
+						nullptr,
+						rtp.c_str(),
+						RRF_RT_REG_SZ,
+						nullptr,
+						buffer.data(),
+						&size
+					);
+				} while (error == ERROR_MORE_DATA);
+				if (error != ERROR_SUCCESS) {
+					buffer.clear();
+				}
 			}
-		}
-		if (!buffer.empty()) {
-			buffer.push_back(0);
-			return buffer.data();
+			if (!buffer.empty()) {
+				buffer.push_back(0);
+				return buffer.data();
+			}
 		}
 #endif // _WIN32
 
