@@ -113,7 +113,7 @@ static std::string resolveRtpPath(
 			LSTATUS error = RegGetValueW(
 				hkey,
 				nullptr,
-				(wchar_t *)rtpUtf16Le.data(),
+				(const wchar_t *)rtpUtf16Le.data(),
 				RRF_RT_REG_SZ,
 				nullptr,
 				nullptr,
@@ -127,7 +127,7 @@ static std::string resolveRtpPath(
 					error = RegGetValueW(
 						hkey,
 						nullptr,
-						(wchar_t *)rtpUtf16Le.data(),
+						(const wchar_t *)rtpUtf16Le.data(),
 						RRF_RT_REG_SZ,
 						nullptr,
 						buffer.data(),
