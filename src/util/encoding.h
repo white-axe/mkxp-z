@@ -61,8 +61,8 @@ static std::string convertString(const std::string &str, const char *charset) {
     return buf;
 }
 
-static std::string convertStringToUtf16Le(const std::string &str, const char *charset) {
-    iconv_t cd = iconv_open("UTF-16LE", charset);
+static std::string convertStringToUtf16(const std::string &str, const char *charset) {
+    iconv_t cd = iconv_open("UTF-16", charset);
     
     size_t inLen = str.size();
     size_t outLen = inLen * 4;

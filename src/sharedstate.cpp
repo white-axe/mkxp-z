@@ -106,14 +106,14 @@ static std::string resolveRtpPath(
 #ifdef _WIN32
 		/* Check in the Windows registry */
 		if (hkey != HKEY_LOCAL_MACHINE) {
-			std::string rtpRawUtf16Le(Encoding::convertStringToUtf16Le(rtpRaw, "UTF-8"));
-			rtpRawUtf16Le.push_back(0);
+			std::string rtpRawUtf16(Encoding::convertStringToUtf16(rtpRaw, "UTF-8"));
+			rtpRawUtf16.push_back(0);
 			std::vector<char> buffer;
 			DWORD size;
 			LSTATUS error = RegGetValueW(
 				hkey,
 				nullptr,
-				(const wchar_t *)rtpRawUtf16Le.data(),
+				(LPCWSTR)rtpRawUtf16.data(),
 				RRF_RT_REG_SZ,
 				nullptr,
 				nullptr,
@@ -127,7 +127,7 @@ static std::string resolveRtpPath(
 					error = RegGetValueW(
 						hkey,
 						nullptr,
-						(const wchar_t *)rtpRawUtf16Le.data(),
+						(LPCWSTR)rtpRawUtf16.data(),
 						RRF_RT_REG_SZ,
 						nullptr,
 						buffer.data(),
@@ -141,7 +141,7 @@ static std::string resolveRtpPath(
 			if (!buffer.empty()) {
 				buffer.pop_back();
 				buffer.pop_back();
-				return Encoding::convertString(std::string(std::make_move_iterator(buffer.begin()), std::make_move_iterator(buffer.end())), "UTF-16LE");
+				return Encoding::convertString(std::string(std::make_move_iterator(buffer.begin()), std::make_move_iterator(buffer.end())), "UTF-16");
 			}
 		}
 #endif // _WIN32
