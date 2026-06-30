@@ -36,6 +36,7 @@
 #include "quad.h"
 #include "binding.h"
 #include "exception.h"
+#include "encoding.h"
 #include "sharedmidistate.h"
 
 #include <unistd.h>
@@ -105,12 +106,14 @@ static std::string resolveRtpPath(
 #ifdef _WIN32
 		/* Check in the Windows registry */
 		if (hkey != HKEY_LOCAL_MACHINE) {
+			std::string rtpUtf16Le(Encoding::convertStringToUtf16Le(rtp, "UTF-8"));
+			rtpUtf16Le.push_back(0);
 			std::vector<char> buffer;
 			DWORD size;
-			LSTATUS error = RegGetValueA(
+			LSTATUS error = RegGetValueW(
 				hkey,
 				nullptr,
-				rtp.c_str(),
+				(wchar_t *)rtpUtf16Le.data(),
 				RRF_RT_REG_SZ,
 				nullptr,
 				nullptr,
@@ -121,10 +124,10 @@ static std::string resolveRtpPath(
 			} else {
 				do {
 					buffer.resize(size);
-					error = RegGetValueA(
+					error = RegGetValueW(
 						hkey,
 						nullptr,
-						rtp.c_str(),
+						(wchar_t *)rtpUtf16Le.data(),
 						RRF_RT_REG_SZ,
 						nullptr,
 						buffer.data(),
@@ -136,8 +139,9 @@ static std::string resolveRtpPath(
 				}
 			}
 			if (!buffer.empty()) {
-				buffer.push_back(0);
-				return buffer.data();
+				buffer.pop_back();
+				buffer.pop_back();
+				return Encoding::convertString(std::string(std::make_move_iterator(buffer.begin()), std::make_move_iterator(buffer.end())), "UTF-16LE");
 			}
 		}
 #endif // _WIN32
