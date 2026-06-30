@@ -106,7 +106,7 @@ static std::string resolveRtpPath(
 		/* Check in the Windows registry */
 		std::vector<char> buffer;
 		DWORD size;
-		error = RegGetValueA(
+		LSTATUS error = RegGetValueA(
 			hkey,
 			nullptr,
 			rtp.c_str(),
@@ -136,7 +136,7 @@ static std::string resolveRtpPath(
 		}
 		if (!buffer.empty()) {
 			buffer.push_back(0);
-			rtp = fs::path(buffer.data()) / rtp;
+			return buffer.data();
 		}
 #endif // _WIN32
 
@@ -252,7 +252,7 @@ struct SharedStatePrivate
 				default:
 					assert(!"unreachable");
 			}
-			LSTATUS error = RegOpenKeyExA(
+			RegOpenKeyExA(
 				HKEY_LOCAL_MACHINE,
 				rtpKey,
 				0,
