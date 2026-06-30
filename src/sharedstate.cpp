@@ -43,6 +43,20 @@
 #include <string>
 #include <chrono>
 
+#include <SDL_filesystem.h>
+
+#ifdef MKXPZ_EXP_FS
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#else
+#include "ghc/filesystem.hpp"
+namespace fs = ghc::filesystem;
+#endif
+
+#ifdef _WIN32
+#  include <winreg.h>
+#endif // _WIN32
+
 SharedState *SharedState::instance = 0;
 int SharedState::rgssVersion = 0;
 static GlobalIBO *_globalIBO = 0;
@@ -58,6 +72,80 @@ static const char *gameArchExt()
 
 	assert(!"unreachable");
 	return 0;
+}
+
+static std::string resolveRtpPath(
+	const std::string &rtpRaw,
+	bool allowCurrentDir,
+	const fs::path &rtpDir,
+#ifdef _WIN32
+	HKEY hkey
+#else
+	const void *_unused
+#endif // _WIN32
+)
+{
+	std::string rtp = rtpRaw;
+	for (char &c : rtp) {
+		if (c == '\\') {
+			c = '/';
+		}
+	}
+
+	if (fs::path(rtp).is_relative()) {
+		if (allowCurrentDir && fs::exists(rtp)) {
+			return rtp;
+		}
+
+		/* Search for the RTP in the pref path */
+		if (fs::exists(rtpDir / rtp)) {
+			return rtpDir / rtp;
+		}
+
+#ifdef _WIN32
+		/* Check in the Windows registry */
+		std::vector<char> buffer;
+		DWORD size;
+		error = RegGetValueA(
+			hkey,
+			nullptr,
+			rtp.c_str(),
+			RRF_RT_REG_SZ,
+			nullptr,
+			nullptr,
+			&size
+		);
+		if (error != ERROR_SUCCESS) {
+			buffer.clear();
+		} else {
+			do {
+				buffer.resize(size);
+				error = RegGetValueA(
+					hkey,
+					nullptr,
+					rtp.c_str(),
+					RRF_RT_REG_SZ,
+					nullptr,
+					buffer.data(),
+					&size
+				);
+			} while (error == ERROR_MORE_DATA);
+			if (error != ERROR_SUCCESS) {
+				buffer.clear();
+			}
+		}
+		if (!buffer.empty()) {
+			buffer.push_back(0);
+			rtp = fs::path(buffer.data()) / rtp;
+		}
+#endif // _WIN32
+
+		if (!allowCurrentDir) {
+			throw Exception(Exception::PHYSFSError, "Failed to resolve %s RTP", rtp.c_str());
+		}
+	}
+
+	return rtp;
 }
 
 struct SharedStatePrivate
@@ -141,8 +229,58 @@ struct SharedStatePrivate
 
 		fileSystem.addPath(".");
 
-		for (size_t i = 0; i < config.rtps.size(); ++i)
-			fileSystem.addPath(config.rtps[i].c_str());
+		{
+			char *prefDir = SDL_GetPrefPath("mkxp-z", "mkxp-z");
+			fs::path rtpDir;
+			if (prefDir != nullptr) {
+				rtpDir = std::string(prefDir) + "RTP";
+				fs::create_directory(rtpDir);
+			}
+#ifdef _WIN32
+			HKEY hkey = HKEY_LOCAL_MACHINE;
+			const char *rtpKey;
+			switch (rgssVer) {
+				case 1:
+					rtpKey = "Software\\Enterbrain\\RGSS\\RTP";
+					break;
+				case 2:
+					rtpKey = "Software\\Enterbrain\\RGSS2\\RTP";
+					break;
+				case 3:
+					rtpKey = "Software\\Enterbrain\\RGSS3\\RTP";
+					break;
+				default:
+					assert(!"unreachable");
+			}
+			LSTATUS error = RegOpenKeyExA(
+				HKEY_LOCAL_MACHINE,
+				rtpKey,
+				0,
+				KEY_WOW64_32KEY,
+				&hkey
+			);
+#else
+			const void *hkey = nullptr;
+#endif // _WIN32
+			for (const std::string &rtpRaw : config.rtps) {
+				fileSystem.addPath(resolveRtpPath(rtpRaw, true, rtpDir, hkey).c_str());
+			}
+			for (const std::string &rtpRaw : config.iniRtps) {
+				try {
+					fileSystem.addPath(resolveRtpPath(rtpRaw, false, rtpDir, hkey).c_str());
+				} catch (const Exception &e) {
+					Debug() << "Error mounting RTP" << rtpRaw << ":" << e.msg;
+				}
+			}
+#ifdef _WIN32
+			if (hkey != HKEY_LOCAL_MACHINE) {
+				RegCloseKey(hkey);
+			}
+#endif // _WIN32
+			if (prefDir != nullptr) {
+				SDL_free(prefDir);
+			}
+		}
 
 		if (config.pathCache)
 			fileSystem.createPathCache();
