@@ -914,10 +914,10 @@ void Window::setOX(Exception &exception, int value)
 {
 	GUARD(guardDisposed(exception));
 
-	if (p->contentsOffset.x == value)
+	if (p->realContentsOffset.x == value)
 		return;
 
-	p->contentsOffset.x = value;
+	p->realContentsOffset.x = value;
 	p->controlsVertDirty = true;
 }
 
@@ -925,10 +925,10 @@ void Window::setOY(Exception &exception, int value)
 {
 	GUARD(guardDisposed(exception));
 
-	if (p->contentsOffset.y == value)
+	if (p->realContentsOffset.y == value)
 		return;
 
-	p->contentsOffset.y = value;
+	p->realContentsOffset.y = value;
 	p->controlsVertDirty = true;
 }
 

@@ -81,14 +81,14 @@ bool Window::sandbox_deserialize(const void *&data, mkxp_sandbox::wasm_size_t &m
 			p->baseVertDirty = true;
 		}
 	}
+	if (!mkxp_sandbox::sandbox_deserialize(p->contentsOffset, data, max_size)) return false;
 	{
-		Vec2i value = p->contentsOffset;
-		if (!mkxp_sandbox::sandbox_deserialize(p->contentsOffset, data, max_size)) return false;
-		if (p->contentsOffset != value) {
+		Vec2i value = p->realContentsOffset;
+		if (!mkxp_sandbox::sandbox_deserialize(p->realContentsOffset, data, max_size)) return false;
+		if (p->realContentsOffset != value) {
 			p->controlsVertDirty = true;
 		}
 	}
-	if (!mkxp_sandbox::sandbox_deserialize(p->realContentsOffset, data, max_size)) return false;
 	{
 		bool value = p->opacity;
 		if (!mkxp_sandbox::sandbox_deserialize(p->opacity, data, max_size)) return false;
