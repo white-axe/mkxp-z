@@ -105,7 +105,7 @@ static std::string resolveRtpPath(
 
 #ifdef _WIN32
 		/* Check in the Windows registry */
-		if (hkey != HKEY_LOCAL_MACHINE) {
+		if (hkey != nullptr) {
 			std::string rtpRawUtf16(Encoding::convertStringToUtf16(rtpRaw, "UTF-8"));
 			rtpRawUtf16.push_back(0);
 			std::vector<char> buffer;
@@ -243,7 +243,7 @@ struct SharedStatePrivate
 				fs::create_directory(rtpDir);
 			}
 #ifdef _WIN32
-			HKEY hkey = HKEY_LOCAL_MACHINE;
+			HKEY hkey = nullptr;
 			const char *rtpKey;
 			switch (rgssVer) {
 				case 1:
@@ -279,7 +279,7 @@ struct SharedStatePrivate
 				}
 			}
 #ifdef _WIN32
-			if (hkey != HKEY_LOCAL_MACHINE) {
+			if (hkey != nullptr) {
 				RegCloseKey(hkey);
 			}
 #endif // _WIN32
