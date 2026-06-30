@@ -139,6 +139,7 @@ static std::string resolveRtpPath(
 				}
 			}
 			if (!buffer.empty()) {
+				buffer.resize(size);
 				buffer.pop_back();
 				buffer.pop_back();
 				return Encoding::convertString(std::string(std::make_move_iterator(buffer.begin()), std::make_move_iterator(buffer.end())), "UTF-16");
