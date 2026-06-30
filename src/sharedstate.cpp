@@ -258,7 +258,7 @@ struct SharedStatePrivate
 				HKEY_LOCAL_MACHINE,
 				rtpKey,
 				0,
-				KEY_WOW64_32KEY,
+				KEY_QUERY_VALUE | KEY_WOW64_32KEY,
 				&hkey
 			);
 #else
