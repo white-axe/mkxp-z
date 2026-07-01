@@ -484,7 +484,7 @@ RB_METHOD(mkxpIsReallyWindowsHost) {
 
 RB_METHOD(mkxpIsReallyBSDHost) {
     RB_UNUSED_PARAM;
-    return rb_bool_new(mkxp_sys::getRealHostType() == mkxp_sys::WineHostType::BSD);
+    return rb_bool_new(mkxp_sys::getRealHostType() == mkxp_sys::WineHostType::Bsd);
 }
 
 RB_METHOD(mkxpUserLanguage) {

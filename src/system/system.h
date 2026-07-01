@@ -32,7 +32,7 @@ enum WineHostType {
     Windows,
     Linux,
     Mac,
-    BSD,
+    Bsd,
 };
 std::string getSystemLanguage();
 std::string getUserName();

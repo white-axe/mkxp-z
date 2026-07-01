@@ -88,13 +88,13 @@ systemImpl::WineHostType systemImpl::getRealHostType() {
         return WineHostType::Mac;
     if (!strcmp(kernel, "Linux"))
         return WineHostType::Linux;
-    return WineHostType::BSD;
+    return WineHostType::Bsd;
 #elif MKXPZ_PLATFORM == MKXPZ_PLATFORM_MACOS
     return WineHostType::Mac;
 #elif MKXPZ_PLATFORM == MKXPZ_PLATFORM_LINUX
     return WineHostType::Linux;
 #else
-    return WineHostType::BSD;
+    return WineHostType::Bsd;
 #endif
 }
 
