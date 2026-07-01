@@ -191,7 +191,7 @@ jobs:
           - arch_mkxpz: arm64
             clang: true
             cache: true
-          - arch_mkxpz: x86
+          - arch_mkxpz: i686
             clang: true
             cache: false
           - arch_mkxpz: x86_64
