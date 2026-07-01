@@ -652,6 +652,7 @@ jobs:
   build-freebsd:
     name: FreeBSD ${{ matrix.version-major }} ${{ matrix.arch }}
     runs-on: ubuntu-latest
+    container: debian:trixie # The base runner image's version of zstd is currently unable to extract FreeBSD's pkg files
     strategy:
       fail-fast: false
       matrix:
@@ -673,20 +674,21 @@ jobs:
           length: 7
 
       - name: Install dependencies
+        shell: bash
         run: |
-          sudo apt update
-          sudo apt install -y git diffutils ruby bison clang llvm lld ccache make cmake meson
+          apt update
+          apt install -y git diffutils ruby bison clang llvm lld ccache make cmake meson
 
           repo=https://pkg.freebsd.org/FreeBSD:13:amd64/latest
-          sudo apt install -y curl tar zstd
+          apt install -y curl tar jq zstd
           curl -Lo data.pkg "$repo/data.pkg"
           tar -xf data.pkg --zstd
           sysroot_url="$repo/$(jq -r '.packages[] | select(.name == "${{ matrix.arch }}-freebsd-sysroot").repopath' < data)"
           echo "Downloading sysroot from $sysroot_url"
           curl -Lo sysroot.pkg "$sysroot_url"
           tar -xf sysroot.pkg --zstd
-          mv usr/local/freebsd-sysroot/${{ matrix.arch }} ${{ runner.temp }}/sysroot
-          version=$(printf '#include <sys/param.h>\n__FreeBSD_version\n' | clang --sysroot=${{ runner.temp }}/sysroot -E - | tail -n 1)
+          mv usr/local/freebsd-sysroot/${{ matrix.arch }} ~/sysroot
+          version=$(printf '#include <sys/param.h>\n__FreeBSD_version\n' | clang "--sysroot=$(realpath ~/sysroot)" -E - | tail -n 1)
           version_major=$((version / 100000))
           version_minor=$(((version / 1000) % 100))
           target="${{ matrix.cpu }}-unknown-freebsd$version_major.$version_minor"
@@ -713,26 +715,26 @@ jobs:
 
       - name: Configure
         run: |
-          echo "[binaries]" | tee -a ${{ runner.temp }}/cross.ini
-          echo "c = ['ccache', 'clang', '--target=$target', '--sysroot=${{ runner.temp }}/sysroot']" | tee -a ${{ runner.temp }}/cross.ini
-          echo "c_ld = 'lld'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "cpp = ['ccache', 'clang++', '--target=$target', '--sysroot=${{ runner.temp }}/sysroot']" | tee -a ${{ runner.temp }}/cross.ini
-          echo "cpp_ld = 'lld'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "ar = 'llvm-ar'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "ranlib = 'llvm-ranlib'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "strip = 'llvm-strip'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "cmake = 'cmake'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
-          echo "system = 'freebsd'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "cpu_family = '${{ matrix.cpu_family }}'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "cpu = '${{ matrix.cpu }}'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "endian = '${{ matrix.endian }}'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "[properties]" | tee -a ${{ runner.temp }}/cross.ini
-          echo "sys_root = '${{ runner.temp }}/sysroot'" | tee -a ${{ runner.temp }}/cross.ini
-          echo "[cmake]" | tee -a ${{ runner.temp }}/cross.ini
-          echo "CMAKE_EXE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "[binaries]" | tee -a ~/cross.ini
+          echo "c = ['ccache', 'clang', '--target=$target', '--sysroot=$(realpath ~/sysroot)']" | tee -a ~/cross.ini
+          echo "c_ld = 'lld'" | tee -a ~/cross.ini
+          echo "cpp = ['ccache', 'clang++', '--target=$target', '--sysroot=$(realpath ~/sysroot)']" | tee -a ~/cross.ini
+          echo "cpp_ld = 'lld'" | tee -a ~/cross.ini
+          echo "ar = 'llvm-ar'" | tee -a ~/cross.ini
+          echo "ranlib = 'llvm-ranlib'" | tee -a ~/cross.ini
+          echo "strip = 'llvm-strip'" | tee -a ~/cross.ini
+          echo "cmake = 'cmake'" | tee -a ~/cross.ini
+          echo "[host_machine]" | tee -a ~/cross.ini
+          echo "system = 'freebsd'" | tee -a ~/cross.ini
+          echo "cpu_family = '${{ matrix.cpu-family }}'" | tee -a ~/cross.ini
+          echo "cpu = '${{ matrix.cpu }}'" | tee -a ~/cross.ini
+          echo "endian = '${{ matrix.endian }}'" | tee -a ~/cross.ini
+          echo "[properties]" | tee -a ~/cross.ini
+          echo "sys_root = '$(realpath ~/sysroot)'" | tee -a ~/cross.ini
+          echo "[cmake]" | tee -a ~/cross.ini
+          echo "CMAKE_EXE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.ini
           echo '--------------------------------------------------------------------------------'
-          meson setup --prefix "$(realpath .)/build/artifact" --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Dstrip=true -Db_lto=true build
+          meson setup --prefix "$(realpath .)/build/artifact" --cross-file ~/cross.ini --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
