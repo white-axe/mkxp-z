@@ -1,6 +1,5 @@
 # The socket extension attempts to patch /usr/include/netinet6/in6.h when building for Apple platforms under certain circumstances.
 # This file doesn't exist in certain versions of macOS, causing the socket extension to fail to build, so this patch disables the patching of the header file.
-# Even if the header file does exist, patching it will cause the socket extension to fail to build anyways since we don't have permission to write to the header file.
 
 --- a/ext/socket/extconf.rb
 +++ b/ext/socket/extconf.rb
