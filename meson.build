@@ -93,7 +93,7 @@ global_include_dirs += include_directories('src', 'binding')
 
 rpath = meson.get_compiler('cpp').get_linker_id() in ['ld64', 'ld64.lld'] ? '@loader_path' : '$ORIGIN'
 
-exe_name = meson.project_name() + '.' + host_machine.cpu_family()
+exe_name = meson.project_name() + '.' + host_machine.cpu()
 
 if host_system in ['windows', 'cygwin']
     windows_resource_directory = '../' + get_option('windows_resource_directory')
