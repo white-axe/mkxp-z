@@ -113,6 +113,11 @@ ruby = declare_dependency(
                 meson.get_compiler('c').find_library('bcrypt', required: true),
             ]
             : [],
+        host_machine.system() == 'freebsd'
+            ? [
+                meson.get_compiler('c').find_library('procstat', required: true),
+            ]
+            : [],
     ],
     compile_args: [
         '-I' + meson.project_build_root() / 'dist' / 'include',
