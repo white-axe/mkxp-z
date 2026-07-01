@@ -1,0 +1,68 @@
+# Fixes compilation errors when building for FreeBSD.
+
+--- a/missing/crypt.c
++++ b/missing/crypt.c
+@@ -36,6 +36,9 @@ static char sccsid[] = "@(#)crypt.c	8.1 (Berkeley) 6/4/93";
+ 
+ #include "ruby/missing.h"
+ #include "crypt.h"
++#define crypt_data mkxp_crypt_data
++#define crypt mkxp_crypt
++#define crypt_r mkxp_crypt_r
+ #ifdef HAVE_UNISTD_H
+ #include <unistd.h>
+ #endif
+@@ -45,6 +48,9 @@ static char sccsid[] = "@(#)crypt.c	8.1 (Berkeley) 6/4/93";
+ #endif
+ #include <stdio.h>
+ #include <string.h>
++#undef crypt_data
++#undef crypt
++#undef crypt_r
+ #ifndef _PASSWORD_EFMT1
+ #define _PASSWORD_EFMT1 '_'
+ #endif
+--- a/string.c
++++ b/string.c
+@@ -11,6 +11,10 @@
+ 
+ **********************************************************************/
+ 
++#define crypt_data mkxp_crypt_data
++#define crypt mkxp_crypt
++#define crypt_r mkxp_crypt_r
++
+ #include "ruby/internal/config.h"
+ 
+ #include <ctype.h>
+@@ -46,6 +50,10 @@
+ #include "ruby_assert.h"
+ #include "vm_sync.h"
+ 
++#undef crypt_data
++#undef crypt
++#undef crypt_r
++
+ #if defined HAVE_CRYPT_R
+ # if defined HAVE_CRYPT_H
+ #  include <crypt.h>
+--- a/util.c
++++ b/util.c
+@@ -227,7 +227,7 @@ typedef int (cmpfunc_t)(const void*, const void*, void*);
+ # define HAVE_BSD_QSORT_R 1
+ #endif
+ 
+-#if defined HAVE_BSD_QSORT_R
++#if !defined HAVE_GNU_QSORT_R && defined HAVE_BSD_QSORT_R
+ struct bsd_qsort_r_args {
+     cmpfunc_t *cmp;
+     void *arg;
+@@ -248,7 +248,7 @@ ruby_qsort(void* base, const size_t nel, const size_t size, cmpfunc_t *cmp, void
+     args.arg = d;
+     qsort_r(base, nel, size, &args, cmp_bsd_qsort);
+ }
+-#elif defined HAVE_QSORT_S
++#elif !defined HAVE_GNU_QSORT_R && defined HAVE_QSORT_S
+ /* C11 qsort_s has the same arguments as GNU's, but uses
+  * runtime-constraints handler. */
+ void

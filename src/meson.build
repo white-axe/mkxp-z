@@ -10,13 +10,13 @@ foreach dep_name : [
     host_system != 'linux' ? 'alsa' : '',
     'audioio',
     'avahi-client',
-    'epoll-shim',
+    host_system != 'freebsd' ? 'epoll-shim' : '',
     'fftw3f',
     'girepository-2.0',
     'gobject-introspection-1.0',
     'gthread-2.0',
     'gtk+-3.0',
-    'intl',
+    host_system != 'freebsd' ? 'intl' : '',
     not is_nix ? 'jack' : '',
     'libapparmor',
     'libasyncns',
@@ -24,7 +24,7 @@ foreach dep_name : [
     'libcrypt',
     'libdrm',
     'libffado',
-    'libinotify',
+    host_system != 'freebsd' ? 'libinotify' : '',
     'libpcre2-8',
     not is_nix ? 'libpulse' : '',
     'libpulse-simple',
@@ -37,14 +37,14 @@ foreach dep_name : [
     'oboe',
     host_system != 'android' ? 'opensl' : '',
     'opus',
-    'oss',
+    not is_nix ? 'oss' : '',
     'portaudio',
     'roc',
     'sdl3',
     'snapd-glib',
     'snapd-glib-2',
     not is_nix ? 'sndfile' : '',
-    host_system != 'dragonfly' and host_system != 'freebsd' and host_system != 'netbsd' and host_system != 'openbsd' ? 'sndio' : '',
+    'sndio',
     'systemd',
     'vulkan',
     'xscrnsaver',
@@ -103,7 +103,7 @@ if get_option('openssl').disabled() or (get_option('openssl').auto() and require
     require_system_openssl = get_option('openssl')
 endif
 openssl = dependency('openssl', allow_fallback: false, required: require_system_openssl)
-if not openssl.found() and not get_option('openssl_system').enabled()
+if not openssl.found() and not get_option('openssl').disabled() and not get_option('openssl_system').enabled()
     openssl_options = meson_base_options + {
         'asm': 'disabled',
     }
@@ -149,6 +149,14 @@ sdl2 = dependency('sdl2', allow_fallback: false, method: 'pkg-config', required:
 sdl2main = sdl2
 
 if is_nix and (not sdl2.found() or not sdl2main.found())
+    if host_system == 'freebsd'
+        libinotify = dependency('libinotify', allow_fallback: false, required: get_option('libinotify_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+        if not libinotify.found()
+            libinotify_options = meson_base_options
+            libinotify = subproject('libinotify', default_options: libinotify_options).get_variable('libinotify')
+        endif
+    endif
+
     subproject('expat', default_options: meson_base_options)
     subproject('libudev', default_options: meson_base_options)
     subproject('dbus', default_options: meson_base_options)
@@ -387,6 +395,17 @@ else
 endif
 global_dependencies += [sdl2main, sdl2]
 
+if is_nix
+    have_oss = meson.get_compiler('c').has_header_symbol('sys/soundcard.h', 'SOUND_VERSION')
+    if have_oss
+        meson.override_dependency('oss', declare_dependency(version: 'undefined'), static: true)
+    else
+        meson.override_dependency('oss', null_dep, static: true)
+    endif
+else
+    have_oss = false
+endif
+
 if host_system == 'linux'
     require_system_alsa = get_option('alsa_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
     if get_option('alsa').disabled() or (get_option('alsa').auto() and require_system_alsa.enabled())
@@ -420,6 +439,14 @@ if is_nix
     endif
     pulseaudio = dependency('libpulse', allow_fallback: false, required: require_system_pulseaudio)
     if not pulseaudio.found() and not get_option('pulseaudio_system').enabled()
+        if host_system == 'freebsd'
+            gettext = dependency('gettext', allow_fallback: false, required: get_option('gettext_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+            if not gettext.found()
+                gettext_options = meson_base_options
+                gettext = subproject('gettext', default_options: gettext_options).get_variable('gettext')
+            endif
+        endif
+
         libsndfile = dependency('sndfile', allow_fallback: false, required: get_option('libsndfile_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
         if not libsndfile.found() and not require_system_pulseaudio.auto()
             sse2 = false
@@ -476,6 +503,31 @@ if is_nix
     endif
     pipewire = dependency('libpipewire-0.3', allow_fallback: false, required: require_system_pipewire)
     if not pipewire.found() and not get_option('pipewire_system').enabled()
+        if host_system == 'freebsd'
+            gettext = dependency('gettext', allow_fallback: false, required: get_option('gettext_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+            if not gettext.found()
+                gettext_options = meson_base_options
+                gettext = subproject('gettext', default_options: gettext_options).get_variable('gettext')
+            endif
+
+            epoll_shim = dependency('epoll-shim', allow_fallback: false, required: get_option('epoll_shim_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+            if not epoll_shim.found()
+                epoll_shim_options = cmake.subproject_options()
+                epoll_shim_options.add_cmake_defines(cmake_base_options + {
+                    'BUILD_SHARED_LIBS': false,
+                    'ALLOWS_ONESHOT_TIMERS_WITH_TIMEOUT_ZERO_EXITCODE': true,
+                })
+                epoll_shim = cmake.subproject('epoll-shim', options: epoll_shim_options).dependency('epoll-shim')
+                meson.override_dependency('epoll-shim', epoll_shim, static: true)
+            endif
+
+            libinotify = dependency('libinotify', allow_fallback: false, required: get_option('libinotify_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+            if not libinotify.found()
+                libinotify_options = meson_base_options
+                libinotify = subproject('libinotify', default_options: libinotify_options).get_variable('libinotify')
+            endif
+        endif
+
         pipewire_options = meson_base_options + {
             'docs': 'disabled',
             'man': 'disabled',
@@ -506,6 +558,7 @@ if is_nix
     endif
     have_pipewire = pipewire.found()
 else
+    have_oss = false
     have_jack = false
     have_pulseaudio = false
     have_pipewire = false

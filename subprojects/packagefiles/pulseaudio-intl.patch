@@ -1,0 +1,17 @@
+# Makes PulseAudio use the same version of intl that we use.
+
+--- a/meson.build
++++ b/meson.build
+@@ -378,10 +378,10 @@ if cc.has_function('dgettext')
+   if host_machine.system() != 'windows'
+     libintl_dep = []
+   else
+-    libintl_dep = cc.find_library('intl')
++    libintl_dep = dependency('intl')
+   endif
+ else
+-  libintl_dep = cc.find_library('intl')
++  libintl_dep = dependency('intl')
+ endif
+ 
+ # Symbols

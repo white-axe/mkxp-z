@@ -3,9 +3,9 @@
 
 --- a/meson.build
 +++ b/meson.build
-@@ -6,7 +6,7 @@ project(
-   meson_version: '>=0.58',
- )
+@@ -15,7 +15,7 @@ if meson.get_compiler('cpp').has_header('threads.h') and not meson.get_compiler(
+   add_project_arguments('-D__STDC_NO_THREADS__=1', language: 'cpp')
+ endif
  
 -cpp_std = 'cpp_std=c++17'
 +cpp_std = 'cpp_std=gnu++17'

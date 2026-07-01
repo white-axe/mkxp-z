@@ -9,6 +9,7 @@ ibus = declare_dependency(
         dependency('gio-2.0', required: true),
         dependency('glib-2.0', required: true),
         dependency('gobject-2.0', required: true),
+        host_machine.system() == 'freebsd' ? dependency('libinotify', required: true) : [],
     ],
 )
 

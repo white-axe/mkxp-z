@@ -649,6 +649,124 @@ jobs:
           name: mkxp-z.linux.debian.trixie.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/artifact
 
+  build-freebsd:
+    name: FreeBSD ${{ matrix.version-major }} ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            cpu-family: x86_64
+            cpu: x86_64
+            endian: little
+            cache: false
+          - arch: i386
+            cpu-family: x86
+            cpu: i386
+            endian: little
+            cache: false
+    steps:
+      - uses: benjlevesque/short-sha@v2.2
+        id: short-sha
+        with:
+          length: 7
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git diffutils ruby bison clang llvm lld ccache make cmake meson
+
+          repo=https://pkg.freebsd.org/FreeBSD:13:amd64/latest
+          sudo apt install -y curl tar zstd
+          curl -Lo data.pkg "$repo/data.pkg"
+          tar -xf data.pkg --zstd
+          sysroot_url="$repo/$(jq -r '.packages[] | select(.name == "${{ matrix.arch }}-freebsd-sysroot").repopath' < data)"
+          echo "Downloading sysroot from $sysroot_url"
+          curl -Lo sysroot.pkg "$sysroot_url"
+          tar -xf sysroot.pkg --zstd
+          mv usr/local/freebsd-sysroot/${{ matrix.arch }} ${{ runner.temp }}/sysroot
+          version=$(printf '#include <sys/param.h>\n__FreeBSD_version\n' | clang --sysroot=${{ runner.temp }}/sysroot -E - | tail -n 1)
+          version_major=$((version / 100000))
+          version_minor=$(((version / 1000) % 100))
+          target="${{ matrix.cpu }}-unknown-freebsd$version_major.$version_minor"
+          echo "Target: $target"
+          echo "target=$target" >> "$GITHUB_ENV"
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Restore from cache
+        if: ${{ matrix.cache }}
+        uses: actions/cache/restore@v5
+        with:
+          path: ccache
+          key: freebsd-${{ matrix.arch }}-
+          restore-keys: freebsd-${{ matrix.arch }}-
+
+      - name: Set up ccache
+        run: |
+          ccache --set-config=cache_dir="$(pwd)/ccache"
+          ccache --set-config=compiler_check=content
+          ccache --set-config=max_size=1280MiB
+          ccache --zero-stats
+
+      - name: Configure
+        run: |
+          echo "[binaries]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "c = ['ccache', 'clang', '--target=$target', '--sysroot=${{ runner.temp }}/sysroot']" | tee -a ${{ runner.temp }}/cross.ini
+          echo "c_ld = 'lld'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpp = ['ccache', 'clang++', '--target=$target', '--sysroot=${{ runner.temp }}/sysroot']" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpp_ld = 'lld'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "ar = 'llvm-ar'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "ranlib = 'llvm-ranlib'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "strip = 'llvm-strip'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cmake = 'cmake'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "[host_machine]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "system = 'freebsd'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpu_family = '${{ matrix.cpu_family }}'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "cpu = '${{ matrix.cpu }}'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "endian = '${{ matrix.endian }}'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "[properties]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "sys_root = '${{ runner.temp }}/sysroot'" | tee -a ${{ runner.temp }}/cross.ini
+          echo "[cmake]" | tee -a ${{ runner.temp }}/cross.ini
+          echo "CMAKE_EXE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ${{ runner.temp }}/cross.ini
+          echo '--------------------------------------------------------------------------------'
+          meson setup --prefix "$(realpath .)/build/artifact" --cross-file ${{ runner.temp }}/cross.ini --buildtype release -Dstrip=true -Db_lto=true build
+
+      - name: Build
+        id: build
+        run: |
+          exit_code=0
+          CLICOLOR_FORCE=1 ninja -C build -v || exit_code=$?
+          echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
+          date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
+
+      - name: Save to cache
+        if: ${{ matrix.cache }}
+        uses: actions/cache/save@v5
+        with:
+          path: ccache
+          key: freebsd-${{ matrix.arch }}-${{ github.sha }}-${{ steps.build.outputs.time }}
+
+      - name: Show ccache statistics
+        run: |
+          ccache --show-stats --verbose
+
+      - name: Check build status
+        run: |
+          exit ${{ steps.build.outputs.exit-code }}
+
+      - name: Prepare artifact
+        run: |
+          meson install -C build --no-rebuild --tags mkxp-z
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mkxp-z.freebsd.${{ matrix.arch }}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          path: build/artifact
+
   build-macos:
     name: macOS ${{ matrix.arch_mkxpz }}
     runs-on: macos-latest

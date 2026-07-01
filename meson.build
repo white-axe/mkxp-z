@@ -285,6 +285,7 @@ endif
 summary('Extra shaders', have_extra_shaders, bool_yn: true)
 summary('JACK Audio Connection Kit', have_jack, bool_yn: true)
 summary('OpenSSL', have_openssl, bool_yn: true)
+summary('OSS', have_oss, bool_yn: true)
 summary('PipeWire', have_pipewire, bool_yn: true)
 summary('PulseAudio', have_pulseaudio, bool_yn: true)
 summary('License', gplv3_features.length() != 0 ? 'GPL-3.0-or-later' : 'GPL-2.0-or-later')

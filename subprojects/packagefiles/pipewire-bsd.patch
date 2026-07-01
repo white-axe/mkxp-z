@@ -1,0 +1,155 @@
+# Fixes compilation errors when building for FreeBSD.
+
+--- a/spa/include/spa/param/audio/dsd-utils.h
++++ b/spa/include/spa/param/audio/dsd-utils.h
+@@ -44,7 +44,11 @@ spa_format_audio_dsd_parse(const struct spa_pod *format, struct spa_audio_info_d
+ 			SPA_FORMAT_AUDIO_channels,	SPA_POD_OPT_Int(&info->channels),
+ 			SPA_FORMAT_AUDIO_position,	SPA_POD_OPT_Pod(&position));
+ 	if (info->channels > max_position)
++#ifdef ECHRNG
+ 		return -ECHRNG;
++#else
++		return -EINVAL;
++#endif /* ECHRNG */
+ 	if (position == NULL ||
+ 	    spa_pod_copy_array(position, SPA_TYPE_Id, info->position, max_position) != info->channels) {
+ 		SPA_FLAG_SET(info->flags, SPA_AUDIO_FLAG_UNPOSITIONED);
+--- a/spa/include/spa/param/audio/layout-types.h
++++ b/spa/include/spa/param/audio/layout-types.h
+@@ -87,7 +87,11 @@ spa_audio_layout_info_parse_name(struct spa_audio_layout_info *layout, size_t si
+ 		uint32_t i, n_pos;
+ 		if (spa_atou32(name+3, &n_pos, 10)) {
+ 			if (n_pos > max_position)
++#ifdef ECHRNG
+ 				return -ECHRNG;
++#else
++				return -EINVAL;
++#endif /* ECHRNG */
+ 			for (i = 0; i < 0x1000 && i < n_pos; i++)
+ 				layout->position[i] = SPA_AUDIO_CHANNEL_AUX0 + i;
+ 			for (; i < n_pos; i++)
+@@ -99,7 +103,11 @@ spa_audio_layout_info_parse_name(struct spa_audio_layout_info *layout, size_t si
+ 	SPA_FOR_EACH_ELEMENT_VAR(spa_type_audio_layout_info, i) {
+ 		if (spa_streq(name, i->name)) {
+ 			if (i->layout.n_channels > max_position)
++#ifdef ECHRNG
+ 				return -ECHRNG;
++#else
++				return -EINVAL;
++#endif /* ECHRNG */
+ 			*layout = i->layout;
+ 			return i->layout.n_channels;
+ 		}
+--- a/spa/include/spa/param/audio/raw-json.h
++++ b/spa/include/spa/param/audio/raw-json.h
+@@ -88,14 +88,22 @@ spa_audio_info_raw_ext_update(struct spa_audio_info_raw *info, size_t size,
+ 	} else if (spa_streq(key, SPA_KEY_AUDIO_CHANNELS)) {
+ 		if (spa_atou32(val, &v, 0) && (force || info->channels == 0)) {
+ 			if (v > max_position)
++#ifdef ECHRNG
+ 				return -ECHRNG;
++#else
++				return -EINVAL;
++#endif /* ECHRNG */
+ 			info->channels = v;
+ 		}
+ 	} else if (spa_streq(key, SPA_KEY_AUDIO_LAYOUT)) {
+ 		if (force || info->channels == 0) {
+ 			if (spa_audio_parse_layout(val, info->position, max_position, &v) > 0) {
+ 				if (v > max_position)
++#ifdef ECHRNG
+ 					return -ECHRNG;
++#else
++					return -EINVAL;
++#endif /* ECHRNG */
+ 				info->channels = v;
+ 				SPA_FLAG_CLEAR(info->flags, SPA_AUDIO_FLAG_UNPOSITIONED);
+ 			}
+@@ -105,7 +113,11 @@ spa_audio_info_raw_ext_update(struct spa_audio_info_raw *info, size_t size,
+ 			if (spa_audio_parse_position_n(val, strlen(val), info->position,
+ 						max_position, &v) > 0) {
+ 				if (v > max_position)
++#ifdef ECHRNG
+ 					return -ECHRNG;
++#else
++					return -EINVAL;
++#endif /* ECHRNG */
+ 				info->channels = v;
+ 				SPA_FLAG_CLEAR(info->flags, SPA_AUDIO_FLAG_UNPOSITIONED);
+ 			}
+--- a/spa/include/spa/param/audio/raw-utils.h
++++ b/spa/include/spa/param/audio/raw-utils.h
+@@ -46,7 +46,11 @@ spa_format_audio_raw_ext_parse(const struct spa_pod *format, struct spa_audio_in
+ 			SPA_FORMAT_AUDIO_channels,	SPA_POD_OPT_Int(&info->channels),
+ 			SPA_FORMAT_AUDIO_position,	SPA_POD_OPT_Pod(&position));
+ 	if (info->channels > max_position)
++#ifdef __linux__
+ 		return -ECHRNG;
++#else
++		return -EINVAL;
++#endif /* __linux__ */
+ 	if (position == NULL ||
+ 	    spa_pod_copy_array(position, SPA_TYPE_Id, info->position, max_position) != info->channels) {
+ 		SPA_FLAG_SET(info->flags, SPA_AUDIO_FLAG_UNPOSITIONED);
+--- a/src/modules/network-utils.h
++++ b/src/modules/network-utils.h
+@@ -16,6 +16,7 @@
+ 
+ #ifdef __FreeBSD__
+ #define ifr_ifindex ifr_index
++#include <netinet/in.h>
+ #endif
+ 
+ static inline int pw_net_parse_address(const char *address, uint16_t port,
+--- a/src/pipewire/context.c
++++ b/src/pipewire/context.c
+@@ -351,16 +351,22 @@ static int adjust_rlimits(const struct spa_dict *dict)
+ 		[RLIMIT_CPU]        = "cpu",
+ 		[RLIMIT_DATA]       = "data",
+ 		[RLIMIT_FSIZE]      = "fsize",
++#ifdef __linux__
+ 		[RLIMIT_LOCKS]      = "locks",
++#endif
+ 		[RLIMIT_MEMLOCK]    = "memlock",
++#ifdef __linux__
+ 		[RLIMIT_MSGQUEUE]   = "msgqueue",
+ 		[RLIMIT_NICE]       = "nice",
++#endif
+ 		[RLIMIT_NOFILE]     = "nofile",
+ 		[RLIMIT_NPROC]      = "nproc",
+ 		[RLIMIT_RSS]        = "rss",
++#ifdef __linux__
+ 		[RLIMIT_RTPRIO]     = "rtprio",
+ 		[RLIMIT_RTTIME]     = "rttime",
+ 		[RLIMIT_SIGPENDING] = "sigpending",
++#endif
+ 		[RLIMIT_STACK]      = "stack",
+ 	};
+ 	int res;
+--- a/src/pipewire/pipewire.c
++++ b/src/pipewire/pipewire.c
+@@ -310,7 +310,11 @@ struct spa_handle *pw_load_spa_handle(const char *lib,
+ error:
+ 	pw_log_error("load lib: pw_init() was not called");
+ 	pthread_mutex_unlock(&support_lock);
++#ifdef EBADFD
+ 	errno = EBADFD;
++#else
++	errno = EINVAL;
++#endif /* EBADFD */
+ 	return NULL;
+ }
+ 
+--- a/src/pipewire/thread.c
++++ b/src/pipewire/thread.c
+@@ -20,6 +20,10 @@
+ #include <pipewire/private.h>
+ #include <pipewire/thread.h>
+ 
++#ifndef SCHED_RESET_ON_FORK
++#  define SCHED_RESET_ON_FORK 0
++#endif /* SCHED_RESET_ON_FORK */
++
+ #define CHECK(expression,label)						\
+ do {									\
+ 	if ((errno = (expression)) != 0) {				\

@@ -1,0 +1,4 @@
+[wrap-git]
+url = https://github.com/jiixyj/epoll-shim
+revision = v0.0.20240608
+depth = 1

@@ -1,0 +1,13 @@
+# Fixes configure errors when building for FreeBSD.
+
+--- a/meson.build
++++ b/meson.build
+@@ -990,7 +990,7 @@ elif platform_is_emscripten
+     sys_video_driver = ['emscripten']
+     sys_dynamic_api = false
+ else
+-    error('Unsupported platform @0@, please add.'.format(host_machine.system()))
++
+ endif
+ 
+ if sys_dynamic_api

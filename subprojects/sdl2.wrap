@@ -8,7 +8,7 @@ patch_url = https://wrapdb.mesonbuild.com/v2/sdl2_2.28.1-2/get_patch
 patch_hash = 2dd332226ba2a4373c6d4eb29fa915e9d5414cf7bb9fa2e4a5ef3b16a06e2736
 source_fallback_url = https://github.com/mesonbuild/wrapdb/releases/download/sdl2_2.28.1-2/SDL2-2.28.1.tar.gz
 wrapdb_version = 2.28.1-2
-diff_files = sdl2-deps.patch, sdl2-dylib-name.patch, sdl2-remove-mwindows-flag.patch, sdl2-disable-neon-fix-angle.patch, sdl2-disable-neon-in-sdl-stretch.patch, sdl2-sse3.patch, sdl2-static-angle.patch
+diff_files = sdl2-bsd.patch, sdl2-deps.patch, sdl2-dylib-name.patch, sdl2-remove-mwindows-flag.patch, sdl2-disable-neon-fix-angle.patch, sdl2-disable-neon-in-sdl-stretch.patch, sdl2-sane-std.patch, sdl2-sse3.patch, sdl2-static-angle.patch
 
 [provide]
 sdl2 = sdl2_dep
