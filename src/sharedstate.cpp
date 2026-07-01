@@ -120,7 +120,7 @@ static std::string resolveRtpPath(
 				&size
 			);
 			if (error != ERROR_SUCCESS) {
-				buffer.clear();
+				size = 0;
 			} else {
 				do {
 					buffer.resize(size);
@@ -135,10 +135,10 @@ static std::string resolveRtpPath(
 					);
 				} while (error == ERROR_MORE_DATA);
 				if (error != ERROR_SUCCESS) {
-					buffer.clear();
+					size = 0;
 				}
 			}
-			if (!buffer.empty()) {
+			if (size != 0) {
 				buffer.resize(size);
 				buffer.pop_back();
 				buffer.pop_back();
