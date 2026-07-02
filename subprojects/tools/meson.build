@@ -44,7 +44,7 @@ if c_linker_flag != ''
     base_ldflags += c_linker_flag
 endif
 
-# ld64 (the linker used on Apple platforms) emits linker warnings that causes Ruby to fail to configure, let's turn them off
+# ld64 (the linker used on Apple platforms) emits linker warnings that cause Ruby to fail to configure, let's turn them off
 if meson.get_compiler('c').get_linker_id().split('.')[0] == 'ld64'
     base_ldflags += '-Wl,-w'
 endif
