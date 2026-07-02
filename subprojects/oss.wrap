@@ -1,7 +1,0 @@
-[wrap-file]
-source_url = http://www.4front-tech.com/developer/sources/stable/bsd/oss-v4.2-build2019-src-bsd.tar.bz2
-source_fallback_url = https://raw.githubusercontent.com/birdie-github/Open-Sound-System-Mirror/0ca64b608afc80567b3e0b505c4e4ef41fc720bf/oss-v4.2-build2019-src-bsd.tar.bz2
-source_filename = oss.tar.bz2
-source_hash = 3eaa2f66cc5f9cc66843eae9ae4601cf7206d00e7229d1f3144a122adea4e7c9
-directory = oss-v4.2-build2019-src-bsd
-patch_directory = oss
