@@ -1,4 +1,5 @@
 [wrap-git]
+# When updating this dependency, the version also needs to be updated at the top of subprojects/packagefiles/angle/meson.build
 url = https://chromium.googlesource.com/angle/angle
 revision = chromium/7871
 depth = 1

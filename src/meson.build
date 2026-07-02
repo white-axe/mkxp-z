@@ -10,13 +10,13 @@ foreach dep_name : [
     host_system != 'linux' ? 'alsa' : '',
     'audioio',
     'avahi-client',
-    host_system != 'freebsd' ? 'epoll-shim' : '',
+    'epoll-shim',
     'fftw3f',
     'girepository-2.0',
     'gobject-introspection-1.0',
     'gthread-2.0',
     'gtk+-3.0',
-    host_system != 'freebsd' ? 'intl' : '',
+    'intl',
     not is_nix ? 'jack' : '',
     'libapparmor',
     'libasyncns',
@@ -43,7 +43,7 @@ foreach dep_name : [
     'sdl3',
     'snapd-glib',
     'snapd-glib-2',
-    not is_nix ? 'sndfile' : '',
+    'sndfile',
     'sndio',
     'systemd',
     'vulkan',
@@ -439,61 +439,8 @@ if is_nix
     endif
     pulseaudio = dependency('libpulse', allow_fallback: false, required: require_system_pulseaudio)
     if not pulseaudio.found() and not get_option('pulseaudio_system').enabled()
-        if host_system == 'freebsd'
-            gettext = dependency('gettext', allow_fallback: false, required: get_option('gettext_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
-            if not gettext.found()
-                gettext_options = meson_base_options
-                gettext = subproject('gettext', default_options: gettext_options).get_variable('gettext')
-            endif
-        endif
-
-        libsndfile = dependency('sndfile', allow_fallback: false, required: get_option('libsndfile_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
-        if not libsndfile.found() and not require_system_pulseaudio.auto()
-            sse2 = false
-            if host_machine.cpu_family() == 'x86' and get_option('x86_sse2').allowed()
-                sse2 = meson.get_compiler('c').has_argument('-msse2')
-                if not sse2 and get_option('x86_sse2').enabled()
-                    error('SSE2 support required but not supported')
-                endif
-            endif
-            libsndfile_options = cmake.subproject_options()
-            libsndfile_options.add_cmake_defines(cmake_base_options + {
-                'BUILD_SHARED_LIBS': false,
-                'BUILD_PROGRAMS': false,
-                'BUILD_EXAMPLES': false,
-                'BUILD_REGTEST': false,
-                'BUILD_TESTING': false,
-                'ENABLE_CPACK': false,
-                'ENABLE_PACKAGE_CONFIG': false,
-                'INSTALL_PKGCONFIG_MODULE': false,
-                'ENABLE_EXTERNAL_LIBS': false,
-                'ENABLE_MPEG': false,
-                'ENABLE_EXPERIMENTAL': false,
-                'ENABLE_SSE2': sse2,
-            })
-            libsndfile = cmake.subproject('libsndfile', options: libsndfile_options).dependency('sndfile')
-            meson.override_dependency('sndfile', libsndfile, static: true)
-        endif
-
-        if libsndfile.found()
-            pulseaudio_options = meson_base_options + {
-                'daemon': false,
-                'client': true,
-                'doxygen': false,
-                'gcov': false,
-                'man': false,
-                'tests': false,
-                'udev': 'disabled',
-                'x11': 'disabled',
-                'oss-output': 'disabled',
-                'dbus': 'disabled',
-                'glib': 'disabled',
-                'bashcompletiondir': 'no',
-                'zshcompletiondir': 'no',
-            }
-            pulseaudio = subproject('pulseaudio', default_options: pulseaudio_options).get_variable('libpulse_dep')
-            meson.override_dependency('libpulse', pulseaudio, static: true)
-        endif
+        pulseaudio_options = meson_base_options
+        pulseaudio = subproject('pulseaudio', default_options: pulseaudio_options).get_variable('pulseaudio')
     endif
     have_pulseaudio = pulseaudio.found()
 
@@ -503,58 +450,8 @@ if is_nix
     endif
     pipewire = dependency('libpipewire-0.3', allow_fallback: false, required: require_system_pipewire)
     if not pipewire.found() and not get_option('pipewire_system').enabled()
-        if host_system == 'freebsd'
-            gettext = dependency('gettext', allow_fallback: false, required: get_option('gettext_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
-            if not gettext.found()
-                gettext_options = meson_base_options
-                gettext = subproject('gettext', default_options: gettext_options).get_variable('gettext')
-            endif
-
-            epoll_shim = dependency('epoll-shim', allow_fallback: false, required: get_option('epoll_shim_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
-            if not epoll_shim.found()
-                epoll_shim_options = cmake.subproject_options()
-                epoll_shim_options.add_cmake_defines(cmake_base_options + {
-                    'BUILD_SHARED_LIBS': false,
-                    'ALLOWS_ONESHOT_TIMERS_WITH_TIMEOUT_ZERO_EXITCODE': true,
-                })
-                epoll_shim = cmake.subproject('epoll-shim', options: epoll_shim_options).dependency('epoll-shim')
-                meson.override_dependency('epoll-shim', epoll_shim, static: true)
-            endif
-
-            libinotify = dependency('libinotify', allow_fallback: false, required: get_option('libinotify_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
-            if not libinotify.found()
-                libinotify_options = meson_base_options
-                libinotify = subproject('libinotify', default_options: libinotify_options).get_variable('libinotify')
-            endif
-        endif
-
-        pipewire_options = meson_base_options + {
-            'docs': 'disabled',
-            'man': 'disabled',
-            'examples': 'disabled',
-            'tests': 'disabled',
-            'gstreamer': 'disabled',
-            'gstreamer-device-provider': 'disabled',
-            'spa-plugins': 'disabled',
-            'pipewire-jack': 'disabled',
-            'pipewire-v4l2': 'disabled',
-            'ffmpeg': 'disabled',
-            'dbus': 'disabled',
-            'pw-cat': 'disabled',
-            'pw-cat-ffmpeg': 'disabled',
-            'sdl2': 'disabled',
-            'sndfile': 'disabled',
-            'libpulse': 'disabled',
-            'echo-cancel-webrtc': 'disabled',
-            'session-managers': [],
-            'flatpak': 'disabled',
-            'readline': 'disabled',
-            'gsettings': 'disabled',
-            'udev': 'disabled',
-            'x11': 'disabled',
-            'x11-xfixes': 'disabled',
-        }
-        pipewire = subproject('pipewire', default_options: pipewire_options).get_variable('pipewire_dep')
+        pipewire_options = meson_base_options
+        pipewire = subproject('pipewire', default_options: pipewire_options).get_variable('pipewire')
     endif
     have_pipewire = pipewire.found()
 else

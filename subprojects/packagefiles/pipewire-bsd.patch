@@ -1,4 +1,4 @@
-# Fixes compilation errors when building for FreeBSD.
+# Fixes compilation errors when using the header files in FreeBSD builds.
 
 --- a/spa/include/spa/param/audio/dsd-utils.h
 +++ b/spa/include/spa/param/audio/dsd-utils.h
@@ -91,65 +91,3 @@
  	if (position == NULL ||
  	    spa_pod_copy_array(position, SPA_TYPE_Id, info->position, max_position) != info->channels) {
  		SPA_FLAG_SET(info->flags, SPA_AUDIO_FLAG_UNPOSITIONED);
---- a/src/modules/network-utils.h
-+++ b/src/modules/network-utils.h
-@@ -16,6 +16,7 @@
- 
- #ifdef __FreeBSD__
- #define ifr_ifindex ifr_index
-+#include <netinet/in.h>
- #endif
- 
- static inline int pw_net_parse_address(const char *address, uint16_t port,
---- a/src/pipewire/context.c
-+++ b/src/pipewire/context.c
-@@ -351,16 +351,22 @@ static int adjust_rlimits(const struct spa_dict *dict)
- 		[RLIMIT_CPU]        = "cpu",
- 		[RLIMIT_DATA]       = "data",
- 		[RLIMIT_FSIZE]      = "fsize",
-+#ifdef __linux__
- 		[RLIMIT_LOCKS]      = "locks",
-+#endif
- 		[RLIMIT_MEMLOCK]    = "memlock",
-+#ifdef __linux__
- 		[RLIMIT_MSGQUEUE]   = "msgqueue",
- 		[RLIMIT_NICE]       = "nice",
-+#endif
- 		[RLIMIT_NOFILE]     = "nofile",
- 		[RLIMIT_NPROC]      = "nproc",
- 		[RLIMIT_RSS]        = "rss",
-+#ifdef __linux__
- 		[RLIMIT_RTPRIO]     = "rtprio",
- 		[RLIMIT_RTTIME]     = "rttime",
- 		[RLIMIT_SIGPENDING] = "sigpending",
-+#endif
- 		[RLIMIT_STACK]      = "stack",
- 	};
- 	int res;
---- a/src/pipewire/pipewire.c
-+++ b/src/pipewire/pipewire.c
-@@ -310,7 +310,11 @@ struct spa_handle *pw_load_spa_handle(const char *lib,
- error:
- 	pw_log_error("load lib: pw_init() was not called");
- 	pthread_mutex_unlock(&support_lock);
-+#ifdef EBADFD
- 	errno = EBADFD;
-+#else
-+	errno = EINVAL;
-+#endif /* EBADFD */
- 	return NULL;
- }
- 
---- a/src/pipewire/thread.c
-+++ b/src/pipewire/thread.c
-@@ -20,6 +20,10 @@
- #include <pipewire/private.h>
- #include <pipewire/thread.h>
- 
-+#ifndef SCHED_RESET_ON_FORK
-+#  define SCHED_RESET_ON_FORK 0
-+#endif /* SCHED_RESET_ON_FORK */
-+
- #define CHECK(expression,label)						\
- do {									\
- 	if ((errno = (expression)) != 0) {				\

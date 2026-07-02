@@ -1,4 +1,5 @@
 [wrap-file]
+# When updating this dependency, the version also needs to be updated at the top of subprojects/packagefiles/dbus/meson.build
 source_url = https://dbus.freedesktop.org/releases/dbus/dbus-1.16.2.tar.xz
 source_fallback_url = https://mirrors.ocf.berkeley.edu/ubuntu/pool/main/d/dbus/dbus_1.16.2.orig.tar.xz
 source_filename = dbus-1.16.2.tar.xz
