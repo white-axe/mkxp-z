@@ -61,7 +61,6 @@ option('libyaml_system', type: 'feature', value: 'auto', description: 'Use the s
 option('ogg_system', type: 'feature', value: 'auto', description: 'Use the system version of Ogg instead of the vendored version')
 option('openal_system', type: 'feature', value: 'auto', description: 'Use the system version of OpenAL instead of the vendored version')
 option('openssl_system', type: 'feature', value: 'auto', description: 'Use the system version of OpenSSL instead of the vendored version')
-option('oss_system', type: 'feature', value: 'auto', description: 'Use the system version of the Open Sound System library instead of the vendored version')
 option('physfs_system', type: 'feature', value: 'auto', description: 'Use the system version of PhysFS instead of the vendored version')
 option('pipewire_system', type: 'feature', value: 'auto', description: 'Use the system version of the PipeWire client library instead of the vendored version')
 option('pixman_system', type: 'feature', value: 'auto', description: 'Use the system version of Pixman instead of the vendored version')
