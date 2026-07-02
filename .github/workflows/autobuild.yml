@@ -661,6 +661,8 @@ jobs:
             cpu-family: x86_64
             cpu: x86_64
             endian: little
+            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/amd64-freebsd-sysroot-a2025.11.26_1~b5aaff1c3a.pkg
+            sysroot-hash: b5aaff1c3a4ce4195c6d53fcfe018eaf88bb661b7e2cff5e8bb759f03808e279
             cache: false
     steps:
       - uses: benjlevesque/short-sha@v2.2
@@ -674,13 +676,9 @@ jobs:
           apt update
           apt install -y git diffutils ruby bison clang llvm lld ccache make cmake meson
 
-          repo=https://pkg.freebsd.org/FreeBSD:13:amd64/latest
-          apt install -y curl tar jq zstd
-          curl -Lo data.pkg "$repo/data.pkg"
-          tar -xf data.pkg --zstd
-          sysroot_url="$repo/$(jq -r '.packages[] | select(.name == "${{ matrix.arch }}-freebsd-sysroot").repopath' < data)"
-          echo "Downloading sysroot from $sysroot_url"
-          curl -Lo sysroot.pkg "$sysroot_url"
+          apt install -y curl tar zstd
+          curl -Lo sysroot.pkg '${{ matrix.sysroot-url }}'
+          [ "$(sha256sum sysroot.pkg | cut -d ' ' -f 1)" = '${{ matrix.sysroot-hash }}' ]
           tar -xf sysroot.pkg --zstd
           mv usr/local/freebsd-sysroot/${{ matrix.arch }} ~/sysroot
           version=$(printf '#include <sys/param.h>\n__FreeBSD_version\n' | clang "--sysroot=$(realpath ~/sysroot)" -E - | tail -n 1)
