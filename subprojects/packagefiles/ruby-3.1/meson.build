@@ -103,6 +103,7 @@ ruby = declare_dependency(
         ).dependency('ruby-static').partial_dependency(
             sources: true,
         ),
+        host_machine.system() not in ['windows', 'cygwin', 'darwin'] ? meson.get_compiler('c').find_library('rt', required: false) : [],
         host_machine.system() in ['windows', 'cygwin']
             ? [
                 meson.get_compiler('c').find_library('shell32', required: true),
