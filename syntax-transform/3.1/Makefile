@@ -35,6 +35,7 @@ SYNTAX_TRANSFORM_PATCHES := \
 	$(SYNTAX_TRANSFORM_DIR)/0033-nil-true-false-to-s.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0034-command-trailing-comma.patch \
 	$(SYNTAX_TRANSFORM_DIR)/0035-splat-assignment.patch \
+	$(SYNTAX_TRANSFORM_DIR)/0036-brace-after-array-literal-arg.patch \
 
 HAVE_SYNTAX_TRANSFORM ?= 1
 
