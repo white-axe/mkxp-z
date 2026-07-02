@@ -412,11 +412,14 @@ if host_system == 'linux'
         require_system_alsa = get_option('alsa')
     endif
     alsa = dependency('alsa', allow_fallback: false, required: require_system_alsa)
-    if not alsa.found() and not get_option('alsa_system').enabled()
+    if not alsa.found() and not get_option('alsa').disabled() and not get_option('alsa_system').enabled()
         alsa_options = meson_base_options
         alsa = subproject('alsa-lib', default_options: alsa_options).get_variable('alsa_lib')
     endif
     have_alsa = alsa.found()
+    if not have_alsa
+        meson.override_dependency('alsa', null_dep, static: true)
+    endif
 else
     have_alsa = false
 endif
@@ -427,33 +430,42 @@ if is_nix
         require_system_jack = get_option('jack')
     endif
     jack = dependency('jack', allow_fallback: false, required: require_system_jack)
-    if not jack.found() and not get_option('jack_system').enabled()
+    if not jack.found() and not get_option('jack').disabled() and not get_option('jack_system').enabled()
         jack_options = meson_base_options
         jack = subproject('jack1', default_options: jack_options).get_variable('jack1')
     endif
     have_jack = jack.found()
+    if not have_jack
+        meson.override_dependency('jack', null_dep, static: true)
+    endif
 
     require_system_pulseaudio = get_option('pulseaudio_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
     if get_option('pulseaudio').disabled() or (get_option('pulseaudio').auto() and require_system_pulseaudio.enabled())
         require_system_pulseaudio = get_option('pulseaudio')
     endif
     pulseaudio = dependency('libpulse', allow_fallback: false, required: require_system_pulseaudio)
-    if not pulseaudio.found() and not get_option('pulseaudio_system').enabled()
+    if not pulseaudio.found() and not get_option('pulseaudio').disabled() and not get_option('pulseaudio_system').enabled()
         pulseaudio_options = meson_base_options
         pulseaudio = subproject('pulseaudio', default_options: pulseaudio_options).get_variable('pulseaudio')
     endif
     have_pulseaudio = pulseaudio.found()
+    if not have_pulseaudio
+        meson.override_dependency('libpulse', null_dep, static: true)
+    endif
 
     require_system_pipewire = get_option('pipewire_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
     if get_option('pipewire').disabled() or (get_option('pipewire').auto() and require_system_pipewire.enabled())
         require_system_pipewire = get_option('pipewire')
     endif
     pipewire = dependency('libpipewire-0.3', allow_fallback: false, required: require_system_pipewire)
-    if not pipewire.found() and not get_option('pipewire_system').enabled()
+    if not pipewire.found() and not get_option('pipewire').disabled() and not get_option('pipewire_system').enabled()
         pipewire_options = meson_base_options
         pipewire = subproject('pipewire', default_options: pipewire_options).get_variable('pipewire')
     endif
     have_pipewire = pipewire.found()
+    if not have_pipewire
+        meson.override_dependency('libpipewire-0.3', null_dep, static: true)
+    endif
 else
     have_oss = false
     have_jack = false
@@ -574,7 +586,6 @@ if not openal.found()
         endif
     endif
     openal_options = meson_base_options + {
-        'alsa': have_alsa ? 'enabled' : 'disabled',
         'rtkit': 'disabled',
         'sdl2': 'disabled',
         'utils': false,
