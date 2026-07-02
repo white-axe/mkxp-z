@@ -1,6 +1,7 @@
 cmake = import('cmake')
 
 is_nix = host_system not in ['windows', 'cygwin', 'darwin', 'android']
+is_bsd = host_system in ['dragonfly', 'freebsd', 'netbsd', 'openbsd']
 
 default_system_disabled = get_option('default_system').disabled()
 default_system_enabled = get_option('default_system').enabled()
@@ -24,7 +25,7 @@ foreach dep_name : [
     'libcrypt',
     'libdrm',
     'libffado',
-    host_system != 'freebsd' ? 'libinotify' : '',
+    not is_bsd ? 'libinotify' : '',
     'libpcre2-8',
     not is_nix ? 'libpulse' : '',
     'libpulse-simple',
@@ -149,7 +150,7 @@ sdl2 = dependency('sdl2', allow_fallback: false, method: 'pkg-config', required:
 sdl2main = sdl2
 
 if is_nix and (not sdl2.found() or not sdl2main.found())
-    if host_system == 'freebsd'
+    if is_bsd
         libinotify = dependency('libinotify', allow_fallback: false, required: get_option('libinotify_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
         if not libinotify.found()
             libinotify_options = meson_base_options
