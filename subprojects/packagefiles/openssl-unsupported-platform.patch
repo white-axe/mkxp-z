@@ -1,6 +1,23 @@
 # Instead of throwing an error at configure time when building OpenSSL for a platform that OpenSSL is not optimized for,
 # this patch makes it use the linux-x86_64 configuration by default like Node.js's build system does.
 
+--- a/generated-config/archs/linux-x86_64/no-asm/meson.build
++++ b/generated-config/archs/linux-x86_64/no-asm/meson.build
+@@ -961,12 +961,12 @@ libssl_sources = [
+ ]
+ openssl_defines = [
+   'OPENSSL_USE_NODELETE',
+-  'L_ENDIAN',
++  host_machine.endian() == 'big' ? 'B_ENDIAN' : 'L_ENDIAN',
+   'OPENSSL_BUILDING_OPENSSL',
+   'OPENSSL_PIC',
+ ]
+ openssl_cflags = [
+-  '-m64',
++
+ ]
+ openssl_libraries = [
+   'dl',
 --- a/meson.build
 +++ b/meson.build
 @@ -194,7 +194,7 @@ if asm == 'no-asm'

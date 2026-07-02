@@ -671,20 +671,6 @@ jobs:
             sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/amd64-freebsd-sysroot-a2025.11.26_1~b5aaff1c3a.pkg
             sysroot-hash: b5aaff1c3a4ce4195c6d53fcfe018eaf88bb661b7e2cff5e8bb759f03808e279
             cache: false
-          - arch: armv7
-            cpu-family: arm
-            cpu: armv7
-            endian: little
-            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/armv7-freebsd-sysroot-a2025.11.26_1~e8be0507bf.pkg
-            sysroot-hash: e8be0507bfbc422700e3086e8c62f270a4941904548b91d2c83e5821fea3a13f
-            cache: false
-          - arch: i386
-            cpu-family: x86
-            cpu: i386
-            endian: little
-            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/i386-freebsd-sysroot-a2025.11.26_1~3ecb308d3e.pkg
-            sysroot-hash: 3ecb308d3e6dee43ff01d256608603403ea44c96ff56ffb640f4cd1d3cadf048
-            cache: false
           - arch: powerpc
             cpu-family: ppc
             cpu: powerpc
@@ -778,6 +764,7 @@ jobs:
           echo "cpu_family = '${{ matrix.cpu-family }}'" | tee -a ~/cross.ini
           echo "cpu = '${{ matrix.cpu }}'" | tee -a ~/cross.ini
           echo "endian = '${{ matrix.endian }}'" | tee -a ~/cross.ini
+          # TODO: These CMAKE_*_LINKER_FLAGS_INIT options that force CMake to use LLD instead of the default BFD linker can be removed from the cross file once the Meson package updates to 1.11.1 or later (possibly earlier; all I know is that they are not needed in Meson 1.11.1)
           echo "[cmake]" | tee -a ~/cross.ini
           echo "CMAKE_EXE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.ini
           echo "CMAKE_MODULE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.ini
