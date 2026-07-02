@@ -764,12 +764,15 @@ jobs:
           echo "cpu_family = '${{ matrix.cpu-family }}'" | tee -a ~/cross.ini
           echo "cpu = '${{ matrix.cpu }}'" | tee -a ~/cross.ini
           echo "endian = '${{ matrix.endian }}'" | tee -a ~/cross.ini
-          # TODO: These CMAKE_*_LINKER_FLAGS_INIT options that force CMake to use LLD instead of the default BFD linker can be removed from the cross file once the Meson package updates to 1.11.1 or later (possibly earlier; all I know is that they are not needed in Meson 1.11.1)
-          echo "[cmake]" | tee -a ~/cross.ini
-          echo "CMAKE_EXE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.ini
-          echo "CMAKE_MODULE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.ini
-          echo "CMAKE_SHARED_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.ini
-          echo "CMAKE_STATIC_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.ini
+          if dpkg --compare-versions "$(cmake --version | head -n 1 | cut -d ' ' -f 3)" lt 4
+          then
+            # These CMAKE_*_LINKER_FLAGS_INIT options that force CMake to use LLD instead of the default BFD linker will not be needed once CMake updates to version 4.0.0 or later (because CMake will obey the CMAKE_*_LINKER_FLAGS_INIT options that we set inside of src/meson.build starting from CMake 4.0.0)
+            echo "[cmake]" | tee -a ~/cross.ini
+            echo "CMAKE_EXE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.ini
+            echo "CMAKE_MODULE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.ini
+            echo "CMAKE_SHARED_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.ini
+            echo "CMAKE_STATIC_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.ini
+          fi
           echo '--------------------------------------------------------------------------------'
           meson setup --prefix "$(realpath .)/build/artifact" --cross-file ~/cross.ini --buildtype release -Dstrip=true -Db_lto=true build
 
