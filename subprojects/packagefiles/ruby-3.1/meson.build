@@ -119,6 +119,11 @@ ruby = declare_dependency(
                 meson.get_compiler('c').find_library('procstat', required: true),
             ]
             : [],
+        host_machine.system() in ['freebsd', 'netbsd']
+            ? [
+                meson.get_compiler('c').find_library('execinfo', required: true),
+            ]
+            : [],
     ],
     compile_args: [
         '-I' + meson.project_build_root() / 'dist' / 'include',
