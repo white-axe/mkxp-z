@@ -652,7 +652,7 @@ jobs:
   build-freebsd:
     name: FreeBSD ${{ matrix.version-major }} ${{ matrix.arch }}
     runs-on: ubuntu-latest
-    container: debian:trixie # The base runner image's version of zstd is currently unable to extract FreeBSD's pkg files
+    container: debian:latest # The base runner image's version of zstd is currently unable to extract FreeBSD's pkg files
     strategy:
       fail-fast: false
       matrix:
