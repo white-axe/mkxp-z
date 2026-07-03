@@ -398,7 +398,7 @@ endif
 global_dependencies += [sdl2main, sdl2]
 
 if is_nix
-    have_oss = not get_option('oss').disabled() and meson.get_compiler('c').has_header_symbol('sys/soundcard.h', 'SOUND_VERSION')
+    have_oss = meson.get_compiler('c').has_header_symbol('sys/soundcard.h', 'SOUND_VERSION', required: get_option('oss'))
     if have_oss
         meson.override_dependency('oss', declare_dependency(version: 'undefined'), static: true)
     else
