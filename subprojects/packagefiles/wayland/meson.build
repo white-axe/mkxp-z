@@ -1,4 +1,4 @@
-project('wayland', 'c', version: '1.23.1', meson_version: '>=1.2.0')
+project('wayland', 'c', version: '1.23.1', meson_version: '>=1.3.0')
 
 subdir('src')
 

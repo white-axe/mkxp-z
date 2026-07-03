@@ -1,4 +1,4 @@
-project('libx11', 'c', meson_version: '>=1.2.0')
+project('libx11', 'c', meson_version: '>=1.3.0')
 
 libx11 = declare_dependency(
     include_directories: [

@@ -1,4 +1,4 @@
-project('angle-compression-utils', 'cpp', meson_version: '>=1.2.0')
+project('angle-compression-utils', 'cpp', meson_version: '>=1.3.0')
 
 angle_compression_utils_portable = declare_dependency(
     include_directories: [

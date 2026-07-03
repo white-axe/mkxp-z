@@ -1,4 +1,4 @@
-project('xcb-proto', 'c', meson_version: '>=1.2.0')
+project('xcb-proto', 'c', meson_version: '>=1.3.0')
 
 xcb_proto_root = meson.project_source_root()
 

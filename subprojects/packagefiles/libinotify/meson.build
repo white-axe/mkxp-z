@@ -1,4 +1,4 @@
-project('libinotify', 'c', meson_version: '>=1.2.0')
+project('libinotify', 'c', meson_version: '>=1.3.0')
 
 cflags = subproject('tools').get_variable('base_cflags')
 

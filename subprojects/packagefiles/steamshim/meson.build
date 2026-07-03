@@ -1,4 +1,4 @@
-project('steamshim', 'c', 'cpp', meson_version: '>=1.2.0')
+project('steamshim', 'c', 'cpp', meson_version: '>=1.3.0')
 if host_machine.system() == 'darwin'
     add_languages('objcpp', native: false)
 endif

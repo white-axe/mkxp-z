@@ -1,4 +1,4 @@
-project('volk', 'c', meson_version: '>=1.2.0')
+project('volk', 'c', meson_version: '>=1.3.0')
 
 vulkan_headers = subproject('vulkan-headers').get_variable('vulkan_headers')
 xcb = dependency('x11-xcb', required: false).partial_dependency(compile_args: true, includes: true, sources: true)

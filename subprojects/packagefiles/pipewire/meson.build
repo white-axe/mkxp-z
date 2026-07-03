@@ -1,4 +1,4 @@
-project('pipewire', 'c', version: '1.6.5', meson_version: '>=1.2.0')
+project('pipewire', 'c', version: '1.6.5', meson_version: '>=1.3.0')
 apiversion = '0.3'
 
 subdir('src/pipewire')

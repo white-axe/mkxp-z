@@ -1,4 +1,4 @@
-project('ibus', 'c', meson_version: '>=1.2.0')
+project('ibus', 'c', meson_version: '>=1.3.0')
 
 ibus = declare_dependency(
     include_directories: [
