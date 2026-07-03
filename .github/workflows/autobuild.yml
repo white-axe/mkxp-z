@@ -650,7 +650,7 @@ jobs:
           path: build/artifact
 
   build-freebsd:
-    name: FreeBSD ${{ matrix.version-major }} ${{ matrix.arch }}
+    name: FreeBSD ${{ matrix.arch }}
     runs-on: ubuntu-latest
     container: debian:latest # The base runner image's version of zstd is currently unable to extract FreeBSD's pkg files
     strategy:
