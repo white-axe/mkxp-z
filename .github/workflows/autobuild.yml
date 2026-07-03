@@ -757,7 +757,7 @@ jobs:
           echo "cpu_family = '${{ matrix.cpu-family }}'" | tee -a ~/cross.ini
           echo "cpu = '${{ matrix.cpu }}'" | tee -a ~/cross.ini
           echo "endian = '${{ matrix.endian }}'" | tee -a ~/cross.ini
-          if dpkg --compare-versions "$(cmake --version | head -n 1 | cut -d ' ' -f 3)" lt 4
+          if ruby -e "exit(Gem::Version.new('$(cmake --version | head -n 1 | cut -d ' ' -f 3)') < Gem::Version.new('4.0.0'))"
           then
             # These CMAKE_*_LINKER_FLAGS_INIT options that force CMake to use LLD instead of the default BFD linker will not be needed once CMake updates to version 4.0.0 or later (because CMake will obey the CMAKE_*_LINKER_FLAGS_INIT options that we set inside of src/meson.build starting from CMake 4.0.0)
             echo "[cmake]" | tee -a ~/cross.ini
