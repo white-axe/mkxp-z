@@ -13,11 +13,12 @@
  #cmakedefine HAVE_D3D11_H @HAVE_D3D11_H@
 --- a/meson.build
 +++ b/meson.build
-@@ -989,6 +989,12 @@ elif platform_is_emscripten
+@@ -989,6 +989,13 @@ elif platform_is_emscripten
      sys_power = ['emscripten']
      sys_video_driver = ['emscripten']
      sys_dynamic_api = false
 +elif platform_is_bsd
++    sys_joystick = []
 +    usbhid_dep = cc.find_library('usbhid', required: false)
 +    if usbhid_dep.found()
 +        sys_joystick += 'usbhid'
