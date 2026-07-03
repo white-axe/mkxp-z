@@ -1,4 +1,4 @@
-project('tools', 'c', meson_version: '>=1.2.0')
+project('tools', 'c', meson_version: '>=1.3.0')
 
 python = import('python').find_installation(required: true)
 
