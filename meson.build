@@ -10,6 +10,14 @@ host_endian = host_machine.endian()
 
 use_pic = true
 
+is_nix = host_system not in ['windows', 'cygwin', 'darwin', 'android']
+is_bsd = host_system in ['dragonfly', 'freebsd', 'netbsd', 'openbsd']
+
+default_system_disabled = get_option('default_system').disabled()
+default_system_enabled = get_option('default_system').enabled()
+
+null_dep = dependency('', required: false)
+
 compilers = {'cpp': meson.get_compiler('cpp')}
 
 git_hash_file = vcs_tag(
@@ -29,6 +37,7 @@ global_objcpp_args = []
 global_link_args = []
 global_std = ['c_std=c99', 'cpp_std=c++14']
 
+cmake = import('cmake')
 python = subproject('tools').get_variable('python')
 embedtool = subproject('tools').get_variable('embedtool')
 quotetool_args = subproject('tools').get_variable('quotetool_args')
@@ -48,6 +57,7 @@ endif
 if host_system in ['windows', 'cygwin'] and host_machine.cpu_family() == 'x86'
     global_args += '-masm=intel'
 endif
+
 # ====================
 # Ext libs
 # ====================
