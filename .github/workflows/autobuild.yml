@@ -692,13 +692,6 @@ jobs:
             sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/powerpc64le-freebsd-sysroot-a2025.11.26_1~b90bcf67b7.pkg
             sysroot-hash: b90bcf67b79f3cd3242ee21e4287e1ee53ea5e0bd87f80aadfea0b663c6b7652
             cache: false
-          - arch: powerpcspe
-            cpu-family: ppc
-            cpu: powerpcspe
-            endian: big
-            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/powerpcspe-freebsd-sysroot-a2025.11.26_1~52ee4f5f36.pkg
-            sysroot-hash: 52ee4f5f369e5cd550d8973dad93dd8162344cda0d7ee8fbc7c7bd10b7ab3b0a
-            cache: false
           - arch: riscv64
             cpu-family: riscv64
             cpu: riscv64
