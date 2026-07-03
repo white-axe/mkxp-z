@@ -3,9 +3,11 @@ if host_machine.system() == 'darwin'
     add_languages('objcpp', native: false)
 endif
 
-host_machine_is_macos = host_machine.system() == 'darwin' and meson.get_compiler('cpp').get_define('TARGET_OS_OSX', prefix: '#include <TargetConditionals.h>') not in ['', '0']
+host_machine_is_macos = host_machine.system() == 'darwin' and meson.get_compiler('cpp').compute_int('!!TARGET_OS_OSX', prefix: '#include <TargetConditionals.h>', low: 0, high: 1) != 0
 host_machine_is_ios = host_machine.system() == 'darwin' and not host_machine_is_macos
 host_machine_is_windows = host_machine.system() in ['windows', 'cygwin']
+host_machine_is_native_windows = host_machine_is_windows and meson.get_compiler('cpp').compute_int('!!WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)', prefix: '#include <winapifamily.h>', low: 0, high: 1) != 0
+host_machine_is_uwp = host_machine_is_windows and not host_machine_is_native_windows
 
 includes = [
     '.',
@@ -620,10 +622,16 @@ angle_common = static_library(
                 'src/common/system_utils_ios.cpp',
             ]
             : [],
-        host_machine_is_windows
+        host_machine_is_uwp
             ? [
                 'src/common/system_utils_win.cpp',
-                'src/common/system_utils_win32.cpp', # FIXME: use src/common/system_utils_winuwp.cpp instead of src/common/system_utils_win32.cpp if the host machine's system is Universal Windows Platform
+                'src/common/system_utils_winuwp.cpp',
+            ]
+            : [],
+        host_machine_is_native_windows
+            ? [
+                'src/common/system_utils_win.cpp',
+                'src/common/system_utils_win32.cpp',
             ]
             : [],
     ],
@@ -922,7 +930,7 @@ angle_d3d11_backend = static_library(
         'src/libANGLE/renderer/d3d/d3d11/renderer11_utils.cpp',
         'src/libANGLE/renderer/d3d/d3d11/texture_format_table.cpp',
         'src/libANGLE/renderer/d3d/d3d11/texture_format_table_autogen.cpp',
-        false
+        host_machine_is_uwp
             ? [
                 'src/libANGLE/renderer/d3d/d3d11/winrt/CoreWindowNativeWindow.cpp',
                 'src/libANGLE/renderer/d3d/d3d11/winrt/InspectableNativeWindow.cpp',
