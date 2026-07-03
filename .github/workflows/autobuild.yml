@@ -759,12 +759,9 @@ jobs:
           echo "endian = '${{ matrix.endian }}'" | tee -a ~/cross.ini
           if ruby -e "exit(Gem::Version.new('$(cmake --version | head -n 1 | cut -d ' ' -f 3)') < Gem::Version.new('4.0.0'))"
           then
-            # These CMAKE_*_LINKER_FLAGS_INIT options that force CMake to use LLD instead of the default BFD linker will not be needed once CMake updates to version 4.0.0 or later (because CMake will obey the CMAKE_*_LINKER_FLAGS_INIT options that we set inside of src/meson.build starting from CMake 4.0.0)
+            # This CMAKE_EXE_LINKER_FLAGS_INIT option that forces CMake to use LLD instead of the default BFD linker for CMake configure tests will not be needed once CMake updates to version 4.0.0 or later (because CMake will obey the CMAKE_EXE_LINKER_FLAGS_INIT option that we set inside of src/meson.build starting from CMake 4.0.0)
             echo "[cmake]" | tee -a ~/cross.ini
             echo "CMAKE_EXE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.ini
-            echo "CMAKE_MODULE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.ini
-            echo "CMAKE_SHARED_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.ini
-            echo "CMAKE_STATIC_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.ini
           fi
           echo '--------------------------------------------------------------------------------'
           meson setup --prefix "$(realpath .)/build/artifact" --cross-file ~/cross.ini --buildtype release -Dstrip=true -Db_lto=true build
