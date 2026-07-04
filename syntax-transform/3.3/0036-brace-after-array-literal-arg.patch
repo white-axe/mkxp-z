@@ -18,9 +18,9 @@
 # along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 
 # In Ruby versions greater than or equal to 1.9.0 and less than 2.5.0, an
-# expression consisting of a function name, then a whitespace character, then an
-# array literal, then a space, then a curly-brace block, is valid, but is not
-# valid in any other version of Ruby. Below are examples of such expressions:
+# expression consisting of a function name, then a space, then an array literal,
+# then a space, then a curly-brace block, is valid, but is not valid in any
+# other version of Ruby. Below are examples of such expressions:
 #
 #   p [] {}
 #   p *[] {}
