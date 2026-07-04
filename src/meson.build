@@ -96,7 +96,7 @@ if get_option('openssl').disabled() or (get_option('openssl').auto() and require
     require_system_openssl = get_option('openssl')
 endif
 openssl = dependency('openssl', allow_fallback: false, required: require_system_openssl)
-if not openssl.found() and not get_option('openssl').disabled() and not get_option('openssl_system').enabled()
+if not openssl.found() and not get_option('openssl').disabled() and not get_option('openssl_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled).enabled()
     openssl_options = meson_base_options + {
         'asm': 'disabled',
     }
@@ -427,7 +427,7 @@ if not openal.found()
             require_system_alsa = get_option('alsa')
         endif
         alsa = dependency('alsa', allow_fallback: false, required: require_system_alsa)
-        if not alsa.found() and not get_option('alsa').disabled() and not get_option('alsa_system').enabled()
+        if not alsa.found() and not get_option('alsa').disabled() and not get_option('alsa_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled).enabled()
             alsa_options = meson_base_options
             alsa = subproject('alsa-lib', default_options: alsa_options).get_variable('alsa_lib')
         endif
@@ -443,7 +443,7 @@ if not openal.found()
             require_system_jack = get_option('jack')
         endif
         jack = dependency('jack', allow_fallback: false, required: require_system_jack)
-        if not jack.found() and not get_option('jack').disabled() and not get_option('jack_system').enabled()
+        if not jack.found() and not get_option('jack').disabled() and not get_option('jack_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled).enabled()
             jack_options = meson_base_options
             jack = subproject('jack1', default_options: jack_options).get_variable('jack1')
         endif
@@ -457,7 +457,7 @@ if not openal.found()
             require_system_pulseaudio = get_option('pulseaudio')
         endif
         pulseaudio = dependency('libpulse', allow_fallback: false, required: require_system_pulseaudio)
-        if not pulseaudio.found() and not get_option('pulseaudio').disabled() and not get_option('pulseaudio_system').enabled()
+        if not pulseaudio.found() and not get_option('pulseaudio').disabled() and not get_option('pulseaudio_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled).enabled()
             pulseaudio_options = meson_base_options
             pulseaudio = subproject('pulseaudio', default_options: pulseaudio_options).get_variable('pulseaudio')
         endif
@@ -471,7 +471,7 @@ if not openal.found()
             require_system_pipewire = get_option('pipewire')
         endif
         pipewire = dependency('libpipewire-0.3', allow_fallback: false, required: require_system_pipewire)
-        if not pipewire.found() and not get_option('pipewire').disabled() and not get_option('pipewire_system').enabled()
+        if not pipewire.found() and not get_option('pipewire').disabled() and not get_option('pipewire_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled).enabled()
             pipewire_options = meson_base_options
             pipewire = subproject('pipewire', default_options: pipewire_options).get_variable('pipewire')
         endif
