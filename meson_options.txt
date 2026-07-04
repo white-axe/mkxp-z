@@ -33,7 +33,7 @@ option('x86_64_sse3', type: 'feature', value: 'disabled', description: 'Enable s
 option('x86_64_ssse3', type: 'feature', value: 'disabled', description: 'Enable support for SSSE3 SIMD intrinsics when building for x86_64 architecture')
 option('x86_64_sse41', type: 'feature', value: 'disabled', description: 'Enable support for SSE4.1 SIMD intrinsics when building for x86_64 architecture')
 
-option('alsa', type: 'feature', value: 'auto', description: 'Enable support for audio output via ALSA')
+option('alsa', type: 'feature', value: 'auto', description: 'Enable support for audio output via Advanced Linux Sound Architecture')
 option('angle', type: 'feature', value: 'auto', description: 'Enable support for using ANGLE to convert OpenGL calls to Direct3D, Metal or Vulkan')
 option('angle_direct3d9', type: 'feature', value: 'auto', description: 'Enable ANGLE\'s Direct3D 9 backend')
 option('angle_direct3d11', type: 'feature', value: 'auto', description: 'Enable ANGLE\'s Direct3D 11 backend')

@@ -283,7 +283,9 @@ if host_system == 'darwin'
     )
 endif
 
-summary('ALSA', have_alsa, bool_yn: true)
+if openal.type_name() == 'internal'
+    summary('ALSA', have_alsa, bool_yn: true)
+endif
 summary('ANGLE', have_angle, bool_yn: true)
 if have_angle
     summary('ANGLE Direct3D 9 backend', have_angle_direct3d9, bool_yn: true)
@@ -293,11 +295,19 @@ if have_angle
     summary('ANGLE Vulkan backend', have_angle_vulkan, bool_yn: true)
 endif
 summary('Extra shaders', have_extra_shaders, bool_yn: true)
-summary('JACK Audio Connection Kit', have_jack, bool_yn: true)
+if openal.type_name() == 'internal'
+    summary('JACK Audio Connection Kit', have_jack, bool_yn: true)
+endif
 summary('OpenSSL', have_openssl, bool_yn: true)
-summary('OSS', have_oss, bool_yn: true)
-summary('PipeWire', have_pipewire, bool_yn: true)
-summary('PulseAudio', have_pulseaudio, bool_yn: true)
+if openal.type_name() == 'internal'
+    summary('OSS', have_oss, bool_yn: true)
+endif
+if openal.type_name() == 'internal'
+    summary('PipeWire', have_pipewire, bool_yn: true)
+endif
+if openal.type_name() == 'internal'
+    summary('PulseAudio', have_pulseaudio, bool_yn: true)
+endif
 summary('License', gplv3_features.length() != 0 ? 'GPL-3.0-or-later' : 'GPL-2.0-or-later')
 if gplv3_features.length() != 0
     summary('Enabled features requiring GPLv3', gplv3_features)
