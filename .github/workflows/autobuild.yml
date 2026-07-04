@@ -520,7 +520,7 @@ jobs:
         shell: bash
         run: |
           ghcurl () {
-            command="curl --no-progress-meter -f -L -H 'Accept: application/vnd.github+json' -H 'Authorization: Bearer ${{ github.token }}' -H 'GitHub-Api-Version: 2026-03-10' ${@@Q}"
+            command="curl --no-progress-meter --retry 5 -f -L -H 'Accept: application/vnd.github+json' -H 'Authorization: Bearer ${{ github.token }}' -H 'GitHub-Api-Version: 2026-03-10' ${@@Q}"
             echo "$command" >&2
             eval "$command"
           }
