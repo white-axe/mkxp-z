@@ -746,28 +746,28 @@ jobs:
 
       - name: Configure
         run: |
-          echo "[binaries]" | tee -a ~/cross.ini
-          echo "c = ['ccache', 'clang', '--target=$target', '--sysroot=$(realpath ~/sysroot)']" | tee -a ~/cross.ini
-          echo "c_ld = 'lld'" | tee -a ~/cross.ini
-          echo "cpp = ['ccache', 'clang++', '--target=$target', '--sysroot=$(realpath ~/sysroot)']" | tee -a ~/cross.ini
-          echo "cpp_ld = 'lld'" | tee -a ~/cross.ini
-          echo "ar = 'llvm-ar'" | tee -a ~/cross.ini
-          echo "ranlib = 'llvm-ranlib'" | tee -a ~/cross.ini
-          echo "strip = 'llvm-strip'" | tee -a ~/cross.ini
-          echo "cmake = 'cmake'" | tee -a ~/cross.ini
-          echo "[host_machine]" | tee -a ~/cross.ini
-          echo "system = 'freebsd'" | tee -a ~/cross.ini
-          echo "cpu_family = '${{ matrix.cpu-family }}'" | tee -a ~/cross.ini
-          echo "cpu = '${{ matrix.cpu }}'" | tee -a ~/cross.ini
-          echo "endian = '${{ matrix.endian }}'" | tee -a ~/cross.ini
+          echo "[binaries]" | tee -a ~/cross.toml
+          echo "c = ['ccache', 'clang', '--target=$target', '--sysroot=$(realpath ~/sysroot)']" | tee -a ~/cross.toml
+          echo "c_ld = 'lld'" | tee -a ~/cross.toml
+          echo "cpp = ['ccache', 'clang++', '--target=$target', '--sysroot=$(realpath ~/sysroot)']" | tee -a ~/cross.toml
+          echo "cpp_ld = 'lld'" | tee -a ~/cross.toml
+          echo "ar = 'llvm-ar'" | tee -a ~/cross.toml
+          echo "ranlib = 'llvm-ranlib'" | tee -a ~/cross.toml
+          echo "strip = 'llvm-strip'" | tee -a ~/cross.toml
+          echo "cmake = 'cmake'" | tee -a ~/cross.toml
+          echo "[host_machine]" | tee -a ~/cross.toml
+          echo "system = 'freebsd'" | tee -a ~/cross.toml
+          echo "cpu_family = '${{ matrix.cpu-family }}'" | tee -a ~/cross.toml
+          echo "cpu = '${{ matrix.cpu }}'" | tee -a ~/cross.toml
+          echo "endian = '${{ matrix.endian }}'" | tee -a ~/cross.toml
           if ruby -e "exit(Gem::Version.new('$(cmake --version | head -n 1 | cut -d ' ' -f 3)') < Gem::Version.new('4.0.0'))"
           then
             # This CMAKE_EXE_LINKER_FLAGS_INIT option that forces CMake to use LLD instead of the default BFD linker for CMake configure tests will not be needed once CMake updates to version 4.0.0 or later (because CMake will obey the CMAKE_EXE_LINKER_FLAGS option that we set inside of src/meson.build starting from CMake 4.0.0)
-            echo "[cmake]" | tee -a ~/cross.ini
-            echo "CMAKE_EXE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.ini
+            echo "[cmake]" | tee -a ~/cross.toml
+            echo "CMAKE_EXE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.toml
           fi
           echo '--------------------------------------------------------------------------------'
-          meson setup --prefix "$(realpath .)/build/artifact" --cross-file ~/cross.ini --buildtype release -Dstrip=true -Db_lto=true build
+          meson setup --prefix "$(realpath .)/build/artifact" --cross-file ~/cross.toml --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
