@@ -206,7 +206,7 @@ jobs:
           then
             llvm_mingw_version=20260224-msvcrt-ubuntu-22.04-x86_64
             sudo apt install -y curl tar xz-utils
-            curl -Lo llvm-mingw.tar.xz https://github.com/mstorsjo/llvm-mingw/releases/download/$(echo $llvm_mingw_version | cut -f 1 -d -)/llvm-mingw-$llvm_mingw_version.tar.xz
+            curl --retry 5 -Lo llvm-mingw.tar.xz https://github.com/mstorsjo/llvm-mingw/releases/download/$(echo $llvm_mingw_version | cut -f 1 -d -)/llvm-mingw-$llvm_mingw_version.tar.xz
             tar -xJf llvm-mingw.tar.xz
             rm llvm-mingw.tar.xz
             mv llvm-mingw-$llvm_mingw_version ${{ runner.temp }}
@@ -715,7 +715,7 @@ jobs:
           apt install -y clang lld llvm
 
           apt install -y curl tar zstd
-          curl -Lo sysroot.pkg '${{ matrix.sysroot-url }}'
+          curl --retry 5 -Lo sysroot.pkg '${{ matrix.sysroot-url }}'
           [ "$(sha256sum sysroot.pkg | cut -d ' ' -f 1)" = '${{ matrix.sysroot-hash }}' ]
           tar -xf sysroot.pkg --zstd
           mv usr/local/freebsd-sysroot/${{ matrix.arch }} ~/sysroot
