@@ -3,3 +3,5 @@ url = https://github.com/KhronosGroup/Vulkan-Headers
 revision = vulkan-sdk-1.4.350.0
 depth = 1
 patch_directory = vulkan-headers
+diff_files =
+    end-of-diff-files.patch

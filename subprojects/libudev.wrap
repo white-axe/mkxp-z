@@ -3,3 +3,5 @@ url = https://github.com/systemd/systemd
 revision = v260.1
 depth = 1
 patch_directory = libudev
+diff_files =
+    end-of-diff-files.patch

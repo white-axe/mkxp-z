@@ -3,3 +3,5 @@ url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
 revision = v3.3.0
 depth = 1
 patch_directory = vulkan-memory-allocator
+diff_files =
+    end-of-diff-files.patch

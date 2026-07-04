@@ -3,3 +3,5 @@ url = https://github.com/Cyan4973/xxHash
 revision = v0.8.3
 depth = 1
 patch_directory = xxhash
+diff_files =
+    end-of-diff-files.patch

@@ -4,3 +4,5 @@ source_filename = jack1-0.126.0.tar.gz
 source_hash = 7b290e9dc7b9262ac328d41eef80c1053c97013efacbefa30477cb9b2a5445ea
 directory = jack1-0.126.0
 patch_directory = jack1
+diff_files =
+    end-of-diff-files.patch

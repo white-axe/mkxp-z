@@ -5,3 +5,5 @@ source_filename = libxrandr-1.5.4.tar.gz
 source_hash = c72c94dc3373512ceb67f578952c5d10915b38cc9ebb0fd176a49857b8048e22
 directory = libXrandr-1.5.4
 patch_directory = libxrandr
+diff_files =
+    end-of-diff-files.patch

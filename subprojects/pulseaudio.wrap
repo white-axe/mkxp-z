@@ -6,3 +6,5 @@ source_filename = pulseaudio-17.0.tar.xz
 source_hash = 24a25d3cf8fcede801f6b3d05ca6d22b0a43ad2f710a4fbf2ec251debc9cff5b
 directory = pulseaudio-17.0
 patch_directory = pulseaudio
+diff_files =
+    end-of-diff-files.patch

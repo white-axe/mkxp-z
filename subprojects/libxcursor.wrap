@@ -5,3 +5,5 @@ source_filename = libxcursor-1.2.3.tar.gz
 source_hash = 74e72da27e61cc2cfd2e267c14f500ea47775850048ee0b00362a55c9b60ee9b
 directory = libXcursor-1.2.3
 patch_directory = libxcursor
+diff_files =
+    end-of-diff-files.patch

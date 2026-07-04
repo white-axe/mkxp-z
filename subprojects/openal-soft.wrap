@@ -8,7 +8,13 @@ patch_filename = openal-soft_1.24.3-2_patch.zip
 patch_url = https://wrapdb.mesonbuild.com/v2/openal-soft_1.24.3-2/get_patch
 patch_hash = 6642f3f3321f3d00633547e3abc06657ca4e22124b6593da7bddd4d9593ccc2b
 wrapdb_version = 1.24.3-2
-diff_files = openal-soft-bsd.patch, openal-soft-cpp-standard.patch, openal-soft-info.patch, openal-soft-partial-dependency.patch, openal-soft-simd.patch
+diff_files =
+    openal-soft-bsd.patch,
+    openal-soft-cpp-standard.patch,
+    openal-soft-info.patch,
+    openal-soft-partial-dependency.patch,
+    openal-soft-simd.patch,
+    end-of-diff-files.patch
 
 [provide]
 dependency_names = openal

@@ -5,3 +5,5 @@ source_filename = libxcb-1.17.0.tar.gz
 source_hash = 2c69287424c9e2128cb47ffe92171e10417041ec2963bceafb65cb3fcf8f0b85
 directory = libxcb-1.17.0
 patch_directory = libxcb
+diff_files =
+    end-of-diff-files.patch

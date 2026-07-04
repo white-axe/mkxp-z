@@ -5,3 +5,5 @@ source_filename = libxrender-0.9.12.tar.gz
 source_hash = 0fff64125819c02d1102b6236f3d7d861a07b5216d8eea336c3811d31494ecf7
 directory = libXrender-0.9.12
 patch_directory = libxrender
+diff_files =
+    end-of-diff-files.patch

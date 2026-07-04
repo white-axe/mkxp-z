@@ -3,3 +3,5 @@ url = https://github.com/zeux/volk
 revision = vulkan-sdk-1.4.350.0
 depth = 1
 patch_directory = volk
+diff_files =
+    end-of-diff-files.patch

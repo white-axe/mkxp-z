@@ -5,3 +5,5 @@ source_filename = libxi-1.8.2.tar.gz
 source_hash = 5542daec66febfeb6f51d57abfa915826efe2e3af57534f4105b82240ea3188d
 directory = libXi-1.8.2
 patch_directory = libxi
+diff_files =
+    end-of-diff-files.patch

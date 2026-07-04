@@ -4,4 +4,7 @@ source_fallback_url = https://mirrors.ocf.berkeley.edu/ubuntu/pool/main/g/glib2.
 source_filename = glib-2.84.4.tar.xz
 source_hash = 8a9ea10943c36fc117e253f80c91e477b673525ae45762942858aef57631bb90
 directory = glib-2.84.4
-diff_files = glib-header-only.patch, glib-printf.patch
+diff_files =
+    glib-header-only.patch,
+    glib-printf.patch,
+    end-of-diff-files.patch

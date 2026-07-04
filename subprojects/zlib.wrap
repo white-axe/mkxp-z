@@ -2,4 +2,6 @@
 url = https://github.com/madler/zlib
 revision = v1.3.1
 depth = 1
-diff_files = zlib-target-name.patch
+diff_files =
+    zlib-target-name.patch,
+    end-of-diff-files.patch

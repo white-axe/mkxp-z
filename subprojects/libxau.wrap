@@ -5,3 +5,5 @@ source_filename = libxau-1.0.11.tar.gz
 source_hash = 3a321aaceb803577a4776a5efe78836eb095a9e44bbc7a465d29463e1a14f189
 directory = libXau-1.0.11
 patch_directory = libxau
+diff_files =
+    end-of-diff-files.patch

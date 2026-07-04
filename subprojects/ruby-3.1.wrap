@@ -3,4 +3,27 @@ url = https://github.com/ruby/ruby
 revision = v3_1_3
 depth = 1
 patch_directory = ruby-3.1
-diff_files = ruby-3.1-bison.patch, ruby-3.1-bsd.patch, ruby-3.1-bundle.patch, ruby-3.1-ccache.patch, ruby-3.1-darwin-in6.patch, ruby-3.1-deps.patch, ruby-3.1-dllexport.patch, ruby-3.1-exp.patch, ruby-3.1-fake.patch, ruby-3.1-init.patch, ruby-3.1-libruby-static.patch, ruby-3.1-libs.patch, ruby-3.1-miniruby.patch, ruby-3.1-pkg-config.patch, ruby-3.1-random.patch, ruby-3.1-rbinstall.patch, ruby-3.1-reconfig.patch, ruby-3.1-round.patch, ruby-3.1-windows-arm64.patch, ruby-3.1-mkxp-z-patches.patch, ruby-3.1-clock-gettime.patch, ruby-3.1-mkxp-z-patches-windows-libs.patch
+diff_files =
+    ruby-3.1-bison.patch,
+    ruby-3.1-bsd.patch,
+    ruby-3.1-bundle.patch,
+    ruby-3.1-ccache.patch,
+    ruby-3.1-darwin-in6.patch,
+    ruby-3.1-deps.patch,
+    ruby-3.1-dllexport.patch,
+    ruby-3.1-exp.patch,
+    ruby-3.1-fake.patch,
+    ruby-3.1-init.patch,
+    ruby-3.1-libruby-static.patch,
+    ruby-3.1-libs.patch,
+    ruby-3.1-miniruby.patch,
+    ruby-3.1-pkg-config.patch,
+    ruby-3.1-random.patch,
+    ruby-3.1-rbinstall.patch,
+    ruby-3.1-reconfig.patch,
+    ruby-3.1-round.patch,
+    ruby-3.1-windows-arm64.patch,
+    ruby-3.1-mkxp-z-patches.patch,
+    ruby-3.1-clock-gettime.patch,
+    ruby-3.1-mkxp-z-patches-windows-libs.patch,
+    end-of-diff-files.patch

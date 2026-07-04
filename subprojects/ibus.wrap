@@ -5,3 +5,5 @@ source_filename = ibus-1.5.32.tar.gz
 source_hash = b24f41ae38b236b254c09f1a8f53c2354b69b0789e89cea888d0494b09d15d67
 directory = ibus-1.5.32
 patch_directory = ibus
+diff_files =
+    end-of-diff-files.patch

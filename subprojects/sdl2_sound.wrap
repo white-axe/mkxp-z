@@ -2,4 +2,6 @@
 url = https://github.com/icculus/SDL_sound
 revision = v2.0.4
 depth = 1
-diff_files = sdl2_sound-deps.patch
+diff_files =
+    sdl2_sound-deps.patch,
+    end-of-diff-files.patch
