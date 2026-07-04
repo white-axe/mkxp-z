@@ -419,6 +419,12 @@ void Config::readGameINI() {
             LOAD_INI_RTP(RTP1);
             LOAD_INI_RTP(RTP2);
             LOAD_INI_RTP(RTP3);
+            LOAD_INI_RTP(RTP4);
+            LOAD_INI_RTP(RTP5);
+            LOAD_INI_RTP(RTP6);
+            LOAD_INI_RTP(RTP7);
+            LOAD_INI_RTP(RTP8);
+            LOAD_INI_RTP(RTP9);
 #undef LOAD_INI_RTP
             
             strReplace(game.scripts, '\\', '/');
