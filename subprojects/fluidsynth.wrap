@@ -2,5 +2,6 @@
 url = https://github.com/FluidSynth/fluidsynth
 revision = v2.5.0
 depth = 1
+method = cmake
 diff_files =
     end-of-diff-files.patch

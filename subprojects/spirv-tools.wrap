@@ -2,6 +2,7 @@
 url = https://github.com/KhronosGroup/SPIRV-Tools
 revision = vulkan-sdk-1.4.350.0
 depth = 1
+method = cmake
 patch_directory = spirv-tools
 diff_files =
     end-of-diff-files.patch

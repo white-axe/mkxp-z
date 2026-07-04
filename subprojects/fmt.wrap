@@ -2,5 +2,6 @@
 url = https://github.com/fmtlib/fmt
 revision = 12.1.0
 depth = 1
+method = cmake
 diff_files =
     end-of-diff-files.patch

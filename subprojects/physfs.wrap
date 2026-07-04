@@ -2,5 +2,6 @@
 url = https://github.com/icculus/physfs
 revision = release-3.2.0
 depth = 1
+method = cmake
 diff_files =
     end-of-diff-files.patch

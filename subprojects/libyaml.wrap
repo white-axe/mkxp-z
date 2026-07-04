@@ -2,5 +2,6 @@
 url = https://github.com/yaml/libyaml
 revision = 0.2.5
 depth = 1
+method = cmake
 diff_files =
     end-of-diff-files.patch

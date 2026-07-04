@@ -2,5 +2,6 @@
 url = https://github.com/xiph/ogg
 revision = v1.3.6
 depth = 1
+method = cmake
 diff_files =
     end-of-diff-files.patch

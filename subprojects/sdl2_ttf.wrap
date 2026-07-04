@@ -2,6 +2,7 @@
 url = https://github.com/libsdl-org/SDL_ttf
 revision = release-2.0.18
 depth = 1
+method = cmake
 diff_files =
     sdl2_ttf-deps.patch,
     end-of-diff-files.patch

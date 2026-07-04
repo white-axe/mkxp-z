@@ -2,6 +2,7 @@
 url = https://github.com/xiph/vorbis
 revision = v1.3.7
 depth = 1
+method = cmake
 diff_files =
     vorbis-deps.patch,
     end-of-diff-files.patch
