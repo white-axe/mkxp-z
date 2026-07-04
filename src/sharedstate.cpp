@@ -44,6 +44,7 @@
 #include <string>
 #include <chrono>
 
+#include <SDL_endian.h>
 #include <SDL_filesystem.h>
 
 #ifdef MKXPZ_EXP_FS
@@ -57,6 +58,12 @@ namespace fs = ghc::filesystem;
 #ifdef _WIN32
 #  include <winreg.h>
 #endif // _WIN32
+
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+#  define MKXPZ_ENCODING_UTF16_NATIVE "UTF-16BE"
+#else
+#  define MKXPZ_ENCODING_UTF16_NATIVE "UTF-16LE"
+#endif
 
 SharedState *SharedState::instance = 0;
 int SharedState::rgssVersion = 0;
@@ -106,7 +113,7 @@ static std::string resolveRtpPath(
 #ifdef _WIN32
 		/* Check in the Windows registry */
 		if (hkey != nullptr) {
-			std::string rtpRawUtf16(Encoding::convertStringToUtf16(rtpRaw, "UTF-8"));
+			std::string rtpRawUtf16(Encoding::convertString(rtpRaw, "UTF-8", MKXPZ_ENCODING_UTF16_NATIVE));
 			rtpRawUtf16.push_back(0);
 			std::vector<char> buffer;
 			DWORD size;
@@ -142,7 +149,7 @@ static std::string resolveRtpPath(
 				buffer.resize(size);
 				buffer.pop_back();
 				buffer.pop_back();
-				return Encoding::convertString(std::string(std::make_move_iterator(buffer.begin()), std::make_move_iterator(buffer.end())), "UTF-16");
+				return Encoding::convertString(std::string(std::make_move_iterator(buffer.begin()), std::make_move_iterator(buffer.end())), MKXPZ_ENCODING_UTF16_NATIVE);
 			}
 		}
 #endif // _WIN32
