@@ -616,7 +616,7 @@ jobs:
           else
             arm_neon=disabled
           fi
-          meson setup --prefix "$(realpath .)/build/artifact" --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt  -Darm_neon=$arm_neon --buildtype release -Dstrip=true -Db_lto=true build
+          meson setup --prefix "$(realpath .)/build/artifact" --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt -Darm_neon=$arm_neon --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
