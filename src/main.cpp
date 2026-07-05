@@ -254,16 +254,41 @@ int main(int argc, char *argv[]) {
         /* Select SDL's Wayland video driver if SDL_VIDEODRIVER is unset and Wayland support is available on the user's machine */
         SDL_SetHintWithPriority(SDL_HINT_VIDEODRIVER, "x11", SDL_HINT_OVERRIDE);
         void *wayland_client = SDL_LoadObject("libwayland-client.so");
-        if (wayland_client != nullptr) {
+        void *wayland_cursor = SDL_LoadObject("libwayland-cursor.so");
+        void *xkbcommon = SDL_LoadObject("libxkbcommon.so");
+        if (wayland_client != nullptr && wayland_cursor != nullptr && xkbcommon != nullptr) {
           void *(*_wl_display_connect)(const char *name) = reinterpret_cast<void *(*)(const char *name)>(SDL_LoadFunction(wayland_client, "wl_display_connect"));
           void (*_wl_display_disconnect)(void *display) = reinterpret_cast<void (*)(void *display)>(SDL_LoadFunction(wayland_client, "wl_display_disconnect"));
-          if (_wl_display_connect != nullptr && _wl_display_disconnect != nullptr) {
+          void *(*_wl_cursor_image_get_buffer)(void *image) = reinterpret_cast<void *(*)(void *image)>(SDL_LoadFunction(wayland_cursor, "wl_cursor_image_get_buffer"));
+          void (*_wl_cursor_theme_destroy)(void *theme) = reinterpret_cast<void (*)(void *theme)>(SDL_LoadFunction(wayland_cursor, "wl_cursor_theme_destroy"));
+          void *(*_wl_cursor_theme_get_cursor)(void *theme, const char *name) = reinterpret_cast<void *(*)(void *theme, const char *name)>(SDL_LoadFunction(wayland_cursor, "wl_cursor_theme_get_cursor"));
+          void *(*_wl_cursor_theme_load)(const char *name, int size, void *shm) = reinterpret_cast<void *(*)(const char *name, int size, void *shm)>(SDL_LoadFunction(wayland_cursor, "wl_cursor_theme_load"));
+          void *(*_xkb_context_new)(int flags) = reinterpret_cast<void *(*)(int flags)>(SDL_LoadFunction(xkbcommon, "xkb_context_new"));
+          void (*_xkb_context_unref)(void *context) = reinterpret_cast<void (*)(void *context)>(SDL_LoadFunction(xkbcommon, "xkb_context_unref"));
+          if (
+            _wl_display_connect != nullptr
+              && _wl_display_disconnect != nullptr
+              && _wl_cursor_image_get_buffer != nullptr
+              && _wl_cursor_theme_destroy != nullptr
+              && _wl_cursor_theme_get_cursor != nullptr
+              && _wl_cursor_theme_load != nullptr
+              && _xkb_context_new != nullptr
+              && _xkb_context_unref != nullptr
+          ) {
             void *display = _wl_display_connect(nullptr);
             if (display != nullptr) {
               _wl_display_disconnect(display);
               SDL_SetHintWithPriority(SDL_HINT_VIDEODRIVER, "wayland", SDL_HINT_OVERRIDE);
             }
           }
+        }
+        if (xkbcommon != nullptr) {
+          SDL_UnloadObject(xkbcommon);
+        }
+        if (wayland_cursor != nullptr) {
+          SDL_UnloadObject(wayland_cursor);
+        }
+        if (wayland_client != nullptr) {
           SDL_UnloadObject(wayland_client);
         }
       }
