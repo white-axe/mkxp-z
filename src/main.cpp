@@ -377,6 +377,7 @@ int main(int argc, char *argv[]) {
                   vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
                   if (std::strcmp(physicalDeviceProperties.deviceName, anglePreferredDevice) == 0) {
                     preferredPhysicalDevice = physicalDevice;
+                    break;
                   }
                 }
                 vkGetPhysicalDeviceProperties(preferredPhysicalDevice, &physicalDeviceProperties);
