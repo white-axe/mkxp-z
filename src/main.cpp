@@ -76,10 +76,11 @@ __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 
 #if !defined(__ANDROID__) && !defined(__APPLE__) && !defined(_WIN32)
 #  define MKXPZ_CHECK_FOR_WAYLAND_SUPPORT
-#  if defined(MKXPZ_HAVE_ANGLE) && defined(MKXPZ_HAVE_ANGLE_VULKAN)
-#    define MKXPZ_CHECK_FOR_LAVAPIPE
-#    include <volk.h>
-#  endif
+#endif
+
+#if defined(MKXPZ_HAVE_ANGLE) && defined(MKXPZ_HAVE_ANGLE_VULKAN)
+#  define MKXPZ_CHECK_FOR_LAVAPIPE
+#  include <volk.h>
 #endif
 
 #ifndef MKXPZ_INIT_GL_LATER
