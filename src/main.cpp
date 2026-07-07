@@ -338,7 +338,7 @@ int main(int argc, char *argv[]) {
             uint32_t physicalDeviceCount;
             std::vector<VkPhysicalDevice> physicalDevices;
             if (result == VK_SUCCESS) {
-              const VkApplicationInfo applicationInfo {
+              static const VkApplicationInfo applicationInfo {
                 /*sType=*/VK_STRUCTURE_TYPE_APPLICATION_INFO,
                 /*pNext=*/nullptr,
                 /*pApplicationName=*/"",
@@ -347,7 +347,7 @@ int main(int argc, char *argv[]) {
                 /*engineVersion=*/0,
                 /*apiVersion=*/VK_API_VERSION_1_0,
               };
-              const VkInstanceCreateInfo instanceCreateInfo {
+              static const VkInstanceCreateInfo instanceCreateInfo {
                 /*sType=*/VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
                 /*pNext=*/nullptr,
                 /*flags=*/0,
