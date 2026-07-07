@@ -19,6 +19,10 @@
 ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef VK_NO_PROTOTYPES
+#  define VK_NO_PROTOTYPES
+#endif
+
 #include "icon.png.xxd"
 
 #include <alc.h>
@@ -72,6 +76,10 @@ __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 
 #if !defined(__ANDROID__) && !defined(__APPLE__) && !defined(_WIN32)
 #  define MKXPZ_CHECK_FOR_WAYLAND_SUPPORT
+#  if defined(MKXPZ_HAVE_ANGLE) && defined(MKXPZ_HAVE_ANGLE_VULKAN)
+#    define MKXPZ_CHECK_FOR_LAVAPIPE
+#    include <volk.h>
+#  endif
 #endif
 
 #ifndef MKXPZ_INIT_GL_LATER
@@ -321,10 +329,68 @@ int main(int argc, char *argv[]) {
             mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "metal");
 #  elif !defined(MKXPZ_HAVE_ANGLE_DIRECT3D9) && !defined(MKXPZ_HAVE_ANGLE_DIRECT3D11)
 #    ifdef MKXPZ_HAVE_ANGLE_VULKAN
+#      ifdef MKXPZ_CHECK_FOR_LAVAPIPE
+            /* Check if ANGLE's Vulkan backend would use LLVMpipe. If so, use OpenGL instead. */
+            mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "gl");
+            VkResult result = volkInitialize();
+            VkInstance instance;
+            uint32_t physicalDeviceCount;
+            std::vector<VkPhysicalDevice> physicalDevices;
+            if (result == VK_SUCCESS) {
+              const VkApplicationInfo applicationInfo {
+                /*sType=*/VK_STRUCTURE_TYPE_APPLICATION_INFO,
+                /*pNext=*/nullptr,
+                /*pApplicationName=*/"",
+                /*applicationVersion=*/0,
+                /*pEngineName=*/"",
+                /*engineVersion=*/0,
+                /*apiVersion=*/VK_API_VERSION_1_0,
+              };
+              const VkInstanceCreateInfo instanceCreateInfo {
+                /*sType=*/VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+                /*pNext=*/nullptr,
+                /*flags=*/0,
+                /*pApplicationInfo=*/&applicationInfo,
+                /*enabledLayerCount=*/0,
+                /*ppEnabledLayerNames=*/nullptr,
+                /*enabledExtensionCount=*/0,
+                /*ppEnabledExtensionNames=*/nullptr,
+              };
+              result = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
+            }
+            if (result == VK_SUCCESS) {
+              volkLoadInstance(instance);
+              result = vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr);
+              if (result == VK_SUCCESS) {
+                physicalDevices.resize(physicalDeviceCount);
+                result = vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, physicalDevices.data());
+              }
+              if (result == VK_SUCCESS && !physicalDevices.empty()) {
+                VkPhysicalDeviceProperties physicalDeviceProperties;
+                VkPhysicalDevice preferredPhysicalDevice = physicalDevices[0];
+                const char *anglePreferredDevice = getenv("ANGLE_PREFERRED_DEVICE");
+                if (anglePreferredDevice == nullptr) {
+                  anglePreferredDevice = "";
+                }
+                for (VkPhysicalDevice physicalDevice : physicalDevices) {
+                  vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
+                  if (std::strcmp(physicalDeviceProperties.deviceName, anglePreferredDevice) == 0) {
+                    preferredPhysicalDevice = physicalDevice;
+                  }
+                }
+                vkGetPhysicalDeviceProperties(preferredPhysicalDevice, &physicalDeviceProperties);
+                if (std::strncmp(physicalDeviceProperties.deviceName, "llvmpipe ", sizeof "llvmpipe " - 1) != 0) {
+                  mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "vulkan");
+                }
+              }
+              vkDestroyInstance(instance, nullptr);
+            }
+#      else
             mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "vulkan");
+#      endif // MKXPZ_CHECK_FOR_LAVAPIPE
 #    else
             mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "gl");
-#    endif
+#    endif // MKXPZ_HAVE_ANGLE_VULKAN
 #  endif
           }
           break;

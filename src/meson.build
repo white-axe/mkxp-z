@@ -263,7 +263,7 @@ if not sdl2.found() or not sdl2main.found()
         volk = dependency('volk', allow_fallback: false, required: get_option('angle').auto() and require_system_spirv_tools.enabled() ? get_option('angle') : require_system_spirv_tools)
         if not volk.found()
             if not require_system_volk.enabled()
-                subproject('volk', default_options: meson_base_options)
+                global_dependencies += subproject('volk', default_options: meson_base_options).get_variable('volk')
             else
                 if get_option('angle_vulkan').enabled()
                     error('volk is required for ANGLE Vulkan backend')
@@ -271,6 +271,8 @@ if not sdl2.found() or not sdl2main.found()
                 have_angle = false
                 have_angle_vulkan = false
             endif
+        else
+            global_dependencies += volk
         endif
     endif
 
