@@ -94,7 +94,9 @@ typedef NSMutableArray<NSNumber*> BindingIndexArray;
 
 -(void)loadView {
     NSData *data = [NSData dataWithBytesNoCopy:(void *)mkxp_macos_settingsmenu_nib length:mkxp_macos_settingsmenu_nib_len freeWhenDone:false];
-    [[[NSNib alloc] initWithNibData:data bundle:nil] instantiateWithOwner:self topLevelObjects:&topLevelObjects];
+    if (![[[NSNib alloc] initWithNibData:data bundle:nil] instantiateWithOwner:self topLevelObjects:&topLevelObjects]) {
+        [[NSException exceptionWithName:NSInternalInconsistencyException reason:@"could not load settingsmenu.nib" userInfo:nil] raise];
+    }
 }
 
 -(SettingsMenu*)raise {
