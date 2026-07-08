@@ -1,7 +1,9 @@
-project('angle', 'cpp', version: '7871', meson_version: '>= 1.2.0', default_options: ['cpp_std=c++20'])
+project('angle', 'cpp', version: '7871', meson_version: '>= 1.2.0')
 if host_machine.system() == 'darwin'
     add_languages('objcpp', native: false)
 endif
+
+override_options = {'cpp_std': 'c++20'}
 
 host_machine_is_macos = host_machine.system() == 'darwin' and meson.get_compiler('cpp').compute_int('!!TARGET_OS_OSX', prefix: '#include <TargetConditionals.h>', low: 0, high: 1) != 0
 host_machine_is_ios = host_machine.system() == 'darwin' and not host_machine_is_macos
@@ -36,7 +38,7 @@ if get_option('default_library') == 'static'
     args += '-DANGLE_PLATFORM_EXPORT='
 endif
 
-angle_compression_utils = subproject('angle-compression-utils').get_variable('angle_compression_utils_portable')
+angle_compression_utils = subproject('angle-compression-utils', default_options: {'c_std': get_option('c_std'), 'cpp_std': get_option('cpp_std')}).get_variable('angle_compression_utils_portable')
 dl = meson.get_compiler('cpp').find_library(host_machine_is_windows ? 'kernel32' : 'dl', required: true)
 xxhash = dependency('libxxhash', required: true)
 
@@ -91,7 +93,7 @@ endif
 spirv_headers = dependency('SPIRV-Headers', required: get_option('vulkan'))
 spirv_tools = dependency('SPIRV-Tools', required: get_option('vulkan'))
 volk = dependency('volk', required: get_option('vulkan'))
-vulkan_memory_allocator = get_option('vulkan').allowed() ? subproject('vulkan-memory-allocator').get_variable('vulkan_memory_allocator') : dependency('', required: false)
+vulkan_memory_allocator = get_option('vulkan').allowed() ? subproject('vulkan-memory-allocator', default_options: {'c_std': get_option('c_std'), 'cpp_std': get_option('cpp_std')}).get_variable('vulkan_memory_allocator') : dependency('', required: false)
 have_vulkan = spirv_headers.found() and spirv_tools.found() and volk.found() and vulkan_memory_allocator.found()
 if have_vulkan
     args += [
@@ -280,6 +282,7 @@ endforeach
 
 angle_version_info = static_library(
     'angle_version_info',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         declare_dependency(sources: vcs_tag(command: [find_program('git'), 'rev-parse', '--short=12', 'HEAD'], fallback: 'unknown', input: 'angle_commit.h.in', output: 'angle_commit.h')),
@@ -296,6 +299,7 @@ angle_version_info = static_library(
 
 angle_frame_capture_mock = static_library(
     'angle_frame_capture_mock',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         xxhash,
@@ -312,6 +316,7 @@ angle_frame_capture_mock = static_library(
 
 angle_preprocessor = static_library(
     'angle_preprocessor',
+    override_options: override_options,
     include_directories: includes,
     cpp_args: args,
     sources: [
@@ -332,6 +337,7 @@ angle_preprocessor = static_library(
 
 angle_translator = static_library(
     'angle_translator',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         spirv_headers,
@@ -561,6 +567,7 @@ angle_translator = static_library(
 
 angle_common = static_library(
     'angle_common',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         host_machine.system() == 'darwin' ? dependency(
@@ -640,6 +647,7 @@ angle_common = static_library(
 
 angle_common_shader_state = static_library(
     'angle_common_shader_state',
+    override_options: override_options,
     include_directories: includes,
     cpp_args: args,
     sources: [
@@ -650,6 +658,7 @@ angle_common_shader_state = static_library(
 
 angle_image_util = static_library(
     'angle_image_util',
+    override_options: override_options,
     include_directories: includes,
     cpp_args: args,
     sources: [
@@ -673,6 +682,7 @@ angle_image_util = static_library(
 
 angle_vulkan_icd = static_library(
     'angle_vulkan_icd',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         volk,
@@ -691,6 +701,7 @@ angle_vulkan_icd = static_library(
 
 angle_libvulkan_loader = static_library(
     'angle_libvulkan_loader',
+    override_options: override_options,
     include_directories: includes,
     link_with: [
         angle_common,
@@ -704,6 +715,7 @@ angle_libvulkan_loader = static_library(
 
 angle_gpu_info_util = static_library(
     'angle_gpu_info_util',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         volk,
@@ -769,6 +781,7 @@ angle_gpu_info_util = static_library(
 
 angle_dma_buf = host_machine_is_windows or host_machine.system() == 'darwin' ? [] : static_library(
     'angle_dma_buf',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         volk,
@@ -782,6 +795,7 @@ angle_dma_buf = host_machine_is_windows or host_machine.system() == 'darwin' ? [
 
 angle_d3d9_format_tables = static_library(
     'angle_d3d9_format_tables',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         xxhash,
@@ -795,6 +809,7 @@ angle_d3d9_format_tables = static_library(
 
 angle_d3d11_format_tables = static_library(
     'angle_d3d11_format_tables',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         xxhash,
@@ -809,6 +824,7 @@ angle_d3d11_format_tables = static_library(
 
 angle_d3d_shared = static_library(
     'angle_d3d_shared',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         xxhash,
@@ -846,6 +862,7 @@ angle_d3d_shared = static_library(
 
 angle_d3d9_backend = static_library(
     'angle_d3d9_backend',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         d3d9,
@@ -885,6 +902,7 @@ angle_d3d9_backend = static_library(
 
 angle_d3d11_backend = static_library(
     'angle_d3d11_backend',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         dxgi,
@@ -949,6 +967,7 @@ if host_machine.system() != 'darwin'
 else
     angle_metal_backend = static_library(
         'angle_metal_backend',
+        override_options: override_options,
         include_directories: includes,
         dependencies: [
             xxhash,
@@ -1019,6 +1038,7 @@ endif
 
 angle_null_backend = static_library(
     'angle_null_backend',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         xxhash,
@@ -1051,6 +1071,7 @@ angle_null_backend = static_library(
 
 angle_gl_backend = static_library(
     'angle_gl_backend',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         glx,
@@ -1147,6 +1168,7 @@ angle_gl_backend = static_library(
 
 angle_spirv_base = static_library(
     'angle_spirv_base',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         spirv_tools,
@@ -1163,6 +1185,7 @@ angle_spirv_base = static_library(
 
 angle_spirv_builder = static_library(
     'angle_spirv_builder',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         spirv_headers,
@@ -1181,6 +1204,7 @@ angle_spirv_builder = static_library(
 
 angle_spirv_parser = static_library(
     'angle_spirv_parser',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         spirv_headers,
@@ -1195,6 +1219,7 @@ angle_spirv_parser = static_library(
 
 angle_vk_mem_alloc_wrapper = static_library(
     'angle_vk_mem_alloc_wrapper',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         angle_compression_utils,
@@ -1214,6 +1239,7 @@ angle_vk_mem_alloc_wrapper = static_library(
 
 angle_vulkan_backend = static_library(
     'angle_vulkan_backend',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         angle_compression_utils,
@@ -1345,6 +1371,7 @@ angle_vulkan_backend = static_library(
 
 angle_glesv2_thin = static_library(
     'GLESv2_thin',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         xxhash,
@@ -1369,6 +1396,7 @@ angle_glesv2_thin = static_library(
 
 angle_glesv2 = static_library(
     'GLESv2',
+    override_options: override_options,
     include_directories: includes,
     link_with: [
         angle_glesv2_thin,
@@ -1385,6 +1413,7 @@ mkxp_angle_egl_shim = static_library(
     dependencies: [
         dl,
     ],
+    override_options: override_options,
     include_directories: includes,
     cpp_args: args + export_args + egl_shim_args,
     sources: [
@@ -1395,6 +1424,7 @@ mkxp_angle_egl_shim = static_library(
 
 angle_egl = static_library(
     'EGL',
+    override_options: override_options,
     include_directories: includes,
     link_with: [
         angle_glesv2,
@@ -1409,6 +1439,7 @@ angle_egl = static_library(
 
 angle_util = static_library(
     'angle_util',
+    override_options: override_options,
     include_directories: includes,
     cpp_args: args + [
         '-DM_PI=3.14159265358979323846',
@@ -1433,6 +1464,7 @@ angle_util = static_library(
 
 angle = library(
     'ANGLE',
+    override_options: override_options,
     include_directories: includes,
     dependencies: [
         angle_compression_utils,

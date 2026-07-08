@@ -50,6 +50,8 @@ endforeach
 cmake_base_options = {
     'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
     'CMAKE_OSX_SYSROOT': '/nonexistent',
+    'CMAKE_C_STANDARD': c_std.replace('c', '').replace('gnu', ''),
+    'CMAKE_CXX_STANDARD': cpp_std.replace('c++', '').replace('gnu++', ''),
     'CMAKE_C_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
     'CMAKE_CXX_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
     'CMAKE_OBJC_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
@@ -57,12 +59,14 @@ cmake_base_options = {
     'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
     'CMAKE_BUILD_TYPE': 'Custom',
     'CMAKE_RC_COMPILER': host_system in ['windows', 'cygwin'] ? run_command(quotetool_command, find_program('windres'), check: true).stdout().strip() : '',
-    'CMAKE_EXE_LINKER_FLAGS': subproject('tools').get_variable('c_linker_flag'),
+    'CMAKE_EXE_LINKER_FLAGS': tools.get_variable('c_linker_flag'),
 }
 
 meson_base_options = {
     'default_library': 'static',
     'b_staticpic': use_pic,
+    'c_std': c_std,
+    'cpp_std': cpp_std,
 }
 
 subproject('libglvnd', default_options: meson_base_options)
@@ -239,6 +243,7 @@ if not sdl2.found() or not sdl2main.found()
             if not require_system_spirv_tools.enabled()
                 spirv_tools_options = cmake.subproject_options()
                 spirv_tools_options.add_cmake_defines(cmake_base_options + {
+                    'CMAKE_CXX_STANDARD': 17,
                     'CMAKE_C_FLAGS': run_command(quotetool_args, '-I' + meson.project_source_root() / 'subprojects' / 'spirv-headers' / 'include', check: true).stdout().strip(),
                     'CMAKE_CXX_FLAGS': run_command(quotetool_args, '-I' + meson.project_source_root() / 'subprojects' / 'spirv-headers' / 'include', check: true).stdout().strip(),
                     'SPIRV-Headers_SOURCE_DIR': meson.project_source_root() / 'subprojects' / 'spirv-headers',

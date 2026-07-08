@@ -35,13 +35,15 @@ global_cpp_args = []
 global_objc_args = ['-fobjc-arc']
 global_objcpp_args = []
 global_link_args = []
-global_std = ['c_std=c99', 'cpp_std=c++14']
+c_std = 'gnu11'
+cpp_std = 'gnu++14'
 
+tools = subproject('tools', default_options: {'c_std': c_std, 'cpp_std': cpp_std})
 cmake = import('cmake')
-python = subproject('tools').get_variable('python')
-embedtool = subproject('tools').get_variable('embedtool')
-quotetool_args = subproject('tools').get_variable('quotetool_args')
-quotetool_command = subproject('tools').get_variable('quotetool_command')
+python = tools.get_variable('python')
+embedtool = tools.get_variable('embedtool')
+quotetool_args = tools.get_variable('quotetool_args')
+quotetool_command = tools.get_variable('quotetool_command')
 
 sizeof = {'void*': compilers['cpp'].sizeof('void*'),
           'long': compilers['cpp'].sizeof('long')
@@ -167,7 +169,7 @@ libmkxp = static_library(
     cpp_args: global_args + global_cpp_args,
     objc_args: global_args + global_objc_args,
     objcpp_args: global_args + global_objc_args + global_cpp_args + global_objcpp_args,
-    override_options: global_std,
+    override_options: {'c_std': c_std, 'cpp_std': cpp_std},
 )
 
 executable(

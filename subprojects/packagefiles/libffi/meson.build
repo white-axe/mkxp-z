@@ -4,7 +4,7 @@ find_program('cmp', required: true)
 find_program('diff', required: true)
 
 cflags = subproject('tools').get_variable('base_cflags')
-cppflags = cflags
+cppflags = subproject('tools').get_variable('base_cppflags')
 
 cflags += get_option('c_args')
 cppflags += get_option('cpp_args')

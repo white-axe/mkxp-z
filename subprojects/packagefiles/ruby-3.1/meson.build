@@ -3,7 +3,7 @@ project('ruby-3.1', 'c', 'cpp', meson_version: '>=1.3.0')
 find_program('cmp', required: true)
 
 cflags = subproject('tools').get_variable('base_cflags')
-cppflags = cflags
+cppflags = subproject('tools').get_variable('base_cppflags')
 
 # -std=gnu99 is needed with GCC 15 and higher (which default to gnu23), for Ruby versions that aren't valid C23.
 # Ruby versions that are valid C23 are 3.2.9+, 3.3.9+, 3.4.5+, and 4.0.0+.
