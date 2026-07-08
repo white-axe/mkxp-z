@@ -91,7 +91,6 @@ typedef NSMutableArray<NSNumber*> BindingIndexArray;
 }
 
 -(void)loadView {
-    [super loadView];
     NSData *data = [NSData dataWithBytesNoCopy:(void *)mkxp_macos_settingsmenu_nib length:mkxp_macos_settingsmenu_nib_len freeWhenDone:false];
     NSArray *objects;
     [[[NSNib alloc] initWithNibData:data bundle:nil] instantiateWithOwner:self topLevelObjects:&objects];
