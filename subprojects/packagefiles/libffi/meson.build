@@ -18,6 +18,14 @@ if build_machine.system() in ['windows', 'cygwin']
     srcdir = run_command(find_program('cygpath'), '-u', srcdir, check: true).stdout().strip()
 endif
 
+if meson.get_compiler('c').get_id() == 'nvcc'
+    cc_basename = 'nvcc'
+elif meson.get_compiler('c').get_argument_syntax() == 'msvc'
+    cc_basename = 'cl'
+else
+    cc_basename = 'gcc'
+endif
+
 libffi_includes = [
     '-I' + meson.project_build_root() / 'dist' / 'include',
 ]
@@ -56,6 +64,7 @@ libffi = declare_dependency(
             ],
             env: {
                 'CONFIG_SITE': ' ',
+                'MKXP_CC_BASENAME': cc_basename,
             },
             verbose: true,
         ).dependency('ffi').partial_dependency(
