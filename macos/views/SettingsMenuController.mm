@@ -43,7 +43,7 @@ static const int inputMapRowToCode[] {
 typedef NSMutableArray<NSNumber*> BindingIndexArray;
 
 @implementation SettingsMenu {
-    NSArray *topLevelObjects;
+    NSArray *_topLevelObjects;
 
     __weak IBOutlet NSWindow *_window;
     __weak IBOutlet NSTableView *_table;
@@ -94,9 +94,11 @@ typedef NSMutableArray<NSNumber*> BindingIndexArray;
 
 -(void)loadView {
     NSData *data = [NSData dataWithBytesNoCopy:(void *)mkxp_macos_settingsmenu_nib length:mkxp_macos_settingsmenu_nib_len freeWhenDone:false];
+    NSArray *topLevelObjects;
     if (![[[NSNib alloc] initWithNibData:data bundle:nil] instantiateWithOwner:self topLevelObjects:&topLevelObjects]) {
         [[NSException exceptionWithName:NSInternalInconsistencyException reason:@"could not load settingsmenu.nib" userInfo:nil] raise];
     }
+    _topLevelObjects = topLevelObjects; // View controllers need to have a strong reference to all of their top-level objects
 }
 
 -(SettingsMenu*)raise {
