@@ -1,0 +1,22 @@
+# This patch makes it so that the name of the libffi static library is always "libffi.a" regardless of what platform we're building for.
+
+--- a/configure
++++ b/configure
+@@ -23883,7 +23883,7 @@ OTOOL=$lt_OTOOL
+ OTOOL64=$lt_OTOOL64
+ 
+ # Old archive suffix (normally "a").
+-libext=$libext
++libext=a
+ 
+ # Shared library suffix (normally ".so").
+ shrext_cmds=$lt_shrext_cmds
+@@ -23914,7 +23914,7 @@ shlibpath_var=$shlibpath_var
+ shlibpath_overrides_runpath=$shlibpath_overrides_runpath
+ 
+ # Format of library name prefix.
+-libname_spec=$lt_libname_spec
++libname_spec='lib\$name'
+ 
+ # List of archive names.  First name is the real one, the rest are links.
+ # The last name is the one that the linker finds with -lNAME
