@@ -43,6 +43,8 @@ static const int inputMapRowToCode[] {
 typedef NSMutableArray<NSNumber*> BindingIndexArray;
 
 @implementation SettingsMenu {
+    NSArray *topLevelObjects;
+
     __weak IBOutlet NSWindow *_window;
     __weak IBOutlet NSTableView *_table;
     __weak IBOutlet NSBox *bindingBox;
@@ -92,8 +94,7 @@ typedef NSMutableArray<NSNumber*> BindingIndexArray;
 
 -(void)loadView {
     NSData *data = [NSData dataWithBytesNoCopy:(void *)mkxp_macos_settingsmenu_nib length:mkxp_macos_settingsmenu_nib_len freeWhenDone:false];
-    NSArray *objects;
-    [[[NSNib alloc] initWithNibData:data bundle:nil] instantiateWithOwner:self topLevelObjects:&objects];
+    [[[NSNib alloc] initWithNibData:data bundle:nil] instantiateWithOwner:self topLevelObjects:&topLevelObjects];
 }
 
 -(SettingsMenu*)raise {
