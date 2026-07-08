@@ -2,23 +2,33 @@
 
 --- a/missing/crypt.c
 +++ b/missing/crypt.c
-@@ -36,6 +36,9 @@ static char sccsid[] = "@(#)crypt.c	8.1 (Berkeley) 6/4/93";
+@@ -35,7 +35,16 @@ static char sccsid[] = "@(#)crypt.c	8.1 (Berkeley) 6/4/93";
+ #endif /* LIBC_SCCS and not lint */
  
  #include "ruby/missing.h"
- #include "crypt.h"
 +#define crypt_data mkxp_crypt_data
 +#define crypt mkxp_crypt
 +#define crypt_r mkxp_crypt_r
+ #include "crypt.h"
++#undef crypt_data
++#undef crypt
++#undef crypt_r
++#define crypt_data mkxp_dummy_crypt_data
++#define crypt mkxp_dummy_crypt
++#define crypt_r mkxp_dummy_crypt_r
  #ifdef HAVE_UNISTD_H
  #include <unistd.h>
  #endif
-@@ -45,6 +48,9 @@ static char sccsid[] = "@(#)crypt.c	8.1 (Berkeley) 6/4/93";
+@@ -45,6 +54,12 @@ static char sccsid[] = "@(#)crypt.c	8.1 (Berkeley) 6/4/93";
  #endif
  #include <stdio.h>
  #include <string.h>
 +#undef crypt_data
 +#undef crypt
 +#undef crypt_r
++#define crypt_data mkxp_crypt_data
++#define crypt mkxp_crypt
++#define crypt_r mkxp_crypt_r
  #ifndef _PASSWORD_EFMT1
  #define _PASSWORD_EFMT1 '_'
  #endif
@@ -28,20 +38,23 @@
  
  **********************************************************************/
  
-+#define crypt_data mkxp_crypt_data
-+#define crypt mkxp_crypt
-+#define crypt_r mkxp_crypt_r
++#define crypt_data mkxp_dummy_crypt_data
++#define crypt mkxp_dummy_crypt
++#define crypt_r mkxp_dummy_crypt_r
 +
  #include "ruby/internal/config.h"
  
  #include <ctype.h>
-@@ -46,6 +50,10 @@
+@@ -46,6 +50,13 @@
  #include "ruby_assert.h"
  #include "vm_sync.h"
  
 +#undef crypt_data
 +#undef crypt
 +#undef crypt_r
++#define crypt_data mkxp_crypt_data
++#define crypt mkxp_crypt
++#define crypt_r mkxp_crypt_r
 +
  #if defined HAVE_CRYPT_R
  # if defined HAVE_CRYPT_H
