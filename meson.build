@@ -32,7 +32,7 @@ global_dependencies = [declare_dependency(sources: git_hash_file)]
 global_include_dirs = []
 global_args = []
 global_cpp_args = []
-global_objc_args = ['-fobjc-arc']
+global_objc_args = ['-fobjc-arc', '-fobjc-weak']
 global_objcpp_args = []
 global_link_args = []
 c_std = 'gnu11'
@@ -148,6 +148,10 @@ if get_option('steamworks_path') != ''
             '-DGAME_LAUNCH_NAME="' + exe_name + '"',
             '-DDEBUGPIPE=' + (get_option('steamshim_debug') ? '1' : '0'),
         ],
+        objcpp_args: [
+            '-fobjc-arc',
+            '-fobjc-weak',
+        ],
         link_args: global_link_args,
         win_subsystem: get_option('steamshim_debug') ? 'console' : 'windows',
         build_rpath: rpath,
@@ -235,6 +239,10 @@ if host_system == 'darwin'
             cpp_args: [
                 '-DGAME_LAUNCH_NAME="' + meson.project_name() + '"',
                 '-DDEBUGPIPE=' + (get_option('steamshim_debug') ? '1' : '0'),
+            ],
+            objcpp_args: [
+                '-fobjc-arc',
+                '-fobjc-weak',
             ],
             link_args: global_link_args,
             win_subsystem: get_option('steamshim_debug') ? 'console' : 'windows',

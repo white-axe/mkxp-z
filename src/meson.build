@@ -120,6 +120,7 @@ physfs = dependency('physfs', allow_fallback: false, required: get_option('physf
 if not physfs.found()
     physfs_options = cmake.subproject_options()
     physfs_options.add_cmake_defines(cmake_base_options + {
+        'CMAKE_OBJC_FLAGS': run_command(quotetool_args, '-fno-objc-arc', '-fno-objc-weak', check: true).stdout().strip(),
         'PHYSFS_BUILD_STATIC': true,
         'PHYSFS_BUILD_SHARED': false,
         'PHYSFS_BUILD_TEST': false,

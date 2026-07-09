@@ -242,6 +242,10 @@ else
     wayland_egl = dependency('', required: false)
 endif
 
+objcpp_args = args
+objcpp_args += '-fno-objc-arc'
+objcpp_args += '-fno-objc-weak'
+
 export_args = [
     '-DANGLE_EXPORT=',
     '-DANGLE_STATIC=1',
@@ -580,7 +584,7 @@ angle_common = static_library(
         host_machine_is_windows ? meson.get_compiler('cpp').find_library('synchronization', required: true) : [],
     ],
     cpp_args: args,
-    objcpp_args: args,
+    objcpp_args: objcpp_args,
     sources: [
         'src/common/Float16ToFloat32.cpp',
         'src/common/MemoryBuffer.cpp',
@@ -740,7 +744,7 @@ angle_gpu_info_util = static_library(
         have_vulkan ? angle_libvulkan_loader : [],
     ],
     cpp_args: args,
-    objcpp_args: args,
+    objcpp_args: objcpp_args,
     sources: [
         'src/gpu_info_util/SystemInfo.cpp',
         host_machine_is_windows
@@ -989,9 +993,7 @@ else
             ) : [],
         ],
         cpp_args: args,
-        objcpp_args: args + [
-            '-fno-objc-arc',
-        ],
+        objcpp_args: objcpp_args,
         sources: [
             'src/libANGLE/renderer/metal/BufferMtl.mm',
             'src/libANGLE/renderer/metal/CompilerMtl.mm',
@@ -1267,7 +1269,7 @@ angle_vulkan_backend = static_library(
         angle_vk_mem_alloc_wrapper,
     ],
     cpp_args: args,
-    objcpp_args: args,
+    objcpp_args: objcpp_args,
     sources: [
         'src/libANGLE/renderer/vulkan/AllocatorHelperPool.cpp',
         'src/libANGLE/renderer/vulkan/BufferVk.cpp',
