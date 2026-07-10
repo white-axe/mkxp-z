@@ -10,7 +10,7 @@ global_dependencies += declare_dependency(sources: [
                 command: [
                     find_program('ibtool'),
                     '--compile', '@OUTPUT@',
-                    '--minimum-deployment-target', '10.13',
+                    '--minimum-deployment-target', '11.0',
                     files('settingsmenu.xib'),
                 ],
             ),
