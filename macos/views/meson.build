@@ -10,6 +10,7 @@ global_dependencies += declare_dependency(sources: [
                 command: [
                     find_program('ibtool'),
                     '--compile', '@OUTPUT@',
+                    '--minimum-deployment-target', '10.13',
                     files('settingsmenu.xib'),
                 ],
             ),
@@ -18,23 +19,23 @@ global_dependencies += declare_dependency(sources: [
         ],
     ),
     custom_target(
-        'gear.svg.xxd',
-        output: 'gear.svg.xxd',
+        'gear.png.xxd',
+        output: 'gear.png.xxd',
         command: [
             embedtool,
-            files('gear.svg'),
+            files('gear/gear_Normal@2x_5.png'),
             '@OUTPUT@',
-            'mkxp_macos_gear_svg',
+            'mkxp_macos_gear_png',
         ],
     ),
     custom_target(
-        'gobackward.svg.xxd',
-        output: 'gobackward.svg.xxd',
+        'gobackward.png.xxd',
+        output: 'gobackward.png.xxd',
         command: [
             embedtool,
-            files('gobackward.svg'),
+            files('gobackward/gobackward_Normal@2x_5.png'),
             '@OUTPUT@',
-            'mkxp_macos_gobackward_svg',
+            'mkxp_macos_gobackward_png',
         ],
     ),
 ])
