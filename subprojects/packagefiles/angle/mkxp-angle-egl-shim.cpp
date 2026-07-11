@@ -9,6 +9,8 @@
 #undef MKXP_EGL_SHIM_MANGLE
 #define MKXP_EGL_SHIM_MANGLE(name) name
 
+#include "mkxp-angle-shim-sonames.h"
+
 extern bool mkxp_use_angle;
 
 #define FOR_EACH_EGL_PROC(macro) \
@@ -63,11 +65,9 @@ static void open_egl() {
 #endif
     if (
 #ifdef _WIN32
-        (egl = LoadLibraryA("libEGL.dll")) == nullptr
-#elif defined(__APPLE__)
-        (egl = dlopen("libEGL.dylib", RTLD_LAZY)) == nullptr
+        (egl = LoadLibraryA(MKXP_ANGLE_SHIM_EGL_SONAME)) == nullptr
 #else
-        (egl = dlopen("libEGL.so", RTLD_LAZY)) == nullptr
+        (egl = dlopen(MKXP_ANGLE_SHIM_EGL_SONAME, RTLD_LAZY)) == nullptr
 #endif
     ) {
         return;

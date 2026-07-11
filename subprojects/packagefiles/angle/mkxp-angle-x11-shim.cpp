@@ -1,6 +1,9 @@
 #include <dlfcn.h>
+
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+
+#include "mkxp-angle-shim-sonames.h"
 
 static int (*_xCloseDisplay)(Display *display) = nullptr;
 static Colormap (*_xCreateColormap)(Display *display, Window w, Visual *visual, int alloc) = nullptr;
@@ -26,7 +29,7 @@ static void open_x11() {
     }
     x11_loaded = true;
     void *x11 = nullptr;
-    if ((x11 = dlopen("libX11.so", RTLD_LAZY)) == nullptr) {
+    if ((x11 = dlopen(MKXP_ANGLE_SHIM_X11_SONAME, RTLD_LAZY)) == nullptr) {
         return;
     }
     if (

@@ -1085,6 +1085,16 @@ if get_option('cjk_fallback_font') == true
     global_cpp_args += '-DMKXPZ_CJK_FONT'
 endif
 
+configure_file(
+    input: 'sonames.h.in',
+    output: 'sonames.h',
+    configuration: {
+        'MKXPZ_WAYLAND_CLIENT_SONAME': is_nix ? run_command(sonametool, 'wayland-client', check: true).stdout().strip() : '',
+        'MKXPZ_WAYLAND_CURSOR_SONAME': is_nix ? run_command(sonametool, 'wayland-cursor', check: true).stdout().strip() : '',
+        'MKXPZ_XKBCOMMON_SONAME': is_nix ? run_command(sonametool, 'xkbcommon', check: true).stdout().strip() : '',
+    },
+)
+
 main_source = files(
     'main.cpp',
     'config.cpp',

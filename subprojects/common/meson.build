@@ -17,6 +17,10 @@ quotetool_args = [python, files('quotetool.py')[0], build_machine.system(), 'fal
 #   This is the same thing as quotetool_args, except if the build machine is Windows, all backslashes in the first argument are replaced with forward slashes to avoid problems with build tools such as CMake that cannot handle certain path formats correctly. If the build machine is not Windows, this is exactly equivalent to quotetool_args.
 quotetool_command = [python, files('quotetool.py')[0], build_machine.system(), 'true']
 
+# sonametool LIBRARY_NAME
+#   Returns the full name of the shared library file for the given library on the host machine. For example, given "X11", this outputs "libX11.so.6" when building for BSD or Linux.
+sonametool = [python, files('sonametool.py')[0], host_machine.system()]
+
 host_triplet_cpu = host_machine.cpu()
 host_triplet_vendor = 'unknown'
 if host_machine.system() in ['windows', 'cygwin']

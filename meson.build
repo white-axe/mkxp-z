@@ -44,6 +44,7 @@ python = common.get_variable('python')
 embedtool = common.get_variable('embedtool')
 quotetool_args = common.get_variable('quotetool_args')
 quotetool_command = common.get_variable('quotetool_command')
+sonametool = common.get_variable('sonametool')
 
 sizeof = {'void*': compilers['cpp'].sizeof('void*'),
           'long': compilers['cpp'].sizeof('long')

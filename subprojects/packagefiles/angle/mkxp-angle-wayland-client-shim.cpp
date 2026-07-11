@@ -1,5 +1,8 @@
 #include <dlfcn.h>
+
 #include <wayland-client-core.h>
+
+#include "mkxp-angle-shim-sonames.h"
 
 static struct wl_display *(*_wl_display_connect)(const char *name) = nullptr;
 static void (*_wl_display_disconnect)(struct wl_display *display) = nullptr;
@@ -13,7 +16,7 @@ static void open_wayland_client() {
     }
     wayland_client_loaded = true;
     void *wayland_client = nullptr;
-    if ((wayland_client = dlopen("libwayland-client.so", RTLD_LAZY)) == nullptr) {
+    if ((wayland_client = dlopen(MKXP_ANGLE_SHIM_WAYLAND_CLIENT_SONAME, RTLD_LAZY)) == nullptr) {
         return;
     }
     if (

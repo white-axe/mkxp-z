@@ -38,6 +38,17 @@ if get_option('default_library') == 'static'
     args += '-DANGLE_PLATFORM_EXPORT='
 endif
 
+configure_file(
+    input: 'mkxp-angle-shim-sonames.h.in',
+    output: 'mkxp-angle-shim-sonames.h',
+    configuration: {
+        'MKXP_ANGLE_SHIM_EGL_SONAME': run_command(subproject('common').get_variable('sonametool'), 'EGL', check: true).stdout().strip(),
+        'MKXP_ANGLE_SHIM_WAYLAND_CLIENT_SONAME': run_command(subproject('common').get_variable('sonametool'), 'wayland-client', check: true).stdout().strip(),
+        'MKXP_ANGLE_SHIM_X11_SONAME': run_command(subproject('common').get_variable('sonametool'), 'X11', check: true).stdout().strip(),
+        'MKXP_ANGLE_SHIM_XCB_SONAME': run_command(subproject('common').get_variable('sonametool'), 'xcb', check: true).stdout().strip(),
+    },
+)
+
 angle_compression_utils = subproject('angle-compression-utils', default_options: {'c_std': get_option('c_std'), 'cpp_std': get_option('cpp_std')}).get_variable('angle_compression_utils_portable')
 dl = meson.get_compiler('cpp').find_library(host_machine_is_windows ? 'kernel32' : 'dl', required: true)
 xxhash = dependency('libxxhash', required: true)

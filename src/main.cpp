@@ -50,6 +50,8 @@
 
 #include "system/system.h"
 
+#include "sonames.h"
+
 #if defined(__WIN32__)
 #include "resource.h"
 #include <processenv.h>
@@ -262,9 +264,9 @@ int main(int argc, char *argv[]) {
       if (sdl_videodriver == nullptr || sdl_videodriver[0] == 0) {
         /* Select SDL's Wayland video driver if SDL_VIDEODRIVER is unset and Wayland support is available on the user's machine */
         SDL_SetHintWithPriority(SDL_HINT_VIDEODRIVER, "x11", SDL_HINT_OVERRIDE);
-        void *wayland_client = SDL_LoadObject("libwayland-client.so");
-        void *wayland_cursor = SDL_LoadObject("libwayland-cursor.so");
-        void *xkbcommon = SDL_LoadObject("libxkbcommon.so");
+        void *wayland_client = SDL_LoadObject(MKXPZ_WAYLAND_CLIENT_SONAME);
+        void *wayland_cursor = SDL_LoadObject(MKXPZ_WAYLAND_CURSOR_SONAME);
+        void *xkbcommon = SDL_LoadObject(MKXPZ_XKBCOMMON_SONAME);
         if (wayland_client != nullptr && wayland_cursor != nullptr && xkbcommon != nullptr) {
           void *(*_wl_display_connect)(const char *name) = reinterpret_cast<void *(*)(const char *name)>(SDL_LoadFunction(wayland_client, "wl_display_connect"));
           void (*_wl_display_disconnect)(void *display) = reinterpret_cast<void (*)(void *display)>(SDL_LoadFunction(wayland_client, "wl_display_disconnect"));

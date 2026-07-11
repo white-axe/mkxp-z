@@ -1,5 +1,8 @@
 #include <dlfcn.h>
+
 #include <xcb/xcb.h>
+
+#include "mkxp-angle-shim-sonames.h"
 
 static xcb_connection_t *(*_xcb_connect)(const char *displayname, int *screenp);
 static int (*_xcb_connection_has_error)(xcb_connection_t *c);
@@ -26,7 +29,7 @@ static void open_xcb() {
     }
     xcb_loaded = true;
     void *xcb = nullptr;
-    if ((xcb = dlopen("libxcb.so", RTLD_LAZY)) == nullptr) {
+    if ((xcb = dlopen(MKXP_ANGLE_SHIM_XCB_SONAME, RTLD_LAZY)) == nullptr) {
         return;
     }
     if (
