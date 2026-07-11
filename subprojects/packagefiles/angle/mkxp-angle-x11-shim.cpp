@@ -3,8 +3,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
-#include "mkxp-angle-shim-sonames.h"
-
 static int (*_xCloseDisplay)(Display *display) = nullptr;
 static Colormap (*_xCreateColormap)(Display *display, Window w, Visual *visual, int alloc) = nullptr;
 static Window (*_xCreateWindow)(Display *display, Window parent, int x, int y, unsigned int width, unsigned int height, unsigned int border_width, int depth, unsigned int class_, Visual *visual, unsigned long valuemask, XSetWindowAttributes *attributes) = nullptr;

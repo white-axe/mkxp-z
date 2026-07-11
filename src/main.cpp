@@ -50,8 +50,6 @@
 
 #include "system/system.h"
 
-#include "sonames.h"
-
 #if defined(__WIN32__)
 #include "resource.h"
 #include <processenv.h>

@@ -2,8 +2,6 @@
 
 #include <wayland-client-core.h>
 
-#include "mkxp-angle-shim-sonames.h"
-
 static struct wl_display *(*_wl_display_connect)(const char *name) = nullptr;
 static void (*_wl_display_disconnect)(struct wl_display *display) = nullptr;
 static int (*_wl_display_get_error)(struct wl_display *display) = nullptr;

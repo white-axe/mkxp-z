@@ -2,8 +2,6 @@
 
 #include <xcb/xcb.h>
 
-#include "mkxp-angle-shim-sonames.h"
-
 static xcb_connection_t *(*_xcb_connect)(const char *displayname, int *screenp);
 static int (*_xcb_connection_has_error)(xcb_connection_t *c);
 static void (*_xcb_depth_next)(xcb_depth_iterator_t *i);

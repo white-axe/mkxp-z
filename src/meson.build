@@ -219,6 +219,14 @@ else
     endforeach
 endif
 
+if is_nix
+    global_args += [
+        '-DMKXPZ_WAYLAND_CLIENT_SONAME=' + run_command(sonametool, 'wayland-client', check: true).stdout().strip(),
+        '-DMKXPZ_WAYLAND_CURSOR_SONAME=' + run_command(sonametool, 'wayland-cursor', check: true).stdout().strip(),
+        '-DMKXPZ_XKBCOMMON_SONAME=' + run_command(sonametool, 'xkbcommon', check: true).stdout().strip(),
+    ]
+endif
+
 if not sdl2.found() or not sdl2main.found()
     have_angle = get_option('angle').allowed()
 
@@ -998,6 +1006,8 @@ if not fluidsynth.found()
 endif
 global_dependencies += fluidsynth
 
+global_args += '-DMKXPZ_FLUIDSYNTH_SONAME=' + run_command(sonametool, 'fluidsynth', check: true).stdout().strip()
+
 ruby = dependency('ruby-' + get_option('mri_version'), allow_fallback: false, required: get_option('ruby_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
 if not ruby.found()
     libffi = dependency('libffi', allow_fallback: false, method: 'pkg-config', required: get_option('libffi_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
@@ -1084,16 +1094,6 @@ global_cpp_args += '-DSHARED_FLUID'
 if get_option('cjk_fallback_font') == true
     global_cpp_args += '-DMKXPZ_CJK_FONT'
 endif
-
-configure_file(
-    input: 'sonames.h.in',
-    output: 'sonames.h',
-    configuration: {
-        'MKXPZ_WAYLAND_CLIENT_SONAME': is_nix ? run_command(sonametool, 'wayland-client', check: true).stdout().strip() : '',
-        'MKXPZ_WAYLAND_CURSOR_SONAME': is_nix ? run_command(sonametool, 'wayland-cursor', check: true).stdout().strip() : '',
-        'MKXPZ_XKBCOMMON_SONAME': is_nix ? run_command(sonametool, 'xkbcommon', check: true).stdout().strip() : '',
-    },
-)
 
 main_source = files(
     'main.cpp',

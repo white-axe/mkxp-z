@@ -9,8 +9,6 @@
 #undef MKXP_EGL_SHIM_MANGLE
 #define MKXP_EGL_SHIM_MANGLE(name) name
 
-#include "mkxp-angle-shim-sonames.h"
-
 extern bool mkxp_use_angle;
 
 #define FOR_EACH_EGL_PROC(macro) \

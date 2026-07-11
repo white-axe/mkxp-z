@@ -6,8 +6,6 @@
 
 #include "debugwriter.h"
 
-#include "sonames.h"
-
 struct FluidFunctions fluid;
 #ifndef SHARED_FLUID
 static void *so;
