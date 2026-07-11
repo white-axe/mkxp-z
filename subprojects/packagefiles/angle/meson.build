@@ -130,12 +130,12 @@ if have_x11
             dependencies: x11,
             link_with: static_library(
                 'mkxp-angle-x11-shim',
-                cpp_args: [
-                    '-DMKXP_ANGLE_SHIM_X11_SONAME=' + run_command(subproject('common').get_variable('sonametool'), 'X11', check: true).stdout().strip(),
-                ],
                 dependencies: [
                     dl,
                     x11,
+                ],
+                cpp_args: [
+                    '-DMKXP_ANGLE_SHIM_X11_SONAME="' + run_command(subproject('common').get_variable('sonametool'), 'X11', check: true).stdout().strip() + '"',
                 ],
                 sources: [
                     'mkxp-angle-x11-shim.cpp',
@@ -172,12 +172,12 @@ if have_x11
             dependencies: xcb,
             link_with: static_library(
                 'mkxp-angle-xcb-shim',
-                cpp_args: [
-                    '-DMKXP_ANGLE_SHIM_XCB_SONAME=' + run_command(subproject('common').get_variable('sonametool'), 'xcb', check: true).stdout().strip(),
-                ],
                 dependencies: [
                     dl,
                     xcb,
+                ],
+                cpp_args: [
+                    '-DMKXP_ANGLE_SHIM_XCB_SONAME="' + run_command(subproject('common').get_variable('sonametool'), 'xcb', check: true).stdout().strip() + '"',
                 ],
                 sources: [
                     'mkxp-angle-xcb-shim.cpp',
@@ -221,12 +221,12 @@ if have_wayland
         dependencies: wayland_client,
         link_with: static_library(
             'mkxp-angle-wayland-client-shim',
-            cpp_args: [
-                '-DMKXP_ANGLE_SHIM_WAYLAND_CLIENT_SONAME=' + run_command(subproject('common').get_variable('sonametool'), 'wayland-client', check: true).stdout().strip(),
-            ],
             dependencies: [
                 dl,
                 wayland_client,
+            ],
+            cpp_args: [
+                '-DMKXP_ANGLE_SHIM_WAYLAND_CLIENT_SONAME="' + run_command(subproject('common').get_variable('sonametool'), 'wayland-client', check: true).stdout().strip() + '"',
             ],
             sources: [
                 'mkxp-angle-wayland-client-shim.cpp',
@@ -266,7 +266,7 @@ export_args = [
 
 egl_args = []
 egl_shim_args = [
-    '-DMKXP_ANGLE_SHIM_EGL_SONAME=' + run_command(subproject('common').get_variable('sonametool'), 'EGL', check: true).stdout().strip(),
+    '-DMKXP_ANGLE_SHIM_EGL_SONAME="' + run_command(subproject('common').get_variable('sonametool'), 'EGL', check: true).stdout().strip() + '"',
 ]
 foreach func : [
     'eglBindAPI',

@@ -221,9 +221,9 @@ endif
 
 if is_nix
     global_args += [
-        '-DMKXPZ_WAYLAND_CLIENT_SONAME=' + run_command(sonametool, 'wayland-client', check: true).stdout().strip(),
-        '-DMKXPZ_WAYLAND_CURSOR_SONAME=' + run_command(sonametool, 'wayland-cursor', check: true).stdout().strip(),
-        '-DMKXPZ_XKBCOMMON_SONAME=' + run_command(sonametool, 'xkbcommon', check: true).stdout().strip(),
+        '-DMKXPZ_WAYLAND_CLIENT_SONAME="' + run_command(sonametool, 'wayland-client', check: true).stdout().strip() + '"',
+        '-DMKXPZ_WAYLAND_CURSOR_SONAME="' + run_command(sonametool, 'wayland-cursor', check: true).stdout().strip() + '"',
+        '-DMKXPZ_XKBCOMMON_SONAME="' + run_command(sonametool, 'xkbcommon', check: true).stdout().strip() + '"',
     ]
 endif
 
@@ -1006,7 +1006,7 @@ if not fluidsynth.found()
 endif
 global_dependencies += fluidsynth
 
-global_args += '-DMKXPZ_FLUIDSYNTH_SONAME=' + run_command(sonametool, 'fluidsynth', check: true).stdout().strip()
+global_args += '-DMKXPZ_FLUIDSYNTH_SONAME="' + run_command(sonametool, 'fluidsynth', check: true).stdout().strip() + '"'
 
 ruby = dependency('ruby-' + get_option('mri_version'), allow_fallback: false, required: get_option('ruby_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
 if not ruby.found()
