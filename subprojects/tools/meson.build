@@ -29,16 +29,10 @@ host_triplet = host_triplet_cpu + '-' + host_triplet_vendor + '-' + host_triplet
 base_cflags = []
 base_ldflags = []
 
-c_linker = find_program('c_ld', required: false)
 c_linker_flag = ''
-if c_linker.found() and run_command(c_linker, '--version', check: false).returncode() == 0 and meson.get_compiler('c').has_link_argument('-fuse-ld=' + c_linker.full_path())
-    c_linker_flag = '-fuse-ld=' + c_linker.full_path()
-endif
-if c_linker_flag == ''
-    c_linker_id = meson.get_compiler('c').get_linker_id().split('.')[-1]
-    if meson.get_compiler('c').has_link_argument('-fuse-ld=' + c_linker_id)
-        c_linker_flag = '-fuse-ld=' + c_linker_id
-    endif
+c_linker_id = meson.get_compiler('c').get_linker_id().split('.')[-1]
+if meson.get_compiler('c').has_link_argument('-fuse-ld=' + c_linker_id)
+    c_linker_flag = '-fuse-ld=' + c_linker_id
 endif
 if c_linker_flag != ''
     base_ldflags += c_linker_flag
