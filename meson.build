@@ -38,12 +38,12 @@ global_link_args = []
 c_std = 'gnu11'
 cpp_std = 'gnu++14'
 
-tools = subproject('tools', default_options: {'c_std': c_std, 'cpp_std': cpp_std})
+common = subproject('common', default_options: {'c_std': c_std, 'cpp_std': cpp_std})
 cmake = import('cmake')
-python = tools.get_variable('python')
-embedtool = tools.get_variable('embedtool')
-quotetool_args = tools.get_variable('quotetool_args')
-quotetool_command = tools.get_variable('quotetool_command')
+python = common.get_variable('python')
+embedtool = common.get_variable('embedtool')
+quotetool_args = common.get_variable('quotetool_args')
+quotetool_command = common.get_variable('quotetool_command')
 
 sizeof = {'void*': compilers['cpp'].sizeof('void*'),
           'long': compilers['cpp'].sizeof('long')

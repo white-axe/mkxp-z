@@ -1,10 +1,10 @@
 project('libinotify', 'c', meson_version: '>=1.3.0')
 
-cflags = subproject('tools').get_variable('base_cflags')
+cflags = subproject('common').get_variable('base_cflags')
 
 cflags += get_option('c_args')
 
-ldflags = subproject('tools').get_variable('base_ldflags')
+ldflags = subproject('common').get_variable('base_ldflags')
 
 ldflags += get_option('c_link_args')
 
@@ -29,15 +29,15 @@ libinotify = declare_dependency(
                 '--includedir=/include',
                 '--enable-static',
                 '--disable-shared',
-                'CC=' + run_command(subproject('tools').get_variable('quotetool_command'), meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
-                'AR=' + run_command(subproject('tools').get_variable('quotetool_command'), find_program('ar'), check: true).stdout().strip(),
-                'RANLIB=' + run_command(subproject('tools').get_variable('quotetool_command'), find_program('ranlib'), check: true).stdout().strip(),
-                'CFLAGS=' + run_command(subproject('tools').get_variable('quotetool_args'), cflags, check: true).stdout().strip(),
-                'LDFLAGS=' + run_command(subproject('tools').get_variable('quotetool_args'), ldflags, check: true).stdout().strip(),
+                'CC=' + run_command(subproject('common').get_variable('quotetool_command'), meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
+                'AR=' + run_command(subproject('common').get_variable('quotetool_command'), find_program('ar'), check: true).stdout().strip(),
+                'RANLIB=' + run_command(subproject('common').get_variable('quotetool_command'), find_program('ranlib'), check: true).stdout().strip(),
+                'CFLAGS=' + run_command(subproject('common').get_variable('quotetool_args'), cflags, check: true).stdout().strip(),
+                'LDFLAGS=' + run_command(subproject('common').get_variable('quotetool_args'), ldflags, check: true).stdout().strip(),
             ],
             cross_configure_options: [
                 '--host=@HOST@',
-                '--host=' + subproject('tools').get_variable('host_triplet'),
+                '--host=' + subproject('common').get_variable('host_triplet'),
             ],
             env: {
                 'CONFIG_SITE': ' ',

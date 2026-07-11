@@ -3,5 +3,5 @@
 !/packagefiles/**
 /.wraplock
 
-!/tools
-!/tools/**
+!/common
+!/common/**

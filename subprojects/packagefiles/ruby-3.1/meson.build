@@ -2,8 +2,8 @@ project('ruby-3.1', 'c', 'cpp', meson_version: '>=1.3.0')
 
 find_program('cmp', required: true)
 
-cflags = subproject('tools').get_variable('base_cflags')
-cppflags = subproject('tools').get_variable('base_cppflags')
+cflags = subproject('common').get_variable('base_cflags')
+cppflags = subproject('common').get_variable('base_cppflags')
 
 # -std=gnu99 is needed with GCC 15 and higher (which default to gnu23), for Ruby versions that aren't valid C23.
 # Ruby versions that are valid C23 are 3.2.9+, 3.3.9+, 3.4.5+, and 4.0.0+.
@@ -12,7 +12,7 @@ cflags += '-std=gnu99'
 cflags += get_option('c_args')
 cppflags += get_option('cpp_args')
 
-ldflags = subproject('tools').get_variable('base_ldflags')
+ldflags = subproject('common').get_variable('base_ldflags')
 
 ldflags += get_option('c_link_args')
 
@@ -30,7 +30,7 @@ baseruby = find_program('ruby').full_path()
 if build_machine.system() in ['windows', 'cygwin']
     baseruby = run_command(find_program('cygpath'), '-u', baseruby, check: true).stdout().strip()
 endif
-baseruby = run_command(subproject('tools').get_variable('quotetool_command'), baseruby, check: true).stdout().strip()
+baseruby = run_command(subproject('common').get_variable('quotetool_command'), baseruby, check: true).stdout().strip()
 
 ruby_deps = [
     dependency('libffi', required: true),
@@ -64,22 +64,22 @@ ruby = declare_dependency(
                 '--with-static-linked-ext',
                 '--disable-rubygems',
                 '--without-gmp',
-                'CC=' + run_command(subproject('tools').get_variable('quotetool_command'), meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
-                'CXX=' + run_command(subproject('tools').get_variable('quotetool_command'), meson.get_compiler('cpp').cmd_array(), check: true).stdout().strip(),
-                'AR=' + run_command(subproject('tools').get_variable('quotetool_command'), find_program('ar'), check: true).stdout().strip(),
-                'RANLIB=' + run_command(subproject('tools').get_variable('quotetool_command'), find_program('ranlib'), check: true).stdout().strip(),
-                'CFLAGS=' + run_command(subproject('tools').get_variable('quotetool_args'), cflags, check: true).stdout().strip() + ' ' + get_option('cflags'),
-                'CXXFLAGS=' + run_command(subproject('tools').get_variable('quotetool_args'), cppflags, check: true).stdout().strip() + ' ' + get_option('cppflags'),
-                'LDFLAGS=' + run_command(subproject('tools').get_variable('quotetool_args'), ldflags, check: true).stdout().strip() + ' ' + get_option('ldflags'),
+                'CC=' + run_command(subproject('common').get_variable('quotetool_command'), meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
+                'CXX=' + run_command(subproject('common').get_variable('quotetool_command'), meson.get_compiler('cpp').cmd_array(), check: true).stdout().strip(),
+                'AR=' + run_command(subproject('common').get_variable('quotetool_command'), find_program('ar'), check: true).stdout().strip(),
+                'RANLIB=' + run_command(subproject('common').get_variable('quotetool_command'), find_program('ranlib'), check: true).stdout().strip(),
+                'CFLAGS=' + run_command(subproject('common').get_variable('quotetool_args'), cflags, check: true).stdout().strip() + ' ' + get_option('cflags'),
+                'CXXFLAGS=' + run_command(subproject('common').get_variable('quotetool_args'), cppflags, check: true).stdout().strip() + ' ' + get_option('cppflags'),
+                'LDFLAGS=' + run_command(subproject('common').get_variable('quotetool_args'), ldflags, check: true).stdout().strip() + ' ' + get_option('ldflags'),
             ],
             cross_configure_options: [
                 '--host=@HOST@',
-                '--host=' + subproject('tools').get_variable('host_triplet'),
+                '--host=' + subproject('common').get_variable('host_triplet'),
             ],
             env: {
                 'CONFIG_SITE': ' ',
-                'WINDRES': host_machine.system() in ['windows', 'cygwin'] ? run_command(subproject('tools').get_variable('quotetool_command'), find_program('windres'), check: true).stdout().strip() : '',
-                'YACC': run_command(subproject('tools').get_variable('quotetool_command'), find_program('bison'), check: true).stdout().strip(),
+                'WINDRES': host_machine.system() in ['windows', 'cygwin'] ? run_command(subproject('common').get_variable('quotetool_command'), find_program('windres'), check: true).stdout().strip() : '',
+                'YACC': run_command(subproject('common').get_variable('quotetool_command'), find_program('bison'), check: true).stdout().strip(),
                 'ac_cv_func_crypt': 'no',
                 'ac_cv_func_crypt_r': 'no',
                 'ac_cv_header_crypt_h': 'no',

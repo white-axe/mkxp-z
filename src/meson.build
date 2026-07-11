@@ -59,7 +59,7 @@ cmake_base_options = {
     'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
     'CMAKE_BUILD_TYPE': 'Custom',
     'CMAKE_RC_COMPILER': host_system in ['windows', 'cygwin'] ? run_command(quotetool_command, find_program('windres'), check: true).stdout().strip() : '',
-    'CMAKE_EXE_LINKER_FLAGS': tools.get_variable('c_linker_flag'),
+    'CMAKE_EXE_LINKER_FLAGS': common.get_variable('c_linker_flag'),
 }
 
 meson_base_options = {
