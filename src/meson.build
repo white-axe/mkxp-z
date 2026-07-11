@@ -16,7 +16,6 @@ foreach dep_name : [
     'libcrypt',
     'libdrm',
     'libffado',
-    not is_bsd ? 'libinotify' : '',
     'libpcre2-8',
     not is_nix ? 'libpulse' : '',
     'libpulse-simple',
@@ -153,6 +152,8 @@ if is_nix and (not sdl2.found() or not sdl2main.found())
             libinotify_options = meson_base_options
             libinotify = subproject('libinotify', default_options: libinotify_options).get_variable('libinotify')
         endif
+    else
+        meson.override_dependency('libinotify', null_dep, static: true)
     endif
 
     subproject('expat', default_options: meson_base_options)
@@ -194,6 +195,7 @@ else
         'gobject-2.0',
         'ibus-1.0',
         'libdecor-0',
+        'libinotify',
         'libudev',
         'wayland-client',
         'wayland-cursor',
