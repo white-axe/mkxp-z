@@ -264,14 +264,23 @@ int main(int argc, char *argv[]) {
         SDL_SetHintWithPriority(SDL_HINT_VIDEODRIVER, "x11", SDL_HINT_OVERRIDE);
         void *wayland_client = SDL_LoadObject(MKXPZ_WAYLAND_CLIENT_SONAME);
         void *wayland_cursor = SDL_LoadObject(MKXPZ_WAYLAND_CURSOR_SONAME);
+        void *wayland_egl = SDL_LoadObject(MKXPZ_WAYLAND_EGL_SONAME);
         void *xkbcommon = SDL_LoadObject(MKXPZ_XKBCOMMON_SONAME);
-        if (wayland_client != nullptr && wayland_cursor != nullptr && xkbcommon != nullptr) {
+        if (
+          wayland_client != nullptr
+            && wayland_cursor != nullptr
+            && wayland_egl != nullptr
+            && xkbcommon != nullptr
+        ) {
           void *(*_wl_display_connect)(const char *name) = reinterpret_cast<void *(*)(const char *name)>(SDL_LoadFunction(wayland_client, "wl_display_connect"));
           void (*_wl_display_disconnect)(void *display) = reinterpret_cast<void (*)(void *display)>(SDL_LoadFunction(wayland_client, "wl_display_disconnect"));
           void *(*_wl_cursor_image_get_buffer)(void *image) = reinterpret_cast<void *(*)(void *image)>(SDL_LoadFunction(wayland_cursor, "wl_cursor_image_get_buffer"));
           void (*_wl_cursor_theme_destroy)(void *theme) = reinterpret_cast<void (*)(void *theme)>(SDL_LoadFunction(wayland_cursor, "wl_cursor_theme_destroy"));
           void *(*_wl_cursor_theme_get_cursor)(void *theme, const char *name) = reinterpret_cast<void *(*)(void *theme, const char *name)>(SDL_LoadFunction(wayland_cursor, "wl_cursor_theme_get_cursor"));
           void *(*_wl_cursor_theme_load)(const char *name, int size, void *shm) = reinterpret_cast<void *(*)(const char *name, int size, void *shm)>(SDL_LoadFunction(wayland_cursor, "wl_cursor_theme_load"));
+          void *(*_wl_egl_window_create)(void *surface, int width, int height) = reinterpret_cast<void *(*)(void *surface, int width, int height)>(SDL_LoadFunction(wayland_egl, "wl_egl_window_create"));
+          void (*_wl_egl_window_destroy)(void *egl_window) = reinterpret_cast<void (*)(void *egl_window)>(SDL_LoadFunction(wayland_egl, "wl_egl_window_destroy"));
+          void (*_wl_egl_window_resize)(void *egl_window, int width, int height, int dx, int dy) = reinterpret_cast<void (*)(void *egl_window, int width, int height, int dx, int dy)>(SDL_LoadFunction(wayland_egl, "wl_egl_window_resize"));
           void *(*_xkb_context_new)(int flags) = reinterpret_cast<void *(*)(int flags)>(SDL_LoadFunction(xkbcommon, "xkb_context_new"));
           void (*_xkb_context_unref)(void *context) = reinterpret_cast<void (*)(void *context)>(SDL_LoadFunction(xkbcommon, "xkb_context_unref"));
           if (
@@ -281,6 +290,9 @@ int main(int argc, char *argv[]) {
               && _wl_cursor_theme_destroy != nullptr
               && _wl_cursor_theme_get_cursor != nullptr
               && _wl_cursor_theme_load != nullptr
+              && _wl_egl_window_create != nullptr
+              && _wl_egl_window_destroy != nullptr
+              && _wl_egl_window_resize != nullptr
               && _xkb_context_new != nullptr
               && _xkb_context_unref != nullptr
           ) {

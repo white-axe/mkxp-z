@@ -225,6 +225,7 @@ if is_nix
     global_args += [
         '-DMKXPZ_WAYLAND_CLIENT_SONAME="' + run_command(sonametool, 'wayland-client', check: true).stdout().strip() + '"',
         '-DMKXPZ_WAYLAND_CURSOR_SONAME="' + run_command(sonametool, 'wayland-cursor', check: true).stdout().strip() + '"',
+        '-DMKXPZ_WAYLAND_EGL_SONAME="' + run_command(sonametool, 'wayland-egl', check: true).stdout().strip() + '"',
         '-DMKXPZ_XKBCOMMON_SONAME="' + run_command(sonametool, 'xkbcommon', check: true).stdout().strip() + '"',
     ]
 endif
