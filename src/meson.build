@@ -970,6 +970,7 @@ global_dependencies += sdl2_image
 fluidsynth = dependency('fluidsynth', allow_fallback: false, required: get_option('fluidsynth_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
 if not fluidsynth.found()
     gcem_options = meson_base_options
+    gcem = subproject('gcem', default_options: gcem_options).get_variable('gcem')
     gcem_include_dir = subproject('gcem', default_options: gcem_options).get_variable('gcem_include_dir')
     gcem_includes = ['-I' + gcem_include_dir]
 
