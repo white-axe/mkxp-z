@@ -85,8 +85,8 @@ if not zlib.found()
         'ZLIB_BUILD_EXAMPLES': false,
     })
     zlib = cmake.subproject('zlib', options: zlib_options).dependency('z')
-    zlib_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'zlib', '-I' + meson.project_build_root() / 'subprojects' / 'zlib' / '__CMake_build']
-    zlib_libs = ['-L' + meson.project_build_root() / 'subprojects' / 'zlib']
+    zlib_includes = ['-I' + meson.project_source_root() / 'subprojects' / ('zlib-' + zlib.version()), '-I' + meson.project_build_root() / 'subprojects' / ('zlib-' + zlib.version()) / '__CMake_build']
+    zlib_libs = ['-L' + meson.project_build_root() / 'subprojects' / ('zlib-' + zlib.version())]
     meson.override_dependency('zlib', zlib, static: true)
 else
     zlib_includes = ['-I' + zlib.get_variable(pkgconfig: 'includedir')]
@@ -157,7 +157,7 @@ if is_nix and (not sdl2.found() or not sdl2main.found())
     endif
 
     subproject('expat', default_options: meson_base_options)
-    subproject('libudev', default_options: meson_base_options)
+    subproject('systemd', default_options: meson_base_options)
     subproject('dbus', default_options: meson_base_options)
     subproject('glib', default_options: meson_base_options + {
         'bsymbolic_functions': false,
@@ -245,7 +245,7 @@ if not sdl2.found() or not sdl2main.found()
         endif
     endif
 
-    subproject('spirv-headers', default_options: meson_base_options).get_variable('spirv_headers')
+    spirv_headers_source_dir = subproject('spirv-headers', default_options: meson_base_options).get_variable('spirv_headers_source_dir')
 
     if have_angle
         have_angle_vulkan = get_option('angle_vulkan').allowed()
@@ -256,9 +256,9 @@ if not sdl2.found() or not sdl2main.found()
                 spirv_tools_options = cmake.subproject_options()
                 spirv_tools_options.add_cmake_defines(cmake_base_options + {
                     'CMAKE_CXX_STANDARD': 17,
-                    'CMAKE_C_FLAGS': run_command(quotetool_args, '-I' + meson.project_source_root() / 'subprojects' / 'spirv-headers' / 'include', check: true).stdout().strip(),
-                    'CMAKE_CXX_FLAGS': run_command(quotetool_args, '-I' + meson.project_source_root() / 'subprojects' / 'spirv-headers' / 'include', check: true).stdout().strip(),
-                    'SPIRV-Headers_SOURCE_DIR': meson.project_source_root() / 'subprojects' / 'spirv-headers',
+                    'CMAKE_C_FLAGS': run_command(quotetool_args, '-I' + spirv_headers_source_dir / 'include', check: true).stdout().strip(),
+                    'CMAKE_CXX_FLAGS': run_command(quotetool_args, '-I' + spirv_headers_source_dir / 'include', check: true).stdout().strip(),
+                    'SPIRV-Headers_SOURCE_DIR': spirv_headers_source_dir,
                     'BUILD_SHARED_LIBS': false,
                     'BUILD_TESTING': false,
                     'SKIP_SPIRV_TOOLS_INSTALL': true,
@@ -618,7 +618,7 @@ if not ogg.found()
         'BUILD_FRAMEWORK': false,
     })
     ogg = cmake.subproject('ogg', options: ogg_options).dependency('ogg')
-    ogg_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'ogg' / 'include', '-I' + meson.project_build_root() / 'subprojects' / 'ogg' / '__CMake_build' / 'include']
+    ogg_includes = ['-I' + meson.project_source_root() / 'subprojects' / ('libogg-' + ogg.version()) / 'include', '-I' + meson.project_build_root() / 'subprojects' / ('libogg-' + ogg.version()) / '__CMake_build' / 'include']
     meson.override_dependency('ogg', ogg, static: true)
 else
     ogg_includes = ['-I' + ogg.get_variable(pkgconfig: 'includedir')]
@@ -693,7 +693,7 @@ if not freetype.found()
         'zlib': 'disabled',
     }
     freetype = subproject('freetype', default_options: freetype_options).get_variable('freetype_dep')
-    freetype_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'freetype' / 'include']
+    freetype_includes = ['-I' + meson.project_source_root() / 'subprojects' / ('freetype-VER-' + freetype.version().replace('.', '-')) / 'include']
 else
     freetype_includes = ['-I' + (freetype.get_variable(pkgconfig: 'includedir') / 'freetype2')]
 endif
@@ -969,8 +969,23 @@ global_dependencies += sdl2_image
 
 fluidsynth = dependency('fluidsynth', allow_fallback: false, required: get_option('fluidsynth_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
 if not fluidsynth.found()
+    gcem_options = meson_base_options
+    gcem = subproject('gcem', default_options: gcem_options).get_variable('gcem')
+    gcem_include_dir = subproject('gcem', default_options: gcem_options).get_variable('gcem_include_dir')
+    gcem_includes = ['-I' + gcem_include_dir]
+
+    fluidsynth_internal_cflags = []
+    fluidsynth_external_cflags = []
+    if gcem.type_name() == 'internal'
+        fluidsynth_internal_cflags += gcem_includes
+    else
+        fluidsynth_external_cflags += gcem_includes
+    endif
     fluidsynth_options = cmake.subproject_options()
     fluidsynth_options.add_cmake_defines(cmake_base_options + {
+        'CMAKE_C_FLAGS': run_command(quotetool_args, '-I' + gcem_include_dir, check: true).stdout().strip(),
+        'CMAKE_CXX_FLAGS': run_command(quotetool_args, '-I' + gcem_include_dir, check: true).stdout().strip(),
+        'GCEM_INCLUDE_DIR': gcem_include_dir,
         'BUILD_SHARED_LIBS': false,
         'enable-alsa': false,
         'enable-aufile': false,

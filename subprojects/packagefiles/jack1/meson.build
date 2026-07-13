@@ -6,4 +6,4 @@ jack1 = declare_dependency(
     ],
 )
 
-meson.override_dependency('jack', jack1)
+meson.override_dependency('jack', jack1, static: true)
