@@ -18,9 +18,7 @@ if build_machine.system() in ['windows', 'cygwin']
     srcdir = run_command(find_program('cygpath'), '-u', srcdir, check: true).stdout().strip()
 endif
 
-if meson.get_compiler('c').get_id() == 'nvcc'
-    cc_basename = 'nvcc'
-elif meson.get_compiler('c').get_argument_syntax() == 'msvc'
+if meson.get_compiler('c').get_argument_syntax() == 'msvc'
     cc_basename = 'cl'
 else
     cc_basename = 'gcc'
@@ -75,7 +73,7 @@ libffi = declare_dependency(
         libffi_includes,
     ],
     link_args: [
-        meson.project_build_root() / 'dist' / 'lib' / 'libffi.a',
+        meson.project_build_root() / 'dist' / 'lib' / (cc_basename == 'cl' ? 'ffi.lib' : 'libffi.a'),
     ],
 )
 
