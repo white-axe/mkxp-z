@@ -11,7 +11,7 @@ on:
 
 jobs:
   verify-ruby-configure-scripts:
-    name: Verify Ruby 3.1 configure scripts
+    name: Verify Ruby ${{ matrix.version }} configure scripts
     runs-on: ubuntu-latest
     container:
       image: nixos/nix:2.32.8
@@ -19,6 +19,11 @@ jobs:
       volumes:
         - /etc/ca-certificates:/etc/ca-certificates
         - /etc/ssl:/etc/ssl
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - version: 3.1
     steps:
       - name: Checkout repository
         uses: taiki-e/checkout-action@v1
@@ -31,13 +36,14 @@ jobs:
         run: |
           nix-channel --add https://nixos.org/channels/nixos-25.11 nixpkgs
           nix-channel --update nixpkgs
-          nix-shell -p autoconf meson --run ''
+          nix-shell -p autoconf meson python3 --run ''
 
       - name: Verify
         run: |
-          nix-shell -p autoconf meson --run '
-            meson subprojects download ruby-3.1
-            cd subprojects/ruby-3.1
+          nix-shell -p autoconf meson python3 --run '
+            set -eo pipefail
+            meson subprojects download ruby-${{ matrix.version }}
+            cd "subprojects/$(python -c "config = __import__(\"configparser\").ConfigParser(); config.read(\"subprojects/ruby-${{ matrix.version }}.wrap\"); print(config[\"wrap-file\"][\"directory\"])")"
             old_configure_hash="$(sha256sum configure)"
             echo "old: $old_configure_hash"
             old_config_guess_hash="$(sha256sum tool/config.guess)"
