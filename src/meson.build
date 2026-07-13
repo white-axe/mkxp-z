@@ -157,35 +157,67 @@ if is_nix and (not sdl2.found() or not sdl2main.found())
     endif
 
     subproject('expat', default_options: meson_base_options)
-    subproject('systemd', default_options: meson_base_options)
-    subproject('dbus', default_options: meson_base_options)
-    subproject('glib', default_options: meson_base_options + {
-        'bsymbolic_functions': false,
-        'dtrace': 'disabled',
-        'glib_assert': false,
-        'glib_checks': false,
-        'glib_debug': 'disabled',
-        'introspection': 'disabled',
-        'libelf': 'disabled',
-        'sysprof': 'disabled',
-        'systemtap': 'disabled',
-        'tests': false,
-        'xattr': false,
-    })
-    subproject('ibus', default_options: meson_base_options)
-    subproject('xorgproto', default_options: meson_base_options)
-    subproject('libxau', default_options: meson_base_options)
-    subproject('libxcb', default_options: meson_base_options)
-    subproject('libx11', default_options: meson_base_options)
-    subproject('libxfixes', default_options: meson_base_options)
-    subproject('libxext', default_options: meson_base_options)
-    subproject('libxi', default_options: meson_base_options)
-    subproject('libxrender', default_options: meson_base_options)
-    subproject('libxrandr', default_options: meson_base_options)
-    subproject('libxcursor', default_options: meson_base_options)
-    subproject('wayland', default_options: meson_base_options)
-    subproject('libxkbcommon', default_options: meson_base_options)
-    subproject('libdecor', default_options: meson_base_options)
+
+    libudev = dependency('libudev', allow_fallback: false, required: get_option('libudev_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+    if not libudev.found()
+        libudev = subproject('systemd', default_options: meson_base_options).get_variable('libudev')
+    endif
+
+    dbus = dependency('dbus-1', allow_fallback: false, required: get_option('dbus_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+    if not dbus.found()
+        dbus = subproject('dbus', default_options: meson_base_options).get_variable('dbus')
+    endif
+
+    ibus = dependency('ibus-1.0', allow_fallback: false, required: get_option('ibus_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+    if not ibus.found()
+        glib = dependency('glib-2.0', allow_fallback: false, required: get_option('glib_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+        if not glib.found()
+            glib = subproject('glib', default_options: meson_base_options + {
+                'bsymbolic_functions': false,
+                'dtrace': 'disabled',
+                'glib_assert': false,
+                'glib_checks': false,
+                'glib_debug': 'disabled',
+                'introspection': 'disabled',
+                'libelf': 'disabled',
+                'sysprof': 'disabled',
+                'systemtap': 'disabled',
+                'tests': false,
+                'xattr': false,
+            }).get_variable('libglib_dep')
+        endif
+
+        ibus = subproject('ibus', default_options: meson_base_options).get_variable('ibus')
+    endif
+
+    x11 = dependency('x11', allow_fallback: false, required: get_option('x11_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+    if not x11.found()
+        subproject('xorgproto', default_options: meson_base_options)
+        subproject('libxau', default_options: meson_base_options)
+        subproject('libxcb', default_options: meson_base_options)
+        x11 = subproject('libx11', default_options: meson_base_options).get_variable('libx11')
+        subproject('libxfixes', default_options: meson_base_options)
+        subproject('libxext', default_options: meson_base_options)
+        subproject('libxi', default_options: meson_base_options)
+        subproject('libxrender', default_options: meson_base_options)
+        subproject('libxrandr', default_options: meson_base_options)
+        subproject('libxcursor', default_options: meson_base_options)
+    endif
+
+    wayland_client = dependency('wayland-client', allow_fallback: false, required: get_option('wayland_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+    if not wayland_client.found()
+        wayland_client = subproject('wayland', default_options: meson_base_options).get_variable('wayland')
+    endif
+
+    libxkbcommon = dependency('xkbcommon', allow_fallback: false, required: get_option('libxkbcommon_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+    if not libxkbcommon.found()
+        libxkbcommon = subproject('libxkbcommon', default_options: meson_base_options).get_variable('libxkbcommon')
+    endif
+
+    libdecor = dependency('libdecor-0', allow_fallback: false, required: get_option('libdecor_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+    if not libdecor.found()
+        libdecor = subproject('libdecor', default_options: meson_base_options).get_variable('libdecor')
+    endif
 else
     foreach dep_name : [
         'dbus-1',
