@@ -182,4 +182,6 @@ ruby = declare_dependency(
     ],
 )
 
+ruby_build_dir = meson.project_build_root()
+
 meson.override_dependency('ruby-3.1', ruby, static: true)

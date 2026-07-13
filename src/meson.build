@@ -1085,6 +1085,7 @@ if not ruby.found()
         'ldflags': run_command(quotetool_args, ruby_internal_ldflags + ruby_external_ldflags, check: true).stdout().strip()
     }
     ruby = subproject('ruby-' + get_option('mri_version'), default_options: ruby_options).get_variable('ruby')
+    ruby_build_dir = subproject('ruby-' + get_option('mri_version'), default_options: ruby_options).get_variable('ruby_build_dir')
 endif
 global_dependencies += ruby
 
