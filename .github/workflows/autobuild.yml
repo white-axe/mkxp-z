@@ -14,7 +14,7 @@ jobs:
     name: Verify Ruby ${{ matrix.version }} configure scripts
     runs-on: ubuntu-latest
     container:
-      image: nixos/nix:2.32.8
+      image: nixos/nix:2.34.8
       options: -u root --privileged
       volumes:
         - /etc/ca-certificates:/etc/ca-certificates
@@ -24,6 +24,8 @@ jobs:
       matrix:
         include:
           - version: 3.1
+    env:
+      packages: autoconf meson python3
     steps:
       - name: Checkout repository
         uses: taiki-e/checkout-action@v1
@@ -34,13 +36,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          nix-channel --add https://nixos.org/channels/nixos-25.11 nixpkgs
+          nix-channel --add https://github.com/NixOS/nixpkgs/archive/refs/tags/26.05.tar.gz nixpkgs
           nix-channel --update nixpkgs
-          nix-shell -p autoconf meson python3 --run ''
+          nix-shell --packages $packages --run ''
 
       - name: Verify
         run: |
-          nix-shell -p autoconf meson python3 --run '
+          nix-shell --packages $packages --run '
             set -eo pipefail
             meson subprojects download ruby-${{ matrix.version }}
             cd "subprojects/$(python -c "config = __import__(\"configparser\").ConfigParser(); config.read(\"subprojects/ruby-${{ matrix.version }}.wrap\"); print(config[\"wrap-file\"][\"directory\"])")"
