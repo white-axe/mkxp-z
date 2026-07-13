@@ -1,4 +1,4 @@
-project('libffi', 'c', 'cpp', meson_version: '>=1.3.0')
+project('libffi', 'c', 'cpp', meson_version: '>=1.4.0')
 
 find_program('cmp', required: true)
 find_program('diff', required: true)

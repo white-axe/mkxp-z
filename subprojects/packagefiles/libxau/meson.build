@@ -1,4 +1,4 @@
-project('libxau', 'c', meson_version: '>=1.3.0')
+project('libxau', 'c', meson_version: '>=1.4.0')
 
 libxau = declare_dependency(
     include_directories: [

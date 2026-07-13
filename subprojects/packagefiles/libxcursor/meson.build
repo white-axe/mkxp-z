@@ -1,4 +1,4 @@
-project('libxcursor', 'c', meson_version: '>=1.3.0')
+project('libxcursor', 'c', meson_version: '>=1.4.0')
 
 libxcursor = declare_dependency(
     include_directories: [

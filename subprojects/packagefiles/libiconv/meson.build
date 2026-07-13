@@ -1,4 +1,4 @@
-project('libiconv', 'c', meson_version: '>=1.3.0')
+project('libiconv', 'c', meson_version: '>=1.4.0')
 
 configuration = {
     'BROKEN_WCHAR_H': 0,

@@ -1,4 +1,4 @@
-project('pulseaudio', 'c', version: '17.0', meson_version: '>=1.3.0')
+project('pulseaudio', 'c', version: '17.0', meson_version: '>=1.4.0')
 pa_api_version = 12
 pa_protocol_version = 35
 

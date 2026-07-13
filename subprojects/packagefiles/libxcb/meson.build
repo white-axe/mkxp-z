@@ -1,4 +1,4 @@
-project('libxcb', 'c', meson_version: '>=1.3.0')
+project('libxcb', 'c', meson_version: '>=1.4.0')
 
 python = import('python').find_installation(required: true)
 xcb_proto_root = subproject('xcb-proto', default_options: {'c_std': get_option('c_std'), 'cpp_std': get_option('cpp_std')}).get_variable('xcb_proto_root')

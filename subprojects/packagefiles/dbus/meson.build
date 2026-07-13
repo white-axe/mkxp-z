@@ -1,4 +1,4 @@
-project('dbus', 'c', version: '1.16.2', meson_version: '>=1.3.0')
+project('dbus', 'c', version: '1.16.2', meson_version: '>=1.4.0')
 
 sizeof_void_p = meson.get_compiler('c').sizeof('void *')
 if sizeof_void_p <= 0

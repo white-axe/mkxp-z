@@ -1,4 +1,4 @@
-project('theoraplay', 'c', meson_version: '>=1.3.0')
+project('theoraplay', 'c', meson_version: '>=1.4.0')
 
 have_thread = get_option('thread').allowed()
 

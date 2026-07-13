@@ -1,4 +1,4 @@
-project('jack1', 'c', meson_version: '>=1.3.0')
+project('jack1', 'c', meson_version: '>=1.4.0')
 
 jack1 = declare_dependency(
     include_directories: [

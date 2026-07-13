@@ -1,4 +1,4 @@
-project('spirv-headers', 'c', meson_version: '>=1.3.0')
+project('spirv-headers', 'c', meson_version: '>=1.4.0')
 
 spirv_headers = declare_dependency(
     include_directories: [

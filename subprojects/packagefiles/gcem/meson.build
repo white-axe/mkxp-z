@@ -1,4 +1,4 @@
-project('gcem', 'c', meson_version: '>=1.3.0')
+project('gcem', 'c', meson_version: '>=1.4.0')
 
 gcem = declare_dependency(
     include_directories: [

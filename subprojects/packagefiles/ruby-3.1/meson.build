@@ -1,4 +1,4 @@
-project('ruby-3.1', 'c', 'cpp', meson_version: '>=1.3.0')
+project('ruby-3.1', 'c', 'cpp', meson_version: '>=1.4.0')
 
 find_program('cmp', required: true)
 

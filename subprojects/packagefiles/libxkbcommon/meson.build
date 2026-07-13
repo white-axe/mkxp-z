@@ -1,4 +1,4 @@
-project('libxkbcommon', 'c', meson_version: '>=1.3.0')
+project('libxkbcommon', 'c', meson_version: '>=1.4.0')
 
 libxkbcommon = declare_dependency(include_directories: 'include')
 

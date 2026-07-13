@@ -1,4 +1,4 @@
-project('libdecor', 'c', meson_version: '>=1.3.0')
+project('libdecor', 'c', meson_version: '>=1.4.0')
 
 libdecor = declare_dependency(
     include_directories: 'src',

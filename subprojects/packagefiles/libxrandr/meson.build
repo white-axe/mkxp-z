@@ -1,4 +1,4 @@
-project('libxrandr', 'c', meson_version: '>=1.3.0')
+project('libxrandr', 'c', meson_version: '>=1.4.0')
 
 libxrandr = declare_dependency(
     include_directories: [
