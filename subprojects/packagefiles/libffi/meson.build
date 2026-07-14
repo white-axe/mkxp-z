@@ -48,6 +48,7 @@ libffi = declare_dependency(
                 '--includedir=/include',
                 '--enable-static',
                 '--disable-shared',
+                '--disable-multi-os-directory',
                 'CC=' + run_command(subproject('common').get_variable('quotetool_command'), meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
                 'CXX=' + run_command(subproject('common').get_variable('quotetool_command'), meson.get_compiler('cpp').cmd_array(), check: true).stdout().strip(),
                 'AR=' + run_command(subproject('common').get_variable('quotetool_command'), find_program('ar'), check: true).stdout().strip(),
