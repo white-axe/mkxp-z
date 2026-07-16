@@ -9,10 +9,10 @@ cppflags = subproject('common').get_variable('base_cppflags')
 # Ruby versions that are valid C23 are 3.2.9+, 3.3.9+, 3.4.5+, and 4.0.0+.
 cflags += '-std=gnu99'
 
-# Ruby versions older than 3.2 don't support code sanitizers
-if meson.get_compiler('c').has_argument('-fno-sanitize=all')
-    cflags += '-fno-sanitize=all'
-    cppflags += '-fno-sanitize=all'
+# Ruby versions older than 3.2 don't support address sanitizer
+if meson.get_compiler('c').has_argument('-fno-sanitize=address')
+    cflags += '-fno-sanitize=address'
+    cppflags += '-fno-sanitize=address'
 endif
 
 cflags += get_option('c_args')
