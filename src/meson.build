@@ -156,8 +156,6 @@ if is_nix and (not sdl2.found() or not sdl2main.found())
         meson.override_dependency('libinotify', null_dep, static: true)
     endif
 
-    subproject('expat', default_options: meson_base_options)
-
     libudev = dependency('libudev', allow_fallback: false, required: get_option('libudev_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
     if not libudev.found()
         libudev = subproject('systemd', default_options: meson_base_options).get_variable('libudev')
@@ -206,6 +204,8 @@ if is_nix and (not sdl2.found() or not sdl2main.found())
 
     wayland_client = dependency('wayland-client', allow_fallback: false, required: get_option('wayland_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
     if not wayland_client.found()
+        subproject('expat', default_options: meson_base_options)
+
         wayland_client = subproject('wayland', default_options: meson_base_options).get_variable('wayland')
     endif
 
