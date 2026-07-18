@@ -27,7 +27,7 @@
 #include <SDL_thread.h>
 #include <SDL_timer.h>
 
-#define STREAM_GUARD std::lock_guard<AudioStream> _stream_guard(*this);
+#define STREAM_GUARD std::lock_guard<AudioStream> _stream_guard(*this)
 
 AudioStream::AudioStream(ALStream::LoopMode loopMode,
                          const std::string &threadId)
