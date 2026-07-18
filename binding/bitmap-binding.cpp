@@ -806,8 +806,10 @@ RB_METHOD_GUARD(bitmapSnapToBitmap) {
     Bitmap *newbitmap = 0;
     int pos = (position == RUBY_Qnil) ? -1 : NUM2INT(position);
     
-    GFX_GUARD;
-    newbitmap = new Bitmap(*b, pos);
+    {
+        GFX_GUARD;
+        newbitmap = new Bitmap(*b, pos);
+    }
     
     VALUE ret = rb_obj_alloc(rb_class_of(self));
     
@@ -836,8 +838,10 @@ RB_METHOD_GUARD(bitmapInitializeCopy) {
     Bitmap *orig = getPrivateData<Bitmap>(origObj);
     Bitmap *b = 0;
     
-    GFX_GUARD;
-    b = new Bitmap(*orig);
+    {
+        GFX_GUARD;
+        b = new Bitmap(*orig);
+    }
     
     bitmapInitProps(b, self);
     b->setFont(orig->getFont());
