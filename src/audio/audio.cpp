@@ -161,7 +161,7 @@ struct AudioPrivate
                 
                 for (int i = 0; i < (int)(bgmTracks.size()); i++) {
                     AudioStream *track = bgmTracks[i];
-                    bool checkForPlayingTracks = false;
+                    bool checkForPlayingTracks;
 
                     {
                         std::lock_guard<AudioStream> trackGuard(*track);
@@ -169,11 +169,10 @@ struct AudioPrivate
                         float vol = track->getVolume(AudioStream::External);
                         vol -= fadeOutStep;
 
-                        if (vol < 0 || track->stream.queryState() != ALStream::Playing) {
+                        if ((checkForPlayingTracks = vol < 0 || track->stream.queryState() != ALStream::Playing)) {
                             /* Either BGM has fully faded out, or stopped midway. -> MePlaying */
                             track->setVolume(AudioStream::External, 0);
                             track->stream.pause();
-                            checkForPlayingTracks = true;
                         } else {
                             track->setVolume(AudioStream::External, vol);
                         }
