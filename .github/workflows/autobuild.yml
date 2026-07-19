@@ -120,7 +120,7 @@ jobs:
       - name: Configure
         shell: msys2 {0}
         run: |
-          meson setup --prefix "$(realpath .)/build/artifact" --buildtype release -Dstrip=true -Db_lto=true build
+          meson setup --prefix "$(pwd)/build/artifact" --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
@@ -253,7 +253,7 @@ jobs:
           else
             compiler=gcc
           fi
-          meson setup --prefix "$(realpath .)/build/artifact" --cross-file windows/meson-$compiler-${{ matrix.arch_mkxpz }}.txt --buildtype release -Dstrip=true -Db_lto=true build
+          meson setup --prefix "$(pwd)/build/artifact" --cross-file windows/meson-$compiler-${{ matrix.arch_mkxpz }}.txt --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
@@ -326,7 +326,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --prefix "$(realpath .)/build/artifact" --buildtype release -Dstrip=true -Db_lto=true build
+          meson setup --prefix "$(pwd)/build/artifact" --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
@@ -443,7 +443,7 @@ jobs:
           else
             arm_neon=disabled
           fi
-          meson setup --prefix "$(realpath .)/build/artifact" --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt -Darm_neon=$arm_neon --buildtype release -Dstrip=true -Db_lto=true build
+          meson setup --prefix "$(pwd)/build/artifact" --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt -Darm_neon=$arm_neon --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
@@ -517,7 +517,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --prefix "$(realpath .)/build/artifact" --buildtype release -Dstrip=true -Db_lto=true build
+          meson setup --prefix "$(pwd)/build/artifact" --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
@@ -627,7 +627,7 @@ jobs:
           else
             arm_neon=disabled
           fi
-          meson setup --prefix "$(realpath .)/build/artifact" --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt -Darm_neon=$arm_neon --buildtype release -Dstrip=true -Db_lto=true build
+          meson setup --prefix "$(pwd)/build/artifact" --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt -Darm_neon=$arm_neon --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
@@ -778,7 +778,7 @@ jobs:
             echo "CMAKE_EXE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.toml
           fi
           echo '--------------------------------------------------------------------------------'
-          meson setup --prefix "$(realpath .)/build/artifact" --cross-file ~/cross.toml --buildtype release -Dstrip=true -Db_lto=true build
+          meson setup --prefix "$(pwd)/build/artifact" --cross-file ~/cross.toml --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
@@ -855,7 +855,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --prefix "$(realpath .)/build/artifact" --cross-file macos/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Dstrip=true -Db_lto=true build
+          meson setup --prefix "$(pwd)/build/artifact" --cross-file macos/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
