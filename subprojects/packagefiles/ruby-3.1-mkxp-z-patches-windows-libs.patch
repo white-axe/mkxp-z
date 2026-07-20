@@ -1,0 +1,14 @@
+# Undoes the inclusion of `-lz` and `-lffi` from ruby-3.1-mkxp-z-patches.patch, since it causes build errors if zlib and libffi don't exist on the build machine.
+# Also undoes the inclusion of `-lgcc` since there is no libgcc when building with Clang.
+
+--- a/configure.ac
++++ b/configure.ac
+@@ -1170,7 +1170,7 @@ main()
+ 		AC_CHECK_FUNCS(cygwin_conv_path)
+ 		AC_LIBOBJ([langinfo])
+ 		],
+-[mingw*], [	LIBS="-lshell32 -lws2_32 -liphlpapi -limagehlp -lshlwapi -lbcrypt -Wl,-Bstatic -lgcc -lpthread -lz -lffi -Wl,-Bdynamic $LIBS"
++[mingw*], [	LIBS="-lshell32 -lws2_32 -liphlpapi -limagehlp -lshlwapi -lbcrypt -Wl,-Bstatic -lpthread -Wl,-Bdynamic $LIBS"
+ 		ac_cv_header_pwd_h=no
+ 		ac_cv_header_utime_h=no
+ 		ac_cv_header_sys_ioctl_h=no

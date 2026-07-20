@@ -1,13 +1,13 @@
 [binaries]
-c = 'arm-linux-gnueabihf-gcc'
-cpp = 'arm-linux-gnueabihf-g++'
+c = ['ccache', 'arm-linux-gnueabihf-gcc']
+cpp = ['ccache', 'arm-linux-gnueabihf-g++']
 ar = 'arm-linux-gnueabihf-ar'
+ranlib = 'arm-linux-gnueabihf-ranlib'
 strip = 'arm-linux-gnueabihf-strip'
-pkgconfig = 'pkg-config'
 cmake = 'cmake'
 
 [host_machine]
 system = 'linux'
 cpu_family = 'arm'
-cpu = 'generic-armv6zk+vfpv2'
+cpu = 'arm'
 endian = 'little'

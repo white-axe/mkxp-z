@@ -36,14 +36,15 @@
 #include "sharedstate.h"
 #include "graphics.h"
 
-#ifndef MKXPZ_BUILD_XCODE
+#ifndef __APPLE__
 #include "settingsmenu.h"
-#include "gamecontrollerdb.txt.xxd"
 #else
 #include "system/system.h"
 #include "filesystem/filesystem.h"
 #include "TouchBar.h"
 #endif
+
+#include "gamecontrollerdb.txt.xxd"
 
 #include "al-util.h"
 #include "debugwriter.h"
@@ -188,13 +189,9 @@ void EventThread::process(RGSSThreadData &rtData)
     
     bool terminate = false;
     
-#ifdef MKXPZ_BUILD_XCODE
-    SDL_GameControllerAddMappingsFromFile(mkxp_fs::getPathForAsset("gamecontrollerdb", "txt").c_str());
-#else
     SDL_GameControllerAddMappingsFromRW(
-        SDL_RWFromConstMem(___assets_gamecontrollerdb_txt, ___assets_gamecontrollerdb_txt_len),
+        SDL_RWFromConstMem(mkxp_assets_gamecontrollerdb_txt, mkxp_assets_gamecontrollerdb_txt_len),
     1);
-#endif
     
     SDL_JoystickUpdate();
     if (SDL_NumJoysticks() > 0 && SDL_IsGameController(0)) {
@@ -220,7 +217,7 @@ void EventThread::process(RGSSThreadData &rtData)
     SDL_StopTextInput();
     
     textInputBuffer.clear();
-#ifndef MKXPZ_BUILD_XCODE
+#ifndef __APPLE__
     SettingsMenu *sMenu = 0;
 #else
     // Will always be 0
@@ -234,7 +231,7 @@ void EventThread::process(RGSSThreadData &rtData)
             Debug() << "EventThread: Event error";
             break;
         }
-#ifndef MKXPZ_BUILD_XCODE
+#ifndef __APPLE__
         if (sMenu && sMenu->onEvent(event))
         {
             if (sMenu->destroyReq())
@@ -357,7 +354,7 @@ void EventThread::process(RGSSThreadData &rtData)
                         break;
                     }
 
-#ifndef MKXPZ_BUILD_XCODE
+#ifndef __APPLE__
                     if (!sMenu)
                     {
                         sMenu = new SettingsMenu(rtData);
@@ -600,7 +597,7 @@ void EventThread::process(RGSSThreadData &rtData)
                         break;
                         
                     case REQUEST_SETTINGS :
-#ifndef MKXPZ_BUILD_XCODE
+#ifndef __APPLE__
                         if (!sMenu)
                         {
                             sMenu = new SettingsMenu(rtData);
@@ -657,7 +654,7 @@ void EventThread::process(RGSSThreadData &rtData)
     if (SDL_GameControllerGetAttached(ctrl))
         SDL_GameControllerClose(ctrl);
     
-#ifndef MKXPZ_BUILD_XCODE
+#ifndef __APPLE__
     delete sMenu;
 #endif
 }
@@ -874,7 +871,7 @@ SDL_GameController *EventThread::controller() const
 
 void EventThread::notifyFrame()
 {
-#ifdef MKXPZ_BUILD_XCODE
+#ifdef __APPLE__
     uint32_t frames = round(shState->graphics().averageFrameRate());
     updateTouchBarFPSDisplay(frames);
 #endif
@@ -882,7 +879,7 @@ void EventThread::notifyFrame()
         return;
     
     SDL_Event event;
-#ifdef MKXPZ_BUILD_XCODE
+#ifdef __APPLE__
     event.user.code = frames;
 #else
     event.user.code = round(shState->graphics().averageFrameRate());

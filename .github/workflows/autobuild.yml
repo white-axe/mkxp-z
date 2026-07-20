@@ -5,6 +5,7 @@ on:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
       - 'test-[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
 
 jobs:
   set-matrix:
@@ -22,100 +23,148 @@ jobs:
           fi
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
-  build-windows:
-    name: Windows
-    runs-on: windows-latest
-    needs: set-matrix
+  verify-ruby-configure-scripts:
+    name: Verify Ruby ${{ matrix.version }} configure scripts
+    runs-on: ubuntu-latest
+    container:
+      image: nixos/nix:2.34.8
+      options: -u root --privileged
+      volumes:
+        - /etc/ca-certificates:/etc/ca-certificates
+        - /etc/ssl:/etc/ssl
     strategy:
+      fail-fast: false
       matrix:
-        value: ${{ fromJson(needs.set-matrix.outputs.matrix) }}
+        include:
+          - version: 3.1
+    env:
+      packages: autoconf meson python3
     steps:
-      - uses: msys2/setup-msys2@v2
+      - name: Checkout repository
+        uses: taiki-e/checkout-action@v1
+
+      - name: Enable Nix sandboxing
+        run: |
+          echo 'sandbox = true' >> /etc/nix/nix.conf
+
+      - name: Install dependencies
+        run: |
+          nix-channel --add https://github.com/NixOS/nixpkgs/archive/refs/tags/26.05.tar.gz nixpkgs
+          nix-channel --update nixpkgs
+          nix-shell --packages $packages --run ''
+
+      - name: Verify
+        run: |
+          nix-shell --packages $packages --run '
+            set -eo pipefail
+            meson subprojects download ruby-${{ matrix.version }}
+            cd "subprojects/$(python -c "config = __import__(\"configparser\").ConfigParser(); config.read(\"subprojects/ruby-${{ matrix.version }}.wrap\"); print(config[\"wrap-file\"][\"directory\"])")"
+            old_configure_hash="$(sha256sum configure)"
+            echo "old: $old_configure_hash"
+            old_config_guess_hash="$(sha256sum tool/config.guess)"
+            echo "old: $old_config_guess_hash"
+            old_config_sub_hash="$(sha256sum tool/config.sub)"
+            echo "old: $old_config_sub_hash"
+            autoreconf -fi
+            new_configure_hash="$(sha256sum configure)"
+            echo "new: $new_configure_hash"
+            new_config_guess_hash="$(sha256sum tool/config.guess)"
+            echo "new: $new_config_guess_hash"
+            new_config_sub_hash="$(sha256sum tool/config.sub)"
+            echo "new: $new_config_sub_hash"
+            error_flag=
+            if [ "$old_configure_hash" != "$new_configure_hash" ]
+            then
+              echo "::error::configure hash does not match"
+              error_flag=1
+            fi
+            if [ "$old_config_guess_hash" != "$new_config_guess_hash" ]
+            then
+              echo "::error::tool/config.guess hash does not match"
+              error_flag=1
+            fi
+            if [ "$old_config_sub_hash" != "$new_config_sub_hash" ]
+            then
+              echo "::error::tool/config.sub hash does not match"
+              error_flag=1
+            fi
+            if [ -n "$error_flag" ]
+            then
+              exit 1
+            fi
+          '
+
+  build-windows-msys2:
+    name: Windows MSYS2
+    runs-on: windows-latest
+    steps:
+      - uses: benjlevesque/short-sha@v2.2
+        id: short-sha
+        with:
+          length: 7
+
+      - name: Install dependencies
+        uses: msys2/setup-msys2@v2
         with:
           msystem: mingw64
           install: >-
-            base-devel
-            git
-            ruby
-            vim
-            unzip
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-meson
-            mingw-w64-x86_64-autotools
+            bison mingw-w64-x86_64-ccache mingw-w64-x86_64-cmake diffutils mingw-w64-x86_64-git make mingw-w64-x86_64-meson mingw-w64-x86_64-ruby
             mingw-w64-x86_64-gcc
 
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Name
-        id: name
-        run: echo name=$(echo ${{ matrix.value }} | perl -pe 's/^(.)/\U$1/') >> $env:GITHUB_OUTPUT
-
-      - name: Icon
-        if: "matrix.value != 'game'"
-        run: |
-          cp icons/${{ matrix.value }}.ico windows/icon.ico
-          cp icons/${{ matrix.value }}.png assets/icon.png
-
-      - name: Cache
-        uses: actions/cache@v4
+      - name: Restore from cache
+        if: false
+        uses: actions/cache/restore@v5
         with:
-          path: |
-            windows/build-mingw64
-            windows/downloads
-          key: win-${{ hashFiles('windows/Makefile') }}
+          path: ccache
+          key: windows-msys2-x86_64-
+          restore-keys: windows-msys2-x86_64-
 
-      - name: Build all dependencies
-        shell: msys2 {0}
-        working-directory: windows
-        run: make
-
-      - name: Build exe
+      - name: Set up ccache
         shell: msys2 {0}
         run: |
-          source windows/vars.sh
-          meson setup build
-          cd build
-          ninja
-          strip ./mkxp-z.exe
+          ccache --set-config=cache_dir="$(pwd)/ccache"
+          ccache --set-config=compiler_check=content
+          ccache --set-config=max_size=1280MiB
+          ccache --zero-stats
 
-      - name: Discord
-        uses: actions/checkout@v5
+      - name: Configure
+        shell: msys2 {0}
+        run: |
+          meson setup --prefix "$(pwd)/build/artifact" --buildtype release -Dstrip=true -Db_lto=true build
+
+      - name: Build
+        id: build
+        shell: msys2 {0}
+        run: |
+          exit_code=0
+          CLICOLOR_FORCE=1 ninja -C build -v || exit_code=$?
+          echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
+          date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
+
+      - name: Save to cache
+        if: false
+        uses: actions/cache/save@v5
         with:
-          repository: enumag/ruby_discord_sdk
-          path: ruby_discord_sdk
-          ref: main
+          path: ccache
+          key: windows-msys2-x86_64-${{ github.sha }}-${{ steps.build.outputs.time }}
 
-      - name: Build Discord Gem
-        shell: msys2 {0}
-        working-directory: ruby_discord_sdk
-        run: |
-          curl -O https://dl-game-sdk.discordapp.net/3.2.1/discord_game_sdk.zip
-          unzip -o discord_game_sdk.zip -d .
-          cp lib/x86_64/discord_game_sdk.dll .
-          ../windows/build-mingw64/bin/ruby.exe ./extconf.rb
-          make
-
-      - name: Prepare archive
+      - name: Show ccache statistics
         shell: msys2 {0}
         run: |
-          mkdir build/artifact
-          cd build/artifact
-          cp /mingw64/bin/zlib1.dll .
-          cp ../../windows/build-mingw64/bin/x64-msvcrt-ruby310.dll .
-          cp ../../windows/build-mingw64/bin/libcrypto-3-x64.dll .
-          cp ../../windows/build-mingw64/bin/libssl-3-x64.dll .
-          cp -r ../../windows/build-mingw64/lib/ruby/3.1.0 .
-          mv ./3.1.0 ./stdlib
-          cp ../mkxp-z.exe .
-          mkdir gems
-          cp ../../ruby_discord_sdk/discord.so gems
-          cp ../../ruby_discord_sdk/lib/x86_64/discord_game_sdk.dll .
-          mv mkxp-z.exe ${{ steps.name.outputs.name }}.exe
+          ccache --show-stats --verbose
 
-      - name: Disable specifications
-        working-directory: build/artifact/stdlib
-        run: sed -i "s~Gem::Specification\.load_defaults~#Gem::Specification\.load_defaults~g" rubygems.rb
+      - name: Check build status
+        shell: msys2 {0}
+        run: |
+          exit ${{ steps.build.outputs.exit-code }}
+
+      - name: Prepare artifact
+        shell: msys2 {0}
+        run: |
+          meson install -C build --no-rebuild --tags mkxp-z
 
       - name: Check for DLLs missing from the artifact
         shell: msys2 {0}
@@ -123,7 +172,7 @@ jobs:
           cd build/artifact
           error_flag=
 
-          for file in *.exe *.dll
+          for file in *.exe
           do
             ldd_output="$(ldd "$file")"
             echo "$file"
@@ -146,123 +195,216 @@ jobs:
             exit 1
           fi
 
-      # Fix mkxp-z issue where CONFIG["prefix"] ends up containing compilation path from GitHub Actions.
-      - name: Fix RbConfig
-        working-directory: build/artifact/stdlib/x64-mingw32
-        run: sed -i 's~TOPDIR || DESTDIR + \".*\"~TOPDIR || DESTDIR + \"\"~g' rbconfig.rb
+  build-windows-cross:
+    if: matrix.arch_mkxpz == 'x86_64'
+    name: Windows ${{ matrix.arch_mkxpz }}
+    runs-on: ubuntu-latest
+    needs: set-matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        value: ${{ fromJson(needs.set-matrix.outputs.matrix) }}
+        include:
+          - arch_mkxpz: arm64
+            clang: true
+            cache: true
+          - arch_mkxpz: i686
+            clang: true
+            cache: false
+          - arch_mkxpz: x86_64
+            clang: false # FIXME: x86_64 binaries built with Clang cause Ruby to crash at run time
+            cache: true
+    steps:
+      - uses: benjlevesque/short-sha@v2.2
+        id: short-sha
+        with:
+          length: 7
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y bison ccache cmake diffutils git make ruby
+          # The Meson version provided by APT is too old so we install Meson using pip instead
+          sudo apt install -y ninja-build python3-pip
+          pip3 install meson
+          sudo apt install -y gcc g++
+
+          if [ '${{ matrix.clang }}' = 'true' ]
+          then
+            llvm_mingw_version=20260224-msvcrt-ubuntu-22.04-x86_64
+            sudo apt install -y curl tar xz-utils
+            curl --retry 5 -Lo llvm-mingw.tar.xz https://github.com/mstorsjo/llvm-mingw/releases/download/$(echo $llvm_mingw_version | cut -f 1 -d -)/llvm-mingw-$llvm_mingw_version.tar.xz
+            tar -xJf llvm-mingw.tar.xz
+            rm llvm-mingw.tar.xz
+            mv llvm-mingw-$llvm_mingw_version ${{ runner.temp }}
+            ${{ runner.temp }}/llvm-mingw-$llvm_mingw_version/bin/clang --version
+            echo "PATH=${{ runner.temp }}/llvm-mingw-$llvm_mingw_version/bin:$PATH" >> "$GITHUB_ENV"
+          else
+            sudo apt install -y mingw-w64
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Name
+        id: name
+        run: echo name=$(echo ${{ matrix.value }} | perl -pe 's/^(.)/\U$1/') >> $env:GITHUB_OUTPUT
+
+      - name: Icon
+        if: "matrix.value != 'game'"
+        run: |
+          cp icons/${{ matrix.value }}.ico windows/icon.ico
+          cp icons/${{ matrix.value }}.png assets/icon.png
+
+      - name: Restore from cache
+        if: ${{ matrix.cache }}
+        uses: actions/cache/restore@v5
+        with:
+          path: ccache
+          key: windows-cross-${{ matrix.arch_mkxpz }}-
+          restore-keys: windows-cross-${{ matrix.arch_mkxpz }}-
+
+      - name: Set up ccache
+        run: |
+          ccache --set-config=cache_dir="$(pwd)/ccache"
+          ccache --set-config=compiler_check=content
+          ccache --set-config=max_size=1280MiB
+          ccache --zero-stats
+
+      - name: Configure
+        run: |
+          if [ '${{ matrix.clang }}' = 'true' ]
+          then
+            compiler=clang
+          else
+            compiler=gcc
+          fi
+          meson setup --prefix "$(pwd)/build/artifact" --cross-file windows/meson-$compiler-${{ matrix.arch_mkxpz }}.txt --buildtype release -Dstrip=true -Db_lto=true build
+
+      - name: Build
+        id: build
+        run: |
+          exit_code=0
+          CLICOLOR_FORCE=1 ninja -C build -v || exit_code=$?
+          echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
+          date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
+
+      - name: Save to cache
+        if: ${{ matrix.cache }}
+        uses: actions/cache/save@v5
+        with:
+          path: ccache
+          key: windows-cross-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
+
+      - name: Show ccache statistics
+        run: |
+          ccache --show-stats --verbose
+
+      - name: Check build status
+        run: |
+          exit ${{ steps.build.outputs.exit-code }}
+
+      - name: Prepare artifact
+        run: |
+          meson install -C build --no-rebuild --tags mkxp-z
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.job }}-${{ matrix.value }}
-          path: |
-            build/artifact/*.dll
-            build/artifact/*.exe
-            build/artifact/stdlib/
-            build/artifact/gems/
+          path: build/artifact
 
   build-linux-native:
     name: Ubuntu 22.04 x86_64
     runs-on: ubuntu-22.04
     needs: set-matrix
     strategy:
+      fail-fast: false
       matrix:
         value: ${{ fromJson(needs.set-matrix.outputs.matrix) }}
     steps:
+      - uses: benjlevesque/short-sha@v2.2
+        id: short-sha
+        with:
+          length: 7
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y bison ccache cmake diffutils git make ruby
+          # The Meson version provided by APT is too old so we install Meson using pip instead
+          sudo apt install -y ninja-build python3-pip
+          pip3 install meson
+          sudo apt install -y gcc g++
+
       - name: Checkout repository
         uses: actions/checkout@v5
 
       - name: Name
         id: name
-        run: echo name=$(echo ${{ matrix.value }} | sed 's/^\(.\)/\U\1/') >> $GITHUB_OUTPUT
+        run: echo name=$(echo ${{ matrix.value }} | perl -pe 's/^(.)/\U$1/') >> $env:GITHUB_OUTPUT
 
       - name: Icon
         if: "matrix.value != 'game'"
         run: |
-          cp icons/${{ matrix.value }}.png linux/mkxp-z.png
           cp icons/${{ matrix.value }}.png assets/icon.png
 
-      - name: Cache
-        uses: actions/cache@v4
+      - name: Restore from cache
+        if: true
+        uses: actions/cache/restore@v5
         with:
-          path: |
-            linux/build-x86_64
-            linux/downloads
-          key: lin-x86_64-${{ hashFiles('linux/Makefile') }}
+          path: ccache
+          key: ubuntu-jammy-x86_64-
+          restore-keys: ubuntu-jammy-x86_64-
 
-      - name: Install apt dependencies
+      - name: Set up ccache
         run: |
-          sudo apt update
-          sudo apt install libfuse2 git wget build-essential cmake meson autoconf automake libtool pkg-config ruby bison xxd zlib1g-dev libbz2-dev xorg-dev libgl1-mesa-dev libasound2-dev libpulse-dev -y
+          ccache --set-config=cache_dir="$(pwd)/ccache"
+          ccache --set-config=compiler_check=content
+          ccache --set-config=max_size=1280MiB
+          ccache --zero-stats
 
-      - name: Build everything else
-        working-directory: linux
-        run: make
+      - name: Configure
+        run: |
+          meson setup --prefix "$(pwd)/build/artifact" --buildtype release -Dstrip=true -Db_lto=true build
 
-      - name: Download AppImageKit
-        uses: MrOctopus/download-asset-action@1.1
+      - name: Build
+        id: build
+        run: |
+          exit_code=0
+          CLICOLOR_FORCE=1 ninja -C build -v || exit_code=$?
+          echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
+          date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
+
+      - name: Save to cache
+        if: true
+        uses: actions/cache/save@v5
         with:
-          repository: AppImage/appimagetool
-          tag: continuous
-          asset: appimagetool-x86_64.AppImage
+          path: ccache
+          key: ubuntu-jammy-x86_64-${{ github.sha }}-${{ steps.build.outputs.time }}
 
-      - name: Build executable
+      - name: Show ccache statistics
         run: |
-          source linux/vars.sh
-          chmod +x appimagetool-x86_64.AppImage
-          meson setup build --bindir=usr/bin --prefix=$GITHUB_WORKSPACE/build/local -Dappimage=true -Dappimagekit_path=$PWD/appimagetool-x86_64.AppImage
-          cd build
-          ninja
-          ninja install
+          ccache --show-stats --verbose
 
-      - name: Discord
-        uses: actions/checkout@v5
-        with:
-          repository: enumag/ruby_discord_sdk
-          path: ruby_discord_sdk
-          ref: main
-
-      - name: Build Discord Gem
-        working-directory: ruby_discord_sdk
+      - name: Check build status
         run: |
-          curl -O https://dl-game-sdk.discordapp.net/3.2.1/discord_game_sdk.zip
-          unzip -o discord_game_sdk.zip -d .
-          cp lib/x86_64/discord_game_sdk.so .
-          ../linux/build-x86_64/bin/ruby ./extconf.rb
-          make
+          exit ${{ steps.build.outputs.exit-code }}
 
-      - name: Prepare archive
+      - name: Prepare artifact
         run: |
-          cd build/local
-          cp -r ../../linux/build-x86_64/lib/ruby/3.1.0 .
-          mv ./3.1.0 ./stdlib
-          mkdir gems
-          cp ../../ruby_discord_sdk/discord.so gems
-          cp ../../ruby_discord_sdk/lib/x86_64/discord_game_sdk.so .
-          cp ../mkxp-z-x86_64.AppImage .
-          mv mkxp-z-x86_64.AppImage ${{ steps.name.outputs.name }}.AppImage
-
-      - name: Disable specifications
-        working-directory: build/local/stdlib
-        run: sed -i "s~Gem::Specification\.load_defaults~#Gem::Specification\.load_defaults~g" rubygems.rb
-
-      # Fix mkxp-z issue where CONFIG["prefix"] ends up containing compilation path from GitHub Actions.
-      - name: Fix RbConfig
-        working-directory: build/local/stdlib/x86_64-linux
-        run: sed -i 's~TOPDIR || DESTDIR + \".*\"~TOPDIR || DESTDIR + \"\"~g' rbconfig.rb
+          meson install -C build --no-rebuild --tags mkxp-z
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.job }}-${{ matrix.value }}
-          path: |
-            build/local/**
+          path: build/artifact
 
   build-linux-cross:
-    if: "false"
+    if: false
     name: Ubuntu 22.04 ${{matrix.arch_mkxpz}}
     runs-on: ubuntu-22.04
-    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
@@ -270,54 +412,34 @@ jobs:
           - arch_mkxpz: armv6
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
-            experimental: false
-          - arch_mkxpz: armv7
-            arch_debian: armhf
-            arch_gcc: arm-linux-gnueabihf
-            experimental: false
+            cache: false
           - arch_mkxpz: armv7-neon
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
-            experimental: false
+            cache: false
           - arch_mkxpz: arm64
             arch_debian: arm64
             arch_gcc: aarch64-linux-gnu
-            experimental: false
+            cache: true
           - arch_mkxpz: power8le
             arch_debian: ppc64el
             arch_gcc: powerpc64le-linux-gnu
-            experimental: false
-          - arch_mkxpz: power9le
-            arch_debian: ppc64el
-            arch_gcc: powerpc64le-linux-gnu
-            experimental: false
+            cache: false
           - arch_mkxpz: s390x
             arch_debian: s390x
             arch_gcc: s390x-linux-gnu
-            experimental: false
+            cache: false
           - arch_mkxpz: riscv64
             arch_debian: riscv64
             arch_gcc: riscv64-linux-gnu
-            # libjxl/highway compatibility issue, TODO check if fixed in later SDL_image.
-            # Also probably an OpenSSL arch name issue, which might be fixed by now.
-            experimental: true
+            cache: false
     steps:
       - uses: benjlevesque/short-sha@v2.2
         id: short-sha
         with:
           length: 7
 
-      - name: Checkout repository
-        uses: actions/checkout@v5
-
-      - uses: actions/cache@v4
-        with:
-          path: |
-            linux/build-${{matrix.arch_mkxpz}}
-            linux/downloads
-          key: lin-${{matrix.arch_mkxpz}}-${{ hashFiles('linux/Makefile', 'linux/target*', 'linux/toolchain*') }}
-
-      - name: Install apt dependencies
+      - name: Install dependencies
         run: |
           sudo sed -i "s/deb /deb [arch=amd64] /g" /etc/apt/sources.list
           sudo dpkg --add-architecture ${{matrix.arch_debian}}
@@ -329,45 +451,78 @@ jobs:
           echo "deb [arch=${{matrix.arch_debian}}] http://ports.ubuntu.com/ jammy-updates multiverse" | sudo tee -a /etc/apt/sources.list
           echo "deb [arch=${{matrix.arch_debian}}] http://ports.ubuntu.com/ jammy-backports main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
           sudo apt update
-          sudo apt install git wget build-essential cmake meson autoconf automake libtool pkg-config ruby bison xxd -y
-          sudo apt install libfontenc-dev:${{matrix.arch_debian}} libfs-dev:${{matrix.arch_debian}} libice-dev:${{matrix.arch_debian}} libsm-dev:${{matrix.arch_debian}} libx11-dev:${{matrix.arch_debian}} libxau-dev:${{matrix.arch_debian}} libxaw7-dev:${{matrix.arch_debian}} libxcomposite-dev:${{matrix.arch_debian}} libxcursor-dev:${{matrix.arch_debian}} libxdamage-dev:${{matrix.arch_debian}} libxdmcp-dev:${{matrix.arch_debian}} libxext-dev:${{matrix.arch_debian}} libxfixes-dev:${{matrix.arch_debian}} libxfont-dev:${{matrix.arch_debian}} libxft-dev:${{matrix.arch_debian}} libxi-dev:${{matrix.arch_debian}} libxinerama-dev:${{matrix.arch_debian}} libxkbfile-dev:${{matrix.arch_debian}} libxmu-dev:${{matrix.arch_debian}} libxmuu-dev:${{matrix.arch_debian}} libxpm-dev:${{matrix.arch_debian}} libxrandr-dev:${{matrix.arch_debian}} libxrender-dev:${{matrix.arch_debian}} libxres-dev:${{matrix.arch_debian}} libxss-dev:${{matrix.arch_debian}} libxt-dev:${{matrix.arch_debian}} libxtst-dev:${{matrix.arch_debian}} libxv-dev:${{matrix.arch_debian}} libxvmc-dev:${{matrix.arch_debian}} libxxf86dga-dev:${{matrix.arch_debian}} libxxf86vm-dev:${{matrix.arch_debian}} x11proto-dev:${{matrix.arch_debian}} xserver-xorg-dev:${{matrix.arch_debian}} xtrans-dev:${{matrix.arch_debian}} -y
-          sudo apt install gcc-${{matrix.arch_gcc}} g++-${{matrix.arch_gcc}} zlib1g-dev:${{matrix.arch_debian}} libbz2-dev:${{matrix.arch_debian}} libgl1-mesa-dev:${{matrix.arch_debian}} libasound2-dev:${{matrix.arch_debian}} libpulse-dev:${{matrix.arch_debian}} -y
+          sudo apt install -y bison ccache cmake diffutils git make ruby
+          # The Meson version provided by APT is too old so we install Meson using pip instead
+          sudo apt install -y ninja-build python3-pip
+          pip3 install meson
+          sudo apt install -y gcc g++
+          sudo apt install -y gcc-${{matrix.arch_gcc}} g++-${{matrix.arch_gcc}}
 
-      - name: Build everything else
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Restore from cache
+        if: ${{ matrix.cache }}
+        uses: actions/cache/restore@v5
+        with:
+          path: ccache
+          key: ubuntu-jammy-${{ matrix.arch_mkxpz }}-
+          restore-keys: ubuntu-jammy-${{ matrix.arch_mkxpz }}-
+
+      - name: Set up ccache
         run: |
-          cd linux
-          source target-${{matrix.arch_mkxpz}}.sh
-          make
+          ccache --set-config=cache_dir="$(pwd)/ccache"
+          ccache --set-config=compiler_check=content
+          ccache --set-config=max_size=1280MiB
+          ccache --zero-stats
 
-      - name: Build executable
+      - name: Configure
         run: |
-          source linux/target-${{matrix.arch_mkxpz}}.sh
-          source linux/vars.sh
-          meson setup --cross-file linux/$ARCH_MESON_TOOLCHAIN build --bindir=. --prefix=$GITHUB_WORKSPACE/build/local
-          cd build
-          ninja
-          ninja install
-          cp "$MKXPZ_PREFIX/lib/$("$ARCH_CONFIGURE-objdump" -p local/mkxp-z* | grep -i NEEDED | grep -Eo 'libruby.so.[0-9\.]+')" local/lib*/
-          cp "/usr/lib/$ARCH_CONFIGURE/$("$ARCH_CONFIGURE-objdump" -p local/lib*/libruby.so* | grep -i NEEDED | grep -Eo 'libcrypt.so.[0-9\.]+')" local/lib*/
+          if [ '${{ matrix.arch_mkxpz }}' = 'armv7-neon' ]
+          then
+            arm_neon=auto
+          else
+            arm_neon=disabled
+          fi
+          meson setup --prefix "$(pwd)/build/artifact" --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt -Darm_neon=$arm_neon --buildtype release -Dstrip=true -Db_lto=true build
 
-      - name: Prepare archive
+      - name: Build
+        id: build
         run: |
-          cd build/local
-          cp -r ../../linux/build-${{matrix.arch_mkxpz}}/lib/ruby/3.1.0 .
-          mv ./3.1.0 ./stdlib
-          cp ../../mkxp.json .
-          cp -r ../../scripts .
-          cp ../../assets/LICENSE.mkxp-z-with-https.txt .
+          exit_code=0
+          CLICOLOR_FORCE=1 ninja -C build -v || exit_code=$?
+          echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
+          date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
-      - uses: actions/upload-artifact@v4
+      - name: Save to cache
+        if: ${{ matrix.cache }}
+        uses: actions/cache/save@v5
+        with:
+          path: ccache
+          key: ubuntu-jammy-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
+
+      - name: Show ccache statistics
+        run: |
+          ccache --show-stats --verbose
+
+      - name: Check build status
+        run: |
+          exit ${{ steps.build.outputs.exit-code }}
+
+      - name: Prepare artifact
+        run: |
+          meson install -C build --no-rebuild --tags mkxp-z
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
           name: mkxp-z.linux.ubuntu.22.04.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
-          path: build/local
+          path: build/artifact
 
   build-linux-native-container:
-    if: "false"
+    if: false
     name: Debian Trixie x86_64
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     container: debian:trixie
     defaults:
       run:
@@ -378,57 +533,75 @@ jobs:
         with:
           length: 7
 
+      - name: Install dependencies
+        run: |
+          apt update
+          apt install -y bison ccache cmake diffutils git make meson ruby
+          apt install -y gcc g++
+
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - uses: actions/cache@v4
+      - name: Restore from cache
+        if: false
+        uses: actions/cache/restore@v5
         with:
-          path: |
-            linux/build-x86_64
-            linux/downloads
-          key: lin-debian-trixie-x86_64-${{ hashFiles('linux/Makefile') }}
+          path: ccache
+          key: debian-trixie-x86_64-
+          restore-keys: debian-trixie-x86_64-
 
-      - name: Install apt dependencies
+      - name: Set up ccache
         run: |
-          apt update
-          apt install git wget build-essential cmake meson autoconf automake libtool pkg-config ruby bison xxd zlib1g-dev libbz2-dev xorg-dev libgl1-mesa-dev libasound2-dev libpulse-dev -y
+          ccache --set-config=cache_dir="$(pwd)/ccache"
+          ccache --set-config=compiler_check=content
+          ccache --set-config=max_size=1280MiB
+          ccache --zero-stats
 
-      - name: Build everything else
+      - name: Configure
         run: |
-          cd linux
-          make
+          meson setup --prefix "$(pwd)/build/artifact" --buildtype release -Dstrip=true -Db_lto=true build
 
-      - name: Build executable
+      - name: Build
+        id: build
         run: |
-          source linux/vars.sh
-          meson setup build --bindir=. --prefix=$GITHUB_WORKSPACE/build/local
-          cd build
-          ninja
-          ninja install
+          exit_code=0
+          CLICOLOR_FORCE=1 ninja -C build -v || exit_code=$?
+          echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
+          date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
-      - name: Prepare archive
+      - name: Save to cache
+        if: false
+        uses: actions/cache/save@v5
+        with:
+          path: ccache
+          key: debian-trixie-x86_64-${{ github.sha }}-${{ steps.build.outputs.time }}
+
+      - name: Show ccache statistics
         run: |
-          cd build/local
-          cp -r ../../linux/build-x86_64/lib/ruby/3.1.0 .
-          mv ./3.1.0 ./stdlib
-          cp ../../mkxp.json .
-          cp -r ../../scripts .
-          cp ../../assets/LICENSE.mkxp-z-with-https.txt .
+          ccache --show-stats --verbose
 
-      - uses: actions/upload-artifact@v4
+      - name: Check build status
+        run: |
+          exit ${{ steps.build.outputs.exit-code }}
+
+      - name: Prepare artifact
+        run: |
+          meson install -C build --no-rebuild --tags mkxp-z
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
           name: mkxp-z.linux.debian.trixie.x86_64.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
-          path: build/local
+          path: build/artifact
 
   build-linux-cross-container:
-    if: "false"
+    if: false
     name: Debian Trixie ${{matrix.arch_mkxpz}}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     container: debian:trixie
     defaults:
       run:
         shell: bash
-    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
@@ -436,109 +609,284 @@ jobs:
           - arch_mkxpz: armv6
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
-            experimental: false
-          - arch_mkxpz: armv7
-            arch_debian: armhf
-            arch_gcc: arm-linux-gnueabihf
-            experimental: false
+            cache: false
           - arch_mkxpz: armv7-neon
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
-            experimental: false
+            cache: false
           - arch_mkxpz: arm64
             arch_debian: arm64
             arch_gcc: aarch64-linux-gnu
-            experimental: false
+            cache: false
           - arch_mkxpz: power8le
             arch_debian: ppc64el
             arch_gcc: powerpc64le-linux-gnu
-            experimental: false
-          - arch_mkxpz: power9le
-            arch_debian: ppc64el
-            arch_gcc: powerpc64le-linux-gnu
-            experimental: false
+            cache: false
           - arch_mkxpz: s390x
             arch_debian: s390x
             arch_gcc: s390x-linux-gnu
-            experimental: false
+            cache: false
           - arch_mkxpz: riscv64
             arch_debian: riscv64
             arch_gcc: riscv64-linux-gnu
-            # libjxl/highway compatibility issue, TODO check if fixed in later SDL_image.
-            # Also probably an OpenSSL arch name issue, which might be fixed by now.
-            experimental: true
+            cache: false
     steps:
       - uses: benjlevesque/short-sha@v2.2
         id: short-sha
         with:
           length: 7
 
-      - name: Checkout repository
-        uses: actions/checkout@v5
-
-      - uses: actions/cache@v4
-        with:
-          path: |
-            linux/build-${{matrix.arch_mkxpz}}
-            linux/downloads
-          key: lin-debian-trixie-${{matrix.arch_mkxpz}}-${{ hashFiles('linux/Makefile', 'linux/target*', 'linux/toolchain*') }}
-
-      - name: Install apt dependencies
+      - name: Install dependencies
         run: |
           dpkg --add-architecture ${{matrix.arch_debian}}
           apt update
-          apt install git wget build-essential cmake meson autoconf automake libtool pkg-config ruby bison xxd -y
-          apt install libfontenc-dev:${{matrix.arch_debian}} libfs-dev:${{matrix.arch_debian}} libice-dev:${{matrix.arch_debian}} libsm-dev:${{matrix.arch_debian}} libx11-dev:${{matrix.arch_debian}} libxau-dev:${{matrix.arch_debian}} libxaw7-dev:${{matrix.arch_debian}} libxcomposite-dev:${{matrix.arch_debian}} libxcursor-dev:${{matrix.arch_debian}} libxdamage-dev:${{matrix.arch_debian}} libxdmcp-dev:${{matrix.arch_debian}} libxext-dev:${{matrix.arch_debian}} libxfixes-dev:${{matrix.arch_debian}} libxfont-dev:${{matrix.arch_debian}} libxft-dev:${{matrix.arch_debian}} libxi-dev:${{matrix.arch_debian}} libxinerama-dev:${{matrix.arch_debian}} libxkbfile-dev:${{matrix.arch_debian}} libxmu-dev:${{matrix.arch_debian}} libxmuu-dev:${{matrix.arch_debian}} libxpm-dev:${{matrix.arch_debian}} libxrandr-dev:${{matrix.arch_debian}} libxrender-dev:${{matrix.arch_debian}} libxres-dev:${{matrix.arch_debian}} libxss-dev:${{matrix.arch_debian}} libxt-dev:${{matrix.arch_debian}} libxtst-dev:${{matrix.arch_debian}} libxv-dev:${{matrix.arch_debian}} libxvmc-dev:${{matrix.arch_debian}} libxxf86dga-dev:${{matrix.arch_debian}} libxxf86vm-dev:${{matrix.arch_debian}} x11proto-dev:${{matrix.arch_debian}} xserver-xorg-dev:${{matrix.arch_debian}} xtrans-dev:${{matrix.arch_debian}} -y
-          apt install gcc-${{matrix.arch_gcc}} g++-${{matrix.arch_gcc}} zlib1g-dev:${{matrix.arch_debian}} libbz2-dev:${{matrix.arch_debian}} libgl1-mesa-dev:${{matrix.arch_debian}} libasound2-dev:${{matrix.arch_debian}} libpulse-dev:${{matrix.arch_debian}} -y
+          apt install -y bison ccache cmake diffutils git make meson ruby
+          apt install -y gcc g++
+          apt install -y gcc-${{matrix.arch_gcc}} g++-${{matrix.arch_gcc}}
 
-      - name: Build everything else
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Restore from cache
+        if: ${{ matrix.cache }}
+        uses: actions/cache/restore@v5
+        with:
+          path: ccache
+          key: debian-trixie-${{ matrix.arch_mkxpz }}-
+          restore-keys: debian-trixie-${{ matrix.arch_mkxpz }}-
+
+      - name: Set up ccache
         run: |
-          cd linux
-          source target-${{matrix.arch_mkxpz}}.sh
-          make
+          ccache --set-config=cache_dir="$(pwd)/ccache"
+          ccache --set-config=compiler_check=content
+          ccache --set-config=max_size=1280MiB
+          ccache --zero-stats
 
-      - name: Build executable
+      - name: Configure
         run: |
-          source linux/target-${{matrix.arch_mkxpz}}.sh
-          source linux/vars.sh
-          meson setup --cross-file linux/$ARCH_MESON_TOOLCHAIN build --bindir=. --prefix=$GITHUB_WORKSPACE/build/local
-          cd build
-          ninja
-          ninja install
-          cp "$MKXPZ_PREFIX/lib/$("$ARCH_CONFIGURE-objdump" -p local/mkxp-z* | grep -i NEEDED | grep -Eo 'libruby.so.[0-9\.]+')" local/lib*/
-          cp "/usr/lib/$ARCH_CONFIGURE/$("$ARCH_CONFIGURE-objdump" -p local/lib*/libruby.so* | grep -i NEEDED | grep -Eo 'libcrypt.so.[0-9\.]+')" local/lib*/
+          if [ '${{ matrix.arch_mkxpz }}' = 'armv7-neon' ]
+          then
+            arm_neon=auto
+          else
+            arm_neon=disabled
+          fi
+          meson setup --prefix "$(pwd)/build/artifact" --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt -Darm_neon=$arm_neon --buildtype release -Dstrip=true -Db_lto=true build
 
-      - name: Prepare archive
+      - name: Build
+        id: build
         run: |
-          cd build/local
-          cp -r ../../linux/build-${{matrix.arch_mkxpz}}/lib/ruby/3.1.0 .
-          mv ./3.1.0 ./stdlib
-          cp ../../mkxp.json .
-          cp -r ../../scripts .
-          cp ../../assets/LICENSE.mkxp-z-with-https.txt .
+          exit_code=0
+          CLICOLOR_FORCE=1 ninja -C build -v || exit_code=$?
+          echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
+          date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
-      - uses: actions/upload-artifact@v4
+      - name: Save to cache
+        if: ${{ matrix.cache }}
+        uses: actions/cache/save@v5
+        with:
+          path: ccache
+          key: debian-trixie-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
+
+      - name: Show ccache statistics
+        run: |
+          ccache --show-stats --verbose
+
+      - name: Check build status
+        run: |
+          exit ${{ steps.build.outputs.exit-code }}
+
+      - name: Prepare artifact
+        run: |
+          meson install -C build --no-rebuild --tags mkxp-z
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
           name: mkxp-z.linux.debian.trixie.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
-          path: build/local
+          path: build/artifact
+
+  build-freebsd:
+    if: false
+    name: FreeBSD ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    container: debian:latest # The base runner image's version of zstd is currently unable to extract FreeBSD's pkg files
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: aarch64
+            cpu-family: aarch64
+            cpu: aarch64
+            endian: little
+            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/aarch64-freebsd-sysroot-a2025.11.26_1~68315b7f42.pkg
+            sysroot-hash: 68315b7f428108c9c18a6afd5e5c091ec26108180c1f2abadb7a874e21dee346
+            cache: false
+          - arch: amd64
+            cpu-family: x86_64
+            cpu: x86_64
+            endian: little
+            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/amd64-freebsd-sysroot-a2025.11.26_1~b5aaff1c3a.pkg
+            sysroot-hash: b5aaff1c3a4ce4195c6d53fcfe018eaf88bb661b7e2cff5e8bb759f03808e279
+            cache: false
+          - arch: powerpc
+            cpu-family: ppc
+            cpu: powerpc
+            endian: big
+            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/powerpc-freebsd-sysroot-a2025.11.26_1~dc698d9fa7.pkg
+            sysroot-hash: dc698d9fa7368b37d71e542cb466c8c009365dc6732c59052a4a997bd994776f
+            cache: false
+          - arch: powerpc64
+            cpu-family: ppc64
+            cpu: powerpc64
+            endian: big
+            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/powerpc64-freebsd-sysroot-a2025.11.26_1~8940892710.pkg
+            sysroot-hash: 8940892710f79021b4e340285cf976d8aa4a319d3c86028bfa796d0d19d4a383
+            cache: false
+          - arch: powerpc64le
+            cpu-family: ppc64
+            cpu: powerpc64le
+            endian: little
+            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/powerpc64le-freebsd-sysroot-a2025.11.26_1~b90bcf67b7.pkg
+            sysroot-hash: b90bcf67b79f3cd3242ee21e4287e1ee53ea5e0bd87f80aadfea0b663c6b7652
+            cache: false
+          - arch: riscv64
+            cpu-family: riscv64
+            cpu: riscv64
+            endian: little
+            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/riscv64-freebsd-sysroot-a2025.11.26_1~753abe4dd5.pkg
+            sysroot-hash: 753abe4dd5152870aaf1945490ba76d4ad1309b7628e3fd2bdb940068449b623
+            cache: false
+    steps:
+      - uses: benjlevesque/short-sha@v2.2
+        id: short-sha
+        with:
+          length: 7
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          apt update
+          apt install -y bison ccache cmake diffutils git make meson ruby
+          apt install -y clang lld llvm
+
+          apt install -y curl tar zstd
+          curl --retry 5 -Lo sysroot.pkg '${{ matrix.sysroot-url }}'
+          [ "$(sha256sum sysroot.pkg | cut -d ' ' -f 1)" = '${{ matrix.sysroot-hash }}' ]
+          tar -xf sysroot.pkg --zstd
+          mv usr/local/freebsd-sysroot/${{ matrix.arch }} ~/sysroot
+          version=$(printf '#include <sys/param.h>\n__FreeBSD_version\n' | clang "--sysroot=$(realpath ~/sysroot)" -E - | tail -n 1)
+          version_major=$((version / 100000))
+          version_minor=$(((version / 1000) % 100))
+          target="${{ matrix.cpu }}-unknown-freebsd$version_major.$version_minor"
+          echo "Target: $target"
+          echo "target=$target" >> "$GITHUB_ENV"
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Restore from cache
+        if: ${{ matrix.cache }}
+        uses: actions/cache/restore@v5
+        with:
+          path: ccache
+          key: freebsd-${{ matrix.arch }}-
+          restore-keys: freebsd-${{ matrix.arch }}-
+
+      - name: Set up ccache
+        run: |
+          ccache --set-config=cache_dir="$(pwd)/ccache"
+          ccache --set-config=compiler_check=content
+          ccache --set-config=max_size=1280MiB
+          ccache --zero-stats
+
+      - name: Configure
+        run: |
+          echo "[binaries]" | tee -a ~/cross.toml
+          echo "c = ['ccache', 'clang', '--target=$target', '--sysroot=$(realpath ~/sysroot)']" | tee -a ~/cross.toml
+          echo "c_ld = 'lld'" | tee -a ~/cross.toml
+          echo "cpp = ['ccache', 'clang++', '--target=$target', '--sysroot=$(realpath ~/sysroot)']" | tee -a ~/cross.toml
+          echo "cpp_ld = 'lld'" | tee -a ~/cross.toml
+          echo "ar = 'llvm-ar'" | tee -a ~/cross.toml
+          echo "ranlib = 'llvm-ranlib'" | tee -a ~/cross.toml
+          echo "strip = 'llvm-strip'" | tee -a ~/cross.toml
+          echo "cmake = 'cmake'" | tee -a ~/cross.toml
+          echo "[host_machine]" | tee -a ~/cross.toml
+          echo "system = 'freebsd'" | tee -a ~/cross.toml
+          echo "cpu_family = '${{ matrix.cpu-family }}'" | tee -a ~/cross.toml
+          echo "cpu = '${{ matrix.cpu }}'" | tee -a ~/cross.toml
+          echo "endian = '${{ matrix.endian }}'" | tee -a ~/cross.toml
+          if ruby -e "exit(Gem::Version.new('$(cmake --version | head -n 1 | cut -d ' ' -f 3)') < Gem::Version.new('4.0.0'))"
+          then
+            # This CMAKE_EXE_LINKER_FLAGS_INIT option that forces CMake to use LLD instead of the default BFD linker for CMake configure tests will not be needed once CMake updates to version 4.0.0 or later (because CMake will obey the CMAKE_EXE_LINKER_FLAGS option that we set inside of src/meson.build starting from CMake 4.0.0)
+            echo "[cmake]" | tee -a ~/cross.toml
+            echo "CMAKE_EXE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.toml
+          fi
+          echo '--------------------------------------------------------------------------------'
+          meson setup --prefix "$(pwd)/build/artifact" --cross-file ~/cross.toml --buildtype release -Dstrip=true -Db_lto=true build
+
+      - name: Build
+        id: build
+        run: |
+          exit_code=0
+          CLICOLOR_FORCE=1 ninja -C build -v || exit_code=$?
+          echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
+          date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
+
+      - name: Save to cache
+        if: ${{ matrix.cache }}
+        uses: actions/cache/save@v5
+        with:
+          path: ccache
+          key: freebsd-${{ matrix.arch }}-${{ github.sha }}-${{ steps.build.outputs.time }}
+
+      - name: Show ccache statistics
+        run: |
+          ccache --show-stats --verbose
+
+      - name: Check build status
+        run: |
+          exit ${{ steps.build.outputs.exit-code }}
+
+      - name: Prepare artifact
+        run: |
+          meson install -C build --no-rebuild --tags mkxp-z
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mkxp-z.freebsd.${{ matrix.arch }}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          path: build/artifact
 
   build-macos:
-    name: macOS
-    runs-on: macos-14
+    name: macOS ${{ matrix.arch_mkxpz }}
+    runs-on: macos-latest
     needs: set-matrix
     strategy:
+      fail-fast: false
       matrix:
         value: ${{ fromJson(needs.set-matrix.outputs.matrix) }}
+        include:
+          - arch_mkxpz: arm64
+            cache: true
+          - arch_mkxpz: x86_64
+            cache: true
     steps:
-      - name: Remove pre-existing homebrew packages
-        run: brew remove --force $(brew list)
+      - uses: benjlevesque/short-sha@v2.2
+        id: short-sha
+        with:
+          length: 7
+
+      - name: Install dependencies
+        run: |
+          brew uninstall -f --ignore-dependencies bison ccache cmake diffutils git make meson ruby
+          brew install -q bison ccache cmake diffutils git make meson ruby
 
       - name: Checkout repository
         uses: actions/checkout@v5
 
       - name: Name
         id: name
-        run: echo name=$(echo ${{ matrix.value }} | perl -pe '$_ = ucfirst($_)') >> $GITHUB_OUTPUT
+        run: echo name=$(echo ${{ matrix.value }} | perl -pe 's/^(.)/\U$1/') >> $env:GITHUB_OUTPUT
 
       - name: Icon
         if: "matrix.value != 'game'"
@@ -546,81 +894,144 @@ jobs:
           cp icons/${{ matrix.value }}.icns macos/icon.icns
           cp icons/${{ matrix.value }}.png assets/icon.png
 
-      - name: Cache
-        uses: actions/cache@v4
+      - name: Restore from cache
+        if: ${{ matrix.cache }}
+        uses: actions/cache/restore@v5
         with:
-          path: |
-            macos/Dependencies/build-macosx-x86_64
-            macos/Dependencies/build-macosx-arm64
-            macos/Dependencies/build-macosx-universal
-            macos/Dependencies/downloads
-          key: mac-${{ hashFiles('macos/Dependencies/*.make', 'macos/Dependencies/*.sh') }}
+          path: ccache
+          key: macos-${{ matrix.arch_mkxpz }}-
+          restore-keys: macos-${{ matrix.arch_mkxpz }}-
 
-      - name: Install Homebrew tools
-        working-directory: macos/Dependencies
-        run: brew bundle
+      - name: Set up ccache
+        run: |
+          ccache --set-config=cache_dir="$(pwd)/ccache"
+          ccache --set-config=compiler_check=content
+          ccache --set-config=max_size=1280MiB
+          ccache --zero-stats
 
-      - name: Build all dependencies
-        working-directory: macos/Dependencies
-        run: ./setup.sh
+      - name: Configure
+        run: |
+          meson setup --prefix "$(pwd)/build/artifact" --cross-file macos/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Dstrip=true -Db_lto=true build
 
-      - name: Build app
-        working-directory: macos
-        run: xcodebuild -project mkxp-z.xcodeproj -configuration "Release" -scheme "Universal" -derivedDataPath "$GITHUB_WORKSPACE/build"
+      - name: Build
+        id: build
+        run: |
+          exit_code=0
+          CLICOLOR_FORCE=1 ninja -C build -v || exit_code=$?
+          echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
+          date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
 
-      - name: Discord
-        uses: actions/checkout@v5
+      - name: Save to cache
+        if: ${{ matrix.cache }}
+        uses: actions/cache/save@v5
         with:
-          repository: enumag/ruby_discord_sdk
-          path: ruby_discord_sdk
-          ref: main
+          path: ccache
+          key: macos-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
 
-      - name: Build Discord Gem
-        working-directory: ruby_discord_sdk
+      - name: Show ccache statistics
         run: |
-          curl -O https://dl-game-sdk.discordapp.net/3.2.1/discord_game_sdk.zip
-          unzip -o discord_game_sdk.zip -d .
-          lipo -output libdiscord_game_sdk.dylib -create lib/x86_64/discord_game_sdk.dylib lib/aarch64/discord_game_sdk.dylib 
-          cp ../macos/Dependencies/build-macosx-universal/lib/libruby.3.1.dylib .
-          ../macos/Dependencies/build-macosx-x86_64/bin/ruby ./extconf.rb
-          make
-          mkdir ../build/Build/Products/Release/Z-universal.app/Contents/Game/gems
-          cp discord.bundle ../build/Build/Products/Release/Z-universal.app/Contents/Game/gems
-          cp libdiscord_game_sdk.dylib ../build/Build/Products/Release/Z-universal.app/Contents/Frameworks/discord_game_sdk.dylib
+          ccache --show-stats --verbose
 
-      - name: Disable specifications
-        working-directory: build/Build/Products/Release/Z-universal.app/Contents/Resources/Ruby/3.1.0
-        run: sed -i '' "s~Gem::Specification\.load_defaults~#Gem::Specification\.load_defaults~g" rubygems.rb
-
-      # Fix mkxp-z issue where CONFIG["prefix"] ends up containing compilation path from GitHub Actions.
-      - name: Fix RbConfig
-        working-directory: build/Build/Products/Release/Z-universal.app/Contents/Resources/Ruby/3.1.0/x86_64-darwin
-        run: sed -i '' 's~TOPDIR || DESTDIR + \".*\"~TOPDIR || DESTDIR + \"\"~g' rbconfig.rb
-
-      - name: Compress app
-        working-directory: build/Build/Products/Release
+      - name: Check build status
         run: |
-          mv Z-universal.app ${{ steps.name.outputs.name }}.app
-          rm ${{ steps.name.outputs.name }}.app/Contents/Game/mkxp.json
-          ditto -c -k --sequesterRsrc --keepParent ${{ steps.name.outputs.name }}.app ${{ matrix.value }}.app.zip
+          exit ${{ steps.build.outputs.exit-code }}
 
-      - name: Upload artifact
+      - name: Prepare artifacts
+        run: |
+          meson install -C build --no-rebuild --tags mkxp-z-bundle
+          mv build/artifact build/artifact-bundle
+          meson install -C build --no-rebuild --tags mkxp-z
+
+      - name: Upload standalone artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.job }}-${{ matrix.value }}
-          path: build/Build/Products/Release/${{ matrix.value }}.app.zip
+          name: ${{ github.job }}-${{ matrix.arch_mkxpz }}-standalone-${{ matrix.value }}
+          path: build/artifact
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.job }}-${{ matrix.arch_mkxpz }}-standalone-${{ matrix.value }}
+          path: build/artifact-bundle
+
+  build-macos-universal:
+    name: macOS universal
+    runs-on: macos-latest
+    needs:
+      - build-macos
+      - set-matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        value: ${{ fromJson(needs.set-matrix.outputs.matrix) }}
+    steps:
+      - uses: benjlevesque/short-sha@v2.2
+        id: short-sha
+        with:
+          length: 7
+
+      - name: Download arm64 standalone artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.job }}-arm64-standalone-${{ matrix.value }}
+          path: artifact-arm64
+
+      - name: Download arm64 bundle artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.job }}-arm64-bundle-${{ matrix.value }}
+          path: artifact-bundle-arm64
+
+      - name: Download x86_64 standalone artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.job }}-x86_64-standalone-${{ matrix.value }}
+          path: artifact-x86_64
+
+      - name: Download x86_64 bundle artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.job }}-x86_64-bundle-${{ matrix.value }}
+          path: artifact-bundle-x86_64
+
+      - name: Build
+        run: |
+          lipo artifact-arm64/mkxp-z.aarch64 artifact-x86_64/mkxp-z.x86_64 -output mkxp-z.universal -create
+          cp -p -R artifact-arm64/* artifact-x86_64/
+          mv artifact-x86_64 artifact
+          rm artifact/mkxp-z.aarch64
+          rm artifact/mkxp-z.x86_64
+          mv mkxp-z.universal artifact/
+          lipo artifact-bundle-arm64/mkxp-z.aarch64.app/Contents/MacOS/bundle_mkxp-z artifact-bundle-x86_64/mkxp-z.x86_64.app/Contents/MacOS/bundle_mkxp-z -output bundle_mkxp-z -create
+          mv artifact-bundle-arm64/mkxp-z.aarch64.app artifact-bundle-arm64/mkxp-z.universal.app
+          mv artifact-bundle-x86_64/mkxp-z.x86_64.app artifact-bundle-x86_64/mkxp-z.universal.app
+          cp -p -R artifact-bundle-arm64/* artifact-bundle-x86_64/
+          mv artifact-bundle-x86_64 artifact-bundle
+          mv bundle_mkxp-z artifact-bundle/mkxp-z.universal.app/Contents/MacOS/
+
+      - name: Upload standalone artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.job }}-standalone-${{ matrix.value }}
+          path: artifact
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.job }}-bundle-${{ matrix.value }}
+          path: artifact-bundle
 
   release:
     name: Release
     runs-on: ubuntu-latest
     needs:
-      - build-windows
+      - build-windows-cross
       - build-linux-native
-      - build-macos
+      - build-macos-universal
     steps:
       - uses: actions/download-artifact@v5
         with:
-          pattern: build-windows-*
+          pattern: build-windows-cross-*
           path: windows
 
       - uses: actions/download-artifact@v5
@@ -630,7 +1041,7 @@ jobs:
 
       - uses: actions/download-artifact@v5
         with:
-          pattern: build-macos-*
+          pattern: build-macos-universal-*
           path: macos
 
       - name: Move files
@@ -645,7 +1056,6 @@ jobs:
           mv macos build-macos-game
           mkdir macos
           mv build-macos-game macos/
-
       - name: Prepare windows builds
         working-directory: windows
         run: |
@@ -656,7 +1066,6 @@ jobs:
             zip -r "../../${game}.windows.zip" *.exe *.dll stdlib gems
             cd ..
           done
-
       - name: Prepare linux builds
         working-directory: linux
         run: |
@@ -667,7 +1076,6 @@ jobs:
             zip -r "../../${game}.linux.zip" *.AppImage discord_game_sdk.so stdlib gems
             cd ..
           done
-
       - name: Prepare macos builds
         working-directory: macos
         run: |
@@ -678,7 +1086,6 @@ jobs:
             mv "${game}.app.zip" "../../${game}.macos.zip"
             cd ..
           done
-
       - name: Release
         uses: softprops/action-gh-release@v2
         with:

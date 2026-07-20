@@ -1,0 +1,123 @@
+# Fixes compilation errors when building for FreeBSD.
+
+--- a/src/libANGLE/Display.cpp
++++ b/src/libANGLE/Display.cpp
+@@ -64,7 +64,7 @@
+ #        include "libANGLE/renderer/gl/wgl/DisplayWGL.h"
+ #    elif ANGLE_ENABLE_CGL
+ #        include "libANGLE/renderer/gl/cgl/DisplayCGL.h"
+-#    elif defined(ANGLE_PLATFORM_LINUX)
++#    elif defined(ANGLE_PLATFORM_POSIX) && !defined(ANGLE_PLATFORM_ANDROID) && !defined(ANGLE_PLATFORM_APPLE) && !defined(ANGLE_PLATFORM_FUCHSIA)
+ #        include "libANGLE/renderer/gl/egl/DisplayEGL.h"
+ #        if defined(ANGLE_USE_X11)
+ #            include "libANGLE/renderer/gl/glx/DisplayGLX_api.h"
+@@ -435,7 +435,7 @@ rx::DisplayImpl *CreateDisplayFromAttribs(EGLAttrib displayType,
+             impl = new rx::DisplayCGL(state);
+             break;
+ 
+-#    elif defined(ANGLE_PLATFORM_LINUX)
++#    elif defined(ANGLE_PLATFORM_POSIX) && !defined(ANGLE_PLATFORM_ANDROID) && !defined(ANGLE_PLATFORM_APPLE) && !defined(ANGLE_PLATFORM_FUCHSIA)
+ #        if defined(ANGLE_USE_GBM) || defined(ANGLE_USE_WAYLAND)
+             if (platformType == 0)
+             {
+@@ -493,7 +493,7 @@ rx::DisplayImpl *CreateDisplayFromAttribs(EGLAttrib displayType,
+ #if defined(ANGLE_ENABLE_OPENGL)
+ #    if defined(ANGLE_PLATFORM_WINDOWS)
+             impl = new rx::DisplayWGL(state);
+-#    elif defined(ANGLE_PLATFORM_LINUX)
++#    elif defined(ANGLE_PLATFORM_POSIX) && !defined(ANGLE_PLATFORM_ANDROID) && !defined(ANGLE_PLATFORM_APPLE) && !defined(ANGLE_PLATFORM_FUCHSIA)
+ #        if defined(ANGLE_USE_GBM) || defined(ANGLE_USE_WAYLAND)
+             if (platformType == 0)
+             {
+@@ -556,7 +556,7 @@ rx::DisplayImpl *CreateDisplayFromAttribs(EGLAttrib displayType,
+                 impl = rx::CreateVulkanWin32Display(state);
+             }
+             break;
+-#    elif defined(ANGLE_PLATFORM_LINUX)
++#    elif defined(ANGLE_PLATFORM_POSIX) && !defined(ANGLE_PLATFORM_ANDROID) && !defined(ANGLE_PLATFORM_APPLE) && !defined(ANGLE_PLATFORM_FUCHSIA)
+ #        if defined(ANGLE_USE_GBM)
+             if (platformType == EGL_PLATFORM_GBM_KHR && rx::IsVulkanGbmDisplayAvailable())
+             {
+@@ -2207,7 +2207,7 @@ static ClientExtensions GenerateClientExtensions()
+     extensions.platformWaylandEXT = true;
+ #endif
+ 
+-#if defined(ANGLE_PLATFORM_LINUX) && (defined(ANGLE_ENABLE_OPENGL) || defined(ANGLE_ENABLE_VULKAN))
++#if (defined(ANGLE_PLATFORM_POSIX) && !defined(ANGLE_PLATFORM_ANDROID) && !defined(ANGLE_PLATFORM_APPLE) && !defined(ANGLE_PLATFORM_FUCHSIA)) && (defined(ANGLE_ENABLE_OPENGL) || defined(ANGLE_ENABLE_VULKAN))
+     extensions.platformSurfacelessMESA = true;
+ #endif
+ 
+@@ -2254,7 +2254,7 @@ static ClientExtensions GenerateClientExtensions()
+     extensions.x11Visual = true;
+ #endif
+ 
+-#if defined(ANGLE_PLATFORM_LINUX)
++#if defined(ANGLE_PLATFORM_POSIX) && !defined(ANGLE_PLATFORM_ANDROID) && !defined(ANGLE_PLATFORM_APPLE) && !defined(ANGLE_PLATFORM_FUCHSIA)
+     extensions.platformANGLEDeviceTypeEGLANGLE = true;
+ #endif
+ 
+--- a/src/libANGLE/renderer/vulkan/CLPlatformVk.cpp
++++ b/src/libANGLE/renderer/vulkan/CLPlatformVk.cpp
+@@ -276,7 +276,7 @@ angle::NativeWindowSystem CLPlatformVk::getWindowSystem()
+ const char *CLPlatformVk::getWSIExtension()
+ {
+ #if defined(ANGLE_ENABLE_VULKAN)
+-#    if defined(ANGLE_PLATFORM_LINUX)
++#    if defined(ANGLE_PLATFORM_POSIX) && !defined(ANGLE_PLATFORM_ANDROID) && !defined(ANGLE_PLATFORM_APPLE) && !defined(ANGLE_PLATFORM_FUCHSIA)
+ #        if defined(ANGLE_USE_GBM)
+     return nullptr;
+ #        elif defined(ANGLE_USE_X11)
+--- a/src/libANGLE/renderer/vulkan/DisplayVk.cpp
++++ b/src/libANGLE/renderer/vulkan/DisplayVk.cpp
+@@ -566,9 +566,9 @@ void DisplayVk::generateExtensions(egl::DisplayExtensions *outExtensions) const
+     outExtensions->contextPriority = !getFeatures().allocateNonZeroMemory.enabled;
+     outExtensions->noConfigContext = true;
+ 
+-#if defined(ANGLE_PLATFORM_ANDROID) || defined(ANGLE_PLATFORM_LINUX)
++#if defined(ANGLE_PLATFORM_ANDROID) || (defined(ANGLE_PLATFORM_POSIX) && !defined(ANGLE_PLATFORM_ANDROID) && !defined(ANGLE_PLATFORM_APPLE) && !defined(ANGLE_PLATFORM_FUCHSIA))
+     outExtensions->nativeFenceSyncANDROID = getFeatures().supportsAndroidNativeFenceSync.enabled;
+-#endif  // defined(ANGLE_PLATFORM_ANDROID) || defined(ANGLE_PLATFORM_LINUX)
++#endif  // defined(ANGLE_PLATFORM_ANDROID) || (defined(ANGLE_PLATFORM_POSIX) && !defined(ANGLE_PLATFORM_ANDROID) && !defined(ANGLE_PLATFORM_APPLE) && !defined(ANGLE_PLATFORM_FUCHSIA))
+ 
+     outExtensions->bufferAgeEXT = true;
+ 
+--- a/src/libANGLE/renderer/vulkan/DisplayVk_api.h
++++ b/src/libANGLE/renderer/vulkan/DisplayVk_api.h
+@@ -23,7 +23,7 @@ bool IsVulkanWin32DisplayAvailable();
+ DisplayImpl *CreateVulkanWin32Display(const egl::DisplayState &state);
+ #endif  // defined(ANGLE_PLATFORM_WINDOWS)
+ 
+-#if defined(ANGLE_PLATFORM_LINUX)
++#if defined(ANGLE_PLATFORM_POSIX) && !defined(ANGLE_PLATFORM_ANDROID) && !defined(ANGLE_PLATFORM_APPLE) && !defined(ANGLE_PLATFORM_FUCHSIA)
+ bool IsVulkanWaylandDisplayAvailable();
+ DisplayImpl *CreateVulkanWaylandDisplay(const egl::DisplayState &state);
+ 
+@@ -41,7 +41,7 @@ DisplayImpl *CreateVulkanHeadlessDisplay(const egl::DisplayState &state);
+ 
+ bool IsVulkanOffscreenDisplayAvailable();
+ DisplayImpl *CreateVulkanOffscreenDisplay(const egl::DisplayState &state);
+-#endif  // defined(ANGLE_PLATFORM_LINUX)
++#endif  // defined(ANGLE_PLATFORM_POSIX) && !defined(ANGLE_PLATFORM_ANDROID) && !defined(ANGLE_PLATFORM_APPLE) && !defined(ANGLE_PLATFORM_FUCHSIA)
+ 
+ #if defined(ANGLE_PLATFORM_ANDROID)
+ bool IsVulkanAndroidDisplayAvailable();
+--- a/src/libANGLE/renderer/vulkan/vk_renderer.cpp
++++ b/src/libANGLE/renderer/vulkan/vk_renderer.cpp
+@@ -5592,7 +5592,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
+         &mFeatures, supportsExternalFenceFd,
+         ExtensionFound(VK_KHR_EXTERNAL_FENCE_FD_EXTENSION_NAME, deviceExtensionNames));
+ 
+-#if defined(ANGLE_PLATFORM_ANDROID) || defined(ANGLE_PLATFORM_LINUX)
++#if defined(ANGLE_PLATFORM_ANDROID) || (defined(ANGLE_PLATFORM_POSIX) && !defined(ANGLE_PLATFORM_ANDROID) && !defined(ANGLE_PLATFORM_APPLE) && !defined(ANGLE_PLATFORM_FUCHSIA))
+     if (mFeatures.supportsExternalFenceCapabilities.enabled &&
+         mFeatures.supportsExternalSemaphoreCapabilities.enabled)
+     {
+@@ -5637,7 +5637,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
+                                 (mFeatures.supportsExternalFenceFd.enabled &&
+                                  mFeatures.supportsExternalSemaphoreFd.enabled));
+     }
+-#endif  // defined(ANGLE_PLATFORM_ANDROID) || defined(ANGLE_PLATFORM_LINUX)
++#endif  // defined(ANGLE_PLATFORM_ANDROID) || (defined(ANGLE_PLATFORM_POSIX) && !defined(ANGLE_PLATFORM_ANDROID) && !defined(ANGLE_PLATFORM_APPLE) && !defined(ANGLE_PLATFORM_FUCHSIA))
+ 
+     // Disabled on SwiftShader due to http://crbug.com/40942995
+     ANGLE_FEATURE_CONDITION(

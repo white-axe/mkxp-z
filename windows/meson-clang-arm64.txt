@@ -1,0 +1,14 @@
+[binaries]
+c = ['ccache', 'clang', '--target=aarch64-w64-mingw32']
+cpp = ['ccache', 'clang++', '--target=aarch64-w64-mingw32']
+ar = 'aarch64-w64-mingw32-ar'
+ranlib = 'aarch64-w64-mingw32-ranlib'
+windres = 'aarch64-w64-mingw32-windres'
+strip = 'aarch64-w64-mingw32-strip'
+cmake = 'cmake'
+
+[host_machine]
+system = 'windows'
+cpu_family = 'aarch64'
+cpu = 'aarch64'
+endian = 'little'

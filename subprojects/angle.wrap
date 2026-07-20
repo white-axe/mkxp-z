@@ -1,0 +1,15 @@
+[wrap-git]
+# When updating this dependency, the version also needs to be updated at the top of subprojects/packagefiles/angle/meson.build
+url = https://chromium.googlesource.com/angle/angle
+revision = chromium/7871
+depth = 1
+patch_directory = angle
+diff_files =
+    angle-bsd.patch,
+    angle-d3d11-cache.patch,
+    angle-framebuffer-assert.patch,
+    angle-interm-node.patch,
+    angle-round-to-nearest.patch,
+    angle-vulkan-memory-allocator.patch,
+    angle-window-surface-vk-mac.patch,
+    end-of-diff-files.patch

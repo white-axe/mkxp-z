@@ -1,13 +1,13 @@
 [binaries]
-c = 'powerpc64le-linux-gnu-gcc'
-cpp = 'powerpc64le-linux-gnu-g++'
+c = ['ccache', 'powerpc64le-linux-gnu-gcc']
+cpp = ['ccache', 'powerpc64le-linux-gnu-g++']
 ar = 'powerpc64le-linux-gnu-ar'
+ranlib = 'powerpc64le-linux-gnu-ranlib'
 strip = 'powerpc64le-linux-gnu-strip'
-pkgconfig = 'pkg-config'
 cmake = 'cmake'
 
 [host_machine]
 system = 'linux'
 cpu_family = 'ppc64'
-cpu = 'power8'
+cpu = 'ppc64le'
 endian = 'little'
