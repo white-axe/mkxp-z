@@ -196,21 +196,16 @@ jobs:
           fi
 
   build-windows-cross:
-    if: matrix.arch_mkxpz == 'x86_64'
-    name: Windows ${{ matrix.arch_mkxpz }}
+    name: Windows ${{ matrix.arch_mkxpz }} (${{ matrix.value }})
     runs-on: ubuntu-latest
     needs: set-matrix
     strategy:
       fail-fast: false
       matrix:
         value: ${{ fromJson(needs.set-matrix.outputs.matrix) }}
+        arch_mkxpz:
+          - x86_64
         include:
-          - arch_mkxpz: arm64
-            clang: true
-            cache: true
-          - arch_mkxpz: i686
-            clang: true
-            cache: false
           - arch_mkxpz: x86_64
             clang: false # FIXME: x86_64 binaries built with Clang cause Ruby to crash at run time
             cache: true
@@ -315,7 +310,7 @@ jobs:
           path: build/artifact
 
   build-linux-native:
-    name: Ubuntu 22.04 x86_64
+    name: Ubuntu 22.04 x86_64 (${{ matrix.value }})
     runs-on: ubuntu-22.04
     needs: set-matrix
     strategy:
@@ -858,13 +853,16 @@ jobs:
           path: build/artifact
 
   build-macos:
-    name: macOS ${{ matrix.arch_mkxpz }}
+    name: macOS ${{ matrix.arch_mkxpz }} (${{ matrix.value }})
     runs-on: macos-latest
     needs: set-matrix
     strategy:
       fail-fast: false
       matrix:
         value: ${{ fromJson(needs.set-matrix.outputs.matrix) }}
+        arch_mkxpz:
+          - arm64
+          - x86_64
         include:
           - arch_mkxpz: arm64
             cache: true
