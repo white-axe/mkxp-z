@@ -2,6 +2,8 @@ project('tools', 'c', meson_version: '>=1.4.0')
 
 python = import('python').find_installation(required: true)
 
+install_directory = [python, files('install-directory.py')[0]]
+
 # embedtool SOURCE_FILE DESTINATION_FILE NAME
 #   Embeds the contents of a file into a C array.
 #   SOURCE_FILE: Path to the file to embed.

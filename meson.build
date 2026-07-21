@@ -7,6 +7,7 @@ gplv3_features = []
 
 host_system = host_machine.system()
 host_endian = host_machine.endian()
+exe_name = meson.project_name() + '.' + host_machine.cpu()
 
 use_pic = true
 
@@ -103,8 +104,6 @@ subdir('assets')
 global_include_dirs += include_directories('src', 'binding')
 
 rpath = meson.get_compiler('cpp').get_linker_id() in ['ld64', 'ld64.lld'] ? '@loader_path' : '$ORIGIN'
-
-exe_name = meson.project_name() + '.' + host_machine.cpu()
 
 if host_system in ['windows', 'cygwin']
     windows_resource_directory = '../' + get_option('windows_resource_directory')
@@ -220,8 +219,7 @@ foreach install_tag : global_install_tags
 
     if ruby.type_name() == 'internal'
         meson.add_install_script(
-            python,
-            files('assets/install-directory.py'),
+            common.get_variable('install_directory'),
             ruby_build_dir / 'dist' / 'lib' / 'ruby' / (get_option('mri_version') + '.0'),
             'stdlib',
             install_tag: install_tag,
