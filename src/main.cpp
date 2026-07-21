@@ -226,6 +226,12 @@ int main(int argc, char *argv[]) {
 
     SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
 
+    /* When using SDL's X11 video driver,
+     * SDL_GL_MakeCurrent() seems to be faster when using EGL than when using GLX,
+     * so make SDL use EGL instead of GLX when using X11
+     * (you can still make SDL use GLX instead when using X11 by setting the SDL_VIDEO_X11_FORCE_EGL environment variable to 0) */
+    SDL_SetHint(SDL_HINT_VIDEO_X11_FORCE_EGL, "1");
+
     SDL_SetHint(
       SDL_HINT_OPENGL_ES_DRIVER,
       SDL_GetHintBoolean(
