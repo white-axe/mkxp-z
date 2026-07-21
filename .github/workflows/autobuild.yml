@@ -949,7 +949,7 @@ jobs:
       - name: Upload bundle artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.job }}-${{ matrix.arch_mkxpz }}-standalone-${{ matrix.value }}
+          name: ${{ github.job }}-${{ matrix.arch_mkxpz }}-bundle-${{ matrix.value }}
           path: build/artifact-bundle
 
   build-macos-universal:
