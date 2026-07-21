@@ -219,6 +219,27 @@ static void setupWindowIcon(const Config &conf, SDL_Window *win) {
   }
 }
 
+static SDL_Window *initVideo(const Config &conf) {
+  Uint32 winFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_ALLOW_HIGHDPI;
+
+  if (conf.winResizable)
+    winFlags |= SDL_WINDOW_RESIZABLE;
+  if (conf.fullscreen)
+    winFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+
+  if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    return nullptr;
+  }
+
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GetHintBoolean(SDL_HINT_OPENGL_ES_DRIVER, SDL_FALSE) ? SDL_GL_CONTEXT_PROFILE_ES : SDL_GL_CONTEXT_PROFILE_CORE | SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+
+  SDL_Window *window = SDL_CreateWindow(conf.windowTitle.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, conf.defScreenW, conf.defScreenH, winFlags);
+  if (window == nullptr) {
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+  }
+  return window;
+}
+
 int main(int argc, char *argv[]) {
     SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
     SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
@@ -255,6 +276,16 @@ int main(int argc, char *argv[]) {
     /* now we load the config */
     Config conf;
     conf.read(argc, argv);
+    if (conf.windowTitle.empty())
+      conf.windowTitle = conf.game.title;
+
+    /* initialize SDL first */
+    if (SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_TIMER) < 0) {
+      showInitError(std::string("Error initializing SDL: ") + SDL_GetError());
+      return 0;
+    }
+
+    SDL_Window *win = nullptr;
 
 #ifdef MKXPZ_CHECK_FOR_WAYLAND_SUPPORT
     {
@@ -333,10 +364,12 @@ int main(int argc, char *argv[]) {
 #endif // MKXPZ_CHECK_FOR_WAYLAND_SUPPORT
 
 #ifdef MKXPZ_HAVE_ANGLE
+    bool angle_allow_fallback = false;
     {
       const char *angle_default_platform = getenv("ANGLE_DEFAULT_PLATFORM");
       switch (conf.renderer) {
         default:
+          angle_allow_fallback = true;
           if (angle_default_platform == nullptr || angle_default_platform[0] == 0) {
 #  ifdef MKXPZ_HAVE_ANGLE_METAL
             mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "metal");
@@ -442,14 +475,21 @@ int main(int argc, char *argv[]) {
     }
 
     if (mkxp_use_angle) {
+      bool sdl_hint_opengl_es_driver = SDL_GetHintBoolean(SDL_HINT_OPENGL_ES_DRIVER, SDL_FALSE);
+      bool sdl_hint_video_x11_force_egl = SDL_GetHintBoolean(SDL_HINT_VIDEO_X11_FORCE_EGL, SDL_FALSE);
       SDL_SetHintWithPriority(SDL_HINT_OPENGL_ES_DRIVER, "1", SDL_HINT_OVERRIDE);
       SDL_SetHintWithPriority(SDL_HINT_VIDEO_X11_FORCE_EGL, "1", SDL_HINT_OVERRIDE);
+      if (angle_allow_fallback && (win = initVideo(conf)) == nullptr) {
+        // Try again without ANGLE
+        mkxp_use_angle = false;
+        SDL_SetHintWithPriority(SDL_HINT_OPENGL_ES_DRIVER, sdl_hint_opengl_es_driver ? "1" : "0", SDL_HINT_OVERRIDE);
+        SDL_SetHintWithPriority(SDL_HINT_VIDEO_X11_FORCE_EGL, sdl_hint_video_x11_force_egl ? "1" : "0", SDL_HINT_OVERRIDE);
+      }
     }
 #endif // MKXPZ_HAVE_ANGLE
 
-    /* initialize SDL first */
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_TIMER) < 0) {
-      showInitError(std::string("Error initializing SDL: ") + SDL_GetError());
+    if (win == nullptr && (win = initVideo(conf)) == nullptr) {
+      showInitError(std::string("Error creating window: ") + SDL_GetError());
       return 0;
     }
 
@@ -480,9 +520,6 @@ int main(int argc, char *argv[]) {
       return 0;
     }
 #endif
-
-    if (conf.windowTitle.empty())
-      conf.windowTitle = conf.game.title;
 
     assert(conf.rgssVersion >= 1 && conf.rgssVersion <= 3);
     printRgssVersion(conf.rgssVersion);
@@ -536,31 +573,6 @@ int main(int argc, char *argv[]) {
           std::string(buf)); // Not an error worth ending the program over
     }
 #endif
-
-    SDL_Window *win;
-    Uint32 winFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_ALLOW_HIGHDPI;
-
-    if (conf.winResizable)
-      winFlags |= SDL_WINDOW_RESIZABLE;
-    if (conf.fullscreen)
-      winFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-
-    if (SDL_GetHintBoolean(SDL_HINT_OPENGL_ES_DRIVER, SDL_FALSE)) {
-      SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-    }
-    
-    win = SDL_CreateWindow(conf.windowTitle.c_str(), SDL_WINDOWPOS_UNDEFINED,
-                           SDL_WINDOWPOS_UNDEFINED, conf.defScreenW,
-                           conf.defScreenH, winFlags);
-
-    if (!win) {
-      showInitError(std::string("Error creating window: ") + SDL_GetError());
-
-#ifdef MKXPZ_STEAM
-      STEAMSHIM_deinit();
-#endif
-      return 0;
-    }
     
 #ifdef __APPLE__
     {

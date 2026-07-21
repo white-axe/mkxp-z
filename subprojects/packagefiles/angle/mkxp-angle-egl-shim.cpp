@@ -47,20 +47,33 @@ extern bool mkxp_use_angle;
 FOR_EACH_EGL_PROC(DECLARE_PROC)
 
 static void open_egl() {
+#ifdef _WIN32
+    static HMODULE egl = nullptr;
+#else
+    static void *egl = nullptr;
+#endif
     static bool egl_loaded = false;
+    static bool egl_using_angle;
     if (egl_loaded) {
-        return;
+        if (egl_using_angle != mkxp_use_angle) {
+            if (egl != nullptr) {
+#ifdef _WIN32
+                FreeLibrary(egl);
+#else
+                dlclose(egl);
+#endif
+            }
+            FOR_EACH_EGL_PROC(UNLOAD_PROC);
+        } else {
+            return;
+        }
     }
     egl_loaded = true;
-    if (mkxp_use_angle) {
-        FOR_EACH_EGL_PROC(LOAD_PROC_FROM_ANGLE)
+    egl_using_angle = mkxp_use_angle;
+    if (egl_using_angle) {
+        FOR_EACH_EGL_PROC(LOAD_PROC_FROM_ANGLE);
         return;
     }
-#ifdef _WIN32
-    HMODULE egl = nullptr;
-#else
-    void *egl = nullptr;
-#endif
     if (
 #ifdef _WIN32
         (egl = LoadLibraryA(MKXP_ANGLE_SHIM_EGL_SONAME)) == nullptr
@@ -70,7 +83,7 @@ static void open_egl() {
     ) {
         return;
     }
-    FOR_EACH_EGL_PROC(LOAD_PROC_FROM_SYSTEM)
+    FOR_EACH_EGL_PROC(LOAD_PROC_FROM_SYSTEM);
     if (_eglGetPlatformDisplay == nullptr) {
         _eglGetPlatformDisplay = reinterpret_cast<PFNEGLGETPLATFORMDISPLAYPROC>(_eglGetProcAddress("eglGetPlatformDisplayEXT"));
     }
