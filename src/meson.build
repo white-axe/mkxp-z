@@ -1121,6 +1121,12 @@ if not ruby.found()
 endif
 global_dependencies += ruby
 
+subproject('ruby-discord-sdk', default_options: {
+    'mri_version': get_option('mri_version'),
+    'install_tag': meson.project_name(),
+    'exe_name': exe_name,
+})
+
 if host_system in ['windows', 'cygwin']
     global_link_args += ['-static-libgcc', '-static-libstdc++', '-Wl,-Bstatic', '-lpthread', '-Wl,-Bdynamic']
 endif

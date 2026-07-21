@@ -1,0 +1,13 @@
+# This patch corrects the name of the windows.h header so that we can compile for Windows on a case-sensitive filesystem.
+
+--- a/discord_game_sdk.h
++++ b/discord_game_sdk.h
+@@ -2,7 +2,7 @@
+ #define _DISCORD_GAME_SDK_H_
+ 
+ #ifdef _WIN32
+-#include <Windows.h>
++#include <windows.h>
+ #include <dxgi.h>
+ #endif
+ 

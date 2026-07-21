@@ -1,0 +1,3 @@
+option('mri_version', type: 'string')
+option('install_tag', type: 'string')
+option('exe_name', type: 'string')

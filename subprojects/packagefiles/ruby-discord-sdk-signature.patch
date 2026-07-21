@@ -1,0 +1,26 @@
+# Fixes the arguments passed to `rb_define_method()` and `rb_define_module_function()`.
+
+--- a/discord.c
++++ b/discord.c
+@@ -289,7 +289,7 @@ void Init_discord()
+ 
+   // DiscordUser wrapper
+   Discord_user_rb = rb_define_class_under(Discord_module, "User", rb_cObject);
+-  rb_define_method(Discord_user_rb, "initialize", userInitialize, 5);
++  rb_define_method(Discord_user_rb, "initialize", userInitialize, -1);
+   rb_define_attr(Discord_user_rb, "id", 1, 1);
+   rb_define_attr(Discord_user_rb, "username", 1, 1);
+   rb_define_attr(Discord_user_rb, "discriminator", 1, 1);
+@@ -316,7 +316,7 @@ void Init_discord()
+   rb_define_module_function(Discord_module, "disconnect", discordDisconnect, 0);
+   rb_define_module_function(Discord_module, "update", discordUpdate, 0);
+   rb_define_module_function(Discord_module, "update_activity", updateActivity, 1);
+-  rb_define_module_function(Discord_module, "clear_activity", clearActivity, 0);
+-  rb_define_module_function(Discord_module, "send_request_reply", sendRequestReply, 2);
+-  rb_define_module_function(Discord_module, "add_event_callback", addEventCallback, 2);
+-}
+\ No newline at end of file
++  rb_define_module_function(Discord_module, "clear_activity", clearActivity, -1);
++  rb_define_module_function(Discord_module, "send_request_reply", sendRequestReply, -1);
++  rb_define_module_function(Discord_module, "add_event_callback", addEventCallback, -1);
++}

@@ -1,0 +1,10 @@
+[wrap-file]
+source_url = https://github.com/enumag/ruby_discord_sdk/archive/99f5983e87618f9a2b7c7a6322be66ba4c4e2bae.tar.gz
+source_filename = ruby_discord_sdk-99f5983e87618f9a2b7c7a6322be66ba4c4e2bae.tar.gz
+source_hash = 9e5656ac4e46289fd18b1e622cd170f1129cd6a62c63a2ce7ff1f9a27abb3810
+directory = ruby_discord_sdk-99f5983e87618f9a2b7c7a6322be66ba4c4e2bae
+patch_directory = ruby-discord-sdk
+diff_files =
+    ruby-discord-sdk-signature.patch,
+    ruby-discord-sdk-windows-h.patch,
+    end-of-diff-files.patch
