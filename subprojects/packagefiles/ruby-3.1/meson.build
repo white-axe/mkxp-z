@@ -84,6 +84,7 @@ ruby = declare_dependency(
             ],
             env: {
                 'CONFIG_SITE': ' ',
+                'MKXP_LIBGCC': meson.get_compiler('c').has_link_argument('-lgcc') ? '-lgcc' : '',
                 'WINDRES': host_machine.system() in ['windows', 'cygwin'] ? run_command(subproject('common').get_variable('quotetool_command'), find_program('windres'), check: true).stdout().strip() : '',
                 'YACC': run_command(subproject('common').get_variable('quotetool_command'), find_program('bison'), check: true).stdout().strip(),
                 'ac_cv_func_crypt': 'no',
@@ -189,5 +190,29 @@ ruby = declare_dependency(
 )
 
 ruby_build_dir = meson.project_build_root()
+
+miniruby = custom_target(
+    'miniruby',
+    output: 'miniruby',
+    command: [
+        subproject('common').get_variable('python'),
+        files('build-miniruby.py'),
+        baseruby,
+        ruby_build_dir / 'build',
+        '@OUTPUT@',
+    ],
+    depends: [
+        executable(
+            'miniruby-deps',
+            sources: [
+                'deps-stub.c',
+            ],
+            dependencies: [
+                ruby,
+            ],
+        ),
+    ],
+    build_by_default: true,
+)
 
 meson.override_dependency('ruby-3.1', ruby, static: true)

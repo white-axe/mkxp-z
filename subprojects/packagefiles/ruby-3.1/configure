@@ -13524,7 +13524,7 @@ esac
 
 		 ;; #(
   mingw*) :
-    	LIBS="-lshell32 -lws2_32 -liphlpapi -limagehlp -lshlwapi -lbcrypt -Wl,-Bstatic -lpthread -Wl,-Bdynamic $LIBS"
+    	LIBS="-lshell32 -lws2_32 -liphlpapi -limagehlp -lshlwapi -lbcrypt -Wl,-Bstatic $MKXP_LIBGCC -lpthread -Wl,-Bdynamic $LIBS"
 		ac_cv_header_pwd_h=no
 		ac_cv_header_utime_h=no
 		ac_cv_header_sys_ioctl_h=no

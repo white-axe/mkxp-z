@@ -1,6 +1,5 @@
 # This patch changes Ruby's build system to always use baseruby (passed via --with-baseruby) as miniruby
 # rather than building a miniruby executable, even when not cross-compiling.
-# This fixes build errors if building Ruby with `-fsanitize=address` when not cross-compiling.
 
 --- a/configure.ac
 +++ b/configure.ac
