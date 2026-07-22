@@ -54,7 +54,22 @@ win64 = (sizeof['void*'] != sizeof['long'])
 
 global_args += '-DMKXPZ_VERSION="@0@"'.format(meson.project_version())
 global_args += '-DHAVE_NANOSLEEP'
-if get_option('gfx_backend') == 'gles'
+
+if get_option('gfx_backend') == 'gl'
+    use_gles_by_default = false
+elif get_option('gfx_backend') == 'gles'
+    use_gles_by_default = true
+elif host_system == 'android'
+    use_gles_by_default = true
+elif host_system == 'darwin'
+    # If the host machine is macOS (as opposed to iOS, tvOS, etc.), use OpenGL by default, otherwise use OpenGL ES by default
+    use_gles_by_default = meson.get_compiler('cpp').compute_int('!!TARGET_OS_OSX', prefix: '#include <TargetConditionals.h>', low: 0, high: 1) == 0
+elif is_nix
+    use_gles_by_default = host_machine.cpu_family() in ['arm', 'aarch64']
+else
+    use_gles_by_default = false
+endif
+if use_gles_by_default
     global_args += '-DMKXPZ_USE_GLES_BY_DEFAULT'
 endif
 
