@@ -12,6 +12,7 @@ diff_files =
     sdl2-bsd.patch,
     sdl2-deps.patch,
     sdl2-dylib-name.patch,
+    sdl2-kmsdrm.patch,
     sdl2-remove-mwindows-flag.patch,
     sdl2-disable-neon-fix-angle.patch,
     sdl2-disable-neon-in-sdl-stretch.patch,

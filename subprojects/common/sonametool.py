@@ -13,6 +13,9 @@ def main() -> str:
     if library == 'decor-0':
         if host_machine_is_nix:
             return 'libdecor-0.so.0'
+    if library == 'drm':
+        if host_machine_is_nix:
+            return 'libdrm.so.2'
     if library == 'EGL':
         if host_machine_is_bsd:
             return 'libEGL.so'
@@ -29,6 +32,9 @@ def main() -> str:
             return 'libfluidsynth.so.3'
         if host_machine_is_windows:
             return 'fluidsynth.dll'
+    if library == 'gbm':
+        if host_machine_is_nix:
+            return 'libgbm.so.1'
     if library == 'udev':
         if host_machine_is_nix:
             return 'libudev.so.1'

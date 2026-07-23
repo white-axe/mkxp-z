@@ -14,7 +14,6 @@ foreach dep_name : [
     'libasyncns',
     'libcanberra',
     'libcrypt',
-    'libdrm',
     'libffado',
     'libpcre2-8',
     not is_nix ? 'libpulse' : '',
@@ -68,7 +67,10 @@ meson_base_options = {
     'cpp_std': cpp_std,
 }
 
-subproject('libglvnd', default_options: meson_base_options)
+gl = dependency('gl', allow_fallback: false, required: get_option('gl_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+if not gl.found()
+    gl = subproject('mesa', default_options: meson_base_options).get_variable('gl')
+endif
 
 libiconv = dependency('iconv', allow_fallback: false, required: get_option('iconv_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
 if not libiconv.found()
@@ -188,6 +190,11 @@ if is_nix and (not sdl2.found() or not sdl2main.found())
         ibus = subproject('ibus', default_options: meson_base_options).get_variable('ibus')
     endif
 
+    libdrm = dependency('libdrm', allow_fallback: false, required: get_option('libdrm_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
+    if not libdrm.found()
+        libdrm = subproject('libdrm', default_options: meson_base_options).get_variable('libdrm')
+    endif
+
     x11 = dependency('x11', allow_fallback: false, required: get_option('x11_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
     if not x11.found()
         subproject('xorgproto', default_options: meson_base_options)
@@ -227,6 +234,7 @@ else
         'gobject-2.0',
         'ibus-1.0',
         'libdecor-0',
+        'libdrm',
         'libinotify',
         'libudev',
         'wayland-client',
@@ -258,7 +266,13 @@ if is_nix
         '-DMKXPZ_WAYLAND_CLIENT_SONAME="' + run_command(sonametool, 'wayland-client', check: true).stdout().strip() + '"',
         '-DMKXPZ_WAYLAND_CURSOR_SONAME="' + run_command(sonametool, 'wayland-cursor', check: true).stdout().strip() + '"',
         '-DMKXPZ_WAYLAND_EGL_SONAME="' + run_command(sonametool, 'wayland-egl', check: true).stdout().strip() + '"',
+        '-DMKXPZ_X11_SONAME="' + run_command(sonametool, 'X11', check: true).stdout().strip() + '"',
+        '-DMKXPZ_XCURSOR_SONAME="' + run_command(sonametool, 'Xcursor', check: true).stdout().strip() + '"',
+        '-DMKXPZ_XEXT_SONAME="' + run_command(sonametool, 'Xext', check: true).stdout().strip() + '"',
+        '-DMKXPZ_XFIXES_SONAME="' + run_command(sonametool, 'Xfixes', check: true).stdout().strip() + '"',
         '-DMKXPZ_XKBCOMMON_SONAME="' + run_command(sonametool, 'xkbcommon', check: true).stdout().strip() + '"',
+        '-DMKXPZ_XI_SONAME="' + run_command(sonametool, 'Xi', check: true).stdout().strip() + '"',
+        '-DMKXPZ_XRANDR_SONAME="' + run_command(sonametool, 'Xrandr', check: true).stdout().strip() + '"',
     ]
 endif
 
@@ -413,6 +427,7 @@ if not sdl2.found() or not sdl2main.found()
         'use_threads': 'enabled',
         'use_timers': 'enabled',
         'use_video': 'enabled',
+        'use_video_kmsdrm': is_nix ? 'enabled' : 'disabled',
         'use_video_x11': is_nix ? 'enabled' : 'disabled',
         'use_video_wayland': is_nix ? 'enabled' : 'disabled',
         'use_video_wayland_libdecor': is_nix ? 'enabled' : 'disabled',

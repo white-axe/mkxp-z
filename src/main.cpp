@@ -292,7 +292,6 @@ int main(int argc, char *argv[]) {
       const char *sdl_videodriver = SDL_GetHint(SDL_HINT_VIDEODRIVER);
       if (sdl_videodriver == nullptr || sdl_videodriver[0] == 0) {
         /* Select SDL's Wayland video driver if SDL_VIDEODRIVER is unset and Wayland support is available on the user's machine */
-        SDL_SetHintWithPriority(SDL_HINT_VIDEODRIVER, "x11", SDL_HINT_OVERRIDE);
         void *wayland_client = SDL_LoadObject(MKXPZ_WAYLAND_CLIENT_SONAME);
         void *wayland_cursor = SDL_LoadObject(MKXPZ_WAYLAND_CURSOR_SONAME);
         void *wayland_egl = SDL_LoadObject(MKXPZ_WAYLAND_EGL_SONAME);
@@ -343,6 +342,49 @@ int main(int argc, char *argv[]) {
         if (wayland_client != nullptr) {
           SDL_UnloadObject(wayland_client);
         }
+      }
+      sdl_videodriver = SDL_GetHint(SDL_HINT_VIDEODRIVER);
+      if (sdl_videodriver == nullptr || sdl_videodriver[0] == 0) {
+        /* Select SDL's X11 video driver, with fallback to KMSDRM, if SDL_VIDEODRIVER is unset and X11 support is available on the user's machine */
+        void *x11 = SDL_LoadObject(MKXPZ_X11_SONAME);
+        void *xcursor = SDL_LoadObject(MKXPZ_XCURSOR_SONAME);
+        void *xext = SDL_LoadObject(MKXPZ_XEXT_SONAME);
+        void *xfixes = SDL_LoadObject(MKXPZ_XFIXES_SONAME);
+        void *xi = SDL_LoadObject(MKXPZ_XI_SONAME);
+        void *xrandr = SDL_LoadObject(MKXPZ_XRANDR_SONAME);
+        if (
+          x11 != nullptr
+            && xcursor != nullptr
+            && xext != nullptr
+            && xfixes != nullptr
+            && xi != nullptr
+            && xrandr != nullptr
+        ) {
+          SDL_SetHintWithPriority(SDL_HINT_VIDEODRIVER, "x11,kmsdrm", SDL_HINT_OVERRIDE);
+        }
+        if (x11 != nullptr) {
+          SDL_UnloadObject(x11);
+        }
+        if (xcursor != nullptr) {
+          SDL_UnloadObject(xcursor);
+        }
+        if (xext != nullptr) {
+          SDL_UnloadObject(xext);
+        }
+        if (xfixes != nullptr) {
+          SDL_UnloadObject(xfixes);
+        }
+        if (xi != nullptr) {
+          SDL_UnloadObject(xi);
+        }
+        if (xrandr != nullptr) {
+          SDL_UnloadObject(xrandr);
+        }
+      }
+      sdl_videodriver = SDL_GetHint(SDL_HINT_VIDEODRIVER);
+      if (sdl_videodriver == nullptr || sdl_videodriver[0] == 0) {
+        /* Otherwise, use KMSDRM */
+        SDL_SetHintWithPriority(SDL_HINT_VIDEODRIVER, "kmsdrm", SDL_HINT_OVERRIDE);
       }
 
       /* Prevent ANGLE from using Wayland if we haven't selected SDL's Wayland video driver */
