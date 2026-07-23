@@ -120,7 +120,7 @@ subdir('assets')
 
 global_include_dirs += include_directories('src', 'binding')
 
-rpath = meson.get_compiler('cpp').get_linker_id() in ['ld64', 'ld64.lld'] ? '@loader_path' : '$ORIGIN'
+rpath = meson.get_compiler('cpp').get_linker_id().split('.')[0] == 'ld64' ? '@loader_path' : '$ORIGIN'
 
 if ruby.type_name() == 'internal'
     # If the executable format is ELF, we need this linker flag to export Ruby's symbols from our executable so that gems can find them.
