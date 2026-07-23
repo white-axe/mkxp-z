@@ -122,6 +122,16 @@ global_include_dirs += include_directories('src', 'binding')
 
 rpath = meson.get_compiler('cpp').get_linker_id() in ['ld64', 'ld64.lld'] ? '@loader_path' : '$ORIGIN'
 
+if ruby.type_name() == 'internal'
+    # Export Ruby's symbols from our executable so that gems can find them
+    # Otherwise, any Ruby gems that have extensions will fail to load with undefined symbol errors
+    if meson.get_compiler('cpp').has_link_argument('-rdynamic')
+        global_link_args += '-rdynamic'
+    elif meson.get_compiler('cpp').has_link_argument('-Wl,-export-dynamic')
+        global_link_args += '-Wl,-export-dynamic'
+    endif
+endif
+
 if host_system in ['windows', 'cygwin']
     windows_resource_directory = '../' + get_option('windows_resource_directory')
     subdir('windows')
