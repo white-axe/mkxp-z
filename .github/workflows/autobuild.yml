@@ -432,7 +432,7 @@ jobs:
           else
             arm_neon=disabled
           fi
-          if [ '${{ matrix.arch_mkxpz }}' = 's390x' ] && ruby -e "exit(Gem::Version.new('$(clang --version | head -n 1 | cut -d ' ' -f 3)') < Gem::Version.new('19.1.0'))"
+          if [ '${{ matrix.arch_mkxpz }}' = 's390x' ] && ruby -e "exit(Gem::Version.new('$(clang --version | head -n 1 | sed -e 's/.*clang version * \([0-9.]*\).*/\1/')') < Gem::Version.new('19.1.0'))"
           then
             # If architecture is s390x and Clang version is older than 19.1.0, disable LTO due to https://github.com/llvm/llvm-project/issues/61101
             lto=false
