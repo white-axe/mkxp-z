@@ -310,6 +310,11 @@ jobs:
             cpu-family: aarch64
             cpu: aarch64
             endian: little
+          - arch_mkxpz: i386
+            arch_debian: i386
+            cpu-family: x86
+            cpu: i386
+            endian: little
           - arch_mkxpz: power8le
             arch_debian: ppc64el
             cpu-family: ppc64
@@ -325,11 +330,6 @@ jobs:
             cpu-family: s390x
             cpu: s390x
             endian: big
-          - arch_mkxpz: i386
-            arch_debian: i386
-            cpu-family: x86
-            cpu: i386
-            endian: little
           - arch_mkxpz: x86_64
             arch_debian: amd64
             cpu-family: x86_64
