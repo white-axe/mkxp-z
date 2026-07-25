@@ -369,9 +369,9 @@ jobs:
           rm -rf ~/sysroot/etc/ca-certificates/
           rm -f ~/sysroot/etc/ca-certificates.conf
           rm -rf ~/sysroot/etc/ssl/
-          cp /etc/resolv.conf ~/sysroot/etc/
-          cp -r /etc/ca-certificates ~/sysroot/etc/
-          cp -r /etc/ssl ~/sysroot/etc/
+          sudo cp /etc/resolv.conf ~/sysroot/etc/
+          sudo cp -r /etc/ca-certificates ~/sysroot/etc/
+          sudo cp -r /etc/ssl ~/sysroot/etc/
           PATH=/usr/sbin:/usr/bin:/sbin:/bin sudo chroot ~/sysroot /bin/bash -eo pipefail -c "
             if [ $version = xenial ] || [ $version = bionic ]
             then
