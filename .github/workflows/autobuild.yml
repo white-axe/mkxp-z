@@ -353,16 +353,14 @@ jobs:
           else
             version=xenial
           fi
-          sudo apt install -y binfmt-support curl jq qemu-user-binfmt tar xz-utils
+          sudo apt install -y binfmt-support curl qemu-user-binfmt tar xz-utils
           curl --retry 5 -Lo sysroot.tar.xz https://cloud-images.ubuntu.com/$version/current/$version-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz
           mkdir ~/sysroot
           tar -xJf sysroot.tar.xz -C ~/sysroot --exclude 'dev/*'
           rm sysroot.tar.xz
           if [ $version = xenial ] || [ $version = bionic ]
           then
-            signing_key_fingerprint=$(curl --retry 5 -H 'Accept: application/json' https://launchpad.net/api/1.0/~ubuntu-toolchain-r/+archive/test | jq -r '.signing_key_fingerprint')
-            echo "Signing key fingerprint: $signing_key_fingerprint"
-            curl --retry 5 -Lo ~/sysroot/ubuntu-toolchain-r-test.asc "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x$signing_key_fingerprint"
+            curl --retry 5 -Lo ~/sysroot/ubuntu-toolchain-r-test.asc 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xc8ec952e2a0e1fbdc5090f6a2c277a0a352154e5'
           fi
           sudo mount -t devtmpfs none ~/sysroot/dev
           sudo mount -t proc none ~/sysroot/proc
