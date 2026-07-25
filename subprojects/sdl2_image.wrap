@@ -9,4 +9,5 @@ diff_files =
     sdl2_image-highway-exit.patch,
     sdl2_image-libjxl-enc.patch,
     sdl2_image-libjxl-examples-tools.patch,
+    sdl2_image-libjxl-static.patch,
     end-of-diff-files.patch
