@@ -429,7 +429,7 @@ jobs:
           else
             arm_neon=disabled
           fi
-          meson setup --prefix "$(pwd)/build/artifact" --cross-file ~/cross.toml -Darm_neon=$arm_neon --buildtype release -Dstrip=true -Db_lto=false build
+          meson setup --prefix "$(pwd)/build/artifact" --cross-file ~/cross.toml -Darm_neon=$arm_neon --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
