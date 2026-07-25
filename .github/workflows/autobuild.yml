@@ -290,7 +290,7 @@ jobs:
 
   build-linux-gnu:
     name: GNU/Linux ${{ matrix.arch_mkxpz }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -344,10 +344,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y bison ccache cmake diffutils git make ruby
-          # The Meson version provided by APT is too old so we install Meson using pip instead
-          sudo apt install -y ninja-build python3-pip
-          pip3 install meson
+          sudo apt install -y bison ccache cmake diffutils git make meson ruby
           sudo apt install -y clang lld llvm
 
           if [ '${{ matrix.arch_mkxpz }}' = 'riscv64' ]
@@ -419,12 +416,6 @@ jobs:
           echo "cpu_family = '${{ matrix.cpu-family }}'" | tee -a ~/cross.toml
           echo "cpu = '${{ matrix.cpu }}'" | tee -a ~/cross.toml
           echo "endian = '${{ matrix.endian }}'" | tee -a ~/cross.toml
-          if ruby -e "exit(Gem::Version.new('$(cmake --version | head -n 1 | cut -d ' ' -f 3)') < Gem::Version.new('4.0.0'))"
-          then
-            # This CMAKE_EXE_LINKER_FLAGS_INIT option that forces CMake to use LLD instead of the default BFD linker for CMake configure tests will not be needed once CMake updates to version 4.0.0 or later (because CMake will obey the CMAKE_EXE_LINKER_FLAGS option that we set inside of src/meson.build starting from CMake 4.0.0)
-            echo "[cmake]" | tee -a ~/cross.toml
-            echo "CMAKE_EXE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.toml
-          fi
           echo '--------------------------------------------------------------------------------'
           if [ '${{ matrix.arch_mkxpz }}' = 'armv7-neon' ]
           then
@@ -432,14 +423,7 @@ jobs:
           else
             arm_neon=disabled
           fi
-          if [ '${{ matrix.arch_mkxpz }}' = 's390x' ] && ruby -e "exit(Gem::Version.new('$(clang --version | head -n 1 | sed -e 's/.*clang version * \([0-9.]*\).*/\1/')') < Gem::Version.new('19.1.0'))"
-          then
-            # If architecture is s390x and Clang version is older than 19.1.0, disable LTO due to https://github.com/llvm/llvm-project/issues/61101
-            lto=false
-          else
-            lto=true
-          fi
-          meson setup --prefix "$(pwd)/build/artifact" --cross-file ~/cross.toml -Darm_neon=$arm_neon --buildtype release -Dstrip=true -Db_lto=$lto build
+          meson setup --prefix "$(pwd)/build/artifact" --cross-file ~/cross.toml -Darm_neon=$arm_neon --buildtype release -Dstrip=true -Db_lto=true build
 
       - name: Build
         id: build
