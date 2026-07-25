@@ -353,7 +353,7 @@ jobs:
           else
             version=xenial
           fi
-          sudo apt install -y binfmt-support curl qemu-user-static tar xz-utils
+          sudo apt install -y binfmt-support curl qemu-user-binfmt tar xz-utils
           curl --retry 5 -Lo sysroot.tar.xz https://cloud-images.ubuntu.com/$version/current/$version-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz
           mkdir ~/sysroot
           tar -xJf sysroot.tar.xz -C ~/sysroot --exclude 'dev/*'
