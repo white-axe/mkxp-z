@@ -288,110 +288,53 @@ jobs:
           name: mkxp-z.windows.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/artifact
 
-  build-linux-native:
-    name: Ubuntu 22.04 x86_64
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: benjlevesque/short-sha@v2.2
-        id: short-sha
-        with:
-          length: 7
-
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y bison ccache cmake diffutils git make ruby
-          # The Meson version provided by APT is too old so we install Meson using pip instead
-          sudo apt install -y ninja-build python3-pip
-          pip3 install meson
-          sudo apt install -y gcc g++
-
-      - name: Checkout repository
-        uses: actions/checkout@v5
-
-      - name: Restore from cache
-        if: true
-        uses: actions/cache/restore@v5
-        with:
-          path: ccache
-          key: ubuntu-jammy-x86_64-
-          restore-keys: ubuntu-jammy-x86_64-
-
-      - name: Set up ccache
-        run: |
-          ccache --set-config=cache_dir="$(pwd)/ccache"
-          ccache --set-config=compiler_check=content
-          ccache --set-config=max_size=1280MiB
-          ccache --zero-stats
-
-      - name: Configure
-        run: |
-          meson setup --prefix "$(pwd)/build/artifact" --buildtype release -Dstrip=true -Db_lto=true build
-
-      - name: Build
-        id: build
-        run: |
-          exit_code=0
-          CLICOLOR_FORCE=1 ninja -C build -v || exit_code=$?
-          echo exit-code=$exit_code >> "$GITHUB_OUTPUT"
-          date -u +time=%Y-%m-%dT%H:%M:%SZ >> "$GITHUB_OUTPUT"
-
-      - name: Save to cache
-        if: true
-        uses: actions/cache/save@v5
-        with:
-          path: ccache
-          key: ubuntu-jammy-x86_64-${{ github.sha }}-${{ steps.build.outputs.time }}
-
-      - name: Show ccache statistics
-        run: |
-          ccache --show-stats --verbose
-
-      - name: Check build status
-        run: |
-          exit ${{ steps.build.outputs.exit-code }}
-
-      - name: Prepare artifact
-        run: |
-          meson install -C build --no-rebuild --tags mkxp-z
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mkxp-z.linux.ubuntu.22.04.x86_64.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
-          path: build/artifact
-
-  build-linux-cross:
-    name: Ubuntu 22.04 ${{matrix.arch_mkxpz}}
-    runs-on: ubuntu-22.04
+  build-linux-gnu:
+    name: GNU/Linux ${{ matrix.arch_mkxpz }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
           - arch_mkxpz: armv6
             arch_debian: armhf
-            arch_gcc: arm-linux-gnueabihf
-            cache: false
+            cpu_family: arm
+            cpu: arm
+            endian: little
           - arch_mkxpz: armv7-neon
             arch_debian: armhf
-            arch_gcc: arm-linux-gnueabihf
-            cache: false
+            cpu_family: arm
+            cpu: arm
+            endian: little
           - arch_mkxpz: arm64
             arch_debian: arm64
-            arch_gcc: aarch64-linux-gnu
-            cache: true
+            cpu_family: aarch64
+            cpu: aarch64
+            endian: little
           - arch_mkxpz: power8le
             arch_debian: ppc64el
-            arch_gcc: powerpc64le-linux-gnu
-            cache: false
-          - arch_mkxpz: s390x
-            arch_debian: s390x
-            arch_gcc: s390x-linux-gnu
-            cache: false
+            cpu_family: ppc64
+            cpu: powerpc64le
+            endian: little
           - arch_mkxpz: riscv64
             arch_debian: riscv64
-            arch_gcc: riscv64-linux-gnu
-            cache: false
+            cpu_family: riscv64
+            cpu: riscv64
+            endian: little
+          - arch_mkxpz: s390x
+            arch_debian: s390x
+            cpu_family: s390x
+            cpu: s390x
+            endian: big
+          - arch_mkxpz: i386
+            arch_debian: i386
+            cpu_family: x86
+            cpu: i386
+            endian: little
+          - arch_mkxpz: x86_64
+            arch_debian: amd64
+            cpu_family: x86_64
+            cpu: x86_64
+            endian: little
     steps:
       - uses: benjlevesque/short-sha@v2.2
         id: short-sha
@@ -400,22 +343,47 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo sed -i "s/deb /deb [arch=amd64] /g" /etc/apt/sources.list
-          sudo dpkg --add-architecture ${{matrix.arch_debian}}
-          echo "deb [arch=${{matrix.arch_debian}}] http://ports.ubuntu.com/ jammy main restricted" | sudo tee -a /etc/apt/sources.list
-          echo "deb [arch=${{matrix.arch_debian}}] http://ports.ubuntu.com/ jammy-updates main restricted" | sudo tee -a /etc/apt/sources.list
-          echo "deb [arch=${{matrix.arch_debian}}] http://ports.ubuntu.com/ jammy universe" | sudo tee -a /etc/apt/sources.list
-          echo "deb [arch=${{matrix.arch_debian}}] http://ports.ubuntu.com/ jammy-updates universe" | sudo tee -a /etc/apt/sources.list
-          echo "deb [arch=${{matrix.arch_debian}}] http://ports.ubuntu.com/ jammy multiverse" | sudo tee -a /etc/apt/sources.list
-          echo "deb [arch=${{matrix.arch_debian}}] http://ports.ubuntu.com/ jammy-updates multiverse" | sudo tee -a /etc/apt/sources.list
-          echo "deb [arch=${{matrix.arch_debian}}] http://ports.ubuntu.com/ jammy-backports main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
           sudo apt update
           sudo apt install -y bison ccache cmake diffutils git make ruby
           # The Meson version provided by APT is too old so we install Meson using pip instead
           sudo apt install -y ninja-build python3-pip
           pip3 install meson
-          sudo apt install -y gcc g++
-          sudo apt install -y gcc-${{matrix.arch_gcc}} g++-${{matrix.arch_gcc}}
+          sudo apt install -y clang lld llvm
+
+          if [ '${{ matrix.arch_mkxpz }}' = 'riscv64' ]
+          then
+            version=jammy
+          else
+            version=xenial
+          fi
+          sudo apt install -y binfmt-support curl qemu-user-static tar xz-utils
+          curl --retry 5 -Lo sysroot.tar.xz https://cloud-images.ubuntu.com/$version/current/$version-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz
+          mkdir ~/sysroot
+          tar -xJf sysroot.tar.xz -C ~/sysroot --exclude 'dev/*'
+          rm sysroot.tar.xz
+          sudo mount -t devtmpfs none ~/sysroot/dev
+          sudo mount -t proc none ~/sysroot/proc
+          sudo mount -t tmpfs none ~/sysroot/tmp
+          sudo mount -t sysfs none ~/sysroot/sys
+          rm -f ~/sysroot/etc/resolv.conf
+          rm -rf ~/sysroot/etc/ca-certificates/
+          rm -f ~/sysroot/etc/ca-certificates.conf
+          rm -rf ~/sysroot/etc/ssl/
+          cp /etc/resolv.conf ~/sysroot/etc/
+          cp -r /etc/ca-certificates ~/sysroot/etc/
+          cp -r /etc/ssl ~/sysroot/etc/
+          PATH=/usr/sbin:/usr/bin:/sbin:/bin sudo chroot ~/sysroot /bin/bash -eo pipefail -c "
+            if [ $version = xenial ] || [ $version = bionic ]
+            then
+              add-apt-repository -y ppa:ubuntu-toolchain-r/test
+              apt update
+              apt install -y gcc-9 g++-9
+            else
+              apt update
+              apt install -y gcc g++
+            fi
+            find /lib /usr/include /usr/lib -type l -exec ln -srf {} {} \; # Convert absolute symbolic links into relative symbolic links so that they still work after we exit the chroot jail
+          "
 
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -425,8 +393,8 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ccache
-          key: ubuntu-jammy-${{ matrix.arch_mkxpz }}-
-          restore-keys: ubuntu-jammy-${{ matrix.arch_mkxpz }}-
+          key: linux-gnu-${{ matrix.arch_mkxpz }}-
+          restore-keys: linux-gnu-${{ matrix.arch_mkxpz }}-
 
       - name: Set up ccache
         run: |
@@ -437,13 +405,41 @@ jobs:
 
       - name: Configure
         run: |
+          echo "[binaries]" | tee -a ~/cross.toml
+          echo "c = ['ccache', 'clang', '--target=${{ matrix.cpu }}-linux-gnu${{ case(matrix.cpu == 'arm', 'eabihf', '') }}', '--sysroot=$(realpath ~/sysroot)']" | tee -a ~/cross.toml
+          echo "c_ld = 'lld'" | tee -a ~/cross.toml
+          echo "cpp = ['ccache', 'clang++', '--target=${{ matrix.cpu }}-linux-gnu${{ case(matrix.cpu == 'arm', 'eabihf', '') }}', '--sysroot=$(realpath ~/sysroot)']" | tee -a ~/cross.toml
+          echo "cpp_ld = 'lld'" | tee -a ~/cross.toml
+          echo "ar = 'llvm-ar'" | tee -a ~/cross.toml
+          echo "ranlib = 'llvm-ranlib'" | tee -a ~/cross.toml
+          echo "strip = 'llvm-strip'" | tee -a ~/cross.toml
+          echo "cmake = 'cmake'" | tee -a ~/cross.toml
+          echo "[host_machine]" | tee -a ~/cross.toml
+          echo "system = 'linux'" | tee -a ~/cross.toml
+          echo "cpu_family = '${{ matrix.cpu-family }}'" | tee -a ~/cross.toml
+          echo "cpu = '${{ matrix.cpu }}'" | tee -a ~/cross.toml
+          echo "endian = '${{ matrix.endian }}'" | tee -a ~/cross.toml
+          if ruby -e "exit(Gem::Version.new('$(cmake --version | head -n 1 | cut -d ' ' -f 3)') < Gem::Version.new('4.0.0'))"
+          then
+            # This CMAKE_EXE_LINKER_FLAGS_INIT option that forces CMake to use LLD instead of the default BFD linker for CMake configure tests will not be needed once CMake updates to version 4.0.0 or later (because CMake will obey the CMAKE_EXE_LINKER_FLAGS option that we set inside of src/meson.build starting from CMake 4.0.0)
+            echo "[cmake]" | tee -a ~/cross.toml
+            echo "CMAKE_EXE_LINKER_FLAGS_INIT = '-fuse-ld=lld'" | tee -a ~/cross.toml
+          fi
+          echo '--------------------------------------------------------------------------------'
           if [ '${{ matrix.arch_mkxpz }}' = 'armv7-neon' ]
           then
             arm_neon=auto
           else
             arm_neon=disabled
           fi
-          meson setup --prefix "$(pwd)/build/artifact" --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt -Darm_neon=$arm_neon --buildtype release -Dstrip=true -Db_lto=true build
+          if [ '${{ matrix.arch_mkxpz }}' = 's390x' ] && ruby -e "exit(Gem::Version.new('$(clang --version | head -n 1 | cut -d ' ' -f 3)') < Gem::Version.new('19.1.0'))"
+          then
+            # If architecture is s390x and Clang version is older than 19.1.0, disable LTO due to https://github.com/llvm/llvm-project/issues/61101
+            lto=false
+          else
+            lto=true
+          fi
+          meson setup --prefix "$(pwd)/build/artifact" --cross-file ~/cross.toml -Darm_neon=$arm_neon --buildtype release -Dstrip=true -Db_lto=$lto build
 
       - name: Build
         id: build
@@ -458,7 +454,7 @@ jobs:
         uses: actions/cache/save@v5
         with:
           path: ccache
-          key: ubuntu-jammy-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
+          key: linux-gnu-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
 
       - name: Show ccache statistics
         run: |
@@ -475,7 +471,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mkxp-z.linux.ubuntu.22.04.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          name: mkxp-z.linux-gnu.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/artifact
 
   build-linux-native-container:
@@ -545,12 +541,6 @@ jobs:
       - name: Prepare artifact
         run: |
           meson install -C build --no-rebuild --tags mkxp-z
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mkxp-z.linux.debian.trixie.x86_64.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
-          path: build/artifact
 
   build-linux-cross-container:
     name: Debian Trixie ${{matrix.arch_mkxpz}}
@@ -655,12 +645,6 @@ jobs:
       - name: Prepare artifact
         run: |
           meson install -C build --no-rebuild --tags mkxp-z
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mkxp-z.linux.debian.trixie.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
-          path: build/artifact
 
   build-freebsd:
     name: FreeBSD ${{ matrix.arch }}
