@@ -353,11 +353,17 @@ jobs:
           else
             version=xenial
           fi
-          sudo apt install -y binfmt-support curl qemu-user-binfmt tar xz-utils
+          sudo apt install -y binfmt-support curl jq qemu-user-binfmt tar xz-utils
           curl --retry 5 -Lo sysroot.tar.xz https://cloud-images.ubuntu.com/$version/current/$version-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz
           mkdir ~/sysroot
           tar -xJf sysroot.tar.xz -C ~/sysroot --exclude 'dev/*'
           rm sysroot.tar.xz
+          if [ $version = xenial ] || [ $version = bionic ]
+          then
+            signing_key_fingerprint=$(curl --retry 5 -H 'Accept: application/json' https://launchpad.net/api/1.0/~ubuntu-toolchain-r/+archive/test | jq -r '.signing_key_fingerprint')
+            echo "Signing key fingerprint: $signing_key_fingerprint"
+            curl --retry 5 -Lo ~/sysroot/ubuntu-toolchain-r-test.asc "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x$signing_key_fingerprint"
+          fi
           sudo mount -t devtmpfs none ~/sysroot/dev
           sudo mount -t proc none ~/sysroot/proc
           sudo mount -t tmpfs none ~/sysroot/tmp
@@ -372,7 +378,9 @@ jobs:
           PATH=/usr/sbin:/usr/bin:/sbin:/bin sudo chroot ~/sysroot /bin/bash -eo pipefail -c "
             if [ $version = xenial ] || [ $version = bionic ]
             then
-              add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test)))))))))))
+              gpg --no-default-keyring --keyring ./ubuntu-toolchain-r-test.kbx --import /ubuntu-toolchain-r-test.asc
+              gpg --no-default-keyring --keyring ./ubuntu-toolchain-r-test.kbx --export --output /ubuntu-toolchain-r-test.pub
+              echo 'deb [signed-by=/ubuntu-toolchain-r-test.pub] http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $version main' >> /etc/apt/sources.list
               apt update
               apt install -y gcc-9 g++-9
             else
