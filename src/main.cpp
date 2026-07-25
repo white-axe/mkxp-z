@@ -281,6 +281,20 @@ int main(int argc, char *argv[]) {
     if (conf.windowTitle.empty())
       conf.windowTitle = conf.game.title;
 
+#if defined(__WIN32__)
+    // Create a debug console in debug mode
+    if (conf.winConsole) {
+      if (setupWindowsConsole()) {
+        reopenWindowsStreams();
+      } else {
+        char buf[200];
+        snprintf(buf, sizeof(buf), "Error allocating console: %lu",
+                GetLastError());
+        showInitError(std::string(buf));
+      }
+    }
+#endif
+
     /* initialize SDL first */
     if (SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_TIMER) < 0) {
       showInitError(std::string("Error initializing SDL: ") + SDL_GetError());
@@ -462,20 +476,6 @@ int main(int argc, char *argv[]) {
         strncpy(dataDir, mkxp_fs::getDefaultGameRoot().c_str(), sizeof(dataDir));
     }
     mkxp_fs::setCurrentDirectory(dataDir);
-#endif
-    
-#if defined(__WIN32__)
-    // Create a debug console in debug mode
-    if (conf.winConsole) {
-      if (setupWindowsConsole()) {
-        reopenWindowsStreams();
-      } else {
-        char buf[200];
-        snprintf(buf, sizeof(buf), "Error allocating console: %lu",
-                GetLastError());
-        showInitError(std::string(buf));
-      }
-    }
 #endif
 
 #ifdef MKXPZ_STEAM
