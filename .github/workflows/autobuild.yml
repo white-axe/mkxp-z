@@ -375,7 +375,7 @@ jobs:
           PATH=/usr/sbin:/usr/bin:/sbin:/bin sudo chroot ~/sysroot /bin/bash -eo pipefail -c "
             if [ $version = xenial ] || [ $version = bionic ]
             then
-              add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 60 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 60 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 60 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 60 && add-apt-repository -y ppa:ubuntu-toolchain-r/test))))
+              add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test || (sleep 300 && add-apt-repository -y ppa:ubuntu-toolchain-r/test)))))))))))
               apt update
               apt install -y gcc-9 g++-9
             else
