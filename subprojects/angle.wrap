@@ -1,8 +1,9 @@
-[wrap-git]
-# When updating this dependency, the version also needs to be updated at the top of subprojects/packagefiles/angle/meson.build
-url = https://chromium.googlesource.com/angle/angle
-revision = chromium/7871
-depth = 1
+[wrap-file]
+# When updating this dependency, the version and git_hash also need to be updated at the top of subprojects/packagefiles/angle/meson.build
+source_url = https://github.com/google/angle/archive/refs/heads/chromium/7871_183.tar.gz
+source_filename = angle-chromium-7871_183.tar.gz
+source_hash = 0745fc64b4f41966d4426fabff96ae382c5c81a9fc8572c167b8363f24018618
+directory = angle-chromium-7871_183
 patch_directory = angle
 diff_files =
     angle-bsd.patch,
