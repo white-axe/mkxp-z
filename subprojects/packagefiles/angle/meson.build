@@ -2,6 +2,7 @@ project('angle', 'cpp', version: '7871', meson_version: '>= 1.2.0')
 if host_machine.system() == 'darwin'
     add_languages('objcpp', native: false)
 endif
+git_hash = 'f10e5258e7c9f994e85a31d82c0411f239c3536f'
 
 override_options = {'cpp_std': 'c++20'}
 
@@ -38,7 +39,20 @@ if get_option('default_library') == 'static'
     args += '-DANGLE_PLATFORM_EXPORT='
 endif
 
-angle_compression_utils = subproject('angle-compression-utils', default_options: {'c_std': get_option('c_std'), 'cpp_std': get_option('cpp_std')}).get_variable('angle_compression_utils_portable')
+zlib = dependency('zlib', required: true)
+angle_compression_utils = declare_dependency(
+    dependencies: zlib,
+    link_with: static_library(
+        'angle_compression_utils_portable',
+        dependencies: [
+            zlib,
+        ],
+        sources: [
+            'third_party/zlib/google/compression_utils_portable.cc',
+        ],
+        build_by_default: false,
+    ),
+)
 dl = meson.get_compiler('cpp').find_library(host_machine_is_windows ? 'kernel32' : 'dl', required: true)
 xxhash = dependency('libxxhash', required: true)
 
@@ -300,8 +314,8 @@ angle_version_info = static_library(
     override_options: override_options,
     include_directories: includes,
     dependencies: [
-        declare_dependency(sources: vcs_tag(command: [find_program('git'), 'rev-parse', '--short=12', 'HEAD'], fallback: 'unknown', input: 'angle_commit.h.in', output: 'angle_commit.h')),
-        declare_dependency(sources: vcs_tag(command: [find_program('git'), 'rev-parse', '--short=12', 'HEAD'], fallback: 'unknown', input: 'ANGLEShaderProgramVersion.h.in', output: 'ANGLEShaderProgramVersion.h')),
+        declare_dependency(sources: configure_file(configuration: {'VCS_TAG': git_hash.substring(0, 12)}, input: 'angle_commit.h.in', output: 'angle_commit.h')),
+        declare_dependency(sources: configure_file(configuration: {'VCS_TAG': git_hash.substring(0, 12)}, input: 'ANGLEShaderProgramVersion.h.in', output: 'ANGLEShaderProgramVersion.h')),
     ],
     cpp_args: args + [
         '-DANGLE_REVISION=' + meson.project_version(),
