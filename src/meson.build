@@ -934,7 +934,9 @@ if not pixman.found()
         endif
     endif
     pixman_options = meson_base_options + {
+        'demos': 'disabled',
         'libpng': 'disabled',
+        'tests': 'disabled',
         'tls': 'disabled',
         'loongson-mmi': loongson_mmi,
         'mmx': mmx,
