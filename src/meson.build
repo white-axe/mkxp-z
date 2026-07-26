@@ -923,6 +923,16 @@ if not pixman.found()
             mips_dspr2 = 'auto'
         endif
     endif
+    rvv = 'disabled'
+    if host_machine.cpu_family() in ['riscv32', 'riscv64']
+        if get_option('riscv_rvv').disabled()
+            rvv = 'disabled'
+        elif get_option('riscv_rvv').enabled()
+            rvv = 'enabled'
+        else
+            rvv = 'auto'
+        endif
+    endif
     pixman_options = meson_base_options + {
         'demos': 'disabled',
         'libpng': 'disabled',
@@ -937,7 +947,7 @@ if not pixman.found()
         'neon': neon,
         'a64-neon': host_system == 'darwin' ? 'disabled' : a64_neon,
         'mips-dspr2': mips_dspr2,
-        'rvv': 'disabled', # Enabling RISC-V vector extensions causes a static assertion failure in external/libjxl/lib/jxl/base/cache_aligned.cc
+        'rvv': rvv,
     }
     pixman = subproject('pixman', default_options: pixman_options).get_variable('idep_pixman')
 endif
