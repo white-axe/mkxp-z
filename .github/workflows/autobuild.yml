@@ -672,19 +672,19 @@ jobs:
             sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/amd64-freebsd-sysroot-a2025.11.26_1~b5aaff1c3a.pkg
             sysroot-hash: b5aaff1c3a4ce4195c6d53fcfe018eaf88bb661b7e2cff5e8bb759f03808e279
             cache: false
-          - arch: powerpc
-            cpu-family: ppc
-            cpu: powerpc
-            endian: big
-            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/powerpc-freebsd-sysroot-a2025.11.26_1~dc698d9fa7.pkg
-            sysroot-hash: dc698d9fa7368b37d71e542cb466c8c009365dc6732c59052a4a997bd994776f
-            cache: false
           - arch: i386
             cpu-family: x86
             cpu: i386
             endian: little
             sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/i386-freebsd-sysroot-a2025.11.26_1~3ecb308d3e.pkg
             sysroot-hash: 3ecb308d3e6dee43ff01d256608603403ea44c96ff56ffb640f4cd1d3cadf048
+            cache: false
+          - arch: powerpc
+            cpu-family: ppc
+            cpu: powerpc
+            endian: big
+            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/powerpc-freebsd-sysroot-a2025.11.26_1~dc698d9fa7.pkg
+            sysroot-hash: dc698d9fa7368b37d71e542cb466c8c009365dc6732c59052a4a997bd994776f
             cache: false
           - arch: powerpc64
             cpu-family: ppc64
