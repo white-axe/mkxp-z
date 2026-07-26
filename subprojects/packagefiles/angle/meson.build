@@ -41,6 +41,9 @@ endif
 
 zlib = dependency('zlib', required: true)
 angle_compression_utils = declare_dependency(
+    include_directories: [
+        'third_party/zlib/google',
+    ],
     dependencies: zlib,
     link_with: static_library(
         'angle_compression_utils_portable',
