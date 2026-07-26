@@ -107,7 +107,7 @@ if not openssl.found() and not get_option('openssl').disabled() and not get_opti
     }
     openssl = subproject('openssl', default_options: openssl_options).get_variable('openssl_dep')
     meson.override_dependency('openssl', openssl, static: true)
-    if is_nix
+    if host_system not in ['windows', 'cygwin', 'darwin']
         atomic = meson.get_compiler('c').find_library('atomic', required: false)
         if atomic.found()
             global_dependencies += atomic

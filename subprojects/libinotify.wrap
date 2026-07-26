@@ -7,4 +7,6 @@ patch_directory = libinotify
 diff_files =
     libinotify-cross.patch,
     libinotify-reconfig.patch,
+    libinotify-tests.patch,
+    libinotify-werror.patch,
     end-of-diff-files.patch

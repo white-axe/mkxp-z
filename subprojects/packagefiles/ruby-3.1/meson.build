@@ -93,6 +93,8 @@ ruby = declare_dependency(
                 'ac_cv_lib_crypt_crypt': 'no',
                 'ac_cv_lib_z_uncompress': 'yes',
                 'rb_cv_broken_crypt': 'no',
+                'rb_cv_gcc_atomic_builtins': 'yes',
+                'rb_cv_gcc_sync_builtins': 'no',
             },
             depends: [
                 # Force Meson to fully build all of our vendored dependencies that are required by Ruby before building Ruby itself
@@ -110,7 +112,13 @@ ruby = declare_dependency(
         ).dependency('ruby-static').partial_dependency(
             sources: true,
         ),
-        host_machine.system() not in ['windows', 'cygwin', 'darwin'] ? meson.get_compiler('c').find_library('rt', required: false) : [],
+        host_machine.system() not in ['windows', 'cygwin', 'darwin']
+            ? [
+                meson.get_compiler('c').find_library('atomic', required: false),
+                meson.get_compiler('c').find_library('dl', required: false),
+                meson.get_compiler('c').find_library('rt', required: false),
+            ]
+            : [],
         host_machine.system() in ['windows', 'cygwin']
             ? [
                 meson.get_compiler('c').find_library('shell32', required: true),

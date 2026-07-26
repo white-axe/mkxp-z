@@ -5,6 +5,7 @@ source_hash = c87fc4789233ad90cb1b865e547a257d3c15b3e8e6918b153197e1ed4e47226b
 directory = ruby-3_1_3
 patch_directory = ruby-3.1
 diff_files =
+    ruby-3.1-alignof.patch,
     ruby-3.1-bison.patch,
     ruby-3.1-bsd.patch,
     ruby-3.1-bundle.patch,
