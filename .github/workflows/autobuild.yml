@@ -375,7 +375,7 @@ jobs:
           then
             sudo apt install -y debootstrap gpg
             gpg --no-default-keyring --keyring ./debian-ports.kbx --keyserver keyserver.ubuntu.com --recv-keys 0x66571731b5a71f91c501f3fdda1b2cea81dcbc61
-            sudo debootstrap --arch=${{ matrix.arch_debian }} --keyring=./debian-ports.kbx --exclude=powerpc-utils sid ~/sysroot http://snapshot.debian.org/archive/debian-ports/20190901T052020Z
+            sudo debootstrap --arch=${{ matrix.arch_debian }} --force-check-sig --keyring=./debian-ports.kbx --exclude=powerpc-utils sid ~/sysroot http://snapshot.debian.org/archive/debian-ports/20190901T052020Z
           else
             sudo apt install -y curl gpg tar xz-utils
             curl --retry 5 -Lo SHA256SUMS https://cloud-images.ubuntu.com/${{ matrix.dist }}/current/SHA256SUMS
@@ -388,8 +388,8 @@ jobs:
             tar -xJf ${{ matrix.dist }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz -C ~/sysroot --exclude 'dev/*'
             if [ ${{ matrix.dist }} = xenial ] || [ ${{ matrix.dist }} = bionic ]
             then
-              gpg --no-default-keyring --keyring ./ubuntu-toolchain-r-test.kbx --keyserver keyserver.ubuntu.com --recv-keys 0xc8ec952e2a0e1fbdc5090f6a2c277a0a352154e5
-              gpg --no-default-keyring --keyring ./ubuntu-toolchain-r-test.kbx --export --output ~/sysroot/ubuntu-toolchain-r-test.pub
+              gpg --no-default-keyring --keyring ./ubuntu-toolchain-r.kbx --keyserver keyserver.ubuntu.com --recv-keys 0xc8ec952e2a0e1fbdc5090f6a2c277a0a352154e5
+              gpg --no-default-keyring --keyring ./ubuntu-toolchain-r.kbx --export --output ~/sysroot/ubuntu-toolchain-r.gpg
             fi
           fi
           sudo mount -t devtmpfs none ~/sysroot/dev
@@ -397,16 +397,11 @@ jobs:
           sudo mount -t tmpfs none ~/sysroot/tmp
           sudo mount -t sysfs none ~/sysroot/sys
           sudo rm -f ~/sysroot/etc/resolv.conf
-          sudo rm -rf ~/sysroot/etc/ca-certificates/
-          sudo rm -f ~/sysroot/etc/ca-certificates.conf
-          sudo rm -rf ~/sysroot/etc/ssl/
           sudo cp /etc/resolv.conf ~/sysroot/etc/
-          sudo cp -r /etc/ca-certificates ~/sysroot/etc/
-          sudo cp -r /etc/ssl ~/sysroot/etc/
           PATH=/usr/sbin:/usr/bin:/sbin:/bin sudo chroot ~/sysroot /bin/bash -eo pipefail -c "
             if [ ${{ matrix.dist }} = xenial ] || [ ${{ matrix.dist }} = bionic ]
             then
-              echo 'deb [signed-by=/ubuntu-toolchain-r-test.pub] http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu ${{ matrix.dist }} main' >> /etc/apt/sources.list
+              echo 'deb [signed-by=/ubuntu-toolchain-r.gpg] http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu ${{ matrix.dist }} main' >> /etc/apt/sources.list
               apt update
               apt install -y gcc-9 g++-9
             else
