@@ -373,19 +373,23 @@ jobs:
           sudo apt install -y binfmt-support qemu-user-binfmt
           if [ ${{ matrix.dist }} = sid ]
           then
-            sudo apt install -y curl debootstrap gpg
-            curl --retry 5 -Lo debian-ports.asc 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x66571731b5a71f91c501f3fdda1b2cea81dcbc61'
-            gpg --no-default-keyring --keyring ./debian-ports.kbx --import debian-ports.asc
+            sudo apt install -y debootstrap gpg
+            gpg --no-default-keyring --keyring ./debian-ports.kbx --keyserver keyserver.ubuntu.com --recv-keys 0x66571731b5a71f91c501f3fdda1b2cea81dcbc61
             sudo debootstrap --arch=${{ matrix.arch_debian }} --keyring=./debian-ports.kbx --exclude=powerpc-utils sid ~/sysroot http://snapshot.debian.org/archive/debian-ports/20190901T052020Z
           else
-            sudo apt install -y curl tar xz-utils
-            curl --retry 5 -Lo sysroot.tar.xz https://cloud-images.ubuntu.com/${{ matrix.dist }}/current/${{ matrix.dist }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz
+            sudo apt install -y curl gpg tar xz-utils
+            curl --retry 5 -Lo SHA256SUMS https://cloud-images.ubuntu.com/${{ matrix.dist }}/current/SHA256SUMS
+            curl --retry 5 -Lo SHA256SUMS.sig https://cloud-images.ubuntu.com/${{ matrix.dist }}/current/SHA256SUMS.gpg
+            gpg --no-default-keyring --keyring ./ubuntu-cloud-images.kbx --keyserver keyserver.ubuntu.com --recv-keys 0x4a3ce3cd565d7eb5c810e2b97ff3f408476cf100
+            gpg --no-default-keyring --keyring ./ubuntu-cloud-images.kbx --verify SHA256SUMS.sig
+            curl --retry 5 -Lo ${{ matrix.dist }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz https://cloud-images.ubuntu.com/${{ matrix.dist }}/current/${{ matrix.dist }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz
+            grep ${{ matrix.dist }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz SHA256SUMS | sha256sum -c
             mkdir ~/sysroot
-            tar -xJf sysroot.tar.xz -C ~/sysroot --exclude 'dev/*'
-            rm sysroot.tar.xz
+            tar -xJf ${{ matrix.dist }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz -C ~/sysroot --exclude 'dev/*'
             if [ ${{ matrix.dist }} = xenial ] || [ ${{ matrix.dist }} = bionic ]
             then
-              curl --retry 5 -Lo ~/sysroot/ubuntu-toolchain-r-test.asc 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xc8ec952e2a0e1fbdc5090f6a2c277a0a352154e5'
+              gpg --no-default-keyring --keyring ./ubuntu-toolchain-r-test.kbx --keyserver keyserver.ubuntu.com --recv-keys 0xc8ec952e2a0e1fbdc5090f6a2c277a0a352154e5
+              gpg --no-default-keyring --keyring ./ubuntu-toolchain-r-test.kbx --export --output ~/sysroot/ubuntu-toolchain-r-test.pub
             fi
           fi
           sudo mount -t devtmpfs none ~/sysroot/dev
@@ -402,8 +406,6 @@ jobs:
           PATH=/usr/sbin:/usr/bin:/sbin:/bin sudo chroot ~/sysroot /bin/bash -eo pipefail -c "
             if [ ${{ matrix.dist }} = xenial ] || [ ${{ matrix.dist }} = bionic ]
             then
-              gpg --no-default-keyring --keyring ./ubuntu-toolchain-r-test.kbx --import /ubuntu-toolchain-r-test.asc
-              gpg --no-default-keyring --keyring ./ubuntu-toolchain-r-test.kbx --export --output /ubuntu-toolchain-r-test.pub
               echo 'deb [signed-by=/ubuntu-toolchain-r-test.pub] http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu ${{ matrix.dist }} main' >> /etc/apt/sources.list
               apt update
               apt install -y gcc-9 g++-9
