@@ -376,7 +376,8 @@ jobs:
             sudo apt install -y curl debootstrap gpg
             curl --retry 5 -Lo debian-ports.asc 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x66571731b5a71f91c501f3fdda1b2cea81dcbc61'
             gpg --no-default-keyring --keyring ./debian-ports.kbx --import debian-ports.asc
-            sudo debootstrap --arch=${{ matrix.arch_debian }} --keyring=./debian-ports.kbx sid ~/sysroot http://snapshot.debian.org/archive/debian-ports/20190901T052020Z
+            command='sudo debootstrap --arch=${{ matrix.arch_debian }} --keyring=./debian-ports.kbx sid ~/sysroot http://snapshot.debian.org/archive/debian-ports/20190901T052020Z'
+            eval $command || (sleep 5m && eval $command || (sleep 5m && eval $command || (sleep 5m && eval $command || (sleep 5m && eval $command || (sleep 5m && eval $command || (sleep 5m && eval $command || (sleep 5m && eval $command || (sleep 5m && eval $command || (sleep 5m && eval $command || (sleep 5m && eval $command || (sleep 5m && eval $command)))))))))))
           else
             sudo apt install -y curl tar xz-utils
             curl --retry 5 -Lo sysroot.tar.xz https://cloud-images.ubuntu.com/${{ matrix.dist }}/current/${{ matrix.dist }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz
