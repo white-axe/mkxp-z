@@ -323,8 +323,8 @@ jobs:
             endian: little
             dist: xenial
             cache: false
-          - arch_mkxpz: ppc
-            arch_debian: ppc
+          - arch_mkxpz: powerpc
+            arch_debian: powerpc
             cpu-family: ppc
             cpu: powerpc
             endian: big
