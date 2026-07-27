@@ -42,10 +42,10 @@ jobs:
 
       - name: Verify
         run: |
-          nix-shell --packages $packages --run '
+          xargs -0 nix-shell --packages $packages --run << 'EOF'
             set -eo pipefail
             meson subprojects download ruby-${{ matrix.version }}
-            cd "subprojects/$(python -c "config = __import__(\"configparser\").ConfigParser(); config.read(\"subprojects/ruby-${{ matrix.version }}.wrap\"); print(config[\"wrap-file\"][\"directory\"])")"
+            cd "subprojects/$(python -c 'config = __import__("configparser").ConfigParser(); config.read("subprojects/ruby-${{ matrix.version }}.wrap"); print(config["wrap-file"]["directory"])')"
             old_configure_hash="$(sha256sum configure)"
             echo "old: $old_configure_hash"
             old_config_guess_hash="$(sha256sum tool/config.guess)"
@@ -62,24 +62,24 @@ jobs:
             error_flag=
             if [ "$old_configure_hash" != "$new_configure_hash" ]
             then
-              echo "::error::configure hash does not match"
+              echo '::error::configure hash does not match'
               error_flag=1
             fi
             if [ "$old_config_guess_hash" != "$new_config_guess_hash" ]
             then
-              echo "::error::tool/config.guess hash does not match"
+              echo '::error::tool/config.guess hash does not match'
               error_flag=1
             fi
             if [ "$old_config_sub_hash" != "$new_config_sub_hash" ]
             then
-              echo "::error::tool/config.sub hash does not match"
+              echo '::error::tool/config.sub hash does not match'
               error_flag=1
             fi
             if [ -n "$error_flag" ]
             then
               exit 1
             fi
-          '
+          EOF
 
   build-windows-msys2:
     name: Windows MSYS2
@@ -398,7 +398,7 @@ jobs:
           sudo mount -t sysfs none ~/sysroot/sys
           sudo rm -f ~/sysroot/etc/resolv.conf
           sudo cp /etc/resolv.conf ~/sysroot/etc/
-          PATH=/usr/sbin:/usr/bin:/sbin:/bin sudo chroot ~/sysroot /bin/bash -eo pipefail -c "
+          PATH=/usr/sbin:/usr/bin:/sbin:/bin sudo chroot ~/sysroot /bin/bash -eo pipefail << 'EOF'
             if [ ${{ matrix.dist }} = xenial ] || [ ${{ matrix.dist }} = bionic ]
             then
               echo 'deb [signed-by=/ubuntu-toolchain-r.gpg] http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu ${{ matrix.dist }} main' >> /etc/apt/sources.list
@@ -409,7 +409,7 @@ jobs:
               apt install -y gcc g++
             fi
             find /lib /usr/include /usr/lib -type l -exec ln -srf {} {} \; # Convert absolute symbolic links into relative symbolic links so that they still work after we exit the chroot jail
-          "
+          EOF
 
       - name: Checkout repository
         uses: actions/checkout@v5
