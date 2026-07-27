@@ -289,7 +289,7 @@ jobs:
           path: build/artifact
 
   build-linux-gnu:
-    name: Ubuntu ${{ case(matrix.arch_mkxpz == 'riscv64', 'Jammy', 'Xenial') }} ${{ matrix.arch_mkxpz }}
+    name: ${{ case(matrix.dist == 'sid', 'Debian', 'Ubuntu') }} ${{ matrix.dist }} ${{ matrix.arch_mkxpz }}
     runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
@@ -300,41 +300,71 @@ jobs:
             cpu-family: arm
             cpu: arm
             endian: little
+            dist: xenial
+            cache: false
           - arch_mkxpz: armv7-neon
             arch_debian: armhf
             cpu-family: arm
             cpu: arm
             endian: little
+            dist: xenial
+            cache: false
           - arch_mkxpz: arm64
             arch_debian: arm64
             cpu-family: aarch64
             cpu: aarch64
             endian: little
+            dist: xenial
+            cache: true
           - arch_mkxpz: i386
             arch_debian: i386
             cpu-family: x86
             cpu: i386
             endian: little
+            dist: xenial
+            cache: false
+          - arch_mkxpz: ppc
+            arch_debian: ppc
+            cpu-family: ppc
+            cpu: powerpc
+            endian: big
+            dist: sid
+            cache: false
+          - arch_mkxpz: ppc64
+            arch_debian: ppc64
+            cpu-family: ppc64
+            cpu: powerpc64
+            endian: big
+            dist: sid
+            cache: false
           - arch_mkxpz: power8le
             arch_debian: ppc64el
             cpu-family: ppc64
             cpu: powerpc64le
             endian: little
+            dist: xenial
+            cache: false
           - arch_mkxpz: riscv64
             arch_debian: riscv64
             cpu-family: riscv64
             cpu: riscv64
             endian: little
+            dist: jammy
+            cache: false
           - arch_mkxpz: s390x
             arch_debian: s390x
             cpu-family: s390x
             cpu: s390x
             endian: big
+            dist: xenial
+            cache: false
           - arch_mkxpz: x86_64
             arch_debian: amd64
             cpu-family: x86_64
             cpu: x86_64
             endian: little
+            dist: xenial
+            cache: true
     steps:
       - uses: benjlevesque/short-sha@v2.2
         id: short-sha
@@ -347,38 +377,39 @@ jobs:
           sudo apt install -y bison ccache cmake diffutils git make meson ruby
           sudo apt install -y clang lld llvm
 
-          if [ '${{ matrix.arch_mkxpz }}' = 'riscv64' ]
+          sudo apt install -y binfmt-support qemu-user-binfmt
+          if [ ${{ matrix.dist }} = sid ]
           then
-            version=jammy
+            sudo apt install -y debian-ports-archive-keyring debootstrap
+            sudo debootstrap --arch=powerpc --keyring=/usr/share/keyrings/debian-ports-archive-keyring.gpg sid ~/sysroot http://ftp.ports.debian.org/debian-ports
           else
-            version=xenial
-          fi
-          sudo apt install -y binfmt-support curl qemu-user-binfmt tar xz-utils
-          curl --retry 5 -Lo sysroot.tar.xz https://cloud-images.ubuntu.com/$version/current/$version-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz
-          mkdir ~/sysroot
-          tar -xJf sysroot.tar.xz -C ~/sysroot --exclude 'dev/*'
-          rm sysroot.tar.xz
-          if [ $version = xenial ] || [ $version = bionic ]
-          then
-            curl --retry 5 -Lo ~/sysroot/ubuntu-toolchain-r-test.asc 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xc8ec952e2a0e1fbdc5090f6a2c277a0a352154e5'
+            sudo apt install -y curl tar xz-utils
+            curl --retry 5 -Lo sysroot.tar.xz https://cloud-images.ubuntu.com/${{ matrix.dist }}/current/${{ matrix.dist }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz
+            mkdir ~/sysroot
+            tar -xJf sysroot.tar.xz -C ~/sysroot --exclude 'dev/*'
+            rm sysroot.tar.xz
+            if [ ${{ matrix.dist }} = xenial ] || [ ${{ matrix.dist }} = bionic ]
+            then
+              curl --retry 5 -Lo ~/sysroot/ubuntu-toolchain-r-test.asc 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xc8ec952e2a0e1fbdc5090f6a2c277a0a352154e5'
+            fi
           fi
           sudo mount -t devtmpfs none ~/sysroot/dev
           sudo mount -t proc none ~/sysroot/proc
           sudo mount -t tmpfs none ~/sysroot/tmp
           sudo mount -t sysfs none ~/sysroot/sys
-          rm -f ~/sysroot/etc/resolv.conf
-          rm -rf ~/sysroot/etc/ca-certificates/
-          rm -f ~/sysroot/etc/ca-certificates.conf
-          rm -rf ~/sysroot/etc/ssl/
+          sudo rm -f ~/sysroot/etc/resolv.conf
+          sudo rm -rf ~/sysroot/etc/ca-certificates/
+          sudo rm -f ~/sysroot/etc/ca-certificates.conf
+          sudo rm -rf ~/sysroot/etc/ssl/
           sudo cp /etc/resolv.conf ~/sysroot/etc/
           sudo cp -r /etc/ca-certificates ~/sysroot/etc/
           sudo cp -r /etc/ssl ~/sysroot/etc/
           PATH=/usr/sbin:/usr/bin:/sbin:/bin sudo chroot ~/sysroot /bin/bash -eo pipefail -c "
-            if [ $version = xenial ] || [ $version = bionic ]
+            if [ ${{ matrix.dist }} = xenial ] || [ ${{ matrix.dist }} = bionic ]
             then
               gpg --no-default-keyring --keyring ./ubuntu-toolchain-r-test.kbx --import /ubuntu-toolchain-r-test.asc
               gpg --no-default-keyring --keyring ./ubuntu-toolchain-r-test.kbx --export --output /ubuntu-toolchain-r-test.pub
-              echo 'deb [signed-by=/ubuntu-toolchain-r-test.pub] http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $version main' >> /etc/apt/sources.list
+              echo 'deb [signed-by=/ubuntu-toolchain-r-test.pub] http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu ${{ matrix.dist }} main' >> /etc/apt/sources.list
               apt update
               apt install -y gcc-9 g++-9
             else
@@ -396,8 +427,8 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ccache
-          key: ubuntu-${{ case(matrix.arch_mkxpz == 'riscv64', 'jammy', 'xenial') }}-${{ matrix.arch_mkxpz }}-
-          restore-keys: ubuntu-${{ case(matrix.arch_mkxpz == 'riscv64', 'jammy', 'xenial') }}-${{ matrix.arch_mkxpz }}-
+          key: ${{ case(matrix.dist == 'sid', 'debian', 'ubuntu') }}-${{ matrix.dist }}-${{ matrix.arch_mkxpz }}-
+          restore-keys: ${{ case(matrix.dist == 'sid', 'debian', 'ubuntu') }}-${{ matrix.dist }}-${{ matrix.arch_mkxpz }}-
 
       - name: Set up ccache
         run: |
@@ -444,7 +475,7 @@ jobs:
         uses: actions/cache/save@v5
         with:
           path: ccache
-          key: ubuntu-${{ case(matrix.arch_mkxpz == 'riscv64', 'jammy', 'xenial') }}-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
+          key: ${{ case(matrix.dist == 'sid', 'debian', 'ubuntu') }}-${{ matrix.dist }}-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
 
       - name: Show ccache statistics
         run: |
@@ -461,7 +492,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mkxp-z.linux.ubuntu.${{ case(matrix.arch_mkxpz == 'riscv64', 'jammy', 'xenial') }}.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          name: mkxp-z.linux.${{ case(matrix.dist == 'sid', 'debian', 'ubuntu') }}.${{ matrix.dist }}.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/artifact
 
   build-linux-native-container:
