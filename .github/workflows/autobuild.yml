@@ -380,7 +380,7 @@ jobs:
             sudo apt install -y curl gpg tar xz-utils
             curl --retry 5 -Lo SHA256SUMS https://cloud-images.ubuntu.com/${{ matrix.dist }}/current/SHA256SUMS
             curl --retry 5 -Lo SHA256SUMS.sig https://cloud-images.ubuntu.com/${{ matrix.dist }}/current/SHA256SUMS.gpg
-            gpg --no-default-keyring --keyring ./ubuntu-cloud-images.kbx --keyserver keyserver.ubuntu.com --recv-keys 0x4a3ce3cd565d7eb5c810e2b97ff3f408476cf100
+            gpg --no-default-keyring --keyring ./ubuntu-cloud-images.kbx --keyserver keyserver.ubuntu.com --recv-keys 0x4a3ce3cd565d7eb5c810e2b97ff3f408476cf100 0xd2eb44626fddc30b513d5bb71a5d6c4c7db87c81
             gpg --no-default-keyring --keyring ./ubuntu-cloud-images.kbx --verify SHA256SUMS.sig
             curl --retry 5 -Lo ${{ matrix.dist }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz https://cloud-images.ubuntu.com/${{ matrix.dist }}/current/${{ matrix.dist }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz
             grep ${{ matrix.dist }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz SHA256SUMS | sha256sum -c
