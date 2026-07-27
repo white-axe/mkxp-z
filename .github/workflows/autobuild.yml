@@ -45,7 +45,13 @@ jobs:
           xargs -0 nix-shell --packages $packages --run << 'EOF'
             set -eo pipefail
             meson subprojects download ruby-${{ matrix.version }}
-            cd "subprojects/$(python -c 'config = __import__("configparser").ConfigParser(); config.read("subprojects/ruby-${{ matrix.version }}.wrap"); print(config["wrap-file"]["directory"])')"
+            sed -e 's/^    //' << '  PYTHON' | python > subproject-directory
+              import configparser
+              config = configparser.ConfigParser()
+              config.read('subprojects/ruby-${{ matrix.version }}.wrap')
+              print(config['wrap-file']['directory'])
+            PYTHON
+            cd "subprojects/$(< subproject-directory)"
             old_configure_hash="$(sha256sum configure)"
             echo "old: $old_configure_hash"
             old_config_guess_hash="$(sha256sum tool/config.guess)"
