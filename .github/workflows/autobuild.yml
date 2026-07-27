@@ -289,7 +289,7 @@ jobs:
           path: build/artifact
 
   build-linux-gnu:
-    name: GNU/Linux ${{ matrix.arch_mkxpz }}
+    name: Ubuntu ${{ case(matrix.arch_mkxpz == 'riscv64', 'Jammy', 'Xenial') }} ${{ matrix.arch_mkxpz }}
     runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
@@ -396,8 +396,8 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ccache
-          key: linux-gnu-${{ matrix.arch_mkxpz }}-
-          restore-keys: linux-gnu-${{ matrix.arch_mkxpz }}-
+          key: ubuntu-${{ case(matrix.arch_mkxpz == 'riscv64', 'jammy', 'xenial') }}-${{ matrix.arch_mkxpz }}-
+          restore-keys: ubuntu-${{ case(matrix.arch_mkxpz == 'riscv64', 'jammy', 'xenial') }}-${{ matrix.arch_mkxpz }}-
 
       - name: Set up ccache
         run: |
@@ -444,7 +444,7 @@ jobs:
         uses: actions/cache/save@v5
         with:
           path: ccache
-          key: linux-gnu-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
+          key: ubuntu-${{ case(matrix.arch_mkxpz == 'riscv64', 'jammy', 'xenial') }}-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
 
       - name: Show ccache statistics
         run: |
@@ -461,7 +461,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mkxp-z.linux-gnu.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          name: mkxp-z.linux.ubuntu.${{ case(matrix.arch_mkxpz == 'riscv64', 'jammy', 'xenial') }}.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/artifact
 
   build-linux-native-container:
