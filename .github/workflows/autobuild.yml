@@ -330,13 +330,6 @@ jobs:
             endian: big
             dist: sid
             cache: false
-          - arch_mkxpz: ppc64
-            arch_debian: ppc64
-            cpu-family: ppc64
-            cpu: powerpc64
-            endian: big
-            dist: sid
-            cache: false
           - arch_mkxpz: power8le
             arch_debian: ppc64el
             cpu-family: ppc64
