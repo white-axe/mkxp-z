@@ -13,12 +13,6 @@ jobs:
   verify-ruby-configure-scripts:
     name: Verify Ruby ${{ matrix.version }} configure scripts
     runs-on: ubuntu-latest
-    container:
-      image: nixos/nix:2.34.8
-      options: -u root --privileged
-      volumes:
-        - /etc/ca-certificates:/etc/ca-certificates
-        - /etc/ssl:/etc/ssl
     strategy:
       fail-fast: false
       matrix:
@@ -27,18 +21,17 @@ jobs:
     env:
       packages: autoconf meson python3
     steps:
-      - name: Checkout repository
-        uses: taiki-e/checkout-action@v1
-
-      - name: Enable Nix sandboxing
-        run: |
-          echo 'sandbox = true' >> /etc/nix/nix.conf
+      - name: Set up Nix
+        uses: cachix/install-nix-action@v31
 
       - name: Install dependencies
         run: |
           nix-channel --add https://github.com/NixOS/nixpkgs/archive/refs/tags/26.05.tar.gz nixpkgs
           nix-channel --update nixpkgs
           nix-shell --packages $packages --run ''
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
       - name: Verify
         run: |
