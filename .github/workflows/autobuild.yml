@@ -409,9 +409,9 @@ jobs:
       - name: Configure
         run: |
           echo "[binaries]" | tee -a ~/cross.toml
-          echo "c = ['ccache', 'clang', '--target=${{ matrix.cpu }}-linux-gnu${{ case(matrix.cpu == 'arm', 'eabihf', '') }}', '--sysroot=$(realpath ~/sysroot)'${{ case(matrix.cpu-family == 'ppc' || matrix.cpu-family == 'ppc64', ', ''-mabi=ibmlongdouble''', '') }}]" | tee -a ~/cross.toml
+          echo "c = ['ccache', 'clang', '--sysroot=$(realpath ~/sysroot)', '--target=${{ matrix.cpu }}-linux-gnu${{ case(matrix.cpu-family == 'arm', 'eabihf', '') }}'${{ case(matrix.cpu-family == 'ppc' || matrix.cpu-family == 'ppc64', ', ''-mabi=ibmlongdouble''', '') }}]" | tee -a ~/cross.toml
           echo "c_ld = 'lld'" | tee -a ~/cross.toml
-          echo "cpp = ['ccache', 'clang++', '--target=${{ matrix.cpu }}-linux-gnu${{ case(matrix.cpu == 'arm', 'eabihf', '') }}', '--sysroot=$(realpath ~/sysroot)'${{ case(matrix.cpu-family == 'ppc' || matrix.cpu-family == 'ppc64', ', ''-mabi=ibmlongdouble''', '') }}]" | tee -a ~/cross.toml
+          echo "cpp = ['ccache', 'clang++', '--sysroot=$(realpath ~/sysroot)', '--target=${{ matrix.cpu }}-linux-gnu${{ case(matrix.cpu-family == 'arm', 'eabihf', '') }}'${{ case(matrix.cpu-family == 'ppc' || matrix.cpu-family == 'ppc64', ', ''-mabi=ibmlongdouble''', '') }}]" | tee -a ~/cross.toml
           echo "cpp_ld = 'lld'" | tee -a ~/cross.toml
           echo "ar = 'llvm-ar'" | tee -a ~/cross.toml
           echo "ranlib = 'llvm-ranlib'" | tee -a ~/cross.toml
@@ -657,6 +657,13 @@ jobs:
             sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/amd64-freebsd-sysroot-a2025.11.26_1~b5aaff1c3a.pkg
             sysroot-hash: b5aaff1c3a4ce4195c6d53fcfe018eaf88bb661b7e2cff5e8bb759f03808e279
             cache: false
+          - arch: armv7
+            cpu-family: arm
+            cpu: armv7
+            endian: little
+            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/armv7-freebsd-sysroot-a2025.11.26_1~e8be0507bf.pkg
+            sysroot-hash: e8be0507bfbc422700e3086e8c62f270a4941904548b91d2c83e5821fea3a13f
+            cache: false
           - arch: i386
             cpu-family: x86
             cpu: i386
@@ -720,7 +727,7 @@ jobs:
           version=$(printf '#include <sys/param.h>\n__FreeBSD_version\n' | clang "--sysroot=$(realpath ~/sysroot)" -E - | tail -n 1)
           version_major=$((version / 100000))
           version_minor=$(((version / 1000) % 100))
-          target="${{ matrix.cpu }}-unknown-freebsd$version_major.$version_minor"
+          target="${{ matrix.cpu }}-unknown-freebsd$version_major.$version_minor${{ case(matrix.cpu-family == 'arm', '-gnueabihf', '') }}"
           echo "Target: $target"
           echo "target=$target" >> "$GITHUB_ENV"
 
@@ -745,9 +752,9 @@ jobs:
       - name: Configure
         run: |
           echo "[binaries]" | tee -a ~/cross.toml
-          echo "c = ['ccache', 'clang', '--target=$target', '--sysroot=$(realpath ~/sysroot)']" | tee -a ~/cross.toml
+          echo "c = ['ccache', 'clang', '--sysroot=$(realpath ~/sysroot)', '--target=$target']" | tee -a ~/cross.toml
           echo "c_ld = 'lld'" | tee -a ~/cross.toml
-          echo "cpp = ['ccache', 'clang++', '--target=$target', '--sysroot=$(realpath ~/sysroot)']" | tee -a ~/cross.toml
+          echo "cpp = ['ccache', 'clang++', '--sysroot=$(realpath ~/sysroot)', '--target=$target']" | tee -a ~/cross.toml
           echo "cpp_ld = 'lld'" | tee -a ~/cross.toml
           echo "ar = 'llvm-ar'" | tee -a ~/cross.toml
           echo "ranlib = 'llvm-ranlib'" | tee -a ~/cross.toml
