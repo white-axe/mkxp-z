@@ -381,7 +381,7 @@ jobs:
           if [ ${{ matrix.dist }} = sid ]
           then
             sudo apt install -y debian-ports-archive-keyring debootstrap
-            sudo debootstrap --arch=powerpc --keyring=/usr/share/keyrings/debian-ports-archive-keyring.gpg sid ~/sysroot http://ftp.ports.debian.org/debian-ports
+            sudo debootstrap --arch=${{ matrix.arch_debian }} --keyring=/usr/share/keyrings/debian-ports-archive-keyring.gpg sid ~/sysroot http://ftp.ports.debian.org/debian-ports
           else
             sudo apt install -y curl tar xz-utils
             curl --retry 5 -Lo sysroot.tar.xz https://cloud-images.ubuntu.com/${{ matrix.dist }}/current/${{ matrix.dist }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz
