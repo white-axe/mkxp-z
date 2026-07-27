@@ -431,20 +431,22 @@ jobs:
 
       - name: Configure
         run: |
-          echo "[binaries]" | tee -a ~/cross.toml
-          echo "c = ['ccache', 'clang', '--sysroot=$(realpath ~/sysroot)', '--target=${{ matrix.cpu }}-linux-gnu${{ case(matrix.cpu-family == 'arm', 'eabihf', '') }}'${{ case(matrix.cpu-family == 'ppc' || matrix.cpu-family == 'ppc64', ', ''-mabi=ibmlongdouble''', '') }}]" | tee -a ~/cross.toml
-          echo "c_ld = 'lld'" | tee -a ~/cross.toml
-          echo "cpp = ['ccache', 'clang++', '--sysroot=$(realpath ~/sysroot)', '--target=${{ matrix.cpu }}-linux-gnu${{ case(matrix.cpu-family == 'arm', 'eabihf', '') }}'${{ case(matrix.cpu-family == 'ppc' || matrix.cpu-family == 'ppc64', ', ''-mabi=ibmlongdouble''', '') }}]" | tee -a ~/cross.toml
-          echo "cpp_ld = 'lld'" | tee -a ~/cross.toml
-          echo "ar = 'llvm-ar'" | tee -a ~/cross.toml
-          echo "ranlib = 'llvm-ranlib'" | tee -a ~/cross.toml
-          echo "strip = 'llvm-strip'" | tee -a ~/cross.toml
-          echo "cmake = 'cmake'" | tee -a ~/cross.toml
-          echo "[host_machine]" | tee -a ~/cross.toml
-          echo "system = 'linux'" | tee -a ~/cross.toml
-          echo "cpu_family = '${{ matrix.cpu-family }}'" | tee -a ~/cross.toml
-          echo "cpu = '${{ matrix.cpu }}'" | tee -a ~/cross.toml
-          echo "endian = '${{ matrix.endian }}'" | tee -a ~/cross.toml
+          sed -e 's/^  //' << EOF | tee -a ~/cross.toml
+            [binaries]
+            c = ['ccache', 'clang', '--sysroot=$(realpath ~/sysroot)', '--target=${{ matrix.cpu }}-linux-gnu${{ case(matrix.cpu-family == 'arm', 'eabihf', '') }}'${{ case(matrix.cpu-family == 'ppc' || matrix.cpu-family == 'ppc64', ', ''-mabi=ibmlongdouble''', '') }}]
+            c_ld = 'lld'
+            cpp = ['ccache', 'clang++', '--sysroot=$(realpath ~/sysroot)', '--target=${{ matrix.cpu }}-linux-gnu${{ case(matrix.cpu-family == 'arm', 'eabihf', '') }}'${{ case(matrix.cpu-family == 'ppc' || matrix.cpu-family == 'ppc64', ', ''-mabi=ibmlongdouble''', '') }}]
+            cpp_ld = 'lld'
+            ar = 'llvm-ar'
+            ranlib = 'llvm-ranlib'
+            strip = 'llvm-strip'
+            cmake = 'cmake'
+            [host_machine]
+            system = 'linux'
+            cpu_family = '${{ matrix.cpu-family }}'
+            cpu = '${{ matrix.cpu }}'
+            endian = '${{ matrix.endian }}'
+          EOF
           echo '--------------------------------------------------------------------------------'
           if [ '${{ matrix.arch_mkxpz }}' = 'armv7-neon' ]
           then
@@ -774,20 +776,22 @@ jobs:
 
       - name: Configure
         run: |
-          echo "[binaries]" | tee -a ~/cross.toml
-          echo "c = ['ccache', 'clang', '--sysroot=$(realpath ~/sysroot)', '--target=$target']" | tee -a ~/cross.toml
-          echo "c_ld = 'lld'" | tee -a ~/cross.toml
-          echo "cpp = ['ccache', 'clang++', '--sysroot=$(realpath ~/sysroot)', '--target=$target']" | tee -a ~/cross.toml
-          echo "cpp_ld = 'lld'" | tee -a ~/cross.toml
-          echo "ar = 'llvm-ar'" | tee -a ~/cross.toml
-          echo "ranlib = 'llvm-ranlib'" | tee -a ~/cross.toml
-          echo "strip = 'llvm-strip'" | tee -a ~/cross.toml
-          echo "cmake = 'cmake'" | tee -a ~/cross.toml
-          echo "[host_machine]" | tee -a ~/cross.toml
-          echo "system = 'freebsd'" | tee -a ~/cross.toml
-          echo "cpu_family = '${{ matrix.cpu-family }}'" | tee -a ~/cross.toml
-          echo "cpu = '${{ matrix.cpu }}'" | tee -a ~/cross.toml
-          echo "endian = '${{ matrix.endian }}'" | tee -a ~/cross.toml
+          sed -e 's/^  //' << EOF | tee -a ~/cross.toml
+            [binaries]
+            c = ['ccache', 'clang', '--sysroot=$(realpath ~/sysroot)', '--target=$target']
+            c_ld = 'lld'
+            cpp = ['ccache', 'clang++', '--sysroot=$(realpath ~/sysroot)', '--target=$target']
+            cpp_ld = 'lld'
+            ar = 'llvm-ar'
+            ranlib = 'llvm-ranlib'
+            strip = 'llvm-strip'
+            cmake = 'cmake'
+            [host_machine]
+            system = 'freebsd'
+            cpu_family = '${{ matrix.cpu-family }}'
+            cpu = '${{ matrix.cpu }}'
+            endian = '${{ matrix.endian }}'
+          EOF
           echo '--------------------------------------------------------------------------------'
           if [ '${{ matrix.arch }}' = 'i386' ]
           then
