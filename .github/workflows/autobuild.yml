@@ -571,7 +571,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - arch_mkxpz: armv6
+          - arch_mkxpz: armv7
             arch_debian: armhf
             arch_gcc: arm-linux-gnueabihf
             cache: false
