@@ -374,7 +374,7 @@ jobs:
           then
             sudo apt install -y debootstrap gpg
             gpg --no-default-keyring --keyring ./debian-ports.kbx --keyserver keyserver.ubuntu.com --recv-keys 0x66571731b5a71f91c501f3fdda1b2cea81dcbc61
-            sudo debootstrap --arch=${{ matrix.arch_debian }} --force-check-sig --keyring=./debian-ports.kbx --exclude=powerpc-utils sid ~/sysroot http://snapshot.debian.org/archive/debian-ports/20190901T052020Z
+            sudo debootstrap --arch=${{ matrix.arch_debian }} --force-check-sig --keyring=./debian-ports.kbx --exclude=powerpc-utils ${{ matrix.suite }} ~/sysroot http://snapshot.debian.org/archive/debian-ports/20190901T052020Z
           else
             sudo apt install -y curl gpg tar xz-utils
             curl --retry 5 -Lo SHA256SUMS https://cloud-images.ubuntu.com/${{ matrix.suite }}/current/SHA256SUMS
