@@ -411,7 +411,6 @@ jobs:
             fi
             find /lib /usr/include /usr/lib -type l -exec ln -srf {} {} \; # Convert absolute symbolic links into relative symbolic links so that they still work after we exit the chroot jail
           EOF
-          sudo umount -R ~/sysroot
 
       - name: Checkout repository
         uses: actions/checkout@v5
