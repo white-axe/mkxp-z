@@ -288,7 +288,7 @@ jobs:
           path: build/artifact
 
   build-linux-gnu:
-    name: ${{ case(matrix.dist == 'sid', 'Debian', 'Ubuntu') }} ${{ matrix.dist }} ${{ matrix.arch_mkxpz }}
+    name: ${{ case(matrix.suite == 'sid', 'Debian', 'Ubuntu') }} ${{ matrix.suite }} ${{ matrix.arch_mkxpz }}
     runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
@@ -299,63 +299,63 @@ jobs:
             cpu-family: arm
             cpu: arm
             endian: little
-            dist: xenial
+            suite: xenial
             cache: false
           - arch_mkxpz: armv7-neon
             arch_debian: armhf
             cpu-family: arm
             cpu: arm
             endian: little
-            dist: xenial
+            suite: xenial
             cache: false
           - arch_mkxpz: arm64
             arch_debian: arm64
             cpu-family: aarch64
             cpu: aarch64
             endian: little
-            dist: xenial
+            suite: xenial
             cache: true
           - arch_mkxpz: i386
             arch_debian: i386
             cpu-family: x86
             cpu: i386
             endian: little
-            dist: xenial
+            suite: xenial
             cache: false
           - arch_mkxpz: powerpc
             arch_debian: powerpc
             cpu-family: ppc
             cpu: powerpc
             endian: big
-            dist: sid
+            suite: sid
             cache: false
           - arch_mkxpz: power8le
             arch_debian: ppc64el
             cpu-family: ppc64
             cpu: powerpc64le
             endian: little
-            dist: xenial
+            suite: xenial
             cache: false
           - arch_mkxpz: riscv64
             arch_debian: riscv64
             cpu-family: riscv64
             cpu: riscv64
             endian: little
-            dist: jammy
+            suite: jammy
             cache: false
           - arch_mkxpz: s390x
             arch_debian: s390x
             cpu-family: s390x
             cpu: s390x
             endian: big
-            dist: xenial
+            suite: xenial
             cache: false
           - arch_mkxpz: x86_64
             arch_debian: amd64
             cpu-family: x86_64
             cpu: x86_64
             endian: little
-            dist: xenial
+            suite: xenial
             cache: true
     steps:
       - uses: benjlevesque/short-sha@v2.2
@@ -370,22 +370,22 @@ jobs:
           sudo apt install -y clang lld llvm
 
           sudo apt install -y qemu-user-binfmt
-          if [ ${{ matrix.dist }} = sid ]
+          if [ ${{ matrix.suite }} = sid ]
           then
             sudo apt install -y debootstrap gpg
             gpg --no-default-keyring --keyring ./debian-ports.kbx --keyserver keyserver.ubuntu.com --recv-keys 0x66571731b5a71f91c501f3fdda1b2cea81dcbc61
             sudo debootstrap --arch=${{ matrix.arch_debian }} --force-check-sig --keyring=./debian-ports.kbx --exclude=powerpc-utils sid ~/sysroot http://snapshot.debian.org/archive/debian-ports/20190901T052020Z
           else
             sudo apt install -y curl gpg tar xz-utils
-            curl --retry 5 -Lo SHA256SUMS https://cloud-images.ubuntu.com/${{ matrix.dist }}/current/SHA256SUMS
-            curl --retry 5 -Lo SHA256SUMS.sig https://cloud-images.ubuntu.com/${{ matrix.dist }}/current/SHA256SUMS.gpg
+            curl --retry 5 -Lo SHA256SUMS https://cloud-images.ubuntu.com/${{ matrix.suite }}/current/SHA256SUMS
+            curl --retry 5 -Lo SHA256SUMS.sig https://cloud-images.ubuntu.com/${{ matrix.suite }}/current/SHA256SUMS.gpg
             gpg --no-default-keyring --keyring ./ubuntu-cloud-images.kbx --keyserver keyserver.ubuntu.com --recv-keys 0x4a3ce3cd565d7eb5c810e2b97ff3f408476cf100 0xd2eb44626fddc30b513d5bb71a5d6c4c7db87c81
             gpg --no-default-keyring --keyring ./ubuntu-cloud-images.kbx --verify SHA256SUMS.sig
-            curl --retry 5 -Lo ${{ matrix.dist }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz https://cloud-images.ubuntu.com/${{ matrix.dist }}/current/${{ matrix.dist }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz
-            grep ${{ matrix.dist }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz SHA256SUMS | sha256sum -c
+            curl --retry 5 -Lo ${{ matrix.suite }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz https://cloud-images.ubuntu.com/${{ matrix.suite }}/current/${{ matrix.suite }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz
+            grep ${{ matrix.suite }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz SHA256SUMS | sha256sum -c
             mkdir ~/sysroot
-            tar -xJf ${{ matrix.dist }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz -C ~/sysroot --exclude 'dev/*'
-            if [ ${{ matrix.dist }} = xenial ] || [ ${{ matrix.dist }} = bionic ]
+            tar -xJf ${{ matrix.suite }}-server-cloudimg-${{ matrix.arch_debian }}-root.tar.xz -C ~/sysroot --exclude 'dev/*'
+            if [ ${{ matrix.suite }} = xenial ] || [ ${{ matrix.suite }} = bionic ]
             then
               gpg --no-default-keyring --keyring ./ubuntu-toolchain-r.kbx --keyserver keyserver.ubuntu.com --recv-keys 0xc8ec952e2a0e1fbdc5090f6a2c277a0a352154e5
               gpg --no-default-keyring --keyring ./ubuntu-toolchain-r.kbx --export --output ~/sysroot/ubuntu-toolchain-r.gpg
@@ -401,9 +401,9 @@ jobs:
           sudo rm -f ~/sysroot/etc/resolv.conf
           sudo cp /etc/resolv.conf ~/sysroot/etc/
           PATH=/usr/sbin:/usr/bin:/sbin:/bin sudo chroot ~/sysroot /bin/bash -eo pipefail << 'EOF'
-            if [ ${{ matrix.dist }} = xenial ] || [ ${{ matrix.dist }} = bionic ]
+            if [ ${{ matrix.suite }} = xenial ] || [ ${{ matrix.suite }} = bionic ]
             then
-              echo 'deb [signed-by=/ubuntu-toolchain-r.gpg] http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu ${{ matrix.dist }} main' >> /etc/apt/sources.list
+              echo 'deb [signed-by=/ubuntu-toolchain-r.gpg] http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu ${{ matrix.suite }} main' >> /etc/apt/sources.list
               apt update
               apt install -y gcc-9 g++-9
             else
@@ -422,8 +422,8 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ccache
-          key: ${{ case(matrix.dist == 'sid', 'debian', 'ubuntu') }}-${{ matrix.dist }}-${{ matrix.arch_mkxpz }}-
-          restore-keys: ${{ case(matrix.dist == 'sid', 'debian', 'ubuntu') }}-${{ matrix.dist }}-${{ matrix.arch_mkxpz }}-
+          key: ${{ case(matrix.suite == 'sid', 'debian', 'ubuntu') }}-${{ matrix.suite }}-${{ matrix.arch_mkxpz }}-
+          restore-keys: ${{ case(matrix.suite == 'sid', 'debian', 'ubuntu') }}-${{ matrix.suite }}-${{ matrix.arch_mkxpz }}-
 
       - name: Set up ccache
         run: |
@@ -472,7 +472,7 @@ jobs:
         uses: actions/cache/save@v5
         with:
           path: ccache
-          key: ${{ case(matrix.dist == 'sid', 'debian', 'ubuntu') }}-${{ matrix.dist }}-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
+          key: ${{ case(matrix.suite == 'sid', 'debian', 'ubuntu') }}-${{ matrix.suite }}-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
 
       - name: Show ccache statistics
         run: |
@@ -489,7 +489,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mkxp-z.linux.${{ case(matrix.dist == 'sid', 'debian', 'ubuntu') }}.${{ matrix.dist }}.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          name: mkxp-z.linux.${{ case(matrix.suite == 'sid', 'debian', 'ubuntu') }}.${{ matrix.suite }}.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/artifact
 
   build-linux-native-container:
