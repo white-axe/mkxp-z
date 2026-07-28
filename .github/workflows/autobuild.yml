@@ -294,17 +294,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - arch_mkxpz: armv6
+          - arch_mkxpz: armv7
             arch_debian: armhf
             cpu-family: arm
-            cpu: arm
+            cpu: armv7
             endian: little
             suite: xenial
             cache: false
           - arch_mkxpz: armv7-neon
             arch_debian: armhf
             cpu-family: arm
-            cpu: arm
+            cpu: armv7
             endian: little
             suite: xenial
             cache: false
