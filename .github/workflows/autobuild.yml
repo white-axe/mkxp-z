@@ -412,7 +412,7 @@ jobs:
             fi
             find /lib /usr/include /usr/lib -type l -exec ln -srf {} {} \; # Convert absolute symbolic links into relative symbolic links so that they still work after we exit the chroot jail
           EOF
-          grep "^$fs_spec" /proc/mounts | cut -d ' ' -f 2 | sort -r | xargs sudo umount
+          grep "^$fs_spec " /proc/mounts | cut -d ' ' -f 2 | sort -r | xargs sudo umount
 
       - name: Checkout repository
         uses: actions/checkout@v5
