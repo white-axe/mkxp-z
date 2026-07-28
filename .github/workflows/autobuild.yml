@@ -391,12 +391,13 @@ jobs:
               gpg --no-default-keyring --keyring ./ubuntu-toolchain-r.kbx --export --output ~/sysroot/ubuntu-toolchain-r.gpg
             fi
           fi
-          sudo mount -t devtmpfs none ~/sysroot/dev
-          sudo mount -t devpts none ~/sysroot/dev/pts
-          sudo mount -t tmpfs none ~/sysroot/dev/shm
-          sudo mount -t proc none ~/sysroot/proc
-          sudo mount -t tmpfs none ~/sysroot/tmp
-          sudo mount -t sysfs none ~/sysroot/sys
+          fs_spec=$(od -N 32 -x /dev/urandom | cut -b 9- | tr -d ' \n') # 256 random lowercase hexadecimal digits
+          sudo mount -t devtmpfs $fs_spec sysroot/dev
+          sudo mount -t devpts $fs_spec sysroot/dev/pts
+          sudo mount -t tmpfs $fs_spec sysroot/dev/shm
+          sudo mount -t proc $fs_spec sysroot/proc
+          sudo mount -t tmpfs $fs_spec sysroot/tmp
+          sudo mount -t sysfs $fs_spec sysroot/sys
           sudo rm -f ~/sysroot/etc/resolv.conf
           sudo cp /etc/resolv.conf ~/sysroot/etc/
           PATH=/usr/sbin:/usr/bin:/sbin:/bin sudo chroot ~/sysroot /bin/bash -eo pipefail << 'EOF'
@@ -411,6 +412,7 @@ jobs:
             fi
             find /lib /usr/include /usr/lib -type l -exec ln -srf {} {} \; # Convert absolute symbolic links into relative symbolic links so that they still work after we exit the chroot jail
           EOF
+          grep "^$fs_spec" /proc/mounts | cut -d ' ' -f 2 | sort -r | xargs sudo umount
 
       - name: Checkout repository
         uses: actions/checkout@v5
