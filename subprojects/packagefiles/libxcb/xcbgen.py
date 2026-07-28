@@ -15,6 +15,6 @@ os.chdir(private_dir)
 
 command = python + [c_client, '-c', 'libxcb', '-l', 'X Version 11', '-s', '3', '-p', root, os.path.join(root, 'src', name + '.xml')]
 print('    Running command: ' + ' '.join(map(shlex.quote, command)), file=sys.stderr)
-subprocess.run(command)
+subprocess.run(command, check=True)
 
 shutil.move(name + '.h', os.path.join(outdir, name + '.h'))
