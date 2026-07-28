@@ -392,12 +392,12 @@ jobs:
             fi
           fi
           fs_spec=$(od -N 32 -x /dev/urandom | cut -b 9- | tr -d ' \n') # 256 random lowercase hexadecimal digits
-          sudo mount -t devtmpfs $fs_spec sysroot/dev
-          sudo mount -t devpts $fs_spec sysroot/dev/pts
-          sudo mount -t tmpfs $fs_spec sysroot/dev/shm
-          sudo mount -t proc $fs_spec sysroot/proc
-          sudo mount -t tmpfs $fs_spec sysroot/tmp
-          sudo mount -t sysfs $fs_spec sysroot/sys
+          sudo mount -t devtmpfs $fs_spec ~/sysroot/dev
+          sudo mount -t devpts $fs_spec ~/sysroot/dev/pts
+          sudo mount -t tmpfs $fs_spec ~/sysroot/dev/shm
+          sudo mount -t proc $fs_spec ~/sysroot/proc
+          sudo mount -t tmpfs $fs_spec ~/sysroot/tmp
+          sudo mount -t sysfs $fs_spec ~/sysroot/sys
           sudo rm -f ~/sysroot/etc/resolv.conf
           sudo cp /etc/resolv.conf ~/sysroot/etc/
           PATH=/usr/sbin:/usr/bin:/sbin:/bin sudo chroot ~/sysroot /bin/bash -eo pipefail << 'EOF'
