@@ -392,6 +392,8 @@ jobs:
             fi
           fi
           sudo mount -t devtmpfs none ~/sysroot/dev
+          sudo mount -t devpts none ~/sysroot/dev/pts
+          sudo mount -t tmpfs none ~/sysroot/dev/shm
           sudo mount -t proc none ~/sysroot/proc
           sudo mount -t tmpfs none ~/sysroot/tmp
           sudo mount -t sysfs none ~/sysroot/sys
@@ -409,6 +411,7 @@ jobs:
             fi
             find /lib /usr/include /usr/lib -type l -exec ln -srf {} {} \; # Convert absolute symbolic links into relative symbolic links so that they still work after we exit the chroot jail
           EOF
+          sudo umount -R ~/sysroot
 
       - name: Checkout repository
         uses: actions/checkout@v5
