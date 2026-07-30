@@ -28,56 +28,26 @@ jobs:
         run: |
           nix-channel --add https://github.com/NixOS/nixpkgs/archive/refs/tags/26.05.tar.gz nixpkgs
           nix-channel --update nixpkgs
-          nix-shell --packages $packages --run ''
+          nix-shell --pure --packages $packages --run ''
 
       - name: Checkout repository
         uses: actions/checkout@v5
 
       - name: Verify
         run: |
-          xargs -0 nix-shell --packages $packages --run << 'EOF'
+          xargs -0 nix-shell --pure --packages $packages --run << 'EOF'
             set -eo pipefail
             meson subprojects download ruby-${{ matrix.version }}
-            sed -e 's/^    //' << '  PYTHON' | python > subproject-directory
+            cd "subprojects/$(sed -e 's/^    //' << '  PYTHON' | python)"
               import configparser
               config = configparser.ConfigParser()
               config.read('subprojects/ruby-${{ matrix.version }}.wrap')
               print(config['wrap-file']['directory'])
             PYTHON
-            cd "subprojects/$(< subproject-directory)"
-            old_configure_hash="$(sha256sum configure)"
-            echo "old: $old_configure_hash"
-            old_config_guess_hash="$(sha256sum tool/config.guess)"
-            echo "old: $old_config_guess_hash"
-            old_config_sub_hash="$(sha256sum tool/config.sub)"
-            echo "old: $old_config_sub_hash"
+            hashes="$(sha256sum configure tool/config.guess tool/config.sub)"
+            cat <<< "$hashes"
             autoreconf -fi
-            new_configure_hash="$(sha256sum configure)"
-            echo "new: $new_configure_hash"
-            new_config_guess_hash="$(sha256sum tool/config.guess)"
-            echo "new: $new_config_guess_hash"
-            new_config_sub_hash="$(sha256sum tool/config.sub)"
-            echo "new: $new_config_sub_hash"
-            error_flag=
-            if [ "$old_configure_hash" != "$new_configure_hash" ]
-            then
-              echo '::error::configure hash does not match'
-              error_flag=1
-            fi
-            if [ "$old_config_guess_hash" != "$new_config_guess_hash" ]
-            then
-              echo '::error::tool/config.guess hash does not match'
-              error_flag=1
-            fi
-            if [ "$old_config_sub_hash" != "$new_config_sub_hash" ]
-            then
-              echo '::error::tool/config.sub hash does not match'
-              error_flag=1
-            fi
-            if [ -n "$error_flag" ]
-            then
-              exit 1
-            fi
+            sha256sum -c <<< "$hashes"
           EOF
 
   build-windows-msys2:
