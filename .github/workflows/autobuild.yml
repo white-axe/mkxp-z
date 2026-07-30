@@ -704,8 +704,6 @@ jobs:
           abi_version=13
           release=release_4
           sed 's/^  //' << 'EOF' | python - "$host" | while read mirror
-            import bisect
-            import itertools
             import random
             import re
             import subprocess
