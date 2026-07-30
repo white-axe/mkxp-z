@@ -38,7 +38,7 @@ jobs:
           xargs -0 nix-shell --packages $packages --run << 'EOF'
             set -eo pipefail
             meson subprojects download ruby-${{ matrix.version }}
-            cd "subprojects/$(sed -e 's/^    //' << '  PYTHON' | python)"
+            cd "subprojects/$(sed 's/^    //' << '  PYTHON' | python)"
               import configparser
               config = configparser.ConfigParser()
               config.read('subprojects/ruby-${{ matrix.version }}.wrap')
@@ -404,7 +404,7 @@ jobs:
 
       - name: Configure
         run: |
-          sed -e 's/^  //' << EOF | tee -a ~/cross.toml
+          sed 's/^  //' << EOF | tee -a ~/cross.toml
             [binaries]
             c = ['ccache', 'clang', '--sysroot=$(realpath ~/sysroot)', '--target=${{ matrix.cpu }}-linux-gnu${{ case(matrix.cpu-family == 'arm', 'eabihf', '') }}'${{ case(matrix.cpu-family == 'ppc' || matrix.cpu-family == 'ppc64', ', ''-mabi=ibmlongdouble''', '') }}]
             c_ld = 'lld'
@@ -765,7 +765,7 @@ jobs:
 
       - name: Configure
         run: |
-          sed -e 's/^  //' << EOF | tee -a ~/cross.toml
+          sed 's/^  //' << EOF | tee -a ~/cross.toml
             [binaries]
             c = ['ccache', 'clang', '--sysroot=$(realpath ~/sysroot)', '--target=$target']
             c_ld = 'lld'
