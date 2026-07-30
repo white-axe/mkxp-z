@@ -276,8 +276,8 @@ if is_nix
         '-DMKXPZ_XCURSOR_SONAME="' + run_command(sonametool, 'Xcursor', check: true).stdout().strip() + '"',
         '-DMKXPZ_XEXT_SONAME="' + run_command(sonametool, 'Xext', check: true).stdout().strip() + '"',
         '-DMKXPZ_XFIXES_SONAME="' + run_command(sonametool, 'Xfixes', check: true).stdout().strip() + '"',
-        '-DMKXPZ_XKBCOMMON_SONAME="' + run_command(sonametool, 'xkbcommon', check: true).stdout().strip() + '"',
         '-DMKXPZ_XI_SONAME="' + run_command(sonametool, 'Xi', check: true).stdout().strip() + '"',
+        '-DMKXPZ_XKBCOMMON_SONAME="' + run_command(sonametool, 'xkbcommon', check: true).stdout().strip() + '"',
         '-DMKXPZ_XRANDR_SONAME="' + run_command(sonametool, 'Xrandr', check: true).stdout().strip() + '"',
     ]
 endif
