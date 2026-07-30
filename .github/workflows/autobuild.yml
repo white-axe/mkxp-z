@@ -703,7 +703,36 @@ jobs:
           host=pkg.freebsd.org
           abi_version=13
           release=release_4
-          dig +short "_http._tcp.$host" SRV | cut -d ' ' -f 4 | sed "\$a$host" | while read mirror
+          sed 's/^  //' << 'EOF' | python - "$host" | while read mirror
+            import bisect
+            import itertools
+            import random
+            import re
+            import subprocess
+            import sys
+            pattern = re.compile(r'([0-9]+) ([0-9]+) ([0-9]+) ([^ ]+)\.')
+            entries_by_priority = {}
+            for raw_entry in subprocess.run(['dig', '+short', '_http._tcp.' + sys.argv[1], 'SRV'], check=True, stdout=subprocess.PIPE).stdout.decode('UTF-8').splitlines():
+              match = pattern.match(raw_entry)
+              if match is None:
+                continue
+              priority = int(pattern.match(raw_entry)[1])
+              weight = int(pattern.match(raw_entry)[2])
+              port = int(pattern.match(raw_entry)[3])
+              hostname = pattern.match(raw_entry)[4]
+              entries_by_priority.setdefault(priority, []).append({'weight': weight, 'port': port, 'hostname': hostname})
+            for priority, entries in entries_by_priority.items():
+              shuffled_entries = []
+              for _ in range(len(entries)):
+                random_entry = random.choices(entries, [entry['weight'] for entry in entries])[0]
+                shuffled_entries.append(random_entry)
+                random_entry['weight'] = 0
+              entries_by_priority[priority] = shuffled_entries
+            for priority in sorted(entries_by_priority.keys()):
+              for entry in entries_by_priority[priority]:
+                print(entry['hostname'] + ':' + str(entry['port']))
+            print(sys.argv[1])
+          EOF
           do
             echo "FreeBSD mirror: $mirror"
             repo="http://${mirror}/FreeBSD:${abi_version}:amd64/${release}"
