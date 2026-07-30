@@ -28,14 +28,14 @@ jobs:
         run: |
           nix-channel --add https://github.com/NixOS/nixpkgs/archive/refs/tags/26.05.tar.gz nixpkgs
           nix-channel --update nixpkgs
-          nix-shell --pure --packages $packages --run ''
+          nix-shell --packages $packages --run ''
 
       - name: Checkout repository
         uses: actions/checkout@v5
 
       - name: Verify
         run: |
-          xargs -0 nix-shell --pure --packages $packages --run << 'EOF'
+          xargs -0 nix-shell --packages $packages --run << 'EOF'
             set -eo pipefail
             meson subprojects download ruby-${{ matrix.version }}
             cd "subprojects/$(sed -e 's/^    //' << '  PYTHON' | python)"
