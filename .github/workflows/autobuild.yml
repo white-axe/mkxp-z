@@ -44,7 +44,7 @@ jobs:
               config.read('subprojects/ruby-${{ matrix.version }}.wrap')
               print(config['wrap-file']['directory'])
             PYTHON
-            hashes="$(sha256sum configure tool/config.guess tool/config.sub)"
+            hashes="$(sha256sum -b configure tool/config.guess tool/config.sub)"
             cat <<< "$hashes"
             autoreconf -fi
             sha256sum -c <<< "$hashes"
