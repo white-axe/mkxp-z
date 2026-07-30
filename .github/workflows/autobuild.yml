@@ -701,10 +701,12 @@ jobs:
 
           sudo apt install -y bind9-dnsutils curl jq openssl tar zstd
           host=pkg.freebsd.org
+          abi_version=13
+          release=release_4
           dig +short "_http._tcp.$host" SRV | cut -d ' ' -f 4 | sed "\$a$host" | while read mirror
           do
             echo "FreeBSD mirror: $mirror"
-            repo="http://$mirror/FreeBSD:13:amd64/release_4"
+            repo="http://${mirror}/FreeBSD:${abi_version}:amd64/${release}"
             if ! curl --retry 5 -Lo data.pkg "$repo/data.pkg"
             then
               continue
@@ -721,22 +723,21 @@ jobs:
             then
               continue
             fi
-            if ! curl --retry 5 -Lo sysroot.pkg "$repo/$(jq -r '.packages[] | select(.name == "${{ matrix.arch }}-freebsd-sysroot").repopath' data)"
+            query='.packages[] | select(.name == "${{ matrix.arch }}-freebsd-sysroot")'
+            if [ "$(jq -r "$query.abi" data)" != "FreeBSD:${abi_version}:*" ]
             then
               continue
             fi
-            if ! echo "$(jq -r '.packages[] | select(.name == "${{ matrix.arch }}-freebsd-sysroot").sum' data) *sysroot.pkg" | sha256sum -c
+            if ! curl --retry 5 -Lo sysroot.pkg "$repo/$(jq -r "$query.repopath" data)"
+            then
+              continue
+            fi
+            if ! echo "$(jq -r "$query.sum" data) *sysroot.pkg" | sha256sum -c
             then
               continue
             fi
             tar -xf sysroot.pkg --zstd
             mv usr/local/freebsd-sysroot/${{ matrix.arch }} ~/sysroot
-            version=$(printf '#include <sys/param.h>\n__FreeBSD_version\n' | clang "--sysroot=$(realpath ~/sysroot)" -E - | tail -n 1)
-            version_major=$((version / 100000))
-            version_minor=$(((version / 1000) % 100))
-            target="${{ matrix.cpu }}-unknown-freebsd$version_major.$version_minor${{ case(matrix.cpu-family == 'arm', '-gnueabihf', '') }}"
-            echo "Target: $target"
-            echo "target=$target" >> "$GITHUB_ENV"
             break
           done
           if [ ! -d ~/sysroot ]
@@ -744,6 +745,12 @@ jobs:
             echo '::error::Failed to download the sysroot'
             exit 1
           fi
+          version=$(printf '#include <sys/param.h>\n__FreeBSD_version\n' | clang "--sysroot=$(realpath ~/sysroot)" -E - | tail -n 1)
+          version_major=$((version / 100000))
+          version_minor=$(((version / 1000) % 100))
+          target="${{ matrix.cpu }}-unknown-freebsd$version_major.$version_minor${{ case(matrix.cpu-family == 'arm', '-gnueabihf', '') }}"
+          echo "Target: $target"
+          echo "target=$target" >> "$GITHUB_ENV"
 
       - name: Checkout repository
         uses: actions/checkout@v5
