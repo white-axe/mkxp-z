@@ -675,64 +675,46 @@ jobs:
             cpu-family: aarch64
             cpu: aarch64
             endian: little
-            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/aarch64-freebsd-sysroot-a2025.11.26_1~68315b7f42.pkg
-            sysroot-hash: 68315b7f428108c9c18a6afd5e5c091ec26108180c1f2abadb7a874e21dee346
             cache: false
           - arch: amd64
             cpu-family: x86_64
             cpu: x86_64
             endian: little
-            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/amd64-freebsd-sysroot-a2025.11.26_1~b5aaff1c3a.pkg
-            sysroot-hash: b5aaff1c3a4ce4195c6d53fcfe018eaf88bb661b7e2cff5e8bb759f03808e279
             cache: false
           - arch: armv7
             cpu-family: arm
             cpu: armv7
             endian: little
-            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/armv7-freebsd-sysroot-a2025.11.26_1~e8be0507bf.pkg
-            sysroot-hash: e8be0507bfbc422700e3086e8c62f270a4941904548b91d2c83e5821fea3a13f
             cache: false
           - arch: i386
             cpu-family: x86
             cpu: i386
             endian: little
-            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/i386-freebsd-sysroot-a2025.11.26_1~3ecb308d3e.pkg
-            sysroot-hash: 3ecb308d3e6dee43ff01d256608603403ea44c96ff56ffb640f4cd1d3cadf048
             cache: false
           - arch: powerpc
             cpu-family: ppc
             cpu: powerpc
             endian: big
-            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/powerpc-freebsd-sysroot-a2025.11.26_1~dc698d9fa7.pkg
-            sysroot-hash: dc698d9fa7368b37d71e542cb466c8c009365dc6732c59052a4a997bd994776f
             cache: false
           - arch: powerpc64
             cpu-family: ppc64
             cpu: powerpc64
             endian: big
-            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/powerpc64-freebsd-sysroot-a2025.11.26_1~8940892710.pkg
-            sysroot-hash: 8940892710f79021b4e340285cf976d8aa4a319d3c86028bfa796d0d19d4a383
             cache: false
           - arch: powerpc64le
             cpu-family: ppc64
             cpu: powerpc64le
             endian: little
-            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/powerpc64le-freebsd-sysroot-a2025.11.26_1~b90bcf67b7.pkg
-            sysroot-hash: b90bcf67b79f3cd3242ee21e4287e1ee53ea5e0bd87f80aadfea0b663c6b7652
             cache: false
           - arch: powerpcspe
             cpu-family: ppc
             cpu: powerpcspe
             endian: big
-            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/powerpcspe-freebsd-sysroot-a2025.11.26_1~52ee4f5f36.pkg
-            sysroot-hash: 52ee4f5f369e5cd550d8973dad93dd8162344cda0d7ee8fbc7c7bd10b7ab3b0a
             cache: false
           - arch: riscv64
             cpu-family: riscv64
             cpu: riscv64
             endian: little
-            sysroot-url: https://pkg.freebsd.org/FreeBSD:13:amd64/latest/All/Hashed/riscv64-freebsd-sysroot-a2025.11.26_1~753abe4dd5.pkg
-            sysroot-hash: 753abe4dd5152870aaf1945490ba76d4ad1309b7628e3fd2bdb940068449b623
             cache: false
     steps:
       - uses: benjlevesque/short-sha@v2.2
@@ -747,9 +729,14 @@ jobs:
           sudo apt install -y bison ccache cmake diffutils git make meson ruby
           sudo apt install -y clang lld llvm
 
-          sudo apt install -y curl tar zstd
-          curl --retry 5 -Lo sysroot.pkg '${{ matrix.sysroot-url }}'
-          [ "$(sha256sum sysroot.pkg | cut -d ' ' -f 1)" = '${{ matrix.sysroot-hash }}' ]
+          sudo apt install -y curl jq openssl tar zstd
+          repo=https://pkg.freebsd.org/FreeBSD:13:amd64/release_4
+          curl --retry 5 -Lo data.pkg "$repo/data.pkg"
+          tar -xf data.pkg --zstd
+          echo 'b0170035af3acc5f3f3ae1859dc717101b4e6c1d0a794ad554928ca0cbb2f438 *data.pub' | sha256sum -c
+          sha256sum -b data | cut -d ' ' -f 1 | tr -d '\n' | openssl dgst -sha256 -verify data.pub -signature data.sig
+          curl --retry 5 -Lo sysroot.pkg "$repo/$(jq -r '.packages[] | select(.name == "${{ matrix.arch }}-freebsd-sysroot").repopath' data)"
+          echo "$(jq -r '.packages[] | select(.name == "${{ matrix.arch }}-freebsd-sysroot").sum' data) *sysroot.pkg" | sha256sum -c
           tar -xf sysroot.pkg --zstd
           mv usr/local/freebsd-sysroot/${{ matrix.arch }} ~/sysroot
           version=$(printf '#include <sys/param.h>\n__FreeBSD_version\n' | clang "--sysroot=$(realpath ~/sysroot)" -E - | tail -n 1)
