@@ -699,22 +699,51 @@ jobs:
           sudo apt install -y bison ccache cmake diffutils git make meson ruby
           sudo apt install -y clang lld llvm
 
-          sudo apt install -y curl jq openssl tar zstd
-          repo=https://pkg.freebsd.org/FreeBSD:13:amd64/release_4
-          curl --retry 5 -Lo data.pkg "$repo/data.pkg"
-          tar -xf data.pkg --zstd
-          echo 'b0170035af3acc5f3f3ae1859dc717101b4e6c1d0a794ad554928ca0cbb2f438 *data.pub' | sha256sum -c
-          sha256sum -b data | cut -d ' ' -f 1 | tr -d '\n' | openssl dgst -sha256 -verify data.pub -signature data.sig
-          curl --retry 5 -Lo sysroot.pkg "$repo/$(jq -r '.packages[] | select(.name == "${{ matrix.arch }}-freebsd-sysroot").repopath' data)"
-          echo "$(jq -r '.packages[] | select(.name == "${{ matrix.arch }}-freebsd-sysroot").sum' data) *sysroot.pkg" | sha256sum -c
-          tar -xf sysroot.pkg --zstd
-          mv usr/local/freebsd-sysroot/${{ matrix.arch }} ~/sysroot
-          version=$(printf '#include <sys/param.h>\n__FreeBSD_version\n' | clang "--sysroot=$(realpath ~/sysroot)" -E - | tail -n 1)
-          version_major=$((version / 100000))
-          version_minor=$(((version / 1000) % 100))
-          target="${{ matrix.cpu }}-unknown-freebsd$version_major.$version_minor${{ case(matrix.cpu-family == 'arm', '-gnueabihf', '') }}"
-          echo "Target: $target"
-          echo "target=$target" >> "$GITHUB_ENV"
+          sudo apt install -y bind9-dnsutils curl jq openssl tar zstd
+          host=pkg.freebsd.org
+          dig +short "_http._tcp.$host" SRV | cut -d ' ' -f 4 | sed "\$a$host" | while read mirror
+          do
+            echo "FreeBSD mirror: $mirror"
+            repo="http://$mirror/FreeBSD:13:amd64/release_4"
+            if ! curl --retry 5 -Lo data.pkg "$repo/data.pkg"
+            then
+              continue
+            fi
+            if ! tar -xf data.pkg --zstd
+            then
+              continue
+            fi
+            if ! echo 'b0170035af3acc5f3f3ae1859dc717101b4e6c1d0a794ad554928ca0cbb2f438 *data.pub' | sha256sum -c
+            then
+              continue
+            fi
+            if ! sha256sum -b data | cut -d ' ' -f 1 | tr -d '\n' | openssl dgst -sha256 -verify data.pub -signature data.sig
+            then
+              continue
+            fi
+            if ! curl --retry 5 -Lo sysroot.pkg "$repo/$(jq -r '.packages[] | select(.name == "${{ matrix.arch }}-freebsd-sysroot").repopath' data)"
+            then
+              continue
+            fi
+            if ! echo "$(jq -r '.packages[] | select(.name == "${{ matrix.arch }}-freebsd-sysroot").sum' data) *sysroot.pkg" | sha256sum -c
+            then
+              continue
+            fi
+            tar -xf sysroot.pkg --zstd
+            mv usr/local/freebsd-sysroot/${{ matrix.arch }} ~/sysroot
+            version=$(printf '#include <sys/param.h>\n__FreeBSD_version\n' | clang "--sysroot=$(realpath ~/sysroot)" -E - | tail -n 1)
+            version_major=$((version / 100000))
+            version_minor=$(((version / 1000) % 100))
+            target="${{ matrix.cpu }}-unknown-freebsd$version_major.$version_minor${{ case(matrix.cpu-family == 'arm', '-gnueabihf', '') }}"
+            echo "Target: $target"
+            echo "target=$target" >> "$GITHUB_ENV"
+            break
+          done
+          if [ ! -d ~/sysroot ]
+          then
+            echo '::error::Failed to download the sysroot'
+            exit 1
+          fi
 
       - name: Checkout repository
         uses: actions/checkout@v5
