@@ -728,10 +728,10 @@ jobs:
                 cumsum = 0
                 power_of_2 = 1 << (len(self.tree).bit_length() - 1)
                 while power_of_2 > 0:
-                  index = rank + power_of_2 - 1
+                  index = (rank | power_of_2) - 1
                   if index < len(self.tree) and cumsum + self.tree[index] <= value:
                     cumsum += self.tree[index]
-                    rank += power_of_2
+                    rank |= power_of_2
                   power_of_2 >>= 1
                 return rank
             pattern = re.compile(r'([0-9]+) ([0-9]+) ([0-9]+) ([^ ]+)\.')
