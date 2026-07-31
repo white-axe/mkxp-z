@@ -719,17 +719,16 @@ jobs:
               port = int(match[3])
               hostname = match[4]
               entries_by_priority.setdefault(priority, []).append({'weight': weight, 'port': port, 'hostname': hostname})
-            for entries in entries_by_priority.values(): # Perform a weighted shuffle on entries with the same priority (higher weight is more likely to be chosen earlier)
-              for pivot_index in range(len(entries)):
+            for priority in sorted(entries_by_priority.keys()): # Sort entries with different priorities in ascending order of priority
+              entries = entries_by_priority[priority]
+              for pivot_index in range(len(entries)): # Perform a weighted shuffle on entries with the same priority (higher weight is more likely to be chosen earlier)
                 random_index_range = range(pivot_index, len(entries))
                 if all(entries[i]['weight'] == 0 for i in random_index_range): # Guard against all weights being 0 since random.choices() will raise an exception when that happens
                   for i in random_index_range:
                     entries[i]['weight'] = 1
                 random_index = random.choices(random_index_range, (entries[i]['weight'] for i in random_index_range))[0]
-                entries[pivot_index], entries[random_index] = entries[random_index], entries[pivot_index]
-            for priority in sorted(entries_by_priority.keys()): # Sort entries with different priorities in ascending order of priority
-              for entry in entries_by_priority[priority]:
-                print(entry['hostname'] + ':' + str(entry['port']))
+                print(entries[random_index]['hostname'] + ':' + str(entries[random_index]['port']))
+                entries[random_index] = entries[pivot_index]
             print(sys.argv[1])
           EOF
           do
