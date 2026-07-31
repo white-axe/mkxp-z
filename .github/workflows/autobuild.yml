@@ -751,9 +751,8 @@ jobs:
               for i, entry in enumerate(entries):
                 weights.set(i, entry['weight'])
               for pivot_index in range(len(entries)): # Perform a weighted shuffle on entries with the same priority (higher weight is more likely to be chosen earlier)
-                random_index_range = range(pivot_index, len(entries))
                 weights_total = weights.cumsum(len(entries) - 1)
-                random_index = random.randrange(random_index_range.start, random_index_range.stop) if weights_total == 0 else weights.cumsum_bisect_right(random.randrange(weights_total))
+                random_index = random.randrange(pivot_index, len(entries)) if weights_total == 0 else weights.cumsum_bisect_right(random.randrange(weights_total))
                 print(entries[random_index]['hostname'] + ':' + str(entries[random_index]['port']))
                 entries[random_index] = entries[pivot_index]
                 weights.set(random_index, entries[random_index]['weight'])
