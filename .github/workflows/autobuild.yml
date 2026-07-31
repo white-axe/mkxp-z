@@ -711,13 +711,13 @@ jobs:
             pattern = re.compile(r'([0-9]+) ([0-9]+) ([0-9]+) ([^ ]+)\.')
             entries_by_priority = {}
             for raw_entry in subprocess.run(['dig', '+short', '_http._tcp.' + sys.argv[1], 'SRV'], check=True, stdout=subprocess.PIPE).stdout.decode('UTF-8').splitlines():
-              match = pattern.match(raw_entry)
+              match = pattern.fullmatch(raw_entry)
               if match is None:
                 continue
-              priority = int(pattern.match(raw_entry)[1])
-              weight = int(pattern.match(raw_entry)[2])
-              port = int(pattern.match(raw_entry)[3])
-              hostname = pattern.match(raw_entry)[4]
+              priority = int(match[1])
+              weight = int(match[2])
+              port = int(match[3])
+              hostname = match[4]
               entries_by_priority.setdefault(priority, []).append({'weight': weight, 'port': port, 'hostname': hostname})
             for priority, entries in entries_by_priority.items():
               shuffled_entries = []
