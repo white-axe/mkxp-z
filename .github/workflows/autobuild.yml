@@ -708,29 +708,31 @@ jobs:
             import re
             import subprocess
             import sys
+            import typing
             class FenwickTree:
-              def __init__(self, n: int): # Creates a new Fenwick tree containing n items, all of which are initially zero.
-                self.tree = [0] * n
+              _tree: typing.List[int]
+              def __init__(self, n: int) -> None: # Creates a new Fenwick tree containing n items, all of which are initially zero.
+                self._tree = [0] * n
               def cumsum(self, index: int) -> int: # Returns the sum of all items up to and including the given index (zero-based) in O(log n) time.
-                value = 0
+                cumsum = 0
                 while index >= 0:
-                  value += self.tree[index]
+                  cumsum += self._tree[index]
                   index &= index + 1
                   index -= 1
-                return value
-              def set(self, index: int, value: int): # Sets the item at the given index (zero-based) to the given value in O(log n) time.
+                return cumsum
+              def set(self, index: int, value: int) -> None: # Sets the item at the given index (zero-based) to the given value in O(log n) time.
                 delta = value - (self.cumsum(index) if index == 0 else self.cumsum(index) - self.cumsum(index - 1))
-                while index < len(self.tree):
-                  self.tree[index] += delta
+                while index < len(self._tree):
+                  self._tree[index] += delta
                   index |= index + 1
-              def cumsum_bisect_right(self, value: int) -> int: # Returns the smallest nonnegative integer less than n such that self.cumsum(self.cumsum_bisect_right(value)) is greater than value, in O(log n) time. If there is no such integer, returns n instead. All items must be nonnegative, otherwise the behavior is undefined.
+              def cumsum_bisect_right(self, target_cumsum: int) -> int: # Returns the smallest nonnegative integer less than n such that self.cumsum(self.cumsum_bisect_right(target_cumsum)) is greater than target_cumsum, in O(log n) time. If there is no such integer, returns n instead. All items must be nonnegative, otherwise the behavior is undefined.
                 rank = 0
                 cumsum = 0
-                power_of_2 = 1 << (len(self.tree).bit_length() - 1)
+                power_of_2 = 1 << (len(self._tree).bit_length() - 1)
                 while power_of_2 > 0:
                   index = (rank | power_of_2) - 1
-                  if index < len(self.tree) and cumsum + self.tree[index] <= value:
-                    cumsum += self.tree[index]
+                  if index < len(self._tree) and cumsum + self._tree[index] <= target_cumsum:
+                    cumsum += self._tree[index]
                     rank |= power_of_2
                   power_of_2 >>= 1
                 return rank
