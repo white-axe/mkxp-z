@@ -11,6 +11,21 @@
    test x"$MINIRUBY" = x && MINIRUBY="${RUBY-$BASERUBY} -I`$CHDIR .; pwd` "-r'$(arch)-fake'
    XRUBY_LIBDIR=`${RUBY-$BASERUBY} -rrbconfig -e ['puts RbConfig::CONFIG["libdir"]']`
    XRUBY_RUBYLIBDIR=`${RUBY-$BASERUBY} -rrbconfig -e ['puts RbConfig::CONFIG["rubylibdir"]']`
+--- a/cygwin/GNUmakefile.in
++++ b/cygwin/GNUmakefile.in
+@@ -63,9 +63,9 @@ $(RUBY_EXP) $(LIBRUBY_SO): $(DLL_BASE_NAME).res.@OBJEXT@
+ $(PROGRAM): $(RUBY_INSTALL_NAME).res.@OBJEXT@
+ $(WPROGRAM): $(RUBYW_INSTALL_NAME).res.@OBJEXT@
+ 	@rm -f $@
+-	$(ECHO) linking $@
+-	$(Q) $(PURIFY) $(CC) -mwindows -e $(SYMBOL_PREFIX)mainCRTStartup $(LDFLAGS) $(XLDFLAGS) \
+-	  $(MAINOBJ) $(EXTOBJS) $(LIBRUBYARG) $(LIBS) -o $@
++	touch $@
++
++
+ $(STUBPROGRAM): $(RUBY_INSTALL_NAME).res.@OBJEXT@
+ 
+ $(RUBY_EXP): $(LIBRUBY_A)
 --- a/template/Makefile.in
 +++ b/template/Makefile.in
 @@ -285,9 +285,9 @@ miniruby$(EXEEXT):
