@@ -4,6 +4,19 @@ python = import('python').find_installation(required: true)
 
 install_directory = [python, files('install-directory.py')[0]]
 
+ar = meson.version().version_compare('>=1.10.0') ? find_program('ar').cmd_array() : [find_program('ar')]
+ranlib = ar + 's'
+if host_machine.system() in ['windows', 'cygwin']
+    windres = meson.version().version_compare('>=1.10.0') ? find_program('windres').cmd_array() : [find_program('windres')]
+else
+    windres = []
+endif
+if build_machine.system() in ['windows', 'cygwin']
+    cygpath = meson.version().version_compare('>=1.10.0') ? find_program('cygpath').cmd_array() : [find_program('cygpath')]
+else
+    cygpath = []
+endif
+
 # embedtool SOURCE_FILE DESTINATION_FILE NAME
 #   Embeds the contents of a file into a C array.
 #   SOURCE_FILE: Path to the file to embed.
@@ -11,13 +24,9 @@ install_directory = [python, files('install-directory.py')[0]]
 #   NAME: The output C source file will contain an array of uint8_t named NAME containing the contents of SOURCE_FILE and a size_t named NAME_len containing the length of NAME in bytes.
 embedtool = [python, files('embedtool.py')[0]]
 
-# quotetool_args [ARGS...]
+# quotetool [ARGS...]
 #   Outputs a shell-escaped string containing the given arguments, so that shell splitting the string output by this command yields the original arguments. For example, if the arguments are `hello` and `foo bar` and `foo 'bar'`, the output will be `hello 'foo bar' 'foo '"'"'bar'"'"''`.
-quotetool_args = [python, files('quotetool.py')[0], build_machine.system(), 'false']
-
-# quotetool_command [ARGS...]
-#   This is the same thing as quotetool_args, except if the build machine is Windows, all backslashes in the first argument are replaced with forward slashes to avoid problems with build tools such as CMake that cannot handle certain path formats correctly. If the build machine is not Windows, this is exactly equivalent to quotetool_args.
-quotetool_command = [python, files('quotetool.py')[0], build_machine.system(), 'true']
+quotetool = [python, files('quotetool.py')[0]]
 
 # sonametool LIBRARY_NAME
 #   Returns the full name of the shared library file for the given library on the host machine. For example, given "X11", this outputs "libX11.so.6" when building for BSD or Linux.

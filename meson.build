@@ -24,7 +24,7 @@ compilers = {'cpp': meson.get_compiler('cpp')}
 git_hash_file = vcs_tag(
     input: 'src/git-hash.h.in',
     output: 'git-hash.h',
-    command: [find_program('git'), 'rev-parse', '--short=7', 'HEAD'],
+    command: [(meson.version().version_compare('>=1.10.0') ? find_program('git').cmd_array() : find_program('git')), 'rev-parse', '--short=7', 'HEAD'],
     fallback: 'unknown',
 )
 
@@ -43,8 +43,7 @@ common = subproject('common', default_options: {'c_std': c_std, 'cpp_std': cpp_s
 cmake = import('cmake')
 python = common.get_variable('python')
 embedtool = common.get_variable('embedtool')
-quotetool_args = common.get_variable('quotetool_args')
-quotetool_command = common.get_variable('quotetool_command')
+quotetool = common.get_variable('quotetool')
 sonametool = common.get_variable('sonametool')
 
 sizeof = {'void*': compilers['cpp'].sizeof('void*'),

@@ -7,4 +7,5 @@ method = cmake
 diff_files =
     zlib-target-name.patch,
     zlib-version.patch,
+    zlib-windres.patch,
     end-of-diff-files.patch

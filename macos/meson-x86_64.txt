@@ -3,8 +3,8 @@ c = ['ccache', 'clang', '--target=x86_64-apple-macos11.0']
 cpp = ['ccache', 'clang++', '--target=x86_64-apple-macos11.0']
 objc = ['ccache', 'clang', '--target=x86_64-apple-macos11.0']
 objcpp = ['ccache', 'clang++', '--target=x86_64-apple-macos11.0']
-ar = 'ar'
 ibtool = 'ibtool'
+ar = 'ar'
 strip = 'strip'
 cmake = 'cmake'
 

@@ -10,7 +10,7 @@ ldflags += get_option('c_link_args')
 
 srcdir = meson.project_source_root()
 if build_machine.system() in ['windows', 'cygwin']
-    srcdir = run_command(find_program('cygpath'), '-u', srcdir, check: true).stdout().strip()
+    srcdir = run_command(subproject('common').get_variable('cygpath'), '-u', srcdir, check: true).stdout().strip()
 endif
 
 libinotify = declare_dependency(
@@ -29,11 +29,11 @@ libinotify = declare_dependency(
                 '--includedir=/include',
                 '--enable-static',
                 '--disable-shared',
-                'CC=' + run_command(subproject('common').get_variable('quotetool_command'), meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
-                'AR=' + run_command(subproject('common').get_variable('quotetool_command'), find_program('ar'), check: true).stdout().strip(),
-                'RANLIB=' + run_command(subproject('common').get_variable('quotetool_command'), find_program('ar'), 's', check: true).stdout().strip(),
-                'CFLAGS=' + run_command(subproject('common').get_variable('quotetool_args'), cflags, check: true).stdout().strip(),
-                'LDFLAGS=' + run_command(subproject('common').get_variable('quotetool_args'), ldflags, check: true).stdout().strip(),
+                'CC=' + run_command(subproject('common').get_variable('quotetool'), meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
+                'AR=' + run_command(subproject('common').get_variable('quotetool'), subproject('common').get_variable('ar'), check: true).stdout().strip(),
+                'RANLIB=' + run_command(subproject('common').get_variable('quotetool'), subproject('common').get_variable('ranlib'), check: true).stdout().strip(),
+                'CFLAGS=' + run_command(subproject('common').get_variable('quotetool'), cflags, check: true).stdout().strip(),
+                'LDFLAGS=' + run_command(subproject('common').get_variable('quotetool'), ldflags, check: true).stdout().strip(),
             ],
             cross_configure_options: [
                 '--host=@HOST@',

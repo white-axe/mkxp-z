@@ -1,9 +1,9 @@
 [binaries]
 c = ['ccache', 'clang', '--target=aarch64-w64-mingw32']
 cpp = ['ccache', 'clang++', '--target=aarch64-w64-mingw32']
-ar = 'aarch64-w64-mingw32-ar'
-windres = 'aarch64-w64-mingw32-windres'
-strip = 'aarch64-w64-mingw32-strip'
+windres = ['llvm-windres', '--target=aarch64-w64-mingw32']
+ar = 'llvm-ar'
+strip = 'llvm-strip'
 cmake = 'cmake'
 
 [host_machine]
