@@ -2,7 +2,6 @@
 c = ['ccache', 'powerpc64le-linux-gnu-gcc']
 cpp = ['ccache', 'powerpc64le-linux-gnu-g++']
 ar = 'powerpc64le-linux-gnu-ar'
-ranlib = 'powerpc64le-linux-gnu-ranlib'
 strip = 'powerpc64le-linux-gnu-strip'
 cmake = 'cmake'
 

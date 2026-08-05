@@ -2,7 +2,6 @@
 c = ['ccache', 'i686-w64-mingw32-gcc']
 cpp = ['ccache', 'i686-w64-mingw32-g++']
 ar = 'i686-w64-mingw32-ar'
-ranlib = 'i686-w64-mingw32-ranlib'
 windres = 'i686-w64-mingw32-windres'
 strip = 'i686-w64-mingw32-strip'
 cmake = 'cmake'

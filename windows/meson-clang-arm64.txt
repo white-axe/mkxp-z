@@ -2,7 +2,6 @@
 c = ['ccache', 'clang', '--target=aarch64-w64-mingw32']
 cpp = ['ccache', 'clang++', '--target=aarch64-w64-mingw32']
 ar = 'aarch64-w64-mingw32-ar'
-ranlib = 'aarch64-w64-mingw32-ranlib'
 windres = 'aarch64-w64-mingw32-windres'
 strip = 'aarch64-w64-mingw32-strip'
 cmake = 'cmake'

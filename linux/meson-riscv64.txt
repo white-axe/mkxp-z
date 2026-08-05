@@ -2,7 +2,6 @@
 c = ['ccache', 'riscv64-linux-gnu-gcc']
 cpp = ['ccache', 'riscv64-linux-gnu-g++']
 ar = 'riscv64-linux-gnu-ar'
-ranlib = 'riscv64-linux-gnu-ranlib'
 strip = 'riscv64-linux-gnu-strip'
 cmake = 'cmake'
 

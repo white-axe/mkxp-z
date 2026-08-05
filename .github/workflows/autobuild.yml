@@ -411,7 +411,6 @@ jobs:
             cpp = ['ccache', 'clang++', '--sysroot=$(realpath ~/sysroot)', '--target=${{ matrix.cpu }}-linux-gnu${{ case(matrix.cpu-family == 'arm', 'eabihf', '') }}'${{ case(matrix.cpu-family == 'ppc' || matrix.cpu-family == 'ppc64', ', ''-mabi=ibmlongdouble''', '') }}]
             cpp_ld = 'lld'
             ar = 'llvm-ar'
-            ranlib = 'llvm-ranlib'
             strip = 'llvm-strip'
             cmake = 'cmake'
             [host_machine]
@@ -836,7 +835,6 @@ jobs:
             cpp = ['ccache', 'clang++', '--sysroot=$(realpath ~/sysroot)', '--target=$target']
             cpp_ld = 'lld'
             ar = 'llvm-ar'
-            ranlib = 'llvm-ranlib'
             strip = 'llvm-strip'
             cmake = 'cmake'
             [host_machine]
