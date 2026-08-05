@@ -43,7 +43,8 @@ common = subproject('common', default_options: {'c_std': c_std, 'cpp_std': cpp_s
 cmake = import('cmake')
 python = common.get_variable('python')
 embedtool = common.get_variable('embedtool')
-quotetool = common.get_variable('quotetool')
+quotetool_args = common.get_variable('quotetool_args')
+quotetool_command = common.get_variable('quotetool_command')
 sonametool = common.get_variable('sonametool')
 
 sizeof = {'void*': compilers['cpp'].sizeof('void*'),
