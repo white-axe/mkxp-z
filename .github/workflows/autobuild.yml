@@ -258,17 +258,26 @@ jobs:
           path: build/artifact
 
   build-linux-gnu:
-    name: ${{ case(matrix.suite == 'sid', 'Debian', 'Ubuntu') }} ${{ matrix.suite }} ${{ matrix.arch_mkxpz }}
+    name: ${{ matrix.distro }} ${{ matrix.suite }} ${{ matrix.arch_mkxpz }}
     runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
         include:
+          - arch_mkxpz: armv6
+            arch_debian: armhf
+            cpu-family: arm
+            cpu: armv6zk
+            endian: little
+            distro: raspbian
+            suite: bullseye
+            cache: false
           - arch_mkxpz: armv7
             arch_debian: armhf
             cpu-family: arm
             cpu: armv7
             endian: little
+            distro: ubuntu
             suite: xenial
             cache: false
           - arch_mkxpz: armv7-neon
@@ -276,6 +285,7 @@ jobs:
             cpu-family: arm
             cpu: armv7
             endian: little
+            distro: ubuntu
             suite: xenial
             cache: false
           - arch_mkxpz: arm64
@@ -283,6 +293,7 @@ jobs:
             cpu-family: aarch64
             cpu: aarch64
             endian: little
+            distro: ubuntu
             suite: xenial
             cache: true
           - arch_mkxpz: i386
@@ -290,6 +301,7 @@ jobs:
             cpu-family: x86
             cpu: i386
             endian: little
+            distro: ubuntu
             suite: xenial
             cache: false
           - arch_mkxpz: powerpc
@@ -297,6 +309,7 @@ jobs:
             cpu-family: ppc
             cpu: powerpc
             endian: big
+            distro: debian
             suite: sid
             cache: false
           - arch_mkxpz: power8le
@@ -304,6 +317,7 @@ jobs:
             cpu-family: ppc64
             cpu: powerpc64le
             endian: little
+            distro: ubuntu
             suite: xenial
             cache: false
           - arch_mkxpz: riscv64
@@ -311,6 +325,7 @@ jobs:
             cpu-family: riscv64
             cpu: riscv64
             endian: little
+            distro: ubuntu
             suite: jammy
             cache: false
           - arch_mkxpz: s390x
@@ -318,6 +333,7 @@ jobs:
             cpu-family: s390x
             cpu: s390x
             endian: big
+            distro: ubuntu
             suite: xenial
             cache: false
           - arch_mkxpz: x86_64
@@ -325,6 +341,7 @@ jobs:
             cpu-family: x86_64
             cpu: x86_64
             endian: little
+            distro: ubuntu
             suite: xenial
             cache: true
     steps:
@@ -340,11 +357,22 @@ jobs:
           sudo apt install -y clang lld llvm
 
           sudo apt install -y qemu-user-binfmt
-          if [ ${{ matrix.suite }} = sid ]
+          if [ ${{ matrix.distro }} = debian ]
           then
             sudo apt install -y debootstrap gpg
             gpg --no-default-keyring --keyring ./debian-ports.kbx --keyserver keyserver.ubuntu.com --recv-keys 0x66571731b5a71f91c501f3fdda1b2cea81dcbc61
             sudo debootstrap --arch=${{ matrix.arch_debian }} --variant=minbase --keyring=./debian-ports.kbx --force-check-sig ${{ matrix.suite }} ~/sysroot http://snapshot.debian.org/archive/debian-ports/20190901T052020Z
+          elif [ ${{ matrix.distro }} = raspbian ]
+          then
+            sudo apt install -y debootstrap gpg
+            gpg --no-default-keyring --keyring ./raspbian.kbx --keyserver keyserver.ubuntu.com --recv-keys 0xa0da38d0d76e8b5d638872819165938d90fddd2e
+            if curl --retry 5 -fIL http://raspbian.raspberrypi.org/raspbian/dists/${{ matrix.suite }}/Release
+            then
+              repo=http://raspbian.raspberrypi.org/raspbian
+            else
+              repo=http://legacy.raspbian.org/raspbian
+            fi
+            sudo debootstrap --arch=${{ matrix.arch_debian }} --variant=minbase --keyring=./raspbian.kbx --force-check-sig ${{ matrix.suite }} ~/sysroot $repo
           else
             sudo apt install -y curl gpg tar xz-utils
             curl --retry 5 -Lo SHA256SUMS https://cloud-images.ubuntu.com/${{ matrix.suite }}/current/SHA256SUMS
@@ -392,8 +420,8 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ccache
-          key: ${{ case(matrix.suite == 'sid', 'debian', 'ubuntu') }}-${{ matrix.suite }}-${{ matrix.arch_mkxpz }}-
-          restore-keys: ${{ case(matrix.suite == 'sid', 'debian', 'ubuntu') }}-${{ matrix.suite }}-${{ matrix.arch_mkxpz }}-
+          key: ${{ matrix.distro }}-${{ matrix.suite }}-${{ matrix.arch_mkxpz }}-
+          restore-keys: ${{ matrix.distro }}-${{ matrix.suite }}-${{ matrix.arch_mkxpz }}-
 
       - name: Set up ccache
         run: |
@@ -404,11 +432,13 @@ jobs:
 
       - name: Configure
         run: |
+          target=${{ matrix.cpu }}-linux-gnu${{ case(matrix.cpu-family == 'arm', 'eabihf', '') }}
+          abi_flag=${{ case(matrix.cpu-family == 'ppc' || matrix.cpu-family == 'ppc64', '-mabi=ibmlongdouble', '') }}
           sed 's/^  //' << EOF | tee -a ~/cross.toml
             [binaries]
-            c = ['ccache', 'clang', '--sysroot=$(realpath ~/sysroot)', '--target=${{ matrix.cpu }}-linux-gnu${{ case(matrix.cpu-family == 'arm', 'eabihf', '') }}'${{ case(matrix.cpu-family == 'ppc' || matrix.cpu-family == 'ppc64', ', ''-mabi=ibmlongdouble''', '') }}]
+            c = ['ccache', 'clang', '--sysroot=$(realpath ~/sysroot)', '--target=$target', '$abi_flag']
             c_ld = 'lld'
-            cpp = ['ccache', 'clang++', '--sysroot=$(realpath ~/sysroot)', '--target=${{ matrix.cpu }}-linux-gnu${{ case(matrix.cpu-family == 'arm', 'eabihf', '') }}'${{ case(matrix.cpu-family == 'ppc' || matrix.cpu-family == 'ppc64', ', ''-mabi=ibmlongdouble''', '') }}]
+            cpp = ['ccache', 'clang++', '--sysroot=$(realpath ~/sysroot)', '--target=$target', '$abi_flag']
             cpp_ld = 'lld'
             ar = 'llvm-ar'
             strip = 'llvm-strip'
@@ -441,7 +471,7 @@ jobs:
         uses: actions/cache/save@v5
         with:
           path: ccache
-          key: ${{ case(matrix.suite == 'sid', 'debian', 'ubuntu') }}-${{ matrix.suite }}-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
+          key: ${{ matrix.distro }}-${{ matrix.suite }}-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
 
       - name: Show ccache statistics
         run: |
@@ -458,7 +488,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mkxp-z.linux.${{ case(matrix.suite == 'sid', 'debian', 'ubuntu') }}.${{ matrix.suite }}.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          name: mkxp-z.linux.${{ matrix.distro }}.${{ matrix.suite }}.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/artifact
 
   build-linux-native-container:
