@@ -433,7 +433,14 @@ jobs:
       - name: Configure
         run: |
           target=${{ matrix.cpu }}-linux-gnu${{ case(matrix.cpu-family == 'arm', 'eabihf', '') }}
-          abi_flag='${{ case(matrix.cpu-family == 'ppc' || matrix.cpu-family == 'ppc64', '-mabi=ibmlongdouble', '') }}'
+          abi_flag=
+          if [ '${{ matrix.cpu-family }}' == 'ppc' ] || [ '${{ matrix.cpu-family }}' == 'ppc64' ]
+          then
+            # Ubuntu's version of Clang uses `-mabi=ieeelongdouble` by default,
+            # which causes linker errors with Ubuntu Xenial since the glibc in the sysroot is so old that it only supports `-mabi=ibmlongdouble`.
+            # Newer glibc versions support both `-mabi=ieeelongdouble` and `-mabi=ibmlongdouble`, so this won't cause issues with newer glibc.
+            abi_flag='-mabi=ibmlongdouble'
+          fi
           if [ -n "$abi_flag" ]
           then
             abi_flag=", '$abi_flag'"
