@@ -25,6 +25,7 @@ diff_files =
     ruby-3.1-rbinstall.patch,
     ruby-3.1-reconfig.patch,
     ruby-3.1-round.patch,
+    ruby-3.1-try-link.patch,
     ruby-3.1-windows-arm64.patch,
     ruby-3.1-mkxp-z-patches.patch,
     ruby-3.1-clock-gettime.patch,
