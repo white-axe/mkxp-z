@@ -433,12 +433,16 @@ jobs:
       - name: Configure
         run: |
           target=${{ matrix.cpu }}-linux-gnu${{ case(matrix.cpu-family == 'arm', 'eabihf', '') }}
-          abi_flag=${{ case(matrix.cpu-family == 'ppc' || matrix.cpu-family == 'ppc64', '-mabi=ibmlongdouble', '') }}
+          abi_flag='${{ case(matrix.cpu-family == 'ppc' || matrix.cpu-family == 'ppc64', '-mabi=ibmlongdouble', '') }}'
+          if [ -n "$abi_flag" ]
+          then
+            abi_flag=", '$abi_flag'"
+          fi
           sed 's/^  //' << EOF | tee -a ~/cross.toml
             [binaries]
-            c = ['ccache', 'clang', '--sysroot=$(realpath ~/sysroot)', '--target=$target', '$abi_flag']
+            c = ['ccache', 'clang', '--sysroot=$(realpath ~/sysroot)', '--target=$target'$abi_flag]
             c_ld = 'lld'
-            cpp = ['ccache', 'clang++', '--sysroot=$(realpath ~/sysroot)', '--target=$target', '$abi_flag']
+            cpp = ['ccache', 'clang++', '--sysroot=$(realpath ~/sysroot)', '--target=$target'$abi_flag]
             cpp_ld = 'lld'
             ar = 'llvm-ar'
             strip = 'llvm-strip'
