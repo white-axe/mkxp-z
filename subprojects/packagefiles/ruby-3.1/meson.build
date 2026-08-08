@@ -99,6 +99,7 @@ ruby = declare_dependency(
                 'rb_cv_broken_crypt': 'no',
                 'rb_cv_gcc_atomic_builtins': 'yes',
                 'rb_cv_gcc_sync_builtins': 'no',
+                'rb_cv_symbol_prefix': meson.get_compiler('c').symbols_have_underscore_prefix() ? '_' : 'NONE',
             },
             depends: [
                 # Force Meson to fully build all of our vendored dependencies that are required by Ruby before building Ruby itself
