@@ -389,7 +389,7 @@ jobs:
               gpg --no-default-keyring --keyring ./ubuntu-toolchain-r.kbx --export --output ~/sysroot/ubuntu-toolchain-r.gpg
             fi
           fi
-          fs_spec=$(od -N 32 -x /dev/urandom | cut -b 9- | tr -d ' \n') # 256 random lowercase hexadecimal digits
+          fs_spec=$(od -N 32 -x /dev/urandom | cut -b 9- | tr -d ' \n') # 64 random lowercase hexadecimal digits
           sudo mount -t devtmpfs $fs_spec ~/sysroot/dev
           sudo mount -t devpts $fs_spec ~/sysroot/dev/pts
           sudo mount -t tmpfs $fs_spec ~/sysroot/dev/shm
