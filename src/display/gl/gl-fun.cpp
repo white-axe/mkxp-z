@@ -23,6 +23,8 @@
 
 #include "boost-hash.h"
 #include "exception.h"
+#include "graphics.h"
+#include "sharedstate.h"
 
 #include <string>
 #include <utility>
@@ -94,6 +96,9 @@ template <typename Command> struct CommandResult<Command, decltype(std::declval<
 #define EXECUTE_COMMAND(name, ...) do { \
     if (!gl.multithreaded && SDL_GL_GetCurrentContext() == nullptr) { \
         throw Exception(Exception::MKXPError, "Cannot call this function from outside of the graphics thread when Graphics.thread_safe == false"); \
+    } \
+    if (shState != nullptr && !shState->graphics().isLocked()) { \
+        throw Exception(Exception::MKXPError, "Attempted to call gl" #name " without locking the graphics state"); \
     } \
     if (gl.context_release_behavior_none || !gl.multithreaded) { \
         return gl._impl_##name(__VA_ARGS__); \

@@ -455,8 +455,10 @@ struct PingPong {
     }
     
     ~PingPong() {
+        GFX_LOCK;
         for (int i = 0; i < 2; ++i)
             TEXFBO::fini(rt[i]);
+        GFX_UNLOCK;
     }
     
     TEXFBO &backBuffer() { return rt[srcInd]; }
@@ -776,6 +778,18 @@ private:
 };
 
 struct GraphicsPrivate {
+    /* Having this field at the beginning ensures the locks are destroyed after all of the other fields of GraphicsPrivate are destroyed */
+    struct GraphicsPrivateLocks {
+        SDL_mutex *avgFPSLock;
+        SDL_mutex *glResourceLock;
+        uint64_t glResourceLockLevel;
+        GraphicsPrivateLocks() : avgFPSLock(SDL_CreateMutex()), glResourceLock(SDL_CreateMutex()), glResourceLockLevel(0) {}
+        ~GraphicsPrivateLocks() {
+            SDL_DestroyMutex(glResourceLock);
+            SDL_DestroyMutex(avgFPSLock);
+        }
+    } locks;
+
     /* Screen resolution, ie. the resolution at which
      * RGSS renders at (settable with Graphics.resize_screen).
      * Can only be changed from within RGSS */
@@ -827,10 +841,6 @@ struct GraphicsPrivate {
     
     std::vector<double> avgFPSData;
     double last_avg_update;
-    SDL_mutex *avgFPSLock;
-    
-    SDL_mutex *glResourceLock;
-    uint64_t glResourceLockLevel;
     
     /* Global list of all live Disposables
      * (disposed on reset) */
@@ -850,9 +860,6 @@ struct GraphicsPrivate {
     integerScaleActive(rtData->config.integerScaling.active),
     integerLastMileScaling(rtData->config.integerScaling.lastMileScaling) {
         avgFPSData = std::vector<double>();
-        avgFPSLock = SDL_CreateMutex();
-        glResourceLock = SDL_CreateMutex();
-        glResourceLockLevel = 0;
         
         if (integerScaleActive) {
             integerScaleFactor = Vec2i(0, 0);
@@ -873,10 +880,11 @@ struct GraphicsPrivate {
     }
     
     ~GraphicsPrivate() {
+        GFX_LOCK;
+        dispList.clear();
         TEXFBO::fini(frozenScene);
         TEXFBO::fini(integerScaleBuffer);
-        SDL_DestroyMutex(avgFPSLock);
-        SDL_DestroyMutex(glResourceLock);
+        GFX_UNLOCK;
     }
     
     void updateScreenResoRatio(RGSSThreadData *rtData) {
@@ -1125,39 +1133,39 @@ struct GraphicsPrivate {
     
     double averageFPS() {
         double ret = 0;
-        SDL_LockMutex(avgFPSLock);
+        SDL_LockMutex(locks.avgFPSLock);
         for (double times : avgFPSData)
             ret += times;
         
         ret = 1 / (ret / avgFPSData.size());
-        SDL_UnlockMutex(avgFPSLock);
+        SDL_UnlockMutex(locks.avgFPSLock);
         return ret;
     }
     
     void setLock() {
-        SDL_LockMutex(glResourceLock);
-        if (glResourceLockLevel++ == 0 && gl.context_release_behavior_none && gl.multithreaded) {
+        SDL_LockMutex(locks.glResourceLock);
+        if (locks.glResourceLockLevel++ == 0 && gl.context_release_behavior_none && gl.multithreaded) {
             SDL_GL_MakeCurrent(threadData->window, threadData->glContext);
         }
     }
     
     void releaseLock() {
-        assert(glResourceLockLevel > 0);
-        if (--glResourceLockLevel == 0 && gl.context_release_behavior_none && gl.multithreaded) {
+        assert(locks.glResourceLockLevel > 0);
+        if (--locks.glResourceLockLevel == 0 && gl.context_release_behavior_none && gl.multithreaded) {
             SDL_GL_MakeCurrent(threadData->window, nullptr);
         }
-        SDL_UnlockMutex(glResourceLock);
+        SDL_UnlockMutex(locks.glResourceLock);
     }
 
     void updateAvgFPS() {
-        SDL_LockMutex(avgFPSLock);
+        SDL_LockMutex(locks.avgFPSLock);
         if (avgFPSData.size() > 40)
             avgFPSData.erase(avgFPSData.begin());
         
         double time = shState->runTime();
         avgFPSData.push_back(time - last_avg_update);
         last_avg_update = time;
-        SDL_UnlockMutex(avgFPSLock);
+        SDL_UnlockMutex(locks.avgFPSLock);
     }
 };
 
@@ -1777,6 +1785,15 @@ void Graphics::lock() {
 
 void Graphics::unlock() {
     p->releaseLock();
+}
+
+bool Graphics::isLocked() noexcept {
+    if (SDL_TryLockMutex(p->locks.glResourceLock) == SDL_MUTEX_TIMEDOUT) {
+        return false;
+    }
+    bool locked = p->locks.glResourceLockLevel != 0;
+    SDL_UnlockMutex(p->locks.glResourceLock);
+    return locked;
 }
 
 void Graphics::addDisposable(Disposable *d) { p->dispList.append(d->link); }

@@ -97,6 +97,7 @@ public:
     
     void lock();
     void unlock();
+    bool isLocked() noexcept;
 
 private:
 	Graphics(RGSSThreadData *data);
