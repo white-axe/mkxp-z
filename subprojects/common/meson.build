@@ -9,12 +9,12 @@ ranlib = ar + 's'
 if host_machine.system() in ['windows', 'cygwin']
     windres = meson.version().version_compare('>=1.10.0') ? find_program('windres').cmd_array() : [find_program('windres')]
 else
-    windres = []
+    windres = [python, files('windres-dummy.py')[0]]
 endif
 if build_machine.system() in ['windows', 'cygwin']
     cygpath = meson.version().version_compare('>=1.10.0') ? find_program('cygpath').cmd_array() : [find_program('cygpath')]
 else
-    cygpath = []
+    cygpath = [python, files('cygpath-dummy.py')[0]]
 endif
 
 # embedtool SOURCE_FILE DESTINATION_FILE NAME
