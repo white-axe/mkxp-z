@@ -122,7 +122,6 @@ struct SharedStatePrivate
         
         startupTime = std::chrono::steady_clock::now();
         
-
 		/* Shaders have been compiled in ShaderSet's constructor */
 		if (gl.ReleaseShaderCompiler)
 		{
