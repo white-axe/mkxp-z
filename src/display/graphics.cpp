@@ -1051,7 +1051,7 @@ struct GraphicsPrivate {
                               !forceNearestNeighbor && GLMeta::smoothScalingMethod(scaleIsSpecial) == Bilinear);
     }
     
-    void redrawScreen() {
+    void redrawScreen(bool incrementFrameCount = true) {
         screen.composite();
         
         // maybe unspaghetti this later
@@ -1066,8 +1066,15 @@ struct GraphicsPrivate {
             metaBlitBufferFlippedScaled(scRes, scaleIsSpecial, true);
             GLMeta::blitEnd();
             
-            swapGLBuffer();
-            updateAvgFPS();
+            if (incrementFrameCount)
+            {
+                swapGLBuffer();
+                updateAvgFPS();
+            }
+            else
+            {
+                gl.SwapWindow(threadData->window);
+            }
             return;
         }
         
@@ -1117,9 +1124,15 @@ struct GraphicsPrivate {
         
         GLMeta::blitEnd();
         
-        swapGLBuffer();
-        
-        updateAvgFPS();
+        if (incrementFrameCount)
+        {
+            swapGLBuffer();
+            updateAvgFPS();
+        }
+        else
+        {
+            gl.SwapWindow(threadData->window);
+        }
     }
     
     void checkSyncLock() {
@@ -1546,7 +1559,7 @@ void Graphics::onSizeChanged() {
     // We need to repaint the screen after resizing when using ANGLE's Direct3D 11 backend.
     GFX_LOCK;
     p->checkResize();
-    p->redrawScreen();
+    p->redrawScreen(false);
     GFX_UNLOCK;
 }
 
