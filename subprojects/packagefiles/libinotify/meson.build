@@ -47,6 +47,7 @@ libinotify = declare_dependency(
             ],
             env: {
                 'CONFIG_SITE': ' ',
+                'lt_cv_prog_gnu_ld': subproject('common').get_variable('c_linker_is_gnu') ? 'yes' : 'no',
             },
             verbose: true,
         ).dependency('inotify').partial_dependency(

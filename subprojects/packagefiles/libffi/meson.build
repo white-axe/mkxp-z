@@ -70,6 +70,7 @@ libffi = declare_dependency(
             env: {
                 'CONFIG_SITE': ' ',
                 'MKXP_CC_BASENAME': cc_basename,
+                'lt_cv_prog_gnu_ld': subproject('common').get_variable('c_linker_is_gnu') ? 'yes' : 'no',
             },
             verbose: true,
         ).dependency('ffi').partial_dependency(

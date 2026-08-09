@@ -98,6 +98,7 @@ ruby = declare_dependency(
                 'ac_cv_header_crypt_h': 'no',
                 'ac_cv_lib_crypt_crypt': 'no',
                 'ac_cv_lib_z_uncompress': 'yes',
+                'lt_cv_prog_gnu_ld': subproject('common').get_variable('c_linker_is_gnu') ? 'yes' : 'no',
                 'rb_cv_broken_crypt': 'no',
                 'rb_cv_gcc_atomic_builtins': 'yes',
                 'rb_cv_gcc_sync_builtins': 'no',

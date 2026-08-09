@@ -57,6 +57,16 @@ if c_linker_flag != ''
     base_ldflags += c_linker_flag
 endif
 
+c_linker_is_gnu = meson.get_compiler('c').get_linker_id() in [
+    'ld.bfd',
+    'ld.eld',
+    'ld.gold',
+    'ld.lld',
+    'ld.mold',
+    'ld.wasm',
+    'ld.zigcc',
+]
+
 # ld64 (the linker used on Apple platforms) emits linker warnings that cause Ruby to fail to configure, let's turn them off
 if meson.get_compiler('c').get_linker_id().split('.')[0] == 'ld64'
     base_ldflags += '-Wl,-w'
