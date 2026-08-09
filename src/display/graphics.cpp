@@ -1542,6 +1542,14 @@ void Graphics::resizeWindow(int width, int height, bool center) {
         this->center();
 }
 
+void Graphics::onSizeChanged() {
+    // We need to repaint the screen after resizing when using ANGLE's Direct3D 11 backend.
+    GFX_LOCK;
+    p->checkResize();
+    p->redrawScreen();
+    GFX_UNLOCK;
+}
+
 bool Graphics::updateMovieInput(Movie *movie) {
     return  p->threadData->rqTerm || p->threadData->rqReset;
 }
