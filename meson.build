@@ -122,17 +122,6 @@ global_include_dirs += include_directories('src', 'binding')
 
 rpath = meson.get_compiler('cpp').get_linker_id().split('.')[0] == 'ld64' ? '@loader_path' : '$ORIGIN'
 
-if ruby.type_name() == 'internal'
-    # If the executable format is ELF, we need this linker flag to export Ruby's symbols from our executable so that gems can find them.
-    # Otherwise, any Ruby gems that have extensions will fail to load with undefined symbol errors.
-    # For non-ELF executable formats (e.g. Mach-O or PE), this behavior is already the default so no linker flag is needed for non-ELF formats.
-    if meson.get_compiler('cpp').has_link_argument('-rdynamic')
-        global_link_args += '-rdynamic'
-    elif meson.get_compiler('cpp').has_link_argument('-Wl,-export-dynamic')
-        global_link_args += '-Wl,-export-dynamic'
-    endif
-endif
-
 if host_system in ['windows', 'cygwin']
     windows_resource_directory = '../' + get_option('windows_resource_directory')
     subdir('windows')
