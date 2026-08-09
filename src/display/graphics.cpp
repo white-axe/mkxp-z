@@ -1556,9 +1556,10 @@ void Graphics::resizeWindow(int width, int height, bool center) {
 }
 
 void Graphics::onSizeChanged() {
-    // We need to repaint the screen after resizing when using ANGLE's Direct3D 11 backend.
+    // We need to repaint the screen after resizing when using ANGLE's Direct3D 11 backend, twice (probably because of double buffering).
     GFX_LOCK;
     p->checkResize();
+    p->redrawScreen(false);
     p->redrawScreen(false);
     GFX_UNLOCK;
 }
