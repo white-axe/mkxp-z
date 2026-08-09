@@ -8,7 +8,7 @@ global_dependencies += declare_dependency(sources: [
                 'settingsmenu.nib',
                 output: 'settingsmenu.nib',
                 command: [
-                    find_program('ibtool'),
+                    (meson.version().version_compare('>=1.10.0') ? find_program('ibtool').cmd_array() : find_program('ibtool')),
                     '--compile', '@OUTPUT@',
                     '--minimum-deployment-target', '11.0',
                     files('settingsmenu.xib'),
