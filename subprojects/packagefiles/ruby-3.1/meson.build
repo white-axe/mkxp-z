@@ -71,6 +71,7 @@ ruby = declare_dependency(
                 'AR=' + run_command(subproject('common').get_variable('quotetool_command'), subproject('common').get_variable('ar'), check: true).stdout().strip(),
                 'RANLIB=' + run_command(subproject('common').get_variable('quotetool_command'), subproject('common').get_variable('ranlib'), check: true).stdout().strip(),
                 'AS=false',
+                'LD=false',
                 'NM=false',
                 'OBJCOPY=false',
                 'OBJDUMP=false',
