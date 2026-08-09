@@ -90,6 +90,7 @@ ruby = declare_dependency(
                 # Disable LTO while running link tests for Ruby extensions if the linker is LLD (LLVM linker) and we are building for 32-bit ARM.
                 # Otherwise, the link tests may fail due to https://github.com/llvm/llvm-project/issues/108262.
                 'MKXP_DISABLE_LTO_FOR_LINK_TESTS': (meson.get_compiler('c').get_linker_id().split('.')[-1] == 'lld' or meson.get_compiler('c').get_linker_id() == 'lld-link') and host_machine.cpu_family() == 'arm' ? 'yes' : 'no',
+                'DLLWRAP': 'false',
                 'WINDRES': run_command(subproject('common').get_variable('quotetool_command'), subproject('common').get_variable('windres'), check: true).stdout().strip(),
                 'YACC': run_command(subproject('common').get_variable('quotetool_command'), (meson.version().version_compare('>=1.10.0') ? find_program('bison').cmd_array() : find_program('bison')), check: true).stdout().strip(),
                 'ac_cv_func_crypt': 'no',
