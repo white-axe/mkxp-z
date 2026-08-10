@@ -10,6 +10,7 @@ source_fallback_url = https://github.com/mesonbuild/wrapdb/releases/download/ope
 wrapdb_version = 3.0.8-3
 diff_files =
     openssl-atomic.patch,
+    openssl-linux-ppc64.patch,
     openssl-unsupported-platform.patch,
     end-of-diff-files.patch
 
