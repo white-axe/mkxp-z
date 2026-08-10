@@ -881,6 +881,9 @@ struct GraphicsPrivate {
     
     ~GraphicsPrivate() {
         GFX_LOCK;
+        for (IntruListLink<Disposable> *iter = dispList.begin(); iter != dispList.end(); iter = iter->next) {
+            iter->data->dispose();
+        }
         dispList.clear();
         TEXFBO::fini(frozenScene);
         TEXFBO::fini(integerScaleBuffer);
