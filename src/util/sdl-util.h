@@ -16,14 +16,14 @@ struct AtomicFlag
 		clear();
 	}
 
-	void set()
+	int set()
 	{
-		SDL_AtomicSet(&atom, 1);
+		return SDL_AtomicSet(&atom, 1);
 	}
 
-	void clear()
+	int clear()
 	{
-		SDL_AtomicSet(&atom, 0);
+		return SDL_AtomicSet(&atom, 0);
 	}
     
     void wait()

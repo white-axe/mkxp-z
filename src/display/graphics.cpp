@@ -822,6 +822,7 @@ struct GraphicsPrivate {
     
     double last_update;
     
+    AtomicFlag sizeChanged;
     
     FPSLimiter fpsLimiter;
     
@@ -1013,13 +1014,43 @@ struct GraphicsPrivate {
         scriptBinding->terminate();
     }
     
-    void swapGLBuffer() {
+private:
+    template <typename... Args> void swapGLBufferImpl(const Vec2i &screenSize, TEXFBO &source, int scaleIsSpecial, Args... args) {
         fpsLimiter.delay();
-        gl.SwapWindow(threadData->window);
-        
+
+        GLMeta::blitBeginScreen(screenSize, scaleIsSpecial);
+        GLMeta::blitSource(source, scaleIsSpecial);
+
+        // We need to repaint the screen twice after the game window's size changes if we're using ANGLE's Direct3D 11 backend (probably because of double buffering).
+        // For other ANGLE backends, or (usually) when not using ANGLE, this is not required, but it causes no harm if we do it anyways.
+        for (size_t repaintCount = sizeChanged.clear() ? 2 : 1; repaintCount > 0;) {
+            FBO::clear();
+            metaBlitBufferFlippedScaled(args...);
+            gl.SwapWindow(threadData->window);
+            if (sizeChanged.clear()) {
+                repaintCount = 2;
+            } else {
+                --repaintCount;
+            }
+        }
+
+        GLMeta::blitEnd();
+
         ++frameCount;
-        
         threadData->ethread->notifyFrame();
+    }
+
+public:
+    void swapGLBuffer(const Vec2i &screenSize, TEXFBO &source, int scaleIsSpecial) {
+        swapGLBufferImpl(screenSize, source, scaleIsSpecial, scaleIsSpecial);
+    }
+
+    void swapGLBuffer(const Vec2i &screenSize, TEXFBO &source, const Vec2i &sourceSize, int scaleIsSpecial) {
+        swapGLBufferImpl(screenSize, source, scaleIsSpecial, sourceSize, scaleIsSpecial);
+    }
+
+    void swapGLBuffer(const Vec2i &screenSize, TEXFBO &source, const Vec2i &sourceSize, int scaleIsSpecial, bool forceNearestNeighbor) {
+        swapGLBufferImpl(screenSize, source, scaleIsSpecial, sourceSize, scaleIsSpecial, forceNearestNeighbor);
     }
     
     void compositeToBuffer(TEXFBO &buffer) {
@@ -1062,14 +1093,7 @@ struct GraphicsPrivate {
         {
             int scaleIsSpecial = GLMeta::blitScaleIsSpecial(integerScaleBuffer, false, IntRect(0, 0, scSize.x, scSize.y), screen.getPP().frontBuffer(), IntRect(0, 0, scRes.x, scRes.y));
 
-            GLMeta::blitBeginScreen(winSize, scaleIsSpecial);
-            GLMeta::blitSource(screen.getPP().frontBuffer(), scaleIsSpecial);
-            
-            FBO::clear();
-            metaBlitBufferFlippedScaled(scRes, scaleIsSpecial, true);
-            GLMeta::blitEnd();
-            
-            swapGLBuffer();
+            swapGLBuffer(winSize, screen.getPP().frontBuffer(), scRes, scaleIsSpecial, true);
             updateAvgFPS();
             return;
         }
@@ -1103,24 +1127,7 @@ struct GraphicsPrivate {
 
         int scaleIsSpecial = GLMeta::blitScaleIsSpecial(integerScaleBuffer, false, IntRect(0, 0, scSize.x, scSize.y), integerScaleActive ? integerScaleBuffer : screen.getPP().frontBuffer(), IntRect(0, 0, sourceSize.x, sourceSize.y));
 
-        GLMeta::blitBeginScreen(winSize, scaleIsSpecial);
-        //GLMeta::blitSource(screen.getPP().frontBuffer(), scaleIsSpecial);
-
-        if (integerScaleActive)
-        {
-            GLMeta::blitSource(integerScaleBuffer, scaleIsSpecial);
-        }
-        else
-        {
-            GLMeta::blitSource(screen.getPP().frontBuffer(), scaleIsSpecial);
-        }
-        
-        FBO::clear();
-        metaBlitBufferFlippedScaled(sourceSize, scaleIsSpecial);
-        
-        GLMeta::blitEnd();
-        
-        swapGLBuffer();
+        swapGLBuffer(winSize, integerScaleActive ? integerScaleBuffer : screen.getPP().frontBuffer(), sourceSize, scaleIsSpecial);
         
         updateAvgFPS();
     }
@@ -1345,12 +1352,7 @@ void Graphics::transition(int duration, const char *filename, int vague) {
         
         int scaleIsSpecial = GLMeta::blitScaleIsSpecial(p->integerScaleBuffer, false, IntRect(0, 0, p->scSize.x, p->scSize.y), transBuffer, IntRect(0, 0, p->scRes.x, p->scRes.y));
 
-        GLMeta::blitBeginScreen(Vec2i(p->winSize), scaleIsSpecial);
-        GLMeta::blitSource(transBuffer, scaleIsSpecial);
-        p->metaBlitBufferFlippedScaled(scaleIsSpecial);
-        GLMeta::blitEnd();
-        
-        p->swapGLBuffer();
+        p->swapGLBuffer(p->winSize, transBuffer, scaleIsSpecial);
         /* Call this manually, as redrawScreen() is not called during this loop. */
         p->updateAvgFPS();
     }
@@ -1406,15 +1408,7 @@ void Graphics::fadeout(int duration) {
         if (p->frozen) {
             int scaleIsSpecial = GLMeta::blitScaleIsSpecial(p->integerScaleBuffer, false, IntRect(0, 0, p->scSize.x, p->scSize.y), p->frozenScene, IntRect(0, 0, p->scRes.x, p->scRes.y));
 
-            GLMeta::blitBeginScreen(p->scSize, scaleIsSpecial);
-            GLMeta::blitSource(p->frozenScene, scaleIsSpecial);
-            
-            FBO::clear();
-            p->metaBlitBufferFlippedScaled(scaleIsSpecial);
-            
-            GLMeta::blitEnd();
-            
-            p->swapGLBuffer();
+            p->swapGLBuffer(p->scSize, p->frozenScene, scaleIsSpecial);
         } else {
             update();
         }
@@ -1433,15 +1427,7 @@ void Graphics::fadein(int duration) {
         if (p->frozen) {
             int scaleIsSpecial = GLMeta::blitScaleIsSpecial(p->integerScaleBuffer, false, IntRect(0, 0, p->scSize.x, p->scSize.y), p->frozenScene, IntRect(0, 0, p->scRes.x, p->scRes.y));
 
-            GLMeta::blitBeginScreen(p->scSize, scaleIsSpecial);
-            GLMeta::blitSource(p->frozenScene, scaleIsSpecial);
-            
-            FBO::clear();
-            p->metaBlitBufferFlippedScaled(scaleIsSpecial);
-            
-            GLMeta::blitEnd();
-            
-            p->swapGLBuffer();
+            p->swapGLBuffer(p->scSize, p->frozenScene, scaleIsSpecial);
         } else {
             update();
         }
@@ -1543,6 +1529,10 @@ void Graphics::resizeWindow(int width, int height, bool center) {
     
     if (center)
         this->center();
+}
+
+void Graphics::onSizeChanged() {
+    p->sizeChanged.set();
 }
 
 bool Graphics::updateMovieInput(Movie *movie) {
