@@ -381,7 +381,7 @@ jobs:
             sudo debootstrap --arch=${{ matrix.arch_debian }} --variant=minbase --keyring=./debian-ports.kbx --force-check-sig ${{ matrix.suite }} ~/sysroot http://snapshot.debian.org/archive/debian-ports/20190901T052020Z
           elif [ ${{ matrix.distro }} = raspbian ]
           then
-            sudo apt install -y debootstrap gpg
+            sudo apt install -y curl debootstrap gpg
             gpg --no-default-keyring --keyring ./raspbian.kbx --keyserver keyserver.ubuntu.com --recv-keys 0xa0da38d0d76e8b5d638872819165938d90fddd2e
             if curl --retry 5 -fIL http://raspbian.raspberrypi.org/raspbian/dists/${{ matrix.suite }}/Release
             then
