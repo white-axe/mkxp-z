@@ -63,7 +63,6 @@ c_linker_is_gnu = meson.get_compiler('c').get_linker_id() in [
     'ld.gold',
     'ld.lld',
     'ld.mold',
-    'ld.wasm',
     'ld.zigcc',
 ]
 
