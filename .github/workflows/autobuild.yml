@@ -402,7 +402,8 @@ jobs:
             then
               sudo debootstrap --arch=${{ matrix.arch_debian }} --variant=minbase --keyring=/usr/share/keyrings/ubuntu-archive-keyring.gpg --force-check-sig ${{ matrix.suite }} ~/sysroot $repo
               gpg --no-default-keyring --keyring ./ubuntu-toolchain-r.kbx --keyserver keyserver.ubuntu.com --recv-keys 0xc8ec952e2a0e1fbdc5090f6a2c277a0a352154e5
-              gpg --no-default-keyring --keyring ./ubuntu-toolchain-r.kbx --export --output ~/sysroot/ubuntu-toolchain-r.gpg
+              gpg --no-default-keyring --keyring ./ubuntu-toolchain-r.kbx --export --output ubuntu-toolchain-r.gpg
+              sudo mv ubuntu-toolchain-r.gpg ~/sysroot/
             else
               sudo debootstrap --arch=${{ matrix.arch_debian }} --include=gcc,g++ --variant=minbase --keyring=/usr/share/keyrings/ubuntu-archive-keyring.gpg --force-check-sig ${{ matrix.suite }} ~/sysroot $repo
             fi
