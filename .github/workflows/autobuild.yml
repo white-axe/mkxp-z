@@ -757,10 +757,11 @@ jobs:
           sudo apt install -y clang lld llvm
 
           sudo apt install -y bind9-dnsutils curl jq openssl tar zstd
+          protocol=http
           host=pkg.freebsd.org
           abi_version=13
           release=release_4
-          sed 's/^  //' << 'EOF' | python - "$host" | while read mirror
+          sed 's/^  //' << 'EOF' | python - "$protocol" "$host" | while read mirror
             import random
             import re
             import subprocess
@@ -795,7 +796,7 @@ jobs:
                 return rank
             pattern = re.compile(r'([0-9]+) ([0-9]+) ([0-9]+) ([^ ]+)\.')
             entries_by_priority = {}
-            for raw_entry in subprocess.run(['dig', '+short', '_http._tcp.' + sys.argv[1], 'SRV'], check=True, stdout=subprocess.PIPE).stdout.decode('UTF-8').splitlines():
+            for raw_entry in subprocess.run(['dig', '+short', '_' + sys.argv[1] + '._tcp.' + sys.argv[2], 'SRV'], check=True, stdout=subprocess.PIPE).stdout.decode('UTF-8').splitlines():
               match = pattern.fullmatch(raw_entry)
               if match is None:
                 continue
@@ -812,15 +813,15 @@ jobs:
               for pivot_index in range(len(entries)): # Perform a weighted shuffle on entries with the same priority (higher weight is more likely to be chosen earlier)
                 weights_total = weights.cumsum(len(entries) - 1)
                 random_index = random.randrange(pivot_index, len(entries)) if weights_total == 0 else weights.cumsum_bisect_right(random.randrange(weights_total))
-                print(entries[random_index]['hostname'] + ':' + str(entries[random_index]['port']))
+                print(sys.argv[1] + '://' + entries[random_index]['hostname'] + ':' + str(entries[random_index]['port']))
                 entries[random_index] = entries[pivot_index]
                 weights.set(random_index, entries[random_index]['weight'])
                 weights.set(pivot_index, 0)
-            print(sys.argv[1])
+            print(sys.argv[1] + '://' + sys.argv[2])
           EOF
           do
             echo "FreeBSD mirror: $mirror"
-            repo="http://${mirror}/FreeBSD:${abi_version}:amd64/${release}"
+            repo="${mirror}/FreeBSD:${abi_version}:amd64/${release}"
             if ! curl --retry 5 -Lo data.pkg "$repo/data.pkg"
             then
               continue
