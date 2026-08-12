@@ -54,14 +54,12 @@ cmake_base_options = {
     'CMAKE_CXX_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
     'CMAKE_OBJC_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
     'CMAKE_OBJCXX_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
-    'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
     'CMAKE_BUILD_TYPE': 'Custom',
     'CMAKE_EXE_LINKER_FLAGS': run_command(quotetool_args, common.get_variable('c_linker_flags'), check: true).stdout().strip(),
 }
 
 meson_base_options = {
     'default_library': 'static',
-    'b_staticpic': use_pic,
     'c_std': c_std,
     'cpp_std': cpp_std,
 }
