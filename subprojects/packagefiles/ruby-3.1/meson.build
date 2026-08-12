@@ -5,10 +5,6 @@ find_program('cmp', required: true)
 cflags = subproject('common').get_variable('base_cflags')
 cppflags = subproject('common').get_variable('base_cppflags')
 
-# -std=gnu99 is needed with GCC 15 and higher (which default to gnu23), for Ruby versions that aren't valid C23.
-# Ruby versions that are valid C23 are 3.2.9+, 3.3.9+, 3.4.5+, and 4.0.0+.
-cflags += '-std=gnu99'
-
 # Ruby versions older than 3.2 don't support address sanitizer
 if meson.get_compiler('c').has_argument('-fno-sanitize=address')
     cflags += '-fno-sanitize=address'
