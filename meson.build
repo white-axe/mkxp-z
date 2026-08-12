@@ -11,8 +11,8 @@ exe_name = meson.project_name() + '.' + host_machine.cpu()
 
 use_pic = true
 
-is_unix = host_system not in ['windows', 'cygwin', 'darwin', 'android']
 is_bsd = host_system in ['dragonfly', 'freebsd', 'netbsd', 'openbsd']
+is_unix = is_bsd or host_system in ['linux']
 
 default_system_disabled = get_option('default_system').disabled()
 default_system_enabled = get_option('default_system').enabled()
