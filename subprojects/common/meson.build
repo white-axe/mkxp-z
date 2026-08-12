@@ -48,14 +48,11 @@ host_triplet = host_triplet_cpu + '-' + host_triplet_vendor + '-' + host_triplet
 base_cflags = []
 base_ldflags = []
 
-c_linker_flag = ''
-c_linker_id = meson.get_compiler('c').get_linker_id().split('.')[-1]
-if meson.get_compiler('c').has_link_argument('-fuse-ld=' + c_linker_id)
-    c_linker_flag = '-fuse-ld=' + c_linker_id
-endif
-if c_linker_flag != ''
-    base_ldflags += c_linker_flag
-endif
+c_linker_flags = meson.get_compiler('c').first_supported_link_argument(
+    '-fuse-ld=' + (meson.get_compiler('c').get_linker_id() == 'ld.wasm' ? 'wasm-ld' : meson.get_compiler('c').get_linker_id().split('.')[-1]),
+    '-fuse-ld=' + meson.get_compiler('c').get_linker_id(),
+)
+base_ldflags += c_linker_flags
 
 c_linker_is_gnu = meson.get_compiler('c').get_linker_id() in [
     'ld.bfd',
