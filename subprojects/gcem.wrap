@@ -1,7 +1,8 @@
 [wrap-file]
-source_url = https://github.com/kthohr/gcem/archive/refs/tags/v1.18.0.tar.gz
+source_url = https://archive.ubuntu.com/ubuntu/pool/universe/g/gcem/gcem_1.18.0.orig.tar.gz
+source_fallback_url = https://mirrors.ocf.berkeley.edu/ubuntu/pool/universe/g/gcem/gcem_1.18.0.orig.tar.gz
 source_filename = gcem-1.18.0.tar.gz
-source_hash = 8e71a9f5b62956da6c409dda44b483f98c4a98ae72184f3aa4659ae5b3462e61
+source_hash = 0ad5125246f5e926749a491886d33662c165d5a7708910f81133c4c2144ee64e
 directory = gcem-1.18.0
 patch_directory = gcem
 diff_files =
