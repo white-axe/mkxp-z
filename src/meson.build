@@ -61,7 +61,6 @@ cmake_base_options = {
     'CMAKE_CXX_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
     'CMAKE_OBJC_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
     'CMAKE_OBJCXX_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
-    'CMAKE_POSITION_INDEPENDENT_CODE': use_pic,
     'CMAKE_BUILD_TYPE': 'Custom',
     'CMAKE_RC_COMPILER': host_system in ['windows', 'cygwin'] ? run_command(quotetool_command, find_program('windres'), check: true).stdout().strip() : '',
     'CMAKE_EXE_LINKER_FLAGS': common.get_variable('c_linker_flag'),
@@ -69,7 +68,6 @@ cmake_base_options = {
 
 meson_base_options = {
     'default_library': 'static',
-    'b_staticpic': use_pic,
     'c_std': c_std,
     'cpp_std': cpp_std,
 }

@@ -15,8 +15,6 @@ gplv3_features = []
 host_system = host_machine.system()
 host_endian = host_machine.endian()
 
-use_pic = true
-
 default_system_disabled = get_option('default_system').disabled()
 default_system_enabled = get_option('default_system').enabled()
 
