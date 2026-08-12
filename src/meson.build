@@ -58,7 +58,11 @@ cmake_base_options = {
     'CMAKE_EXE_LINKER_FLAGS': run_command(quotetool_args, common.get_variable('c_linker_flags'), check: true).stdout().strip(),
 }
 
-meson_base_options = {
+cmake_override_options = {
+    'b_coverage': 'false',
+}
+
+meson_base_options = cmake_override_options + {
     'default_library': 'static',
     'c_std': c_std,
     'cpp_std': cpp_std,
@@ -83,6 +87,9 @@ if not zlib.found()
         'BUILD_SHARED_LIBS': false,
         'ZLIB_BUILD_EXAMPLES': false,
     })
+    foreach opt, val : cmake_override_options
+        zlib_options.set_override_option(opt, val)
+    endforeach
     zlib = cmake.subproject('zlib', options: zlib_options).dependency('z')
     zlib_includes = ['-I' + meson.project_source_root() / 'subprojects' / ('zlib-' + zlib.version()), '-I' + meson.project_build_root() / 'subprojects' / ('zlib-' + zlib.version()) / '__CMake_build']
     zlib_libs = ['-L' + meson.project_build_root() / 'subprojects' / ('zlib-' + zlib.version())]
@@ -130,6 +137,9 @@ if not physfs.found()
         'PHYSFS_BUILD_TEST': false,
         'PHYSFS_BUILD_DOCS': false,
     })
+    foreach opt, val : cmake_override_options
+        physfs_options.set_override_option(opt, val)
+    endforeach
     physfs = declare_dependency(dependencies: [
         cmake.subproject('physfs', options: physfs_options).dependency('physfs-static'),
         host_system == 'darwin'
@@ -313,6 +323,9 @@ if not sdl2.found() or not sdl2main.found()
                     'SKIP_SPIRV_TOOLS_INSTALL': true,
                     'SPIRV-TOOLS_USE_MIMALLOC': false,
                 })
+                foreach opt, val : cmake_override_options
+                    spirv_tools_options.set_override_option(opt, val)
+                endforeach
                 meson.override_dependency('SPIRV-Tools', cmake.subproject('spirv-tools', options: spirv_tools_options).dependency('SPIRV-Tools-static'), static: true)
             else
                 if get_option('angle_vulkan').enabled()
@@ -477,6 +490,9 @@ if not openal.found()
             'FMT_MODULE': false,
             'FMT_WERROR': false,
         })
+        foreach opt, val : cmake_override_options
+            fmt_options.set_override_option(opt, val)
+        endforeach
         fmt = cmake.subproject('fmt', options: fmt_options).dependency('fmt')
         meson.override_dependency('fmt', fmt, static: true)
     endif
@@ -667,6 +683,9 @@ if not ogg.found()
         'BUILD_TESTING': false,
         'BUILD_FRAMEWORK': false,
     })
+    foreach opt, val : cmake_override_options
+        ogg_options.set_override_option(opt, val)
+    endforeach
     ogg = cmake.subproject('ogg', options: ogg_options).dependency('ogg')
     ogg_includes = ['-I' + meson.project_source_root() / 'subprojects' / ('libogg-' + ogg.version()) / 'include', '-I' + meson.project_build_root() / 'subprojects' / ('libogg-' + ogg.version()) / '__CMake_build' / 'include']
     meson.override_dependency('ogg', ogg, static: true)
@@ -692,6 +711,9 @@ if not vorbis.found()
         'BUILD_TESTING': false,
         'BUILD_FRAMEWORK': false,
     })
+    foreach opt, val : cmake_override_options
+        vorbis_options.set_override_option(opt, val)
+    endforeach
     vorbis = declare_dependency(dependencies: [
         ogg,
         cmake.subproject('vorbis', options: vorbis_options).dependency('vorbis'),
@@ -723,6 +745,9 @@ if not sdl2_sound.found()
         'SDLSOUND_BUILD_SHARED': false,
         'SDLSOUND_BUILD_TEST': false,
     })
+    foreach opt, val : cmake_override_options
+        sdl2_sound_options.set_override_option(opt, val)
+    endforeach
     sdl2_sound = declare_dependency(dependencies: [
         sdl2,
         cmake.subproject('sdl2_sound', options: sdl2_sound_options).dependency('SDL2_sound-static'),
@@ -770,6 +795,9 @@ if not sdl2_ttf.found()
         'BUILD_SHARED_LIBS': false,
         'BUILD_TESTING': false,
     })
+    foreach opt, val : cmake_override_options
+        sdl2_ttf_options.set_override_option(opt, val)
+    endforeach
     sdl2_ttf = declare_dependency(dependencies: [
         freetype,
         sdl2,
@@ -957,6 +985,9 @@ if not uchardet.found()
         'BUILD_BINARY': false,
         'BUILD_SHARED_LIBS': false,
     })
+    foreach opt, val : cmake_override_options
+        uchardet_options.set_override_option(opt, val)
+    endforeach
     uchardet = cmake.subproject('uchardet', options: uchardet_options).dependency('libuchardet')
     meson.override_dependency('uchardet', uchardet, static: true)
 endif
@@ -1007,6 +1038,9 @@ if not sdl2_image.found()
         'JPEGXL_ENABLE_TOOLS': false,
         'JPEGXL_STATIC': true,
     })
+    foreach opt, val : cmake_override_options
+        sdl2_image_options.set_override_option(opt, val)
+    endforeach
     sdl2_image = declare_dependency(dependencies: [
         sdl2,
         cmake.subproject('sdl2_image', options: sdl2_image_options).dependency('SDL2_image'),
@@ -1071,6 +1105,9 @@ if not fluidsynth.found()
         'enable-kai': false,
         'osal': 'embedded',
     })
+    foreach opt, val : cmake_override_options
+        fluidsynth_options.set_override_option(opt, val)
+    endforeach
     fluidsynth = cmake.subproject('fluidsynth', options: fluidsynth_options).dependency('libfluidsynth')
     meson.override_dependency('fluidsynth', fluidsynth, static: true)
 endif
@@ -1097,6 +1134,9 @@ if not ruby.found()
         libyaml_options.add_cmake_defines(cmake_base_options + {
             'BUILD_SHARED_LIBS': false,
         })
+        foreach opt, val : cmake_override_options
+            libyaml_options.set_override_option(opt, val)
+        endforeach
         libyaml = cmake.subproject('libyaml', options: libyaml_options).dependency('yaml')
         libyaml_includes = ['-I' + meson.project_source_root() / 'subprojects' / 'libyaml' / 'include', '-I' + meson.project_build_root() / 'subprojects' / 'libyaml' / '__CMake_build' / 'include']
         libyaml_libs = ['-L' + meson.project_build_root() / 'subprojects' / 'libyaml']
