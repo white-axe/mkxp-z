@@ -1,7 +1,16 @@
-# Removes zlib's requirement for windres when building with MinGW.
+# Removes zlib's Windows resources so that no Windows resource compiler is required to build zlib, and no compilation errors occur if the Windows resources are missing from the zlib source code.
 
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
+@@ -122,7 +122,7 @@ set(ZLIB_SRCS
+     zutil.c
+ )
+ 
+-if(NOT MINGW)
++if(FALSE)
+     set(ZLIB_DLL_SRCS
+         win32/zlib1.rc # If present will override custom build rule below.
+     )
 @@ -133,7 +133,7 @@ file(READ ${CMAKE_CURRENT_SOURCE_DIR}/zlib.h _zlib_h_contents)
  string(REGEX REPLACE ".*#define[ \t]+ZLIB_VERSION[ \t]+\"([-0-9A-Za-z.]+)\".*"
      "\\1" ZLIB_FULL_VERSION ${_zlib_h_contents})
