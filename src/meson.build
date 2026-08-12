@@ -66,7 +66,11 @@ cmake_base_options = {
     'CMAKE_EXE_LINKER_FLAGS': common.get_variable('c_linker_flag'),
 }
 
-meson_base_options = {
+cmake_override_options = {
+    'b_coverage': 'false',
+}
+
+meson_base_options = cmake_override_options + {
     'default_library': 'static',
     'c_std': c_std,
     'cpp_std': cpp_std,
@@ -106,6 +110,9 @@ if true
                     'SKIP_SPIRV_TOOLS_INSTALL': true,
                     'SPIRV-TOOLS_USE_MIMALLOC': false,
                 })
+                foreach opt, val : cmake_override_options
+                    spirv_tools_options.set_override_option(opt, val)
+                endforeach
                 meson.override_dependency('SPIRV-Tools', cmake.subproject('spirv-tools', options: spirv_tools_options).dependency('SPIRV-Tools-static'), static: true)
             else
                 if get_option('angle_vulkan').enabled()
