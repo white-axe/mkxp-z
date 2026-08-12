@@ -11,7 +11,7 @@ exe_name = meson.project_name() + '.' + host_machine.cpu()
 
 use_pic = true
 
-is_nix = host_system not in ['windows', 'cygwin', 'darwin', 'android']
+is_unix = host_system not in ['windows', 'cygwin', 'darwin', 'android']
 is_bsd = host_system in ['dragonfly', 'freebsd', 'netbsd', 'openbsd']
 
 default_system_disabled = get_option('default_system').disabled()
@@ -64,7 +64,7 @@ elif host_system == 'android'
 elif host_system == 'darwin'
     # If the host machine is macOS (as opposed to iOS, tvOS, etc.), use OpenGL by default, otherwise use OpenGL ES by default
     use_gles_by_default = meson.get_compiler('cpp').compute_int('!!TARGET_OS_OSX', prefix: '#include <TargetConditionals.h>', low: 0, high: 1) == 0
-elif is_nix
+elif is_unix
     use_gles_by_default = host_machine.cpu_family() in ['arm', 'aarch64']
 else
     use_gles_by_default = false

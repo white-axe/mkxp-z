@@ -9,14 +9,14 @@ foreach dep_name : [
     'gthread-2.0',
     'gtk+-3.0',
     'intl',
-    not is_nix ? 'jack' : '',
+    not is_unix ? 'jack' : '',
     'libapparmor',
     'libasyncns',
     'libcanberra',
     'libcrypt',
     'libffado',
     'libpcre2-8',
-    not is_nix ? 'libpulse' : '',
+    not is_unix ? 'libpulse' : '',
     'libpulse-simple',
     'libselinux',
     'libsystemd',
@@ -27,7 +27,7 @@ foreach dep_name : [
     'oboe',
     host_system != 'android' ? 'opensl' : '',
     'opus',
-    not is_nix ? 'oss' : '',
+    not is_unix ? 'oss' : '',
     'portaudio',
     'roc',
     'sdl3',
@@ -152,7 +152,7 @@ global_dependencies += physfs
 sdl2 = dependency('sdl2', allow_fallback: false, method: 'pkg-config', required: get_option('sdl_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
 sdl2main = sdl2
 
-if is_nix and (not sdl2.found() or not sdl2main.found())
+if is_unix and (not sdl2.found() or not sdl2main.found())
     if is_bsd
         libinotify = dependency('libinotify', allow_fallback: false, required: get_option('libinotify_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
         if not libinotify.found()
@@ -266,7 +266,7 @@ else
     endforeach
 endif
 
-if is_nix
+if is_unix
     global_args += [
         '-DMKXPZ_WAYLAND_CLIENT_SONAME="' + run_command(sonametool, 'wayland-client', check: true).stdout().strip() + '"',
         '-DMKXPZ_WAYLAND_CURSOR_SONAME="' + run_command(sonametool, 'wayland-cursor', check: true).stdout().strip() + '"',
@@ -432,15 +432,15 @@ if not sdl2.found() or not sdl2main.found()
         'use_threads': 'enabled',
         'use_timers': 'enabled',
         'use_video': 'enabled',
-        'use_video_kmsdrm': is_nix ? 'enabled' : 'disabled',
-        'use_video_x11': is_nix ? 'enabled' : 'disabled',
-        'use_video_wayland': is_nix ? 'enabled' : 'disabled',
-        'use_video_wayland_libdecor': is_nix ? 'enabled' : 'disabled',
+        'use_video_kmsdrm': is_unix ? 'enabled' : 'disabled',
+        'use_video_x11': is_unix ? 'enabled' : 'disabled',
+        'use_video_wayland': is_unix ? 'enabled' : 'disabled',
+        'use_video_wayland_libdecor': is_unix ? 'enabled' : 'disabled',
         'use_video_opengl': 'enabled',
         'use_video_openglesv2': 'enabled',
         'use_video_vulkan': 'disabled',
         'use_video_offscreen': 'disabled',
-        'prefer_dlopen': is_nix,
+        'prefer_dlopen': is_unix,
         'system_iconv': 'enabled',
         'angle': have_angle ? 'enabled' : 'disabled',
     }
@@ -483,7 +483,7 @@ if not openal.found()
         meson.override_dependency('fmt', fmt, static: true)
     endif
 
-    if is_nix
+    if is_unix
         have_oss = meson.get_compiler('c').has_header_symbol('sys/soundcard.h', 'SOUND_VERSION', required: get_option('oss'))
         if have_oss
             meson.override_dependency('oss', declare_dependency(version: 'undefined'), static: true)
@@ -508,7 +508,7 @@ if not openal.found()
         endif
     endif
 
-    if is_nix
+    if is_unix
         require_system_jack = get_option('jack_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
         if get_option('jack').disabled() or (get_option('jack').auto() and require_system_jack.enabled())
             require_system_jack = get_option('jack')
