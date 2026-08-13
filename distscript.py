@@ -25,5 +25,7 @@ for filename in os.listdir(os.path.join(os.environ['MESON_SOURCE_ROOT'], 'subpro
     config.read(os.path.join(os.environ['MESON_SOURCE_ROOT'], 'subprojects', filename))
     if 'wrap-file' in config:
         shutil.copy2(os.path.join(os.environ['MESON_SOURCE_ROOT'], 'subprojects', 'packagecache', config['wrap-file']['source_filename']), os.path.join(os.environ['MESON_DIST_ROOT'], 'subprojects', 'packagecache'))
+        if 'patch_filename' in config['wrap-file']:
+            shutil.copy2(os.path.join(os.environ['MESON_SOURCE_ROOT'], 'subprojects', 'packagecache', config['wrap-file']['patch_filename']), os.path.join(os.environ['MESON_DIST_ROOT'], 'subprojects', 'packagecache'))
     elif 'wrap-redirect' not in config:
         shutil.copytree(os.path.join(os.environ['MESON_SOURCE_ROOT'], 'subprojects', filename[:-5]), os.path.join(os.environ['MESON_DIST_ROOT'], 'subprojects', filename[:-5]))
