@@ -29,3 +29,6 @@ for filename in os.listdir(os.path.join(os.environ['MESON_SOURCE_ROOT'], 'subpro
             shutil.copy2(os.path.join(os.environ['MESON_SOURCE_ROOT'], 'subprojects', 'packagecache', config['wrap-file']['patch_filename']), os.path.join(os.environ['MESON_DIST_ROOT'], 'subprojects', 'packagecache'))
     elif 'wrap-redirect' not in config:
         shutil.copytree(os.path.join(os.environ['MESON_SOURCE_ROOT'], 'subprojects', filename[:-5]), os.path.join(os.environ['MESON_DIST_ROOT'], 'subprojects', filename[:-5]))
+        for excluded_dir in ('.git', '.hg', '.svn'):
+            if os.path.isdir(os.path.join(os.environ['MESON_DIST_ROOT'], 'subprojects', filename[:-5], excluded_dir)):
+                shutil.rmtree(os.path.join(os.environ['MESON_DIST_ROOT'], 'subprojects', filename[:-5], excluded_dir))
