@@ -68,6 +68,32 @@ meson_base_options = cmake_override_options + {
     'cpp_std': cpp_std,
 }
 
+git_hash_fallback = ''
+foreach line : import('fs').read('../git-hash').splitlines()
+    line = line.strip()
+    if line != '' and not line.startswith('#')
+        git_hash_fallback = line.substring(0, 7)
+        break
+    endif
+endforeach
+if git_hash_fallback != ''
+    git_hash_file = configure_file(
+        input: 'git-hash.h.in',
+        output: 'git-hash.h',
+        configuration: {
+            'VCS_TAG': git_hash_fallback,
+        },
+    )
+else
+    git_hash_file = vcs_tag(
+        input: 'git-hash.h.in',
+        output: 'git-hash.h',
+        command: [(meson.version().version_compare('>=1.10.0') ? find_program('git').cmd_array() : find_program('git')), 'rev-parse', '--short=7', 'HEAD'],
+        fallback: 'unknown',
+    )
+endif
+global_dependencies += declare_dependency(sources: git_hash_file)
+
 gl = dependency('gl', allow_fallback: false, required: get_option('gl_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
 if not gl.found()
     gl = subproject('mesa', default_options: meson_base_options).get_variable('gl')

@@ -50,6 +50,62 @@ jobs:
             sha256sum -c <<< "$hashes"
           EOF
 
+  build-source-tarball:
+    name: Build source tarball
+    runs-on: ubuntu-slim
+    steps:
+      - uses: benjlevesque/short-sha@v2.2
+        id: short-sha
+        with:
+          length: 7
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git meson tar zstd
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          path: mkxp-z-${{ github.sha }}
+
+      - name: Download subprojects
+        run: |
+          cd mkxp-z-${{ github.sha }}
+          meson subprojects download
+
+      - name: Delete wrap-file subprojects
+        shell: bash
+        run: |
+          cd mkxp-z-${{ github.sha }}/subprojects
+          for subproject in *.wrap
+          do
+            sed 's/^    //' << '  EOF' | python - "$subproject"
+              import configparser
+              import shutil
+              import sys
+              config = configparser.ConfigParser()
+              config.read(sys.argv[1])
+              if 'wrap-file' in config:
+                print('Subproject ' + sys.argv[1] + ': Deleting ' + config['wrap-file']['directory'])
+                shutil.rmtree(config['wrap-file']['directory'])
+              else:
+                print('Subproject ' + sys.argv[1] + ': Skipping')
+            EOF
+          done
+
+      - name: Prepare artifact
+        run: |
+          echo ${{ github.sha }} >> mkxp-z-${{ github.sha }}/git-hash
+          tar --mtime=@$(cd mkxp-z-${{ github.sha }} && git show --no-patch --format=%ct) --exclude-vcs --sort=name --format=posix --mode=a=rX,u+w --owner=0 --group=0 --numeric-owner --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime -cf mkxp-z.source.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}.tar mkxp-z-${{ github.sha }}
+          zstd --rm -T0 --ultra -20 mkxp-z.source.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}.tar
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          path: mkxp-z.source.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}.tar.zst
+          archive: false
+
   build-windows-msys2:
     name: Windows MSYS2
     runs-on: windows-latest

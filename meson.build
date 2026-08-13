@@ -19,15 +19,8 @@ null_dep = dependency('', required: false)
 
 compilers = {'cpp': meson.get_compiler('cpp')}
 
-git_hash_file = vcs_tag(
-    input: 'src/git-hash.h.in',
-    output: 'git-hash.h',
-    command: [(meson.version().version_compare('>=1.10.0') ? find_program('git').cmd_array() : find_program('git')), 'rev-parse', '--short=7', 'HEAD'],
-    fallback: 'unknown',
-)
-
 global_sources = []
-global_dependencies = [declare_dependency(sources: git_hash_file)]
+global_dependencies = []
 global_include_dirs = []
 global_args = []
 global_cpp_args = []
