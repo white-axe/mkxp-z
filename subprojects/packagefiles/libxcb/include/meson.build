@@ -11,9 +11,6 @@ xcb_proto_generated += custom_target(
         xcb_proto_root,
         'xproto',
     ],
-    depend_files: [
-        xcb_proto_root / 'src' / ('xproto.xml'),
-    ],
 )
 
 subdir('xcb')

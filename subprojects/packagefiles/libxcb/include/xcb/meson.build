@@ -12,8 +12,5 @@ foreach name : xcb_proto_sources
             xcb_proto_root,
             name,
         ],
-        depend_files: [
-            xcb_proto_root / 'src' / (name + '.xml'),
-        ],
     )
 endforeach
