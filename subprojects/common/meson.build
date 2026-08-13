@@ -48,9 +48,10 @@ host_triplet = host_triplet_cpu + '-' + host_triplet_vendor + '-' + host_triplet
 base_cflags = []
 base_ldflags = []
 
+c_linker_program = find_program('c_ld', required: false)
 c_linker_flags = meson.get_compiler('c').first_supported_link_argument(
-    '-fuse-ld=' + (meson.get_compiler('c').get_linker_id() == 'ld.wasm' ? 'wasm-ld' : meson.get_compiler('c').get_linker_id().split('.')[-1]),
-    '-fuse-ld=' + meson.get_compiler('c').get_linker_id(),
+    c_linker_program.found() and run_command(c_linker_program.full_path(), '--version', capture: false, check: false).returncode() == 0 and meson.get_compiler('c').get_id() in ['armltdclang', 'clang', 'emscripten', 'intel-llvm', 'llvm'] ? '-fuse-ld=' + c_linker_program.full_path() : [],
+    '-fuse-ld=' + meson.get_compiler('c').get_linker_id().split('.')[-1],
 )
 base_ldflags += c_linker_flags
 
