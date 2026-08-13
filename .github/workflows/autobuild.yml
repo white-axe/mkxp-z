@@ -62,47 +62,32 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y git meson tar zstd
+          sudo apt install -y bison ccache cmake diffutils git make ruby
+          # The Meson version provided by APT is too old so we install Meson using pip instead
+          sudo apt install -y ninja-build python3-pip
+          pip3 install meson
+          sudo apt install -y gcc g++
+
+          sudo apt install -y gzip tar zstd
 
       - name: Checkout repository
         uses: actions/checkout@v5
-        with:
-          path: mkxp-z-${{ github.sha }}
 
-      - name: Download subprojects
+      - name: Prepare tarball
         run: |
-          cd mkxp-z-${{ github.sha }}
           meson subprojects download
+          meson setup build
+          meson dist -C build --no-tests --formats gztar
+          mv build/meson-dist/*.tar.gz dist.tar.gz
 
-      - name: Delete wrap-file and wrap-redirect subprojects
-        shell: bash
+      - name: Repack tarball deterministically
         run: |
-          cd mkxp-z-${{ github.sha }}/subprojects
-          for wrap in *.wrap
-          do
-            sed 's/^    //' << '  EOF' | python - "$wrap"
-              import configparser
-              import os
-              import shutil
-              import sys
-              config = configparser.ConfigParser()
-              config.read(sys.argv[1])
-              if 'wrap-file' in config:
-                print('Subproject ' + sys.argv[1] + ': Deleting ' + config['wrap-file']['directory'])
-                shutil.rmtree(config['wrap-file']['directory'])
-              elif 'wrap-redirect' in config:
-                print('Subproject ' + sys.argv[1] + ': Deleting ' + sys.argv[1])
-                os.remove(sys.argv[1])
-              else:
-                print('Subproject ' + sys.argv[1] + ': Skipping')
-            EOF
-          done
-
-      - name: Prepare artifact
-        run: |
-          echo ${{ github.sha }} >> mkxp-z-${{ github.sha }}/git-hash
-          tar --mtime=@$(cd mkxp-z-${{ github.sha }} && git show --no-patch --format=%ct) --exclude-vcs --sort=name --format=posix --mode=a=rX,u+w --owner=0 --group=0 --numeric-owner --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime -cf mkxp-z.source.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}.tar mkxp-z-${{ github.sha }}
-          zstd --rm -T0 --ultra -20 mkxp-z.source.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}.tar
+          mkdir dist
+          tar -C dist -xzf dist.tar.gz
+          rm dist.tar.gz
+          tar --transform='s|^dist/||' --mtime=@$(git show --no-patch --format=%ct) --exclude-vcs --sort=name --format=posix --mode=a=rX,u+w --owner=0 --group=0 --numeric-owner --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime -cf dist.tar dist/*
+          zstd --rm -T0 --ultra -20 dist.tar
+          mv dist.tar.zst mkxp-z.source.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}.tar.zst
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7

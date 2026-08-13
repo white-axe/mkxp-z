@@ -73,7 +73,6 @@ foreach line : import('fs').read('../git-hash').splitlines()
     line = line.strip()
     if line != '' and not line.startswith('#')
         git_hash_fallback = line.substring(0, 7)
-        break
     endif
 endforeach
 if git_hash_fallback != ''
@@ -84,13 +83,16 @@ if git_hash_fallback != ''
             'VCS_TAG': git_hash_fallback,
         },
     )
+    meson.add_dist_script(python, files('../distscript.py'))
 else
+    git = meson.version().version_compare('>=1.10.0') ? find_program('git').cmd_array() : find_program('git')
     git_hash_file = vcs_tag(
         input: 'git-hash.h.in',
         output: 'git-hash.h',
-        command: [(meson.version().version_compare('>=1.10.0') ? find_program('git').cmd_array() : find_program('git')), 'rev-parse', '--short=7', 'HEAD'],
+        command: [git, 'rev-parse', '--short=7', 'HEAD'],
         fallback: 'unknown',
     )
+    meson.add_dist_script(python, files('../distscript.py'), git, 'rev-parse', 'HEAD')
 endif
 global_dependencies += declare_dependency(sources: git_hash_file)
 
