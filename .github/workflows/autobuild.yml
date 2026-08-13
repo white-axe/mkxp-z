@@ -74,14 +74,15 @@ jobs:
           cd mkxp-z-${{ github.sha }}
           meson subprojects download
 
-      - name: Delete wrap-file subprojects
+      - name: Delete wrap-file and wrap-redirect subprojects
         shell: bash
         run: |
           cd mkxp-z-${{ github.sha }}/subprojects
-          for subproject in *.wrap
+          for wrap in *.wrap
           do
-            sed 's/^    //' << '  EOF' | python - "$subproject"
+            sed 's/^    //' << '  EOF' | python - "$wrap"
               import configparser
+              import os
               import shutil
               import sys
               config = configparser.ConfigParser()
@@ -89,6 +90,9 @@ jobs:
               if 'wrap-file' in config:
                 print('Subproject ' + sys.argv[1] + ': Deleting ' + config['wrap-file']['directory'])
                 shutil.rmtree(config['wrap-file']['directory'])
+              elif 'wrap-redirect' in config:
+                print('Subproject ' + sys.argv[1] + ': Deleting ' + sys.argv[1])
+                os.remove(sys.argv[1])
               else:
                 print('Subproject ' + sys.argv[1] + ': Skipping')
             EOF
