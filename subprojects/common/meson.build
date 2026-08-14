@@ -132,6 +132,11 @@ if get_option('b_lto')
         '-flto=auto',
         '-flto',
     )
+    base_ldflags += meson.get_compiler('c').first_supported_link_argument(
+        get_option('b_lto_mode') == 'thin' ? '-flto=thin' : [],
+        '-flto=auto',
+        '-flto',
+    )
 endif
 
 if get_option('b_sanitize') != 'none'
