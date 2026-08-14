@@ -48,8 +48,8 @@ endforeach
 cmake_base_options = {
     'CMAKE_POLICY_VERSION_MINIMUM': '3.10',
     'CMAKE_OSX_SYSROOT': '/nonexistent',
-    'CMAKE_C_STANDARD': c_std.replace('c', '').replace('gnu', ''),
-    'CMAKE_CXX_STANDARD': cpp_std.replace('c++', '').replace('gnu++', ''),
+    'CMAKE_C_STANDARD': common.get_variable('c_std').replace('-std=c', '').replace('-std=gnu', ''),
+    'CMAKE_CXX_STANDARD': common.get_variable('cpp_std').replace('-std=c++', '').replace('-std=gnu++', ''),
     'CMAKE_C_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
     'CMAKE_CXX_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',
     'CMAKE_OBJC_BYTE_ORDER': host_endian == 'big' ? 'BIG_ENDIAN' : 'LITTLE_ENDIAN',

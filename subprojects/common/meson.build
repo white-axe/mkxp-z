@@ -1,4 +1,4 @@
-project('tools', 'c', meson_version: '>=1.4.0')
+project('tools', 'c', 'cpp', meson_version: '>=1.4.0')
 
 python = import('python').find_installation(required: true)
 
@@ -46,7 +46,30 @@ endif
 host_triplet = host_triplet_cpu + '-' + host_triplet_vendor + '-' + host_triplet_os
 
 base_cflags = []
+base_cppflags = []
 base_ldflags = []
+
+c_std = []
+foreach std : get_option('c_std').split(',')
+    c_std += '-std=' + std
+endforeach
+c_std = meson.get_compiler('c').first_supported_argument(c_std)
+if c_std.length() == 0
+    error('failed to find a supported C standard')
+endif
+c_std = c_std[0]
+base_cflags += c_std
+
+cpp_std = []
+foreach std : get_option('cpp_std').split(',')
+    cpp_std += '-std=' + std
+endforeach
+cpp_std = meson.get_compiler('cpp').first_supported_argument(cpp_std)
+if cpp_std.length() == 0
+    error('failed to find a supported C++ standard')
+endif
+cpp_std = cpp_std[0]
+base_cppflags += cpp_std
 
 c_linker_flags = meson.get_compiler('c').first_supported_link_argument(
     '-fuse-ld=' + meson.get_compiler('c').get_linker_id().split('.')[-1],
@@ -65,60 +88,66 @@ c_linker_is_gnu = meson.get_compiler('c').get_linker_id() in [
 
 # ld64 (the linker used on Apple platforms) emits linker warnings that cause Ruby to fail to configure, let's turn them off
 if meson.get_compiler('c').get_linker_id().split('.')[0] == 'ld64'
-    base_ldflags += '-Wl,-w'
+    base_ldflags += meson.get_compiler('c').first_supported_link_argument('-Wl,-w')
 endif
 
 if get_option('optimization') == '0'
-    base_cflags += '-O0'
+    base_cflags += meson.get_compiler('c').first_supported_argument('-O0')
+    base_cppflags += meson.get_compiler('cpp').first_supported_argument('-O0')
 elif get_option('optimization') == 'g'
-    base_cflags += '-Og'
+    base_cflags += meson.get_compiler('c').first_supported_argument('-Og')
+    base_cppflags += meson.get_compiler('cpp').first_supported_argument('-Og')
 elif get_option('optimization') == '1'
-    base_cflags += '-O1'
+    base_cflags += meson.get_compiler('c').first_supported_argument('-O1')
+    base_cppflags += meson.get_compiler('cpp').first_supported_argument('-O1')
 elif get_option('optimization') == '2'
-    base_cflags += '-O2'
+    base_cflags += meson.get_compiler('c').first_supported_argument('-O2')
+    base_cppflags += meson.get_compiler('cpp').first_supported_argument('-O2')
 elif get_option('optimization') == '3'
-    base_cflags += '-O3'
+    base_cflags += meson.get_compiler('c').first_supported_argument('-O3')
+    base_cppflags += meson.get_compiler('cpp').first_supported_argument('-O3')
 elif get_option('optimization') == 's'
-    base_cflags += '-Os'
+    base_cflags += meson.get_compiler('c').first_supported_argument('-Os')
+    base_cppflags += meson.get_compiler('cpp').first_supported_argument('-Os')
 endif
 
 if get_option('debug')
-    base_cflags += '-g'
+    base_cflags += meson.get_compiler('c').first_supported_argument('-g')
+    base_cppflags += meson.get_compiler('cpp').first_supported_argument('-g')
 endif
 
 if get_option('b_staticpic')
-    base_cflags += '-fPIC'
+    base_cflags += meson.get_compiler('c').first_supported_argument('-fPIC')
+    base_cppflags += meson.get_compiler('cpp').first_supported_argument('-fPIC')
 endif
 
 if get_option('b_lto')
-    if get_option('b_lto_mode') == 'thin' and meson.get_compiler('c').has_argument('-flto=thin')
-        base_cflags += '-flto=thin'
-        base_ldflags += '-flto=thin'
-    elif meson.get_compiler('c').has_argument('-flto=auto')
-        base_cflags += '-flto=auto'
-        base_ldflags += '-flto=auto'
-    else
-        base_cflags += '-flto'
-        base_ldflags += '-flto'
-    endif
+    base_cflags += meson.get_compiler('c').first_supported_argument(
+        get_option('b_lto_mode') == 'thin' ? '-flto=thin' : [],
+        '-flto=auto',
+        '-flto',
+    )
+    base_cppflags += meson.get_compiler('cpp').first_supported_argument(
+        get_option('b_lto_mode') == 'thin' ? '-flto=thin' : [],
+        '-flto=auto',
+        '-flto',
+    )
 endif
 
 if get_option('b_sanitize') != 'none'
-    base_cflags += '-fsanitize=' + get_option('b_sanitize')
-    base_ldflags += '-fsanitize=' + get_option('b_sanitize')
+    base_cflags += meson.get_compiler('c').first_supported_argument('-fsanitize=' + get_option('b_sanitize'))
+    base_cppflags += meson.get_compiler('cpp').first_supported_argument('-fsanitize=' + get_option('b_sanitize'))
+    base_ldflags += meson.get_compiler('c').first_supported_link_argument('-fsanitize=' + get_option('b_sanitize'))
     if 'address' in get_option('b_sanitize').split(',')
-        base_cflags += '-fno-omit-frame-pointer'
+        base_cflags += meson.get_compiler('c').first_supported_argument('-fno-omit-frame-pointer')
+        base_cppflags += meson.get_compiler('cpp').first_supported_argument('-fno-omit-frame-pointer')
     endif
 endif
 
 if get_option('b_ndebug') == 'true' or (get_option('b_ndebug') == 'if-release' and get_option('buildtype') in ['plain', 'release'])
-    base_cflags += '-DNDEBUG'
+    base_cflags += meson.get_compiler('c').first_supported_argument('-DNDEBUG')
+    base_cppflags += meson.get_compiler('cpp').first_supported_argument('-DNDEBUG')
 endif
-
-base_cppflags = base_cflags
-
-base_cflags += '-std=' + get_option('c_std')
-base_cppflags += '-std=' + get_option('cpp_std')
 
 base_cflags += meson.get_compiler('c').first_supported_argument('-fdiagnostics-color=' + get_option('b_colorout'))
 base_cppflags += meson.get_compiler('cpp').first_supported_argument('-fdiagnostics-color=' + get_option('b_colorout'))

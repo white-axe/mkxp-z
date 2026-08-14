@@ -27,8 +27,8 @@ global_cpp_args = []
 global_objc_args = ['-fobjc-arc', '-fobjc-weak']
 global_objcpp_args = []
 global_link_args = []
-c_std = 'gnu11'
-cpp_std = 'gnu++14'
+c_std = 'gnu11,c11'
+cpp_std = 'gnu++14,c++14'
 
 common = subproject('common', default_options: {'c_std': c_std, 'cpp_std': cpp_std})
 cmake = import('cmake')
