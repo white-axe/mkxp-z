@@ -119,3 +119,6 @@ base_cppflags = base_cflags
 
 base_cflags += '-std=' + get_option('c_std')
 base_cppflags += '-std=' + get_option('cpp_std')
+
+base_cflags += meson.get_compiler('c').first_supported_argument('-fdiagnostics-color=' + get_option('b_colorout'))
+base_cppflags += meson.get_compiler('cpp').first_supported_argument('-fdiagnostics-color=' + get_option('b_colorout'))
