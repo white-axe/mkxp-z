@@ -62,6 +62,7 @@ ruby = declare_dependency(
                 '--with-static-linked-ext',
                 '--disable-rubygems',
                 '--without-gmp',
+                '--enable-mkmf-verbose',
                 'CC=' + run_command(subproject('common').get_variable('quotetool_command'), meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
                 'CXX=' + run_command(subproject('common').get_variable('quotetool_command'), meson.get_compiler('cpp').cmd_array(), check: true).stdout().strip(),
                 'AR=' + run_command(subproject('common').get_variable('quotetool_command'), subproject('common').get_variable('ar'), check: true).stdout().strip(),
