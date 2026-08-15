@@ -56,7 +56,7 @@ class FenwickTree:
 
 
 # Find all of the mirrors of the master repository using a DNS SRV request.
-for raw_entry in subprocess.run(['dig', '+short', '_' + protocol + '._tcp.' + master_host, 'SRV'], check=True, stdout=subprocess.PIPE).stdout.decode('UTF-8').splitlines():
+for raw_entry in subprocess.run(['dig', '+short', '_' + protocol + '._tcp.' + master_host, 'SRV'], check=True, stdout=subprocess.PIPE).stdout.decode('utf-8').splitlines():
     match = pattern.fullmatch(raw_entry)
     if match is None:
         continue
