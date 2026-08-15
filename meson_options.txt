@@ -13,6 +13,8 @@ option('steamshim_debug', type: 'boolean', value: false, description: 'Whether t
 
 option('gfx_backend', type: 'combo', value: 'auto', choices: ['auto', 'gl', 'gles'], description: 'Graphics rendering API to use by default; it can still be changed at run time by explicitly setting the environment variable SDL_OPENGL_ES_DRIVER to 0 (for OpenGL) or 1 (for OpenGL ES)')
 
+option('dist_subprojects', type: 'combo', value: 'all', choices: ['all', 'needed', 'none'], description: 'Determines which subprojects should be included in the source tarball created by \'meson dist\'. \'all\' means include the source code from all subprojects, even ones that are not used in the current build configuration. \'needed\' means include only the source code for subprojects needed for the current build configuration (i.e. this will exclude subprojects corresponding to disabled dependencies as well as dependencies that are pulled from the system rather then vendored). \'none\' means do not include any subproject code.')
+
 option('aarch64_neon', type: 'feature', value: 'auto', description: 'Enable support for NEON intrinsics when building for 64-bit ARM architecture')
 option('arm_armv6', type: 'feature', value: 'auto', description: 'Enable support for ARMv6 intrinsics when building for 32-bit ARM architecture')
 option('arm_neon', type: 'feature', value: 'disabled', description: 'Enable support for NEON intrinsics when building for 32-bit ARM architecture')

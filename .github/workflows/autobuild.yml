@@ -76,7 +76,7 @@ jobs:
       - name: Prepare tarball
         run: |
           meson subprojects download
-          meson setup build
+          meson setup -Ddist_subprojects=all build
           meson dist -C build --no-tests --formats gztar
           mv build/meson-dist/*.tar.gz dist.tar.gz
 

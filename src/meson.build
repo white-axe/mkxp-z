@@ -75,6 +75,7 @@ foreach line : import('fs').read('../git-hash').splitlines()
         git_hash_fallback = line.substring(0, 7)
     endif
 endforeach
+distscript_vcs_command = []
 if git_hash_fallback != ''
     git_hash_file = configure_file(
         input: 'git-hash.h.in',
@@ -83,7 +84,6 @@ if git_hash_fallback != ''
             'VCS_TAG': git_hash_fallback,
         },
     )
-    meson.add_dist_script(python, files('../distscript.py'))
 else
     git = meson.version().version_compare('>=1.10.0') ? find_program('git').cmd_array() : find_program('git')
     git_hash_file = vcs_tag(
@@ -92,8 +92,9 @@ else
         command: [git, 'rev-parse', '--short=7', 'HEAD'],
         fallback: 'unknown',
     )
-    meson.add_dist_script(python, files('../distscript.py'), git, 'rev-parse', 'HEAD')
+    distscript_vcs_command = [git, 'rev-parse', 'HEAD']
 endif
+meson.add_dist_script(python, files('../distscript.py'), get_option('dist_subprojects'), distscript_vcs_command)
 global_dependencies += declare_dependency(sources: git_hash_file)
 
 gl = dependency('gl', allow_fallback: false, required: get_option('gl_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled))
