@@ -38,6 +38,6 @@
 +		touch $@
 +
 +
- 		$(AR) $(ARFLAGS) ext/extinit.$(LIBEXT) ruby.$(OBJEXT) ext/extinit.$(OBJEXT) && $(AR) $(ARFLAGS) enc/encinit.$(LIBEXT) ruby.$(OBJEXT) enc/encinit.$(OBJEXT)
+ 		$(AR) $(ARFLAGS) ext/extinit.$(LIBEXT) ruby.$(OBJEXT) ext/extinit.$(OBJEXT) && ($(RANLIB) ext/extinit.$(LIBEXT) || true) && $(AR) $(ARFLAGS) enc/encinit.$(LIBEXT) ruby.$(OBJEXT) enc/encinit.$(OBJEXT) && ($(RANLIB) enc/encinit.$(LIBEXT) || true)
  $(PROGRAM): @XRUBY_LIBPATHENV_WRAPPER@
  
