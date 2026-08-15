@@ -11,11 +11,11 @@ vcs_command = sys.argv[2:]
 
 meson = shlex.split(os.environ['MESONREWRITE'])[:-1]
 
-needed_subproject_names = {subproject['name'] for subproject in json.loads(subprocess.run(meson + ['introspect', '--projectinfo'], cwd=os.environ['MESON_BUILD_ROOT'], check=True, stdout=subprocess.PIPE).stdout.decode('utf-8'))['subprojects']}
+# Make sure all subprojects are downloaded, even ones that are not used in the current build configuration
+# (We need to download subprojects even if dist_subprojects != 'all' since they could be downloaded in a nonstandard location if the MESON_PACKAGE_CACHE_DIR environment variable was set)
+subprocess.run(meson + ['subprojects', 'download'], cwd=os.environ['MESON_SOURCE_ROOT'], check=True, env={**os.environ, 'MESON_PACKAGE_CACHE_DIR': ''})
 
-if dist_subprojects == 'all':
-    # Make sure all subprojects are downloaded, even ones that are not used in the current build configuration
-    subprocess.run(meson + ['subprojects', 'download'], cwd=os.environ['MESON_SOURCE_ROOT'], check=True, env={**os.environ, 'MESON_PACKAGE_CACHE_DIR': ''})
+needed_subproject_names = {subproject['name'] for subproject in json.loads(subprocess.run(meson + ['introspect', '--projectinfo'], cwd=os.environ['MESON_BUILD_ROOT'], check=True, stdout=subprocess.PIPE).stdout.decode('utf-8'))['subprojects']}
 
 # Write the current Git hash into git-hash in the release artifact if it isn't already in git-hash
 if len(vcs_command) > 0:
