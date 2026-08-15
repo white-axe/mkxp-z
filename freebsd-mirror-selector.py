@@ -1,4 +1,5 @@
-# This script is used for listing all of the mirrors of a FreeBSD package repository.
+# This script is used for listing all of the mirrors of a FreeBSD package repository,
+# with the proper priority (mirrors that should be tried earlier are listed before ones that should be tried later).
 # Licensed under CC0.
 
 import random
