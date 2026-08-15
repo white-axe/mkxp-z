@@ -28,7 +28,7 @@ if build_machine.system() in ['windows', 'cygwin']
     destdir = run_command(subproject('common').get_variable('cygpath'), '-m', destdir, check: true).stdout().strip()
 endif
 
-baseruby = run_command(subproject('common').get_variable('quotetool_command'), (meson.version().version_compare('>=1.10.0') ? find_program('ruby').cmd_array() : find_program('ruby')), check: true).stdout().strip()
+baseruby = run_command(subproject('common').get_variable('quotetool'), (meson.version().version_compare('>=1.10.0') ? find_program('ruby').cmd_array() : find_program('ruby')), check: true).stdout().strip()
 
 ruby_deps = [
     dependency('libffi', required: true),
@@ -63,19 +63,19 @@ ruby = declare_dependency(
                 '--disable-rubygems',
                 '--without-gmp',
                 '--enable-mkmf-verbose',
-                'CC=' + run_command(subproject('common').get_variable('quotetool_command'), meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
-                'CXX=' + run_command(subproject('common').get_variable('quotetool_command'), meson.get_compiler('cpp').cmd_array(), check: true).stdout().strip(),
-                'AR=' + run_command(subproject('common').get_variable('quotetool_command'), subproject('common').get_variable('ar'), check: true).stdout().strip(),
-                'RANLIB=' + run_command(subproject('common').get_variable('quotetool_command'), subproject('common').get_variable('ranlib'), check: true).stdout().strip(),
+                'CC=' + run_command(subproject('common').get_variable('quotetool'), meson.get_compiler('c').cmd_array(), check: true).stdout().strip(),
+                'CXX=' + run_command(subproject('common').get_variable('quotetool'), meson.get_compiler('cpp').cmd_array(), check: true).stdout().strip(),
+                'AR=' + run_command(subproject('common').get_variable('quotetool'), subproject('common').get_variable('ar'), check: true).stdout().strip(),
+                'RANLIB=' + run_command(subproject('common').get_variable('quotetool'), subproject('common').get_variable('ranlib'), check: true).stdout().strip(),
                 'AS=false',
                 'LD=false',
                 'NM=false',
                 'OBJCOPY=false',
                 'OBJDUMP=false',
                 'STRIP=false',
-                'CFLAGS=' + run_command(subproject('common').get_variable('quotetool_args'), cflags, check: true).stdout().strip() + ' ' + get_option('cflags'),
-                'CXXFLAGS=' + run_command(subproject('common').get_variable('quotetool_args'), cppflags, check: true).stdout().strip() + ' ' + get_option('cppflags'),
-                'LDFLAGS=' + run_command(subproject('common').get_variable('quotetool_args'), ldflags, check: true).stdout().strip() + ' ' + get_option('ldflags'),
+                'CFLAGS=' + run_command(subproject('common').get_variable('quotetool'), cflags, check: true).stdout().strip() + ' ' + get_option('cflags'),
+                'CXXFLAGS=' + run_command(subproject('common').get_variable('quotetool'), cppflags, check: true).stdout().strip() + ' ' + get_option('cppflags'),
+                'LDFLAGS=' + run_command(subproject('common').get_variable('quotetool'), ldflags, check: true).stdout().strip() + ' ' + get_option('ldflags'),
             ],
             cross_configure_options: [
                 '--host=@HOST@',
@@ -88,8 +88,8 @@ ruby = declare_dependency(
                 # Otherwise, the link tests may fail due to https://github.com/llvm/llvm-project/issues/108262.
                 'MKXP_DISABLE_LTO_FOR_LINK_TESTS': (meson.get_compiler('c').get_linker_id().split('.')[-1] == 'lld' or meson.get_compiler('c').get_linker_id() == 'lld-link') and host_machine.cpu_family() == 'arm' ? 'yes' : 'no',
                 'DLLWRAP': 'false',
-                'WINDRES': run_command(subproject('common').get_variable('quotetool_command'), subproject('common').get_variable('windres'), check: true).stdout().strip(),
-                'YACC': run_command(subproject('common').get_variable('quotetool_command'), (meson.version().version_compare('>=1.10.0') ? find_program('bison').cmd_array() : find_program('bison')), check: true).stdout().strip(),
+                'WINDRES': run_command(subproject('common').get_variable('quotetool'), subproject('common').get_variable('windres'), check: true).stdout().strip(),
+                'YACC': run_command(subproject('common').get_variable('quotetool'), (meson.version().version_compare('>=1.10.0') ? find_program('bison').cmd_array() : find_program('bison')), check: true).stdout().strip(),
                 'ac_cv_func_crypt': 'no',
                 'ac_cv_func_crypt_r': 'no',
                 'ac_cv_header_crypt_h': 'no',

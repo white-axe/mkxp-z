@@ -24,13 +24,9 @@ endif
 #   NAME: The output C source file will contain an array of uint8_t named NAME containing the contents of SOURCE_FILE and a size_t named NAME_len containing the length of NAME in bytes.
 embedtool = [python, files('embedtool.py')[0]]
 
-# quotetool_args [ARGS...]
+# quotetool [ARGS...]
 #   Outputs a shell-escaped string containing the given arguments, so that shell splitting the string output by this command yields the original arguments. For example, if the arguments are `hello` and `foo bar` and `foo 'bar'`, the output will be `hello 'foo bar' 'foo '"'"'bar'"'"''`.
-quotetool_args = [python, files('quotetool.py')[0], 'false']
-
-# quotetool_command [ARGS...]
-#   This is the same thing as quotetool_args, except all backslashes in the first argument are replaced with forward slashes to avoid problems with build tools such as CMake and Make that cannot handle certain path formats correctly.
-quotetool_command = [python, files('quotetool.py')[0], 'true']
+quotetool = [python, files('quotetool.py')[0]]
 
 # sonametool LIBRARY_NAME
 #   Returns the full name of the shared library file for the given library on the host machine. For example, given "X11", this outputs "libX11.so.6" when building for BSD or Linux.
