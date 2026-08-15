@@ -8,7 +8,7 @@
  endif
  
 -cpp_std = 'cpp_std=c++17'
-+cpp_std = 'cpp_std=gnu++17'
++cpp_std = 'cpp_std=gnu++17,c++17'
  
  cpp = meson.get_compiler('cpp')
  if meson.version().version_compare('>= 0.62')
