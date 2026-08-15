@@ -517,9 +517,9 @@ jobs:
           fi
           sed 's/^  //' << EOF | tee -a ${{ runner.temp }}/cross.toml
             [binaries]
-            c = ['ccache', 'clang', '--sysroot=$(realpath ${{ runner.temp }}/sysroot)', '--target=$target'$abi_flag]
+            c = ['ccache', 'clang', '--sysroot=${{ runner.temp }}/sysroot', '--target=$target'$abi_flag]
             c_ld = '$linker'
-            cpp = ['ccache', 'clang++', '--sysroot=$(realpath ${{ runner.temp }}/sysroot)', '--target=$target'$abi_flag]
+            cpp = ['ccache', 'clang++', '--sysroot=${{ runner.temp }}/sysroot', '--target=$target'$abi_flag]
             cpp_ld = '$linker'
             ar = 'llvm-ar'
             strip = 'llvm-strip'
@@ -896,9 +896,9 @@ jobs:
         run: |
           sed 's/^  //' << EOF | tee -a ${{ runner.temp }}/cross.toml
             [binaries]
-            c = ['ccache', 'clang', '--sysroot=$(realpath ${{ runner.temp }}/sysroot)', '--target=$target']
+            c = ['ccache', 'clang', '--sysroot=${{ runner.temp }}/sysroot', '--target=$target']
             c_ld = 'lld'
-            cpp = ['ccache', 'clang++', '--sysroot=$(realpath ${{ runner.temp }}/sysroot)', '--target=$target']
+            cpp = ['ccache', 'clang++', '--sysroot=${{ runner.temp }}/sysroot', '--target=$target']
             cpp_ld = 'lld'
             ar = 'llvm-ar'
             strip = 'llvm-strip'
