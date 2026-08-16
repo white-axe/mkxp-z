@@ -435,7 +435,7 @@ jobs:
           then
             sudo apt install -y curl
             gpg --no-default-keyring --keyring ./raspbian.kbx --keyserver keyserver.ubuntu.com --recv-keys 0xa0da38d0d76e8b5d638872819165938d90fddd2e
-            if curl --retry 5 -fIL http://raspbian.raspberrypi.org/raspbian/dists/${{ matrix.suite }}/Release
+            if curl --retry 5 -fIL http://raspbian.raspberrypi.org/raspbian/dists/${{ matrix.suite }}/InRelease
             then
               repo=http://raspbian.raspberrypi.org/raspbian
             else
