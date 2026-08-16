@@ -823,11 +823,17 @@ jobs:
           mirror_selector="$(realpath freebsd-mirror-selector.py)"
 
           cd ${{ runner.temp }}
+          pushd .
 
           python "$mirror_selector" "$protocol" "$host" | while read mirror
           do
             echo "FreeBSD mirror: $mirror"
             repo="${mirror}/FreeBSD:${abi_version}:amd64/${release}"
+
+            popd
+            rm -rf sysroot-download
+            mkdir sysroot-download
+            pushd sysroot-download
 
             if ! curl --retry 5 -Lo data.pkg "$repo/data.pkg"
             then
@@ -860,9 +866,14 @@ jobs:
             fi
 
             tar -xf sysroot.pkg --zstd
-            mv usr/local/freebsd-sysroot/${{ matrix.arch }} sysroot
+            dir="$(realpath usr/local/freebsd-sysroot/${{ matrix.arch }})"
+            popd
+            mv "$dir" sysroot
+            pushd .
             break
           done
+
+          popd
 
           if [ ! -d sysroot ]
           then
