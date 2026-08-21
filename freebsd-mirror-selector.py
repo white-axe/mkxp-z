@@ -15,7 +15,7 @@ pattern = re.compile(r'([0-9]+) ([0-9]+) ([0-9]+) ([^ ]+)\.')
 entries_by_priority = {}
 
 
-# Fenwick tree, as described in "A new data structure for cumulative frequency tables" by Peter M. Fenwick.
+# Fenwick tree, as described in "A new data structure for cumulative frequency tables" by Peter M. Fenwick (https://doi.org/10.1002/spe.4380240306).
 # The three methods in this class excluding __init__ are taken from figure 4, figure 5 and figure 8, respectively.
 class FenwickTree:
     _tree: typing.List[int]
