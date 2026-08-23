@@ -11,6 +11,7 @@ diff_files =
     angle-framebuffer-assert.patch,
     angle-interm-node.patch,
     angle-round-to-nearest.patch,
+    angle-span.patch,
     angle-vulkan-memory-allocator.patch,
     angle-window-surface-vk-mac.patch,
     end-of-diff-files.patch
