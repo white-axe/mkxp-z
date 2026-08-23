@@ -4,7 +4,7 @@
 
 --- a/src/common/mathutil.h
 +++ b/src/common/mathutil.h
-@@ -602,7 +602,7 @@ inline R roundToNearest(T input)
+@@ -606,7 +606,7 @@ inline R roundToNearest(T input)
  {
      static_assert(std::is_floating_point<T>::value);
      static_assert(std::numeric_limits<R>::is_integer);

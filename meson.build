@@ -304,7 +304,6 @@ if openal.type_name() == 'internal'
 endif
 summary('ANGLE', have_angle, bool_yn: true)
 if have_angle
-    summary('ANGLE Direct3D 9 backend', have_angle_direct3d9, bool_yn: true)
     summary('ANGLE Direct3D 11 backend', have_angle_direct3d11, bool_yn: true)
     summary('ANGLE Metal backend', have_angle_metal, bool_yn: true)
     summary('ANGLE null backend', have_angle_null, bool_yn: true)

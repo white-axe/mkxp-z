@@ -1,4 +1,3 @@
-option('direct3d9', type: 'feature', value: 'auto')
 option('direct3d11', type: 'feature', value: 'auto')
 option('metal', type: 'feature', value: 'auto')
 option('null', type: 'feature', value: 'auto')
