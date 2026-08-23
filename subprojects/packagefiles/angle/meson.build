@@ -1,8 +1,8 @@
-project('angle', 'cpp', version: '7871', meson_version: '>= 1.2.0')
+project('angle', 'cpp', version: '8020', meson_version: '>= 1.2.0')
 if host_machine.system() == 'darwin'
     add_languages('objcpp', native: false)
 endif
-git_hash = 'f10e5258e7c9f994e85a31d82c0411f239c3536f'
+git_hash = '80760643c85e1dfe07d389ee5c9baa9198e3f870'
 
 override_options = {'cpp_std': 'c++20'}
 
@@ -59,16 +59,6 @@ angle_compression_utils = declare_dependency(
 dl = meson.get_compiler('cpp').find_library(host_machine_is_windows ? 'kernel32' : 'dl', required: true)
 xxhash = dependency('libxxhash', required: true)
 
-d3d9 = host_machine_is_windows ? meson.get_compiler('cpp').find_library('d3d9', required: get_option('direct3d9')) : dependency('', required: false)
-delayimp = host_machine_is_windows ? meson.get_compiler('cpp').find_library('delayimp', required: get_option('direct3d9')) : dependency('', required: false)
-have_direct3d9 = d3d9.found() and delayimp.found()
-if have_direct3d9
-    args += '-DANGLE_ENABLE_D3D9'
-else
-    d3d9 = dependency('', required: false)
-    delayimp = dependency('', required: false)
-endif
-
 dxgi = host_machine_is_windows ? meson.get_compiler('cpp').find_library('dxgi', required: get_option('direct3d11')) : dependency('', required: false)
 dxguid = host_machine_is_windows ? meson.get_compiler('cpp').find_library('dxguid', required: get_option('direct3d11')) : dependency('', required: false)
 have_direct3d11 = dxgi.found() and dxguid.found()
@@ -79,7 +69,7 @@ else
     dxguid = dependency('', required: false)
 endif
 
-have_any_direct3d = have_direct3d9 or have_direct3d11
+have_any_direct3d = have_direct3d11
 if have_any_direct3d
     args += '-DANGLE_ENABLE_HLSL'
 endif
@@ -323,7 +313,7 @@ angle_version_info = static_library(
     cpp_args: args + [
         '-DANGLE_REVISION=' + meson.project_version(),
     ],
-    sources: [
+    sources: [ # angle_version_info in BUILD.gn
         'src/common/angle_version_info.cpp',
     ],
     build_by_default: false,
@@ -339,7 +329,7 @@ angle_frame_capture_mock = static_library(
     cpp_args: args + [
         get_option('frame_capture_disabled') ? '-DANGLE_CAPTURE_ENABLED=0' : [],
     ],
-    sources: [
+    sources: [ # angle_frame_capture_mock in BUILD.gn
         'src/libANGLE/capture/FrameCapture_mock.cpp',
         'src/libANGLE/capture/serialize_mock.cpp',
     ],
@@ -351,7 +341,7 @@ angle_preprocessor = static_library(
     override_options: override_options,
     include_directories: includes,
     cpp_args: args,
-    sources: [
+    sources: [ # angle_preprocessor_sources in src/compiler.gni
         'src/compiler/preprocessor/DiagnosticsBase.cpp',
         'src/compiler/preprocessor/DirectiveHandlerBase.cpp',
         'src/compiler/preprocessor/DirectiveParser.cpp',
@@ -377,7 +367,7 @@ angle_translator = static_library(
         xxhash,
     ],
     cpp_args: args,
-    sources: [
+    sources: [ # angle_translator_sources in src/compiler.gni
         'src/compiler/translator/BaseTypes.cpp',
         'src/compiler/translator/BuiltInFunctionEmulator.cpp',
         'src/compiler/translator/CallDAG.cpp',
@@ -471,38 +461,38 @@ angle_translator = static_library(
         'src/compiler/translator/tree_util/RunAtTheEndOfShader.cpp',
         'src/compiler/translator/util.cpp',
         true
-            ? [
+            ? [ # angle_translator_essl_symbol_table_sources in src/compiler.gni
                 'src/compiler/translator/ImmutableString_autogen.cpp',
                 'src/compiler/translator/SymbolTable_autogen.cpp',
             ]
             : [],
         have_opengl
-            ? [
+            ? [ # angle_translator_essl_sources in src/compiler.gni
                 'src/compiler/translator/glsl/OutputESSL.cpp',
                 'src/compiler/translator/glsl/TranslatorESSL.cpp',
             ]
             : [],
         have_opengl
-            ? [
+            ? [ # angle_translator_glsl_sources in src/compiler.gni
                 'src/compiler/translator/glsl/BuiltInFunctionEmulatorGLSL.cpp',
                 'src/compiler/translator/glsl/ExtensionGLSL.cpp',
                 'src/compiler/translator/glsl/TranslatorGLSL.cpp',
                 'src/compiler/translator/glsl/VersionGLSL.cpp',
                 'src/compiler/translator/tree_ops/glsl/ExpandFragmentOutputsToVec4.cpp',
-                'src/compiler/translator/tree_ops/glsl/RegenerateStructNames.cpp',
                 'src/compiler/translator/tree_ops/glsl/RewriteRepeatedAssignToSwizzled.cpp',
                 'src/compiler/translator/tree_ops/glsl/UseInterfaceBlockFields.cpp',
+                'src/compiler/translator/tree_ops/glsl/WrapStructConstructors.cpp',
             ]
             : [],
         have_opengl and host_machine.system() == 'darwin'
-            ? [
+            ? [ # angle_translator_glsl_apple_sources in src/compiler.gni
                 'src/compiler/translator/tree_ops/glsl/apple/AddAndTrueToLoopCondition.cpp',
                 'src/compiler/translator/tree_ops/glsl/apple/RewriteRowMajorMatrices.cpp',
                 'src/compiler/translator/tree_ops/glsl/apple/UnfoldShortCircuitAST.cpp',
             ]
             : [],
         have_any_direct3d
-            ? [
+            ? [ # angle_translator_hlsl_sources in src/compiler.gni
                 'src/compiler/translator/hlsl/ASTMetadataHLSL.cpp',
                 'src/compiler/translator/hlsl/BuiltInFunctionEmulatorHLSL.cpp',
                 'src/compiler/translator/hlsl/ImageFunctionHLSL.cpp',
@@ -529,7 +519,7 @@ angle_translator = static_library(
             ]
             : [],
         have_vulkan
-            ? [
+            ? [ # angle_translator_lib_spirv_sources in src/compiler.gni
                 'src/compiler/translator/spirv/BuildSPIRV.cpp',
                 'src/compiler/translator/spirv/BuiltinsWorkaround.cpp',
                 'src/compiler/translator/spirv/OutputSPIRV.cpp',
@@ -547,7 +537,7 @@ angle_translator = static_library(
             ]
             : [],
         have_metal
-            ? [
+            ? [ # angle_translator_lib_msl_sources in src/compiler.cpp
                 'src/compiler/translator/msl/AstHelpers.cpp',
                 'src/compiler/translator/msl/ConstantNames.cpp',
                 'src/compiler/translator/msl/DiscoverDependentFunctions.cpp',
@@ -584,12 +574,12 @@ angle_translator = static_library(
             ]
             : [],
         have_opengl
-            ? [
+            ? [ # angle_translator_glsl_base_sources in src/compiler.cpp
                 'src/compiler/translator/glsl/OutputGLSLBase.cpp',
             ]
             : [],
         have_opengl
-            ? [
+            ? [ # angle_translator_glsl_and_vulkan_base_sources in src/compiler.cpp
                 'src/compiler/translator/glsl/OutputGLSL.cpp',
             ]
             : [],
@@ -613,7 +603,7 @@ angle_common = static_library(
     ],
     cpp_args: args,
     objcpp_args: objcpp_args,
-    sources: [
+    sources: [ # libangle_common_sources in src/libGLESv2.gni
         'src/common/Float16ToFloat32.cpp',
         'src/common/MemoryBuffer.cpp',
         'src/common/PackedEGLEnums_autogen.cpp',
@@ -638,37 +628,42 @@ angle_common = static_library(
         'src/common/uniform_type_info_autogen.cpp',
         'src/common/utilities.cpp',
         not host_machine_is_windows and host_machine.system() != 'darwin'
-            ? [
+            ? [ # libangle_common_sources in src/libGLESv2.gni
                 'src/common/system_utils_linux.cpp',
                 'src/common/system_utils_posix.cpp',
             ]
             : [],
+        not host_machine_is_windows and host_machine.system() not in ['android', 'darwin']
+            ? [ # libangle_gpu_info_util_linux_sources in src/libGLESv2.gni
+                'src/common/linux/window_system.cpp',
+            ]
+            : [],
         host_machine.system() == 'darwin'
-            ? [
+            ? [ # libangle_common_sources in src/libGLESv2.gni
                 'src/common/apple_platform_utils.mm',
                 'src/common/system_utils_apple.cpp',
                 'src/common/system_utils_posix.cpp',
             ]
             : [],
         host_machine_is_macos
-            ? [
+            ? [ # libangle_common_sources in src/libGLESv2.gni
                 'src/common/gl/cgl/FunctionsCGL.cpp',
                 'src/common/system_utils_mac.cpp',
             ]
             : [],
         host_machine_is_ios
-            ? [
+            ? [ # libangle_common_sources in src/libGLESv2.gni
                 'src/common/system_utils_ios.cpp',
             ]
             : [],
         host_machine_is_uwp
-            ? [
+            ? [ # libangle_common_sources in src/libGLESv2.gni
                 'src/common/system_utils_win.cpp',
                 'src/common/system_utils_winuwp.cpp',
             ]
             : [],
         host_machine_is_native_windows
-            ? [
+            ? [ # libangle_common_sources in src/libGLESv2.gni
                 'src/common/system_utils_win.cpp',
                 'src/common/system_utils_win32.cpp',
             ]
@@ -682,7 +677,7 @@ angle_common_shader_state = static_library(
     override_options: override_options,
     include_directories: includes,
     cpp_args: args,
-    sources: [
+    sources: [ # libangle_common_shader_state_sources in src/libGLESv2.gni
         'src/common/CompiledShaderState.cpp',
     ],
     build_by_default: false,
@@ -693,7 +688,7 @@ angle_image_util = static_library(
     override_options: override_options,
     include_directories: includes,
     cpp_args: args,
-    sources: [
+    sources: [ # libangle_image_util_sources in src/libGLESv2.gni
         'src/image_util/copyimage.cpp',
         'src/image_util/imageformats.cpp',
         'src/image_util/loadimage.cpp',
@@ -702,10 +697,10 @@ angle_image_util = static_library(
         'src/image_util/loadimage_paletted.cpp',
         'src/image_util/storeimage_paletted.cpp',
         false
-            ? [
+            ? [ # libangle_image_util_sources in src/libGLESv2.gni
                 'src/image_util/AstcDecompressor.cpp',
             ]
-            : [
+            : [ # libangle_image_util_sources in src/libGLESv2.gni
                 'src/image_util/AstcDecompressorNoOp.cpp',
             ],
     ],
@@ -725,7 +720,7 @@ angle_vulkan_icd = static_library(
     cpp_args: args + [
         '-DANGLE_VK_MOCK_ICD_JSON=""',
     ],
-    sources: [
+    sources: [ # angle_vulkan_icd in src/common/vulkan/BUILD.gn
         'src/common/vulkan/vulkan_icd.cpp',
     ],
     build_by_default: false,
@@ -739,7 +734,7 @@ angle_libvulkan_loader = static_library(
         angle_common,
     ],
     cpp_args: args,
-    sources: [
+    sources: [ # angle_libvulkan_loader in src/common/vulkan/BUILD.gn
         'src/common/vulkan/libvulkan_loader.cpp',
     ],
     build_by_default: false,
@@ -773,37 +768,37 @@ angle_gpu_info_util = static_library(
     ],
     cpp_args: args,
     objcpp_args: objcpp_args,
-    sources: [
+    sources: [ # libangle_gpu_info_util_sources in src/libGLESv2.gni
         'src/gpu_info_util/SystemInfo.cpp',
         host_machine_is_windows
-            ? [
+            ? [ # libangle_gpu_info_util_win_sources in src/libGLESv2.gni
                 'src/gpu_info_util/SystemInfo_win.cpp',
             ]
             : [],
         host_machine.system() == 'android'
-            ? [
+            ? [ # libangle_gpu_info_util_android_sources in src/libGLESv2.gni
                 'src/gpu_info_util/SystemInfo_android.cpp',
             ]
             : [],
         not host_machine_is_windows and host_machine.system() not in ['android', 'darwin']
-            ? [
+            ? [ # libangle_gpu_info_util_linux_sources in src/libGLESv2.gni
                 'src/gpu_info_util/SystemInfo_linux.cpp',
             ]
             : [],
         host_machine_is_macos
-            ? [
+            ? [ # libangle_gpu_info_util_mac_sources in src/libGLESv2.gni
                 'src/gpu_info_util/SystemInfo_apple.mm',
                 'src/gpu_info_util/SystemInfo_macos.mm',
             ]
             : [],
         host_machine_is_ios
-            ? [
+            ? [ # libangle_gpu_info_util_ios_sources in src/libGLESv2.gni
                 'src/gpu_info_util/SystemInfo_apple.mm',
                 'src/gpu_info_util/SystemInfo_ios.mm',
             ]
             : [],
         have_vulkan
-            ? [
+            ? [ # libangle_gpu_info_util_vulkan_sources in src/libGLESv2.gni
                 'src/gpu_info_util/SystemInfo_vulkan.cpp',
             ]
             : [],
@@ -819,22 +814,8 @@ angle_dma_buf = host_machine_is_windows or host_machine.system() == 'darwin' ? [
         volk,
     ],
     cpp_args: args,
-    sources: [
+    sources: [ # angle_dma_buf in src/common/linux/BUILD.gn
         'src/common/linux/dma_buf_utils.cpp',
-    ],
-    build_by_default: false,
-)
-
-angle_d3d9_format_tables = static_library(
-    'angle_d3d9_format_tables',
-    override_options: override_options,
-    include_directories: includes,
-    dependencies: [
-        xxhash,
-    ],
-    cpp_args: args,
-    sources: [
-        'src/libANGLE/renderer/d3d_format.cpp',
     ],
     build_by_default: false,
 )
@@ -847,7 +828,7 @@ angle_d3d11_format_tables = static_library(
         xxhash,
     ],
     cpp_args: args,
-    sources: [
+    sources: [ # angle_d3d_format_tables in BUILD.gn
         'src/libANGLE/renderer/dxgi_format_map_autogen.cpp',
         'src/libANGLE/renderer/dxgi_support_table_autogen.cpp',
     ],
@@ -862,7 +843,7 @@ angle_d3d_shared = static_library(
         xxhash,
     ],
     cpp_args: args,
-    sources: [
+    sources: [ # d3d_shared_sources in src/libANGLE/renderer/d3d/d3d_backend.gni
         'src/libANGLE/renderer/d3d/BufferD3D.cpp',
         'src/libANGLE/renderer/d3d/CompilerD3D.cpp',
         'src/libANGLE/renderer/d3d/DisplayD3D.cpp',
@@ -892,46 +873,6 @@ angle_d3d_shared = static_library(
     build_by_default: false,
 )
 
-angle_d3d9_backend = static_library(
-    'angle_d3d9_backend',
-    override_options: override_options,
-    include_directories: includes,
-    dependencies: [
-        d3d9,
-        delayimp,
-        xxhash,
-    ],
-    link_with: [
-        angle_d3d_shared,
-        angle_d3d9_format_tables,
-    ],
-    cpp_args: args,
-    sources: [
-        'src/libANGLE/renderer/d3d/d3d9/Blit9.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/Buffer9.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/Context9.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/DebugAnnotator9.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/Device9.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/Fence9.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/Framebuffer9.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/Image9.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/IndexBuffer9.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/NativeWindow9.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/Query9.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/RenderTarget9.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/Renderer9.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/ShaderExecutable9.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/StateManager9.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/SwapChain9.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/TextureStorage9.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/VertexBuffer9.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/VertexDeclarationCache.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/formatutils9.cpp',
-        'src/libANGLE/renderer/d3d/d3d9/renderer9_utils.cpp',
-    ],
-    build_by_default: false,
-)
-
 angle_d3d11_backend = static_library(
     'angle_d3d11_backend',
     override_options: override_options,
@@ -946,7 +887,7 @@ angle_d3d11_backend = static_library(
         angle_d3d11_format_tables,
     ],
     cpp_args: args,
-    sources: [
+    sources: [ # d3d11_backend_sources in src/libANGLE/renderer/d3d/d3d_backend.gni
         'src/libANGLE/renderer/d3d/d3d11/Blit11.cpp',
         'src/libANGLE/renderer/d3d/d3d11/Buffer11.cpp',
         'src/libANGLE/renderer/d3d/d3d11/Clear11.cpp',
@@ -981,13 +922,13 @@ angle_d3d11_backend = static_library(
         'src/libANGLE/renderer/d3d/d3d11/texture_format_table.cpp',
         'src/libANGLE/renderer/d3d/d3d11/texture_format_table_autogen.cpp',
         host_machine_is_uwp
-            ? [
+            ? [ # d3d11_backend_sources in src/libANGLE/renderer/d3d/d3d_backend.gni
                 'src/libANGLE/renderer/d3d/d3d11/winrt/CoreWindowNativeWindow.cpp',
                 'src/libANGLE/renderer/d3d/d3d11/winrt/InspectableNativeWindow.cpp',
                 'src/libANGLE/renderer/d3d/d3d11/winrt/NativeWindow11WinRT.cpp',
                 'src/libANGLE/renderer/d3d/d3d11/winrt/SwapChainPanelNativeWindow.cpp',
             ]
-            : [
+            : [ # d3d11_backend_sources in src/libANGLE/renderer/d3d/d3d_backend.gni
                 'src/libANGLE/renderer/d3d/d3d11/win32/NativeWindow11Win32.cpp',
             ],
     ],
@@ -1022,7 +963,7 @@ else
         ],
         cpp_args: args,
         objcpp_args: objcpp_args,
-        sources: [
+        sources: [ # metal_backend_sources in src/libANGLE/renderer/metal/metal_backend.gni
             'src/libANGLE/renderer/metal/BufferMtl.mm',
             'src/libANGLE/renderer/metal/CompilerMtl.mm',
             'src/libANGLE/renderer/metal/ContextMtl.mm',
@@ -1074,7 +1015,7 @@ angle_null_backend = static_library(
         xxhash,
     ],
     cpp_args: args,
-    sources: [
+    sources: [ # null_backend_sources in src/libANGLE/renderer/null/null_backend.gni
         'src/libANGLE/renderer/null/BufferNULL.cpp',
         'src/libANGLE/renderer/null/CompilerNULL.cpp',
         'src/libANGLE/renderer/null/ContextNULL.cpp',
@@ -1114,7 +1055,7 @@ angle_gl_backend = static_library(
         angle_dma_buf,
     ],
     cpp_args: args,
-    sources: [
+    sources: [ # gl_backend_sources in src/libANGLE/renderer/gl/gl_backend.gni
         'src/libANGLE/renderer/gl/BlitGL.cpp',
         'src/libANGLE/renderer/gl/BufferGL.cpp',
         'src/libANGLE/renderer/gl/ClearMultiviewGL.cpp',
@@ -1145,7 +1086,7 @@ angle_gl_backend = static_library(
         'src/libANGLE/renderer/gl/formatutilsgl.cpp',
         'src/libANGLE/renderer/gl/renderergl_utils.cpp',
         host_machine_is_windows
-            ? [
+            ? [ # gl_backend_sources in src/libANGLE/renderer/gl/gl_backend.gni
                 'src/libANGLE/renderer/gl/wgl/ContextWGL.cpp',
                 'src/libANGLE/renderer/gl/wgl/D3DTextureSurfaceWGL.cpp',
                 'src/libANGLE/renderer/gl/wgl/DXGISwapChainWindowSurfaceWGL.cpp',
@@ -1158,7 +1099,7 @@ angle_gl_backend = static_library(
             ]
             : [],
         have_x11
-            ? [
+            ? [ # gl_backend_sources in src/libANGLE/renderer/gl/gl_backend.gni
                 'src/libANGLE/renderer/gl/glx/ContextGLX.cpp',
                 'src/libANGLE/renderer/gl/glx/DisplayGLX.cpp',
                 'src/libANGLE/renderer/gl/glx/FunctionsGLX.cpp',
@@ -1170,7 +1111,7 @@ angle_gl_backend = static_library(
             ]
             : [],
         not host_machine_is_windows and host_machine.system() != 'darwin'
-            ? [
+            ? [ # gl_backend_sources in src/libANGLE/renderer/gl/gl_backend.gni
                 'src/libANGLE/renderer/gl/egl/ContextEGL.cpp',
                 'src/libANGLE/renderer/gl/egl/DeviceEGL.cpp',
                 'src/libANGLE/renderer/gl/egl/DisplayEGL.cpp',
@@ -1187,7 +1128,7 @@ angle_gl_backend = static_library(
             ]
             : [],
         host_machine.system() == 'android'
-            ? [
+            ? [ # gl_backend_sources in src/libANGLE/renderer/gl/gl_backend.gni
                 'src/libANGLE/renderer/gl/egl/android/DisplayAndroid.cpp',
                 'src/libANGLE/renderer/gl/egl/android/NativeBufferImageSiblingAndroid.cpp',
             ]
@@ -1207,7 +1148,7 @@ angle_spirv_base = static_library(
         angle_common,
     ],
     cpp_args: args,
-    sources: [
+    sources: [ # angle_spirv_base in src/common/spirv/BUILD.gn
         'src/common/spirv/angle_spirv_utils.cpp',
     ],
     build_by_default: false,
@@ -1226,7 +1167,7 @@ angle_spirv_builder = static_library(
         angle_spirv_base,
     ],
     cpp_args: args,
-    sources: [
+    sources: [ # angle_spirv_builder in src/common/spirv/BUILD.gn
         'src/common/spirv/spirv_instruction_builder_autogen.cpp',
     ],
     build_by_default: false,
@@ -1241,7 +1182,7 @@ angle_spirv_parser = static_library(
         spirv_tools,
     ],
     cpp_args: args,
-    sources: [
+    sources: [ # angle_spirv_parser in src/common/spirv/BUILD.gn
         'src/common/spirv/spirv_instruction_parser_autogen.cpp',
     ],
     build_by_default: false,
@@ -1261,7 +1202,7 @@ angle_vk_mem_alloc_wrapper = static_library(
     cpp_args: args + [
         '-DVMA_IMPLEMENTATION',
     ],
-    sources: [
+    sources: [ # angle_vk_mem_alloc_wrapper in src/libANGLE/renderer/vulkan/BUILD.gn
         'src/libANGLE/renderer/vulkan/vk_mem_alloc_wrapper.cpp',
     ],
     build_by_default: false,
@@ -1298,7 +1239,7 @@ angle_vulkan_backend = static_library(
     ],
     cpp_args: args,
     objcpp_args: objcpp_args,
-    sources: [
+    sources: [ # vulkan_backend_sources in src/libANGLE/renderer/vulkan/vulkan_backend.gni
         'src/libANGLE/renderer/vulkan/AllocatorHelperPool.cpp',
         'src/libANGLE/renderer/vulkan/BufferVk.cpp',
         'src/libANGLE/renderer/vulkan/CommandQueue.cpp',
@@ -1312,7 +1253,6 @@ angle_vulkan_backend = static_library(
         'src/libANGLE/renderer/vulkan/ImageVk.cpp',
         'src/libANGLE/renderer/vulkan/MemoryObjectVk.cpp',
         'src/libANGLE/renderer/vulkan/MemoryTracking.cpp',
-        'src/libANGLE/renderer/vulkan/OverlayVk.cpp',
         'src/libANGLE/renderer/vulkan/PersistentCommandPool.cpp',
         'src/libANGLE/renderer/vulkan/ProgramExecutableVk.cpp',
         'src/libANGLE/renderer/vulkan/ProgramPipelineVk.cpp',
@@ -1338,6 +1278,7 @@ angle_vulkan_backend = static_library(
         'src/libANGLE/renderer/vulkan/VulkanSecondaryCommandBuffer.cpp',
         'src/libANGLE/renderer/vulkan/android/vk_android_utils.cpp',
         'src/libANGLE/renderer/vulkan/spv_utils.cpp',
+        'src/libANGLE/renderer/vulkan/vk_api_perf_counters.cpp',
         'src/libANGLE/renderer/vulkan/vk_barrier_data.cpp',
         'src/libANGLE/renderer/vulkan/vk_cache_utils.cpp',
         'src/libANGLE/renderer/vulkan/vk_caps_utils.cpp',
@@ -1351,7 +1292,7 @@ angle_vulkan_backend = static_library(
         'src/libANGLE/renderer/vulkan/vk_resource.cpp',
         'src/libANGLE/renderer/vulkan/vk_utils.cpp',
         not host_machine_is_windows and host_machine.system() not in ['darwin', 'android']
-            ? [
+            ? [ # vulkan_backend_dma_buf_sources in src/libANGLE/renderer/vulkan/vulkan_backend.gni
                 'src/libANGLE/renderer/vulkan/linux/DeviceVkLinux.cpp',
                 'src/libANGLE/renderer/vulkan/linux/DisplayVkLinux.cpp',
                 'src/libANGLE/renderer/vulkan/linux/DisplayVkOffscreen.cpp',
@@ -1363,7 +1304,7 @@ angle_vulkan_backend = static_library(
             ]
             : [],
         host_machine.system() == 'android'
-            ? [
+            ? [ # vulkan_backend_sources in src/libANGLE/renderer/vulkan/vulkan_backend.gni
                 'src/libANGLE/renderer/vulkan/android/AHBFunctions.cpp',
                 'src/libANGLE/renderer/vulkan/android/DisplayVkAndroid.cpp',
                 'src/libANGLE/renderer/vulkan/android/HardwareBufferImageSiblingVkAndroid.cpp',
@@ -1371,25 +1312,25 @@ angle_vulkan_backend = static_library(
             ]
             : [],
         host_machine_is_windows
-            ? [
+            ? [ # vulkan_backend_sources in src/libANGLE/renderer/vulkan/vulkan_backend.gni
                 'src/libANGLE/renderer/vulkan/win32/DisplayVkWin32.cpp',
                 'src/libANGLE/renderer/vulkan/win32/WindowSurfaceVkWin32.cpp',
             ]
             : [],
         have_x11
-            ? [
+            ? [ # vulkan_backend_sources in src/libANGLE/renderer/vulkan/vulkan_backend.gni
                 'src/libANGLE/renderer/vulkan/linux/xcb/DisplayVkXcb.cpp',
                 'src/libANGLE/renderer/vulkan/linux/xcb/WindowSurfaceVkXcb.cpp',
             ]
             : [],
         have_wayland
-            ? [
+            ? [ # vulkan_backend_sources in src/libANGLE/renderer/vulkan/vulkan_backend.gni
                 'src/libANGLE/renderer/vulkan/linux/wayland/DisplayVkWayland.cpp',
                 'src/libANGLE/renderer/vulkan/linux/wayland/WindowSurfaceVkWayland.cpp',
             ]
             : [],
         host_machine_is_macos
-            ? [
+            ? [ # vulkan_backend_sources in src/libANGLE/renderer/vulkan/vulkan_backend.gni
                 'src/libANGLE/renderer/vulkan/mac/DisplayVkMac.mm',
                 'src/libANGLE/renderer/vulkan/mac/IOSurfaceSurfaceVkMac.mm',
                 'src/libANGLE/renderer/vulkan/mac/WindowSurfaceVkMac.mm',
@@ -1407,7 +1348,7 @@ angle_glesv2_thin = static_library(
         xxhash,
     ],
     cpp_args: args + export_args,
-    sources: [
+    sources: [ # libglesv2_entry_point_sources in src/libGLESv2.gni
         'src/libGLESv2/egl_ext_stubs.cpp',
         'src/libGLESv2/egl_stubs.cpp',
         'src/libGLESv2/egl_stubs_getprocaddress_autogen.cpp',
@@ -1432,7 +1373,7 @@ angle_glesv2 = static_library(
         angle_glesv2_thin,
     ],
     cpp_args: args,
-    sources: [
+    sources: [ # libglesv2_sources in src/libGLESv2.gni
         'src/libGLESv2/libGLESv2_autogen.cpp',
     ],
     build_by_default: false,
@@ -1461,7 +1402,7 @@ angle_egl = static_library(
         mkxp_angle_egl_shim,
     ],
     cpp_args: args + export_args + egl_args,
-    sources: [
+    sources: [ # libegl_sources in src/libGLESv2.gni
         'src/libEGL/libEGL_autogen.cpp',
     ],
     build_by_default: false,
@@ -1474,7 +1415,7 @@ angle_util = static_library(
     cpp_args: args + [
         '-DM_PI=3.14159265358979323846',
     ],
-    sources: [
+    sources: [ # _util_sources in util/BUILD.gn
         'util/EGLWindow.cpp',
         'util/Matrix.cpp',
         'util/OSWindow.cpp',
@@ -1518,7 +1459,6 @@ angle = library(
         angle_version_info,
         angle_translator,
         angle_util,
-        have_direct3d9 ? angle_d3d9_backend : [],
         have_direct3d11 ? angle_d3d11_backend : [],
         have_null ? angle_null_backend : [],
         have_metal ? angle_metal_backend : [],
@@ -1526,7 +1466,7 @@ angle = library(
         have_vulkan ? angle_vulkan_backend : [],
     ],
     cpp_args: args,
-    sources: [
+    sources: [ # libangle_sources in src/libGLESv2.gni
         'src/libANGLE/AttributeMap.cpp',
         'src/libANGLE/BlobCache.cpp',
         'src/libANGLE/Buffer.cpp',
@@ -1556,10 +1496,6 @@ angle = library(
         'src/libANGLE/MemoryProgramCache.cpp',
         'src/libANGLE/MemoryShaderCache.cpp',
         'src/libANGLE/Observer.cpp',
-        'src/libANGLE/Overlay.cpp',
-        'src/libANGLE/OverlayWidgets.cpp',
-        'src/libANGLE/Overlay_autogen.cpp',
-        'src/libANGLE/Overlay_font_autogen.cpp',
         'src/libANGLE/PixelLocalStorage.cpp',
         'src/libANGLE/Platform.cpp',
         'src/libANGLE/Program.cpp',

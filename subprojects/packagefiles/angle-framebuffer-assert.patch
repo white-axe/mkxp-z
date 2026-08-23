@@ -4,7 +4,7 @@
 
 --- a/src/libANGLE/Framebuffer.cpp
 +++ b/src/libANGLE/Framebuffer.cpp
-@@ -904,7 +904,7 @@ egl::Error Framebuffer::setSurfaces(const Context *context,
+@@ -874,7 +874,7 @@ egl::Error Framebuffer::setSurfaces(const Context *context,
      SetComponentTypeMask(getDrawbufferWriteType(0), 0, &mState.mDrawBufferTypeMask);
  
      ASSERT(mCachedStatus.value().status == GL_FRAMEBUFFER_UNDEFINED_OES);
@@ -13,7 +13,7 @@
      if (surface)
      {
          mCachedStatus = FramebufferStatus::Complete();
-@@ -972,7 +972,7 @@ egl::Error Framebuffer::unsetSurfaces(const Context *context)
+@@ -942,7 +942,7 @@ egl::Error Framebuffer::unsetSurfaces(const Context *context)
          ASSERT(!mState.mDepthAttachment.isAttached());
          ASSERT(!mState.mStencilAttachment.isAttached());
          ASSERT(mCachedStatus.value().status == GL_FRAMEBUFFER_UNDEFINED_OES);

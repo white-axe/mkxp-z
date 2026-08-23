@@ -143,13 +143,6 @@ if true
     endif
 
     if have_angle
-        if get_option('angle_direct3d9').disabled()
-            angle_direct3d9 = 'disabled'
-        elif get_option('angle_direct3d9').enabled()
-            angle_direct3d9 = 'enabled'
-        else
-            angle_direct3d9 = 'auto'
-        endif
         if get_option('angle_direct3d11').disabled()
             angle_direct3d11 = 'disabled'
         elif get_option('angle_direct3d11').enabled()
@@ -179,22 +172,17 @@ if true
             angle_vulkan = 'auto'
         endif
         angle = subproject('angle', default_options: meson_base_options + {
-            'direct3d9': angle_direct3d9,
             'direct3d11': angle_direct3d11,
             'metal': angle_metal,
             'null': angle_null,
             'opengl': 'disabled',
             'vulkan': have_angle_vulkan ? angle_vulkan : 'disabled',
         })
-        have_angle_direct3d9 = angle.get_variable('have_direct3d9')
         have_angle_direct3d11 = angle.get_variable('have_direct3d11')
         have_angle_metal = angle.get_variable('have_metal')
         have_angle_null = angle.get_variable('have_null')
         have_angle_vulkan = angle.get_variable('have_vulkan')
         global_args += '-DMKXPZ_HAVE_ANGLE'
-        if have_angle_direct3d9
-            global_args += '-DMKXPZ_HAVE_ANGLE_DIRECT3D9'
-        endif
         if have_angle_direct3d11
             global_args += '-DMKXPZ_HAVE_ANGLE_DIRECT3D11'
         endif

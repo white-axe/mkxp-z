@@ -2,7 +2,7 @@
 
 --- a/src/libANGLE/Display.cpp
 +++ b/src/libANGLE/Display.cpp
-@@ -64,7 +64,7 @@
+@@ -69,7 +69,7 @@
  #        include "libANGLE/renderer/gl/wgl/DisplayWGL.h"
  #    elif ANGLE_ENABLE_CGL
  #        include "libANGLE/renderer/gl/cgl/DisplayCGL.h"
@@ -11,7 +11,7 @@
  #        include "libANGLE/renderer/gl/egl/DisplayEGL.h"
  #        if defined(ANGLE_USE_X11)
  #            include "libANGLE/renderer/gl/glx/DisplayGLX_api.h"
-@@ -435,7 +435,7 @@ rx::DisplayImpl *CreateDisplayFromAttribs(EGLAttrib displayType,
+@@ -555,7 +555,7 @@ rx::DisplayImpl *CreateDisplayFromAttribs(EGLAttrib displayType,
              impl = new rx::DisplayCGL(state);
              break;
  
@@ -20,7 +20,7 @@
  #        if defined(ANGLE_USE_GBM) || defined(ANGLE_USE_WAYLAND)
              if (platformType == 0)
              {
-@@ -493,7 +493,7 @@ rx::DisplayImpl *CreateDisplayFromAttribs(EGLAttrib displayType,
+@@ -613,7 +613,7 @@ rx::DisplayImpl *CreateDisplayFromAttribs(EGLAttrib displayType,
  #if defined(ANGLE_ENABLE_OPENGL)
  #    if defined(ANGLE_PLATFORM_WINDOWS)
              impl = new rx::DisplayWGL(state);
@@ -29,7 +29,7 @@
  #        if defined(ANGLE_USE_GBM) || defined(ANGLE_USE_WAYLAND)
              if (platformType == 0)
              {
-@@ -556,7 +556,7 @@ rx::DisplayImpl *CreateDisplayFromAttribs(EGLAttrib displayType,
+@@ -676,7 +676,7 @@ rx::DisplayImpl *CreateDisplayFromAttribs(EGLAttrib displayType,
                  impl = rx::CreateVulkanWin32Display(state);
              }
              break;
@@ -38,7 +38,7 @@
  #        if defined(ANGLE_USE_GBM)
              if (platformType == EGL_PLATFORM_GBM_KHR && rx::IsVulkanGbmDisplayAvailable())
              {
-@@ -2207,7 +2207,7 @@ static ClientExtensions GenerateClientExtensions()
+@@ -2279,7 +2279,7 @@ static ClientExtensions GenerateClientExtensions()
      extensions.platformWaylandEXT = true;
  #endif
  
@@ -47,7 +47,7 @@
      extensions.platformSurfacelessMESA = true;
  #endif
  
-@@ -2254,7 +2254,7 @@ static ClientExtensions GenerateClientExtensions()
+@@ -2326,7 +2326,7 @@ static ClientExtensions GenerateClientExtensions()
      extensions.x11Visual = true;
  #endif
  
@@ -56,6 +56,17 @@
      extensions.platformANGLEDeviceTypeEGLANGLE = true;
  #endif
  
+--- a/src/libANGLE/renderer/driver_utils.cpp
++++ b/src/libANGLE/renderer/driver_utils.cpp
+@@ -395,7 +395,7 @@ OSVersion GetLinuxOSVersion()
+ 
+ bool IsXWayland()
+ {
+-#if defined(ANGLE_PLATFORM_LINUX)
++#if defined(ANGLE_PLATFORM_POSIX) && !defined(ANGLE_PLATFORM_ANDROID) && !defined(ANGLE_PLATFORM_APPLE) && !defined(ANGLE_PLATFORM_FUCHSIA)
+     // Detects the Wayland session rather than the connection, so callers must be
+     // on an X11 code path for this to mean XWayland. Cached: the session type is
+     // fixed for the life of the process.
 --- a/src/libANGLE/renderer/vulkan/CLPlatformVk.cpp
 +++ b/src/libANGLE/renderer/vulkan/CLPlatformVk.cpp
 @@ -276,7 +276,7 @@ angle::NativeWindowSystem CLPlatformVk::getWindowSystem()
@@ -103,7 +114,7 @@
  bool IsVulkanAndroidDisplayAvailable();
 --- a/src/libANGLE/renderer/vulkan/vk_renderer.cpp
 +++ b/src/libANGLE/renderer/vulkan/vk_renderer.cpp
-@@ -5592,7 +5592,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
+@@ -5752,7 +5752,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
          &mFeatures, supportsExternalFenceFd,
          ExtensionFound(VK_KHR_EXTERNAL_FENCE_FD_EXTENSION_NAME, deviceExtensionNames));
  
@@ -112,7 +123,7 @@
      if (mFeatures.supportsExternalFenceCapabilities.enabled &&
          mFeatures.supportsExternalSemaphoreCapabilities.enabled)
      {
-@@ -5637,7 +5637,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
+@@ -5797,7 +5797,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
                                  (mFeatures.supportsExternalFenceFd.enabled &&
                                   mFeatures.supportsExternalSemaphoreFd.enabled));
      }
