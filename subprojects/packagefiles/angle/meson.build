@@ -601,7 +601,13 @@ angle_common = static_library(
         ) : [],
         host_machine_is_windows ? meson.get_compiler('cpp').find_library('synchronization', required: true) : [],
     ],
-    cpp_args: args,
+    cpp_args: args + (
+        not meson.get_compiler('cpp').has_header_symbol('time.h', 'CLOCK_MONOTONIC_RAW')
+            ? [
+                '-DCLOCK_MONOTONIC_RAW=CLOCK_MONOTONIC',
+            ]
+            : []
+    ),
     objcpp_args: objcpp_args,
     sources: [ # libangle_common_sources in src/libGLESv2.gni
         'src/common/Float16ToFloat32.cpp',
