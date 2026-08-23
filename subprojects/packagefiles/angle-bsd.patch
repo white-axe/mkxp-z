@@ -58,6 +58,16 @@
  
 --- a/src/libANGLE/renderer/driver_utils.cpp
 +++ b/src/libANGLE/renderer/driver_utils.cpp
+@@ -19,8 +19,8 @@
+ #if defined(ANGLE_PLATFORM_LINUX)
+ #    include <sys/utsname.h>
+ 
+-#    include "common/linux/window_system.h"
+ #endif
++#include "common/linux/window_system.h"
+ 
+ namespace rx
+ {
 @@ -395,7 +395,7 @@ OSVersion GetLinuxOSVersion()
  
  bool IsXWayland()
