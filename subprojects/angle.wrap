@@ -10,6 +10,7 @@ diff_files =
     angle-d3d11-cache.patch,
     angle-framebuffer-assert.patch,
     angle-interm-node.patch,
+    angle-resource-map.patch,
     angle-round-to-nearest.patch,
     angle-span.patch,
     angle-vk-mem-alloc-wrapper.patch,
