@@ -51,8 +51,18 @@ jobs:
           EOF
 
   build-source-tarball:
-    name: Build source tarball
+    name: ${{ matrix.job-name }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - job-name: Source tarball with dependencies
+            artifact-name: source-with-dependencies
+            dist-subprojects: all
+          - job-name: Source tarball without dependencies
+            artifact-name: source-without-dependencies
+            dist-subprojects: none
     steps:
       - uses: benjlevesque/short-sha@v4.0
         id: short-sha
@@ -76,7 +86,7 @@ jobs:
       - name: Prepare tarball
         run: |
           meson subprojects download
-          meson setup -Ddist_subprojects=all build
+          meson setup -Ddist_subprojects=${{ matrix.dist-subprojects }} build
           meson dist -C build --no-tests --formats gztar
           mv build/meson-dist/*.tar.gz dist.tar.gz
 
@@ -87,12 +97,12 @@ jobs:
           rm dist.tar.gz
           tar -C dist --mtime=@$(git show --no-patch --format=%ct) --sort=name --format=posix --mode=a=rX,u+w --owner=0 --group=0 --numeric-owner --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime -cf dist.tar "$(ls dist)"
           zstd --rm -T0 --ultra -20 dist.tar
-          mv dist.tar.zst mkxp-z.source.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}.tar.zst
+          mv dist.tar.zst mkxp-z.${{ matrix.artifact-name }}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}.tar.zst
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          path: mkxp-z.source.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}.tar.zst
+          path: mkxp-z.${{ matrix.artifact-name }}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}.tar.zst
           archive: false
 
   build-windows-msys2:
