@@ -435,26 +435,25 @@ jobs:
         run: |
           sudo apt install -y debootstrap gpg qemu-user-binfmt
 
+          keyrings="$(realpath keyrings)"
+
           cd ${{ runner.temp }}
 
           if [ '${{ matrix.distro }}' = 'debian' ]
           then
-            gpg --no-default-keyring --keyring ./debian-ports.kbx --keyserver keyserver.ubuntu.com --recv-keys 0x66571731b5a71f91c501f3fdda1b2cea81dcbc61
-            sudo debootstrap --arch=${{ matrix.arch_debian }} --include=gcc,g++ --variant=minbase --keyring=./debian-ports.kbx --force-check-sig ${{ matrix.suite }} sysroot http://snapshot.debian.org/archive/debian-ports/20190901T052020Z
+            sudo debootstrap --arch=${{ matrix.arch_debian }} --include=gcc,g++ --variant=minbase --keyring="$keyrings/debian-ports-2019.gpg" --force-check-sig ${{ matrix.suite }} sysroot http://snapshot.debian.org/archive/debian-ports/20190901T052020Z
           elif [ '${{ matrix.distro }}' = 'raspbian' ]
           then
             sudo apt install -y curl
-            gpg --no-default-keyring --keyring ./raspbian.kbx --keyserver keyserver.ubuntu.com --recv-keys 0xa0da38d0d76e8b5d638872819165938d90fddd2e
             if curl --retry 5 -fIL http://raspbian.raspberrypi.org/raspbian/dists/${{ matrix.suite }}/InRelease
             then
               repo=http://raspbian.raspberrypi.org/raspbian
             else
               repo=http://legacy.raspbian.org/raspbian
             fi
-            sudo debootstrap --arch=${{ matrix.arch_debian }} --include=gcc,g++ --variant=minbase --keyring=./raspbian.kbx --force-check-sig ${{ matrix.suite }} sysroot $repo
+            sudo debootstrap --arch=${{ matrix.arch_debian }} --include=gcc,g++ --variant=minbase --keyring="$keyrings/raspbian.gpg" --force-check-sig ${{ matrix.suite }} sysroot $repo
           elif [ '${{ matrix.distro }}' = 'ubuntu' ]
           then
-            sudo apt install -y ubuntu-keyring
             if [ '${{ matrix.cpu-family }}' = 'x86' ] || [ '${{ matrix.cpu-family }}' = 'x86_64' ]
             then
               repo=http://archive.ubuntu.com/ubuntu
@@ -463,14 +462,12 @@ jobs:
             fi
             if [ '${{ matrix.suite }}' = 'xenial' ] || [ '${{ matrix.suite }}' = 'bionic' ]
             then
-              sudo debootstrap --arch=${{ matrix.arch_debian }} --variant=minbase --keyring=/usr/share/keyrings/ubuntu-archive-keyring.gpg --force-check-sig ${{ matrix.suite }} sysroot $repo
-              gpg --no-default-keyring --keyring ./ubuntu-toolchain-r.kbx --keyserver keyserver.ubuntu.com --recv-keys 0xc8ec952e2a0e1fbdc5090f6a2c277a0a352154e5
-              gpg --no-default-keyring --keyring ./ubuntu-toolchain-r.kbx --export --output ubuntu-toolchain-r.gpg
-              sudo mv ubuntu-toolchain-r.gpg sysroot/
+              sudo debootstrap --arch=${{ matrix.arch_debian }} --variant=minbase --keyring="$keyrings/ubuntu.gpg" --force-check-sig ${{ matrix.suite }} sysroot $repo
+              sudo cp "$keyrings/ubuntu-toolchain-r.gpg" sysroot/
               echo "deb $repo ${{ matrix.suite }}-updates main" | sudo tee -a sysroot/etc/apt/sources.list > /dev/null
               echo 'deb [signed-by=/ubuntu-toolchain-r.gpg] http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu ${{ matrix.suite }} main' | sudo tee -a sysroot/etc/apt/sources.list > /dev/null
             else
-              sudo debootstrap --arch=${{ matrix.arch_debian }} --include=gcc,g++ --variant=minbase --keyring=/usr/share/keyrings/ubuntu-archive-keyring.gpg --force-check-sig ${{ matrix.suite }} sysroot $repo
+              sudo debootstrap --arch=${{ matrix.arch_debian }} --include=gcc,g++ --variant=minbase --keyring="$keyrings/ubuntu.gpg" --force-check-sig ${{ matrix.suite }} sysroot $repo
             fi
           fi
 
