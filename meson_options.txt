@@ -37,7 +37,6 @@ option('x86_64_sse41', type: 'feature', value: 'disabled', description: 'Enable 
 
 option('alsa', type: 'feature', value: 'auto', description: 'Enable support for audio output via Advanced Linux Sound Architecture')
 option('angle', type: 'feature', value: 'auto', description: 'Enable support for using ANGLE to convert OpenGL calls to Direct3D, Metal or Vulkan')
-option('angle_direct3d9', type: 'feature', value: 'auto', description: 'Enable ANGLE\'s Direct3D 9 backend')
 option('angle_direct3d11', type: 'feature', value: 'auto', description: 'Enable ANGLE\'s Direct3D 11 backend')
 option('angle_metal', type: 'feature', value: 'auto', description: 'Enable ANGLE\'s Metal backend')
 option('angle_null', type: 'feature', value: 'auto', description: 'Enable ANGLE\'s null backend')
