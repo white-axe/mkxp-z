@@ -23,7 +23,6 @@ option('steamshim_debug', type: 'boolean', value: false, description: 'Whether t
 option('gfx_backend', type: 'combo', value: 'gl', choices: ['gl', 'gles'], description: 'Graphics rendering API to use.')
 
 option('angle', type: 'feature', value: 'auto', description: 'Enable support for using ANGLE to convert OpenGL calls to Direct3D, Metal or Vulkan')
-option('angle_direct3d9', type: 'feature', value: 'auto', description: 'Enable ANGLE\'s Direct3D 9 backend')
 option('angle_direct3d11', type: 'feature', value: 'auto', description: 'Enable ANGLE\'s Direct3D 11 backend')
 option('angle_metal', type: 'feature', value: 'auto', description: 'Enable ANGLE\'s Metal backend')
 option('angle_null', type: 'feature', value: 'auto', description: 'Enable ANGLE\'s null backend')
