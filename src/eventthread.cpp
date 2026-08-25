@@ -275,9 +275,6 @@ void EventThread::process(RGSSThreadData &rtData)
                         windowSizeMsg.post(Vec2i(winW, winH));
                         drawableSizeMsg.post(Vec2i(drwW, drwH));
                         resetInputStates();
-                        if (shState != nullptr) {
-                            shState->graphics().onSizeChanged();
-                        }
                         break;
                         
                     case SDL_WINDOWEVENT_ENTER :

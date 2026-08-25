@@ -59,6 +59,7 @@
 
 #include <algorithm>
 #include <errno.h>
+#include <functional>
 #include <sys/time.h>
 #include <unistd.h>
 #include <time.h>
@@ -777,6 +778,8 @@ private:
     }
 };
 
+std::function<void ()> mkxp_angle_direct3d_resize_callback = nullptr;
+
 struct GraphicsPrivate {
     /* Having this field at the beginning ensures the locks are destroyed after all of the other fields of GraphicsPrivate are destroyed */
     struct GraphicsPrivateLocks {
@@ -822,7 +825,6 @@ struct GraphicsPrivate {
     
     double last_update;
     
-    AtomicFlag sizeChanged;
     
     FPSLimiter fpsLimiter;
     
@@ -1021,17 +1023,15 @@ private:
         GLMeta::blitBeginScreen(screenSize, scaleIsSpecial);
         GLMeta::blitSource(source, scaleIsSpecial);
 
-        // We need to repaint the screen twice after the game window's size changes if we're using ANGLE's Direct3D 11 backend (probably because of double buffering).
-        // For other ANGLE backends, or (usually) when not using ANGLE, this is not required, but it causes no harm if we do it anyways.
-        for (size_t repaintCount = sizeChanged.clear() ? 2 : 1; repaintCount > 0;) {
+        for (size_t repaintCount = 1; repaintCount-- > 0;) {
+            mkxp_angle_direct3d_resize_callback = [&]() {
+                // We need to repaint the screen twice after the game window's size changes if we're using one of ANGLE's Direct3D backends (probably because of double buffering).
+                repaintCount = 2;
+            };
             FBO::clear();
             metaBlitBufferFlippedScaled(args...);
             gl.SwapWindow(threadData->window);
-            if (sizeChanged.clear()) {
-                repaintCount = 2;
-            } else {
-                --repaintCount;
-            }
+            mkxp_angle_direct3d_resize_callback = nullptr;
         }
 
         GLMeta::blitEnd();
@@ -1529,10 +1529,6 @@ void Graphics::resizeWindow(int width, int height, bool center) {
     
     if (center)
         this->center();
-}
-
-void Graphics::onSizeChanged() {
-    p->sizeChanged.set();
 }
 
 bool Graphics::updateMovieInput(Movie *movie) {
