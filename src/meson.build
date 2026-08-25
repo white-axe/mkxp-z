@@ -1017,7 +1017,7 @@ if not theora.found()
 endif
 global_dependencies += theora
 
-theoraplay_options = meson_base_options + {'thread': 'disabled'}
+theoraplay_options = meson_base_options
 theoraplay = subproject('theoraplay', default_options: theoraplay_options).get_variable('theoraplay')
 if not subproject('theoraplay', default_options: theoraplay_options).get_variable('have_thread')
     global_args += '-DMKXPZ_THEORAPLAY_NO_THREAD'
