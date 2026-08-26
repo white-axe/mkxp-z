@@ -34,7 +34,7 @@
 
 --- a/compile.c
 +++ b/compile.c
-@@ -103,6 +103,8 @@ mkxp_ec_is_syntax_transform_active(unsigned int maximum_target_ruby_version_majo
+@@ -115,6 +115,8 @@ mkxp_ec_is_syntax_transform_active(unsigned int maximum_target_ruby_version_majo
      }
  }
  
@@ -43,7 +43,7 @@
  #undef RUBY_UNTYPED_DATA_WARNING
  #define RUBY_UNTYPED_DATA_WARNING 0
  
-@@ -829,6 +831,17 @@ rb_iseq_compile_node(rb_iseq_t *iseq, const NODE *node)
+@@ -841,6 +843,17 @@ rb_iseq_compile_node(rb_iseq_t *iseq, const NODE *node)
  		ADD_TRACE(ret, RUBY_EVENT_B_CALL);
                  NODE dummy_line_node = generate_dummy_line_node(FIX2INT(iseq->body->location.first_lineno), -1);
  		ADD_INSN (ret, &dummy_line_node, nop);
@@ -61,7 +61,7 @@
  		ADD_LABEL(ret, start);
  		CHECK(COMPILE(ret, "block body", node->nd_body));
  		ADD_LABEL(ret, end);
-@@ -1603,11 +1616,11 @@ get_lvar_level(const rb_iseq_t *iseq)
+@@ -1615,11 +1628,11 @@ get_lvar_level(const rb_iseq_t *iseq)
  }
  
  static int
@@ -75,7 +75,7 @@
  	if (iseq->body->local_table[i] == id) {
  	    return (int)i;
  	}
-@@ -1615,6 +1628,12 @@ get_dyna_var_idx_at_raw(const rb_iseq_t *iseq, ID id)
+@@ -1627,6 +1640,12 @@ get_dyna_var_idx_at_raw(const rb_iseq_t *iseq, ID id)
      return -1;
  }
  
@@ -88,7 +88,7 @@
  static int
  get_local_var_idx(const rb_iseq_t *iseq, ID id)
  {
-@@ -1634,13 +1653,25 @@ get_dyna_var_idx(const rb_iseq_t *iseq, ID id, int *level, int *ls)
+@@ -1646,13 +1665,25 @@ get_dyna_var_idx(const rb_iseq_t *iseq, ID id, int *level, int *ls)
      int lv = 0, idx = -1;
      const rb_iseq_t *const topmost_iseq = iseq;
  
