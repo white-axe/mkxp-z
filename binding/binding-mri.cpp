@@ -163,12 +163,12 @@ RB_METHOD(mkxpParseCSV);
     mkxp_set_syntax_transform_target_for_method(receiver, name, major, minor, teeny); \
 } while (0)
 
-#define SYNTAX_TRANSFORM_DEFINE_SINGLETON_METHOD(receiver, name, major, minor, teeny) do { \
+#define SYNTAX_TRANSFORM_DEFINE_SINGLETON_METHOD(receiver, name, func, argc, major, minor, teeny) do { \
     rb_define_singleton_method(receiver, name, func, argc); \
     mkxp_set_syntax_transform_target_for_method(rb_singleton_class(receiver), name, major, minor, teeny); \
 } while (0)
 
-#define SYNTAX_TRANSFORM_DEFINE_MODULE_FUNCTION(receiver, name, major, minor, teeny) do { \
+#define SYNTAX_TRANSFORM_DEFINE_MODULE_FUNCTION(receiver, name, func, argc, major, minor, teeny) do { \
     rb_define_module_function(receiver, name, func, argc); \
     mkxp_set_syntax_transform_target_for_method(receiver, name, major, minor, teeny); \
     mkxp_set_syntax_transform_target_for_method(rb_singleton_class(receiver), name, major, minor, teeny); \
