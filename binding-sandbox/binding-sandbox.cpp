@@ -54,16 +54,46 @@ static VALUE marshal_module;
 static VALUE win32api_class;
 
 #ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
+struct syntax_transform_define_method : boost::asio::coroutine {
+    void operator()(VALUE receiver, const char *name, VALUE (*func)(ANYARGS), int32_t argc, uint32_t major, uint32_t minor, uint32_t patch) {
+        BOOST_ASIO_CORO_REENTER (this) {
+            SANDBOX_AWAIT(rb_define_method, receiver, name, func, argc);
+            SANDBOX_AWAIT(mkxp_set_syntax_transform_target_for_method, receiver, name, major, minor, patch);
+        }
+    }
+};
+
+struct syntax_transform_define_singleton_method : boost::asio::coroutine {
+    typedef decl_slots<VALUE> slots;
+
+    void operator()(VALUE receiver, const char *name, VALUE (*func)(ANYARGS), int32_t argc, uint32_t major, uint32_t minor, uint32_t patch) {
+        BOOST_ASIO_CORO_REENTER (this) {
+            SANDBOX_AWAIT(rb_define_singleton_method, receiver, name, func, argc);
+            SANDBOX_AWAIT_S(0, rb_singleton_class, receiver);
+            SANDBOX_AWAIT(mkxp_set_syntax_transform_target_for_method, SANDBOX_SLOT(0), name, major, minor, patch);
+        }
+    }
+};
+
+struct syntax_transform_define_module_function : boost::asio::coroutine {
+    typedef decl_slots<VALUE> slots;
+
+    void operator()(VALUE receiver, const char *name, VALUE (*func)(ANYARGS), int32_t argc, uint32_t major, uint32_t minor, uint32_t patch) {
+        BOOST_ASIO_CORO_REENTER (this) {
+            SANDBOX_AWAIT(rb_define_module_function, receiver, name, func, argc);
+            SANDBOX_AWAIT(mkxp_set_syntax_transform_target_for_method, receiver, name, major, minor, patch);
+            SANDBOX_AWAIT_S(0, rb_singleton_class, receiver);
+            SANDBOX_AWAIT(mkxp_set_syntax_transform_target_for_method, SANDBOX_SLOT(0), name, major, minor, patch);
+        }
+    }
+};
+
 static VALUE legacy_array_choice(int32_t argc, wasm_ptr_t argv, VALUE self) {
     struct coro : boost::asio::coroutine {
         typedef decl_slots<VALUE, ID> slots;
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
-                if (!SANDBOX_SLOT(0)) {
-                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "choice");
-                }
                 SANDBOX_AWAIT_S(1, rb_intern, "sample");
                 SANDBOX_AWAIT_S(0, rb_funcallv, self, SANDBOX_SLOT(1), argc, argv);
             }
@@ -81,10 +111,6 @@ static VALUE legacy_array_indexes(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
-                if (!SANDBOX_SLOT(0)) {
-                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "indexes");
-                }
                 SANDBOX_AWAIT(mkxp_warn, "Array#indexes is deprecated; use Array#values_at");
                 SANDBOX_AWAIT_S(1, rb_intern, "values_at");
                 SANDBOX_AWAIT_S(0, rb_funcallv, self, SANDBOX_SLOT(1), argc, argv);
@@ -103,10 +129,6 @@ static VALUE legacy_array_indices(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
-                if (!SANDBOX_SLOT(0)) {
-                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "indices");
-                }
                 SANDBOX_AWAIT(mkxp_warn, "Array#indices is deprecated; use Array#values_at");
                 SANDBOX_AWAIT_S(1, rb_intern, "values_at");
                 SANDBOX_AWAIT_S(0, rb_funcallv, self, SANDBOX_SLOT(1), argc, argv);
@@ -125,10 +147,6 @@ static VALUE legacy_array_nitems(VALUE self) {
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
-                if (!SANDBOX_SLOT(0)) {
-                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "nitems");
-                }
                 SANDBOX_AWAIT_S(1, rb_intern, "length");
                 SANDBOX_AWAIT_S(0, rb_funcall, self, SANDBOX_SLOT(1), 0);
             }
@@ -146,10 +164,6 @@ static VALUE legacy_hash_indexes(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
-                if (!SANDBOX_SLOT(0)) {
-                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "indexes");
-                }
                 SANDBOX_AWAIT(mkxp_warn, "Hash#indexes is deprecated; use Hash#values_at");
                 SANDBOX_AWAIT_S(1, rb_intern, "values_at");
                 SANDBOX_AWAIT_S(0, rb_funcallv, self, SANDBOX_SLOT(1), argc, argv);
@@ -168,10 +182,6 @@ static VALUE legacy_hash_indices(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
-                if (!SANDBOX_SLOT(0)) {
-                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "indices");
-                }
                 SANDBOX_AWAIT(mkxp_warn, "Hash#indices is deprecated; use Hash#values_at");
                 SANDBOX_AWAIT_S(1, rb_intern, "values_at");
                 SANDBOX_AWAIT_S(0, rb_funcallv, self, SANDBOX_SLOT(1), argc, argv);
@@ -190,10 +200,6 @@ static VALUE legacy_kernel_id(VALUE self) {
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
-                if (!SANDBOX_SLOT(0)) {
-                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "id");
-                }
                 SANDBOX_AWAIT(mkxp_warn, "Object#id will be deprecated; use Object#object_id");
                 SANDBOX_AWAIT_S(0, rb_obj_id, self);
             }
@@ -211,10 +217,6 @@ static VALUE legacy_kernel_type(VALUE self) {
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
-                if (!SANDBOX_SLOT(0)) {
-                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "type");
-                }
                 SANDBOX_AWAIT(mkxp_warn, "Object#type is deprecated; use Object#class");
                 SANDBOX_AWAIT_S(0, rb_obj_class, self);
             }
@@ -232,10 +234,6 @@ static VALUE legacy_symbol_to_i(VALUE self) {
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
-                if (!SANDBOX_SLOT(0)) {
-                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "to_i");
-                }
                 SANDBOX_AWAIT_S(1, rb_sym2id, self);
                 SANDBOX_AWAIT_S(0, rb_ll2inum, (wasm_ssize_t)SANDBOX_SLOT(1));
             }
@@ -253,10 +251,6 @@ static VALUE legacy_symbol_to_int(VALUE self) {
 
         VALUE operator()(VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
-                if (!SANDBOX_SLOT(0)) {
-                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "to_int");
-                }
                 SANDBOX_AWAIT(mkxp_warn, "treating Symbol as an integer");
                 SANDBOX_AWAIT_S(1, rb_sym2id, self);
                 SANDBOX_AWAIT_S(0, rb_ll2inum, (wasm_ssize_t)SANDBOX_SLOT(1));
@@ -275,10 +269,6 @@ static VALUE legacy_hash_index(int32_t argc, wasm_ptr_t argv, VALUE self) {
 
         VALUE operator()(int32_t argc, wasm_ptr_t argv, VALUE self) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 2, 7, -1);
-                if (!SANDBOX_SLOT(0)) {
-                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "index");
-                }
                 SANDBOX_AWAIT(mkxp_warn, "Hash#index is deprecated; use Hash#key instead");
                 SANDBOX_AWAIT_S(1, rb_intern, "key");
                 SANDBOX_AWAIT_S(0, rb_funcallv, self, SANDBOX_SLOT(1), argc, argv);
@@ -297,10 +287,6 @@ static VALUE legacy_dir_exists(VALUE self, VALUE path) {
 
         VALUE operator()(VALUE self, VALUE path) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 3, 1, -1);
-                if (!SANDBOX_SLOT(0)) {
-                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "exists?");
-                }
                 SANDBOX_AWAIT_S(1, rb_intern, "exist?");
                 SANDBOX_AWAIT_S(0, rb_funcall, sb()->rb_cDir(), SANDBOX_SLOT(1), 1, path);
             }
@@ -318,10 +304,6 @@ static VALUE legacy_file_exists(VALUE self, VALUE path) {
 
         VALUE operator()(VALUE self, VALUE path) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 3, 1, -1);
-                if (!SANDBOX_SLOT(0)) {
-                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "exists?");
-                }
                 SANDBOX_AWAIT_S(1, rb_intern, "exist?");
                 SANDBOX_AWAIT_S(0, rb_funcall, sb()->rb_cFile(), SANDBOX_SLOT(1), 1, path);
             }
@@ -339,10 +321,6 @@ static VALUE legacy_file_test_exists(VALUE self, VALUE path) {
 
         VALUE operator()(VALUE self, VALUE path) {
             BOOST_ASIO_CORO_REENTER (this) {
-                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 3, 1, -1);
-                if (!SANDBOX_SLOT(0)) {
-                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "exists?");
-                }
                 SANDBOX_AWAIT_S(1, rb_intern, "exist?");
                 SANDBOX_AWAIT_S(0, rb_funcall, sb()->rb_mFileTest(), SANDBOX_SLOT(1), 1, path);
             }
@@ -363,10 +341,6 @@ static VALUE legacy_kernel_match(VALUE self, VALUE other) {
                 SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 1, 8, -1);
                 if (SANDBOX_SLOT(0)) {
                     return SANDBOX_FALSE;
-                }
-                SANDBOX_AWAIT_S(0, mkxp_ec_is_syntax_transform_active, 3, 1, -1);
-                if (!SANDBOX_SLOT(0)) {
-                    SANDBOX_AWAIT(mkxp_raise_no_method_exception, self, "=~");
                 }
             }
 
@@ -1110,21 +1084,21 @@ void sandbox_binding_init::operator()() {
         SANDBOX_AWAIT_S(0, rb_str_new_cstr, "UTF8");
         SANDBOX_AWAIT(rb_gv_set, "$-K", SANDBOX_SLOT(0));
 
-        SANDBOX_AWAIT(rb_define_method, sb()->rb_cArray(), "choice", (VALUE (*)(ANYARGS))legacy_array_choice, -1);
-        SANDBOX_AWAIT(rb_define_method, sb()->rb_cArray(), "indexes", (VALUE (*)(ANYARGS))legacy_array_indexes, -1);
-        SANDBOX_AWAIT(rb_define_method, sb()->rb_cArray(), "indices", (VALUE (*)(ANYARGS))legacy_array_indices, -1);
-        SANDBOX_AWAIT(rb_define_method, sb()->rb_cArray(), "nitems", (VALUE (*)(ANYARGS))legacy_array_nitems, 0);
-        SANDBOX_AWAIT(rb_define_method, sb()->rb_cHash(), "indexes", (VALUE (*)(ANYARGS))legacy_hash_indexes, -1);
-        SANDBOX_AWAIT(rb_define_method, sb()->rb_cHash(), "indices", (VALUE (*)(ANYARGS))legacy_hash_indices, -1);
-        SANDBOX_AWAIT(rb_define_method, sb()->rb_mKernel(), "id", (VALUE (*)(ANYARGS))legacy_kernel_id, 0);
-        SANDBOX_AWAIT(rb_define_method, sb()->rb_mKernel(), "type", (VALUE (*)(ANYARGS))legacy_kernel_type, 0);
-        SANDBOX_AWAIT(rb_define_method, sb()->rb_cSymbol(), "to_i", (VALUE (*)(ANYARGS))legacy_symbol_to_i, 0);
-        SANDBOX_AWAIT(rb_define_method, sb()->rb_cSymbol(), "to_int", (VALUE (*)(ANYARGS))legacy_symbol_to_int, 0);
-        SANDBOX_AWAIT(rb_define_method, sb()->rb_cHash(), "index", (VALUE (*)(ANYARGS))legacy_hash_index, -1);
-        SANDBOX_AWAIT(rb_define_singleton_method, sb()->rb_cDir(), "exists?", (VALUE (*)(ANYARGS))legacy_dir_exists, 1);
-        SANDBOX_AWAIT(rb_define_singleton_method, sb()->rb_cFile(), "exists?", (VALUE (*)(ANYARGS))legacy_file_exists, 1);
-        SANDBOX_AWAIT(rb_define_module_function, sb()->rb_mFileTest(), "exists?", (VALUE (*)(ANYARGS))legacy_file_test_exists, 1);
-        SANDBOX_AWAIT(rb_define_method, sb()->rb_mKernel(), "=~", (VALUE (*)(ANYARGS))legacy_kernel_match, 1);
+        SANDBOX_AWAIT(syntax_transform_define_method, sb()->rb_cArray(), "choice", (VALUE (*)(ANYARGS))legacy_array_choice, -1, 1, 8, -1);
+        SANDBOX_AWAIT(syntax_transform_define_method, sb()->rb_cArray(), "indexes", (VALUE (*)(ANYARGS))legacy_array_indexes, -1, 1, 8, -1);
+        SANDBOX_AWAIT(syntax_transform_define_method, sb()->rb_cArray(), "indices", (VALUE (*)(ANYARGS))legacy_array_indices, -1, 1, 8, -1);
+        SANDBOX_AWAIT(syntax_transform_define_method, sb()->rb_cArray(), "nitems", (VALUE (*)(ANYARGS))legacy_array_nitems, 0, 1, 8, -1);
+        SANDBOX_AWAIT(syntax_transform_define_method, sb()->rb_cHash(), "indexes", (VALUE (*)(ANYARGS))legacy_hash_indexes, -1, 1, 8, -1);
+        SANDBOX_AWAIT(syntax_transform_define_method, sb()->rb_cHash(), "indices", (VALUE (*)(ANYARGS))legacy_hash_indices, -1, 1, 8, -1);
+        SANDBOX_AWAIT(syntax_transform_define_method, sb()->rb_mKernel(), "id", (VALUE (*)(ANYARGS))legacy_kernel_id, 0, 1, 8, -1);
+        SANDBOX_AWAIT(syntax_transform_define_method, sb()->rb_mKernel(), "type", (VALUE (*)(ANYARGS))legacy_kernel_type, 0, 1, 8, -1);
+        SANDBOX_AWAIT(syntax_transform_define_method, sb()->rb_cSymbol(), "to_i", (VALUE (*)(ANYARGS))legacy_symbol_to_i, 0, 1, 8, -1);
+        SANDBOX_AWAIT(syntax_transform_define_method, sb()->rb_cSymbol(), "to_int", (VALUE (*)(ANYARGS))legacy_symbol_to_int, 0, 1, 8, -1);
+        SANDBOX_AWAIT(syntax_transform_define_method, sb()->rb_cHash(), "index", (VALUE (*)(ANYARGS))legacy_hash_index, -1, 2, 7, -1);
+        SANDBOX_AWAIT(syntax_transform_define_singleton_method, sb()->rb_cDir(), "exists?", (VALUE (*)(ANYARGS))legacy_dir_exists, 1, 3, 1, -1);
+        SANDBOX_AWAIT(syntax_transform_define_singleton_method, sb()->rb_cFile(), "exists?", (VALUE (*)(ANYARGS))legacy_file_exists, 1, 3, 1, -1);
+        SANDBOX_AWAIT(syntax_transform_define_module_function, sb()->rb_mFileTest(), "exists?", (VALUE (*)(ANYARGS))legacy_file_test_exists, 1, 3, 1, -1);
+        SANDBOX_AWAIT(syntax_transform_define_method, sb()->rb_mKernel(), "=~", (VALUE (*)(ANYARGS))legacy_kernel_match, 1, 3, 1, -1);
 
         SANDBOX_AWAIT(table_binding_init);
         SANDBOX_AWAIT(etc_binding_init);

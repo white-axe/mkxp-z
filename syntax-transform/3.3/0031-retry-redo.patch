@@ -41,7 +41,7 @@
 
 --- a/compile.c
 +++ b/compile.c
-@@ -8132,6 +8132,9 @@ compile_retry(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, i
+@@ -8144,6 +8144,9 @@ compile_retry(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, i
              ADD_INSN(ret, line_node, pop);
          }
      }

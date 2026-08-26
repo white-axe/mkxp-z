@@ -47,17 +47,29 @@
 
 --- a/compile.c
 +++ b/compile.c
-@@ -44,6 +44,65 @@
+@@ -44,6 +44,77 @@
  #include "insns.inc"
  #include "insns_info.inc"
  
-+[[noreturn]] void
-+mkxp_raise_no_method_exception(VALUE receiver, const char *method_name)
++/**
++ * Makes it so that a method is only visible to Ruby scripts if syntax transform is enabled
++ * and is currently targeting a Ruby version that is less than or equal to
++ * the version given by `maximum_target_ruby_version_major`,
++ * `maximum_target_ruby_version_minor` and `maximum_target_ruby_version_teeny`
++ */
++void
++mkxp_set_syntax_transform_target_for_method(VALUE receiver, const char *method_name, unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny)
 +{
-+    VALUE rb_make_no_method_exception(VALUE, VALUE, VALUE, int, const VALUE *, int);
-+    VALUE method_name_value = rb_str_new_cstr(method_name);
-+    VALUE exc = rb_make_no_method_exception(rb_eNoMethodError, 0, receiver, 1, &method_name_value, 0);
-+    rb_exc_raise(exc);
++    const rb_callable_method_entry_t *cme = rb_callable_method_entry(receiver, rb_intern(method_name));
++    if (cme == NULL) {
++        VALUE rb_make_no_method_exception(VALUE, VALUE, VALUE, int, const VALUE *, int);
++        VALUE method_name_value = rb_str_new_cstr(method_name);
++        VALUE exc = rb_make_no_method_exception(rb_eNoMethodError, 0, receiver, 1, &method_name_value, 0);
++        rb_exc_raise(exc);
++    }
++    cme->def->mkxp_syntax_transform_maximum_target_ruby_version_major_plus_one = maximum_target_ruby_version_major + 1;
++    cme->def->mkxp_syntax_transform_maximum_target_ruby_version_minor_plus_one = maximum_target_ruby_version_minor + 1;
++    cme->def->mkxp_syntax_transform_maximum_target_ruby_version_teeny_plus_one = maximum_target_ruby_version_teeny + 1;
 +}
 +
 +/**
@@ -123,7 +135,7 @@
 +
 +bool mkxp_ec_is_syntax_transform_active(unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny);
 +
-+[[noreturn]] void mkxp_raise_no_method_exception(VALUE receiver, const char *method_name);
++void mkxp_set_syntax_transform_target_for_method(VALUE receiver, const char *method_name, unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny);
 +
  RBIMPL_SYMBOL_EXPORT_END()
  
@@ -164,6 +176,19 @@
 +bool mkxp_iseq_is_syntax_transform_active(const rb_iseq_t *iseq, unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny);
 +
  #endif /* RUBY_ISEQ_H */
+--- a/method.h
++++ b/method.h
+@@ -195,6 +195,10 @@ struct rb_method_definition_struct {
+ 
+     ID original_id;
+     uintptr_t method_serial;
++
++    unsigned int mkxp_syntax_transform_maximum_target_ruby_version_major_plus_one;
++    unsigned int mkxp_syntax_transform_maximum_target_ruby_version_minor_plus_one;
++    unsigned int mkxp_syntax_transform_maximum_target_ruby_version_teeny_plus_one;
+ };
+ 
+ struct rb_id_table;
 --- a/parse.y
 +++ b/parse.y
 @@ -330,6 +330,8 @@ struct parser_params {
@@ -273,3 +298,45 @@
      rb_parser_set_context(parser, parent, FALSE);
      ast = rb_parser_compile_string_path(parser, fname, src, line);
      if (ast->body.root) {
+--- a/vm_insnhelper.c
++++ b/vm_insnhelper.c
+@@ -1938,11 +1938,39 @@ vm_search_method_slowpath0(VALUE cd_owner, struct rb_call_data *cd, VALUE klass)
+     return cc;
+ }
+ 
++static const struct rb_callcache *mkxp_syntax_transform_vm_search_method_fastpath(VALUE cd_owner, struct rb_call_data *cd, VALUE klass);
+ #ifndef MJIT_HEADER
+ ALWAYS_INLINE(static const struct rb_callcache *vm_search_method_fastpath(VALUE cd_owner, struct rb_call_data *cd, VALUE klass));
+ #endif
+ static const struct rb_callcache *
+ vm_search_method_fastpath(VALUE cd_owner, struct rb_call_data *cd, VALUE klass)
++{
++    const struct rb_callcache *cc = mkxp_syntax_transform_vm_search_method_fastpath(cd_owner, cd, klass);
++    if (cc == vm_cc_empty()) {
++        return cc;
++    }
++    if (
++        (
++            cc == vm_cc_empty()
++        ) || (
++            cc->cme_->def->mkxp_syntax_transform_maximum_target_ruby_version_major_plus_one == 0
++                && cc->cme_->def->mkxp_syntax_transform_maximum_target_ruby_version_minor_plus_one == 0
++                && cc->cme_->def->mkxp_syntax_transform_maximum_target_ruby_version_teeny_plus_one == 0
++        ) || (
++            mkxp_ec_is_syntax_transform_active(
++                cc->cme_->def->mkxp_syntax_transform_maximum_target_ruby_version_major_plus_one - 1,
++                cc->cme_->def->mkxp_syntax_transform_maximum_target_ruby_version_minor_plus_one - 1,
++                cc->cme_->def->mkxp_syntax_transform_maximum_target_ruby_version_teeny_plus_one - 1
++            )
++        )
++    ) {
++        return cc;
++    }
++    return vm_cc_empty();
++}
++
++static const struct rb_callcache *
++mkxp_syntax_transform_vm_search_method_fastpath(VALUE cd_owner, struct rb_call_data *cd, VALUE klass)
+ {
+     const struct rb_callcache *cc = cd->cc;
+ 

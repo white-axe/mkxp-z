@@ -47,7 +47,7 @@
 
 --- a/compile.c
 +++ b/compile.c
-@@ -45,6 +45,71 @@
+@@ -45,6 +45,83 @@
  #include "insns.inc"
  #include "insns_info.inc"
  
@@ -57,13 +57,25 @@
 +    rb_warn("%s", message);
 +}
 +
-+[[noreturn]] void
-+mkxp_raise_no_method_exception(VALUE receiver, const char *method_name)
++/**
++ * Makes it so that a method is only visible to Ruby scripts if syntax transform is enabled
++ * and is currently targeting a Ruby version that is less than or equal to
++ * the version given by `maximum_target_ruby_version_major`,
++ * `maximum_target_ruby_version_minor` and `maximum_target_ruby_version_teeny`
++ */
++void
++mkxp_set_syntax_transform_target_for_method(VALUE receiver, const char *method_name, unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny)
 +{
-+    VALUE rb_make_no_method_exception(VALUE, VALUE, VALUE, int, const VALUE *, int);
-+    VALUE method_name_value = rb_str_new_cstr(method_name);
-+    VALUE exc = rb_make_no_method_exception(rb_eNoMethodError, 0, receiver, 1, &method_name_value, 0);
-+    rb_exc_raise(exc);
++    const rb_callable_method_entry_t *cme = rb_callable_method_entry(receiver, rb_intern(method_name));
++    if (cme == NULL) {
++        VALUE rb_make_no_method_exception(VALUE, VALUE, VALUE, int, const VALUE *, int);
++        VALUE method_name_value = rb_str_new_cstr(method_name);
++        VALUE exc = rb_make_no_method_exception(rb_eNoMethodError, 0, receiver, 1, &method_name_value, 0);
++        rb_exc_raise(exc);
++    }
++    cme->def->mkxp_syntax_transform_maximum_target_ruby_version_major_plus_one = maximum_target_ruby_version_major + 1;
++    cme->def->mkxp_syntax_transform_maximum_target_ruby_version_minor_plus_one = maximum_target_ruby_version_minor + 1;
++    cme->def->mkxp_syntax_transform_maximum_target_ruby_version_teeny_plus_one = maximum_target_ruby_version_teeny + 1;
 +}
 +
 +/**
@@ -119,7 +131,7 @@
  #undef RUBY_UNTYPED_DATA_WARNING
  #define RUBY_UNTYPED_DATA_WARNING 0
  
-@@ -1487,6 +1552,7 @@ new_child_iseq(rb_iseq_t *iseq, const NODE *const node,
+@@ -1487,6 +1564,7 @@ new_child_iseq(rb_iseq_t *iseq, const NODE *const node,
      ast.root = node;
      ast.frozen_string_literal = -1;
      ast.coverage_enabled = -1;
@@ -127,7 +139,7 @@
      ast.script_lines = ISEQ_BODY(iseq)->variable.script_lines;
  
      debugs("[new_child_iseq]> ---------------------------------------\n");
-@@ -8584,6 +8650,7 @@ compile_builtin_mandatory_only_method(rb_iseq_t *iseq, const NODE *node, const N
+@@ -8584,6 +8662,7 @@ compile_builtin_mandatory_only_method(rb_iseq_t *iseq, const NODE *node, const N
          .root = RNODE(&scope_node),
          .frozen_string_literal = -1,
          .coverage_enabled = -1,
@@ -147,7 +159,7 @@
 +
 +bool mkxp_ec_is_syntax_transform_active(unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny);
 +
-+[[noreturn]] void mkxp_raise_no_method_exception(VALUE receiver, const char *method_name);
++void mkxp_set_syntax_transform_target_for_method(VALUE receiver, const char *method_name, unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny);
 +
  RBIMPL_SYMBOL_EXPORT_END()
  
@@ -196,6 +208,19 @@
 +bool mkxp_iseq_is_syntax_transform_active(const rb_iseq_t *iseq, unsigned int maximum_target_ruby_version_major, unsigned int maximum_target_ruby_version_minor, unsigned int maximum_target_ruby_version_teeny);
 +
  #endif /* RUBY_ISEQ_H */
+--- a/method.h
++++ b/method.h
+@@ -194,6 +194,10 @@ struct rb_method_definition_struct {
+ 
+     ID original_id;
+     uintptr_t method_serial;
++
++    unsigned int mkxp_syntax_transform_maximum_target_ruby_version_major_plus_one;
++    unsigned int mkxp_syntax_transform_maximum_target_ruby_version_minor_plus_one;
++    unsigned int mkxp_syntax_transform_maximum_target_ruby_version_teeny_plus_one;
+ };
+ 
+ struct rb_id_table;
 --- a/parse.y
 +++ b/parse.y
 @@ -510,6 +510,8 @@ struct parser_params {
@@ -320,3 +345,43 @@
      rb_parser_set_context(parser, parent, FALSE);
      rb_parser_set_script_lines(parser, RBOOL(ruby_vm_keep_script_lines));
      ast = rb_parser_compile_string_path(parser, fname, src, line);
+--- a/vm_insnhelper.c
++++ b/vm_insnhelper.c
+@@ -2202,9 +2202,37 @@ vm_search_method_slowpath0(VALUE cd_owner, struct rb_call_data *cd, VALUE klass)
+     return cc;
+ }
+ 
++static const struct rb_callcache *mkxp_syntax_transform_vm_search_method_fastpath(VALUE cd_owner, struct rb_call_data *cd, VALUE klass);
+ ALWAYS_INLINE(static const struct rb_callcache *vm_search_method_fastpath(VALUE cd_owner, struct rb_call_data *cd, VALUE klass));
+ static const struct rb_callcache *
+ vm_search_method_fastpath(VALUE cd_owner, struct rb_call_data *cd, VALUE klass)
++{
++    const struct rb_callcache *cc = mkxp_syntax_transform_vm_search_method_fastpath(cd_owner, cd, klass);
++    if (cc == vm_cc_empty()) {
++        return cc;
++    }
++    if (
++        (
++            cc == vm_cc_empty()
++        ) || (
++            cc->cme_->def->mkxp_syntax_transform_maximum_target_ruby_version_major_plus_one == 0
++                && cc->cme_->def->mkxp_syntax_transform_maximum_target_ruby_version_minor_plus_one == 0
++                && cc->cme_->def->mkxp_syntax_transform_maximum_target_ruby_version_teeny_plus_one == 0
++        ) || (
++            mkxp_ec_is_syntax_transform_active(
++                cc->cme_->def->mkxp_syntax_transform_maximum_target_ruby_version_major_plus_one - 1,
++                cc->cme_->def->mkxp_syntax_transform_maximum_target_ruby_version_minor_plus_one - 1,
++                cc->cme_->def->mkxp_syntax_transform_maximum_target_ruby_version_teeny_plus_one - 1
++            )
++        )
++    ) {
++        return cc;
++    }
++    return vm_cc_empty();
++}
++
++static const struct rb_callcache *
++mkxp_syntax_transform_vm_search_method_fastpath(VALUE cd_owner, struct rb_call_data *cd, VALUE klass)
+ {
+     const struct rb_callcache *cc = cd->cc;
+ 

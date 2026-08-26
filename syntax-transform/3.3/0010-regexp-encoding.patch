@@ -119,16 +119,13 @@
      if (cr == ENC_CODERANGE_BROKEN) {
          rb_raise(rb_eArgError,
              "invalid byte sequence in %s",
-@@ -4726,6 +4758,30 @@ rb_reg_timeout_get(VALUE re)
+@@ -4726,6 +4758,27 @@ rb_reg_timeout_get(VALUE re)
   *  :include: doc/_regexp.rdoc
   */
  
 +static VALUE
 +mkxp_legacy_kcode(VALUE re)
 +{
-+    if (!mkxp_ec_is_syntax_transform_active(1, 8, -1)) {
-+        mkxp_raise_no_method_exception(re, "kcode");
-+    }
 +    if (RBOOL(FL_TEST(re, REG_ENCODING_NONE))) {
 +        return rb_str_new_cstr("none");
 +    }
@@ -150,12 +147,13 @@
  void
  Init_Regexp(void)
  {
-@@ -4828,4 +4884,6 @@ Init_Regexp(void)
+@@ -4828,4 +4881,7 @@ Init_Regexp(void)
      rb_define_method(rb_cMatch, "hash", match_hash, 0);
      rb_define_method(rb_cMatch, "eql?", match_equal, 1);
      rb_define_method(rb_cMatch, "==", match_equal, 1);
 +
 +    rb_define_method(rb_cRegexp, "kcode", mkxp_legacy_kcode, 0);
++    mkxp_set_syntax_transform_target_for_method(rb_cRegexp, "kcode", 1, 8, -1);
  }
 --- a/variable.c
 +++ b/variable.c
