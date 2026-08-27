@@ -35,7 +35,7 @@ byteSwap16(uint16_t value)
 	static_assert(sizeof(unsigned short) == sizeof(uint16_t), "unsigned short should be 16 bits");
 	return _byteswap_ushort(value);
 #else
-	return __builtin_bswap32(value);
+	return __builtin_bswap16(value);
 #endif
 }
 
