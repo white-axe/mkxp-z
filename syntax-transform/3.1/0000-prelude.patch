@@ -420,15 +420,6 @@
                          RB_DEBUG_COUNTER_INC(cc_found_in_ccs);
  
                          VM_ASSERT(vm_cc_cme(ccs_cc)->called_id == mid);
-@@ -1831,7 +1831,7 @@ vm_search_cc(const VALUE klass, const struct rb_callinfo * const ci)
- 
-     VM_ASSERT(cme == NULL || IMEMO_TYPE_P(cme, imemo_ment));
- 
--    if (cme == NULL) {
-+    if (cme == NULL || !mkxp_syntax_transform_is_method_available(cme->def)) {
-         // undef or not found: can't cache the information
-         VM_ASSERT(vm_cc_cme(&vm_empty_cc) == NULL);
-         return &vm_empty_cc;
 @@ -1945,10 +1945,10 @@ static const struct rb_callcache *
  vm_search_method_fastpath(VALUE cd_owner, struct rb_call_data *cd, VALUE klass)
  {
@@ -444,14 +435,25 @@
              VM_ASSERT(vm_cc_cme(cc) == NULL ||                        // not found
 --- a/vm_method.c
 +++ b/vm_method.c
-@@ -1631,6 +1631,10 @@ method_boundp(VALUE klass, ID id, int ex)
- 	    if (ex & BOUND_RESPONDS) return 2;
- 	    return 0;
- 	}
-+	bool mkxp_syntax_transform_is_method_available(struct rb_method_definition_struct *);
-+	if (!mkxp_syntax_transform_is_method_available(cme->def)) {
-+	    return 0;
-+	}
- 	return 1;
-     }
-     return 0;
+@@ -1253,8 +1253,8 @@ cached_callable_method_entry(VALUE klass, ID mid)
+     if (cc_tbl && rb_id_table_lookup(cc_tbl, mid, &ccs_data)) {
+         struct rb_class_cc_entries *ccs = (struct rb_class_cc_entries *)ccs_data;
+         VM_ASSERT(vm_ccs_p(ccs));
+-
+-        if (LIKELY(!METHOD_ENTRY_INVALIDATED(ccs->cme))) {
++        bool mkxp_syntax_transform_is_method_available(struct rb_method_definition_struct *);
++        if (LIKELY(!METHOD_ENTRY_INVALIDATED(ccs->cme) && mkxp_syntax_transform_is_method_available(ccs->cme->def))) {
+             VM_ASSERT(ccs->cme->called_id == mid);
+             RB_DEBUG_COUNTER_INC(ccs_found);
+             return ccs->cme;
+@@ -1329,8 +1329,8 @@ callable_method_entry(VALUE klass, ID mid, VALUE *defined_class_ptr)
+             VALUE defined_class;
+             rb_method_entry_t *me = search_method(klass, mid, &defined_class);
+             if (defined_class_ptr) *defined_class_ptr = defined_class;
+-
+-            if (me != NULL) {
++            bool mkxp_syntax_transform_is_method_available(struct rb_method_definition_struct *);
++            if (me != NULL && mkxp_syntax_transform_is_method_available(me->def)) {
+                 cme = prepare_callable_method_entry(defined_class, mid, me, TRUE);
+             }
+             else {
