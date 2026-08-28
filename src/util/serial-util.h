@@ -98,9 +98,7 @@ readInt32(const char **dataP)
 	memcpy(&result, *dataP, 4);
 	*dataP += 4;
 
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-	result = byteSwap32(result);
-#endif
+	result = byteSwap32IfBigEndian(result);
 
 	return result;
 }
@@ -130,9 +128,7 @@ readDouble(const char **dataP)
 static inline void
 writeInt32(char **dataP, int32_t value)
 {
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-	value = byteSwap32(value);
-#endif
+	value = byteSwap32IfBigEndian(value);
 
 	memcpy(*dataP, &value, 4);
 	*dataP += 4;
