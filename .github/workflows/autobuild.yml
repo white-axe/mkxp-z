@@ -647,6 +647,12 @@ jobs:
         run: |
           meson install -C build --no-rebuild --tags mkxp-z
 
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: mkxp-z.linux.debian.trixie.x86_64.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          path: build/artifact
+
   build-linux-cross-container:
     name: Debian Trixie ${{matrix.arch_mkxpz}}
     runs-on: ubuntu-latest
@@ -750,6 +756,12 @@ jobs:
       - name: Prepare artifact
         run: |
           meson install -C build --no-rebuild --tags mkxp-z
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: mkxp-z.linux.debian.trixie.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          path: build/artifact
 
   build-freebsd:
     name: FreeBSD ${{ matrix.arch }}
