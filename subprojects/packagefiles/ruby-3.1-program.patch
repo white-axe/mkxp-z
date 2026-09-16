@@ -19,7 +19,7 @@
  %.res.@OBJEXT@: %.rc
 -	$(ECHO) compiling $@
 -	$(Q) $(WINDRES) --include-dir . --include-dir $(<D) --include-dir $(srcdir)/win32 $< $@
-+	touch $@
++	rm -f $@ && $(AR) $(ARFLAGS) $@
 +
  
  %.rc: $(BOOTSTRAPRUBY_FAKE) $(RBCONFIG) $(srcdir)/revision.h $(srcdir)/win32/resource.rb
