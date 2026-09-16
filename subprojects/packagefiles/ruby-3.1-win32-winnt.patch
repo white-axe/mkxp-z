@@ -12,3 +12,14 @@
    RUBY_APPEND_OPTION(CPPFLAGS, -D__MINGW_USE_VC2005_COMPAT)
  ])
  
+--- a/ext/socket/extconf.rb
++++ b/ext/socket/extconf.rb
+@@ -520,7 +520,7 @@ EOF
+ 
+   if ipv6
+     if $mingw
+-      $CPPFLAGS << " -D_WIN32_WINNT=0x501" unless $CPPFLAGS.include?("_WIN32_WINNT")
++
+     end
+     ipv6lib = nil
+     class << (fmt = "unknown")
