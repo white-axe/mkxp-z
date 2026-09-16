@@ -1,0 +1,14 @@
+# Prevents Ruby's build system from manually defining _WIN32_WINNT,
+# because it causes compilation errors if the Meson cross file we're using has also manually defined _WIN32_WINNT.
+
+--- a/configure.ac
++++ b/configure.ac
+@@ -970,7 +970,7 @@ AC_ARG_WITH(winnt-ver,
+   [with_winnt_ver="$withval"], [with_winnt_ver="0x0600"])
+ AS_CASE(["$target_os"],
+ [mingw*], [
+-  RUBY_APPEND_OPTION(CPPFLAGS, -D_WIN32_WINNT=$with_winnt_ver)
++
+   RUBY_APPEND_OPTION(CPPFLAGS, -D__MINGW_USE_VC2005_COMPAT)
+ ])
+ 

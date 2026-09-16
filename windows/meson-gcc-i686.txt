@@ -1,7 +1,7 @@
 [binaries]
-c = ['ccache', 'i686-w64-mingw32-gcc']
-cpp = ['ccache', 'i686-w64-mingw32-g++']
-windres = 'i686-w64-mingw32-windres'
+c = ['ccache', 'i686-w64-mingw32-gcc', '-D_WIN32_WINNT=0x0601']
+cpp = ['ccache', 'i686-w64-mingw32-g++', '-D_WIN32_WINNT=0x0601']
+windres = ['i686-w64-mingw32-windres', '-D_WIN32_WINNT=0x0601']
 ar = 'i686-w64-mingw32-ar'
 strip = 'i686-w64-mingw32-strip'
 cmake = 'cmake'

@@ -12857,15 +12857,7 @@ fi
 case "$target_os" in #(
   mingw*) :
 
-  # RUBY_APPEND_OPTION(CPPFLAGS)
-	case " ${CPPFLAGS-} " in #(
-  *" -D_WIN32_WINNT=$with_winnt_ver "*) :
-     ;; #(
-  '  ') :
-     CPPFLAGS="-D_WIN32_WINNT=$with_winnt_ver" ;; #(
-  *) :
-     CPPFLAGS="$CPPFLAGS -D_WIN32_WINNT=$with_winnt_ver" ;;
-esac
+
   # RUBY_APPEND_OPTION(CPPFLAGS)
 	case " ${CPPFLAGS-} " in #(
   *" -D__MINGW_USE_VC2005_COMPAT "*) :

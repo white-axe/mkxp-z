@@ -1,7 +1,7 @@
 [binaries]
-c = ['ccache', 'clang', '--target=aarch64-w64-mingw32']
-cpp = ['ccache', 'clang++', '--target=aarch64-w64-mingw32']
-windres = ['llvm-windres', '--target=aarch64-w64-mingw32']
+c = ['ccache', 'clang', '--target=aarch64-w64-mingw32', '-D_WIN32_WINNT=0x0601']
+cpp = ['ccache', 'clang++', '--target=aarch64-w64-mingw32', '-D_WIN32_WINNT=0x0601']
+windres = ['llvm-windres', '--target=aarch64-w64-mingw32', '-D_WIN32_WINNT=0x0601']
 ar = 'llvm-ar'
 strip = 'llvm-strip'
 cmake = 'cmake'
