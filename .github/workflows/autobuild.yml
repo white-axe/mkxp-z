@@ -206,6 +206,12 @@ jobs:
             exit 1
           fi
 
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: mkxp-z.windows.msys2.x86_64.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          path: build/artifact
+
   build-windows-cross:
     name: Windows ${{ matrix.arch_mkxpz }}
     runs-on: ubuntu-latest
@@ -309,7 +315,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: mkxp-z.windows.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          name: mkxp-z.windows.cross.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/artifact
 
   build-linux-gnu:
