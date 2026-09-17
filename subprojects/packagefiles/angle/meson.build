@@ -12,6 +12,8 @@ host_machine_is_windows = host_machine.system() in ['windows', 'cygwin']
 host_machine_is_native_windows = host_machine_is_windows and meson.get_compiler('cpp').compute_int('!!WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)', prefix: '#include <winapifamily.h>', low: 0, high: 1) != 0
 host_machine_is_uwp = host_machine_is_windows and not host_machine_is_native_windows
 
+win32_winnt = host_machine_is_windows ? meson.get_compiler('cpp').compute_int('_WIN32_WINNT', prefix: '#include <windows.h>', low: 0, high: 0xffffffff) : 0
+
 includes = [
     '.',
     'src',
@@ -37,6 +39,14 @@ endif
 
 if get_option('default_library') == 'static'
     args += '-DANGLE_PLATFORM_EXPORT='
+endif
+
+synchronization = host_machine_is_windows and win32_winnt >= 0x0602 ? meson.get_compiler('cpp').find_library('synchronization', required: get_option('windows_futex')) : dependency('', required: false)
+have_windows_futex = synchronization.found()
+if not have_windows_futex
+    args += '-DANGLE_WINDOWS_NO_FUTEX'
+else
+    synchronization = dependency('', required: false)
 endif
 
 zlib = dependency('zlib', required: true)
@@ -599,7 +609,7 @@ angle_common = static_library(
             ],
             required: true,
         ) : [],
-        host_machine_is_windows ? meson.get_compiler('cpp').find_library('synchronization', required: true) : [],
+        synchronization,
     ],
     cpp_args: args + (
         not meson.get_compiler('cpp').has_header_symbol('time.h', 'CLOCK_MONOTONIC_RAW')
