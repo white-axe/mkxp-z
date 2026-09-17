@@ -45,8 +45,6 @@ synchronization = host_machine_is_windows and win32_winnt >= 0x0602 ? meson.get_
 have_windows_futex = synchronization.found()
 if not have_windows_futex
     args += '-DANGLE_WINDOWS_NO_FUTEX'
-else
-    synchronization = dependency('', required: false)
 endif
 
 zlib = dependency('zlib', required: true)
