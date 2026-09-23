@@ -9,8 +9,8 @@ override_options = {'cpp_std': 'c++20'}
 host_machine_is_macos = host_machine.system() == 'darwin' and meson.get_compiler('cpp').compute_int('!!TARGET_OS_OSX', prefix: '#include <TargetConditionals.h>', low: 0, high: 1) != 0
 host_machine_is_ios = host_machine.system() == 'darwin' and not host_machine_is_macos
 host_machine_is_windows = host_machine.system() in ['windows', 'cygwin']
-host_machine_is_native_windows = host_machine_is_windows and meson.get_compiler('cpp').compute_int('!!WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)', prefix: '#include <winapifamily.h>', low: 0, high: 1) != 0
-host_machine_is_uwp = host_machine_is_windows and not host_machine_is_native_windows
+host_machine_is_windows_desktop = host_machine_is_windows and meson.get_compiler('cpp').compute_int('!!WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)', prefix: '#include <winapifamily.h>', low: 0, high: 1) != 0
+host_machine_is_uwp = host_machine_is_windows and not host_machine_is_windows_desktop
 
 win32_winnt = host_machine_is_windows ? meson.get_compiler('cpp').compute_int('_WIN32_WINNT', prefix: '#include <windows.h>', low: 0, high: 0xffffffff) : 0
 
@@ -676,7 +676,7 @@ angle_common = static_library(
                 'src/common/system_utils_winuwp.cpp',
             ]
             : [],
-        host_machine_is_native_windows
+        host_machine_is_windows_desktop
             ? [ # libangle_common_sources in src/libGLESv2.gni
                 'src/common/system_utils_win.cpp',
                 'src/common/system_utils_win32.cpp',
