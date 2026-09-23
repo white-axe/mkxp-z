@@ -1,8 +1,8 @@
-project('angle', 'cpp', version: '8020', meson_version: '>= 1.2.0')
+project('angle', 'cpp', version: '8037', meson_version: '>= 1.2.0')
 if host_machine.system() == 'darwin'
     add_languages('objcpp', native: false)
 endif
-git_hash = '80760643c85e1dfe07d389ee5c9baa9198e3f870'
+git_hash = '8efd15f71c27cd0bc2a9cf0074d77e899ca9c448'
 
 override_options = {'cpp_std': 'c++20'}
 
