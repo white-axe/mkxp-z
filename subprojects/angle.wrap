@@ -16,5 +16,6 @@ diff_files =
     angle-span.patch,
     angle-vk-mem-alloc-wrapper.patch,
     angle-vulkan-memory-allocator.patch,
+    angle-vulkan-windows-minimize.patch,
     angle-window-surface-vk-mac.patch,
     end-of-diff-files.patch
