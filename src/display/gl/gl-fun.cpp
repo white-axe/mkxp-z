@@ -123,7 +123,7 @@ struct CommandGetError
     DECLARE_COMMAND_ID;
     GLenum result;
 };
-static GLenum commandGetError(void)
+static GLenum APIENTRY commandGetError(void)
 {
     EXECUTE_COMMAND(GetError);
 }
@@ -136,7 +136,7 @@ struct CommandClearColor
     GLclampf blue;
     GLclampf alpha;
 };
-static void commandClearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha)
+static void APIENTRY commandClearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha)
 {
     EXECUTE_COMMAND(ClearColor, red, green, blue, alpha);
 }
@@ -146,7 +146,7 @@ struct CommandClear
     DECLARE_COMMAND_ID;
     GLbitfield mask;
 };
-static void commandClear(GLbitfield mask)
+static void APIENTRY commandClear(GLbitfield mask)
 {
     EXECUTE_COMMAND(Clear, mask);
 }
@@ -157,7 +157,7 @@ struct CommandGetString
     GLenum name;
     const GLubyte *result;
 };
-static const GLubyte *commandGetString(GLenum name)
+static const GLubyte *APIENTRY commandGetString(GLenum name)
 {
     EXECUTE_COMMAND(GetString, name);
 }
@@ -169,7 +169,7 @@ struct CommandGetStringi
     GLuint index;
     const GLubyte *result;
 };
-static const GLubyte *commandGetStringi(GLenum name, GLuint index)
+static const GLubyte *APIENTRY commandGetStringi(GLenum name, GLuint index)
 {
     EXECUTE_COMMAND(GetStringi, name, index);
 }
@@ -180,7 +180,7 @@ struct CommandGetIntegerv
     GLenum pname;
     GLint *params;
 };
-static void commandGetIntegerv(GLenum pname, GLint *params)
+static void APIENTRY commandGetIntegerv(GLenum pname, GLint *params)
 {
     EXECUTE_COMMAND(GetIntegerv, pname, params);
 }
@@ -191,7 +191,7 @@ struct CommandPixelStorei
     GLenum pname;
     GLint param;
 };
-static void commandPixelStorei(GLenum pname, GLint param)
+static void APIENTRY commandPixelStorei(GLenum pname, GLint param)
 {
     EXECUTE_COMMAND(PixelStorei, pname, param);
 }
@@ -207,7 +207,7 @@ struct CommandReadPixels
     GLenum type;
     GLvoid *pixels;
 };
-static void commandReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid *pixels)
+static void APIENTRY commandReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid *pixels)
 {
     EXECUTE_COMMAND(ReadPixels, x, y, width, height, format, type, pixels);
 }
@@ -217,7 +217,7 @@ struct CommandEnable
     DECLARE_COMMAND_ID;
     GLenum cap;
 };
-static void commandEnable(GLenum cap)
+static void APIENTRY commandEnable(GLenum cap)
 {
     EXECUTE_COMMAND(Enable, cap);
 }
@@ -227,7 +227,7 @@ struct CommandDisable
     DECLARE_COMMAND_ID;
     GLenum cap;
 };
-static void commandDisable(GLenum cap)
+static void APIENTRY commandDisable(GLenum cap)
 {
     EXECUTE_COMMAND(Disable, cap);
 }
@@ -240,7 +240,7 @@ struct CommandScissor
     GLsizei width;
     GLsizei height;
 };
-static void commandScissor(GLint x, GLint y, GLsizei width, GLsizei height)
+static void APIENTRY commandScissor(GLint x, GLint y, GLsizei width, GLsizei height)
 {
     EXECUTE_COMMAND(Scissor, x, y, width, height);
 }
@@ -253,7 +253,7 @@ struct CommandViewport
     GLsizei width;
     GLsizei height;
 };
-static void commandViewport(GLint x, GLint y, GLsizei width, GLsizei height)
+static void APIENTRY commandViewport(GLint x, GLint y, GLsizei width, GLsizei height)
 {
     EXECUTE_COMMAND(Viewport, x, y, width, height);
 }
@@ -264,7 +264,7 @@ struct CommandBlendFunc
     GLenum sfactor;
     GLenum dfactor;
 };
-static void commandBlendFunc(GLenum sfactor, GLenum dfactor)
+static void APIENTRY commandBlendFunc(GLenum sfactor, GLenum dfactor)
 {
     EXECUTE_COMMAND(BlendFunc, sfactor, dfactor);
 }
@@ -277,7 +277,7 @@ struct CommandBlendFuncSeparate
     GLenum sfactorAlpha;
     GLenum dfactorAlpha;
 };
-static void commandBlendFuncSeparate(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha)
+static void APIENTRY commandBlendFuncSeparate(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha)
 {
     EXECUTE_COMMAND(BlendFuncSeparate, sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
 }
@@ -287,7 +287,7 @@ struct CommandBlendEquation
     DECLARE_COMMAND_ID;
     GLenum mode;
 };
-static void commandBlendEquation(GLenum mode)
+static void APIENTRY commandBlendEquation(GLenum mode)
 {
     EXECUTE_COMMAND(BlendEquation, mode);
 }
@@ -300,7 +300,7 @@ struct CommandDrawElements
     GLenum type;
     const GLvoid *indices;
 };
-static void commandDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid *indices)
+static void APIENTRY commandDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid *indices)
 {
     EXECUTE_COMMAND(DrawElements, mode, count, type, indices);
 }
@@ -311,7 +311,7 @@ struct CommandGenTextures
     GLsizei n;
     GLuint *textures;
 };
-static void commandGenTextures(GLsizei n, GLuint *textures)
+static void APIENTRY commandGenTextures(GLsizei n, GLuint *textures)
 {
     EXECUTE_COMMAND(GenTextures, n, textures);
 }
@@ -322,7 +322,7 @@ struct CommandDeleteTextures
     GLsizei n;
     const GLuint *textures;
 };
-static void commandDeleteTextures(GLsizei n, const GLuint *textures)
+static void APIENTRY commandDeleteTextures(GLsizei n, const GLuint *textures)
 {
     EXECUTE_COMMAND(DeleteTextures, n, textures);
 }
@@ -333,7 +333,7 @@ struct CommandBindTexture
     GLenum target;
     GLuint texture;
 };
-static void commandBindTexture(GLenum target, GLuint texture)
+static void APIENTRY commandBindTexture(GLenum target, GLuint texture)
 {
     EXECUTE_COMMAND(BindTexture, target, texture);
 }
@@ -351,7 +351,7 @@ struct CommandTexImage2D
     GLenum type;
     const GLvoid *pixels;
 };
-static void commandTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels)
+static void APIENTRY commandTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels)
 {
     EXECUTE_COMMAND(TexImage2D, target, level, internalformat, width, height, border, format, type, pixels);
 }
@@ -369,7 +369,7 @@ struct CommandTexSubImage2D
     GLenum type;
     const GLvoid *pixels;
 };
-static void commandTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *pixels)
+static void APIENTRY commandTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *pixels)
 {
     EXECUTE_COMMAND(TexSubImage2D, target, level, xoffset, yoffset, width, height, format, type, pixels);
 }
@@ -381,7 +381,7 @@ struct CommandTexParameteri
     GLenum pname;
     GLint param;
 };
-static void commandTexParameteri(GLenum target, GLenum pname, GLint param)
+static void APIENTRY commandTexParameteri(GLenum target, GLenum pname, GLint param)
 {
     EXECUTE_COMMAND(TexParameteri, target, pname, param);
 }
@@ -391,7 +391,7 @@ struct CommandActiveTexture
     DECLARE_COMMAND_ID;
     GLenum texture;
 };
-static void commandActiveTexture(GLenum texture)
+static void APIENTRY commandActiveTexture(GLenum texture)
 {
     EXECUTE_COMMAND(ActiveTexture, texture);
 }
@@ -401,7 +401,7 @@ struct CommandGenerateMipmap
     DECLARE_COMMAND_ID;
     GLenum target;
 };
-static void commandGenerateMipmap(GLenum target)
+static void APIENTRY commandGenerateMipmap(GLenum target)
 {
     EXECUTE_COMMAND(GenerateMipmap, target);
 }
@@ -411,7 +411,7 @@ struct CommandGenerateTextureMipmap
     DECLARE_COMMAND_ID;
     GLuint texture;
 };
-static void commandGenerateTextureMipmap(GLuint texture)
+static void APIENTRY commandGenerateTextureMipmap(GLuint texture)
 {
     EXECUTE_COMMAND(GenerateTextureMipmap, texture);
 }
@@ -422,7 +422,7 @@ struct CommandDebugMessageCallback
     _GLDEBUGPROC callback;
     const void *userParam;
 };
-static void commandDebugMessageCallback(_GLDEBUGPROC callback, const void *userParam)
+static void APIENTRY commandDebugMessageCallback(_GLDEBUGPROC callback, const void *userParam)
 {
     EXECUTE_COMMAND(DebugMessageCallback, callback, userParam);
 }
@@ -433,7 +433,7 @@ struct CommandStringMarker
     GLsizei len;
     const GLvoid *string;
 };
-static void commandStringMarker(GLsizei len, const GLvoid *string)
+static void APIENTRY commandStringMarker(GLsizei len, const GLvoid *string)
 {
     EXECUTE_COMMAND(StringMarker, len, string);
 }
@@ -444,7 +444,7 @@ struct CommandGenBuffers
     GLsizei n;
     GLuint *buffers;
 };
-static void commandGenBuffers(GLsizei n, GLuint *buffers)
+static void APIENTRY commandGenBuffers(GLsizei n, GLuint *buffers)
 {
     EXECUTE_COMMAND(GenBuffers, n, buffers);
 }
@@ -455,7 +455,7 @@ struct CommandDeleteBuffers
     GLsizei n;
     const GLuint *buffers;
 };
-static void commandDeleteBuffers(GLsizei n, const GLuint *buffers)
+static void APIENTRY commandDeleteBuffers(GLsizei n, const GLuint *buffers)
 {
     EXECUTE_COMMAND(DeleteBuffers, n, buffers);
 }
@@ -466,7 +466,7 @@ struct CommandBindBuffer
     GLenum target;
     GLuint buffer;
 };
-static void commandBindBuffer(GLenum target, GLuint buffer)
+static void APIENTRY commandBindBuffer(GLenum target, GLuint buffer)
 {
     EXECUTE_COMMAND(BindBuffer, target, buffer);
 }
@@ -479,7 +479,7 @@ struct CommandBufferData
     const GLvoid *data;
     GLenum usage;
 };
-static void commandBufferData(GLenum target, GLsizeiptr size, const GLvoid *data, GLenum usage)
+static void APIENTRY commandBufferData(GLenum target, GLsizeiptr size, const GLvoid *data, GLenum usage)
 {
     EXECUTE_COMMAND(BufferData, target, size, data, usage);
 }
@@ -492,7 +492,7 @@ struct CommandBufferSubData
     GLsizeiptr size;
     const GLvoid *data;
 };
-static void commandBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid *data)
+static void APIENTRY commandBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid *data)
 {
     EXECUTE_COMMAND(BufferSubData, target, offset, size, data);
 }
@@ -503,7 +503,7 @@ struct CommandCreateShader
     GLenum type;
     GLuint result;
 };
-static GLuint commandCreateShader(GLenum type)
+static GLuint APIENTRY commandCreateShader(GLenum type)
 {
     EXECUTE_COMMAND(CreateShader, type);
 }
@@ -513,7 +513,7 @@ struct CommandDeleteShader
     DECLARE_COMMAND_ID;
     GLuint shader;
 };
-static void commandDeleteShader(GLuint shader)
+static void APIENTRY commandDeleteShader(GLuint shader)
 {
     EXECUTE_COMMAND(DeleteShader, shader);
 }
@@ -526,7 +526,7 @@ struct CommandShaderSource
     const GLchar *const *strings;
     const GLint *lengths;
 };
-static void commandShaderSource(GLuint shader, GLsizei count, const GLchar *const *strings, const GLint *lengths)
+static void APIENTRY commandShaderSource(GLuint shader, GLsizei count, const GLchar *const *strings, const GLint *lengths)
 {
     EXECUTE_COMMAND(ShaderSource, shader, count, strings, lengths);
 }
@@ -536,7 +536,7 @@ struct CommandCompileShader
     DECLARE_COMMAND_ID;
     GLuint shader;
 };
-static void commandCompileShader(GLuint shader)
+static void APIENTRY commandCompileShader(GLuint shader)
 {
     EXECUTE_COMMAND(CompileShader, shader);
 }
@@ -547,7 +547,7 @@ struct CommandAttachShader
     GLuint program;
     GLuint shader;
 };
-static void commandAttachShader(GLuint program, GLuint shader)
+static void APIENTRY commandAttachShader(GLuint program, GLuint shader)
 {
     EXECUTE_COMMAND(AttachShader, program, shader);
 }
@@ -559,7 +559,7 @@ struct CommandGetShaderiv
     GLenum pname;
     GLint *param;
 };
-static void commandGetShaderiv(GLuint shader, GLenum pname, GLint *param)
+static void APIENTRY commandGetShaderiv(GLuint shader, GLenum pname, GLint *param)
 {
     EXECUTE_COMMAND(GetShaderiv, shader, pname, param);
 }
@@ -572,7 +572,7 @@ struct CommandGetShaderInfoLog
     GLsizei *length;
     GLchar *infoLog;
 };
-static void commandGetShaderInfoLog(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog)
+static void APIENTRY commandGetShaderInfoLog(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog)
 {
     EXECUTE_COMMAND(GetShaderInfoLog, shader, bufSize, length, infoLog);
 }
@@ -582,7 +582,7 @@ struct CommandCreateProgram
     DECLARE_COMMAND_ID;
     GLuint result;
 };
-static GLuint commandCreateProgram(void)
+static GLuint APIENTRY commandCreateProgram(void)
 {
     EXECUTE_COMMAND(CreateProgram);
 }
@@ -592,7 +592,7 @@ struct CommandDeleteProgram
     DECLARE_COMMAND_ID;
     GLuint program;
 };
-static void commandDeleteProgram(GLuint program)
+static void APIENTRY commandDeleteProgram(GLuint program)
 {
     EXECUTE_COMMAND(DeleteProgram, program);
 }
@@ -602,7 +602,7 @@ struct CommandUseProgram
     DECLARE_COMMAND_ID;
     GLuint program;
 };
-static void commandUseProgram(GLuint program)
+static void APIENTRY commandUseProgram(GLuint program)
 {
     EXECUTE_COMMAND(UseProgram, program);
 }
@@ -612,7 +612,7 @@ struct CommandLinkProgram
     DECLARE_COMMAND_ID;
     GLuint program;
 };
-static void commandLinkProgram(GLuint program)
+static void APIENTRY commandLinkProgram(GLuint program)
 {
     EXECUTE_COMMAND(LinkProgram, program);
 }
@@ -624,7 +624,7 @@ struct CommandGetProgramiv
     GLenum pname;
     GLint *param;
 };
-static void commandGetProgramiv(GLuint program, GLenum pname, GLint *param)
+static void APIENTRY commandGetProgramiv(GLuint program, GLenum pname, GLint *param)
 {
     EXECUTE_COMMAND(GetProgramiv, program, pname, param);
 }
@@ -637,7 +637,7 @@ struct CommandGetProgramInfoLog
     GLsizei *length;
     GLchar *infoLog;
 };
-static void commandGetProgramInfoLog(GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog)
+static void APIENTRY commandGetProgramInfoLog(GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog)
 {
     EXECUTE_COMMAND(GetProgramInfoLog, program, bufSize, length, infoLog);
 }
@@ -649,7 +649,7 @@ struct CommandGetUniformLocation
     const GLchar *name;
     GLint result;
 };
-static GLint commandGetUniformLocation(GLuint program, const GLchar *name)
+static GLint APIENTRY commandGetUniformLocation(GLuint program, const GLchar *name)
 {
     EXECUTE_COMMAND(GetUniformLocation, program, name);
 }
@@ -660,7 +660,7 @@ struct CommandUniform1f
     GLint location;
     GLfloat v0;
 };
-static void commandUniform1f(GLint location, GLfloat v0)
+static void APIENTRY commandUniform1f(GLint location, GLfloat v0)
 {
     EXECUTE_COMMAND(Uniform1f, location, v0);
 }
@@ -672,7 +672,7 @@ struct CommandUniform2f
     GLfloat v0;
     GLfloat v1;
 };
-static void commandUniform2f(GLint location, GLfloat v0, GLfloat v1)
+static void APIENTRY commandUniform2f(GLint location, GLfloat v0, GLfloat v1)
 {
     EXECUTE_COMMAND(Uniform2f, location, v0, v1);
 }
@@ -686,7 +686,7 @@ struct CommandUniform4f
     GLfloat v2;
     GLfloat v3;
 };
-static void commandUniform4f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3)
+static void APIENTRY commandUniform4f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3)
 {
     EXECUTE_COMMAND(Uniform4f, location, v0, v1, v2, v3);
 }
@@ -697,7 +697,7 @@ struct CommandUniform1i
     GLint location;
     GLint v0;
 };
-static void commandUniform1i(GLint location, GLint v0)
+static void APIENTRY commandUniform1i(GLint location, GLint v0)
 {
     EXECUTE_COMMAND(Uniform1i, location, v0);
 }
@@ -709,7 +709,7 @@ struct CommandUniform1iv
     GLsizei count;
     const GLint *value;
 };
-static void commandUniform1iv(GLint location, GLsizei count, const GLint *value)
+static void APIENTRY commandUniform1iv(GLint location, GLsizei count, const GLint *value)
 {
     EXECUTE_COMMAND(Uniform1iv, location, count, value);
 }
@@ -722,7 +722,7 @@ struct CommandUniformMatrix4fv
     GLboolean transpose;
     const GLfloat *value;
 };
-static void commandUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value)
+static void APIENTRY commandUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value)
 {
     EXECUTE_COMMAND(UniformMatrix4fv, location, count, transpose, value);
 }
@@ -734,7 +734,7 @@ struct CommandBindAttribLocation
     GLuint index;
     const GLchar *name;
 };
-static void commandBindAttribLocation(GLuint program, GLuint index, const GLchar *name)
+static void APIENTRY commandBindAttribLocation(GLuint program, GLuint index, const GLchar *name)
 {
     EXECUTE_COMMAND(BindAttribLocation, program, index, name);
 }
@@ -744,7 +744,7 @@ struct CommandEnableVertexAttribArray
     DECLARE_COMMAND_ID;
     GLuint index;
 };
-static void commandEnableVertexAttribArray(GLuint index)
+static void APIENTRY commandEnableVertexAttribArray(GLuint index)
 {
     EXECUTE_COMMAND(EnableVertexAttribArray, index);
 }
@@ -754,7 +754,7 @@ struct CommandDisableVertexAttribArray
     DECLARE_COMMAND_ID;
     GLuint index;
 };
-static void commandDisableVertexAttribArray(GLuint index)
+static void APIENTRY commandDisableVertexAttribArray(GLuint index)
 {
     EXECUTE_COMMAND(DisableVertexAttribArray, index);
 }
@@ -769,7 +769,7 @@ struct CommandVertexAttribPointer
     GLsizei stride;
     const GLvoid *pointer;
 };
-static void commandVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid *pointer)
+static void APIENTRY commandVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid *pointer)
 {
     EXECUTE_COMMAND(VertexAttribPointer, index, size, type, normalized, stride, pointer);
 }
@@ -780,7 +780,7 @@ struct CommandGenFramebuffers
     GLsizei n;
     GLuint *framebuffers;
 };
-static void commandGenFramebuffers(GLsizei n, GLuint *framebuffers)
+static void APIENTRY commandGenFramebuffers(GLsizei n, GLuint *framebuffers)
 {
     EXECUTE_COMMAND(GenFramebuffers, n, framebuffers);
 }
@@ -791,7 +791,7 @@ struct CommandDeleteFramebuffers
     GLsizei n;
     const GLuint *framebuffers;
 };
-static void commandDeleteFramebuffers(GLsizei n, const GLuint *framebuffers)
+static void APIENTRY commandDeleteFramebuffers(GLsizei n, const GLuint *framebuffers)
 {
     EXECUTE_COMMAND(DeleteFramebuffers, n, framebuffers);
 }
@@ -802,7 +802,7 @@ struct CommandBindFramebuffer
     GLenum target;
     GLuint framebuffer;
 };
-static void commandBindFramebuffer(GLenum target, GLuint framebuffer)
+static void APIENTRY commandBindFramebuffer(GLenum target, GLuint framebuffer)
 {
     EXECUTE_COMMAND(BindFramebuffer, target, framebuffer);
 }
@@ -816,7 +816,7 @@ struct CommandFramebufferTexture2D
     GLuint texture;
     GLint level;
 };
-static void commandFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level)
+static void APIENTRY commandFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level)
 {
     EXECUTE_COMMAND(FramebufferTexture2D, target, attachment, textarget, texture, level);
 }
@@ -835,7 +835,7 @@ struct CommandBlitFramebuffer
     GLbitfield mask;
     GLenum filter;
 };
-static void commandBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter)
+static void APIENTRY commandBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter)
 {
     EXECUTE_COMMAND(BlitFramebuffer, srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
 }
@@ -846,7 +846,7 @@ struct CommandGenVertexArrays
     GLsizei n;
     GLuint *arrays;
 };
-static void commandGenVertexArrays(GLsizei n, GLuint *arrays)
+static void APIENTRY commandGenVertexArrays(GLsizei n, GLuint *arrays)
 {
     EXECUTE_COMMAND(GenVertexArrays, n, arrays);
 }
@@ -857,7 +857,7 @@ struct CommandDeleteVertexArrays
     GLsizei n;
     const GLuint *arrays;
 };
-static void commandDeleteVertexArrays(GLsizei n, const GLuint *arrays)
+static void APIENTRY commandDeleteVertexArrays(GLsizei n, const GLuint *arrays)
 {
     EXECUTE_COMMAND(DeleteVertexArrays, n, arrays);
 }
@@ -867,7 +867,7 @@ struct CommandBindVertexArray
     DECLARE_COMMAND_ID;
     GLuint array;
 };
-static void commandBindVertexArray(GLuint array)
+static void APIENTRY commandBindVertexArray(GLuint array)
 {
     EXECUTE_COMMAND(BindVertexArray, array);
 }
@@ -876,7 +876,7 @@ struct CommandReleaseShaderCompiler
 {
     DECLARE_COMMAND_ID;
 };
-static void commandReleaseShaderCompiler(void)
+static void APIENTRY commandReleaseShaderCompiler(void)
 {
     EXECUTE_COMMAND(ReleaseShaderCompiler);
 }
