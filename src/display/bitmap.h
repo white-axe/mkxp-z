@@ -34,6 +34,68 @@ struct TEXFBO;
 struct SDL_Surface;
 
 struct BitmapPrivate;
+struct ChildPrivate;
+struct ChildPublic
+{
+    // The real offset and zoom. Initialized to -1.0f, to determine if it's a Window.
+    Vec2i realOffset;
+    Vec2 realZoom;
+    
+    // The effective offset and zoom, after adjusting for the child's size, position, and shrinkage.
+    Vec2 offset;
+    Vec2 zoom;
+    
+    // The window's dimensions. Used by Windows.
+    int width;
+    int height;
+    
+    // Needed for Sprites, initialized to the parent's dimensions and used by everything.
+    IntRect realSrcRect;
+    IntRect srcRect;
+    
+    // sceneRect is the viewport, used for determining what's actually visible.
+    // sceneOrig is the viewport's offset, and functions similarly to x/y.
+    const IntRect *sceneRect;
+    const Vec2i *sceneOrig;
+    
+    // The Sprite or Window's position, for modifying the offset and as the origin for rotations.
+    // Also used for Planes instead of realOffset, due to how zooming interacts with it.
+    // (Planes still output to offset, though)
+    int x;
+    int y;
+    // Should the child wrap around. Only used by Planes.
+    bool wrap;
+    
+    // Will the child be mirrored. Used by Sprites.
+    bool mirrored;
+    
+    // Used by Sprites.
+    float angle;
+    int waveAmp;
+    
+    // If the child won't even be visible, then we can skip all drawing operations for it.
+    bool isVisible;
+    
+    ChildPublic()
+    :
+    width(0),
+    height(0),
+    x(0),
+    y(0),
+    sceneRect(0),
+    sceneOrig(0),
+    wrap(false),
+    mirrored(false),
+    angle(0),
+    waveAmp(0),
+    isVisible(true)
+    {
+    	realZoom.x = realZoom.y = -1.0f;
+    	zoom.x = zoom.y = -1.0f;
+    }
+};
+
+
 // FIXME make this class use proper RGSS classes again
 class Bitmap : public Disposable
 {
@@ -52,6 +114,10 @@ public:
 
 	void initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool forceMega = false);
 
+	Bitmap *spawnChild();
+	ChildPublic *getChildInfo();
+	void childUpdate();
+
 	int width()  const;
 	int height() const;
 	bool hasHires() const;
@@ -66,9 +132,15 @@ public:
 	         const Bitmap &source, const IntRect &rect,
 	         int opacity = 255);
 
+	enum BitmapBltMode {
+	    NORMAL,
+	    KGL_SUBTRACT,
+	};
+
 	void stretchBlt(IntRect destRect,
 	                const Bitmap &source, IntRect sourceRect,
-	                int opacity = 255, bool smooth = false);
+	                int opacity = 255, bool smooth = false,
+			enum BitmapBltMode mode = NORMAL);
 
 	void fillRect(int x, int y,
 	              int width, int height,
@@ -91,6 +163,9 @@ public:
 	void radialBlur(int angle, int divisions);
 
 	void clear();
+
+	/* Creates a surface and assigns it to p->surface */
+	void createSurface() const;
 
 	Color getPixel(int x, int y) const;
 	void setPixel(int x, int y, const Color &color);
@@ -154,6 +229,12 @@ public:
     bool getLooping() const;
 
     void ensureNotPlaying() const;
+
+    void kglInvert();
+    void kglCompressAlpha();
+    int kglShadowShaderH(int x1, int x2, int y, bool soft);
+    int kglShadowShaderV(int y1, int y2, int x, bool wall, bool soft);
+
     // ----------
     
 	/* Binds the backing texture and sets the correct
