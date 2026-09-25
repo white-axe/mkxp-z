@@ -26,6 +26,8 @@
 #include "gl-util.h"
 #include "glstate.h"
 
+class ShaderNoConstructTag {};
+
 class Shader
 {
 public:
@@ -58,11 +60,7 @@ protected:
 
 	GLuint vertShader, fragShader;
 	GLuint program;
-    
-private:
-#ifdef MKXPZ_BUILD_XCODE
-    static std::string shaderCommon;
-#endif
+	bool initialized;
 };
 
 class ShaderBase : public Shader
@@ -111,6 +109,7 @@ class SimpleShader : public ShaderBase
 {
 public:
 	SimpleShader();
+	SimpleShader(const ShaderNoConstructTag &);
 
 	void setTexOffsetX(int value);
 
@@ -134,6 +133,7 @@ class SimpleSpriteShader : public ShaderBase
 {
 public:
 	SimpleSpriteShader();
+	SimpleSpriteShader(const ShaderNoConstructTag &);
 
 	void setSpriteMat(const float value[16]);
 
@@ -320,6 +320,9 @@ class BltShader : public ShaderBase
 {
 public:
 	BltShader();
+	BltShader(const ShaderNoConstructTag &);
+
+	void init();
 
 	void setSource();
 	void setDestination(const TEX::ID value);
@@ -331,10 +334,51 @@ private:
 	GLint u_source, u_destination, u_subRect, u_opacity;
 };
 
+class KglInvertShader : public ShaderBase
+{
+public:
+	KglInvertShader();
+};
+
+class KglCompressAlphaShader : public ShaderBase
+{
+public:
+	KglCompressAlphaShader();
+};
+
+class KglSubtractShader : public BltShader
+{
+public:
+	KglSubtractShader();
+};
+
+class KglShadowShaderH : public ShaderBase
+{
+public:
+	KglShadowShaderH();
+
+	void setParams(int x1, int x2, int y, bool soft, int w, int h, int x_center, int y_center, double slope1, double slope2);
+
+private:
+	GLint u_x1, u_x2, u_y, u_soft, u_w, u_h, u_x_center, u_y_center, u_slope1, u_slope2;
+};
+
+class KglShadowShaderV : public ShaderBase
+{
+public:
+	KglShadowShaderV();
+
+	void setParams(int y1, int y2, int x, bool wall, bool soft, int w, int h, int x_center, int y_center, double slope1, double slope2);
+
+private:
+	GLint u_y1, u_y2, u_x, u_wall, u_soft, u_w, u_h, u_x_center, u_y_center, u_slope1, u_slope2;
+};
+
 class Lanczos3Shader : public SimpleShader
 {
 public:
 	Lanczos3Shader();
+	Lanczos3Shader(const ShaderNoConstructTag &);
 
 	void setTexSize(const Vec2i &value);
 
@@ -353,7 +397,7 @@ protected:
 	GLint u_bc;
 };
 
-#ifdef MKXPZ_SSL
+#ifdef MKXPZ_HAVE_EXTRA_SHADERS
 class XbrzShader : public Lanczos3Shader
 {
 public:
@@ -370,6 +414,7 @@ class Lanczos3SpriteShader : public SimpleSpriteShader
 {
 public:
 	Lanczos3SpriteShader();
+	Lanczos3SpriteShader(const ShaderNoConstructTag &);
 
 	void setTexSize(const Vec2i &value);
 
@@ -420,14 +465,19 @@ struct ShaderSet
 	SimpleMatrixShader simpleMatrix;
 	BlurShader blur;
 	TilemapVXShader tilemapVX;
+	KglInvertShader kglInvert;
+	KglCompressAlphaShader kglCompressAlpha;
+	KglSubtractShader kglSubtract;
+	KglShadowShaderH kglShadowH;
+	KglShadowShaderV kglShadowV;
 	BicubicShader bicubic;
 	Lanczos3Shader lanczos3;
-#ifdef MKXPZ_SSL
+#ifdef MKXPZ_HAVE_EXTRA_SHADERS
 	XbrzShader xbrz;
 #endif
 	Lanczos3SpriteShader lanczos3Sprite;
 	BicubicSpriteShader bicubicSprite;
-#ifdef MKXPZ_SSL
+#ifdef MKXPZ_HAVE_EXTRA_SHADERS
 	XbrzSpriteShader xbrzSprite;
 #endif
 };

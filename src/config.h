@@ -40,7 +40,7 @@ struct Config {
     
     bool debugMode;
     bool winConsole;
-    bool preferMetalRenderer;
+    int renderer;
     bool displayFPS;
     bool printFPS;
     
@@ -53,7 +53,7 @@ struct Config {
     int bitmapSmoothScalingDown;
     bool smoothScalingMipmaps;
     int bicubicSharpness;
-#ifdef MKXPZ_SSL
+#ifdef MKXPZ_HAVE_EXTRA_SHADERS
     double xbrzScalingFactor;
 #endif
     bool enableHires;
