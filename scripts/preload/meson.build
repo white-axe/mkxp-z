@@ -7,7 +7,6 @@ foreach script : embedded_scripts
     global_dependencies += declare_dependency(sources: custom_target(
         '@0@.xxd'.format(script),
         output: '@0@.xxd'.format(script),
-        command: [xxd, '-i', files(script)],
-        capture: true,
+        command: [embedtool, files(script), '@OUTPUT@', 'mkxp_scripts_preload_@0@'.format(script.replace('.', '_'))],
     ))
 endforeach

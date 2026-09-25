@@ -65,10 +65,10 @@ extern "C" {
 #include <SDL_loadso.h>
 #include <SDL_power.h>
 
-#ifndef MKXPZ_BUILD_XCODE
+#include "git-hash.h"
+
 #include "scripts/preload/win32_wrap.rb.xxd"
 #include "scripts/preload/kgl2_wrap.rb.xxd"
-#endif
 
 extern const char module_rpg1[];
 extern const char module_rpg2[];
@@ -126,11 +126,13 @@ RB_METHOD(mkxpPlatform);
 RB_METHOD(mkxpIsMacHost);
 RB_METHOD(mkxpIsWindowsHost);
 RB_METHOD(mkxpIsLinuxHost);
+RB_METHOD(mkxpIsBSDHost);
 RB_METHOD(mkxpIsUsingRosetta);
 RB_METHOD(mkxpIsUsingWine);
 RB_METHOD(mkxpIsReallyMacHost);
 RB_METHOD(mkxpIsReallyLinuxHost);
 RB_METHOD(mkxpIsReallyWindowsHost);
+RB_METHOD(mkxpIsReallyBSDHost);
 
 RB_METHOD(mkxpUserLanguage);
 RB_METHOD(mkxpUserName);
@@ -236,14 +238,14 @@ static void mriBindingInit() {
     
     _rb_define_module_function(mod, "is_mac?", mkxpIsMacHost);
     _rb_define_module_function(mod, "is_rosetta?", mkxpIsUsingRosetta);
-    
     _rb_define_module_function(mod, "is_linux?", mkxpIsLinuxHost);
-    
     _rb_define_module_function(mod, "is_windows?", mkxpIsWindowsHost);
     _rb_define_module_function(mod, "is_wine?", mkxpIsUsingWine);
+    _rb_define_module_function(mod, "is_bsd?", mkxpIsBSDHost);
     _rb_define_module_function(mod, "is_really_mac?", mkxpIsReallyMacHost);
     _rb_define_module_function(mod, "is_really_linux?", mkxpIsReallyLinuxHost);
     _rb_define_module_function(mod, "is_really_windows?", mkxpIsReallyWindowsHost);
+    _rb_define_module_function(mod, "is_really_bsd?", mkxpIsReallyBSDHost);
     
     
     _rb_define_module_function(mod, "user_language", mkxpUserLanguage);
@@ -281,12 +283,7 @@ static void mriBindingInit() {
     
     rb_gv_set("BTEST", rb_bool_new(shState->config().editor.battleTest));
     
-#ifdef MKXPZ_BUILD_XCODE
-    std::string version = std::string(MKXPZ_VERSION "/") + getPlistValue("GIT_COMMIT_HASH");
-    VALUE vers = rb_utf8_str_new_cstr(version.c_str());
-#else
     VALUE vers = rb_utf8_str_new_cstr(MKXPZ_VERSION "/" MKXPZ_GIT_HASH);
-#endif
     rb_str_freeze(vers);
     rb_define_const(mod, "VERSION", vers);
     
@@ -469,6 +466,11 @@ RB_METHOD(mkxpIsUsingWine) {
     return rb_bool_new(mkxp_sys::isWine());
 }
 
+RB_METHOD(mkxpIsBSDHost) {
+    RB_UNUSED_PARAM;
+    return rb_bool_new(MKXPZ_PLATFORM == MKXPZ_PLATFORM_BSD);
+}
+
 RB_METHOD(mkxpIsReallyMacHost) {
     RB_UNUSED_PARAM;
     return rb_bool_new(mkxp_sys::getRealHostType() == mkxp_sys::WineHostType::Mac);
@@ -482,6 +484,11 @@ RB_METHOD(mkxpIsReallyLinuxHost) {
 RB_METHOD(mkxpIsReallyWindowsHost) {
     RB_UNUSED_PARAM;
     return rb_bool_new(mkxp_sys::getRealHostType() == mkxp_sys::WineHostType::Windows);
+}
+
+RB_METHOD(mkxpIsReallyBSDHost) {
+    RB_UNUSED_PARAM;
+    return rb_bool_new(mkxp_sys::getRealHostType() == mkxp_sys::WineHostType::Bsd);
 }
 
 RB_METHOD(mkxpUserLanguage) {
@@ -653,11 +660,11 @@ RB_METHOD_GUARD_END
 #ifdef __APPLE__
 #define OPENCMD "open "
 #define OPENARGS "--args"
-#elif defined(__linux__)
-#define OPENCMD "xdg-open "
+#elif defined(_WIN32)
+#define OPENCMD "start /b \"launch\" "
 #define OPENARGS ""
 #else
-#define OPENCMD "start /b \"launch\" "
+#define OPENCMD "xdg-open "
 #define OPENARGS ""
 #endif
 
@@ -673,7 +680,7 @@ RB_METHOD_GUARD(mkxpLaunch) {
     command += "\""; command += RSTRING_PTR(cmdname); command += "\"";
     
     if (args != RUBY_Qnil) {
-#ifndef __linux__
+#if defined(__APPLE__) || defined(_WIN32)
         command += " ";
         command += OPENARGS;
         Check_Type(args, T_ARRAY);
@@ -1036,26 +1043,14 @@ static void runRMXPScripts(BacktraceData &btData) {
     {
         int state;
         std::unordered_set<std::string> disabledBuiltInScripts(conf.disabledBuiltInScripts.begin(), conf.disabledBuiltInScripts.end());
-#ifndef MKXPZ_BUILD_XCODE
-#  define LOAD_BUILTIN_SCRIPT(name) do { \
+#define LOAD_BUILTIN_SCRIPT(name) do { \
             if (disabledBuiltInScripts.count(#name) == 0 || (strcmp(#name, "win32_wrap") == 0 && disabledBuiltInScripts.size() != 0)) { \
-                evalString(rb_utf8_str_new((const char *)___scripts_preload_##name##_rb, ___scripts_preload_##name##_rb_len), rb_utf8_str_new_cstr(#name ".rb"), &state); \
+                evalString(rb_utf8_str_new((const char *)mkxp_scripts_preload_##name##_rb, mkxp_scripts_preload_##name##_rb_len), rb_utf8_str_new_cstr(#name ".rb"), &state); \
                 if (state) { \
                     showMsg("Failed to load " #name ".rb"); \
                 } \
             } \
         } while (0)
-#else
-#  define LOAD_BUILTIN_SCRIPT(name) do { \
-            if (disabledBuiltInScripts.count(#name) == 0 || (strcmp(#name, "win32_wrap") == 0 && disabledBuiltInScripts.size() != 0)) { \
-                std::string script = mkxp_fs::contentsOfAssetAsString("scripts/preload/" #name, "rb"); \
-                evalString(rb_utf8_str_new(script.c_str(), script.length()), rb_utf8_str_new_cstr(#name ".rb"), &state); \
-                if (state) { \
-                    showMsg("Failed to load " #name ".rb"); \
-                } \
-            } \
-        } while (0)
-#endif
         LOAD_BUILTIN_SCRIPT(win32_wrap);
         LOAD_BUILTIN_SCRIPT(kgl2_wrap);
 #undef LOAD_BUILTIN_SCRIPT
@@ -1298,12 +1293,6 @@ static void mriBindingExecute() {
     
     VALUE lpaths = rb_gv_get(":");
     rb_ary_clear(lpaths);
-    
-#if defined(MKXPZ_BUILD_XCODE) && RAPI_MAJOR >= 2
-    std::string resPath = mkxp_fs::getResourcePath();
-    resPath += "/Ruby/" + std::to_string(RAPI_MAJOR) + "." + std::to_string(RAPI_MINOR) + ".0";
-    rb_ary_push(lpaths, rb_str_new(resPath.c_str(), resPath.size()));
-#endif
     
     if (!conf.rubyLoadpaths.empty()) {
         /* Setup custom load paths */
