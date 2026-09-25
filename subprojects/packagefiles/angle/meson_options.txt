@@ -1,0 +1,12 @@
+option('direct3d11', type: 'feature', value: 'auto')
+option('metal', type: 'feature', value: 'auto')
+option('null', type: 'feature', value: 'auto')
+option('opengl', type: 'feature', value: 'disabled')
+option('vulkan', type: 'feature', value: 'auto')
+
+option('wayland', type: 'feature', value: 'auto')
+option('x11', type: 'feature', value: 'auto')
+
+option('frame_capture_disabled', type: 'boolean', value: true)
+
+option('windows_futex', type: 'feature', value: 'auto', description: 'Enable support for futexes in Windows builds. This requires _WIN32_WINNT to be at least 0x0602 (Windows 8 or Windows Server 2012), as this feature requires api-ms-win-core-synch-l1-2-0.dll.')
