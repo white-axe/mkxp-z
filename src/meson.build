@@ -1198,9 +1198,9 @@ if not ruby.found()
 endif
 global_dependencies += ruby
 
-have_syntax_transform_patches = get_option('syntax_transform_patches').enabled() or (get_option('syntax_transform_patches').auto() and ruby.type_name() == 'internal')
-if have_syntax_transform_patches
-    global_args += '-DMKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES'
+have_syntax_transform = get_option('syntax_transform').enabled() or (get_option('syntax_transform').auto() and ruby.type_name() == 'internal')
+if have_syntax_transform
+    global_args += '-DMKXPZ_HAVE_SYNTAX_TRANSFORM'
 endif
 
 if host_system in ['windows', 'cygwin']

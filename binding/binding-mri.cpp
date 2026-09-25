@@ -161,7 +161,7 @@ json5pp::value rb2json(VALUE v);
 
 RB_METHOD(mkxpParseCSV);
 
-#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
 #define SYNTAX_TRANSFORM_DEFINE_METHOD(receiver, name, func, argc, major, minor, teeny) do { \
     rb_define_method(receiver, name, func, argc); \
     mkxp_set_syntax_transform_target_for_method(receiver, name, major, minor, teeny); \
@@ -253,10 +253,10 @@ static VALUE legacy_kernel_match(VALUE self, VALUE other) {
     return Qnil;
 }
 #endif // RAPI_MAJOR > 3 || (RAPI_MAJOR == 3 && RAPI_MINOR > 1)
-#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
 
 static void mriBindingInit() {
-#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
 #if RAPI_MAJOR > 1 || (RAPI_MAJOR == 1 && RAPI_MINOR > 8)
     SYNTAX_TRANSFORM_DEFINE_METHOD(rb_cArray, "choice", legacy_array_choice, -1, 1, 8, -1);
     SYNTAX_TRANSFORM_DEFINE_METHOD(rb_cArray, "indexes", legacy_array_indexes, -1, 1, 8, -1);
@@ -278,7 +278,7 @@ static void mriBindingInit() {
     SYNTAX_TRANSFORM_DEFINE_MODULE_FUNCTION(rb_mFileTest, "exists?", legacy_file_test_exists, 1, 3, 1, -1);
     SYNTAX_TRANSFORM_DEFINE_METHOD(rb_mKernel, "=~", legacy_kernel_match, 1, 3, 1, -1);
 #endif // RAPI_MAJOR > 3 || (RAPI_MAJOR == 3 && RAPI_MINOR > 1)
-#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
 
     tableBindingInit();
     etcBindingInit();
@@ -1208,7 +1208,7 @@ static void runRMXPScripts(BacktraceData &btData) {
             int state;
             
             {
-#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
+#ifdef MKXPZ_HAVE_SYNTAX_TRANSFORM
                 struct SyntaxTransformGuard {
                     SyntaxTransformGuard() {
                         mkxp_syntax_transform_set_next_eval(1);
@@ -1218,7 +1218,7 @@ static void runRMXPScripts(BacktraceData &btData) {
                     }
                 };
                 SyntaxTransformGuard guard;
-#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM_PATCHES
+#endif // MKXPZ_HAVE_SYNTAX_TRANSFORM
                 evalString(string, fname, &state);
             }
             if (state)
