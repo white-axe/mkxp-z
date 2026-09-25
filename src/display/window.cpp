@@ -889,10 +889,10 @@ void Window::setOX(int value)
 {
 	guardDisposed();
 
-	if (p->contentsOffset.x == value)
+	if (p->realContentsOffset.x == value)
 		return;
 
-	p->contentsOffset.x = value;
+	p->realContentsOffset.x = value;
 	p->controlsVertDirty = true;
 }
 
@@ -900,10 +900,10 @@ void Window::setOY(int value)
 {
 	guardDisposed();
 
-	if (p->contentsOffset.y == value)
+	if (p->realContentsOffset.y == value)
 		return;
 
-	p->contentsOffset.y = value;
+	p->realContentsOffset.y = value;
 	p->controlsVertDirty = true;
 }
 

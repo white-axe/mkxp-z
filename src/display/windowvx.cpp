@@ -857,7 +857,7 @@ struct WindowVXPrivate
 					glState.scissorBox.setIntersect(clip);
 
 				Vec2i contTrans = pad.pos();
-				contTrans -= contentsOff;
+				contTrans -= realContentsOff;
 				shader.setTranslation(contTrans);
 
 				TEX::setSmooth(false); // XXX
