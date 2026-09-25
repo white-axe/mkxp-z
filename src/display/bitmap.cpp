@@ -255,12 +255,16 @@ struct BitmapPrivate
     Bitmap *selfLores;
     bool assumingRubyGC;
     
+    // Child bitmaps are created by Planes, Sprites, and Windows for mega surfaces
+    ChildPrivate *pChild;
+    
     BitmapPrivate(Bitmap *self)
     : self(self),
     megaSurface(0),
     selfHires(0),
     selfLores(0),
     surface(0),
+    pChild(0),
     assumingRubyGC(false),
     pixmanUseRegion32(false)
     {
@@ -1008,6 +1012,519 @@ void Bitmap::initFromSurface(SDL_Surface *imgSurf, Bitmap *hiresBitmap, bool for
         pixman_region32_init(&p->tainted32);
     }
     p->addTaintedArea(rect());
+}
+
+/* "Child" bitmaps are a hack to support mega surfaces in Windows, Planes, and Sprites.
+ * They determine which part of the parent will be visible, manually shrink it if necessary,
+ * and send back new values for zoom and offsets. */
+
+struct ChildPrivate
+{
+    Bitmap *self;
+    Bitmap *parent;
+    
+    ChildPublic shared;
+    
+    sigslot::connection dirtyCon;
+    sigslot::connection disposeCon;
+    
+    Vec2i parentPos;
+    IntRect srcRect;
+    IntRect oldSrcRect;
+    bool dirty;
+    Vec2 maxShrink;
+    Vec2 currentZoom;
+    Vec2 currentShrink;
+    bool mirrored;
+    int currentBushDepth;
+    Transform *trans;
+    IntRect oldVR;
+    Vec2i oldOff;
+    
+    
+    ChildPrivate(Bitmap *self, Bitmap *parent)
+    : self(self),
+    parent(parent),
+    dirty(true),
+    mirrored(false)
+    {
+        shared.width = parent->width();
+        shared.height = parent->height();
+        
+        shared.realSrcRect.w = parent->width();
+        shared.realSrcRect.h = parent->height();
+        shared.srcRect.w = parent->width();
+        shared.srcRect.h = parent->height();
+        oldSrcRect = shared.realSrcRect;
+        
+        maxShrink.x = (float)self->width() / parent->width();
+        maxShrink.y = (float)self->height() / parent->height();
+        currentZoom.x = 1.0f;
+        currentZoom.y = 1.0f;
+        currentShrink.x = 1.0f;
+        currentShrink.y = 1.0f;
+        
+        dirtyCon = parent->modified.connect(&ChildPrivate::childDirty, this);
+        disposeCon = parent->wasDisposed.connect(&ChildPrivate::parentDisposed, this);
+    }
+    
+    ~ChildPrivate()
+    {
+        dirtyCon.disconnect();
+        disposeCon.disconnect();
+    }
+    
+    void childDirty()
+    {
+        dirty = true;
+    }
+    
+    void parentDisposed()
+    {
+        self->dispose();
+    }
+};
+
+Bitmap *Bitmap::spawnChild()
+{
+    Bitmap *child;
+    if(p->selfHires)
+    {
+        int childWidth = std::min(p->selfHires->width(), glState.caps.maxTexSize);
+        int childHeight = std::min(p->selfHires->height(), glState.caps.maxTexSize);
+        double scalingFactor = std::max(p->selfHires->width() / width(), p->selfHires->height() / height());
+        double maxRatio = std::min((double)childWidth / shState->graphics().width(),
+                                   (double)childHeight / shState->graphics().height());
+        scalingFactor = std::min(maxRatio, scalingFactor);
+        int loresWidth = (int)lround(scalingFactor * childWidth);
+        int loresHeight = (int)lround(scalingFactor * childHeight);
+        child = new Bitmap(loresWidth, loresHeight, true);
+        Bitmap *hires = new Bitmap(childWidth, childHeight, true);
+        hires->setLores(child);
+        child->p->selfHires = hires;
+    }
+    else
+    {
+        int childWidth = std::min(width(), glState.caps.maxTexSize);
+        int childHeight = std::min(height(), glState.caps.maxTexSize);
+        child = new Bitmap(childWidth, childHeight, true);
+    }
+    
+    
+    child->p->pChild = new ChildPrivate(child, this);
+    
+    return child;
+}
+
+ChildPublic *Bitmap::getChildInfo()
+{
+    if (p->pChild)
+        return &p->pChild->shared;
+    return 0;
+}
+
+void Bitmap::childUpdate()
+{
+    if (!p->pChild)
+        return;
+    
+    ChildPrivate *pChild = p->pChild;
+    
+    bool isWindow = pChild->shared.realZoom.x == -1.0f;
+    bool isPlane = pChild->shared.wrap;
+    bool isSprite = !isWindow && !isPlane;
+    
+    if (!pChild->shared.realZoom.x || !pChild->shared.realZoom.y)
+    {
+        pChild->shared.isVisible = false;
+        return;
+    }
+    
+    IntRect viewportRect(0, 0, shState->graphics().width(), shState->graphics().height());
+    
+    if (!SDL_IntersectRect(&viewportRect, pChild->shared.sceneRect, &viewportRect))
+    {
+        pChild->shared.zoom.x = pChild->shared.realZoom.x;
+        pChild->shared.zoom.y = pChild->shared.realZoom.y;
+        pChild->shared.isVisible = false;
+        return;
+    }
+    
+    if (isWindow)
+    {
+        viewportRect.x = pChild->shared.sceneRect->x;
+        viewportRect.y = pChild->shared.sceneRect->y;
+        IntRect window(pChild->shared.x + viewportRect.x - pChild->shared.sceneOrig->x,
+                       pChild->shared.y + viewportRect.y - pChild->shared.sceneOrig->y,
+                       pChild->shared.width, pChild->shared.height);
+        if (!SDL_IntersectRect(&viewportRect, &window, &viewportRect))
+        {
+            pChild->shared.isVisible = false;
+            return;
+        }
+        viewportRect.x = std::min(0, window.x);
+        viewportRect.y = std::min(0, window.y);
+    }
+    
+    bool updateNeeded = pChild->dirty;
+    
+    IntRect visibleRect = viewportRect;
+    
+    Vec2 realZoom(abs(pChild->shared.realZoom.x), abs(pChild->shared.realZoom.y));
+    Vec2 shrink(1.0f, 1.0f);
+    
+    IntRect adjustedSrcRect = pChild->shared.realSrcRect;
+    if (isSprite)
+    {
+        if (pChild->shared.realSrcRect.x < 0)
+            adjustedSrcRect.w += pChild->shared.realSrcRect.x;
+        if (pChild->shared.realSrcRect.y < 0)
+            adjustedSrcRect.h += pChild->shared.realSrcRect.y;
+        adjustedSrcRect.x = clamp(adjustedSrcRect.x, 0, pChild->parent->width());
+        adjustedSrcRect.y = clamp(adjustedSrcRect.y, 0, pChild->parent->height());
+        adjustedSrcRect.w = clamp(adjustedSrcRect.w, 0, pChild->shared.width - adjustedSrcRect.x);
+        adjustedSrcRect.h = clamp(adjustedSrcRect.h, 0, pChild->shared.height - adjustedSrcRect.y);
+        
+        if (!adjustedSrcRect.w || !adjustedSrcRect.h)
+        {
+            pChild->shared.isVisible = false;
+            return;
+        }
+    }
+    else
+        adjustedSrcRect = pChild->shared.realSrcRect;
+    
+    if (isPlane || isSprite)
+    {
+        visibleRect.x = pChild->shared.x - pChild->shared.sceneOrig->x + std::min(pChild->shared.sceneRect->x, 0);
+        visibleRect.y = pChild->shared.y - pChild->shared.sceneOrig->y + std::min(pChild->shared.sceneRect->y, 0);
+        
+        if (pChild->shared.angle)
+        {
+            // rotate visibleRect clockwise around visibleRect.x and visibleRect.y
+            FloatRect tmpRect = rotate_rect(visibleRect.pos(), -pChild->shared.angle,
+                                       IntRect(Vec2i(),visibleRect.size()));
+            tmpRect.x = floor(-tmpRect.x) + visibleRect.x;
+            tmpRect.y = floor(-tmpRect.y) + visibleRect.y;
+            visibleRect = tmpRect;
+        }
+        
+        if (pChild->shared.waveAmp > 0)
+        {
+            /* At the moment the wave gets rotated too, which isn't what RGSS does.
+               If that's ever fixed, then this needs to be moved to before the rotation. */
+            
+            /* The edge of the wave can still poke through sometimes for some reason,
+               so we provide an extra 1 pixel buffer to ensure it can't happen. */
+            visibleRect.x += pChild->shared.waveAmp + 1;
+            visibleRect.w += pChild->shared.waveAmp * 2 + 2;
+        }
+        
+        // maxShrink is the point at which the entire parent fits into the child
+        Vec2 maxShrink;
+        if (isSprite)
+        {
+            maxShrink.x = std::min((float)width() / adjustedSrcRect.w, 1.0f);
+            maxShrink.y = std::min((float)height() / adjustedSrcRect.h, 1.0f);
+        }
+        else // Planes can just use the cached values
+        {
+            maxShrink = pChild->maxShrink;
+        }
+        shrink.x = clamp(std::min(width(), adjustedSrcRect.w) * realZoom.x / visibleRect.w, maxShrink.x, 1.0f);
+        shrink.y = clamp(std::min(height(), adjustedSrcRect.h) * realZoom.y / visibleRect.h, maxShrink.y, 1.0f);
+        
+        // Uncomment to force max shrink for testing
+        /*
+        shrink.x = std::min(pChild->maxShrink.x, 1.0f);
+        shrink.y = std::min(pChild->maxShrink.y, 1.0f);
+        //*/
+        
+        pChild->shared.zoom.x = realZoom.x / shrink.x;
+        pChild->shared.zoom.y = realZoom.y / shrink.y;
+        if(!(shrink == pChild->currentShrink))
+            updateNeeded = true;
+        
+        visibleRect.x = round(visibleRect.x / realZoom.x);
+        visibleRect.y = round(visibleRect.y / realZoom.y);
+        visibleRect.w = ceil(visibleRect.w / realZoom.x);
+        visibleRect.h = ceil(visibleRect.h / realZoom.y);
+        if (pChild->shared.wrap)
+        {
+            visibleRect.x = -wrapRange(-visibleRect.x, 0, adjustedSrcRect.w);
+            visibleRect.y = -wrapRange(-visibleRect.y, 0, adjustedSrcRect.h);
+        }
+    }
+    
+    int realOX = pChild->shared.realOffset.x;
+    int realOY = pChild->shared.realOffset.y;
+    
+    if (isSprite)
+    {
+        if (pChild->shared.realSrcRect.x < 0)
+            realOX += pChild->shared.realSrcRect.x;
+        if (pChild->shared.realSrcRect.y < 0)
+            realOY += pChild->shared.realSrcRect.y;
+    }
+    
+    
+    // If none of this has changed, then we can just return now
+    if (!updateNeeded && pChild->oldVR == visibleRect && pChild->oldOff == Vec2i(realOX, realOY) &&
+        (pChild->shared.wrap ||
+         (pChild->mirrored == pChild->shared.mirrored && pChild->shared.realSrcRect == pChild->oldSrcRect))
+       )
+    {
+        return;
+    }
+    pChild->oldOff = Vec2i(realOX, realOY);
+    pChild->oldVR = visibleRect;
+    
+    if (!isPlane)
+    {
+        // Double the visibleRect.pos, because I should be using a
+        // zeroed out position for the visibleRect but doing this is easier
+        IntRect tmpSourceRect(visibleRect.pos() * 2 - Vec2i(realOX, realOY),
+                              adjustedSrcRect.size());
+        if (!SDL_HasIntersection(&visibleRect, &tmpSourceRect))
+        {
+            pChild->shared.isVisible = false;
+            return;
+        }
+        if (pChild->shared.angle)
+        {
+            // Rotating the viewport leaves triangles on all sides that are considered in bounds.
+            // By also rotating the source rect and comparing it to the unrotated viewport, we can
+            // be certain if the sprite is visible or not.
+            tmpSourceRect.x = floor(-realOX * realZoom.x);
+            tmpSourceRect.y = floor(-realOY * realZoom.y);
+            tmpSourceRect.w = ceil(tmpSourceRect.w * realZoom.x);
+            tmpSourceRect.h = ceil(tmpSourceRect.h * realZoom.x);
+            FloatRect tmpRect = rotate_rect(Vec2i(), pChild->shared.angle, tmpSourceRect);
+            Vec2i origin(pChild->shared.x - pChild->shared.sceneOrig->x + std::min(pChild->shared.sceneRect->x, 0),
+                         pChild->shared.y - pChild->shared.sceneOrig->y + std::min(pChild->shared.sceneRect->y, 0));
+            tmpRect.x = floor(tmpRect.x) + origin.x;
+            tmpRect.y = floor(tmpRect.y) + origin.y;
+            tmpSourceRect = tmpRect;
+            
+            if (!SDL_HasIntersection(&viewportRect, &tmpSourceRect))
+            {
+                pChild->shared.isVisible = false;
+                return;
+            }
+        }
+    }
+    
+    pChild->shared.isVisible = true;
+    
+    int selfWidth = round(width() / shrink.x);
+    int selfHeight = round(height() / shrink.y);
+    
+    int overflowX = std::max(selfWidth - visibleRect.w, 0);
+    int overflowY = std::max(selfHeight - visibleRect.h, 0);
+    
+    int minOX = pChild->parentPos.x;
+    int minOY = pChild->parentPos.y;
+    int maxOX = minOX + overflowX;
+    int maxOY = minOY + overflowY;
+    int maxOX2 = wrapRange(maxOX, 0, adjustedSrcRect.w);
+    int maxOY2 = wrapRange(maxOY, 0, adjustedSrcRect.h);
+    
+    int adjustedrealOX = -visibleRect.x + realOX;
+    int adjustedrealOY = -visibleRect.y + realOY;
+    
+    // The position in the srcRect that the child pulls from. Initialized to the previous run's result.
+    Vec2i newParentPos = pChild->parentPos;
+    
+    if (pChild->shared.wrap)
+    {
+        adjustedrealOX = wrapRange(adjustedrealOX, 0, adjustedSrcRect.w);
+        adjustedrealOY = wrapRange(adjustedrealOY, 0, adjustedSrcRect.h);
+    }
+    
+    for (int i = 0; i < 2; i++)
+    {
+        if (updateNeeded || (adjustedrealOX < minOX && (!pChild->shared.wrap || maxOX2 == maxOX || adjustedrealOX > maxOX2)) || adjustedrealOX > maxOX)
+        {
+            if (selfWidth >= adjustedSrcRect.w)
+                newParentPos.x = 0;
+            else
+                newParentPos.x = adjustedrealOX - overflowX / 2;
+            if (!pChild->shared.wrap)
+                newParentPos.x = clamp(newParentPos.x, 0,
+                                       std::max(adjustedSrcRect.w - selfWidth,0));
+        }
+        if (updateNeeded || (adjustedrealOY < minOY && (!pChild->shared.wrap || maxOY2 == maxOY || adjustedrealOY > maxOY2)) || adjustedrealOY > maxOY)
+        {
+            if (selfHeight >= adjustedSrcRect.h)
+                newParentPos.y = 0;
+            else
+                newParentPos.y = adjustedrealOY - overflowY / 2;
+            if (!pChild->shared.wrap)
+                newParentPos.y = clamp(newParentPos.y, 0,
+                                       std::max(adjustedSrcRect.h - selfHeight,0));
+        }
+        if (updateNeeded)
+        {
+            pChild->parentPos = newParentPos;
+        }
+        // If either x or y was updated, run through it again to update the other one
+        if (newParentPos != pChild->parentPos)
+            updateNeeded = true;
+        else
+            break;
+    }
+    
+    
+    if (!isSprite)
+    {
+        pChild->shared.offset.x = realOX - newParentPos.x;
+        pChild->shared.offset.y =  realOY - newParentPos.y;
+    }
+    
+    if (isPlane)
+    {
+        pChild->shared.offset.x = wrapRange(pChild->shared.offset.x - visibleRect.x, 0,
+                                            adjustedSrcRect.w);
+        pChild->shared.offset.y = wrapRange(pChild->shared.offset.y - visibleRect.y, 0,
+                                            adjustedSrcRect.h);
+        
+        // Leaving this as a float (and making plane.cpp store it as a float)
+        // makes positioning almost perfect when zoomed
+        pChild->shared.offset.x = pChild->shared.offset.x * realZoom.x;
+        pChild->shared.offset.y = pChild->shared.offset.y * realZoom.y;
+        
+        pChild->shared.offset.x -= pChild->shared.sceneOrig->x;
+        pChild->shared.offset.y -= pChild->shared.sceneOrig->y;
+        
+        pChild->shared.offset.x += std::min(pChild->shared.sceneRect->x, 0);
+        pChild->shared.offset.y += std::min(pChild->shared.sceneRect->y, 0);
+    }
+    else if (isSprite)
+    {
+        if (!updateNeeded && pChild->oldSrcRect != pChild->shared.realSrcRect)
+        {
+            if (pChild->srcRect.encloses(adjustedSrcRect))
+            {
+                pChild->shared.srcRect = IntRect(pChild->shared.realSrcRect.pos() - pChild->srcRect.pos(),
+                                                 pChild->shared.realSrcRect.size());
+                
+                pChild->shared.srcRect.x = floor(pChild->shared.srcRect.x * shrink.x);
+                pChild->shared.srcRect.y = floor(pChild->shared.srcRect.y * shrink.y);
+                pChild->shared.srcRect.w = round(pChild->shared.srcRect.w * shrink.x);
+                pChild->shared.srcRect.h = round(pChild->shared.srcRect.h * shrink.y);
+            }
+            else
+                updateNeeded = true;
+        }
+        pChild->oldSrcRect = pChild->shared.realSrcRect;
+        // Sprite stores the offsets as floats, and they get jittery when shrunk if we try to use ints,
+        // so we just leave it as a float and it works perfectly.
+        // We also use the srcRect to position the subimage for sprites instead of modifying the offset.
+        // It makes positioning the wave and bush effect a lot simpler.
+        pChild->shared.offset.x = pChild->shared.realOffset.x * shrink.x;
+        pChild->shared.offset.y = pChild->shared.realOffset.y * shrink.y;
+        
+        if (pChild->shared.mirrored)
+        {
+            newParentPos.x = std::max(adjustedSrcRect.w - selfWidth, 0) - newParentPos.x;
+        }
+        
+        if (pChild->mirrored != pChild->shared.mirrored && selfWidth != adjustedSrcRect.w)
+            updateNeeded = true;
+        pChild->mirrored = pChild->shared.mirrored;
+    }
+    
+    if (updateNeeded)
+    {
+        if (pChild->shared.wrap)
+        {
+            newParentPos.x = wrapRange(newParentPos.x, 0, adjustedSrcRect.w);
+            newParentPos.y = wrapRange(newParentPos.y, 0, adjustedSrcRect.h);
+        }
+        
+        std::vector<IntRect> subrects;
+        long locNum = 1;
+        IntRect baseRect(newParentPos.x + adjustedSrcRect.x,
+                         newParentPos.y + adjustedSrcRect.y,
+                         std::min(selfWidth, adjustedSrcRect.w - newParentPos.x),
+                         std::min(selfHeight, adjustedSrcRect.h - newParentPos.y));
+        
+        if (isSprite)
+        {
+            int deltaW = selfWidth - baseRect.w;
+            int deltaH = selfHeight - baseRect.h;
+            
+            if (deltaW)
+            {
+                baseRect.x = clamp(baseRect.x - (int)ceil(deltaW / 2.0f), 0, pChild->parent->width() - selfWidth);
+                baseRect.w = selfWidth;
+            }
+            if (deltaH)
+            {
+                baseRect.y = clamp(baseRect.y - (int)ceil(deltaH / 2.0f), 0, pChild->parent->height() - selfHeight);
+                baseRect.h = selfHeight;
+            }
+            
+            if (adjustedSrcRect.w > baseRect.w && pChild->mirrored)
+            {
+                float x = (pChild->shared.realSrcRect.x + pChild->shared.realSrcRect.w) - (baseRect.x + baseRect.w);
+                pChild->shared.srcRect.x = (std::min(pChild->shared.realSrcRect.x, 0) - x) * shrink.x;
+            }
+            else
+            {
+                pChild->shared.srcRect.x = (pChild->shared.realSrcRect.x - baseRect.x) * shrink.x;
+            }
+            pChild->shared.srcRect.w = pChild->shared.realSrcRect.w * shrink.x;
+            pChild->shared.srcRect.y = (pChild->shared.realSrcRect.y - baseRect.y) * shrink.y;
+            pChild->shared.srcRect.h = pChild->shared.realSrcRect.h * shrink.y;
+            
+            pChild->srcRect = baseRect;
+        }
+        
+        subrects.push_back(baseRect);
+        if (pChild->shared.wrap && baseRect.w < selfWidth)
+        {
+            locNum *= 2;
+            subrects.push_back(IntRect(0, baseRect.y,
+                                                selfWidth - baseRect.w,
+                                                baseRect.h));
+        }
+        if (pChild->shared.wrap && baseRect.h < selfHeight)
+        {
+            locNum *= 2;
+            subrects.push_back(IntRect(baseRect.x, 0,
+                                                baseRect.w,
+                                                selfHeight - baseRect.h));
+        }
+        if (locNum == 4)
+        {
+            subrects.push_back(IntRect(0, 0,
+                                                selfWidth - baseRect.w,
+                                                selfHeight - baseRect.h));
+        }
+        
+        clear();
+        
+        int bufferX = 0;
+        int bufferY = 0;
+        for (long i = 0; i < locNum; i++)
+        {
+            IntRect sourceRect = subrects[i];
+            IntRect destRect(sourceRect.x == baseRect.x ? 0 : bufferX,
+                             sourceRect.y == baseRect.y ? 0 : bufferY,
+                             sourceRect.x == baseRect.x ? round(sourceRect.w * shrink.x) : width() - bufferX,
+                             sourceRect.y == baseRect.y ? round(sourceRect.h * shrink.y) : height() - bufferY);
+            if (!bufferX)
+            {
+                bufferX = destRect.w;
+                bufferY = destRect.h;
+            }
+            stretchBlt(destRect, *pChild->parent, sourceRect, 255);
+        }
+        
+        pChild->dirty = false;
+        pChild->currentShrink = shrink;
+    }
 }
 
 int Bitmap::width() const
@@ -3722,6 +4239,11 @@ void Bitmap::releaseResources()
     }
     else
         shState->texPool().release(p->gl);
+    
+    if (p->pChild)
+    {
+        delete p->pChild;
+    }
     
     delete p;
 }
