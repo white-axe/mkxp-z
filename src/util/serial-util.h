@@ -28,27 +28,6 @@
 
 #include <SDL_endian.h>
 
-static inline uint16_t
-byteSwap16(uint16_t value)
-{
-#ifdef _MSC_VER
-	static_assert(sizeof(unsigned short) == sizeof(uint16_t), "unsigned short should be 16 bits");
-	return _byteswap_ushort(value);
-#else
-	return __builtin_bswap16(value);
-#endif
-}
-
-static inline uint16_t
-byteSwap16IfBigEndian(uint16_t value)
-{
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-	return byteSwap16(value);
-#else
-	return value;
-#endif
-}
-
 static inline uint32_t
 byteSwap32(uint32_t value)
 {
