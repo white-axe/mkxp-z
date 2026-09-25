@@ -135,7 +135,7 @@ void Table::serialize(char *buffer) const
 	writeInt32(&buffer, zs);
 	writeInt32(&buffer, size);
 
-#if SDL_BYTEORDER != SDL_BIG_ENDIAN
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
 	mkxp_swab(dataPtr(data), buffer, sizeof(int16_t)*size);
 #else
 	memcpy(buffer, dataPtr(data), sizeof(int16_t)*size);
