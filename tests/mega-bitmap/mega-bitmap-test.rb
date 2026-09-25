@@ -9,9 +9,8 @@
 # Set "maxTextureSize": 8192 during testing to force Mega Surface use.
 
 def dump(bmp, spr, desc)
-	# Don't use sprite since that's not covered by this test suite.
-	#spr.bitmap = bmp
-	Graphics.wait(1)
+	spr.bitmap = bmp
+	Graphics.wait(1 * 60)
 	bmp.to_file("test-results/" + desc + ".png")
 	System::puts("Finished " + desc)
 end
