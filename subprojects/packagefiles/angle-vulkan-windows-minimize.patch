@@ -1,0 +1,13 @@
+# Fixes an assertion error when the game window is minimized when using ANGLE's Vulkan backend on a Windows computer.
+
+--- a/src/libANGLE/renderer/vulkan/FramebufferVk.cpp
++++ b/src/libANGLE/renderer/vulkan/FramebufferVk.cpp
+@@ -3296,7 +3296,7 @@ angle::Result FramebufferVk::getFramebuffer(ContextVk *contextVk,
+            mRenderPassDesc.hasColorFramebufferFetch());
+ 
+     const gl::Extents attachmentsSize = mState.getExtents();
+-    ASSERT(attachmentsSize.width != 0 && attachmentsSize.height != 0);
++    ASSERT(mBackbuffer != nullptr || (attachmentsSize.width != 0 && attachmentsSize.height != 0));
+ 
+     uint32_t framebufferWidth        = static_cast<uint32_t>(attachmentsSize.width);
+     uint32_t framebufferHeight       = static_cast<uint32_t>(attachmentsSize.height);
