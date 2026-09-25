@@ -1,0 +1,21 @@
+[wrap-file]
+# When updating this dependency, the version and git_hash also need to be updated at the top of subprojects/packagefiles/angle/meson.build
+source_url = https://github.com/google/angle/archive/refs/heads/chromium/8037_21.tar.gz
+source_filename = angle-chromium-8037_21.tar.gz
+source_hash = 4faf51e19e061d5f8bb83b8f03d51fb70d3a5855250ddc98cf64e80446362fea
+directory = angle-chromium-8037_21
+patch_directory = angle
+diff_files =
+    angle-bsd.patch,
+    angle-d3d11-cache.patch,
+    angle-direct3d-resize-callback.patch,
+    angle-framebuffer-assert.patch,
+    angle-interm-node.patch,
+    angle-resource-map.patch,
+    angle-round-to-nearest.patch,
+    angle-span.patch,
+    angle-vk-mem-alloc-wrapper.patch,
+    angle-vulkan-memory-allocator.patch,
+    angle-vulkan-windows-minimize.patch,
+    angle-window-surface-vk-mac.patch,
+    end-of-diff-files.patch
