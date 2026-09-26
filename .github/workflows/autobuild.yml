@@ -1170,13 +1170,25 @@ jobs:
           cd ${{ runner.temp }}/artifacts
           for artifact in *
           do
-            cd "$artifact"
-            old_dotglob="$(shopt -p dotglob || :)"
-            shopt -s dotglob
-            zip -r9 "../$artifact.zip" *
-            eval "$old_dotglob"
-            cd ..
-            rm -r "$artifact"
+            echo "Preparing $artifact"
+            # If the artifact consists of exactly one file with the same name as the artifact, just upload the one file.
+            # Otherwise, create a zip file containing all of the artifact's files and upload the zip file.
+            if [ -f "$artifact/$artifact" ] && [ $(find "$artifact" -mindepth 1 -maxdepth 1 -exec echo '' \; | wc -l) = 1 ]
+            then
+              echo 'Artifact consists of one file named after the artifact; not zipping it'
+              tmpdir=$(od -N 32 -x /dev/urandom | cut -b 9- | tr -d ' \n') # 64 random lowercase hexadecimal digits
+              mv "$artifact" "$tmpdir"
+              mv "$tmpdir/$artifact" "$artifact"
+              rmdir "$tmpdir"
+            else
+              cd "$artifact"
+              old_dotglob="$(shopt -p dotglob || :)"
+              shopt -s dotglob
+              zip -r9 "../$artifact.zip" *
+              eval "$old_dotglob"
+              cd ..
+              rm -r "$artifact"
+            fi
           done
 
       - name: Upload
