@@ -40,12 +40,18 @@ jobs:
           meson dist -C build --no-tests --formats gztar
           mv build/meson-dist/*.tar.gz dist.tar.gz
 
+      - name: Generate a source date epoch for the source tarball
+        run: |
+          # Use the timestamp of the Git commit that this source tarball is being generated from
+          SOURCE_DATE_EPOCH=$(git show --no-patch --format=%ct)
+          echo SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH | tee -a "$GITHUB_ENV"
+
       - name: Repack source tarball deterministically
         run: |
           mkdir dist
           tar -C dist -xzf dist.tar.gz
           rm dist.tar.gz
-          tar -C dist --mtime=@$(git show --no-patch --format=%ct) --sort=name --format=posix --mode=a=rX,u+w --owner=0 --group=0 --numeric-owner --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime -cf dist.tar "$(ls dist)"
+          tar -C dist --mtime=@$SOURCE_DATE_EPOCH --sort=name --format=posix --mode=a=rX,u+w --owner=0 --group=0 --numeric-owner --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime -cf dist.tar "$(ls dist)"
           zstd --rm -T0 --ultra -20 dist.tar
           mv dist.tar.zst mkxp-z.source-with-dependencies.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}.tar.zst
 
@@ -68,34 +74,55 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y git tar zstd
+          sudo apt install -y bison ccache cmake diffutils git make ruby
+          # The Meson version provided by APT is too old so we install Meson using pip instead
+          sudo apt install -y ninja-build python3-pip
+          pip3 install meson
+          sudo apt install -y gcc g++
+
+          sudo apt install -y gzip tar zstd
 
       - name: Download source tarball
         uses: actions/download-artifact@v8
         with:
           name: mkxp-z.source-with-dependencies.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}.tar.zst
-          path: dist
+          path: .
 
       - name: Extract source tarball
         run: |
-          cd dist
           mv mkxp-z.source-with-dependencies.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}.tar.zst mkxp-z.source-with-dependencies.tar.zst
           find . -mindepth 1 -maxdepth 1 \! -name mkxp-z.source-with-dependencies.tar.zst -exec rm -rf {} \;
-          zstd -dc mkxp-z.source-with-dependencies.tar.zst | tar -xf -
+          zstd -dc mkxp-z.source-with-dependencies.tar.zst | tar -xf - --strip-components 1
           rm mkxp-z.source-with-dependencies.tar.zst
+
+      - name: Initialize Git repository
+        run: |
+          # `meson dist` will throw an error if we're not in a non-empty Git repository, so create a Git repository and make a dummy commit in it
+          git init
+          git config --local user.name 'Your Name'
+          git config --local user.email 'you@example.com'
+          git config --local commit.gpgsign false
+          git add .
+          git commit --no-verify -m 'This is a dummy commit to appease `meson dist`'
 
       - name: Prepare source tarball
         run: |
-          cd dist/*
-          git init
-          git add .
-          git clean -dffx
-          rm -rf .git
-          mkdir subprojects/packagecache
+          meson setup -Ddist_subprojects=none build
+          meson dist -C build --no-tests --formats gztar
+          mv build/meson-dist/*.tar.gz dist.tar.gz
 
-      - name: Pack source tarball deterministically
+      - name: Generate a source date epoch for the source tarball
         run: |
-          tar -C dist --mtime=@$(stat -c %Y dist/*/meson.build) --sort=name --format=posix --mode=a=rX,u+w --owner=0 --group=0 --numeric-owner --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime -cf dist.tar "$(ls dist)"
+          # Use the last modified time of an arbitrary file from the source tarball with dependencies (meson.build), which should be the same as the source date epoch that we used for the source tarball with dependencies
+          SOURCE_DATE_EPOCH=$(stat -c %Y meson.build)
+          echo SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH | tee -a "$GITHUB_ENV"
+
+      - name: Repack source tarball deterministically
+        run: |
+          mkdir dist
+          tar -C dist -xzf dist.tar.gz
+          rm dist.tar.gz
+          tar -C dist --mtime=@$SOURCE_DATE_EPOCH --sort=name --format=posix --mode=a=rX,u+w --owner=0 --group=0 --numeric-owner --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime -cf dist.tar "$(ls dist)"
           zstd --rm -T0 --ultra -20 dist.tar
           mv dist.tar.zst mkxp-z.source-without-dependencies.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}.tar.zst
 
