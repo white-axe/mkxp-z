@@ -60,6 +60,7 @@ cmake_base_options = {
 
 cmake_override_options = {
     'b_coverage': 'false',
+    'b_lto': have_lto ? 'true' : 'false',
 }
 
 meson_base_options = cmake_override_options + {

@@ -29,8 +29,10 @@ global_objcpp_args = []
 global_link_args = []
 c_std = 'gnu11,c11'
 cpp_std = 'gnu++14,c++14'
+have_lto = get_option('b_lto') or (get_option('release_lto') and get_option('buildtype') == 'release')
+override_options = {'c_std': c_std, 'cpp_std': cpp_std, 'b_lto': have_lto}
 
-common = subproject('common', default_options: {'c_std': c_std, 'cpp_std': cpp_std})
+common = subproject('common', default_options: override_options)
 cmake = import('cmake')
 python = common.get_variable('python')
 embedtool = common.get_variable('embedtool')
@@ -158,7 +160,7 @@ if get_option('steamworks_path') != ''
             '-fobjc-weak',
         ],
         link_args: global_link_args,
-        override_options: {'c_std': c_std, 'cpp_std': cpp_std},
+        override_options: override_options,
         win_subsystem: get_option('steamshim_debug') ? 'console' : 'windows',
         build_rpath: rpath,
         install_rpath: rpath,
@@ -179,7 +181,7 @@ libmkxp = static_library(
     cpp_args: global_args + global_cpp_args,
     objc_args: global_args + global_objc_args,
     objcpp_args: global_args + global_objc_args + global_cpp_args + global_objcpp_args,
-    override_options: {'c_std': c_std, 'cpp_std': cpp_std},
+    override_options: override_options,
 )
 
 executable(
@@ -250,7 +252,7 @@ if host_system == 'darwin'
                 '-fobjc-weak',
             ],
             link_args: global_link_args,
-            override_options: {'c_std': c_std, 'cpp_std': cpp_std},
+            override_options: override_options,
             win_subsystem: get_option('steamshim_debug') ? 'console' : 'windows',
             build_rpath: rpath,
             install_rpath: rpath,

@@ -144,7 +144,7 @@ jobs:
       - name: Configure
         shell: msys2 {0}
         run: |
-          meson setup --prefix "$(pwd)/build/artifact" --buildtype release -Dstrip=true -Db_lto=true build
+          meson setup --prefix "$(pwd)/build/artifact" --buildtype release -Dstrip=true build
 
       - name: Build
         id: build
@@ -283,7 +283,7 @@ jobs:
           else
             compiler=gcc
           fi
-          meson setup --prefix "$(pwd)/build/artifact" --cross-file windows/meson-$compiler-${{ matrix.arch_mkxpz }}.txt --buildtype release -Dstrip=true -Db_lto=true build
+          meson setup --prefix "$(pwd)/build/artifact" --cross-file windows/meson-$compiler-${{ matrix.arch_mkxpz }}.txt --buildtype release -Dstrip=true build
 
       - name: Build
         id: build
@@ -550,7 +550,7 @@ jobs:
           else
             arm_neon=disabled
           fi
-          meson setup --prefix "$(pwd)/build/artifact" --cross-file ${{ runner.temp }}/cross.toml -Darm_neon=$arm_neon --buildtype release -Dstrip=true -Db_lto=true build
+          meson setup --prefix "$(pwd)/build/artifact" --cross-file ${{ runner.temp }}/cross.toml -Darm_neon=$arm_neon --buildtype release -Dstrip=true build
 
       - name: Build
         id: build
@@ -624,7 +624,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --prefix "$(pwd)/build/artifact" --buildtype release -Dstrip=true -Db_lto=true build
+          meson setup --prefix "$(pwd)/build/artifact" --buildtype release -Dstrip=true build
 
       - name: Build
         id: build
@@ -734,7 +734,7 @@ jobs:
           else
             arm_neon=disabled
           fi
-          meson setup --prefix "$(pwd)/build/artifact" --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt -Darm_neon=$arm_neon --buildtype release -Dstrip=true -Db_lto=true build
+          meson setup --prefix "$(pwd)/build/artifact" --cross-file linux/meson-${{ matrix.arch_mkxpz }}.txt -Darm_neon=$arm_neon --buildtype release -Dstrip=true build
 
       - name: Build
         id: build
@@ -953,7 +953,7 @@ jobs:
           else
             lto=true
           fi
-          meson setup --prefix "$(pwd)/build/artifact" --cross-file ${{ runner.temp }}/cross.toml --buildtype release -Dstrip=true -Db_lto=$lto build
+          meson setup --prefix "$(pwd)/build/artifact" --cross-file ${{ runner.temp }}/cross.toml --buildtype release -Dstrip=true -Drelease_lto=false -Db_lto=$lto build
 
       - name: Build
         id: build
@@ -1029,7 +1029,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup --prefix "$(pwd)/build/artifact" --cross-file macos/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Dstrip=true -Db_lto=true build
+          meson setup --prefix "$(pwd)/build/artifact" --cross-file macos/meson-${{ matrix.arch_mkxpz }}.txt --buildtype release -Dstrip=true build
 
       - name: Build
         id: build
