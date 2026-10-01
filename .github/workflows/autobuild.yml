@@ -138,8 +138,8 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: ccache
-          key: windows-msys2-x86_64-${{ matrix.msystem }}-
-          restore-keys: windows-msys2-x86_64-${{ matrix.msystem }}-
+          key: windows-msys2-${{ matrix.msystem }}-x86_64-
+          restore-keys: windows-msys2-x${{ matrix.msystem }}-86_64-
 
       - name: Set up ccache
         shell: msys2 {0}
@@ -168,7 +168,7 @@ jobs:
         uses: actions/cache/save@v6
         with:
           path: ccache
-          key: windows-msys2-x86_64-${{ matrix.msystem }}-${{ github.sha }}-${{ steps.build.outputs.time }}
+          key: windows-msys2-${{ matrix.msystem }}-x86_64-${{ github.sha }}-${{ steps.build.outputs.time }}
 
       - name: Show ccache statistics
         shell: msys2 {0}
@@ -219,36 +219,36 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: mkxp-z.windows.msys2.x86_64.${{ matrix.msystem }}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          name: mkxp-z.windows.msys2.${{ matrix.msystem }}.x86_64.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/artifact
 
   build-windows-cross:
-    name: Windows cross ${{ matrix.arch_mkxpz }} ${{ matrix.crt }}
+    name: Windows cross ${{ matrix.crt }} ${{ matrix.arch_mkxpz }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - arch_mkxpz: arm64
-            crt: msvcrt
+          - crt: msvcrt
+            arch_mkxpz: arm64
             clang: true
             cache: true
-          - arch_mkxpz: arm64
-            crt: ucrt
-            cache: true
-          - arch_mkxpz: i686
-            crt: msvcrt
+          - crt: msvcrt
+            arch_mkxpz: i686
             clang: true
             cache: false
-          - arch_mkxpz: i686
-            crt: ucrt
-            cache: false
-          - arch_mkxpz: x86_64
-            crt: msvcrt
+          - crt: msvcrt
+            arch_mkxpz: x86_64
             clang: false # FIXME: x86_64 binaries built with Clang cause Ruby to crash at run time
             cache: true
-          - arch_mkxpz: x86_64
-            crt: ucrt
+          - crt: ucrt
+            arch_mkxpz: arm64
+            cache: true
+          - crt: ucrt
+            arch_mkxpz: i686
+            cache: false
+          - crt: ucrt
+            arch_mkxpz: x86_64
             cache: true
     steps:
       - uses: benjlevesque/short-sha@v4.0
@@ -287,8 +287,8 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: ccache
-          key: windows-cross-${{ matrix.arch_mkxpz }}-${{ matrix.crt }}-
-          restore-keys: windows-cross-${{ matrix.arch_mkxpz }}-${{ matrix.crt }}-
+          key: windows-cross-${{ matrix.crt }}-${{ matrix.arch_mkxpz }}-
+          restore-keys: windows-cross-${{ matrix.crt }}-${{ matrix.arch_mkxpz }}-
 
       - name: Set up ccache
         run: |
@@ -320,7 +320,7 @@ jobs:
         uses: actions/cache/save@v6
         with:
           path: ccache
-          key: windows-cross-${{ matrix.arch_mkxpz }}-${{ matrix.crt }}-${{ github.sha }}-${{ steps.build.outputs.time }}
+          key: windows-cross-${{ matrix.crt }}-${{ matrix.arch_mkxpz }}-${{ github.sha }}-${{ steps.build.outputs.time }}
 
       - name: Show ccache statistics
         run: |
@@ -337,7 +337,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: mkxp-z.windows.cross.${{matrix.arch_mkxpz}}.${{ matrix.crt }}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
+          name: mkxp-z.windows.cross.${{ matrix.crt }}.${{matrix.arch_mkxpz}}.${{github.event_name == 'pull_request' && format('PR{0}', github.event.number) || github.ref_name}}-${{steps.short-sha.outputs.sha}}
           path: build/artifact
 
   build-linux-gnu:
