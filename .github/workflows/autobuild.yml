@@ -139,7 +139,7 @@ jobs:
         with:
           path: ccache
           key: windows-msys2-${{ matrix.msystem }}-x86_64-
-          restore-keys: windows-msys2-x${{ matrix.msystem }}-86_64-
+          restore-keys: windows-msys2-${{ matrix.msystem }}-x86_64-
 
       - name: Set up ccache
         shell: msys2 {0}
