@@ -363,6 +363,8 @@ struct CacheEnumData {
 
   CacheEnumData(FileSystemPrivate *p) : p(p) {
 #ifdef __APPLE__
+    /* libiconv, the iconv implementation that we use if the iconv_system Meson option is disabled, doesn't support UTF-8-MAC,
+     * so we use mkxp_system_iconv_* functions here which always use the system version of iconv. */
     nfd2nfc = mkxp_system_iconv_open("utf-8", "utf-8-mac");
 #endif
   }
