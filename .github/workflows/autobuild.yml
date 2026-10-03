@@ -239,7 +239,7 @@ jobs:
             cache: false
           - crt: msvcrt
             arch_mkxpz: x86_64
-            clang: false # FIXME: x86_64 binaries built with Clang cause Ruby to crash at run time
+            clang: false
             cache: true
           - crt: ucrt
             arch_mkxpz: arm64
