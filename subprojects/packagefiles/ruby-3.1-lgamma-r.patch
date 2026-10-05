@@ -1,0 +1,42 @@
+# Renames Ruby's `lgamma_r` polyfill to `mkxp_ruby_lgamma_r`.
+# Using `lgamma_r` as the name causes the linker error "undefined reference to `lgamma_r'" when building for Windows using GCC if link-time optimization is enabled.
+
+--- a/include/ruby/missing.h
++++ b/include/ruby/missing.h
+@@ -114,11 +114,11 @@ RUBY_EXTERN double erfc(double);
+ #ifndef HAVE_TGAMMA
+ RUBY_EXTERN double tgamma(double);
+ #endif
+-
+ #ifndef HAVE_LGAMMA_R
+-RUBY_EXTERN double lgamma_r(double, int *);
++RUBY_EXTERN double mkxp_ruby_lgamma_r(double, int *);
++#else
++#define mkxp_ruby_lgamma_r lgamma_r
+ #endif
+-
+ #ifndef HAVE_CBRT
+ RUBY_EXTERN double cbrt(double);
+ #endif
+--- a/math.c
++++ b/math.c
+@@ -912,7 +912,7 @@ math_lgamma(VALUE unused_obj, VALUE x)
+ 	VALUE vsign = signbit(d) ? INT2FIX(-1) : INT2FIX(+1);
+ 	return rb_assoc_new(DBL2NUM(HUGE_VAL), vsign);
+     }
+-    v = DBL2NUM(lgamma_r(d, &sign));
++    v = DBL2NUM(mkxp_ruby_lgamma_r(d, &sign));
+     return rb_assoc_new(v, INT2FIX(sign));
+ }
+ 
+--- a/missing/lgamma_r.c
++++ b/missing/lgamma_r.c
+@@ -60,7 +60,7 @@ loggamma(double x)  /* the natural logarithm of the Gamma function. */
+ 
+ /* the natural logarithm of the absolute value of the Gamma function */
+ double
+-lgamma_r(double x, int *signp)
++mkxp_ruby_lgamma_r(double x, int *signp)
+ {
+     if (x <= 0) {
+         double i, f, s;
