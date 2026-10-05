@@ -154,11 +154,6 @@ ruby = declare_dependency(
         # Otherwise, any Ruby gems that have extensions will fail to load with undefined symbol errors.
         # For non-ELF executable formats (e.g. Mach-O or PE), this behavior is already the default so no linker flag is needed for non-ELF formats.
         meson.get_compiler('c').first_supported_link_argument('-rdynamic', '-Wl,-export-dynamic'),
-        (host_machine.system() in ['windows', 'cygwin']) and not meson.get_compiler('c').has_header_symbol('math.h', 'lgamma_r')
-            ? [
-                meson.project_build_root() / 'build' / 'lgamma_r.o',
-            ]
-            : [],
         meson.project_build_root() / 'build' / 'ext' / 'extinit.a',
         meson.project_build_root() / 'build' / 'ext' / 'bigdecimal' / 'bigdecimal.a',
         meson.project_build_root() / 'build' / 'ext' / 'cgi' / 'escape' / 'escape.a',
