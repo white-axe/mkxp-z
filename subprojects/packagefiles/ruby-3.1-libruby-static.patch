@@ -43,5 +43,5 @@
 +
 +$(LIBRUBY_IMPLIB): $(OBJS) dmyext.o dmyenc.o
 +	mkdir $(LIBRUBY_IMPLIB).p
-+	$(LDSHARED) $(DLDFLAGS) -Wl,--out-implib,$@ -o $(LIBRUBY_IMPLIB).p/@MKXP_EXE_NAME@@EXEEXT@ $^ $(LIBS)
++	$(LDSHARED) $(DLDFLAGS) -Wl,--export-all-symbols,--out-implib,$(LIBRUBY_IMPLIB),--output-def,$(LIBRUBY_IMPLIB).def -o $(LIBRUBY_IMPLIB).p/@MKXP_EXE_NAME@@EXEEXT@ $^ $(LIBS)
 +	rm -rf $(LIBRUBY_IMPLIB).p

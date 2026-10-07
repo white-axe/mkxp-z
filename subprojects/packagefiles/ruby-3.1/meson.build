@@ -151,10 +151,6 @@ ruby = declare_dependency(
         '-I' + meson.project_build_root() / 'dist' / 'include',
     ],
     link_args: [
-        # If the executable format is ELF, we need this linker flag to export Ruby's symbols from our executable so that gems can find them.
-        # Otherwise, any Ruby gems that have extensions will fail to load with undefined symbol errors.
-        # For non-ELF executable formats (e.g. Mach-O or PE), this behavior is already the default so no linker flag is needed for non-ELF formats.
-        meson.get_compiler('c').first_supported_link_argument('-rdynamic', '-Wl,-export-dynamic'),
         meson.project_build_root() / 'build' / 'ext' / 'extinit.a',
         meson.project_build_root() / 'build' / 'ext' / 'bigdecimal' / 'bigdecimal.a',
         meson.project_build_root() / 'build' / 'ext' / 'cgi' / 'escape' / 'escape.a',
@@ -227,6 +223,24 @@ miniruby = custom_target(
         ),
     ],
     build_by_default: true,
+)
+
+ruby = declare_dependency(
+    dependencies: ruby,
+    link_args: [
+        # If the executable format is ELF, we need this linker flag to export Ruby's symbols from our executable so that gems can find them.
+        # Otherwise, any Ruby gems that have extensions will fail to load with undefined symbol errors.
+        # For non-ELF executable formats (e.g. Mach-O or PE), this behavior is already the default so no linker flag is needed for non-ELF formats.
+        meson.get_compiler('c').first_supported_link_argument(
+            '-rdynamic',
+            '-Wl,-export-dynamic',
+        ),
+        host_machine.system() in ['windows', 'cygwin']
+            ? [
+                meson.project_build_root() / 'build' / 'libruby-implib.a.def',
+            ]
+            : [],
+    ],
 )
 
 meson.override_dependency('ruby-3.1', ruby, static: true)
