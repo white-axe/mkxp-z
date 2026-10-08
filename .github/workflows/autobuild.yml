@@ -120,7 +120,7 @@ jobs:
           msystem: mingw64
           install: >-
             bison mingw-w64-x86_64-ccache mingw-w64-x86_64-cmake diffutils mingw-w64-x86_64-git make mingw-w64-x86_64-meson mingw-w64-x86_64-ruby
-            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-gcc mingw-w64-x86_64-tools
 
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -254,7 +254,7 @@ jobs:
             ${{ runner.temp }}/llvm-mingw-$llvm_mingw_version/bin/clang --version
             echo "PATH=${{ runner.temp }}/llvm-mingw-$llvm_mingw_version/bin:$PATH" >> "$GITHUB_ENV"
           else
-            sudo apt install -y mingw-w64
+            sudo apt install -y mingw-w64 mingw-w64-tools
           fi
 
       - name: Checkout repository

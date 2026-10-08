@@ -30,6 +30,12 @@ endif
 
 baseruby = run_command(subproject('common').get_variable('quotetool'), (meson.version().version_compare('>=1.10.0') ? find_program('ruby').cmd_array() : find_program('ruby')), check: true).stdout().strip()
 
+if host_machine.system() in ['windows', 'cygwin']
+    gendef = run_command(subproject('common').get_variable('quotetool'), (meson.version().version_compare('>=1.10.0') ? find_program('gendef').cmd_array() : find_program('gendef')), check: true).stdout().strip()
+else
+    gendef = 'false'
+endif
+
 ruby_deps = [
     dependency('libffi', required: true),
     dependency('yaml-0.1', required: true),
@@ -88,6 +94,7 @@ ruby = declare_dependency(
                 # Otherwise, the link tests may fail due to https://github.com/llvm/llvm-project/issues/108262.
                 'MKXP_DISABLE_LTO_FOR_LINK_TESTS': (meson.get_compiler('c').get_linker_id().split('.')[-1] == 'lld' or meson.get_compiler('c').get_linker_id() == 'lld-link') and host_machine.cpu_family() == 'arm' ? 'yes' : 'no',
                 'MKXP_EXE_NAME': get_option('exe_name'),
+                'MKXP_GENDEF': gendef,
                 'DLLWRAP': 'false',
                 'WINDRES': run_command(subproject('common').get_variable('quotetool'), subproject('common').get_variable('windres'), check: true).stdout().strip(),
                 'YACC': run_command(subproject('common').get_variable('quotetool'), (meson.version().version_compare('>=1.10.0') ? find_program('bison').cmd_array() : find_program('bison')), check: true).stdout().strip(),
@@ -152,17 +159,11 @@ ruby = declare_dependency(
     ],
     link_args: [
         meson.get_compiler('c').first_supported_link_argument(
-            # If the executable format is ELF or PE, we need this linker flag to export Ruby's symbols from our executable so that gems can find them.
+            # If the executable format is ELF, we need this linker flag to export Ruby's symbols from our executable so that gems can find them.
             # Otherwise, any Ruby gems that have extensions will fail to load with undefined symbol errors.
-            # For other executable formats (e.g. Mach-O), this behavior is already the default so no linker flag is needed for other executable formats.
-            host_machine.system() in ['windows', 'cygwin']
-                ? [
-                    '-Wl,--export-all-symbols',
-                ]
-                : [
-                    '-rdynamic',
-                    '-Wl,-export-dynamic',
-                ],
+            # For other executable formats (e.g. Mach-O or PE), this behavior is already the default so no linker flag is needed for other executable formats.
+            '-rdynamic',
+            '-Wl,-export-dynamic',
         ),
         meson.project_build_root() / 'build' / 'ext' / 'extinit.a',
         meson.project_build_root() / 'build' / 'ext' / 'bigdecimal' / 'bigdecimal.a',
@@ -237,5 +238,12 @@ miniruby = custom_target(
     ],
     build_by_default: true,
 )
+
+if host_machine.system() in ['windows', 'cygwin']
+    ruby = declare_dependency(
+        dependencies: ruby,
+        link_args: meson.project_build_root() / 'build' / 'libruby-implib.a.def',
+    )
+endif
 
 meson.override_dependency('ruby-3.1', ruby, static: true)

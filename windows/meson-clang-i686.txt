@@ -2,6 +2,7 @@
 c = ['ccache', 'clang', '--target=i686-w64-mingw32', '-D_WIN32_WINNT=0x0601']
 cpp = ['ccache', 'clang++', '--target=i686-w64-mingw32', '-D_WIN32_WINNT=0x0601']
 windres = ['llvm-windres', '--target=i686-w64-mingw32', '-D_WIN32_WINNT=0x0601']
+gendef = 'gendef'
 ar = 'llvm-ar'
 strip = 'llvm-strip'
 cmake = 'cmake'
