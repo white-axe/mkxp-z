@@ -10,7 +10,7 @@
 -	    LIBRUBY='lib$(RUBY_SO_NAME).a'
 -	    LIBRUBYARG='-l$(RUBY_SO_NAME)'
 +	    LIBRUBY='lib$(RUBY_SO_NAME)-static.a'
-+	    LIBRUBYARG='-l$(RUBY_SO_NAME)-implib'; EXTDLDFLAGS="${EXTDLDFLAGS} -l${RUBY_SO_NAME}-implib"; AC_SUBST(MKXP_EXE_NAME) AC_SUBST(MKXP_GENDEF)
++	    LIBRUBYARG='-l$(RUBY_SO_NAME)-implib'; EXTDLDFLAGS="${EXTDLDFLAGS} -l${RUBY_SO_NAME}-implib"; AC_SUBST(MKXP_EXE_NAME)
  	])
  	],
      [hpux*], [
@@ -36,13 +36,12 @@
  $(RUBY_EXP) $(LIBRUBY_SO): $(DLL_BASE_NAME).res.@OBJEXT@
  
  %.res.@OBJEXT@: %.rc
-@@ -102,3 +102,9 @@ clean-local::
+@@ -102,3 +102,8 @@ clean-local::
  	@$(RM) $(RUBYDEF)
  	@$(RM) $(RUBY_EXP) $(RCFILES:.rc=.res.@OBJEXT@)
  	@$(RM) $(RCFILES)
 +
 +$(LIBRUBY_IMPLIB): $(OBJS) dmyext.o dmyenc.o
 +	mkdir $@.p
-+	$(LDSHARED) $(DLDFLAGS) -Wl,--export-all-symbols,--out-implib,$@ -o $@.p/@MKXP_EXE_NAME@@EXEEXT@ $^ $(LIBS)
-+	@MKXP_GENDEF@ - $@.p/@MKXP_EXE_NAME@@EXEEXT@ > $@.def # -Wl,--output-def doesn't work if building with GCC with link-time optimization enabled
++	$(LDSHARED) $(DLDFLAGS) -Wl,--export-all-symbols,--out-implib,$@,--output-def,$@.def -o $@.p/@MKXP_EXE_NAME@@EXEEXT@ $^ $(LIBS)
 +	rm -rf $@.p

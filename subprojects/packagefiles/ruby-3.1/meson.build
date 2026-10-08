@@ -30,12 +30,6 @@ endif
 
 baseruby = run_command(subproject('common').get_variable('quotetool'), (meson.version().version_compare('>=1.10.0') ? find_program('ruby').cmd_array() : find_program('ruby')), check: true).stdout().strip()
 
-if host_machine.system() in ['windows', 'cygwin']
-    gendef = run_command(subproject('common').get_variable('quotetool'), (meson.version().version_compare('>=1.10.0') ? find_program('gendef').cmd_array() : find_program('gendef')), check: true).stdout().strip()
-else
-    gendef = 'false'
-endif
-
 ruby_deps = [
     dependency('libffi', required: true),
     dependency('yaml-0.1', required: true),
@@ -94,7 +88,6 @@ ruby = declare_dependency(
                 # Otherwise, the link tests may fail due to https://github.com/llvm/llvm-project/issues/108262.
                 'MKXP_DISABLE_LTO_FOR_LINK_TESTS': (meson.get_compiler('c').get_linker_id().split('.')[-1] == 'lld' or meson.get_compiler('c').get_linker_id() == 'lld-link') and host_machine.cpu_family() == 'arm' ? 'yes' : 'no',
                 'MKXP_EXE_NAME': get_option('exe_name'),
-                'MKXP_GENDEF': gendef,
                 'DLLWRAP': 'false',
                 'WINDRES': run_command(subproject('common').get_variable('quotetool'), subproject('common').get_variable('windres'), check: true).stdout().strip(),
                 'YACC': run_command(subproject('common').get_variable('quotetool'), (meson.version().version_compare('>=1.10.0') ? find_program('bison').cmd_array() : find_program('bison')), check: true).stdout().strip(),
@@ -215,6 +208,15 @@ ruby = declare_dependency(
 
 ruby_build_dir = meson.project_build_root()
 
+miniruby_deps = executable(
+    'miniruby-deps',
+    sources: [
+        'deps-stub.c',
+    ],
+    dependencies: [
+        ruby,
+    ],
+)
 miniruby = custom_target(
     'miniruby',
     output: 'miniruby',
@@ -225,24 +227,24 @@ miniruby = custom_target(
         ruby_build_dir / 'build',
         '@OUTPUT@',
     ],
-    depends: [
-        executable(
-            'miniruby-deps',
-            sources: [
-                'deps-stub.c',
-            ],
-            dependencies: [
-                ruby,
-            ],
-        ),
-    ],
+    depends: miniruby_deps,
     build_by_default: true,
 )
 
 if host_machine.system() in ['windows', 'cygwin']
     ruby = declare_dependency(
         dependencies: ruby,
-        link_args: meson.project_build_root() / 'build' / 'libruby-implib.a.def',
+        sources: custom_target(
+            'libruby-implib.a.def',
+            output: 'libruby-implib.a.def',
+            command: [
+                subproject('common').get_variable('deftool'),
+                meson.project_build_root() / 'build' / 'libruby-implib.a.def',
+                '@OUTPUT@',
+            ],
+            depends: miniruby_deps,
+        ),
+        link_args: meson.project_build_root() / 'libruby-implib.a.def',
     )
 endif
 

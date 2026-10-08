@@ -32,6 +32,12 @@ quotetool = [python, files('quotetool.py')[0]]
 #   Returns the full name of the shared library file for the given library on the host machine. For example, given "X11", this outputs "libX11.so.6" when building for BSD or Linux.
 sonametool = [python, files('sonametool.py')[0], host_machine.system()]
 
+# deftool SOURCE_FILE DESTINATION_FILE
+#   This tool should be used to normalize .def files output by the linker via the `--output-def` linker flag in Windows builds before using them. Failure to do so may result in linker errors when trying to use the .def files.
+#   SOURCE_FILE: Path to the .def file output by the linker.
+#   DESTINATION_FILE: Path where the normalized version of SOURCE_FILE should be written to.
+deftool = [python, files('deftool.py')[0]]
+
 host_triplet_cpu = host_machine.cpu()
 host_triplet_vendor = 'unknown'
 if host_machine.system() in ['windows', 'cygwin']
