@@ -10,10 +10,16 @@ escape_pattern = re.compile(r'^(\.[^ \t]*|[^ \t."][^ \t.]*\.[^ \t]*)($|[ \t])')
 
 with open(input_path, 'r') as input_file, open(output_path, 'w') as output_file:
     for line in input_file:
+        # Remove everything after the first occurrence of ';' in the line.
+        semicolon_index = line.find(';')
+        if semicolon_index >= 0:
+            line = line[:semicolon_index]
+
+        # Remove leading and trailing whitespace.
         line = line.strip()
 
-        # Ignore lines starting with ';'.
-        if line.startswith(';'):
+        # Ignore empty lines.
+        if len(line) == 0:
             continue
 
         # Do no processing on lines up to and including the one containing 'EXPORTS'.
