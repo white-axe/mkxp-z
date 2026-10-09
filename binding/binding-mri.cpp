@@ -234,6 +234,17 @@ static VALUE legacy_symbol_to_int(VALUE self) {
     rb_warning("treating Symbol as an integer");
     return RB_LONG2FIX(rb_sym2id(self));
 }
+
+static bool legacy_thread_critical = false;
+
+static VALUE legacy_thread_critical_get(VALUE self) {
+    return legacy_thread_critical ? Qtrue : Qfalse;
+}
+
+static VALUE legacy_thread_critical_set(VALUE self, VALUE value) {
+    legacy_thread_critical = value != Qfalse && value != Qnil;
+    return value;
+}
 #endif // RAPI_MAJOR > 1 || (RAPI_MAJOR == 1 && RAPI_MINOR > 8)
 
 #if RAPI_MAJOR > 2 || (RAPI_MAJOR == 2 && RAPI_MINOR > 7)
@@ -279,6 +290,8 @@ static void mriBindingInit() {
     SYNTAX_TRANSFORM_DEFINE_METHOD(rb_mKernel, "type", legacy_kernel_type, 0, 1, 8, -1);
     SYNTAX_TRANSFORM_DEFINE_METHOD(rb_cSymbol, "to_i", legacy_symbol_to_i, 0, 1, 8, -1);
     SYNTAX_TRANSFORM_DEFINE_METHOD(rb_cSymbol, "to_int", legacy_symbol_to_int, 0, 1, 8, -1);
+    SYNTAX_TRANSFORM_DEFINE_SINGLETON_METHOD(rb_cThread, "critical", legacy_thread_critical_get, 0, 1, 8, -1);
+    SYNTAX_TRANSFORM_DEFINE_SINGLETON_METHOD(rb_cThread, "critical=", legacy_thread_critical_set, 1, 1, 8, -1);
 #endif // RAPI_MAJOR > 1 || (RAPI_MAJOR == 1 && RAPI_MINOR > 8)
 #if RAPI_MAJOR > 2 || (RAPI_MAJOR == 2 && RAPI_MINOR > 7)
     SYNTAX_TRANSFORM_DEFINE_METHOD(rb_cHash, "index", legacy_hash_index, -1, 2, 7, -1);
