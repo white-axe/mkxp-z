@@ -71,4 +71,5 @@ diff_files =
     syntax-transform/3.1/0035-splat-assignment.patch,
     syntax-transform/3.1/0036-brace-after-array-literal-arg.patch,
     syntax-transform/3.1/0037-errinfo.patch,
+    syntax-transform/3.1/0038-basic-object.patch,
     end-of-diff-files.patch
