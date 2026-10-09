@@ -197,6 +197,10 @@ static VALUE legacy_array_nitems(VALUE self) {
     return rb_funcall(self, rb_intern("length"), 0);
 }
 
+static VALUE legacy_exception_to_str(VALUE self) {
+    return rb_obj_as_string(self);
+}
+
 static VALUE legacy_hash_indexes(int argc, VALUE *argv, VALUE self) {
     rb_warn("Hash#indexes is deprecated; use Hash#values_at");
     return rb_funcallv(self, rb_intern("values_at"), argc, argv);
@@ -210,6 +214,11 @@ static VALUE legacy_hash_indices(int argc, VALUE *argv, VALUE self) {
 static VALUE legacy_kernel_id(VALUE self) {
     rb_warn("Object#id will be deprecated; use Object#object_id");
     return rb_obj_id(self);
+}
+
+static VALUE legacy_kernel_to_a(VALUE self) {
+    rb_warn("default `to_a' will be obsolete");
+    return rb_ary_new_from_args(1, self);
 }
 
 static VALUE legacy_kernel_type(VALUE self) {
@@ -262,9 +271,11 @@ static void mriBindingInit() {
     SYNTAX_TRANSFORM_DEFINE_METHOD(rb_cArray, "indexes", legacy_array_indexes, -1, 1, 8, -1);
     SYNTAX_TRANSFORM_DEFINE_METHOD(rb_cArray, "indices", legacy_array_indices, -1, 1, 8, -1);
     SYNTAX_TRANSFORM_DEFINE_METHOD(rb_cArray, "nitems", legacy_array_nitems, 0, 1, 8, -1);
+    SYNTAX_TRANSFORM_DEFINE_METHOD(rb_eException, "to_str", legacy_exception_to_str, 0, 1, 8, -1);
     SYNTAX_TRANSFORM_DEFINE_METHOD(rb_cHash, "indexes", legacy_hash_indexes, -1, 1, 8, -1);
     SYNTAX_TRANSFORM_DEFINE_METHOD(rb_cHash, "indices", legacy_hash_indices, -1, 1, 8, -1);
     SYNTAX_TRANSFORM_DEFINE_METHOD(rb_mKernel, "id", legacy_kernel_id, 0, 1, 8, -1);
+    SYNTAX_TRANSFORM_DEFINE_METHOD(rb_mKernel, "to_a", legacy_kernel_to_a, 0, 1, 8, -1);
     SYNTAX_TRANSFORM_DEFINE_METHOD(rb_mKernel, "type", legacy_kernel_type, 0, 1, 8, -1);
     SYNTAX_TRANSFORM_DEFINE_METHOD(rb_cSymbol, "to_i", legacy_symbol_to_i, 0, 1, 8, -1);
     SYNTAX_TRANSFORM_DEFINE_METHOD(rb_cSymbol, "to_int", legacy_symbol_to_int, 0, 1, 8, -1);
