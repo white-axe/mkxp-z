@@ -1204,7 +1204,7 @@ if have_syntax_transform
 endif
 
 if host_system in ['windows', 'cygwin']
-    global_link_args += ['-static-libgcc', '-static-libstdc++', '-Wl,-Bstatic', '-lpthread', '-Wl,-Bdynamic']
+    global_link_args += ['-static-libgcc', '-static-libstdc++', '-Wl,-Bstatic', '-lpthread', '-Wl,-Bdynamic', '-Wl,--stack=0x200000']
 else
     global_link_args += ['-static-libstdc++']
 endif
