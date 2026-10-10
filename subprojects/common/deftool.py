@@ -10,7 +10,7 @@ escape_pattern = re.compile(r'^(\.[^ \t]*|[^ \t."][^ \t.]*\.[^ \t]*)($|[ \t])')
 
 with open(input_path, 'r') as input_file, open(output_path, 'w') as output_file:
     for line in input_file:
-        # Remove everything after the first occurrence of ';' in the line.
+        # Remove the first occurrence of ';' in the line and everything after it.
         semicolon_index = line.find(';')
         if semicolon_index >= 0:
             line = line[:semicolon_index]
