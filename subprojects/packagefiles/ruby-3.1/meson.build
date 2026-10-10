@@ -185,12 +185,12 @@ ruby = declare_dependency(
         meson.project_build_root() / 'build' / 'ext' / 'json' / 'parser' / 'parser.a',
         meson.project_build_root() / 'build' / 'ext' / 'monitor' / 'monitor.a',
         meson.project_build_root() / 'build' / 'ext' / 'nkf' / 'nkf.a',
+        meson.project_build_root() / 'build' / 'ext' / 'objspace' / 'objspace.a',
         have_openssl
             ? [
                 meson.project_build_root() / 'build' / 'ext' / 'openssl' / 'openssl.a',
             ]
             : [],
-        meson.project_build_root() / 'build' / 'ext' / 'objspace' / 'objspace.a',
         meson.project_build_root() / 'build' / 'ext' / 'pathname' / 'pathname.a',
         meson.project_build_root() / 'build' / 'ext' / 'psych' / 'psych.a',
         meson.project_build_root() / 'build' / 'ext' / 'racc' / 'cparse' / 'cparse.a',
