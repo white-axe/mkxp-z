@@ -115,7 +115,7 @@
  	if (VM_FRAME_RUBYFRAME_P(cfp)) {
 +            for (const struct mkxp_errinfo_node *node = cfp->mkxp_errinfo_stack_top; node != NULL; node = node->prev) {
 +		if (node->errinfo != 0) {
-+		    return &cfp->mkxp_errinfo_stack_top->errinfo;
++		    return &node->errinfo;
 +		}
 +	    }
 +            if (cfp->mkxp_rescue_errinfo != 0) {
