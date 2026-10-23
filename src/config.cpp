@@ -127,6 +127,7 @@ Config::Config() {}
 
 void Config::read(int argc, char *argv[]) {
     auto optsJ = json::object({
+        {"_testMode", false},
         {"rgssVersion", 0},
         {"debugMode", false},
         {"displayFPS", false},
@@ -239,6 +240,7 @@ try { exp } catch (...) {}
 #define SET_OPT(var, type) SET_OPT_CUSTOMKEY(var, var, type)
 #define SET_STRINGOPT(var, key) GUARD(var = std::string(opts[#key].as_string());)
     
+    SET_OPT_CUSTOMKEY(testMode, _testMode, boolean);
     SET_STRINGOPT(gameFolder, gameFolder);
     SET_STRINGOPT(dataPathOrg, dataPathOrg);
     SET_STRINGOPT(dataPathApp, dataPathApp);
@@ -263,9 +265,11 @@ try { exp } catch (...) {}
     readGameINI();
     
     // Now check for an extra mkxp.conf in the user's save directory and merge anything else from that
-    userConfPath = mkxp_fs::normalizePath(std::string(customDataPath + "/" CONF_FILE).c_str(), 0, 1);
-    json::value userConf = readConfFile(userConfPath.c_str());
-    copyObject(optsJ, userConf);
+    if (!testMode) {
+        userConfPath = mkxp_fs::normalizePath(std::string(customDataPath + "/" CONF_FILE).c_str(), 0, 1);
+        json::value userConf = readConfFile(userConfPath.c_str());
+        copyObject(optsJ, userConf);
+    }
     
     // now RESUME
     

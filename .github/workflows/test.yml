@@ -1,0 +1,110 @@
+name: Test
+
+on:
+  push:
+    branches: ['dev', 'autobuild']
+    paths-ignore: ['*.md', '*.json', '*.png']
+  pull_request:
+    branches: ['dev', 'autobuild']
+    paths-ignore: ['*.md', '*.json', '*.png']
+  workflow_dispatch:
+
+jobs:
+  test-windows:
+    name: Windows
+    runs-on: windows-latest
+    steps:
+      - name: Install dependencies
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: mingw64
+          install: >-
+            bison mingw-w64-x86_64-cmake diffutils mingw-w64-x86_64-git make mingw-w64-x86_64-meson mingw-w64-x86_64-ruby
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-7zip mingw-w64-x86_64-curl
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Configure
+        shell: msys2 {0}
+        run: |
+          meson setup -Dangle_direct3d11=disabled build
+
+      - name: Build
+        shell: msys2 {0}
+        run: |
+          CLICOLOR_FORCE=1 ninja -C build -v
+
+      - name: Install Mesa
+        shell: msys2 {0}
+        run: |
+          # Mesa provides opengl32.dll on Windows, which we can install just by putting the .dll files in the same directory as our executable.
+          # However, Mesa does not provide vulkan-1.dll (Vulkan loader). That's provided by the operating system.
+          # To make the operating system's vulkan-1.dll use Mesa, we edit the Windows registry to register Mesa as a Vulkan driver.
+          cd build
+          curl --retry 5 -Lo mesa.7z https://github.com/pal1000/mesa-dist-win/releases/download/26.2.4/mesa3d-26.2.4-release-mingw.7z
+          echo '36a30a04d8cab6e2bea2d3c747c326d15024d9711dd80f45ef97ac6f2c3c5086 *mesa.7z' | sha256sum -c
+          7z x -omesa mesa.7z
+          mv mesa/x64/* .
+          reg add 'HKLM\Software\Khronos\Vulkan\Drivers' -v "$(cygpath -w "$(realpath lvp_icd.x86_64.json)")" -t REG_DWORD -d 0 -f
+
+      - name: Test
+        shell: msys2 {0}
+        run: |
+          meson test -C build --print-errorlogs
+
+  test-linux:
+    name: Linux
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y bison cmake diffutils git make meson ruby
+          sudo apt install -y gcc g++
+          sudo apt install -y libegl-mesa0 libglx-mesa0 mesa-libgallium mesa-vulkan-drivers # Mesa
+          sudo apt install -y libegl1 libgl1 libgles2 libglx0 libopengl0 # libglvnd (provides the OpenGL .so files, delegates to Mesa for the actual implementation of OpenGL)
+          sudo apt install -y libvulkan1 # Vulkan loader (provides libvulkan.so, delegates to Mesa for the actual implementation of Vulkan)
+          sudo apt install -y libx11-dev libxcursor-dev libxext-dev libxi-dev libxinerama-dev libxrandr-dev xvfb # X11
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Configure
+        run: |
+          meson setup build
+
+      - name: Build
+        run: |
+          CLICOLOR_FORCE=1 ninja -C build -v
+
+      - name: Test
+        run: |
+          xvfb-run meson test -C build --print-errorlogs
+
+  test-macos:
+    name: macOS
+    runs-on: macos-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          brew install -q bison cmake diffutils git make meson ruby
+          brew install -q mesa # Mesa
+          brew install -q vulkan-loader # Vulkan loader (provides libvulkan.dylib, delegates to Mesa for the actual implementation of Vulkan)
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Configure
+        run: |
+          meson setup -Dangle_metal=disabled build
+
+      - name: Build
+        run: |
+          CLICOLOR_FORCE=1 ninja -C build -v
+
+      - name: Test
+        run: |
+          export DYLD_FALLBACK_LIBRARY_PATH="$DYLD_FALLBACK_LIBRARY_PATH:$(brew --prefix vulkan-loader)/lib" # Add Vulkan loader to the dynamic loader path since it's not there by default
+          meson test -C build --print-errorlogs

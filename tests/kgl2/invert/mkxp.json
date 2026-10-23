@@ -1,0 +1,8 @@
+{
+    "customScript": "main.rb",
+    "_testMode": true,
+    "rgssVersion": 1,
+    "pathCache": false,
+    "renderer": @renderer@,
+    "subImageFix": @subImageFix@,
+}

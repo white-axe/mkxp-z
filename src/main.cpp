@@ -132,7 +132,7 @@ int rgssThreadFun(void *userdata) {
   threadData->glContext =
       initGL(threadData->window, threadData->config, threadData);
   if (!threadData->glContext)
-    return 0;
+    return 1;
 #else
   SDL_GL_MakeCurrent(threadData->window, threadData->glContext);
 #endif
@@ -155,7 +155,7 @@ int rgssThreadFun(void *userdata) {
 
   if (!alcCtx) {
     rgssThreadError(threadData, "Error creating OpenAL context");
-    return 0;
+    return 1;
   }
 
   alcMakeContextCurrent(alcCtx);
@@ -166,11 +166,11 @@ int rgssThreadFun(void *userdata) {
     rgssThreadError(threadData, exc.msg);
     alcDestroyContext(alcCtx);
 
-    return 0;
+    return 1;
   }
 
   /* Start script execution */
-  scriptBinding->execute();
+  int exit_code = scriptBinding->execute();
 
   threadData->rqTermAck.set();
   threadData->ethread->requestTerminate();
@@ -179,7 +179,7 @@ int rgssThreadFun(void *userdata) {
 
   alcDestroyContext(alcCtx);
 
-  return 0;
+  return exit_code;
 }
 
 static void printRgssVersion(int ver) {
@@ -727,8 +727,9 @@ int main(int argc, char *argv[]) {
 
     /* If RGSS thread ack'd request, wait for it to shutdown,
      * otherwise abandon hope and just end the process as is. */
+    int exit_code = 1;
     if (rtData.rqTermAck)
-      SDL_WaitThread(rgssThread, 0);
+      SDL_WaitThread(rgssThread, &exit_code);
     else
       SDL_ShowSimpleMessageBox(
           SDL_MESSAGEBOX_ERROR, conf.game.title.c_str(),
@@ -765,7 +766,7 @@ int main(int argc, char *argv[]) {
     IMG_Quit();
     SDL_Quit();
 
-    return 0;
+    return exit_code;
 }
 
 static SDL_GLContext initGL(SDL_Window *win, Config &conf,
