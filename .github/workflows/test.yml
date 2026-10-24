@@ -76,22 +76,21 @@ jobs:
       - name: Install Mesa
         shell: msys2 {0}
         run: |
-          # Mesa provides opengl32.dll on Windows, which we can install just by putting symbolic links to the .dll files in the same directory as our executable.
+          # Mesa provides opengl32.dll on Windows, which we can install just by putting a symbolic link to it and its dependency libgallium_wgl.dll in the same directory as our executable.
           # However, Mesa does not provide vulkan-1.dll (Vulkan loader). That's provided by the operating system.
           # To make the operating system's vulkan-1.dll use Mesa, we edit the Windows registry to register Mesa as a Vulkan driver.
           cd build
           curl --retry 5 -Lo mesa.7z https://github.com/pal1000/mesa-dist-win/releases/download/26.2.4/mesa3d-26.2.4-release-mingw.7z
           echo '36a30a04d8cab6e2bea2d3c747c326d15024d9711dd80f45ef97ac6f2c3c5086 *mesa.7z' | sha256sum -c
           7z x -omesa mesa.7z
-          for dll in mesa/x64/*.dll
-          do
-            ln -s "$(realpath "$dll")" "$(basename "$dll")"
-          done
+          ln -s "$(realpath mesa/x64/opengl32.dll)" opengl32.dll
+          ln -s "$(realpath mesa/x64/libgallium_wgl.dll)" libgallium_wgl.dll
           reg add 'HKLM\Software\Khronos\Vulkan\Drivers' -v "$(cygpath -w "$(realpath mesa/x64/lvp_icd.x86_64.json)")" -t REG_DWORD -d 0 -f
 
       - name: Test
         shell: msys2 {0}
         run: |
+          export GALLIUM_DRIVER=llvmpipe # Force Mesa to use software rendering when we are targeting OpenGL, since we don't have a graphics card
           meson test -C build --print-errorlogs
 
   test-linux:
