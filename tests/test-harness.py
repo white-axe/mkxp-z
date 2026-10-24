@@ -25,7 +25,7 @@ shutil.copytree(test_dir, test_harness_subdir)
 try:
     shutil.copytree(script_dir, os.path.join(test_harness_subdir, 'scripts'))
     for entry in os.scandir(build_dir):
-        if entry.is_file():
+        if entry.is_file() and entry.name != 'Info.plist':
             shutil.copy2(entry.path, os.path.join(test_harness_subdir, entry.name))
     if len(templates) > 0:
         with open(os.path.join(test_harness_subdir, 'mkxp.json'), 'r') as config_file:
