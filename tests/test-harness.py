@@ -4,7 +4,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import time
 
 exe_path = os.path.realpath(sys.argv[1])
 test_name = sys.argv[2]
@@ -49,24 +48,10 @@ with tempfile.TemporaryDirectory(dir=build_dir) as test_harness_dir:
         with open(os.path.join(test_harness_subdir, 'mkxp.json'), 'w') as config_file:
             config_file.write(config)
 
-    try:
-        # Run the test
-        result = subprocess.run(
-            (shlex.split(os.environ['MESON_EXE_WRAPPER']) if 'MESON_EXE_WRAPPER' in os.environ else ()) + (
-                os.path.join(test_harness_subdir, exe_name),
-            ),
-            cwd=test_harness_subdir,
-        )
-    finally:
-        # On Windows, attempting to delete the temporary directory that the test is in may result in a permission error from the executable still being in use, so wait until the executable is no longer in use
-        while True:
-            try:
-                os.remove(os.path.join(test_harness_subdir, exe_name))
-                break
-            except PermissionError:
-                pass
-            except:
-                break
-            time.sleep(0.25)
-
+    result = subprocess.run(
+        (shlex.split(os.environ['MESON_EXE_WRAPPER']) if 'MESON_EXE_WRAPPER' in os.environ else ()) + (
+            os.path.join(test_harness_subdir, exe_name),
+        ),
+        cwd=test_harness_subdir,
+    )
     exit(result.returncode)
