@@ -294,6 +294,10 @@ int main(int argc, char *argv[]) {
         return 1;
       }
     }
+    // Otherwise set up the standard streams like for a console application
+    else {
+      reopenWindowsStreams();
+    }
 #endif
 
     /* initialize SDL first */
