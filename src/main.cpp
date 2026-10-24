@@ -281,7 +281,7 @@ int main(int argc, char *argv[]) {
 
 #if defined(__WIN32__)
     // Create a debug console in debug mode
-    if (conf.winConsole) {
+    if (!conf.testMode && conf.winConsole) {
       if (setupWindowsConsole()) {
         reopenWindowsStreams();
       } else {
