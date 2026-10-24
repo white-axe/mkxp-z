@@ -53,5 +53,8 @@ with tempfile.TemporaryDirectory(dir=build_dir) as test_harness_dir:
             os.path.join(test_harness_subdir, exe_name),
         ),
         cwd=test_harness_subdir,
+        capture_output=True,
     )
+    sys.stdout.buffer.write(result.stdout)
+    sys.stderr.buffer.write(result.stderr)
     exit(result.returncode)
