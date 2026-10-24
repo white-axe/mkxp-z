@@ -1,8 +1,6 @@
 test_harness = [
     files('test-harness.py'),
     exe,
-    meson.project_source_root(),
-    meson.project_build_root(),
 ]
 
 # Graphics tests
@@ -48,5 +46,5 @@ endforeach
 foreach test_name : [
     'http',
 ]
-    test(test_name, python, args: [test_harness, test_name, ''])
+    test(test_name, python, args: [test_harness, test_name])
 endforeach

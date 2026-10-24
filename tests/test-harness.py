@@ -3,26 +3,21 @@ import shlex
 import shutil
 import subprocess
 import sys
-import uuid
+import tempfile
 
 exe_path = os.path.realpath(sys.argv[1])
-src_dir = os.path.realpath(sys.argv[2])
-build_dir = os.path.realpath(sys.argv[3])
-test_name = sys.argv[4]
-templates = [template for template in sys.argv[5].split(';') if template != '']
+test_name = sys.argv[2]
+templates = [template for template in (sys.argv[3] if len(sys.argv) > 3 else '').split(';') if template != '']
 
+src_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+build_dir = os.path.dirname(exe_path)
 exe_name = os.path.basename(exe_path)
 script_dir = os.path.join(src_dir, 'scripts')
 test_dir = os.path.join(src_dir, 'tests', test_name.replace('/', os.sep))
-test_harness_dir = os.path.join(build_dir, exe_name + '.test-harness.p')
-test_harness_subdir = os.path.join(test_harness_dir, str(uuid.uuid4()))
 
-try:
-    os.mkdir(test_harness_dir)
-except FileExistsError:
-    pass
-shutil.copytree(test_dir, test_harness_subdir)
-try:
+with tempfile.TemporaryDirectory(dir=build_dir) as test_harness_dir:
+    test_harness_subdir = os.path.join(test_harness_dir, 'test')
+    shutil.copytree(test_dir, test_harness_subdir)
     shutil.copytree(script_dir, os.path.join(test_harness_subdir, 'scripts'))
     for entry in os.scandir(build_dir):
         if entry.is_file() and entry.name != 'Info.plist':
@@ -42,5 +37,3 @@ try:
         cwd=test_harness_subdir,
     )
     exit(result.returncode)
-finally:
-    shutil.rmtree(test_harness_subdir)
