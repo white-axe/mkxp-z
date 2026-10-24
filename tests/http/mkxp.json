@@ -1,6 +1,3 @@
 {
-    "customScript": "main.rb",
     "_testMode": true,
-    "rgssVersion": 1,
-    "pathCache": false,
 }

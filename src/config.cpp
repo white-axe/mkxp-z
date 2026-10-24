@@ -127,7 +127,6 @@ Config::Config() {}
 
 void Config::read(int argc, char *argv[]) {
     auto optsJ = json::object({
-        {"_testMode", false},
         {"rgssVersion", 0},
         {"debugMode", false},
         {"displayFPS", false},
@@ -233,6 +232,16 @@ try { exp } catch (...) {}
     }
     
     json::value baseConf = readConfFile(CONF_FILE);
+    try {
+        testMode = baseConf.as_object()["_testMode"].as_boolean();
+    } catch (...) {
+        testMode = false;
+    }
+    if (testMode) {
+        opts["rgssVersion"] = json::value(3);
+        opts["customScript"] = json::value("Main.rb");
+        opts["pathCache"] = json::value(false);
+    }
     copyObject(optsJ, baseConf);
     copyObject(opts["bindingNames"], baseConf.as_object()["bindingNames"], "bindingNames .");
     
@@ -240,7 +249,6 @@ try { exp } catch (...) {}
 #define SET_OPT(var, type) SET_OPT_CUSTOMKEY(var, var, type)
 #define SET_STRINGOPT(var, key) GUARD(var = std::string(opts[#key].as_string());)
     
-    SET_OPT_CUSTOMKEY(testMode, _testMode, boolean);
     SET_STRINGOPT(gameFolder, gameFolder);
     SET_STRINGOPT(dataPathOrg, dataPathOrg);
     SET_STRINGOPT(dataPathApp, dataPathApp);
