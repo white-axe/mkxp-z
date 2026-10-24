@@ -20,8 +20,9 @@ with tempfile.TemporaryDirectory(dir=build_dir) as test_harness_dir:
     shutil.copytree(test_dir, test_harness_subdir)
     shutil.copytree(script_dir, os.path.join(test_harness_subdir, 'scripts'))
     for entry in os.scandir(build_dir):
-        if entry.is_file() and entry.name != 'Info.plist':
-            shutil.copy2(entry.path, os.path.join(test_harness_subdir, entry.name))
+        if entry.is_file() and any(entry.name.endswith(suffix) for suffix in ('.bundle', '.dll', '.dylib', '.local', '.so')):
+            shutil.copy2(entry.path, os.path.join(test_harness_subdir, entry.name), follow_symlinks=False) # `follow_symlinks=False` makes it so that if the source file is a symbolic link, the created destination file is also a symbolic link instead of a copy of the file that the source file refers to; this is important for dynamic libraries to work correctly
+    shutil.copy2(exe_path, os.path.join(test_harness_subdir, exe_name))
     if len(templates) > 0:
         with open(os.path.join(test_harness_subdir, 'mkxp.json'), 'r') as config_file:
             config = config_file.read()
