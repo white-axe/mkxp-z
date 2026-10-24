@@ -291,6 +291,7 @@ int main(int argc, char *argv[]) {
         snprintf(buf, sizeof(buf), "Error allocating console: %lu",
                 GetLastError());
         showInitError(conf, std::string(buf));
+        return 1;
       }
     }
 #endif
@@ -298,7 +299,7 @@ int main(int argc, char *argv[]) {
     /* initialize SDL first */
     if (SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_TIMER) < 0) {
       showInitError(conf, std::string("Error initializing SDL: ") + SDL_GetError());
-      return 0;
+      return 1;
     }
 
     SDL_Window *win = nullptr;
@@ -548,12 +549,12 @@ int main(int argc, char *argv[]) {
 
     if (win == nullptr && (win = initVideo(conf)) == nullptr) {
       showInitError(conf, std::string("Error creating window: ") + SDL_GetError());
-      return 0;
+      return 1;
     }
 
     if (!EventThread::allocUserEvents()) {
       showInitError(conf, "Error allocating SDL user events");
-      return 0;
+      return 1;
     }
 
 #ifdef MKXPZ_STEAM
@@ -561,7 +562,7 @@ int main(int argc, char *argv[]) {
       showInitError(conf, "Failed to initialize Steamworks. The application cannot "
                     "continue launching.");
       SDL_Quit();
-      return 0;
+      return 1;
     }
 #endif
 
@@ -578,7 +579,7 @@ int main(int argc, char *argv[]) {
       STEAMSHIM_deinit();
 #endif
 
-      return 0;
+      return 1;
     }
 
     if (TTF_Init() < 0) {
@@ -591,7 +592,7 @@ int main(int argc, char *argv[]) {
       STEAMSHIM_deinit();
 #endif
 
-      return 0;
+      return 1;
     }
 
     if (Sound_Init() == 0) {
@@ -605,7 +606,7 @@ int main(int argc, char *argv[]) {
       STEAMSHIM_deinit();
 #endif
 
-      return 0;
+      return 1;
     }
 #if defined(__WIN32__)
     WSAData wsadata = {0};
@@ -630,7 +631,7 @@ int main(int argc, char *argv[]) {
 #ifdef MKXPZ_STEAM
             STEAMSHIM_deinit();
 #endif
-            return 0;
+            return 1;
         }
     }
 #endif
@@ -670,7 +671,7 @@ int main(int argc, char *argv[]) {
 #ifdef MKXPZ_STEAM
       STEAMSHIM_deinit();
 #endif
-      return 0;
+      return 1;
     }
 
     SDL_DisplayMode mode;
