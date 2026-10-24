@@ -91,6 +91,7 @@ jobs:
         shell: msys2 {0}
         run: |
           export GALLIUM_DRIVER=llvmpipe # Force Mesa to use software rendering when we are targeting OpenGL, since we don't have a graphics card
+          export ANGLE_D3D11_DEVICE_TYPE=12811 # Make ANGLE use the WARP software renderer when targeting Direct3D 11, since we don't have a graphics card and ANGLE will fail to initialize its Direct3D 11 backend if we don't specifically choose a software renderer when there's no graphics card
           meson test -C build --print-errorlogs
 
   test-linux:
