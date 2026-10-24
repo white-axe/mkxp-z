@@ -96,18 +96,6 @@ bool mkxp_use_angle = true;
 static void rgssThreadError(RGSSThreadData *rtData, const std::string &msg);
 static void showInitError(const Config &conf, const std::string &msg);
 
-static void mkxp_setenv(const char *key, const char *value) {
-#ifdef _WIN32
-  SetEnvironmentVariableA(key, value);
-#else
-  if (value != nullptr) {
-    setenv(key, value, true);
-  } else {
-    unsetenv(key);
-  }
-#endif
-}
-
 static inline const char *glGetStringInt(GLenum name) {
   return (const char *)gl.GetString(name);
 }
@@ -264,7 +252,7 @@ int main(int argc, char *argv[]) {
     char dataDir[512]{};
 #if defined(__linux__)
     char *tmp{};
-    tmp = getenv("SRCDIR");
+    tmp = SDL_getenv("SRCDIR");
     if (tmp) {
       std::strncpy(dataDir, tmp, sizeof(dataDir));
     }
@@ -417,7 +405,7 @@ int main(int argc, char *argv[]) {
           || (sdl_videodriver[6] != 'D' && sdl_videodriver[6] != 'd')
           || sdl_videodriver[7] != 0
       ) {
-        mkxp_setenv("WAYLAND_DISPLAY", nullptr);
+        SDL_setenv("WAYLAND_DISPLAY", nullptr, true);
       }
     }
 #endif // MKXPZ_CHECK_FOR_WAYLAND_SUPPORT
@@ -425,18 +413,18 @@ int main(int argc, char *argv[]) {
 #ifdef MKXPZ_HAVE_ANGLE
     bool angle_allow_fallback = false;
     {
-      const char *angle_default_platform = getenv("ANGLE_DEFAULT_PLATFORM");
+      const char *angle_default_platform = SDL_getenv("ANGLE_DEFAULT_PLATFORM");
       switch (conf.renderer) {
         default:
           angle_allow_fallback = true;
           if (angle_default_platform == nullptr || angle_default_platform[0] == 0) {
 #  ifdef MKXPZ_HAVE_ANGLE_METAL
-            mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "metal");
+            SDL_setenv("ANGLE_DEFAULT_PLATFORM", "metal", true);
 #  elif !defined(MKXPZ_HAVE_ANGLE_DIRECT3D9) && !defined(MKXPZ_HAVE_ANGLE_DIRECT3D11)
 #    ifdef MKXPZ_HAVE_ANGLE_VULKAN
 #      ifdef MKXPZ_CHECK_FOR_LAVAPIPE
             /* Check if ANGLE's Vulkan backend would use LLVMpipe. If so, use OpenGL instead. */
-            mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "gl");
+            SDL_setenv("ANGLE_DEFAULT_PLATFORM", "gl", true);
             VkResult result = volkInitialize();
             VkInstance instance;
             uint32_t physicalDeviceCount;
@@ -473,7 +461,7 @@ int main(int argc, char *argv[]) {
               if (result == VK_SUCCESS && !physicalDevices.empty()) {
                 VkPhysicalDeviceProperties physicalDeviceProperties;
                 VkPhysicalDevice preferredPhysicalDevice = physicalDevices[0];
-                const char *anglePreferredDevice = getenv("ANGLE_PREFERRED_DEVICE");
+                const char *anglePreferredDevice = SDL_getenv("ANGLE_PREFERRED_DEVICE");
                 if (anglePreferredDevice == nullptr) {
                   anglePreferredDevice = "";
                 }
@@ -486,48 +474,48 @@ int main(int argc, char *argv[]) {
                 }
                 vkGetPhysicalDeviceProperties(preferredPhysicalDevice, &physicalDeviceProperties);
                 if (std::strncmp(physicalDeviceProperties.deviceName, "llvmpipe ", sizeof "llvmpipe " - 1) != 0) {
-                  mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "vulkan");
+                  SDL_setenv("ANGLE_DEFAULT_PLATFORM", "vulkan", true);
                 }
               }
               vkDestroyInstance(instance, nullptr);
             }
 #      else
-            mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "vulkan");
+            SDL_setenv("ANGLE_DEFAULT_PLATFORM", "vulkan", true);
 #      endif // MKXPZ_CHECK_FOR_LAVAPIPE
 #    else
-            mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "gl");
+            SDL_setenv("ANGLE_DEFAULT_PLATFORM", "gl", true);
 #    endif // MKXPZ_HAVE_ANGLE_VULKAN
 #  endif
           }
           break;
 #ifdef MKXPZ_HAVE_ANGLE_NULL
         case 1:
-          mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "null");
+          SDL_setenv("ANGLE_DEFAULT_PLATFORM", "null", true);
           break;
 #endif // MKXPZ_HAVE_ANGLE_NULL
         case 2:
-          mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "gl");
+          SDL_setenv("ANGLE_DEFAULT_PLATFORM", "gl", true);
           break;
 #ifdef MKXPZ_HAVE_ANGLE_VULKAN
         case 3:
-          mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "vulkan");
+          SDL_setenv("ANGLE_DEFAULT_PLATFORM", "vulkan", true);
           break;
 #endif // MKXPZ_HAVE_ANGLE_VULKAN
 #ifdef MKXPZ_HAVE_ANGLE_METAL
         case 4:
-          mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "metal");
+          SDL_setenv("ANGLE_DEFAULT_PLATFORM", "metal", true);
           break;
 #elif defined(MKXPZ_HAVE_ANGLE_DIRECT3D9) || defined(MKXPZ_HAVE_ANGLE_DIRECT3D11)
         case 4:
-          mkxp_setenv("ANGLE_DEFAULT_PLATFORM", nullptr);
+          SDL_setenv("ANGLE_DEFAULT_PLATFORM", nullptr, true);
           break;
 #elif defined(MKXPZ_HAVE_ANGLE_VULKAN)
         case 4:
-          mkxp_setenv("ANGLE_DEFAULT_PLATFORM", "vulkan");
+          SDL_setenv("ANGLE_DEFAULT_PLATFORM", "vulkan", true);
           break;
 #endif // MKXPZ_HAVE_ANGLE_METAL
       }
-      angle_default_platform = getenv("ANGLE_DEFAULT_PLATFORM");
+      angle_default_platform = SDL_getenv("ANGLE_DEFAULT_PLATFORM");
       if (angle_default_platform != nullptr && std::strcmp(angle_default_platform, "gl") == 0) {
         mkxp_use_angle = false;
       }
