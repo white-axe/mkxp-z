@@ -94,7 +94,7 @@ bool mkxp_use_angle = true;
 #endif // MKXPZ_HAVE_ANGLE
 
 static void rgssThreadError(RGSSThreadData *rtData, const std::string &msg);
-static void showInitError(const std::string &msg);
+static void showInitError(const Config &conf, const std::string &msg);
 
 static void mkxp_setenv(const char *key, const char *value) {
 #ifdef _WIN32
@@ -198,9 +198,11 @@ static void rgssThreadError(RGSSThreadData *rtData, const std::string &msg) {
   rtData->rqTermAck.set();
 }
 
-static void showInitError(const std::string &msg) {
+static void showInitError(const Config &conf, const std::string &msg) {
   Debug() << msg;
-  SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "mkxp-z", msg.c_str(), 0);
+  if (!conf.testMode) {
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "mkxp-z", msg.c_str(), 0);
+  }
 }
 
 static void setupWindowIcon(const Config &conf, SDL_Window *win) {
@@ -288,14 +290,14 @@ int main(int argc, char *argv[]) {
         char buf[200];
         snprintf(buf, sizeof(buf), "Error allocating console: %lu",
                 GetLastError());
-        showInitError(std::string(buf));
+        showInitError(conf, std::string(buf));
       }
     }
 #endif
 
     /* initialize SDL first */
     if (SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_TIMER) < 0) {
-      showInitError(std::string("Error initializing SDL: ") + SDL_GetError());
+      showInitError(conf, std::string("Error initializing SDL: ") + SDL_GetError());
       return 0;
     }
 
@@ -545,18 +547,18 @@ int main(int argc, char *argv[]) {
 #endif // MKXPZ_HAVE_ANGLE
 
     if (win == nullptr && (win = initVideo(conf)) == nullptr) {
-      showInitError(std::string("Error creating window: ") + SDL_GetError());
+      showInitError(conf, std::string("Error creating window: ") + SDL_GetError());
       return 0;
     }
 
     if (!EventThread::allocUserEvents()) {
-      showInitError("Error allocating SDL user events");
+      showInitError(conf, "Error allocating SDL user events");
       return 0;
     }
 
 #ifdef MKXPZ_STEAM
     if (!STEAMSHIM_init()) {
-      showInitError("Failed to initialize Steamworks. The application cannot "
+      showInitError(conf, "Failed to initialize Steamworks. The application cannot "
                     "continue launching.");
       SDL_Quit();
       return 0;
@@ -568,7 +570,7 @@ int main(int argc, char *argv[]) {
 
     int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;
     if (IMG_Init(imgFlags) != imgFlags) {
-      showInitError(std::string("Error initializing SDL_image: ") +
+      showInitError(conf, std::string("Error initializing SDL_image: ") +
                     SDL_GetError());
       SDL_Quit();
 
@@ -580,7 +582,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (TTF_Init() < 0) {
-      showInitError(std::string("Error initializing SDL_ttf: ") +
+      showInitError(conf, std::string("Error initializing SDL_ttf: ") +
                     SDL_GetError());
       IMG_Quit();
       SDL_Quit();
@@ -593,7 +595,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (Sound_Init() == 0) {
-      showInitError(std::string("Error initializing SDL_sound: ") +
+      showInitError(conf, std::string("Error initializing SDL_sound: ") +
                     Sound_GetError());
       TTF_Quit();
       IMG_Quit();
@@ -611,7 +613,7 @@ int main(int argc, char *argv[]) {
       char buf[200];
       snprintf(buf, sizeof(buf), "Error initializing winsock: %08X",
                WSAGetLastError());
-      showInitError(
+      showInitError(conf,
           std::string(buf)); // Not an error worth ending the program over
     }
 #endif
@@ -621,7 +623,7 @@ int main(int argc, char *argv[]) {
         std::string downloadsPath = "/Users/" + mkxp_sys::getUserName() + "/Downloads";
         
         if (mkxp_fs::getCurrentDirectory().find(downloadsPath) == 0) {
-            showInitError(conf.game.title +
+            showInitError(conf, conf.game.title +
                           " cannot run from the Downloads directory.\n\n" +
                           "Please move the application to the Applications folder (or anywhere else) " +
                           "and try again.");
@@ -659,7 +661,7 @@ int main(int argc, char *argv[]) {
     ALCdevice *alcDev = alcOpenDevice(0);
 
     if (!alcDev) {
-      showInitError("Could not detect an available audio device.");
+      showInitError(conf, "Could not detect an available audio device.");
       SDL_DestroyWindow(win);
       TTF_Quit();
       IMG_Quit();
@@ -730,16 +732,23 @@ int main(int argc, char *argv[]) {
     int exit_code = 1;
     if (rtData.rqTermAck)
       SDL_WaitThread(rgssThread, &exit_code);
-    else
-      SDL_ShowSimpleMessageBox(
-          SDL_MESSAGEBOX_ERROR, conf.game.title.c_str(),
-          std::string("The RGSS script seems to be stuck. "+conf.game.title+" will now force quit.").c_str(),
-          win);
+    else {
+      std::string msg = "The RGSS script seems to be stuck. "+conf.game.title+" will now force quit.";
+      Debug() << msg;
+      if (!conf.testMode) {
+        SDL_ShowSimpleMessageBox(
+            SDL_MESSAGEBOX_ERROR, conf.game.title.c_str(),
+            msg.c_str(),
+            win);
+      }
+    }
 
     if (!rtData.rgssErrorMsg.empty()) {
       Debug() << rtData.rgssErrorMsg;
-      SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, conf.game.title.c_str(),
-                               rtData.rgssErrorMsg.c_str(), win);
+      if (!conf.testMode) {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, conf.game.title.c_str(),
+                                 rtData.rgssErrorMsg.c_str(), win);
+      }
     }
 
     if (rtData.glContext)
