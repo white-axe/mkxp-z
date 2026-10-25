@@ -271,8 +271,8 @@ jobs:
           name: coverage-json-macos
           path: coverage.json
 
-  combine-coverage-reports:
-    name: Combine coverage reports
+  merge-coverage-reports:
+    name: Merge coverage reports
     runs-on: ubuntu-26.04
     needs:
       - test-windows
