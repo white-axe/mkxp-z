@@ -30,8 +30,7 @@ jobs:
       - name: Install gcovr
         shell: msys2 {0}
         run: |
-          git clone --depth 1 -b "$GCOVR_VERSION" https://github.com/gcovr/gcovr
-          python -m pip install --break-system-packages ./gcovr
+          python -m pip install --break-system-packages gcovr==$GCOVR_VERSION
 
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -132,8 +131,7 @@ jobs:
 
       - name: Install gcovr
         run: |
-          git clone --depth 1 -b "$GCOVR_VERSION" https://github.com/gcovr/gcovr
-          python3 -m pip install --break-system-packages ./gcovr
+          python3 -m pip install --break-system-packages gcovr==$GCOVR_VERSION
 
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -208,8 +206,7 @@ jobs:
 
       - name: Install gcovr
         run: |
-          git clone --depth 1 -b "$GCOVR_VERSION" https://github.com/gcovr/gcovr
-          python -m pip install --break-system-packages ./gcovr
+          python -m pip install --break-system-packages gcovr==$GCOVR_VERSION
 
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -286,8 +283,7 @@ jobs:
 
       - name: Install gcovr
         run: |
-          git clone --depth 1 -b "$GCOVR_VERSION" https://github.com/gcovr/gcovr
-          python3 -m pip install --break-system-packages ./gcovr
+          python3 -m pip install --break-system-packages gcovr==$GCOVR_VERSION
 
       - name: Checkout repository
         uses: actions/checkout@v7
