@@ -9,6 +9,9 @@ on:
     paths-ignore: ['*.md', '*.json', '*.png']
   workflow_dispatch:
 
+env:
+  GCOVR_VERSION: 8.7
+
 jobs:
   test-windows:
     name: Windows
@@ -20,8 +23,15 @@ jobs:
           msystem: mingw64
           install: >-
             bison mingw-w64-x86_64-ccache mingw-w64-x86_64-cmake diffutils mingw-w64-x86_64-git make mingw-w64-x86_64-meson mingw-w64-x86_64-ruby
+            mingw-w64-x86_64-python-lxml mingw-w64-x86_64-python-pip
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-7zip mingw-w64-x86_64-curl
+
+      - name: Install gcovr
+        shell: msys2 {0}
+        run: |
+          git clone --depth 1 -b "$GCOVR_VERSION" https://github.com/gcovr/gcovr
+          python -m pip install --break-system-packages ./gcovr
 
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -45,7 +55,7 @@ jobs:
       - name: Configure
         shell: msys2 {0}
         run: |
-          meson setup build
+          meson setup -Db_coverage=true build
 
       - name: Build
         id: build
@@ -94,6 +104,17 @@ jobs:
           export ANGLE_D3D11_DEVICE_TYPE=12811 # Make ANGLE use the WARP software renderer when targeting Direct3D 11, since we don't have a graphics card and ANGLE will fail to initialize its Direct3D 11 backend if we don't specifically choose a software renderer when there's no graphics card
           meson test -C build --print-errorlogs
 
+      - name: Generate JSON coverage report
+        shell: msys2 {0}
+        run: |
+          python -m gcovr build --json coverage.json
+
+      - name: Upload JSON coverage report
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-json-windows
+          path: coverage.json
+
   test-linux:
     name: Linux
     runs-on: ubuntu-26.04
@@ -102,11 +123,17 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y bison ccache cmake diffutils git make meson ruby
+          sudo apt install -y python3-pip
           sudo apt install -y gcc g++
           sudo apt install -y libegl-mesa0 libglx-mesa0 mesa-libgallium mesa-vulkan-drivers # Mesa
           sudo apt install -y libegl1 libgl1 libgles2 libglx0 libopengl0 # libglvnd (provides the OpenGL .so files, delegates to Mesa for the actual implementation of OpenGL)
           sudo apt install -y libvulkan1 # Vulkan loader (provides libvulkan.so, delegates to Mesa for the actual implementation of Vulkan)
           sudo apt install -y libx11-dev libxcursor-dev libxext-dev libxi-dev libxinerama-dev libxrandr-dev xvfb # X11
+
+      - name: Install gcovr
+        run: |
+          git clone --depth 1 -b "$GCOVR_VERSION" https://github.com/gcovr/gcovr
+          python3 -m pip install --break-system-packages ./gcovr
 
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -128,7 +155,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup build
+          meson setup -Db_coverage=true build
 
       - name: Build
         id: build
@@ -157,6 +184,16 @@ jobs:
         run: |
           xvfb-run meson test -C build --print-errorlogs
 
+      - name: Generate JSON coverage report
+        run: |
+          python3 -m gcovr build --json coverage.json
+
+      - name: Upload JSON coverage report
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-json-linux
+          path: coverage.json
+
   test-macos:
     name: macOS
     runs-on: macos-latest
@@ -164,8 +201,15 @@ jobs:
       - name: Install dependencies
         run: |
           brew install -q bison ccache cmake diffutils git make meson ruby
+          python -m ensurepip
+          brew install -q gcovr
           brew install -q mesa # Mesa
           brew install -q vulkan-loader # Vulkan loader (provides libvulkan.dylib, delegates to Mesa for the actual implementation of Vulkan)
+
+      - name: Install gcovr
+        run: |
+          git clone --depth 1 -b "$GCOVR_VERSION" https://github.com/gcovr/gcovr
+          python -m pip install --break-system-packages ./gcovr
 
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -187,7 +231,7 @@ jobs:
 
       - name: Configure
         run: |
-          meson setup build
+          meson setup -Db_coverage=true build
 
       - name: Build
         id: build
@@ -216,3 +260,77 @@ jobs:
         run: |
           export DYLD_LIBRARY_PATH="$(brew --prefix vulkan-loader)/lib:$DYLD_LIBRARY_PATH" # Add Vulkan loader to the dynamic linker path since it's not there by default
           meson test -C build --print-errorlogs
+
+      - name: Generate JSON coverage report
+        run: |
+          python -m gcovr build --json coverage.json
+
+      - name: Upload JSON coverage report
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-json-macos
+          path: coverage.json
+
+  combine-coverage-reports:
+    name: Combine coverage reports
+    runs-on: ubuntu-26.04
+    needs:
+      - test-windows
+      - test-linux
+      - test-macos
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git python3-pip
+
+      - name: Install gcovr
+        run: |
+          git clone --depth 1 -b "$GCOVR_VERSION" https://github.com/gcovr/gcovr
+          python3 -m pip install --break-system-packages ./gcovr
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Download Windows JSON coverage report
+        uses: actions/download-artifact@v8
+        with:
+          name: coverage-json-windows
+          path: coverage-json-windows
+
+      - name: Download Linux JSON coverage report
+        uses: actions/download-artifact@v8
+        with:
+          name: coverage-json-linux
+          path: coverage-json-linux
+
+      - name: Download macOS JSON coverage report
+        uses: actions/download-artifact@v8
+        with:
+          name: coverage-json-macos
+          path: coverage-json-macos
+
+      - name: Generate JSON coverage report
+        run: |
+          python3 -m gcovr \
+            -a coverage-json-windows/coverage.json \
+            -a coverage-json-linux/coverage.json \
+            -a coverage-json-macos/coverage.json \
+            --json coverage.json
+
+      - name: Upload JSON coverage report
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-json
+          path: coverage.json
+
+      - name: Generate HTML coverage report
+        run: |
+          mkdir coverage-html
+          python3 -m gcovr -a coverage.json --html-nested coverage-html/index.html
+
+      - name: Upload HTML coverage report
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-html
+          path: coverage-html
