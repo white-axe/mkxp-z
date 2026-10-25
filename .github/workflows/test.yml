@@ -282,7 +282,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y git python3-pip
+          sudo apt install -y git meson python3-pip
 
       - name: Install gcovr
         run: |
@@ -291,6 +291,10 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v7
+
+      - name: Download subprojects
+        run: |
+          meson subprojects download
 
       - name: Download Windows JSON coverage report
         uses: actions/download-artifact@v8
