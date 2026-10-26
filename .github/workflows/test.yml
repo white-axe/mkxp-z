@@ -127,7 +127,7 @@ jobs:
           sudo apt install -y libegl-mesa0 libglx-mesa0 mesa-libgallium mesa-vulkan-drivers # Mesa
           sudo apt install -y libegl1 libgl1 libgles2 libglx0 libopengl0 # libglvnd (provides the OpenGL .so files, delegates to Mesa for the actual implementation of OpenGL)
           sudo apt install -y libvulkan1 # Vulkan loader (provides libvulkan.so, delegates to Mesa for the actual implementation of Vulkan)
-          sudo apt install -y libx11-dev libxcursor-dev libxext-dev libxi-dev libxinerama-dev libxrandr-dev xvfb # X11
+          sudo apt install -y libx11-6 libx11-xcb1 libxcursor1 libxext6 libxfixes3 libxrandr2 xvfb # X11
 
       - name: Install gcovr
         run: |
