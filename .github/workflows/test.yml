@@ -200,7 +200,6 @@ jobs:
         run: |
           brew install -q bison ccache cmake diffutils git make meson ruby
           python -m ensurepip
-          brew install -q gcovr
           brew install -q mesa # Mesa
           brew install -q vulkan-loader # Vulkan loader (provides libvulkan.dylib, delegates to Mesa for the actual implementation of Vulkan)
 
