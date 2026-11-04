@@ -393,7 +393,11 @@ if get_option('custom_shaders').allowed()
         foreach opt, val : cmake_override_options
             glslang_options.set_override_option(opt, val)
         endforeach
-        glslang = cmake.subproject('glslang', options: glslang_options).dependency('glslang')
+        glslang = cmake.subproject('glslang', options: glslang_options)
+        glslang = declare_dependency(dependencies: [
+            glslang.dependency('glslang'),
+            glslang.dependency('glslang-default-resource-limits'),
+        ])
 
         global_dependencies += [
             glslang,
@@ -1376,6 +1380,10 @@ main_source = files(
     'net/net.cpp',
 
     host_system == 'darwin' ? 'system/systemImplApple.mm' : 'system/systemImpl.cpp',
+
+    have_custom_shaders ? [
+        'display/hlsl-to-spirv.cpp',
+    ] : [],
 )
 
 global_sources += main_source
