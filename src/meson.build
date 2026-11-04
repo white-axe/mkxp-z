@@ -372,7 +372,11 @@ if get_option('custom_shaders').allowed()
             foreach opt, val : cmake_override_options
                 spirv_tools_options.set_override_option(opt, val)
             endforeach
-            spirv_tools = cmake.subproject('spirv-tools', options: spirv_tools_options).dependency('SPIRV-Tools-static')
+            spirv_tools = cmake.subproject('spirv-tools', options: spirv_tools_options)
+            spirv_tools = declare_dependency(dependencies: [
+                spirv_tools.dependency('SPIRV-Tools-static'),
+                spirv_tools.dependency('SPIRV-Tools-opt'),
+            ])
             meson.override_dependency('SPIRV-Tools', spirv_tools, static: true)
         endif
 
@@ -1383,6 +1387,7 @@ main_source = files(
 
     have_custom_shaders ? [
         'display/hlsl-to-spirv.cpp',
+        'display/spirv-optimizer.cpp',
     ] : [],
 )
 
