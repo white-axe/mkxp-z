@@ -328,6 +328,7 @@ if get_option('custom_shaders').allowed()
     if (spirv_cross.found() or not require_system_spirv_cross.enabled()) and (spirv_tools.found() or not require_system_spirv_tools.enabled())
         have_custom_shaders = true
         gplv3_features += 'Custom shaders'
+        global_args += '-DMKXPZ_HAVE_CUSTOM_SHADERS'
         if not spirv_cross.found()
             spirv_cross_options = cmake.subproject_options()
             spirv_cross_options.add_cmake_defines(cmake_base_options + {

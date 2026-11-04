@@ -309,6 +309,7 @@ if have_angle
     summary('ANGLE null backend', have_angle_null, bool_yn: true)
     summary('ANGLE Vulkan backend', have_angle_vulkan, bool_yn: true)
 endif
+summary('Custom shaders', have_custom_shaders, bool_yn: true)
 summary('Extra shaders', have_extra_shaders, bool_yn: true)
 if openal.type_name() == 'internal'
     summary('JACK Audio Connection Kit', have_jack, bool_yn: true)
