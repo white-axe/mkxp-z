@@ -318,6 +318,92 @@ if is_unix
     ]
 endif
 
+have_custom_shaders = false
+have_vendored_spirv_tools = false
+if get_option('custom_shaders').allowed()
+    require_system_spirv_cross = get_option('spirv_cross_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
+    spirv_cross = dependency('spirv-cross-c', allow_fallback: false, required: require_system_spirv_cross)
+    require_system_spirv_tools = get_option('spirv_tools_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
+    spirv_tools = dependency('SPIRV-Tools', allow_fallback: false, required: require_system_spirv_tools)
+    if (spirv_cross.found() or not require_system_spirv_cross.enabled()) and (spirv_tools.found() or not require_system_spirv_tools.enabled())
+        have_custom_shaders = true
+        gplv3_features += 'Custom shaders'
+        if not spirv_cross.found()
+            spirv_cross_options = cmake.subproject_options()
+            spirv_cross_options.add_cmake_defines(cmake_base_options + {
+                'SPIRV_CROSS_SHARED': false,
+                'SPIRV_CROSS_STATIC': true,
+                'SPIRV_CROSS_CLI': false,
+                'SPIRV_CROSS_ENABLE_TESTS': false,
+                'SPIRV_CROSS_ENABLE_GLSL': true,
+                'SPIRV_CROSS_ENABLE_HLSL': false,
+                'SPIRV_CROSS_ENABLE_MSL': false,
+                'SPIRV_CROSS_ENABLE_CPP': false,
+                'SPIRV_CROSS_ENABLE_REFLECT': false,
+                'SPIRV_CROSS_ENABLE_C_API': true,
+                'SPIRV_CROSS_ENABLE_UTIL': false,
+                'SPIRV_CROSS_SKIP_INSTALL': true,
+                'SPIRV_CROSS_WERROR': false,
+                'SPIRV_CROSS_FORCE_PIC': false,
+            })
+            foreach opt, val : cmake_override_options
+                spirv_cross_options.set_override_option(opt, val)
+            endforeach
+            spirv_cross = cmake.subproject('spirv-cross', options: spirv_cross_options).dependency('spirv-cross-c')
+            meson.override_dependency('spirv-cross-c', spirv_cross, static: true)
+            meson.override_dependency('spirv-cross-c-shared', spirv_cross, static: true)
+        endif
+
+        if not spirv_tools.found()
+            have_vendored_spirv_tools = true
+            spirv_headers_source_dir = subproject('spirv-headers', default_options: meson_base_options).get_variable('spirv_headers_source_dir')
+            spirv_tools_options = cmake.subproject_options()
+            spirv_tools_options.add_cmake_defines(cmake_base_options + {
+                'CMAKE_CXX_STANDARD': 17,
+                'CMAKE_C_FLAGS': run_command(quotetool, '-I' + spirv_headers_source_dir / 'include', check: true).stdout().strip(),
+                'CMAKE_CXX_FLAGS': run_command(quotetool, '-I' + spirv_headers_source_dir / 'include', check: true).stdout().strip(),
+                'SPIRV-Headers_SOURCE_DIR': spirv_headers_source_dir,
+                'BUILD_SHARED_LIBS': false,
+                'BUILD_TESTING': false,
+                'SKIP_SPIRV_TOOLS_INSTALL': true,
+                'SPIRV-TOOLS_USE_MIMALLOC': false,
+            })
+            foreach opt, val : cmake_override_options
+                spirv_tools_options.set_override_option(opt, val)
+            endforeach
+            spirv_tools = cmake.subproject('spirv-tools', options: spirv_tools_options).dependency('SPIRV-Tools-static')
+            meson.override_dependency('SPIRV-Tools', spirv_tools, static: true)
+        endif
+
+        # glslang doesn't have a pkg-config entry currently, so always use the vendored version of glslang without trying to find glslang on the system
+        glslang_options = cmake.subproject_options()
+        glslang_options.add_cmake_defines(cmake_base_options + {
+            'BUILD_SHARED_LIBS': false,
+            'BUILD_EXTERNAL': false,
+            'BUILD_WERROR': false,
+            'GLSLANG_ENABLE_INSTALL': false,
+            'ENABLE_SPIRV': true,
+            'GLSLANG_TESTS': false,
+            'ENABLE_GLSLANG_BINARIES': false,
+            'ENABLE_GLSLANG_JS': false,
+            'ENABLE_HLSL': true,
+            'ENABLE_OPT': false,
+        })
+        foreach opt, val : cmake_override_options
+            glslang_options.set_override_option(opt, val)
+        endforeach
+        glslang = cmake.subproject('glslang', options: glslang_options).dependency('glslang')
+
+        global_dependencies += [
+            glslang,
+            spirv_cross,
+            spirv_tools,
+        ]
+    elif get_option('custom_shaders').enabled()
+        error('SPIRV-Cross and SPIR-V Tools are required for custom shaders to be supported')
+    endif
+endif
+
 if not sdl2.found() or not sdl2main.found()
     have_angle = get_option('angle').allowed()
 
@@ -338,30 +424,32 @@ if not sdl2.found() or not sdl2main.found()
     if have_angle
         have_angle_vulkan = get_option('angle_vulkan').allowed()
         require_system_spirv_tools = get_option('spirv_tools_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
-        spirv_tools = dependency('SPIRV-Tools', allow_fallback: false, required: get_option('angle').auto() and require_system_spirv_tools.enabled() ? get_option('angle') : require_system_spirv_tools)
-        if not spirv_tools.found()
-            if not require_system_spirv_tools.enabled()
-                spirv_tools_options = cmake.subproject_options()
-                spirv_tools_options.add_cmake_defines(cmake_base_options + {
-                    'CMAKE_CXX_STANDARD': 17,
-                    'CMAKE_C_FLAGS': run_command(quotetool, '-I' + spirv_headers_source_dir / 'include', check: true).stdout().strip(),
-                    'CMAKE_CXX_FLAGS': run_command(quotetool, '-I' + spirv_headers_source_dir / 'include', check: true).stdout().strip(),
-                    'SPIRV-Headers_SOURCE_DIR': spirv_headers_source_dir,
-                    'BUILD_SHARED_LIBS': false,
-                    'BUILD_TESTING': false,
-                    'SKIP_SPIRV_TOOLS_INSTALL': true,
-                    'SPIRV-TOOLS_USE_MIMALLOC': false,
-                })
-                foreach opt, val : cmake_override_options
-                    spirv_tools_options.set_override_option(opt, val)
-                endforeach
-                meson.override_dependency('SPIRV-Tools', cmake.subproject('spirv-tools', options: spirv_tools_options).dependency('SPIRV-Tools-static'), static: true)
-            else
-                if get_option('angle_vulkan').enabled()
-                    error('SPIRV-Tools is required for ANGLE Vulkan backend')
+        if not have_vendored_spirv_tools
+            spirv_tools = dependency('SPIRV-Tools', allow_fallback: false, required: get_option('angle').auto() and require_system_spirv_tools.enabled() ? get_option('angle') : require_system_spirv_tools)
+            if not spirv_tools.found()
+                if not require_system_spirv_tools.enabled()
+                    spirv_tools_options = cmake.subproject_options()
+                    spirv_tools_options.add_cmake_defines(cmake_base_options + {
+                        'CMAKE_CXX_STANDARD': 17,
+                        'CMAKE_C_FLAGS': run_command(quotetool, '-I' + spirv_headers_source_dir / 'include', check: true).stdout().strip(),
+                        'CMAKE_CXX_FLAGS': run_command(quotetool, '-I' + spirv_headers_source_dir / 'include', check: true).stdout().strip(),
+                        'SPIRV-Headers_SOURCE_DIR': spirv_headers_source_dir,
+                        'BUILD_SHARED_LIBS': false,
+                        'BUILD_TESTING': false,
+                        'SKIP_SPIRV_TOOLS_INSTALL': true,
+                        'SPIRV-TOOLS_USE_MIMALLOC': false,
+                    })
+                    foreach opt, val : cmake_override_options
+                        spirv_tools_options.set_override_option(opt, val)
+                    endforeach
+                    meson.override_dependency('SPIRV-Tools', cmake.subproject('spirv-tools', options: spirv_tools_options).dependency('SPIRV-Tools-static'), static: true)
+                else
+                    if get_option('angle_vulkan').enabled()
+                        error('SPIRV-Tools is required for ANGLE Vulkan backend')
+                    endif
+                    have_angle = false
+                    have_angle_vulkan = false
                 endif
-                have_angle = false
-                have_angle_vulkan = false
             endif
         endif
     endif

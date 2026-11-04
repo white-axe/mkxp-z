@@ -1,0 +1,8 @@
+[wrap-file]
+source_url = https://github.com/KhronosGroup/glslang/archive/refs/tags/vulkan-sdk-1.4.350.0.tar.gz
+source_filename = glslang-vulkan-sdk-1.4.350.0.tar.gz
+source_hash = a6885b1631fd77c89cd689b939cf2b3032c5ec13ee99250270d34bcad1efc10c
+directory = glslang-vulkan-sdk-1.4.350.0
+method = cmake
+diff_files =
+    end-of-diff-files.patch
