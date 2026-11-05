@@ -324,9 +324,9 @@ if get_option('custom_shaders').allowed()
     bison = find_program('bison', required: get_option('custom_shaders'))
     flex = find_program('flex', required: get_option('custom_shaders'))
     require_system_spirv_cross = get_option('spirv_cross_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
-    spirv_cross = dependency('spirv-cross-c', allow_fallback: false, required: require_system_spirv_cross)
+    spirv_cross = dependency('spirv-cross-c', allow_fallback: false, required: get_option('custom_shaders').auto() and require_system_spirv_cross.enabled() ? get_option('custom_shaders') : require_system_spirv_cross)
     require_system_spirv_tools = get_option('spirv_tools_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
-    spirv_tools = dependency('SPIRV-Tools', allow_fallback: false, required: require_system_spirv_tools)
+    spirv_tools = dependency('SPIRV-Tools', allow_fallback: false, required: get_option('custom_shaders').auto() and require_system_spirv_tools.enabled() ? get_option('custom_shaders') : require_system_spirv_tools)
     if bison.found() and flex.found() and (spirv_cross.found() or not require_system_spirv_cross.enabled()) and (spirv_tools.found() or not require_system_spirv_tools.enabled())
         have_custom_shaders = true
         gplv3_features += 'Custom shaders'
