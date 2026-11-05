@@ -410,8 +410,6 @@ if get_option('custom_shaders').allowed()
             spirv_cross,
             spirv_tools,
         ]
-    elif get_option('custom_shaders').enabled()
-        error('Bison, Flex, SPIRV-Cross and SPIR-V Tools are required for custom shaders to be supported')
     endif
 endif
 
