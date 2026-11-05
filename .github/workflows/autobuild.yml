@@ -72,7 +72,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y bison ccache cmake diffutils git make ruby
+          sudo apt install -y bison ccache cmake diffutils flex git make ruby
           # The Meson version provided by APT is too old so we install Meson using pip instead
           sudo apt install -y ninja-build python3-pip
           pip3 install meson
@@ -119,7 +119,7 @@ jobs:
         with:
           msystem: mingw64
           install: >-
-            bison mingw-w64-x86_64-ccache mingw-w64-x86_64-cmake diffutils mingw-w64-x86_64-git make mingw-w64-x86_64-meson mingw-w64-x86_64-ruby
+            bison mingw-w64-x86_64-ccache mingw-w64-x86_64-cmake diffutils flex mingw-w64-x86_64-git make mingw-w64-x86_64-meson mingw-w64-x86_64-ruby
             mingw-w64-x86_64-gcc
 
       - name: Checkout repository
@@ -237,7 +237,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y bison ccache cmake diffutils git make ruby
+          sudo apt install -y bison ccache cmake diffutils flex git make ruby
           # The Meson version provided by APT is too old so we install Meson using pip instead
           sudo apt install -y ninja-build python3-pip
           pip3 install meson
@@ -422,7 +422,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y bison ccache cmake diffutils git make meson ruby
+          sudo apt install -y bison ccache cmake diffutils flex git make meson ruby
           if [ '${{ matrix.arch_debian }}' = 'ppc64' ]
           then
             # LLD doesn't support the original PowerPC ABI used by Debian's ppc64 architecture, so use mold instead
@@ -601,7 +601,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt update
-          apt install -y bison ccache cmake diffutils git make meson ruby
+          apt install -y bison ccache cmake diffutils flex git make meson ruby
           apt install -y gcc g++
 
       - name: Checkout repository
@@ -704,7 +704,7 @@ jobs:
         run: |
           dpkg --add-architecture ${{matrix.arch_debian}}
           apt update
-          apt install -y bison ccache cmake diffutils git make meson ruby
+          apt install -y bison ccache cmake diffutils flex git make meson ruby
           apt install -y gcc g++
           apt install -y gcc-${{matrix.arch_gcc}} g++-${{matrix.arch_gcc}}
 
@@ -830,7 +830,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y bison ccache cmake diffutils git make meson ruby
+          sudo apt install -y bison ccache cmake diffutils flex git make meson ruby
           sudo apt install -y clang lld llvm
 
       - name: Checkout repository
@@ -1007,7 +1007,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install -q bison ccache cmake diffutils git make meson ruby
+          brew install -q bison ccache cmake diffutils flex git make meson ruby
 
       - name: Checkout repository
         uses: actions/checkout@v7

@@ -321,11 +321,13 @@ endif
 have_custom_shaders = false
 have_vendored_spirv_tools = false
 if get_option('custom_shaders').allowed()
+    bison = find_program('bison', required: get_option('custom_shaders'))
+    flex = find_program('flex', required: get_option('custom_shaders'))
     require_system_spirv_cross = get_option('spirv_cross_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
     spirv_cross = dependency('spirv-cross-c', allow_fallback: false, required: require_system_spirv_cross)
     require_system_spirv_tools = get_option('spirv_tools_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
     spirv_tools = dependency('SPIRV-Tools', allow_fallback: false, required: require_system_spirv_tools)
-    if (spirv_cross.found() or not require_system_spirv_cross.enabled()) and (spirv_tools.found() or not require_system_spirv_tools.enabled())
+    if bison.found() and flex.found() and (spirv_cross.found() or not require_system_spirv_cross.enabled()) and (spirv_tools.found() or not require_system_spirv_tools.enabled())
         have_custom_shaders = true
         gplv3_features += 'Custom shaders'
         global_args += '-DMKXPZ_HAVE_CUSTOM_SHADERS'
@@ -409,7 +411,7 @@ if get_option('custom_shaders').allowed()
             spirv_tools,
         ]
     elif get_option('custom_shaders').enabled()
-        error('SPIRV-Cross and SPIR-V Tools are required for custom shaders to be supported')
+        error('Bison, Flex, SPIRV-Cross and SPIR-V Tools are required for custom shaders to be supported')
     endif
 endif
 
