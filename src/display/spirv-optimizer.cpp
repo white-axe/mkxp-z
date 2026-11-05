@@ -20,6 +20,7 @@
  */
 
 #include <cassert>
+#include <utility>
 
 #include "spirv-optimizer.h"
 
