@@ -121,7 +121,7 @@ bool SpirvToGlsl::compile(std::string &glsl_output, std::vector<Ubo> &ubos_outpu
 
     static const char *const default_uniform_buffer_names[] = {
         "$Global", // Default name of the default uniform buffer used by glslang's HLSL frontend
-        "gl_DefaultUniformBuffer", // Default name of the default uniform buffer used by glslang's GLSL frontend
+        "gl_DefaultUniformBlock", // Default name of the default uniform buffer used by glslang's GLSL frontend
     };
     bool default_uniform_buffer_seen = false;
     std::unordered_map<std::string, Uniform> uniforms;
