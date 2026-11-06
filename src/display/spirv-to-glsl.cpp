@@ -48,6 +48,14 @@ SpirvToGlsl &SpirvToGlsl::operator=(SpirvToGlsl &&other) noexcept {
     return *this;
 }
 
+#define CHECK(result) do { \
+    if ((result) != SPVC_SUCCESS) { \
+        error_message = spvc_context_get_last_error_string((spvc_context)context); \
+        spvc_context_release_allocations((spvc_context)context); \
+        return false; \
+    } \
+} while (0)
+
 bool SpirvToGlsl::compile(std::string &glsl_output, std::string &error_message, const uint8_t *spirv_input, size_t spirv_input_size, uint16_t version, Dialect dialect) {
     assert((uintptr_t)spirv_input % (uintptr_t)alignof(uint32_t) == 0); // Should be true because memory allocated by malloc() should be sufficiently aligned for uint32_t
     if (spirv_input_size % 4 != 0) {
@@ -56,47 +64,19 @@ bool SpirvToGlsl::compile(std::string &glsl_output, std::string &error_message, 
     }
 
     spvc_parsed_ir ir;
-    if (spvc_context_parse_spirv((spvc_context)context, (const SpvId *)spirv_input, spirv_input_size / 4, &ir) != SPVC_SUCCESS) {
-        error_message = spvc_context_get_last_error_string((spvc_context)context);
-        spvc_context_release_allocations((spvc_context)context);
-        return false;
-    }
+    CHECK(spvc_context_parse_spirv((spvc_context)context, (const SpvId *)spirv_input, spirv_input_size / 4, &ir));
 
     spvc_compiler compiler;
-    if (spvc_context_create_compiler((spvc_context)context, SPVC_BACKEND_GLSL, ir, SPVC_CAPTURE_MODE_TAKE_OWNERSHIP, &compiler) != SPVC_SUCCESS) {
-        error_message = spvc_context_get_last_error_string((spvc_context)context);
-        spvc_context_release_allocations((spvc_context)context);
-        return false;
-    }
+    CHECK(spvc_context_create_compiler((spvc_context)context, SPVC_BACKEND_GLSL, ir, SPVC_CAPTURE_MODE_TAKE_OWNERSHIP, &compiler));
 
     spvc_compiler_options options;
-    if (spvc_compiler_create_compiler_options(compiler, &options) != SPVC_SUCCESS) {
-        error_message = spvc_context_get_last_error_string((spvc_context)context);
-        spvc_context_release_allocations((spvc_context)context);
-        return false;
-    }
-    if (spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_GLSL_VERSION, version) != SPVC_SUCCESS) {
-        error_message = spvc_context_get_last_error_string((spvc_context)context);
-        spvc_context_release_allocations((spvc_context)context);
-        return false;
-    }
-    if (spvc_compiler_options_set_bool(options, SPVC_COMPILER_OPTION_GLSL_ES, dialect == Dialect::GLSL_ES ? SPVC_TRUE : SPVC_FALSE) != SPVC_SUCCESS) {
-        error_message = spvc_context_get_last_error_string((spvc_context)context);
-        spvc_context_release_allocations((spvc_context)context);
-        return false;
-    }
-    if (spvc_compiler_install_compiler_options(compiler, options) != SPVC_SUCCESS) {
-        error_message = spvc_context_get_last_error_string((spvc_context)context);
-        spvc_context_release_allocations((spvc_context)context);
-        return false;
-    }
+    CHECK(spvc_compiler_create_compiler_options(compiler, &options));
+    CHECK(spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_GLSL_VERSION, version));
+    CHECK(spvc_compiler_options_set_bool(options, SPVC_COMPILER_OPTION_GLSL_ES, dialect == Dialect::GLSL_ES ? SPVC_TRUE : SPVC_FALSE));
+    CHECK(spvc_compiler_install_compiler_options(compiler, options));
 
     const char *output;
-    if (spvc_compiler_compile(compiler, &output) != SPVC_SUCCESS) {
-        error_message = spvc_context_get_last_error_string((spvc_context)context);
-        spvc_context_release_allocations((spvc_context)context);
-        return false;
-    }
+    CHECK(spvc_compiler_compile(compiler, &output));
 
     glsl_output = output;
     spvc_context_release_allocations((spvc_context)context);
