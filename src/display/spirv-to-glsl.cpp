@@ -56,11 +56,27 @@ SpirvToGlsl &SpirvToGlsl::operator=(SpirvToGlsl &&other) noexcept {
     } \
 } while (0)
 
-bool SpirvToGlsl::compile(std::string &glsl_output, std::string &error_message, const uint8_t *spirv_input, size_t spirv_input_size, uint16_t version, Dialect dialect) {
+bool SpirvToGlsl::compile(std::string &glsl_output, std::vector<Ubo> &ubos_output, std::string &error_message, const uint8_t *spirv_input, size_t spirv_input_size, uint16_t version, Dialect dialect) {
     assert((uintptr_t)spirv_input % (uintptr_t)alignof(uint32_t) == 0); // Should be true because memory allocated by malloc() should be sufficiently aligned for uint32_t
     if (spirv_input_size % 4 != 0) {
         error_message = "SPIR-V input size must be a multiple of 4";
         return false;
+    }
+
+    bool have_ubo_support;
+    bool have_binding_support;
+    switch (dialect) {
+        case Dialect::GLSL_WITH_420PACK:
+            have_ubo_support = version >= 140;
+            have_binding_support = version >= 130;
+            break;
+        case Dialect::GLSL_WITHOUT_420PACK:
+            have_ubo_support = version >= 140;
+            have_binding_support = version >= 420;
+            break;
+        case Dialect::GLSL_ES:
+            have_ubo_support = version >= 300;
+            have_binding_support = version >= 310;
     }
 
     spvc_parsed_ir ir;
@@ -69,16 +85,41 @@ bool SpirvToGlsl::compile(std::string &glsl_output, std::string &error_message, 
     spvc_compiler compiler;
     CHECK(spvc_context_create_compiler((spvc_context)context, SPVC_BACKEND_GLSL, ir, SPVC_CAPTURE_MODE_TAKE_OWNERSHIP, &compiler));
 
+    spvc_resources resources;
+    CHECK(spvc_compiler_create_shader_resources(compiler, &resources));
+
+    std::vector<Ubo> ubos;
+    if (have_ubo_support) {
+        const spvc_reflected_resource *ubo_list;
+        size_t ubo_list_size;
+        CHECK(spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_UNIFORM_BUFFER, &ubo_list, &ubo_list_size));
+        if (!have_binding_support && ubo_list_size > 1) {
+            error_message = "This shader requires more than one uniform buffer, but this is not supported by your graphics driver";
+            return false;
+        }
+        for (size_t i = 0; i < ubo_list_size; ++i) {
+            spvc_type struct_type = spvc_compiler_get_type_handle(compiler, ubo_list[i].base_type_id);
+            size_t size;
+            CHECK(spvc_compiler_get_declared_struct_size(compiler, struct_type, &size));
+            ubos.push_back({
+                size,
+                have_binding_support ? spvc_compiler_get_decoration(compiler, ubo_list[i].id, SpvDecorationBinding) : 0,
+            });
+        }
+    }
+
     spvc_compiler_options options;
     CHECK(spvc_compiler_create_compiler_options(compiler, &options));
     CHECK(spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_GLSL_VERSION, version));
     CHECK(spvc_compiler_options_set_bool(options, SPVC_COMPILER_OPTION_GLSL_ES, dialect == Dialect::GLSL_ES ? SPVC_TRUE : SPVC_FALSE));
+    CHECK(spvc_compiler_options_set_bool(options, SPVC_COMPILER_OPTION_GLSL_ENABLE_420PACK_EXTENSION, dialect == Dialect::GLSL_WITH_420PACK && have_binding_support));
     CHECK(spvc_compiler_install_compiler_options(compiler, options));
 
-    const char *output;
-    CHECK(spvc_compiler_compile(compiler, &output));
+    const char *glsl;
+    CHECK(spvc_compiler_compile(compiler, &glsl));
 
-    glsl_output = output;
+    glsl_output = glsl;
+    ubos_output = std::move(ubos);
     spvc_context_release_allocations((spvc_context)context);
     return true;
 }

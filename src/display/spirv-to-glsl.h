@@ -25,6 +25,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 class SpirvToGlsl
 {
@@ -39,10 +40,21 @@ public:
     SpirvToGlsl &operator=(const SpirvToGlsl &other) = delete;
     SpirvToGlsl &operator=(SpirvToGlsl &&other) noexcept;
 
+    struct Ubo
+    {
+        // The size of this UBO in bytes.
+        size_t size;
+        // The OpenGL binding point that this UBO should be bound to before the GLSL shader is run.
+        // If binding points are not supported by the combination of the GLSL version and dialect, this will always be zero.
+        uint32_t binding;
+    };
+
     enum Dialect
     {
-        // GLSL for desktop OpenGL
-        GLSL,
+        // GLSL for a desktop OpenGL implementation that supports the ARB_shading_language_420pack OpenGL extension
+        GLSL_WITH_420PACK,
+        // GLSL for a desktop OpenGL implementation that doesn't support the ARB_shading_language_420pack OpenGL extension
+        GLSL_WITHOUT_420PACK,
         // GLSL for OpenGL ES
         GLSL_ES,
     };
@@ -51,6 +63,7 @@ public:
      * Compiles SPIR-V bytecode to GLSL.
      *
      * glsl_output: If compilation succeeds, this will be set to the compiled GLSL shader. Otherwise this will be unchanged.
+     * ubos_output: If compilation succeeds, this will be set to the list of descriptions of the uniform buffer objects (UBOs) used by the compiled GLSL shader. Otherwise this will be unchanged. If the combination of the GLSL version and dialect does not support UBOs, any UBOs used by the input SPIR-V shader will be automatically demoted to regular uniforms in the compiled GLSL shader for you, leaving the list of UBOs empty.
      * error_message: If compilation succeeds, this will be unchanged. Otherwise, this will be set to a string containing the compilation error.
      * spirv_input: Pointer to the input SPIR-V bytecode.
      * spirv_input_size: Length of the input SPIR-V bytecode in bytes.
@@ -59,7 +72,7 @@ public:
      *
      * Return value: `true` if compilation succeeded, otherwise `false`.
      */
-    bool compile(std::string &glsl_output, std::string &error_message, const uint8_t *spirv_input, size_t spirv_input_size, uint16_t version, Dialect dialect);
+    bool compile(std::string &glsl_output, std::vector<Ubo> &ubos_output, std::string &error_message, const uint8_t *spirv_input, size_t spirv_input_size, uint16_t version, Dialect dialect);
 };
 
 #endif // SPIRV_TO_GLSL_H
