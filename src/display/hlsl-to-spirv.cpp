@@ -57,6 +57,7 @@ HlslToSpirv::HlslToSpirv(HlslToSpirv &&other) noexcept {
 }
 
 HlslToSpirv &HlslToSpirv::operator=(HlslToSpirv &&other) noexcept {
+    target = other.target;
     initialized = other.initialized;
     other.initialized = false;
     return *this;
