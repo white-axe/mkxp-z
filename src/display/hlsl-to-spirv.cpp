@@ -28,7 +28,19 @@
 #include <glslang/Include/glslang_c_interface.h>
 #include <glslang/Public/resource_limits_c.h>
 
-HlslToSpirv::HlslToSpirv() : initialized(glslang_initialize_process()) {
+static glslang_target_language_version_t get_target_language_version(SpirvOptimizer::Target target) {
+    switch (target) {
+        case SpirvOptimizer::Target::SPIRV_1_0: return GLSLANG_TARGET_SPV_1_0;
+        case SpirvOptimizer::Target::SPIRV_1_1: return GLSLANG_TARGET_SPV_1_1;
+        case SpirvOptimizer::Target::SPIRV_1_2: return GLSLANG_TARGET_SPV_1_2;
+        case SpirvOptimizer::Target::SPIRV_1_3: return GLSLANG_TARGET_SPV_1_3;
+        case SpirvOptimizer::Target::SPIRV_1_4: return GLSLANG_TARGET_SPV_1_4;
+        case SpirvOptimizer::Target::SPIRV_1_5: return GLSLANG_TARGET_SPV_1_5;
+        case SpirvOptimizer::Target::SPIRV_1_6: return GLSLANG_TARGET_SPV_1_6;
+    }
+}
+
+HlslToSpirv::HlslToSpirv(SpirvOptimizer::Target target) : target(target), initialized(glslang_initialize_process()) {
     if (!initialized) {
         throw Exception(Exception::MKXPError, "Failed to initialize glslang");
     }
@@ -55,9 +67,9 @@ bool HlslToSpirv::compile(std::vector<uint8_t> &spirv_output, std::string &error
         GLSLANG_SOURCE_HLSL,
         stage == Stage::VERTEX ? GLSLANG_STAGE_VERTEX : GLSLANG_STAGE_FRAGMENT,
         GLSLANG_CLIENT_VULKAN,
-        GLSLANG_TARGET_VULKAN_1_0,
+        GLSLANG_TARGET_VULKAN_1_4,
         GLSLANG_TARGET_SPV,
-        GLSLANG_TARGET_SPV_1_0,
+        get_target_language_version(target),
         hlsl_source_code,
         0,
         GLSLANG_NO_PROFILE,

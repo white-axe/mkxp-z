@@ -26,13 +26,16 @@
 #include <string>
 #include <vector>
 
+#include "spirv-optimizer.h"
+
 class HlslToSpirv
 {
 private:
+    SpirvOptimizer::Target target;
     bool initialized;
 
 public:
-    HlslToSpirv();
+    HlslToSpirv(SpirvOptimizer::Target target);
     ~HlslToSpirv();
     HlslToSpirv(const HlslToSpirv &other) = delete;
     HlslToSpirv(HlslToSpirv &&other) noexcept;

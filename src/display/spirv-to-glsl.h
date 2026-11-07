@@ -28,12 +28,17 @@
 #include <unordered_map>
 #include <vector>
 
+#include "spirv-optimizer.h"
+
 class SpirvToGlsl
 {
 private:
     void *context;
 
 public:
+    // Maximum SPIR-V target supported by this compiler backend.
+    static constexpr SpirvOptimizer::Target TARGET = SpirvOptimizer::Target::SPIRV_1_6;
+
     SpirvToGlsl();
     ~SpirvToGlsl();
     SpirvToGlsl(const SpirvToGlsl &other) = delete;

@@ -26,7 +26,19 @@
 
 #include <spirv-tools/libspirv.h>
 
-SpirvOptimizer::SpirvOptimizer() : optimizer(spvOptimizerCreate(SPV_ENV_UNIVERSAL_1_0)), validator_options(spvValidatorOptionsCreate()), optimizer_options(spvOptimizerOptionsCreate()) {
+static spv_target_env get_target_env(SpirvOptimizer::Target target) {
+    switch (target) {
+        case SpirvOptimizer::Target::SPIRV_1_0: return SPV_ENV_UNIVERSAL_1_0;
+        case SpirvOptimizer::Target::SPIRV_1_1: return SPV_ENV_UNIVERSAL_1_1;
+        case SpirvOptimizer::Target::SPIRV_1_2: return SPV_ENV_UNIVERSAL_1_2;
+        case SpirvOptimizer::Target::SPIRV_1_3: return SPV_ENV_UNIVERSAL_1_3;
+        case SpirvOptimizer::Target::SPIRV_1_4: return SPV_ENV_UNIVERSAL_1_4;
+        case SpirvOptimizer::Target::SPIRV_1_5: return SPV_ENV_UNIVERSAL_1_5;
+        case SpirvOptimizer::Target::SPIRV_1_6: return SPV_ENV_UNIVERSAL_1_6;
+    }
+}
+
+SpirvOptimizer::SpirvOptimizer(Target target) : optimizer(spvOptimizerCreate(get_target_env(target))), validator_options(spvValidatorOptionsCreate()), optimizer_options(spvOptimizerOptionsCreate()) {
     spvOptimizerRegisterLegalizationPasses((spv_optimizer_t *)optimizer);
     spvOptimizerRegisterPerformancePasses((spv_optimizer_t *)optimizer);
     spvValidatorOptionsSetBeforeHlslLegalization((spv_validator_options_t *)validator_options, true);

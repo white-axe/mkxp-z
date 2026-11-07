@@ -34,7 +34,25 @@ private:
     void *optimizer_options;
 
 public:
-    SpirvOptimizer();
+    enum Target
+    {
+        // SPIR-V 1.0, the maximum supported SPIR-V version in Vulkan 1.0 and OpenGL
+        SPIRV_1_0,
+        // SPIR-V 1.1
+        SPIRV_1_1,
+        // SPIR-V 1.2
+        SPIRV_1_2,
+        // SPIR-V 1.3, the maximum supported SPIR-V version in Vulkan 1.1 if the VK_KHR_spirv_1_4 Vulkan extension is unsupported
+        SPIRV_1_3,
+        // SPIR-V 1.4, the maximum supported SPIR-V version in Vulkan 1.1 if the VK_KHR_spirv_1_4 Vulkan extension is supported
+        SPIRV_1_4,
+        // SPIR-V 1.5, the maximum supported SPIR-V version in Vulkan 1.2
+        SPIRV_1_5,
+        // SPIR-V 1.6, the maximum supported SPIR-V version in Vulkan 1.3 and Vulkan 1.4
+        SPIRV_1_6,
+    };
+
+    SpirvOptimizer(Target target);
     ~SpirvOptimizer();
     SpirvOptimizer(const SpirvOptimizer &other) = delete;
     SpirvOptimizer(SpirvOptimizer &&other) noexcept;
