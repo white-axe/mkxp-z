@@ -1,4 +1,4 @@
-project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=1.4.0')
+project('mkxp-z', 'c', 'cpp', version: '2.4.2', meson_version: '>=1.10.0')
 if host_machine.system() == 'darwin'
     add_languages('objcpp', native: false)
 endif
@@ -297,6 +297,10 @@ if host_system == 'darwin'
         install_dir: (exe_name + '.app') / 'Contents' / 'Resources',
         install_tag: meson.project_name() + '-bundle',
     )
+endif
+
+if have_custom_shaders and meson.version().version_compare('<1.12.0') and meson.is_cross_build()
+    warning('You may encounter compiler errors when compiling the effectc lexer in cross builds due to a bug in Meson. Please update to Meson 1.12.0 or later if you experience compilation errors.')
 endif
 
 if openal.type_name() == 'internal'

@@ -422,7 +422,10 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y bison ccache cmake diffutils flex git make meson ruby
+          sudo apt install -y bison ccache cmake diffutils flex git make ruby
+          # The Meson version provided by APT is too old so we install Meson using pip instead
+          sudo apt install -y ninja-build python3-pip
+          pip3 install meson
           if [ '${{ matrix.arch_debian }}' = 'ppc64' ]
           then
             # LLD doesn't support the original PowerPC ABI used by Debian's ppc64 architecture, so use mold instead
@@ -601,7 +604,10 @@ jobs:
       - name: Install dependencies
         run: |
           apt update
-          apt install -y bison ccache cmake diffutils flex git make meson ruby
+          apt install -y bison ccache cmake diffutils flex git make ruby
+          # The Meson version provided by APT is too old so we install Meson using pip instead
+          apt install -y ninja-build python3-pip
+          pip3 install meson
           apt install -y gcc g++
 
       - name: Checkout repository
@@ -830,7 +836,10 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y bison ccache cmake diffutils flex git make meson ruby
+          sudo apt install -y bison ccache cmake diffutils flex git make ruby
+          # The Meson version provided by APT is too old so we install Meson using pip instead
+          sudo apt install -y ninja-build python3-pip
+          pip3 install meson
           sudo apt install -y clang lld llvm
 
       - name: Checkout repository
