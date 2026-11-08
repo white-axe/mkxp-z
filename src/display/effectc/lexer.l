@@ -261,7 +261,7 @@ void Lexer::advance_location(char *text, int length) {
                         ? 3
                         : 0;
                     // Disallow UTF-8 overlong encodings
-                    if (continuation_length == 1 && text[i] < 0xc2) {
+                    if (continuation_length == 1 && (unsigned char)text[i] < 0xc2) {
                         continuation_length = 0;
                     } else if ((unsigned char)text[i] == 0xe0 || (unsigned char)text[i] == 0xf0) {
                         check_for_overlong = true;
