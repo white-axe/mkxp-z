@@ -26,7 +26,7 @@
 %option reentrant
 
 %{
-    #include <string>
+    #include <sstream>
     #include <utility>
 
     #include "effectc/impl.h"
@@ -38,7 +38,7 @@
     }
 
     #define ERROR(msg) do { \
-        parser.error(location, msg); \
+        parser.error(location, (msg)); \
         return parser.make_YYerror(location); \
     } while (0)
 %}
@@ -200,7 +200,9 @@ true {
 [ \f\n\r\t\v]+ { }
 
 \n|[^\n] {
-    ERROR(std::string("illegal character ") + std::string(yytext, yyleng));
+    std::stringstream error;
+    error << "illegal byte 0x" << ((unsigned char)yytext[0] <= 0x0f ? "0" : "") << std::hex << (unsigned int)yytext[0] << " in input";
+    ERROR(error.str());
 }
 
 <<EOF>> {
