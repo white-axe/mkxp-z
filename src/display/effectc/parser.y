@@ -51,6 +51,7 @@
 
 %token <std::string> identifier "identifier"
 %token <std::string> type "type"
+%token <int64_t> integer_literal "integer literal"
 
 %token semicolon ";"
 %token left_parenthesis "("
@@ -134,7 +135,7 @@ state_assignment
 
 state_assignment_subscript
     : %empty
-    | left_square_bracket expression right_square_bracket
+    | left_square_bracket integer_literal right_square_bracket
     ;
 
 expression
@@ -226,6 +227,7 @@ postfix_expression
 
 primary_expression /* TODO: complete this list of primary expressions */
     : left_parenthesis expression right_parenthesis
+    | integer_literal
     | keyword_true
     | keyword_false
     | keyword_null
