@@ -238,7 +238,7 @@ true {
 [ \f\n\r\t\v]+ { }
 
 \n|[^\n] {
-    ERROR(std::string("illegal character ") + yytext);
+    ERROR(std::string("illegal character ") + std::string(yytext, yyleng));
 }
 
 <<EOF>> {
