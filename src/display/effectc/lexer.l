@@ -127,6 +127,10 @@
     return parser.make_right_curly_brace(location);
 }
 
+"," {
+    return parser.make_operator_comma(location);
+}
+
 "=" {
     return parser.make_operator_assign(location);
 }
@@ -217,6 +221,18 @@
 
 "~" {
     return parser.make_operator_not(location);
+}
+
+"++" {
+    return parser.make_operator_increment(location);
+}
+
+"--" {
+    return parser.make_operator_decrement(location);
+}
+
+"." {
+    return parser.make_operator_structure_reference(location);
 }
 
 false {

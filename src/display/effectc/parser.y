@@ -61,6 +61,7 @@
 %token left_curly_brace "{"
 %token right_curly_brace "}"
 
+%token operator_comma ","
 %token operator_assign "="
 %token operator_question_mark "?"
 %token operator_colon ":"
@@ -84,6 +85,9 @@
 %token operator_modulo "%"
 %token operator_logical_not "!"
 %token operator_not "~"
+%token operator_increment "++"
+%token operator_decrement "--"
+%token operator_structure_reference "."
 
 %token keyword_false "false"
 %token keyword_null "NULL"
@@ -140,6 +144,7 @@ state_assignment_subscript
 
 expression
     : assignment_expression
+    | expression operator_comma assignment_expression
     ;
 
 assignment_expression
@@ -218,11 +223,14 @@ unary_expression
     : postfix_expression
     | operator_logical_not unary_expression
     | operator_not unary_expression
+    | operator_add unary_expression
+    | operator_subtract unary_expression
     ;
 
 postfix_expression
     : primary_expression
     | type left_parenthesis expression right_parenthesis
+    | postfix_expression operator_structure_reference identifier
     ;
 
 primary_expression /* TODO: complete this list of primary expressions */
