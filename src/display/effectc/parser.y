@@ -125,7 +125,31 @@ annotation_list
     ;
 
 annotation
-    : type identifier operator_assign assignment_expression semicolon
+    : type identifier operator_assign initializer semicolon
+    ;
+
+initializer
+    : assignment_expression
+    | list_initializer
+    ;
+
+list_initializer
+    : left_curly_brace optional_initializer_list right_curly_brace
+    ;
+
+optional_initializer_list
+    : %empty
+    | initializer_list trailing_comma
+    ;
+
+initializer_list
+    : initializer
+    | initializer_list operator_comma initializer
+    ;
+
+trailing_comma
+    : %empty
+    | operator_comma
     ;
 
 state_assignments
@@ -134,7 +158,12 @@ state_assignments
     ;
 
 state_assignment
-    : identifier state_assignment_subscript operator_assign expression semicolon
+    : identifier state_assignment_subscript operator_assign state_assignment_initializer semicolon
+    ;
+
+state_assignment_initializer
+    : expression
+    | list_initializer
     ;
 
 state_assignment_subscript
