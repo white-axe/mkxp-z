@@ -19,73 +19,19 @@
  ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-%option c++
+%option prefix="effectc_impl_Lexer_"
+
 %option nodefault
 %option noyywrap
-
-%option yyclass="effectc_impl::Lexer"
-%option prefix="effectc_impl_Lexer_"
+%option reentrant
 
 %{
     #include <string>
+    #include <utility>
 
     #include "effectc/impl.h"
 
     using namespace effectc_impl;
-
-    Lexer::Lexer() : location(nullptr), continuation_length(0), check_for_overlong(false), seen_carriage_return(false) {
-    }
-
-    void Lexer::advance_location(char *text, int length) {
-        location.begin = location.end;
-
-        // Advance the end of the location by one line for each newline (CR, LF or CRLF) and one column for each UTF-8 character that isn't part of a newline
-        for (int i = 0; i < length; ++i) {
-            switch (text[i]) {
-                case '\r':
-                    seen_carriage_return = true;
-                    location.end.lines(1);
-                    break;
-                case '\n':
-                    if (!seen_carriage_return) { // Carriage return followed by line feed only counts as one line, not two
-                        location.end.lines(1);
-                    }
-                    seen_carriage_return = false;
-                    break;
-                default:
-                    seen_carriage_return = false;
-                    if (continuation_length == 0) {
-                        location.end.columns(1);
-                        continuation_length = (text[i] & 0xe0) == 0xc0
-                            ? 1
-                            : (text[i] & 0xf0) == 0xe0
-                            ? 2
-                            : (text[i] & 0xf8) == 0xf0
-                            ? 3
-                            : 0;
-                        // Disallow UTF-8 overlong encodings
-                        if (continuation_length == 1 && text[i] < 0xc2) {
-                            continuation_length = 0;
-                        } else if ((unsigned char)text[i] == 0xe0 || (unsigned char)text[i] == 0xf0) {
-                            check_for_overlong = true;
-                        }
-                    } else {
-                        if (check_for_overlong && ((continuation_length == 2 && (unsigned char)text[i] < 0xa0) || (continuation_length == 3 && (unsigned char)text[i] < 0x90))) {
-                            // Disallow UTF-8 overlong encodings
-                            continuation_length = 0;
-                        } else if ((unsigned char)text[i] < 0x80) {
-                            // Disallow non-continuation bytes in the middle of a UTF-8 character
-                            continuation_length = 0;
-                            location.end.columns(1);
-                        } else {
-                            --continuation_length;
-                        }
-                        check_for_overlong = false;
-                    }
-                    break;
-            }
-        }
-    }
 
     #define YY_USER_ACTION { \
         advance_location(yytext, yyleng); \
@@ -262,3 +208,78 @@ true {
 }
 
 %%
+
+Lexer::Lexer() : location(nullptr), continuation_length(0), check_for_overlong(false), seen_carriage_return(false) {
+    yylex_init(&yyscanner);
+}
+
+Lexer::~Lexer() {
+    if (yyscanner != nullptr) {
+        yylex_destroy(yyscanner);
+    }
+}
+
+Lexer::Lexer(Lexer &&other) noexcept {
+    *this = std::move(other);
+}
+
+Lexer &Lexer::operator=(Lexer &&other) noexcept {
+    yyscanner = other.yyscanner;
+    other.yyscanner = nullptr;
+    location = std::move(other.location);
+    continuation_length = other.continuation_length;
+    check_for_overlong = other.check_for_overlong;
+    seen_carriage_return = other.seen_carriage_return;
+    return *this;
+}
+
+void Lexer::advance_location(char *text, int length) {
+    location.begin = location.end;
+
+    // Advance the end of the location by one line for each newline (CR, LF or CRLF) and one column for each UTF-8 character that isn't part of a newline
+    for (int i = 0; i < length; ++i) {
+        switch (text[i]) {
+            case '\r':
+                seen_carriage_return = true;
+                location.end.lines(1);
+                break;
+            case '\n':
+                if (!seen_carriage_return) { // Carriage return followed by line feed only counts as one line, not two
+                    location.end.lines(1);
+                }
+                seen_carriage_return = false;
+                break;
+            default:
+                seen_carriage_return = false;
+                if (continuation_length == 0) {
+                    location.end.columns(1);
+                    continuation_length = (text[i] & 0xe0) == 0xc0
+                        ? 1
+                        : (text[i] & 0xf0) == 0xe0
+                        ? 2
+                        : (text[i] & 0xf8) == 0xf0
+                        ? 3
+                        : 0;
+                    // Disallow UTF-8 overlong encodings
+                    if (continuation_length == 1 && text[i] < 0xc2) {
+                        continuation_length = 0;
+                    } else if ((unsigned char)text[i] == 0xe0 || (unsigned char)text[i] == 0xf0) {
+                        check_for_overlong = true;
+                    }
+                } else {
+                    if (check_for_overlong && ((continuation_length == 2 && (unsigned char)text[i] < 0xa0) || (continuation_length == 3 && (unsigned char)text[i] < 0x90))) {
+                        // Disallow UTF-8 overlong encodings
+                        continuation_length = 0;
+                    } else if ((unsigned char)text[i] < 0x80) {
+                        // Disallow non-continuation bytes in the middle of a UTF-8 character
+                        continuation_length = 0;
+                        location.end.columns(1);
+                    } else {
+                        --continuation_length;
+                    }
+                    check_for_overlong = false;
+                }
+                break;
+        }
+    }
+}

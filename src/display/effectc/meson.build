@@ -18,10 +18,14 @@ parser = custom_target(
 
 lexer = custom_target(
     'lexer.cpp',
-    output: 'lexer.cpp',
+    output: [
+        'lexer.cpp',
+        'lexer.h',
+    ],
     command: [
         flex,
-        '-o', '@OUTPUT@',
+        '--header-file=@OUTPUT1@',
+        '-o', '@OUTPUT0@',
         files('lexer.l'),
     ],
 )

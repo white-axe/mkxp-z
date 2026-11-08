@@ -24,36 +24,31 @@
 
 #include <cstdint>
 
-#undef YY_DECL
-#define YY_DECL Parser::symbol_type Lexer::lex(Parser &parser)
-
-#ifndef yyFlexLexerOnce
-#  undef yyFlexLexer
-#  define yyFlexLexer effectc_impl_Lexer_FlexLexer
-#  include <FlexLexer.h>
-#endif
-
+#define YY_DECL effectc_impl::Parser::symbol_type effectc_impl::Lexer::lex(effectc_impl::Parser &parser)
+#undef yylex
 #define yylex(lexer) (lexer).lex(*this)
 
-namespace effectc_impl {
-}
-
 #include "parser.hpp"
+#ifndef FLEX_SCANNER
+#  include "lexer.h"
+#endif // FLEX_SCANNER
 
 namespace effectc_impl {
-    class Lexer : yyFlexLexer {
+    class Lexer {
     public:
-        typedef typename Parser::symbol_type Symbol;
-        typedef typename Parser::location_type Location;
-        typedef decltype(Location::begin) Position;
-
         Lexer();
+        ~Lexer();
+        Lexer(const Lexer &other) = delete;
+        Lexer(Lexer &&other) noexcept;
+        Lexer &operator=(const Lexer &other) = delete;
+        Lexer &operator=(Lexer &&other) noexcept;
 
         Parser::symbol_type lex(Parser &parser);
         void advance_location(char *text, int length);
 
     private:
-        Location location;
+        yyscan_t yyscanner;
+        Parser::location_type location;
         uint8_t continuation_length;
         bool check_for_overlong;
         bool seen_carriage_return;
