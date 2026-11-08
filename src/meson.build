@@ -1322,6 +1322,10 @@ if get_option('cjk_fallback_font') == true
     global_cpp_args += '-DMKXPZ_CJK_FONT'
 endif
 
+if have_custom_shaders
+    subdir('display/effectc')
+endif
+
 main_source = files(
     'main.cpp',
     'config.cpp',
