@@ -115,7 +115,7 @@ annotations
     ;
 
 annotation_list
-    : annotation
+    : %empty
     | annotation_list annotation
     ;
 
