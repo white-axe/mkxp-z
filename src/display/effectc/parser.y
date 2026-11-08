@@ -120,7 +120,7 @@ annotation_list
     ;
 
 annotation
-    : type identifier operator_assign expression semicolon
+    : type identifier operator_assign assignment_expression semicolon
     ;
 
 state_assignments
@@ -138,6 +138,10 @@ state_assignment_subscript
     ;
 
 expression
+    : assignment_expression
+    ;
+
+assignment_expression
     : conditional_expression
     ;
 
