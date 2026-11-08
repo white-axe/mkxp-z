@@ -34,8 +34,3 @@ global_dependencies += declare_dependency(sources: [
     parser,
     lexer,
 ])
-
-global_sources += [
-    parser,
-    lexer,
-]
