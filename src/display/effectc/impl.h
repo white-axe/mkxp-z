@@ -28,7 +28,7 @@
 #undef yylex
 #define yylex(lexer) (lexer).lex(*this)
 
-#include "parser.hpp"
+#include "parser.h"
 #ifndef FLEX_SCANNER
 #  include "lexer.h"
 #endif // FLEX_SCANNER

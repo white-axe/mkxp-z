@@ -2,15 +2,16 @@ parser = custom_target(
     'parser.cpp',
     output: [
         'parser.cpp',
-        'parser.hpp',
+        'parser.h',
         'parser.output',
     ],
     command: [
         bison,
-        '-v',
         '-Werror=conflicts-sr',
         '-Werror=conflicts-rr',
         '-Wcounterexamples',
+        '-v',
+        '--header=@OUTPUT1@',
         '-o', '@OUTPUT0@',
         files('parser.y'),
     ],

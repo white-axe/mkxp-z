@@ -27,7 +27,6 @@
 %parse-param {Lexer &lexer}
 %lex-param {Lexer &lexer}
 
-%header /* Enables generating a header file for this parser so we can use it in the lexer */
 %locations /* Enables Bison's location API, which allows us to attach a location (line number and column number) to error messages */
 %define api.location.file none /* Disables generating location.hpp, which Bison does by default if the location API is enabled, since we don't need this file */
 
