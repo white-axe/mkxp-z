@@ -50,7 +50,8 @@
 
 %token <std::string> identifier "identifier"
 %token <std::string> type "type"
-%token <int64_t> integer_literal "integer literal"
+%token <uint64_t> integer_literal "integer literal"
+%token <std::string> string_literal "string literal"
 
 %token semicolon ";"
 %token left_parenthesis "("
@@ -264,10 +265,15 @@ postfix_expression
 primary_expression /* TODO: complete this list of primary expressions */
     : left_parenthesis expression right_parenthesis
     | integer_literal
+    | string_literals
     | keyword_true
     | keyword_false
     | keyword_null
     ;
+
+string_literals
+    : string_literal
+    | string_literals string_literal
 
 %%
 

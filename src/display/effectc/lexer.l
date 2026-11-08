@@ -26,7 +26,10 @@
 %option reentrant
 
 %{
+    #include <climits>
+    #include <cstdlib>
     #include <sstream>
+    #include <string>
     #include <utility>
 
     #include "effectc/impl.h"
@@ -41,9 +44,251 @@
         parser.error(location, (msg)); \
         return parser.make_YYerror(location); \
     } while (0)
+
+    static Parser::symbol_type parse_integer(Parser &parser, const std::string &string, int base, const Parser::location_type &location) {
+        static_assert(UINT64_MAX <= ULLONG_MAX, "uint64_t cannot fit into unsigned long long");
+        errno = 0;
+        unsigned long long integer = std::strtol(string.c_str(), nullptr, base);
+        if (errno != 0) {
+            errno = 0;
+            ERROR("integer literal out of range");
+        }
+        if (integer > UINT64_MAX) {
+            ERROR("integer literal out of range");
+        }
+        return parser.make_integer_literal((uint64_t)integer, location);
+    }
 %}
 
 %%
+
+\/\*([^*]*|(\*+[^*/]))*\*+\/ { /* Multi-line comment */ }
+
+\/\*([^*]*|(\*+[^*/]))*\** {
+    ERROR("unterminated multi-line comment");
+}
+
+\/\/[^\n\r]* { /* Single-line comment */ }
+
+\"[^\"\n\r]*\" { // String literal
+    std::string string;
+    string.reserve(yyleng - 2);
+    const char *p = yytext + 1;
+    for (bool is_reading_text = true; is_reading_text;) {
+        const char c = *p;
+        switch (c) {
+            case '"':
+                is_reading_text = false;
+                break;
+            case '\n':
+                string.push_back(c);
+                ++p;
+                break;
+            default:
+                string.push_back(c);
+                ++p;
+                break;
+            case '\\':
+                ++p;
+                if (*p >= '0' && *p <= '7') { // Octal escape sequence
+                    if (p[1] < '0' || p[1] > '7' || p[2] < '0' || p[2] > '7') {
+                        ERROR("invalid octal escape sequence");
+                    }
+                    uint16_t codepoint = *p - '0';
+                    codepoint <<= 3;
+                    codepoint |= p[1] - '0';
+                    codepoint <<= 3;
+                    codepoint |= p[2] - '0';
+                    if (codepoint <= 0x7f) {
+                        string.push_back(codepoint);
+                    } else {
+                        string.push_back(0xc0 | (codepoint >> 6));
+                        string.push_back(0x80 | (codepoint & 0x3f));
+                    }
+                    p += 3;
+                } else {
+                    switch (*p) {
+                        case 'x': // Hexadecimal escape sequence
+                            {
+                                if ((p[1] < '0' || p[1] > '9') && (p[1] < 'A' || p[1] > 'F') && (p[1] < 'a' || p[1] > 'f')) {
+                                    ERROR("invalid hexadecimal escape sequence");
+                                }
+                                uint32_t codepoint = 0;
+                                for (++p; (*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f'); ++p) {
+                                    codepoint <<= 4;
+                                    codepoint |= *p >= '0' && *p <= '9' ? *p - '0' : *p >= 'A' && *p <= 'F' ? *p - 'A' + 0xa : *p - 'a' + 0xa;
+                                    // Disallow codepoints that are out of the Unicode range
+                                    if (codepoint > 0x10ffff) {
+                                        ERROR("invalid hexadecimal escape sequence");
+                                    }
+                                }
+                                // Disallow codepoints that are UTF-16 surrogates
+                                if (codepoint >= 0xd800 && codepoint <= 0xdfff) {
+                                    ERROR("invalid hexadecimal escape sequence");
+                                }
+                                // Encode the codepoint as one to four UTF-8 bytes
+                                if (codepoint <= 0x7f) {
+                                    string.push_back(codepoint);
+                                } else if (codepoint <= 0x7ff) {
+                                    string.push_back(0xc0 | (codepoint >> 6));
+                                    string.push_back(0x80 | (codepoint & 0x3f));
+                                } else if (codepoint <= 0xffff) {
+                                    string.push_back(0xe0 | (codepoint >> 12));
+                                    string.push_back(0x80 | ((codepoint >> 6) & 0x3f));
+                                    string.push_back(0x80 | (codepoint & 0x3f));
+                                } else {
+                                    string.push_back(0xe8 | (codepoint >> 18));
+                                    string.push_back(0x80 | ((codepoint >> 12) & 0x3f));
+                                    string.push_back(0x80 | ((codepoint >> 6) & 0x3f));
+                                    string.push_back(0x80 | (codepoint & 0x3f));
+                                }
+                            }
+                            break;
+                        case '\n':
+                            ++p;
+                            break;
+                        case '\r':
+                            if (p[1] == '\n') {
+                                p += 2;
+                            } else {
+                                ++p;
+                            }
+                            break;
+                        case 'a':
+                            string.push_back('\a');
+                            ++p;
+                            break;
+                        case 'b':
+                            string.push_back('\b');
+                            ++p;
+                            break;
+                        case 'f':
+                            string.push_back('\f');
+                            ++p;
+                            break;
+                        case 'n':
+                            string.push_back('\n');
+                            ++p;
+                            break;
+                        case 'r':
+                            string.push_back('\r');
+                            ++p;
+                            break;
+                        case 't':
+                            string.push_back('\t');
+                            ++p;
+                            break;
+                        case 'v':
+                            string.push_back('\v');
+                            ++p;
+                            break;
+                        default: // Silently ignore the backslash if the first character after the backslash is not a valid starting character for an escape sequence
+                            string.push_back(*p);
+                            ++p;
+                            break;
+                    }
+                }
+                break;
+        }
+    }
+    return parser.make_string_literal(string, location);
+}
+
+\"[^\"\n\r]* {
+    ERROR("unterminated string literal");
+}
+
+0[xX][0-9A-Fa-f]+([uU][lL]?|[lL][uU]?)? { // Hexadecimal integer literal
+    std::string string;
+    string.reserve(yyleng - 2);
+    const char *p = yytext + 2;
+    for (bool running = true; running;) {
+        char c = *p;
+        switch (c) {
+            case 0:
+            case 'u':
+            case 'U':
+            case 'l':
+            case 'L':
+                running = false;
+                break;
+            default:
+                if (
+                    (
+                        (c >= '0' && c <= '9')
+                            || (c >= 'A' && c <= 'F')
+                            || (c >= 'a' && c <= 'f')
+                    )
+                        && (c != '0' || !string.empty())
+                ) {
+                    string.push_back(c);
+                }
+                ++p;
+                break;
+        }
+    }
+    return parse_integer(parser, string, 16, location);
+}
+
+0[0-7]*([uU][lL]?|[lL][uU]?)? { // Octal integer literal
+    std::string string;
+    string.reserve(yyleng - 1);
+    const char *p = yytext + 1;
+    for (bool running = true; running;) {
+        char c = *p;
+        switch (c) {
+            case 0:
+            case 'u':
+            case 'U':
+            case 'l':
+            case 'L':
+                running = false;
+                break;
+            default:
+                if (
+                    (c >= '0' && c <= '7')
+                        && (c != '0' || !string.empty())
+                ) {
+                    string.push_back(c);
+                }
+                ++p;
+                break;
+        }
+    }
+    return parse_integer(parser, string, 8, location);
+}
+
+[1-9][0-9]*([uU][lL]?|[lL][uU]?)? { // Decimal integer literal
+    std::string string;
+    string.reserve(yyleng);
+    const char *p = yytext;
+    for (bool running = true; running;) {
+        char c = *p;
+        switch (c) {
+            case 0:
+            case 'u':
+            case 'U':
+            case 'l':
+            case 'L':
+                running = false;
+                break;
+            default:
+                if (
+                    (c >= '0' && c <= '9')
+                        && (c != '0' || !string.empty())
+                ) {
+                    string.push_back(c);
+                }
+                ++p;
+                break;
+        }
+    }
+    return parse_integer(parser, string, 10, location);
+}
+
+[0-9][0-9A-Za-z_.]* {
+    ERROR("invalid numeric literal");
+}
 
 ";" {
     return parser.make_semicolon(location);
