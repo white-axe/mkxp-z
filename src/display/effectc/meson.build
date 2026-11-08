@@ -1,17 +1,29 @@
-parser = bison.generate(
-    'parser.y',
-    args: [
+parser = custom_target(
+    'parser.cpp',
+    output: [
+        'parser.cpp',
+        'parser.hpp',
+        'parser.output',
+    ],
+    command: [
+        bison,
+        '-v',
         '-Werror=conflicts-sr',
         '-Werror=conflicts-rr',
         '-Wcounterexamples',
+        '-o', '@OUTPUT0@',
+        files('parser.y'),
     ],
-    source: 'parser.cpp',
-    header: 'parser.h',
 )
 
-lexer = flex.generate(
-    'lexer.l',
-    source: 'lexer.cpp',
+lexer = custom_target(
+    'lexer.cpp',
+    output: 'lexer.cpp',
+    command: [
+        flex,
+        '-o', '@OUTPUT@',
+        files('lexer.l'),
+    ],
 )
 
 global_include_dirs += include_directories([

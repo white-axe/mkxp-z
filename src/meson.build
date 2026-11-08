@@ -85,7 +85,7 @@ if git_hash_fallback != ''
         },
     )
 else
-    git = find_program('git').cmd_array()
+    git = meson.version().version_compare('>=1.10.0') ? find_program('git').cmd_array() : find_program('git')
     git_hash_file = vcs_tag(
         input: 'git-hash.h.in',
         output: 'git-hash.h',
@@ -321,8 +321,8 @@ endif
 have_custom_shaders = false
 have_vendored_spirv_tools = false
 if get_option('custom_shaders').allowed()
-    bison = import('unstable-codegen').yacc(implementations: ['bison'], required: get_option('custom_shaders'))
-    flex = import('unstable-codegen').lex(implementations: ['flex'], required: get_option('custom_shaders'))
+    bison = find_program('bison', required: get_option('custom_shaders'))
+    flex = find_program('flex', required: get_option('custom_shaders'))
     require_system_spirv_cross = get_option('spirv_cross_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)
     spirv_cross = dependency('spirv-cross-c', allow_fallback: false, required: get_option('custom_shaders').auto() and require_system_spirv_cross.enabled() ? get_option('custom_shaders') : require_system_spirv_cross)
     require_system_spirv_tools = get_option('spirv_tools_system').disable_auto_if(default_system_disabled).enable_auto_if(default_system_enabled)

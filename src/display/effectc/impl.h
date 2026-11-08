@@ -38,7 +38,7 @@
 namespace effectc_impl {
 }
 
-#include "parser.h"
+#include "parser.hpp"
 
 namespace effectc_impl {
     class Lexer : yyFlexLexer {
