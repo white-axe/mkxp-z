@@ -8,7 +8,6 @@ parser = custom_target(
     command: [
         bison,
         '-v',
-        '--color=' + get_option('b_colorout'),
         '-Werror=conflicts-sr',
         '-Werror=conflicts-rr',
         '-Wcounterexamples',
