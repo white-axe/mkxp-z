@@ -51,6 +51,7 @@
 %token <std::string> identifier "identifier"
 %token <std::string> type "type"
 %token <uint64_t> integer_literal "integer literal"
+%token <double> floating_point_literal "floating-point literal"
 %token <std::string> string_literal "string literal"
 
 %token semicolon ";"
@@ -265,6 +266,7 @@ postfix_expression
 primary_expression /* TODO: complete this list of primary expressions */
     : left_parenthesis expression right_parenthesis
     | integer_literal
+    | floating_point_literal
     | string_literals
     | keyword_true
     | keyword_false

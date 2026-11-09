@@ -58,6 +58,16 @@
         }
         return parser.make_integer_literal((uint64_t)integer, location);
     }
+
+    static Parser::symbol_type parse_floating_point(Parser &parser, const std::string &string, const Parser::location_type &location) {
+        errno = 0;
+        double value = std::strtod(string.c_str(), nullptr);
+        if (errno != 0) {
+            errno = 0;
+            ERROR("floating-point literal out of range");
+        }
+        return parser.make_floating_point_literal(value, location);
+    }
 %}
 
 %%
@@ -284,6 +294,31 @@
         }
     }
     return parse_integer(parser, string, 10, location);
+}
+
+(([0-9]*\.[0-9]+|[0-9]+\.)([eE][+-]?[0-9]+)?|[0-9]+[eE][+-]?[0-9]+)[hHfFlL]? { // Floating-point literal
+    std::string string;
+    string.reserve(yyleng);
+    const char *p = yytext;
+    for (bool running = true; running;) {
+        char c = *p;
+        switch (c) {
+            case 0:
+            case 'h':
+            case 'H':
+            case 'f':
+            case 'F':
+            case 'l':
+            case 'L':
+                running = false;
+                break;
+            default:
+                string.push_back(c);
+                ++p;
+                break;
+        }
+    }
+    return parse_floating_point(parser, string, location);
 }
 
 [0-9][0-9A-Za-z_.]* {
