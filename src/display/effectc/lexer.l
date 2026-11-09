@@ -388,20 +388,556 @@
     return parser.make_operator_structure_reference(location);
 }
 
+AppendStructuredBuffer {
+    return parser.make_keyword_append_structured_buffer(location);
+}
+
+asm {
+    return parser.make_keyword_asm(location);
+}
+
+asm_fragment {
+    return parser.make_keyword_asm_fragment(location);
+}
+
+auto {
+    return parser.make_keyword_auto(location);
+}
+
+BlendState {
+    return parser.make_keyword_blend_state(location);
+}
+
+break {
+    return parser.make_keyword_break(location);
+}
+
+Buffer {
+    return parser.make_keyword_buffer(location);
+}
+
+ByteAddressBuffer {
+    return parser.make_keyword_byte_address_buffer(location);
+}
+
+case {
+    return parser.make_keyword_case(location);
+}
+
+catch {
+    return parser.make_keyword_catch(location);
+}
+
+cbuffer {
+    return parser.make_keyword_cbuffer(location);
+}
+
+centroid {
+    return parser.make_keyword_centroid(location);
+}
+
+class {
+    return parser.make_keyword_class(location);
+}
+
+column_major {
+    return parser.make_keyword_column_major(location);
+}
+
+compile {
+    return parser.make_keyword_compile(location);
+}
+
+compile_fragment {
+    return parser.make_keyword_compile_fragment(location);
+}
+
+CompileShader {
+    return parser.make_keyword_compile_shader(location);
+}
+
+ComputeShader {
+    return parser.make_keyword_compute_shader(location);
+}
+
+const {
+    return parser.make_keyword_const(location);
+}
+
+const_cast {
+    return parser.make_keyword_const_cast(location);
+}
+
+ConsumeStructuredBuffer {
+    return parser.make_keyword_consume_structured_buffer(location);
+}
+
+continue {
+    return parser.make_keyword_continue(location);
+}
+
+default {
+    return parser.make_keyword_default(location);
+}
+
+delete {
+    return parser.make_keyword_delete(location);
+}
+
+DepthStencilState {
+    return parser.make_keyword_depth_stencil_state(location);
+}
+
+DepthStencilView {
+    return parser.make_keyword_depth_stencil_view(location);
+}
+
+discard {
+    return parser.make_keyword_discard(location);
+}
+
+do {
+    return parser.make_keyword_do(location);
+}
+
+DomainShader {
+    return parser.make_keyword_domain_shader(location);
+}
+
+dynamic_cast {
+    return parser.make_keyword_dynamic_cast(location);
+}
+
+else {
+    return parser.make_keyword_else(location);
+}
+
+enum {
+    return parser.make_keyword_enum(location);
+}
+
+explicit {
+    return parser.make_keyword_explicit(location);
+}
+
+export {
+    return parser.make_keyword_export(location);
+}
+
+extern {
+    return parser.make_keyword_extern(location);
+}
+
 false {
     return parser.make_keyword_false(location);
+}
+
+for {
+    return parser.make_keyword_for(location);
+}
+
+friend {
+    return parser.make_keyword_friend(location);
+}
+
+fxgroup {
+    return parser.make_keyword_fxgroup(location);
+}
+
+GeometryShader {
+    return parser.make_keyword_geometry_shader(location);
+}
+
+goto {
+    return parser.make_keyword_goto(location);
+}
+
+groupshared {
+    return parser.make_keyword_groupshared(location);
+}
+
+if {
+    return parser.make_keyword_if(location);
+}
+
+in {
+    return parser.make_keyword_in(location);
+}
+
+inline {
+    return parser.make_keyword_inline(location);
+}
+
+inout {
+    return parser.make_keyword_inout(location);
+}
+
+InputPatch {
+    return parser.make_keyword_input_patch(location);
+}
+
+interface {
+    return parser.make_keyword_interface(location);
+}
+
+line {
+    return parser.make_keyword_line(location);
+}
+
+lineadj {
+    return parser.make_keyword_lineadj(location);
+}
+
+linear {
+    return parser.make_keyword_linear(location);
+}
+
+LineStream {
+    return parser.make_keyword_line_stream(location);
+}
+
+matrix {
+    return parser.make_keyword_matrix(location);
+}
+
+mutable {
+    return parser.make_keyword_mutable(location);
+}
+
+namespace {
+    return parser.make_keyword_namespace(location);
+}
+
+new {
+    return parser.make_keyword_new(location);
+}
+
+nointerpolation {
+    return parser.make_keyword_nointerpolation(location);
+}
+
+noperspective {
+    return parser.make_keyword_noperspective(location);
 }
 
 NULL {
     return parser.make_keyword_null(location);
 }
 
+operator {
+    return parser.make_keyword_operator(location);
+}
+
+out {
+    return parser.make_keyword_out(location);
+}
+
+OutputPatch {
+    return parser.make_keyword_output_patch(location);
+}
+
+packoffset {
+    return parser.make_keyword_packoffset(location);
+}
+
 pass {
     return parser.make_keyword_pass(location);
 }
 
+pixelfragment {
+    return parser.make_keyword_pixelfragment(location);
+}
+
+PixelShader {
+    return parser.make_keyword_pixel_shader(location);
+}
+
+point {
+    return parser.make_keyword_point(location);
+}
+
+PointStream {
+    return parser.make_keyword_point_stream(location);
+}
+
+precise {
+    return parser.make_keyword_precise(location);
+}
+
+private {
+    return parser.make_keyword_private(location);
+}
+
+protected {
+    return parser.make_keyword_protected(location);
+}
+
+public {
+    return parser.make_keyword_public(location);
+}
+
+RasterizerState {
+    return parser.make_keyword_rasterizer_state(location);
+}
+
+register {
+    return parser.make_keyword_register(location);
+}
+
+reinterpret_cast {
+    return parser.make_keyword_reinterpret_cast(location);
+}
+
+RenderTargetView {
+    return parser.make_keyword_render_target_view(location);
+}
+
+return {
+    return parser.make_keyword_return(location);
+}
+
+row_major {
+    return parser.make_keyword_row_major(location);
+}
+
+RWBuffer {
+    return parser.make_keyword_rw_buffer(location);
+}
+
+RWByteAddressBuffer {
+    return parser.make_keyword_rw_byte_address_buffer(location);
+}
+
+RWStructuredBuffer {
+    return parser.make_keyword_rw_structured_buffer(location);
+}
+
+RWTexture1D {
+    return parser.make_keyword_rw_texture_1d(location);
+}
+
+RWTexture1DArray {
+    return parser.make_keyword_rw_texture_1d_array(location);
+}
+
+RWTexture2D {
+    return parser.make_keyword_rw_texture_2d(location);
+}
+
+RWTexture2DArray {
+    return parser.make_keyword_rw_texture_2d_array(location);
+}
+
+RWTexture3D {
+    return parser.make_keyword_rw_texture_3d(location);
+}
+
+sample {
+    return parser.make_keyword_sample(location);
+}
+
+sampler {
+    return parser.make_keyword_sampler(location);
+}
+
+SamplerComparisonState {
+    return parser.make_keyword_sampler_comparison_state(location);
+}
+
+SamplerState {
+    return parser.make_keyword_sampler_state(location);
+}
+
+shared {
+    return parser.make_keyword_shared(location);
+}
+
+signed {
+    return parser.make_keyword_signed(location);
+}
+
+sizeof {
+    return parser.make_keyword_sizeof(location);
+}
+
+snorm {
+    return parser.make_keyword_snorm(location);
+}
+
+stateblock {
+    return parser.make_keyword_stateblock(location);
+}
+
+stateblock_state {
+    return parser.make_keyword_stateblock_state(location);
+}
+
+static {
+    return parser.make_keyword_static(location);
+}
+
+static_cast {
+    return parser.make_keyword_static_cast(location);
+}
+
+string {
+    return parser.make_keyword_string(location);
+}
+
+struct {
+    return parser.make_keyword_struct(location);
+}
+
+StructuredBuffer {
+    return parser.make_keyword_structured_buffer(location);
+}
+
+switch {
+    return parser.make_keyword_switch(location);
+}
+
+tbuffer {
+    return parser.make_keyword_tbuffer(location);
+}
+
+technique {
+    return parser.make_keyword_technique(location);
+}
+
+technique10 {
+    return parser.make_keyword_technique10(location);
+}
+
+technique11 {
+    return parser.make_keyword_technique11(location);
+}
+
+template {
+    return parser.make_keyword_template(location);
+}
+
+texture {
+    return parser.make_keyword_texture(location);
+}
+
+Texture1D {
+    return parser.make_keyword_texture_1d(location);
+}
+
+Texture1DArray {
+    return parser.make_keyword_texture_1d_array(location);
+}
+
+Texture2D {
+    return parser.make_keyword_texture_2d(location);
+}
+
+Texture2DArray {
+    return parser.make_keyword_texture_2d_array(location);
+}
+
+Texture2DMS {
+    return parser.make_keyword_texture_2d_ms(location);
+}
+
+Texture2DMSArray {
+    return parser.make_keyword_texture_2d_ms_array(location);
+}
+
+Texture3D {
+    return parser.make_keyword_texture_3d(location);
+}
+
+TextureCube {
+    return parser.make_keyword_texture_cube(location);
+}
+
+TextureCubeArray {
+    return parser.make_keyword_texture_cube_array(location);
+}
+
+this {
+    return parser.make_keyword_this(location);
+}
+
+throw {
+    return parser.make_keyword_throw(location);
+}
+
+triangle {
+    return parser.make_keyword_triangle(location);
+}
+
+triangleadj {
+    return parser.make_keyword_triangleadj(location);
+}
+
+TriangleStream {
+    return parser.make_keyword_triangle_stream(location);
+}
+
 true {
     return parser.make_keyword_true(location);
+}
+
+try {
+    return parser.make_keyword_try(location);
+}
+
+typedef {
+    return parser.make_keyword_typedef(location);
+}
+
+typename {
+    return parser.make_keyword_typename(location);
+}
+
+uniform {
+    return parser.make_keyword_uniform(location);
+}
+
+union {
+    return parser.make_keyword_union(location);
+}
+
+unorm {
+    return parser.make_keyword_unorm(location);
+}
+
+unsigned {
+    return parser.make_keyword_unsigned(location);
+}
+
+using {
+    return parser.make_keyword_using(location);
+}
+
+vector {
+    return parser.make_keyword_vector(location);
+}
+
+vertexfragment {
+    return parser.make_keyword_vertexfragment(location);
+}
+
+VertexShader {
+    return parser.make_keyword_vertex_shader(location);
+}
+
+virtual {
+    return parser.make_keyword_virtual(location);
+}
+
+void {
+    return parser.make_keyword_void(location);
+}
+
+volatile {
+    return parser.make_keyword_volatile(location);
+}
+
+while {
+    return parser.make_keyword_while(location);
 }
 
 [ \f\n\r\t\v]+ { }
