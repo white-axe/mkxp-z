@@ -48,7 +48,7 @@
     static Parser::symbol_type parse_integer(Parser &parser, const std::string &string, int base, const Parser::location_type &location) {
         static_assert(UINT64_MAX <= ULLONG_MAX, "uint64_t cannot fit into unsigned long long");
         errno = 0;
-        unsigned long long integer = std::strtol(string.c_str(), nullptr, base);
+        unsigned long long integer = std::strtoull(string.c_str(), nullptr, base);
         if (errno != 0) {
             errno = 0;
             ERROR("integer literal out of range");
