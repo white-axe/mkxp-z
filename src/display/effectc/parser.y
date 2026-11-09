@@ -265,7 +265,7 @@ annotation_list
     ;
 
 annotation
-    : type identifier subscript operator_assign initializer semicolon
+    : optional_qualifiers optional_modifier type identifier subscript operator_assign initializer semicolon
     ;
 
 subscript
@@ -386,6 +386,8 @@ multiplicative_expression
 cast_expression
     : unary_expression
     | left_parenthesis type subscript right_parenthesis cast_expression
+    | left_parenthesis modifier type subscript right_parenthesis cast_expression
+    | left_parenthesis qualifiers optional_modifier type subscript right_parenthesis cast_expression
     ;
 
 unary_expression
@@ -427,12 +429,13 @@ string_literals
     | string_literals string_literal
     ;
 
-type
-    : qualifiers unqualified_type
+optional_qualifiers
+    : %empty
+    | qualifiers qualifier
     ;
 
 qualifiers
-    : %empty
+    : qualifier
     | qualifiers qualifier
     ;
 
@@ -442,18 +445,18 @@ qualifier
     | keyword_row_major
     ;
 
-unqualified_type
-    : modifier unmodified_type
+optional_modifier
+    : %empty
+    | modifier
     ;
 
 modifier
-    : %empty
-    | keyword_unsigned
+    : keyword_unsigned
     | keyword_snorm
     | keyword_unorm
     ;
 
-unmodified_type
+type
     : identifier
     | string_type
     | keyword_vector vector_template
@@ -467,12 +470,12 @@ string_type
 
 vector_template
     : %empty
-    | operator_less_than unqualified_type operator_comma additive_expression operator_greater_than
+    | operator_less_than optional_modifier type operator_comma additive_expression operator_greater_than
     ;
 
 matrix_template
     : %empty
-    | operator_less_than unqualified_type operator_comma additive_expression operator_comma additive_expression operator_greater_than
+    | operator_less_than optional_modifier type operator_comma additive_expression operator_comma additive_expression operator_greater_than
     ;
 
 %%
