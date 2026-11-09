@@ -125,7 +125,12 @@ annotation_list
     ;
 
 annotation
-    : type identifier operator_assign initializer semicolon
+    : type identifier annotation_subscript operator_assign initializer semicolon
+    ;
+
+annotation_subscript
+    : %empty
+    | left_square_bracket expression right_square_bracket
     ;
 
 initializer
