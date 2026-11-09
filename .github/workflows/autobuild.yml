@@ -1008,6 +1008,7 @@ jobs:
       - name: Install dependencies
         run: |
           brew install -q bison ccache cmake diffutils flex git make meson ruby
+          echo "PATH=$(brew --prefix bison)/bin:$(brew --prefix flex)/bin:$PATH" >> "$GITHUB_ENV"
 
       - name: Checkout repository
         uses: actions/checkout@v7
