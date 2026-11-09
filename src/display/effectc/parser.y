@@ -49,7 +49,6 @@
 }
 
 %token <std::string> identifier "identifier"
-%token <std::string> type "type"
 %token <uint64_t> integer_literal "integer literal"
 %token <double> floating_point_literal "floating-point literal"
 %token <std::string> string_literal "string literal"
@@ -260,10 +259,10 @@ annotation_list
     ;
 
 annotation
-    : type identifier annotation_subscript operator_assign initializer semicolon
+    : type identifier subscript operator_assign initializer semicolon
     ;
 
-annotation_subscript
+subscript
     : %empty
     | left_square_bracket conditional_expression right_square_bracket
     ;
@@ -380,7 +379,7 @@ multiplicative_expression
 
 cast_expression
     : unary_expression
-    | left_parenthesis type right_parenthesis cast_expression
+    | left_parenthesis type subscript right_parenthesis cast_expression
     ;
 
 unary_expression
@@ -410,6 +409,49 @@ primary_expression /* TODO: complete this list of primary expressions */
 string_literals
     : string_literal
     | string_literals string_literal
+    ;
+
+type
+    : qualifiers unqualified_type
+    ;
+
+qualifiers
+    : %empty
+    | qualifiers qualifier
+    ;
+
+qualifier
+    : keyword_const
+    | keyword_column_major
+    | keyword_row_major
+    ;
+
+unqualified_type
+    : modifier unmodified_type
+    ;
+
+modifier
+    : %empty
+    | keyword_unsigned
+    | keyword_snorm
+    | keyword_unorm
+    ;
+
+unmodified_type
+    : identifier
+    | keyword_string
+    | keyword_vector vector_template
+    | keyword_matrix matrix_template
+    ;
+
+vector_template
+    : %empty
+    | operator_less_than unqualified_type operator_comma additive_expression operator_greater_than
+    ;
+
+matrix_template
+    : %empty
+    | operator_less_than unqualified_type operator_comma additive_expression operator_comma additive_expression operator_greater_than
     ;
 
 %%

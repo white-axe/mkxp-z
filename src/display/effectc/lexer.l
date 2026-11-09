@@ -940,6 +940,10 @@ while {
     return parser.make_keyword_while(location);
 }
 
+[A-Za-z_]* { // Identifier
+    return parser.make_identifier(yytext, location);
+}
+
 [ \f\n\r\t\v]+ { }
 
 \n|[^\n] {
