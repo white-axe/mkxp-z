@@ -398,8 +398,18 @@ unary_expression
 
 postfix_expression
     : primary_expression
-    | type left_parenthesis expression right_parenthesis
+    | type left_parenthesis arguments right_parenthesis
     | postfix_expression operator_structure_reference identifier
+    ;
+
+arguments
+    : %empty
+    | argument_list
+    ;
+
+argument_list
+    : assignment_expression
+    | argument_list operator_comma assignment_expression
     ;
 
 primary_expression /* TODO: complete this list of primary expressions */
