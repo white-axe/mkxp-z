@@ -740,12 +740,32 @@ sampler {
     return parser.make_keyword_sampler(location);
 }
 
+sampler1D {
+    return parser.make_keyword_sampler_2d(location);
+}
+
+sampler2D {
+    return parser.make_keyword_sampler_2d(location);
+}
+
+sampler3D {
+    return parser.make_keyword_sampler_3d(location);
+}
+
 SamplerComparisonState {
     return parser.make_keyword_sampler_comparison_state(location);
 }
 
-SamplerState {
+samplerCUBE {
+    return parser.make_keyword_sampler_cube(location);
+}
+
+sampler_state {
     return parser.make_keyword_sampler_state(location);
+}
+
+SamplerState {
+    return parser.make_keyword_sampler_state_2(location);
 }
 
 shared {
@@ -782,6 +802,10 @@ static_cast {
 
 string {
     return parser.make_keyword_string(location);
+}
+
+String {
+    return parser.make_keyword_string_2(location);
 }
 
 struct {

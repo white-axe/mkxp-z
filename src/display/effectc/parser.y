@@ -177,8 +177,13 @@
 %token keyword_rw_texture_3d "RWTexture3D"
 %token keyword_sample "sample"
 %token keyword_sampler "sampler"
+%token keyword_sampler_1d "sampler1D"
+%token keyword_sampler_2d "sampler2D"
+%token keyword_sampler_3d "sampler3D"
 %token keyword_sampler_comparison_state "SamplerComparisonState"
-%token keyword_sampler_state "SamplerState"
+%token keyword_sampler_cube "samplerCUBE"
+%token keyword_sampler_state "sampler_state"
+%token keyword_sampler_state_2 "SamplerState"
 %token keyword_shared "shared"
 %token keyword_signed "signed"
 %token keyword_sizeof "sizeof"
@@ -188,6 +193,7 @@
 %token keyword_static "static"
 %token keyword_static_cast "static_cast"
 %token keyword_string "string"
+%token keyword_string_2 "String"
 %token keyword_struct "struct"
 %token keyword_structured_buffer "StructuredBuffer"
 %token keyword_switch "switch"
@@ -439,9 +445,14 @@ modifier
 
 unmodified_type
     : identifier
-    | keyword_string
+    | string_type
     | keyword_vector vector_template
     | keyword_matrix matrix_template
+    ;
+
+string_type
+    : keyword_string
+    | keyword_string_2
     ;
 
 vector_template
