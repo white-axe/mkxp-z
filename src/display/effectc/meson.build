@@ -16,6 +16,7 @@ parser = custom_target(
         '-Werror=precedence',
         '-Wcounterexamples',
         '-v',
+        '--report-file=@OUTPUT2@',
         '--header=@OUTPUT1@',
         '-o', '@OUTPUT0@',
         files('parser.y'),
