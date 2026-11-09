@@ -26,6 +26,7 @@
 %option reentrant
 
 %{
+    #include <cerrno>
     #include <climits>
     #include <cstdlib>
     #include <cstring>
@@ -48,12 +49,14 @@
 
     static Parser::symbol_type parse_integer(Parser &parser, const char *str, int base, const Parser::location_type &location) {
         static_assert(UINT64_MAX <= ULLONG_MAX, "uint64_t cannot fit into unsigned long long");
+        int old_errno = errno;
         errno = 0;
         unsigned long long value = std::strtoull(str, nullptr, base);
         if (errno != 0) {
-            errno = 0;
+            errno = old_errno;
             ERROR("integer literal out of range");
         }
+        errno = old_errno;
         if (value > UINT64_MAX) {
             ERROR("integer literal out of range");
         }
@@ -61,12 +64,14 @@
     }
 
     static Parser::symbol_type parse_floating_point(Parser &parser, const char *str, const Parser::location_type &location) {
+        int old_errno = errno;
         errno = 0;
         double value = std::strtod(str, nullptr);
         if (errno != 0) {
-            errno = 0;
+            errno = old_errno;
             ERROR("floating-point literal out of range");
         }
+        errno = old_errno;
         return parser.make_floating_point_literal(value, location);
     }
 %}
