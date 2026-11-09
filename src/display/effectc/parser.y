@@ -130,7 +130,7 @@ annotation
 
 annotation_subscript
     : %empty
-    | left_square_bracket expression right_square_bracket
+    | left_square_bracket conditional_expression right_square_bracket
     ;
 
 initializer
