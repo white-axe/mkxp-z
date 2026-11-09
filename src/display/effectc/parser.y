@@ -274,6 +274,7 @@ primary_expression /* TODO: complete this list of primary expressions */
 string_literals
     : string_literal
     | string_literals string_literal
+    ;
 
 %%
 
