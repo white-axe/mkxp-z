@@ -28,6 +28,7 @@
 %{
     #include <climits>
     #include <cstdlib>
+    #include <cstring>
     #include <sstream>
     #include <string>
     #include <utility>
@@ -45,23 +46,23 @@
         return parser.make_YYerror(location); \
     } while (0)
 
-    static Parser::symbol_type parse_integer(Parser &parser, const std::string &string, int base, const Parser::location_type &location) {
+    static Parser::symbol_type parse_integer(Parser &parser, const char *str, int base, const Parser::location_type &location) {
         static_assert(UINT64_MAX <= ULLONG_MAX, "uint64_t cannot fit into unsigned long long");
         errno = 0;
-        unsigned long long integer = std::strtoull(string.c_str(), nullptr, base);
+        unsigned long long value = std::strtoull(str, nullptr, base);
         if (errno != 0) {
             errno = 0;
             ERROR("integer literal out of range");
         }
-        if (integer > UINT64_MAX) {
+        if (value > UINT64_MAX) {
             ERROR("integer literal out of range");
         }
-        return parser.make_integer_literal((uint64_t)integer, location);
+        return parser.make_integer_literal((uint64_t)value, location);
     }
 
-    static Parser::symbol_type parse_floating_point(Parser &parser, const std::string &string, const Parser::location_type &location) {
+    static Parser::symbol_type parse_floating_point(Parser &parser, const char *str, const Parser::location_type &location) {
         errno = 0;
-        double value = std::strtod(string.c_str(), nullptr);
+        double value = std::strtod(str, nullptr);
         if (errno != 0) {
             errno = 0;
             ERROR("floating-point literal out of range");
@@ -209,116 +210,37 @@
 }
 
 0[xX][0-9A-Fa-f]+([uU][lL]?|[lL][uU]?)? { // Hexadecimal integer literal
-    std::string string;
-    string.reserve(yyleng - 2);
-    const char *p = yytext + 2;
-    for (bool running = true; running;) {
-        char c = *p;
-        switch (c) {
-            case 0:
-            case 'u':
-            case 'U':
-            case 'l':
-            case 'L':
-                running = false;
-                break;
-            default:
-                if (
-                    (
-                        (c >= '0' && c <= '9')
-                            || (c >= 'A' && c <= 'F')
-                            || (c >= 'a' && c <= 'f')
-                    )
-                        && (c != '0' || !string.empty())
-                ) {
-                    string.push_back(c);
-                }
-                ++p;
-                break;
-        }
+    char *str = yytext + 2;
+    char *ptr = std::strpbrk(str, "uUlL");
+    if (ptr != nullptr) {
+        *ptr = 0;
     }
-    return parse_integer(parser, string, 16, location);
+    return parse_integer(parser, str, 16, location);
 }
 
 0[0-7]*([uU][lL]?|[lL][uU]?)? { // Octal integer literal
-    std::string string;
-    string.reserve(yyleng - 1);
-    const char *p = yytext + 1;
-    for (bool running = true; running;) {
-        char c = *p;
-        switch (c) {
-            case 0:
-            case 'u':
-            case 'U':
-            case 'l':
-            case 'L':
-                running = false;
-                break;
-            default:
-                if (
-                    (c >= '0' && c <= '7')
-                        && (c != '0' || !string.empty())
-                ) {
-                    string.push_back(c);
-                }
-                ++p;
-                break;
-        }
+    char *str = yytext + 1;
+    char *ptr = std::strpbrk(str, "uUlL");
+    if (ptr != nullptr) {
+        *ptr = 0;
     }
-    return parse_integer(parser, string, 8, location);
+    return parse_integer(parser, str, 8, location);
 }
 
 [1-9][0-9]*([uU][lL]?|[lL][uU]?)? { // Decimal integer literal
-    std::string string;
-    string.reserve(yyleng);
-    const char *p = yytext;
-    for (bool running = true; running;) {
-        char c = *p;
-        switch (c) {
-            case 0:
-            case 'u':
-            case 'U':
-            case 'l':
-            case 'L':
-                running = false;
-                break;
-            default:
-                if (
-                    (c >= '0' && c <= '9')
-                        && (c != '0' || !string.empty())
-                ) {
-                    string.push_back(c);
-                }
-                ++p;
-                break;
-        }
+    char *ptr = std::strpbrk(yytext, "uUlL");
+    if (ptr != nullptr) {
+        *ptr = 0;
     }
-    return parse_integer(parser, string, 10, location);
+    return parse_integer(parser, yytext, 10, location);
 }
 
 (([0-9]*\.[0-9]+|[0-9]+\.)([eE][+-]?[0-9]+)?|[0-9]+[eE][+-]?[0-9]+)[hHfFlL]? { // Floating-point literal
-    std::string string;
-    string.reserve(yyleng);
-    const char *p = yytext;
-    for (bool running = true; running;) {
-        char c = *p;
-        switch (c) {
-            case 0:
-            case 'h':
-            case 'H':
-            case 'f':
-            case 'F':
-            case 'l':
-            case 'L':
-                running = false;
-                break;
-            default:
-                string.push_back(c);
-                ++p;
-                break;
-        }
+    char *ptr = std::strpbrk(yytext, "hHfFlL");
+    if (ptr != nullptr) {
+        *ptr = 0;
     }
-    return parse_floating_point(parser, string, location);
+    return parse_floating_point(parser, yytext, location);
 }
 
 [0-9][0-9A-Za-z_.]* {
