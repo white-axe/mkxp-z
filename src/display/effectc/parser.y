@@ -134,10 +134,10 @@ initializer
     ;
 
 list_initializer
-    : left_curly_brace optional_initializer_list right_curly_brace
+    : left_curly_brace list_initializer_body right_curly_brace
     ;
 
-optional_initializer_list
+list_initializer_body
     : %empty
     | initializer_list trailing_comma
     ;
