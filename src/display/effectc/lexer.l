@@ -973,7 +973,7 @@ while {
     return parser.make_keyword_while(location);
 }
 
-[A-Za-z_]* { // Identifier or type name
+[A-Za-z_][0-9A-Za-z_]* { // Identifier or type name
     // TODO: check if yytext is an identifier or type name
     return parser.make_identifier(yytext, location);
 }
