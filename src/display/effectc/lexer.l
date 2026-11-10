@@ -28,6 +28,7 @@
 %{
     #include <cerrno>
     #include <climits>
+    #include <clocale>
     #include <cstdlib>
     #include <cstring>
     #include <sstream>
@@ -63,10 +64,18 @@
         return parser.make_integer_literal((uint64_t)value, location);
     }
 
-    static Parser::symbol_type parse_floating_point(Parser &parser, const char *str, const Parser::location_type &location) {
+    static Parser::symbol_type parse_floating_point(Parser &parser, char *str, const Parser::location_type &location) {
         int old_errno = errno;
         errno = 0;
+        std::lconv *lconv = std::localeconv();
+        char *ptr = std::strpbrk(str, ".");
+        if (ptr != nullptr) {
+            *ptr = *lconv->decimal_point;
+        }
         double value = std::strtod(str, nullptr);
+        if (ptr != nullptr) {
+            *ptr = '.';
+        }
         if (errno != 0) {
             errno = old_errno;
             ERROR("floating-point literal out of range");
