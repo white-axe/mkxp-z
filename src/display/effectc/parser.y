@@ -49,6 +49,7 @@
 }
 
 %token <std::string> identifier "identifier"
+%token <std::string> type_name "type name"
 %token <uint64_t> integer_literal "integer literal"
 %token <double> floating_point_literal "floating-point literal"
 %token <std::string> string_literal "string literal"
@@ -246,12 +247,17 @@ passes
     ;
 
 pass
-    : keyword_pass optional_identifier annotations left_curly_brace state_assignments right_curly_brace
+    : keyword_pass optional_identifier_or_type_name annotations left_curly_brace state_assignments right_curly_brace
     ;
 
-optional_identifier
+optional_identifier_or_type_name
     : %empty
-    | identifier
+    | identifier_or_type_name
+    ;
+
+identifier_or_type_name
+    : identifier
+    | type_name
     ;
 
 annotations
@@ -265,7 +271,7 @@ annotation_list
     ;
 
 annotation
-    : optional_qualifiers optional_modifier type identifier subscript operator_assign initializer semicolon
+    : optional_qualifiers optional_modifier type identifier_or_type_name subscript operator_assign initializer semicolon
     ;
 
 subscript
@@ -298,7 +304,7 @@ state_assignments
     ;
 
 state_assignment
-    : identifier state_assignment_subscript operator_assign state_assignment_initializer semicolon
+    : identifier_or_type_name state_assignment_subscript operator_assign state_assignment_initializer semicolon
     ;
 
 state_assignment_initializer
@@ -401,7 +407,7 @@ unary_expression
 postfix_expression
     : primary_expression
     | type left_parenthesis arguments right_parenthesis
-    | postfix_expression operator_structure_reference identifier
+    | postfix_expression operator_structure_reference identifier_or_type_name
     ;
 
 arguments
@@ -416,6 +422,7 @@ argument_list
 
 primary_expression /* TODO: complete this list of primary expressions */
     : left_parenthesis expression right_parenthesis
+    | identifier
     | integer_literal
     | floating_point_literal
     | string_literals
@@ -457,7 +464,7 @@ modifier
     ;
 
 type
-    : identifier
+    : type_name
     | string_type
     | keyword_vector vector_template
     | keyword_matrix matrix_template
