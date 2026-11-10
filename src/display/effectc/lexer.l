@@ -29,6 +29,7 @@
     #include <cerrno>
     #include <climits>
     #include <clocale>
+    #include <cmath>
     #include <cstdlib>
     #include <cstring>
     #include <sstream>
@@ -48,8 +49,8 @@
         return parser.make_YYerror(location); \
     } while (0)
 
-    static Parser::symbol_type parse_integer(Parser &parser, const char *str, int base, const Parser::location_type &location) {
-        static_assert(UINT64_MAX <= ULLONG_MAX, "uint64_t cannot fit into unsigned long long");
+    static Parser::symbol_type parse_integer(Parser &parser, const char *str, int base, uint64_t maximum, const Parser::location_type &location) {
+        static_assert(UINT64_MAX <= ULLONG_MAX, "uint64_t should be able to fit into unsigned long long, but it doesn't");
         int old_errno = errno;
         errno = 0;
         unsigned long long value = std::strtoull(str, nullptr, base);
@@ -58,7 +59,7 @@
             ERROR("integer literal out of range");
         }
         errno = old_errno;
-        if (value > UINT64_MAX) {
+        if (value > maximum) {
             ERROR("integer literal out of range");
         }
         return parser.make_integer_literal((uint64_t)value, location);
@@ -77,8 +78,7 @@
             *ptr = '.';
         }
         if (errno != 0) {
-            errno = old_errno;
-            ERROR("floating-point literal out of range");
+            value = (double)INFINITY;
         }
         errno = old_errno;
         return parser.make_floating_point_literal(value, location);
@@ -229,7 +229,7 @@
     if (ptr != nullptr) {
         *ptr = 0;
     }
-    return parse_integer(parser, str, 16, location);
+    return parse_integer(parser, str, 16, ptr != nullptr ? UINT64_MAX : UINT32_MAX, location);
 }
 
 0[0-7]*([uU][lL]?|[lL][uU]?)? { // Octal integer literal
@@ -238,7 +238,7 @@
     if (ptr != nullptr) {
         *ptr = 0;
     }
-    return parse_integer(parser, str, 8, location);
+    return parse_integer(parser, str, 8, ptr != nullptr ? UINT64_MAX : UINT32_MAX, location);
 }
 
 [1-9][0-9]*([uU][lL]?|[lL][uU]?)? { // Decimal integer literal
@@ -246,7 +246,7 @@
     if (ptr != nullptr) {
         *ptr = 0;
     }
-    return parse_integer(parser, yytext, 10, location);
+    return parse_integer(parser, yytext, 10, UINT64_MAX, location);
 }
 
 (([0-9]*\.[0-9]+|[0-9]+\.)([eE][+-]?[0-9]+)?|[0-9]+[eE][+-]?[0-9]+)[hHfFlL]? { // Floating-point literal
