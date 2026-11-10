@@ -398,10 +398,10 @@ cast_expression
 
 unary_expression
     : postfix_expression
-    | operator_logical_not unary_expression
-    | operator_not unary_expression
-    | operator_add unary_expression
-    | operator_subtract unary_expression
+    | operator_logical_not cast_expression
+    | operator_not cast_expression
+    | operator_add cast_expression
+    | operator_subtract cast_expression
     ;
 
 postfix_expression
