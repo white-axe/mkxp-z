@@ -992,7 +992,9 @@ while {
 %%
 
 Lexer::Lexer() : location(nullptr), continuation_length(0), check_for_overlong(false), seen_carriage_return(false) {
-    yylex_init(&yyscanner);
+    if (yylex_init(&yyscanner) != 0) {
+        throw std::bad_alloc();
+    }
 }
 
 Lexer::~Lexer() {
