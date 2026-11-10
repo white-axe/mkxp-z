@@ -420,7 +420,7 @@ argument_list
     | argument_list operator_comma assignment_expression
     ;
 
-primary_expression /* TODO: complete this list of primary expressions */
+primary_expression
     : left_parenthesis expression right_parenthesis
     | identifier
     | integer_literal
@@ -429,6 +429,7 @@ primary_expression /* TODO: complete this list of primary expressions */
     | keyword_true
     | keyword_false
     | keyword_null
+    | keyword_compile identifier identifier left_parenthesis arguments right_parenthesis
     ;
 
 string_literals
