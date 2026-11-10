@@ -37,15 +37,128 @@
 %define parse.lac full /* Required to avoid possibly incorrect error messages when `parse.error` is set to `detailed` */
 
 %code requires {
+    #include <string>
+
     namespace effectc_impl {
         class Lexer;
+
+        class Value
+        {
+        public:
+            enum Type
+            {
+                // This value is null.
+                NULL_TYPE,
+                // This value is a named constant.
+                NAMED_CONSTANT,
+                // This value is an integer.
+                INTEGER,
+                // This value is a floating-point value.
+                FLOATING_POINT,
+                // This value is a string.
+                STRING,
+                // This value is a shader.
+                SHADER,
+            };
+
+            struct NamedConstant
+            {
+                // The name of the constant.
+                std::string name;
+            };
+
+            struct Integer
+            {
+                // The integer value of the expression.
+                // This may be either a signed or unsigned integer.
+                // If signed, the integer is stored in two's complement representation.
+                uint64_t value;
+            };
+
+            struct FloatingPoint
+            {
+                // The floating-point value of the expression.
+                double value;
+            };
+
+            struct String
+            {
+                // The string value of the expression.
+                std::string value;
+            };
+
+            struct Shader
+            {
+                // The type of shader that this is.
+                enum Type
+                {
+                    // Compute shader.
+                    COMPUTE,
+                    // Domain shader.
+                    DOMAIN,
+                    // Geometry shader.
+                    GEOMETRY,
+                    // Hull shader.
+                    HULL,
+                    // Pixel (fragment) shader.
+                    PIXEL,
+                    // Vertex shader.
+                    VERTEX,
+                } type;
+
+                // The name of the shader's main function.
+                std::string entry_point;
+            };
+
+        private:
+            Type type;
+            union
+            {
+                Value::NamedConstant named_constant;
+                Value::Integer integer;
+                Value::FloatingPoint floating_point;
+                Value::String string;
+                Value::Shader shader;
+            };
+
+            void dispose() noexcept;
+
+        public:
+            Value();
+            Value(Value::NamedConstant &&named_constant);
+            Value(Value::Integer &&integer);
+            Value(Value::FloatingPoint &&floating_point);
+            Value(Value::String &&string);
+            Value(Value::Shader &&shader);
+
+            ~Value();
+
+            Value(const Value &other);
+            Value(Value &&other) noexcept;
+            Value &operator=(const Value &other);
+            Value &operator=(Value &&other) noexcept;
+
+            Value::Type get_type() const noexcept;
+            Value::NamedConstant &as_named_constant();
+            Value::Integer &as_integer();
+            Value::FloatingPoint &as_floating_point();
+            Value::String &as_string();
+            Value::Shader &as_shader();
+        };
     }
 }
 
 %code top {
-    #include <string>
+    #include <cassert>
+    #include <unordered_map>
+    #include <utility>
 
     #include "effectc/impl.h"
+
+    #define ERROR(location, msg) do { \
+        error((location), (msg)); \
+        YYERROR; \
+    } while (0)
 }
 
 %token <std::string> identifier "identifier"
@@ -237,6 +350,26 @@
 
 %token END 0 "end of file"
 
+%type <effectc_impl::Value> expression
+%type <effectc_impl::Value> assignment_expression
+%type <effectc_impl::Value> conditional_expression
+%type <effectc_impl::Value> logical_or_expression
+%type <effectc_impl::Value> logical_and_expression
+%type <effectc_impl::Value> inclusive_or_expression
+%type <effectc_impl::Value> exclusive_or_expression
+%type <effectc_impl::Value> and_expression
+%type <effectc_impl::Value> equality_expression
+%type <effectc_impl::Value> relational_expression
+%type <effectc_impl::Value> shift_expression
+%type <effectc_impl::Value> additive_expression
+%type <effectc_impl::Value> multiplicative_expression
+%type <effectc_impl::Value> cast_expression
+%type <effectc_impl::Value> unary_expression
+%type <effectc_impl::Value> postfix_expression
+%type <effectc_impl::Value> primary_expression
+
+%type <std::string> string_literals
+
 %start passes
 
 %%
@@ -318,96 +451,214 @@ state_assignment_subscript
     ;
 
 expression
-    : assignment_expression
-    | expression operator_comma assignment_expression
+    : assignment_expression {
+        $$ = std::move($1);
+    }
+    | expression operator_comma assignment_expression {
+        $$ = std::move($1);
+    }
     ;
 
 assignment_expression
-    : conditional_expression
+    : conditional_expression {
+        $$ = std::move($1);
+    }
     ;
 
-conditional_expression /* TODO: it seems the conditional operator specifically is forbidden in state assignments but allowed in annotations, but all other operators are allowed in both state assignments and annotations */
-    : logical_or_expression
-    | logical_or_expression operator_question_mark expression operator_colon conditional_expression
+conditional_expression
+    : logical_or_expression {
+        $$ = std::move($1);
+    }
+    | logical_or_expression operator_question_mark expression operator_colon conditional_expression {
+        // TODO
+        $$ = std::move($5);
+    }
     ;
 
 logical_or_expression
-    : logical_and_expression
-    | logical_or_expression operator_logical_or logical_and_expression
+    : logical_and_expression {
+        $$ = std::move($1);
+    }
+    | logical_or_expression operator_logical_or logical_and_expression {
+        // TODO
+        $$ = std::move($1);
+    }
     ;
 
 logical_and_expression
-    : inclusive_or_expression
-    | logical_and_expression operator_logical_and inclusive_or_expression
+    : inclusive_or_expression {
+        $$ = std::move($1);
+    }
+    | logical_and_expression operator_logical_and inclusive_or_expression {
+        // TODO
+        $$ = std::move($1);
+    }
     ;
 
 inclusive_or_expression
-    : exclusive_or_expression
-    | inclusive_or_expression operator_inclusive_or exclusive_or_expression
+    : exclusive_or_expression {
+        $$ = std::move($1);
+    }
+    | inclusive_or_expression operator_inclusive_or exclusive_or_expression {
+        // TODO
+        $$ = std::move($1);
+    }
     ;
 
 exclusive_or_expression
-    : and_expression
-    | exclusive_or_expression operator_exclusive_or and_expression
+    : and_expression {
+        $$ = std::move($1);
+    }
+    | exclusive_or_expression operator_exclusive_or and_expression {
+        // TODO
+        $$ = std::move($1);
+    }
     ;
 
 and_expression
-    : equality_expression
-    | and_expression operator_and equality_expression
+    : equality_expression {
+        $$ = std::move($1);
+    }
+    | and_expression operator_and equality_expression {
+        // TODO
+        $$ = std::move($1);
+    }
     ;
 
 equality_expression
-    : relational_expression
-    | equality_expression operator_equal_to relational_expression
-    | equality_expression operator_not_equal_to relational_expression
+    : relational_expression {
+        $$ = std::move($1);
+    }
+    | equality_expression operator_equal_to relational_expression {
+        // TODO
+        $$ = std::move($1);
+    }
+    | equality_expression operator_not_equal_to relational_expression {
+        // TODO
+        $$ = std::move($1);
+    }
     ;
 
 relational_expression
-    : shift_expression
-    | relational_expression operator_less_than shift_expression
-    | relational_expression operator_greater_than shift_expression
-    | relational_expression operator_less_than_or_equal_to shift_expression
-    | relational_expression operator_greater_than_or_equal_to shift_expression
+    : shift_expression {
+        $$ = std::move($1);
+    }
+    | relational_expression operator_less_than shift_expression {
+        // TODO
+        $$ = std::move($1);
+    }
+    | relational_expression operator_greater_than shift_expression {
+        // TODO
+        $$ = std::move($1);
+    }
+    | relational_expression operator_less_than_or_equal_to shift_expression {
+        // TODO
+        $$ = std::move($1);
+    }
+    | relational_expression operator_greater_than_or_equal_to shift_expression {
+        // TODO
+        $$ = std::move($1);
+    }
     ;
 
 shift_expression
-    : additive_expression
-    | shift_expression operator_shift_left additive_expression
-    | shift_expression operator_shift_right additive_expression
+    : additive_expression {
+        $$ = std::move($1);
+    }
+    | shift_expression operator_shift_left additive_expression {
+        // TODO
+        $$ = std::move($1);
+    }
+    | shift_expression operator_shift_right additive_expression {
+        // TODO
+        $$ = std::move($1);
+    }
     ;
 
 additive_expression
-    : multiplicative_expression
-    | additive_expression operator_add multiplicative_expression
-    | additive_expression operator_subtract multiplicative_expression
+    : multiplicative_expression {
+        $$ = std::move($1);
+    }
+    | additive_expression operator_add multiplicative_expression {
+        // TODO
+        $$ = std::move($1);
+    }
+    | additive_expression operator_subtract multiplicative_expression {
+        // TODO
+        $$ = std::move($1);
+    }
     ;
 
 multiplicative_expression
-    : cast_expression
-    | multiplicative_expression operator_multiply cast_expression
-    | multiplicative_expression operator_divide cast_expression
-    | multiplicative_expression operator_modulo cast_expression
+    : cast_expression {
+        $$ = std::move($1);
+    }
+    | multiplicative_expression operator_multiply cast_expression {
+        // TODO
+        $$ = std::move($1);
+    }
+    | multiplicative_expression operator_divide cast_expression {
+        // TODO
+        $$ = std::move($1);
+    }
+    | multiplicative_expression operator_modulo cast_expression {
+        // TODO
+        $$ = std::move($1);
+    }
     ;
 
 cast_expression
-    : unary_expression
-    | left_parenthesis type subscript right_parenthesis cast_expression
-    | left_parenthesis modifier type subscript right_parenthesis cast_expression
-    | left_parenthesis qualifiers optional_modifier type subscript right_parenthesis cast_expression
+    : unary_expression {
+        $$ = std::move($1);
+    }
+    | left_parenthesis type subscript right_parenthesis cast_expression {
+        // TODO
+        $$ = std::move($5);
+    }
+    | left_parenthesis modifier type subscript right_parenthesis cast_expression {
+        // TODO
+        $$ = std::move($6);
+    }
+    | left_parenthesis qualifiers optional_modifier type subscript right_parenthesis cast_expression {
+        // TODO
+        $$ = std::move($7);
+    }
     ;
 
 unary_expression
-    : postfix_expression
-    | operator_logical_not cast_expression
-    | operator_not cast_expression
-    | operator_add cast_expression
-    | operator_subtract cast_expression
+    : postfix_expression {
+        $$ = std::move($1);
+    }
+    | operator_logical_not cast_expression {
+        // TODO
+        $$ = std::move($2);
+    }
+    | operator_not cast_expression {
+        // TODO
+        $$ = std::move($2);
+    }
+    | operator_add cast_expression {
+        // TODO
+        $$ = std::move($2);
+    }
+    | operator_subtract cast_expression {
+        // TODO
+        $$ = std::move($2);
+    }
     ;
 
 postfix_expression
-    : primary_expression
-    | type left_parenthesis arguments right_parenthesis
-    | postfix_expression operator_structure_reference identifier_or_type_name
+    : primary_expression {
+        $$ = std::move($1);
+    }
+    | type left_parenthesis arguments right_parenthesis {
+        // TODO
+        $$ = Value();
+    }
+    | postfix_expression operator_structure_reference identifier_or_type_name {
+        // TODO
+        $$ = std::move($1);
+    }
     ;
 
 arguments
@@ -421,20 +672,88 @@ argument_list
     ;
 
 primary_expression
-    : left_parenthesis expression right_parenthesis
-    | identifier
-    | integer_literal
-    | floating_point_literal
-    | string_literals
-    | keyword_true
-    | keyword_false
-    | keyword_null
-    | keyword_compile identifier identifier left_parenthesis arguments right_parenthesis
+    : left_parenthesis expression right_parenthesis {
+        $$ = std::move($2);
+    }
+    | identifier {
+        $$ = Value(Value::NamedConstant {std::move($1)});
+    }
+    | integer_literal {
+        $$ = Value(Value::Integer {std::move($1)});
+    }
+    | floating_point_literal {
+        $$ = Value(Value::FloatingPoint {std::move($1)});
+    }
+    | string_literals {
+        $$ = Value(Value::String {std::move($1)});
+    }
+    | keyword_true {
+        $$ = Value(Value::Integer {1});
+    }
+    | keyword_false {
+        $$ = Value(Value::Integer {0});
+    }
+    | keyword_null {
+        $$ = Value();
+    }
+    | keyword_compile identifier identifier left_parenthesis arguments right_parenthesis {
+        static const std::unordered_map<std::string, Value::Shader::Type> table = {
+            {"cs_4_0", Value::Shader::COMPUTE},
+            {"cs_4_1", Value::Shader::COMPUTE},
+            {"cs_5_0", Value::Shader::COMPUTE},
+            {"ds_5_0", Value::Shader::DOMAIN},
+            {"gs_4_0", Value::Shader::GEOMETRY},
+            {"gs_4_1", Value::Shader::GEOMETRY},
+            {"gs_5_0", Value::Shader::GEOMETRY},
+            {"hs_5_0", Value::Shader::HULL},
+            {"ps_1_0", Value::Shader::PIXEL},
+            {"ps_1_1", Value::Shader::PIXEL},
+            {"ps_1_2", Value::Shader::PIXEL},
+            {"ps_1_3", Value::Shader::PIXEL},
+            {"ps_1_4", Value::Shader::PIXEL},
+            {"ps_2_0", Value::Shader::PIXEL},
+            {"ps_2_a", Value::Shader::PIXEL},
+            {"ps_2_b", Value::Shader::PIXEL},
+            {"ps_2_sw", Value::Shader::PIXEL},
+            {"ps_3_0", Value::Shader::PIXEL},
+            {"ps_3_sw", Value::Shader::PIXEL},
+            {"ps_4_0", Value::Shader::PIXEL},
+            {"ps_4_0_level_9_1", Value::Shader::PIXEL},
+            {"ps_4_0_level_9_3", Value::Shader::PIXEL},
+            {"ps_4_1", Value::Shader::PIXEL},
+            {"ps_5_0", Value::Shader::PIXEL},
+            {"vs_1_0", Value::Shader::VERTEX},
+            {"vs_1_1", Value::Shader::VERTEX},
+            {"vs_2_0", Value::Shader::VERTEX},
+            {"vs_2_a", Value::Shader::VERTEX},
+            {"vs_2_sw", Value::Shader::VERTEX},
+            {"vs_3_0", Value::Shader::VERTEX},
+            {"vs_3_sw", Value::Shader::VERTEX},
+            {"vs_4_0", Value::Shader::VERTEX},
+            {"vs_4_0_level_9_1", Value::Shader::VERTEX},
+            {"vs_4_0_level_9_3", Value::Shader::VERTEX},
+            {"vs_4_1", Value::Shader::VERTEX},
+            {"vs_5_0", Value::Shader::VERTEX},
+        };
+        auto it = table.find($2);
+        if (it == table.end()) {
+            ERROR(@2, "unsupported compiler target " + $2);
+        }
+        $$ = Value(Value::Shader {
+            it->second,
+            std::move($3),
+        });
+    }
     ;
 
 string_literals
-    : string_literal
-    | string_literals string_literal
+    : string_literal {
+        $$ = std::move($1);
+    }
+    | string_literals string_literal {
+        $1 += $2;
+        $$ = std::move($1);
+    }
     ;
 
 optional_qualifiers
@@ -488,7 +807,123 @@ matrix_template
 
 %%
 
-void effectc_impl::Parser::error(const location &location, const std::string &message) {
+using namespace effectc_impl;
+
+void Parser::error(const location &location, const std::string &message) {
     // TODO: the error message should go somewhere other than standard error
     std::cerr << "Error (" << location << "): " << message << std::endl;
+}
+
+Value::Value() : type(Type::NULL_TYPE) {
+}
+
+Value::Value(Value::NamedConstant &&named_constant) : type(Type::NAMED_CONSTANT), named_constant(std::move(named_constant)) {
+}
+
+Value::Value(Value::Integer &&integer) : type(Type::INTEGER), integer(std::move(integer)) {
+}
+
+Value::Value(Value::FloatingPoint &&floating_point) : type(Type::FLOATING_POINT), floating_point(std::move(floating_point)) {
+}
+
+Value::Value(Value::String &&string) : type(Type::STRING), string(std::move(string)) {
+}
+
+Value::Value(Value::Shader &&shader) : type(Type::SHADER), shader(std::move(shader)) {
+}
+
+void Value::dispose() noexcept {
+    switch (type) {
+        case Type::NULL_TYPE: break;
+        case Type::NAMED_CONSTANT: named_constant.~NamedConstant(); break;
+        case Type::INTEGER: integer.~Integer(); break;
+        case Type::FLOATING_POINT: floating_point.~FloatingPoint(); break;
+        case Type::STRING: string.~String(); break;
+        case Type::SHADER: shader.~Shader(); break;
+        default: assert(!"unreachable"); break;
+    }
+}
+
+Value::~Value() {
+     dispose();
+}
+
+Value::Value(const Value &other) {
+    *this = other;
+}
+
+Value::Value(Value &&other) noexcept {
+    *this = std::move(other);
+}
+
+Value &Value::operator=(const Value &other) {
+    dispose();
+    switch ((type = other.type)) {
+        case Type::NULL_TYPE: break;
+        case Type::NAMED_CONSTANT: new(&named_constant) NamedConstant(other.named_constant); break;
+        case Type::INTEGER: new(&integer) Integer(other.integer); break;
+        case Type::FLOATING_POINT: new(&floating_point) FloatingPoint(other.floating_point); break;
+        case Type::STRING: new(&string) String(other.string); break;
+        case Type::SHADER: new(&shader) Shader(other.shader); break;
+        default: assert(!"unreachable"); break;
+    }
+    return *this;
+}
+
+Value &Value::operator=(Value &&other) noexcept {
+    dispose();
+    switch ((type = other.type)) {
+        case Type::NULL_TYPE: break;
+        case Type::NAMED_CONSTANT: new(&named_constant) NamedConstant(std::move(other.named_constant)); break;
+        case Type::INTEGER: new(&integer) Integer(std::move(other.integer)); break;
+        case Type::FLOATING_POINT: new(&floating_point) FloatingPoint(std::move(other.floating_point)); break;
+        case Type::STRING: new(&string) String(std::move(other.string)); break;
+        case Type::SHADER: new(&shader) Shader(std::move(other.shader)); break;
+        default: assert(!"unreachable"); break;
+    }
+    return *this;
+}
+
+Value::Type Value::get_type() const noexcept {
+    return type;
+}
+
+Value::NamedConstant &Value::as_named_constant() {
+    if (type == Type::NAMED_CONSTANT) {
+        return named_constant;
+    } else {
+        throw std::bad_cast();
+    }
+}
+
+Value::Integer &Value::as_integer() {
+    if (type == Type::INTEGER) {
+        return integer;
+    } else {
+        throw std::bad_cast();
+    }
+}
+
+Value::FloatingPoint &Value::as_floating_point() {
+    if (type == Type::FLOATING_POINT) {
+        return floating_point;
+    } else {
+        throw std::bad_cast();
+    }
+}
+
+Value::String &Value::as_string() {
+    if (type == Type::STRING) {
+        return string;
+    } else {
+        throw std::bad_cast();
+    }
+}
+
+Value::Shader &Value::as_shader() {
+    if (type == Type::SHADER) {
+        return shader;
+    } else {
+        throw std::bad_cast();
+    }
 }
