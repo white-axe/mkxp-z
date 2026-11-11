@@ -479,12 +479,16 @@ annotation_list
     ;
 
 annotation
-    : optional_qualifiers optional_modifier type identifier_or_type_name subscript operator_assign initializer semicolon
+    : optional_qualifiers optional_modifier type identifier_or_type_name optional_subscript operator_assign initializer semicolon
+    ;
+
+optional_subscript
+    : %empty
+    | subscript
     ;
 
 subscript
-    : %empty
-    | left_square_bracket conditional_expression right_square_bracket
+    : left_square_bracket conditional_expression right_square_bracket
     ;
 
 initializer
@@ -515,14 +519,14 @@ state_assignment
     : identifier_or_type_name state_assignment_subscript operator_assign state_assignment_initializer semicolon
     ;
 
-state_assignment_initializer
-    : expression
-    | list_initializer
-    ;
-
 state_assignment_subscript
     : %empty
     | left_square_bracket integer_literal right_square_bracket
+    ;
+
+state_assignment_initializer
+    : expression
+    | list_initializer
     ;
 
 expression
@@ -755,7 +759,7 @@ multiplicative_expression
         if (!numeric_binary_operator_cast($1, $3)) {
             ERROR(@2, std::string("cannot apply '/' operator to ") + type_name($1) + " and " + type_name($3));
         }
-        // TODO: integer or floating-point division by zero causes a syntax error when used in the subscript of an annotation or in a state assignment
+        // TODO: integer or floating-point division by zero causes a syntax error when used in the index of an annotation or in a state assignment
         if ($1.get_type() == Value::Type::INTEGER) {
             $$ = Value::Integer($3.as_integer().value == 0 ? 0 : $1.as_integer().is_signed ? (uint32_t)((int32_t)$1.as_integer().value / (int32_t)$3.as_integer().value) : $1.as_integer().value / $3.as_integer().value, $1.as_integer().is_signed);
         } else {
@@ -766,7 +770,7 @@ multiplicative_expression
         if (!numeric_binary_operator_cast($1, $3)) {
             ERROR(@2, std::string("cannot apply '%' operator to ") + type_name($1) + " and " + type_name($3));
         }
-        // TODO: integer or floating-point modulo by zero causes a syntax error when used in the subscript of an annotation or in a state assignment
+        // TODO: integer or floating-point modulo by zero causes a syntax error when used in the index of an annotation or in a state assignment
         if ($1.get_type() == Value::Type::INTEGER) {
             $$ = Value::Integer($3.as_integer().value == 0 ? 0 : $1.as_integer().is_signed ? (uint32_t)((int32_t)$1.as_integer().value % (int32_t)$3.as_integer().value) : $1.as_integer().value % $3.as_integer().value, $1.as_integer().is_signed);
         } else {
@@ -785,19 +789,23 @@ cast_expression
     : unary_expression {
         $$ = std::move($1);
     }
-    | left_parenthesis type subscript right_parenthesis cast_expression {
+    | left_parenthesis type optional_subscripts right_parenthesis cast_expression {
         // TODO
         $$ = std::move($5);
     }
-    | left_parenthesis modifier type subscript right_parenthesis cast_expression {
+    | left_parenthesis modifier type optional_subscripts right_parenthesis cast_expression {
         // TODO
         $$ = std::move($6);
     }
-    | left_parenthesis qualifiers optional_modifier type subscript right_parenthesis cast_expression {
+    | left_parenthesis qualifiers optional_modifier type optional_subscripts right_parenthesis cast_expression {
         // TODO
         $$ = std::move($7);
     }
     ;
+
+optional_subscripts
+    : %empty
+    | optional_subscripts subscript
 
 unary_expression
     : postfix_expression {
