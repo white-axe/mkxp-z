@@ -36,6 +36,9 @@
 %define parse.error detailed /* When the parser encounters an unexpected token, instead of the error message being simply "syntax error", this makes the error message tell you what unexpected token was encountered and give a list of tokens the parser would have accepted in its place */
 %define parse.lac full /* Required to avoid possibly incorrect error messages when `parse.error` is set to `detailed` */
 
+%{
+%}
+
 %code requires {
     #include <cstdint>
     #include <string>
