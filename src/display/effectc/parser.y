@@ -165,6 +165,8 @@
 
 %code top {
     #include <cassert>
+    #include <cfenv>
+    #include <cmath>
     #include <unordered_map>
     #include <utility>
 
@@ -688,13 +690,23 @@ shift_expression
         if ($1.get_type() != Value::Type::INTEGER || $3.get_type() != Value::Type::INTEGER) {
             ERROR(@2, std::string("cannot apply '<<' operator to ") + type_name($1) + " and " + type_name($3));
         }
-        $$ = Value::Integer($1.as_integer().value << $3.as_integer().value, $1.as_integer().is_signed);
+        // Shifting by at least the width of the first operand is undefined behavior, so we need to check for it explicitly
+        if ($3.as_integer().value >= 32) {
+            $$ = Value::Integer(0, $1.as_integer().is_signed);
+        } else {
+            $$ = Value::Integer($1.as_integer().value << $3.as_integer().value, $1.as_integer().is_signed);
+        }
     }
     | shift_expression operator_shift_right additive_expression {
         if ($1.get_type() != Value::Type::INTEGER || $3.get_type() != Value::Type::INTEGER) {
             ERROR(@2, std::string("cannot apply '>>' operator to ") + type_name($1) + " and " + type_name($3));
         }
-        $$ = Value::Integer($1.as_integer().value >> $3.as_integer().value, $1.as_integer().is_signed);
+        // Shifting by at least the width of the first operand is undefined behavior, so we need to check for it explicitly
+        if ($3.as_integer().value >= 32) {
+            $$ = Value::Integer(0, $1.as_integer().is_signed);
+        } else {
+            $$ = Value::Integer($1.as_integer().value >> $3.as_integer().value, $1.as_integer().is_signed);
+        }
     }
     ;
 
@@ -755,11 +767,16 @@ multiplicative_expression
             ERROR(@2, std::string("cannot apply '%' operator to ") + type_name($1) + " and " + type_name($3));
         }
         // TODO: integer or floating-point modulo by zero causes a syntax error when used in the subscript of an annotation or in a state assignment
-        // TODO: floating-point modulo by zero only counts as a syntax error in that case when the second operand is exactly equal to zero, not just when the integer part is zero
         if ($1.get_type() == Value::Type::INTEGER) {
             $$ = Value::Integer($3.as_integer().value == 0 ? 0 : $1.as_integer().is_signed ? (uint32_t)((int32_t)$1.as_integer().value % (int32_t)$3.as_integer().value) : $1.as_integer().value % $3.as_integer().value, $1.as_integer().is_signed);
         } else {
-            $$ = Value::FloatingPoint((int32_t)$3.as_floating_point().value == 0 ? 0. : (float)((int32_t)$1.as_floating_point().value % (int32_t)$3.as_floating_point().value));
+            if ($3.as_floating_point().value == 0.) {
+                $$ = Value::FloatingPoint(0.);
+            } else if (!std::isfinite($1.as_floating_point().value)) {
+                $$ = Value::FloatingPoint((double)NAN);
+            } else {
+                $$ = Value::FloatingPoint(std::fmod($1.as_integer().value, $3.as_integer().value));
+            }
         }
     }
     ;
