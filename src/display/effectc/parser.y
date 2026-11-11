@@ -170,10 +170,68 @@
 
     #include "effectc/impl.h"
 
+    using namespace effectc_impl;
+
     #define ERROR(location, msg) do { \
         error((location), (msg)); \
         YYERROR; \
     } while (0)
+
+    static const char *type_name(const Value &value) {
+        switch (value.get_type()) {
+            case Value::Type::NULL_TYPE: return "null";
+            case Value::Type::NAMED_CONSTANT: return "a named constant";
+            case Value::Type::INTEGER: return "an integer";
+            case Value::Type::FLOATING_POINT: return "a floating-point value";
+            case Value::Type::STRING: return "a string";
+            case Value::Type::SHADER: return "a shader";
+            default: assert(!"unreachable"); break;
+        }
+    }
+
+    static bool logical_binary_operator_cast(Value &value1, Value &value2) {
+        if ((value1.get_type() == Value::Type::INTEGER || value1.get_type() == Value::Type::FLOATING_POINT) && (value2.get_type() == Value::Type::INTEGER || value2.get_type() == Value::Type::FLOATING_POINT)) {
+            if (value1.get_type() == Value::Type::FLOATING_POINT) {
+                value1 = Value::Integer(value1.as_floating_point().value != 0.0, true);
+            }
+            if (value2.get_type() == Value::Type::FLOATING_POINT) {
+                value2 = Value::Integer(value2.as_floating_point().value != 0.0, true);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    static bool integer_binary_operator_cast(Value &value1, Value &value2) {
+        if (value1.get_type() == Value::Type::INTEGER && value2.get_type() == Value::Type::INTEGER) {
+            // If one operand is a signed integer and the other is an unsigned integer, convert the signed integer to an unsigned integer
+            if (value1.as_integer().is_signed != value2.as_integer().is_signed) {
+                value1.as_integer().is_signed = false;
+                value2.as_integer().is_signed = false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    static bool numeric_binary_operator_cast(Value &value1, Value &value2) {
+        if ((value1.get_type() == Value::Type::INTEGER || value1.get_type() == Value::Type::FLOATING_POINT) && (value2.get_type() == Value::Type::INTEGER || value2.get_type() == Value::Type::FLOATING_POINT)) {
+            // If one operand is a signed integer and the other is an unsigned integer, convert the signed integer to an unsigned integer
+            if (value1.get_type() == Value::Type::INTEGER && value2.get_type() == Value::Type::INTEGER && value1.as_integer().is_signed != value2.as_integer().is_signed) {
+                value1.as_integer().is_signed = false;
+                value2.as_integer().is_signed = false;
+            }
+            // If one operand is an integer and the other is a floating-point value, convert the integer to a floating-point value, respecting the signedness of the integer
+            if (value1.get_type() == Value::Type::INTEGER && value2.get_type() == Value::Type::FLOATING_POINT) {
+                value1 = Value::FloatingPoint(value1.as_integer().is_signed ? (double)(int32_t)value1.as_integer().value : (double)value1.as_integer().value);
+            }
+            if (value2.get_type() == Value::Type::INTEGER && value1.get_type() == Value::Type::FLOATING_POINT) {
+                value2 = Value::FloatingPoint(value2.as_integer().is_signed ? (double)(int32_t)value2.as_integer().value : (double)value2.as_integer().value);
+            }
+            return true;
+        }
+        return false;
+    }
 }
 
 %token <std::string> identifier "identifier"
@@ -495,8 +553,10 @@ logical_or_expression
         $$ = std::move($1);
     }
     | logical_or_expression operator_logical_or logical_and_expression {
-        // TODO
-        $$ = std::move($1);
+        if (!logical_binary_operator_cast($1, $3)) {
+            ERROR(@2, std::string("cannot apply '||' operator to ") + type_name($1) + " and " + type_name($3));
+        }
+        $$ = Value::Integer($1.as_integer().value || $3.as_integer().value, true);
     }
     ;
 
@@ -505,8 +565,10 @@ logical_and_expression
         $$ = std::move($1);
     }
     | logical_and_expression operator_logical_and inclusive_or_expression {
-        // TODO
-        $$ = std::move($1);
+        if (!logical_binary_operator_cast($1, $3)) {
+            ERROR(@2, std::string("cannot apply '&&' operator to ") + type_name($1) + " and " + type_name($3));
+        }
+        $$ = Value::Integer($1.as_integer().value && $3.as_integer().value, true);
     }
     ;
 
@@ -515,8 +577,10 @@ inclusive_or_expression
         $$ = std::move($1);
     }
     | inclusive_or_expression operator_inclusive_or exclusive_or_expression {
-        // TODO
-        $$ = std::move($1);
+        if (!integer_binary_operator_cast($1, $3)) {
+            ERROR(@2, std::string("cannot apply '|' operator to ") + type_name($1) + " and " + type_name($3));
+        }
+        $$ = Value::Integer($1.as_integer().value | $3.as_integer().value, $1.as_integer().is_signed);
     }
     ;
 
@@ -525,8 +589,10 @@ exclusive_or_expression
         $$ = std::move($1);
     }
     | exclusive_or_expression operator_exclusive_or and_expression {
-        // TODO
-        $$ = std::move($1);
+        if (!integer_binary_operator_cast($1, $3)) {
+            ERROR(@2, std::string("cannot apply '^' operator to ") + type_name($1) + " and " + type_name($3));
+        }
+        $$ = Value::Integer($1.as_integer().value ^ $3.as_integer().value, $1.as_integer().is_signed);
     }
     ;
 
@@ -535,8 +601,10 @@ and_expression
         $$ = std::move($1);
     }
     | and_expression operator_and equality_expression {
-        // TODO
-        $$ = std::move($1);
+        if (!integer_binary_operator_cast($1, $3)) {
+            ERROR(@2, std::string("cannot apply '&' operator to ") + type_name($1) + " and " + type_name($3));
+        }
+        $$ = Value::Integer($1.as_integer().value & $3.as_integer().value, $1.as_integer().is_signed);
     }
     ;
 
@@ -545,12 +613,24 @@ equality_expression
         $$ = std::move($1);
     }
     | equality_expression operator_equal_to relational_expression {
-        // TODO
-        $$ = std::move($1);
+        if (!numeric_binary_operator_cast($1, $3)) {
+            ERROR(@2, std::string("cannot apply '==' operator to ") + type_name($1) + " and " + type_name($3));
+        }
+        if ($1.get_type() == Value::Type::INTEGER) {
+            $$ = Value::Integer($1.as_integer().value == $3.as_integer().value, true);
+        } else {
+            $$ = Value::Integer($1.as_floating_point().value == $3.as_floating_point().value, true);
+        }
     }
     | equality_expression operator_not_equal_to relational_expression {
-        // TODO
-        $$ = std::move($1);
+        if (!numeric_binary_operator_cast($1, $3)) {
+            ERROR(@2, std::string("cannot apply '!=' operator to ") + type_name($1) + " and " + type_name($3));
+        }
+        if ($1.get_type() == Value::Type::INTEGER) {
+            $$ = Value::Integer($1.as_integer().value != $3.as_integer().value, true);
+        } else {
+            $$ = Value::Integer($1.as_floating_point().value != $3.as_floating_point().value, true);
+        }
     }
     ;
 
@@ -559,20 +639,44 @@ relational_expression
         $$ = std::move($1);
     }
     | relational_expression operator_less_than shift_expression {
-        // TODO
-        $$ = std::move($1);
+        if (!numeric_binary_operator_cast($1, $3)) {
+            ERROR(@2, std::string("cannot apply '<' operator to ") + type_name($1) + " and " + type_name($3));
+        }
+        if ($1.get_type() == Value::Type::INTEGER) {
+            $$ = Value::Integer($1.as_integer().is_signed ? (int32_t)$1.as_integer().value < (int32_t)$3.as_integer().value : $1.as_integer().value < $3.as_integer().value, true);
+        } else {
+            $$ = Value::Integer($1.as_floating_point().value < $3.as_floating_point().value, true);
+        }
     }
     | relational_expression operator_greater_than shift_expression {
-        // TODO
-        $$ = std::move($1);
+        if (!numeric_binary_operator_cast($1, $3)) {
+            ERROR(@2, std::string("cannot apply '>' operator to ") + type_name($1) + " and " + type_name($3));
+        }
+        if ($1.get_type() == Value::Type::INTEGER) {
+            $$ = Value::Integer($1.as_integer().is_signed ? (int32_t)$1.as_integer().value > (int32_t)$3.as_integer().value : $1.as_integer().value > $3.as_integer().value, true);
+        } else {
+            $$ = Value::Integer($1.as_floating_point().value > $3.as_floating_point().value, true);
+        }
     }
     | relational_expression operator_less_than_or_equal_to shift_expression {
-        // TODO
-        $$ = std::move($1);
+        if (!numeric_binary_operator_cast($1, $3)) {
+            ERROR(@2, std::string("cannot apply '<=' operator to ") + type_name($1) + " and " + type_name($3));
+        }
+        if ($1.get_type() == Value::Type::INTEGER) {
+            $$ = Value::Integer($1.as_integer().is_signed ? (int32_t)$1.as_integer().value <= (int32_t)$3.as_integer().value : $1.as_integer().value <= $3.as_integer().value, true);
+        } else {
+            $$ = Value::Integer($1.as_floating_point().value <= $3.as_floating_point().value, true);
+        }
     }
     | relational_expression operator_greater_than_or_equal_to shift_expression {
-        // TODO
-        $$ = std::move($1);
+        if (!numeric_binary_operator_cast($1, $3)) {
+            ERROR(@2, std::string("cannot apply '>=' operator to ") + type_name($1) + " and " + type_name($3));
+        }
+        if ($1.get_type() == Value::Type::INTEGER) {
+            $$ = Value::Integer($1.as_integer().is_signed ? (int32_t)$1.as_integer().value >= (int32_t)$3.as_integer().value : $1.as_integer().value >= $3.as_integer().value, true);
+        } else {
+            $$ = Value::Integer($1.as_floating_point().value >= $3.as_floating_point().value, true);
+        }
     }
     ;
 
@@ -581,12 +685,16 @@ shift_expression
         $$ = std::move($1);
     }
     | shift_expression operator_shift_left additive_expression {
-        // TODO
-        $$ = std::move($1);
+        if ($1.get_type() != Value::Type::INTEGER || $3.get_type() != Value::Type::INTEGER) {
+            ERROR(@2, std::string("cannot apply '<<' operator to ") + type_name($1) + " and " + type_name($3));
+        }
+        $$ = Value::Integer($1.as_integer().value << $3.as_integer().value, $1.as_integer().is_signed);
     }
     | shift_expression operator_shift_right additive_expression {
-        // TODO
-        $$ = std::move($1);
+        if ($1.get_type() != Value::Type::INTEGER || $3.get_type() != Value::Type::INTEGER) {
+            ERROR(@2, std::string("cannot apply '>>' operator to ") + type_name($1) + " and " + type_name($3));
+        }
+        $$ = Value::Integer($1.as_integer().value >> $3.as_integer().value, $1.as_integer().is_signed);
     }
     ;
 
@@ -595,12 +703,24 @@ additive_expression
         $$ = std::move($1);
     }
     | additive_expression operator_add multiplicative_expression {
-        // TODO
-        $$ = std::move($1);
+        if (!numeric_binary_operator_cast($1, $3)) {
+            ERROR(@2, std::string("cannot apply '+' operator to ") + type_name($1) + " and " + type_name($3));
+        }
+        if ($1.get_type() == Value::Type::INTEGER) {
+            $$ = Value::Integer($1.as_integer().value + $3.as_integer().value, $1.as_integer().is_signed);
+        } else {
+            $$ = Value::FloatingPoint($1.as_floating_point().value + $3.as_floating_point().value);
+        }
     }
     | additive_expression operator_subtract multiplicative_expression {
-        // TODO
-        $$ = std::move($1);
+        if (!numeric_binary_operator_cast($1, $3)) {
+            ERROR(@2, std::string("cannot apply '-' operator to ") + type_name($1) + " and " + type_name($3));
+        }
+        if ($1.get_type() == Value::Type::INTEGER) {
+            $$ = Value::Integer($1.as_integer().value - $3.as_integer().value, $1.as_integer().is_signed);
+        } else {
+            $$ = Value::FloatingPoint($1.as_floating_point().value - $3.as_floating_point().value);
+        }
     }
     ;
 
@@ -609,16 +729,38 @@ multiplicative_expression
         $$ = std::move($1);
     }
     | multiplicative_expression operator_multiply cast_expression {
-        // TODO
-        $$ = std::move($1);
+        if (!numeric_binary_operator_cast($1, $3)) {
+            ERROR(@2, std::string("cannot apply '*' operator to ") + type_name($1) + " and " + type_name($3));
+        }
+        if ($1.get_type() == Value::Type::INTEGER) {
+            // Signed integer overflow is undefined behavior, so expand to 64 bits before multiplying if we're doing signed multiplication
+            $$ = Value::Integer($1.as_integer().is_signed ? (uint32_t)((int64_t)(int32_t)$1.as_integer().value * (int64_t)(int32_t)$3.as_integer().value) : $1.as_integer().value * $3.as_integer().value, $1.as_integer().is_signed);
+        } else {
+            $$ = Value::FloatingPoint($1.as_floating_point().value * $3.as_floating_point().value);
+        }
     }
     | multiplicative_expression operator_divide cast_expression {
-        // TODO
-        $$ = std::move($1);
+        if (!numeric_binary_operator_cast($1, $3)) {
+            ERROR(@2, std::string("cannot apply '/' operator to ") + type_name($1) + " and " + type_name($3));
+        }
+        // TODO: integer or floating-point division by zero causes a syntax error when used in the subscript of an annotation or in a state assignment
+        if ($1.get_type() == Value::Type::INTEGER) {
+            $$ = Value::Integer($3.as_integer().value == 0 ? 0 : $1.as_integer().is_signed ? (uint32_t)((int32_t)$1.as_integer().value / (int32_t)$3.as_integer().value) : $1.as_integer().value / $3.as_integer().value, $1.as_integer().is_signed);
+        } else {
+            $$ = Value::FloatingPoint($3.as_floating_point().value == 0. ? 0. : $1.as_floating_point().value / $3.as_floating_point().value);
+        }
     }
     | multiplicative_expression operator_modulo cast_expression {
-        // TODO
-        $$ = std::move($1);
+        if (!numeric_binary_operator_cast($1, $3)) {
+            ERROR(@2, std::string("cannot apply '%' operator to ") + type_name($1) + " and " + type_name($3));
+        }
+        // TODO: integer or floating-point modulo by zero causes a syntax error when used in the subscript of an annotation or in a state assignment
+        // TODO: floating-point modulo by zero only counts as a syntax error in that case when the second operand is exactly equal to zero, not just when the integer part is zero
+        if ($1.get_type() == Value::Type::INTEGER) {
+            $$ = Value::Integer($3.as_integer().value == 0 ? 0 : $1.as_integer().is_signed ? (uint32_t)((int32_t)$1.as_integer().value % (int32_t)$3.as_integer().value) : $1.as_integer().value % $3.as_integer().value, $1.as_integer().is_signed);
+        } else {
+            $$ = Value::FloatingPoint((int32_t)$3.as_floating_point().value == 0 ? 0. : (float)((int32_t)$1.as_floating_point().value % (int32_t)$3.as_floating_point().value));
+        }
     }
     ;
 
@@ -645,20 +787,36 @@ unary_expression
         $$ = std::move($1);
     }
     | operator_logical_not cast_expression {
-        // TODO
-        $$ = std::move($2);
+        if ($2.get_type() != Value::Type::INTEGER && $2.get_type() != Value::Type::FLOATING_POINT) {
+            ERROR(@2, std::string("cannot apply '!' operator to ") + type_name($2));
+        }
+        if ($2.get_type() == Value::Type::INTEGER) {
+            $$ = Value::Integer(!$2.as_integer().value, true);
+        } else {
+            $$ = Value::Integer(!$2.as_floating_point().value, true);
+        }
     }
     | operator_not cast_expression {
-        // TODO
-        $$ = std::move($2);
+        if ($2.get_type() != Value::Type::INTEGER) {
+            ERROR(@2, std::string("cannot apply '~' operator to ") + type_name($2));
+        }
+        $$ = Value::Integer(~$2.as_integer().value, $2.as_integer().is_signed);
     }
     | operator_add cast_expression {
-        // TODO
+        if ($2.get_type() != Value::Type::INTEGER && $2.get_type() != Value::Type::FLOATING_POINT) {
+            ERROR(@2, std::string("cannot apply '+' operator to ") + type_name($2));
+        }
         $$ = std::move($2);
     }
     | operator_subtract cast_expression {
-        // TODO
-        $$ = std::move($2);
+        if ($2.get_type() != Value::Type::INTEGER && $2.get_type() != Value::Type::FLOATING_POINT) {
+            ERROR(@2, std::string("cannot apply '-' operator to ") + type_name($2));
+        }
+        if ($2.get_type() == Value::Type::INTEGER) {
+            $$ = Value::Integer(-$2.as_integer().value, true);
+        } else {
+            $$ = Value::Integer(-$2.as_floating_point().value, true);
+        }
     }
     ;
 
@@ -818,8 +976,6 @@ matrix_template
     ;
 
 %%
-
-using namespace effectc_impl;
 
 void Parser::error(const location &location, const std::string &message) {
     // TODO: the error message should go somewhere other than standard error
