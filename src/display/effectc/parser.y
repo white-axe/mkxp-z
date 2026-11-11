@@ -95,7 +95,7 @@
                     // Compute shader.
                     COMPUTE,
                     // Domain shader.
-                    DOMAIN,
+                    DOMAIN_,
                     // Geometry shader.
                     GEOMETRY,
                     // Hull shader.
@@ -701,7 +701,7 @@ primary_expression
             {"cs_4_0", Value::Shader::COMPUTE},
             {"cs_4_1", Value::Shader::COMPUTE},
             {"cs_5_0", Value::Shader::COMPUTE},
-            {"ds_5_0", Value::Shader::DOMAIN},
+            {"ds_5_0", Value::Shader::DOMAIN_},
             {"gs_4_0", Value::Shader::GEOMETRY},
             {"gs_4_1", Value::Shader::GEOMETRY},
             {"gs_5_0", Value::Shader::GEOMETRY},
