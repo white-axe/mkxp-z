@@ -552,8 +552,8 @@ conditional_expression
         $$ = std::move($1);
     }
     | logical_or_expression operator_question_mark expression operator_colon conditional_expression {
-        // TODO
-        $$ = std::move($5);
+        // TODO: the conditional operator causes a syntax error when used in the index of an annotation or in a state assignment
+        $$ = Value::Integer(0, false); // Not a mistake. This is consistent with how FXC behaves.
     }
     ;
 
