@@ -780,7 +780,7 @@ multiplicative_expression
                 $$ = Value::Integer($1.as_integer().is_signed ? (uint32_t)((int32_t)$1.as_integer().value / (int32_t)$3.as_integer().value) : $1.as_integer().value / $3.as_integer().value, $1.as_integer().is_signed);
             }
         } else {
-            if ($3.as_floating_point().value == 0) {
+            if ($3.as_floating_point().value == 0.) {
                 ERROR_NOT_A_CONSTANT_EXPRESSION($$);
             } else {
                 $$ = Value::FloatingPoint($1.as_floating_point().value / $3.as_floating_point().value);
