@@ -156,6 +156,8 @@
             Value &operator=(const Value &other);
             Value &operator=(Value &&other) noexcept;
 
+            static Value make_boolean(bool value);
+
             Value::Type get_type() const noexcept;
             Value::NamedConstant &as_named_constant();
             Value::Integer &as_integer();
@@ -203,10 +205,10 @@
     static bool logical_binary_operator_cast(Value &value1, Value &value2) {
         if ((value1.get_type() == Value::Type::INTEGER || value1.get_type() == Value::Type::FLOATING_POINT) && (value2.get_type() == Value::Type::INTEGER || value2.get_type() == Value::Type::FLOATING_POINT)) {
             if (value1.get_type() == Value::Type::FLOATING_POINT) {
-                value1 = Value::Integer(value1.as_floating_point().value != 0.0, true);
+                value1 = Value::make_boolean(value1.as_floating_point().value != 0.);
             }
             if (value2.get_type() == Value::Type::FLOATING_POINT) {
-                value2 = Value::Integer(value2.as_floating_point().value != 0.0, true);
+                value2 = Value::make_boolean(value2.as_floating_point().value != 0.);
             }
             return true;
         }
@@ -576,7 +578,7 @@ logical_or_expression
         if (!logical_binary_operator_cast($1, $3)) {
             ERROR(@2, std::string("cannot apply '||' operator to ") + type_name($1) + " and " + type_name($3));
         }
-        $$ = Value::Integer($1.as_integer().value || $3.as_integer().value, true);
+        $$ = Value::make_boolean($1.as_integer().value || $3.as_integer().value);
     }
     ;
 
@@ -588,7 +590,7 @@ logical_and_expression
         if (!logical_binary_operator_cast($1, $3)) {
             ERROR(@2, std::string("cannot apply '&&' operator to ") + type_name($1) + " and " + type_name($3));
         }
-        $$ = Value::Integer($1.as_integer().value && $3.as_integer().value, true);
+        $$ = Value::make_boolean($1.as_integer().value && $3.as_integer().value);
     }
     ;
 
@@ -637,9 +639,9 @@ equality_expression
             ERROR(@2, std::string("cannot apply '==' operator to ") + type_name($1) + " and " + type_name($3));
         }
         if ($1.get_type() == Value::Type::INTEGER) {
-            $$ = Value::Integer($1.as_integer().value == $3.as_integer().value, true);
+            $$ = Value::make_boolean($1.as_integer().value == $3.as_integer().value);
         } else {
-            $$ = Value::Integer($1.as_floating_point().value == $3.as_floating_point().value, true);
+            $$ = Value::make_boolean($1.as_floating_point().value == $3.as_floating_point().value);
         }
     }
     | equality_expression operator_not_equal_to relational_expression {
@@ -647,9 +649,9 @@ equality_expression
             ERROR(@2, std::string("cannot apply '!=' operator to ") + type_name($1) + " and " + type_name($3));
         }
         if ($1.get_type() == Value::Type::INTEGER) {
-            $$ = Value::Integer($1.as_integer().value != $3.as_integer().value, true);
+            $$ = Value::make_boolean($1.as_integer().value != $3.as_integer().value);
         } else {
-            $$ = Value::Integer($1.as_floating_point().value != $3.as_floating_point().value, true);
+            $$ = Value::make_boolean($1.as_floating_point().value != $3.as_floating_point().value);
         }
     }
     ;
@@ -663,9 +665,9 @@ relational_expression
             ERROR(@2, std::string("cannot apply '<' operator to ") + type_name($1) + " and " + type_name($3));
         }
         if ($1.get_type() == Value::Type::INTEGER) {
-            $$ = Value::Integer($1.as_integer().is_signed ? (int32_t)$1.as_integer().value < (int32_t)$3.as_integer().value : $1.as_integer().value < $3.as_integer().value, true);
+            $$ = Value::make_boolean($1.as_integer().is_signed ? (int32_t)$1.as_integer().value < (int32_t)$3.as_integer().value : $1.as_integer().value < $3.as_integer().value);
         } else {
-            $$ = Value::Integer($1.as_floating_point().value < $3.as_floating_point().value, true);
+            $$ = Value::make_boolean($1.as_floating_point().value < $3.as_floating_point().value);
         }
     }
     | relational_expression operator_greater_than shift_expression {
@@ -673,9 +675,9 @@ relational_expression
             ERROR(@2, std::string("cannot apply '>' operator to ") + type_name($1) + " and " + type_name($3));
         }
         if ($1.get_type() == Value::Type::INTEGER) {
-            $$ = Value::Integer($1.as_integer().is_signed ? (int32_t)$1.as_integer().value > (int32_t)$3.as_integer().value : $1.as_integer().value > $3.as_integer().value, true);
+            $$ = Value::make_boolean($1.as_integer().is_signed ? (int32_t)$1.as_integer().value > (int32_t)$3.as_integer().value : $1.as_integer().value > $3.as_integer().value);
         } else {
-            $$ = Value::Integer($1.as_floating_point().value > $3.as_floating_point().value, true);
+            $$ = Value::make_boolean($1.as_floating_point().value > $3.as_floating_point().value);
         }
     }
     | relational_expression operator_less_than_or_equal_to shift_expression {
@@ -683,9 +685,9 @@ relational_expression
             ERROR(@2, std::string("cannot apply '<=' operator to ") + type_name($1) + " and " + type_name($3));
         }
         if ($1.get_type() == Value::Type::INTEGER) {
-            $$ = Value::Integer($1.as_integer().is_signed ? (int32_t)$1.as_integer().value <= (int32_t)$3.as_integer().value : $1.as_integer().value <= $3.as_integer().value, true);
+            $$ = Value::make_boolean($1.as_integer().is_signed ? (int32_t)$1.as_integer().value <= (int32_t)$3.as_integer().value : $1.as_integer().value <= $3.as_integer().value);
         } else {
-            $$ = Value::Integer($1.as_floating_point().value <= $3.as_floating_point().value, true);
+            $$ = Value::make_boolean($1.as_floating_point().value <= $3.as_floating_point().value);
         }
     }
     | relational_expression operator_greater_than_or_equal_to shift_expression {
@@ -693,9 +695,9 @@ relational_expression
             ERROR(@2, std::string("cannot apply '>=' operator to ") + type_name($1) + " and " + type_name($3));
         }
         if ($1.get_type() == Value::Type::INTEGER) {
-            $$ = Value::Integer($1.as_integer().is_signed ? (int32_t)$1.as_integer().value >= (int32_t)$3.as_integer().value : $1.as_integer().value >= $3.as_integer().value, true);
+            $$ = Value::make_boolean($1.as_integer().is_signed ? (int32_t)$1.as_integer().value >= (int32_t)$3.as_integer().value : $1.as_integer().value >= $3.as_integer().value);
         } else {
-            $$ = Value::Integer($1.as_floating_point().value >= $3.as_floating_point().value, true);
+            $$ = Value::make_boolean($1.as_floating_point().value >= $3.as_floating_point().value);
         }
     }
     ;
@@ -840,9 +842,9 @@ unary_expression
             ERROR(@1, std::string("cannot apply '!' operator to ") + type_name($2));
         }
         if ($2.get_type() == Value::Type::INTEGER) {
-            $$ = Value::Integer(!$2.as_integer().value, true);
+            $$ = Value::make_boolean(!$2.as_integer().value);
         } else {
-            $$ = Value::Integer(!$2.as_floating_point().value, true);
+            $$ = Value::make_boolean(!$2.as_floating_point().value);
         }
     }
     | operator_not cast_expression {
@@ -1124,6 +1126,10 @@ Value &Value::operator=(Value &&other) noexcept {
         default: assert(!"unreachable"); break;
     }
     return *this;
+}
+
+Value Value::make_boolean(bool value) {
+    return Value::Integer(value ? 1 : 0, true);
 }
 
 Value::Type Value::get_type() const noexcept {
