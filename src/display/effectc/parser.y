@@ -558,6 +558,12 @@ conditional_expression
         $$ = std::move($1);
     }
     | logical_or_expression operator_question_mark expression operator_colon conditional_expression {
+        if ($1.get_type() != Value::Type::INTEGER && $1.get_type() != Value::Type::FLOATING_POINT) {
+            ERROR(@2, std::string("the condition for the '?:' operator must be numeric, but got ") + type_name($1));
+        }
+        if (!numeric_binary_operator_cast($3, $5) && $3.get_type() != $5.get_type()) {
+            ERROR(@4, std::string("the two expressions for the '?:' operator must have compatible types, but got ") + type_name($3) + " and " + type_name($5));
+        }
         ERROR_NOT_A_CONSTANT_EXPRESSION($$);
     }
     ;
