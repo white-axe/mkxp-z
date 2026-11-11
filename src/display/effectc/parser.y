@@ -862,9 +862,9 @@ unary_expression
             ERROR(@1, std::string("cannot apply '-' operator to ") + type_name($2));
         }
         if ($2.get_type() == Value::Type::INTEGER) {
-            $$ = Value::Integer(-$2.as_integer().value, true);
+            $$ = Value::Integer(-$2.as_integer().value, $2.as_integer().is_signed);
         } else {
-            $$ = Value::Integer(-$2.as_floating_point().value, true);
+            $$ = Value::FloatingPoint(-$2.as_floating_point().value);
         }
     }
     ;
