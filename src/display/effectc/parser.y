@@ -916,10 +916,10 @@ primary_expression
         $$ = Value::String(std::move($1));
     }
     | keyword_true {
-        $$ = Value::Integer(1, true);
+        $$ = Value::make_boolean(true);
     }
     | keyword_false {
-        $$ = Value::Integer(0, true);
+        $$ = Value::make_boolean(false);
     }
     | keyword_null {
         $$ = Value();
