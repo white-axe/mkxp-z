@@ -764,9 +764,17 @@ multiplicative_expression
         }
         // TODO: integer or floating-point division by zero causes a syntax error when used in the index of an annotation or in a state assignment
         if ($1.get_type() == Value::Type::INTEGER) {
-            $$ = Value::Integer($3.as_integer().value == 0 ? 0 : $1.as_integer().is_signed ? (uint32_t)((int32_t)$1.as_integer().value / (int32_t)$3.as_integer().value) : $1.as_integer().value / $3.as_integer().value, $1.as_integer().is_signed);
+            if ($3.as_integer().value == 0) {
+                $$ = Value::Integer(0, false); // Not a mistake. This is consistent with how FXC behaves.
+            } else {
+                $$ = Value::Integer($1.as_integer().is_signed ? (uint32_t)((int32_t)$1.as_integer().value / (int32_t)$3.as_integer().value) : $1.as_integer().value / $3.as_integer().value, $1.as_integer().is_signed);
+            }
         } else {
-            $$ = Value::FloatingPoint($3.as_floating_point().value == 0. ? 0. : $1.as_floating_point().value / $3.as_floating_point().value);
+            if ($3.as_floating_point().value == 0) {
+                $$ = Value::Integer(0, false); // Not a mistake. This is consistent with how FXC behaves.
+            } else {
+                $$ = Value::FloatingPoint($1.as_floating_point().value / $3.as_floating_point().value);
+            }
         }
     }
     | multiplicative_expression operator_modulo cast_expression {
@@ -775,10 +783,14 @@ multiplicative_expression
         }
         // TODO: integer or floating-point modulo by zero causes a syntax error when used in the index of an annotation or in a state assignment
         if ($1.get_type() == Value::Type::INTEGER) {
-            $$ = Value::Integer($3.as_integer().value == 0 ? 0 : $1.as_integer().is_signed ? (uint32_t)((int32_t)$1.as_integer().value % (int32_t)$3.as_integer().value) : $1.as_integer().value % $3.as_integer().value, $1.as_integer().is_signed);
+            if ($3.as_integer().value == 0) {
+                $$ = Value::Integer(0, false); // Not a mistake. This is consistent with how FXC behaves.
+            } else {
+                $$ = Value::Integer($1.as_integer().is_signed ? (uint32_t)((int32_t)$1.as_integer().value % (int32_t)$3.as_integer().value) : $1.as_integer().value % $3.as_integer().value, $1.as_integer().is_signed);
+            }
         } else {
             if ($3.as_floating_point().value == 0.) {
-                $$ = Value::FloatingPoint(0.);
+                $$ = Value::Integer(0, false); // Not a mistake. This is consistent with how FXC behaves.
             } else if (!std::isfinite($1.as_floating_point().value)) {
                 $$ = Value::FloatingPoint((double)NAN);
             } else {
