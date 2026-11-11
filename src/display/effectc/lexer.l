@@ -49,7 +49,7 @@
         return parser.make_YYerror(location); \
     } while (0)
 
-    static Parser::symbol_type parse_integer(Parser &parser, const char *str, int base, uint64_t maximum, const Parser::location_type &location) {
+    static Parser::symbol_type parse_integer(Parser &parser, const char *str, int base, bool has_suffix, bool is_signed, const Parser::location_type &location) {
         static_assert(UINT64_MAX <= ULLONG_MAX, "uint64_t should be able to fit into unsigned long long, but it doesn't");
         int old_errno = errno;
         errno = 0;
@@ -59,10 +59,16 @@
             ERROR("integer literal out of range");
         }
         errno = old_errno;
-        if (value > maximum) {
+        if (
+            has_suffix
+                ? value > (unsigned long long)UINT64_MAX
+                : is_signed
+                ? (value > (unsigned long long)INT32_MAX && value < (unsigned long long)UINT64_MAX - (unsigned long long)INT32_MAX) || value > (unsigned long long)UINT64_MAX // This is not a mistake. This is consistent with the behavior of FXC.
+                : value > (unsigned long long)UINT32_MAX
+        ) {
             ERROR("integer literal out of range");
         }
-        return parser.make_integer_literal((uint64_t)value, location);
+        return parser.make_integer_literal(Value::Integer((uint32_t)value, is_signed), location);
     }
 
     static Parser::symbol_type parse_floating_point(Parser &parser, char *str, const Parser::location_type &location) {
@@ -81,7 +87,7 @@
             value = (double)INFINITY;
         }
         errno = old_errno;
-        return parser.make_floating_point_literal(value, location);
+        return parser.make_floating_point_literal(Value::FloatingPoint(value), location);
     }
 %}
 
@@ -229,7 +235,7 @@
     if (ptr != nullptr) {
         *ptr = 0;
     }
-    return parse_integer(parser, str, 16, ptr != nullptr ? UINT64_MAX : UINT32_MAX, location);
+    return parse_integer(parser, str, 16, ptr != nullptr, false, location);
 }
 
 0[0-7]*([uU][lL]?|[lL][uU]?)? { // Octal integer literal
@@ -238,15 +244,16 @@
     if (ptr != nullptr) {
         *ptr = 0;
     }
-    return parse_integer(parser, str, 8, ptr != nullptr ? UINT64_MAX : UINT32_MAX, location);
+    return parse_integer(parser, str, 8, ptr != nullptr, false, location);
 }
 
 [1-9][0-9]*([uU][lL]?|[lL][uU]?)? { // Decimal integer literal
     char *ptr = std::strpbrk(yytext, "uUlL");
+    bool is_signed = ptr == nullptr || (ptr[0] != 'u' && ptr[0] != 'U' && ptr[1] != 'u' && ptr[1] != 'U');
     if (ptr != nullptr) {
         *ptr = 0;
     }
-    return parse_integer(parser, yytext, 10, UINT64_MAX, location);
+    return parse_integer(parser, yytext, 10, ptr != nullptr, is_signed, location);
 }
 
 (([0-9]*\.[0-9]+|[0-9]+\.)([eE][+-]?[0-9]+)?|[0-9]+[eE][+-]?[0-9]+)[hHfFlL]? { // Floating-point literal

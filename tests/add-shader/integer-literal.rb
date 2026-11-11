@@ -8,13 +8,14 @@
 
 # Run the suite via the "customScript" field in mkxp.json.
 
-# Decimal integer literals must be less than 18446744073709551616 (2 to the power of 64).
+# Decimal integer literals without a suffix must either be less than 2147483648 (2 to the power of 31) or be greater than 18446744071562067968 (2 to the power of 64 minus 2 to the power of 31) and less than 18446744073709551616 (2 to the power of 64).
+# Decimal integer literals with a suffix must be less than 18446744073709551616 (2 to the power of 64).
 # Otherwise there will be a syntax error.
 error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 18446744073709551616;> {}
+        pass <uint foo = 2147483648;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
@@ -25,7 +26,7 @@ error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 18446744073709551615;> {}
+        pass <uint foo = 2147483647;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
@@ -36,7 +37,7 @@ error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 18446744073709551616u;> {}
+        pass <uint foo = 18446744071562067967;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
@@ -47,7 +48,7 @@ error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 18446744073709551615u;> {}
+        pass <uint foo = 18446744071562067968;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
@@ -58,29 +59,29 @@ error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 18446744073709551615U;> {}
+        pass <uint foo = 18446744073709551616;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
 end
-System.puts(error_occurred ? 'Test 5 failed' : 'Test 5 passed')
+System.puts(error_occurred ? 'Test 5 passed' : 'Test 5 failed')
 
 error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 18446744073709551616l;> {}
+        pass <uint foo = 18446744073709551615;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
 end
-System.puts(error_occurred ? 'Test 6 passed' : 'Test 6 failed')
+System.puts(error_occurred ? 'Test 6 failed' : 'Test 6 passed')
 
 error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 18446744073709551615l;> {}
+        pass <uint foo = 18446744071562067967u;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
@@ -91,7 +92,7 @@ error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 18446744073709551615L;> {}
+        pass <uint foo = 18446744071562067968u;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
@@ -102,7 +103,7 @@ error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 18446744073709551616ul;> {}
+        pass <uint foo = 18446744073709551616u;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
@@ -113,7 +114,7 @@ error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 18446744073709551615ul;> {}
+        pass <uint foo = 18446744073709551615u;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
@@ -124,7 +125,7 @@ error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 18446744073709551615ul;> {}
+        pass <uint foo = 18446744073709551615U;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
@@ -135,18 +136,18 @@ error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 18446744073709551615lu;> {}
+        pass <uint foo = 18446744073709551616l;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
 end
-System.puts(error_occurred ? 'Test 12 failed' : 'Test 12 passed')
+System.puts(error_occurred ? 'Test 12 passed' : 'Test 12 failed')
 
 error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 18446744073709551615UL;> {}
+        pass <uint foo = 18446744073709551615l;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
@@ -157,12 +158,78 @@ error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 0xffffffffffffffffuL;> {}
+        pass <uint foo = 18446744073709551615L;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
 end
 System.puts(error_occurred ? 'Test 14 failed' : 'Test 14 passed')
+
+error_occurred = false
+begin
+    Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
+    END_SHADERS
+        pass <uint foo = 18446744073709551616ul;> {}
+    END_PASSES
+rescue RGSSError
+    error_occurred = true
+end
+System.puts(error_occurred ? 'Test 15 passed' : 'Test 15 failed')
+
+error_occurred = false
+begin
+    Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
+    END_SHADERS
+        pass <uint foo = 18446744073709551615ul;> {}
+    END_PASSES
+rescue RGSSError
+    error_occurred = true
+end
+System.puts(error_occurred ? 'Test 16 failed' : 'Test 16 passed')
+
+error_occurred = false
+begin
+    Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
+    END_SHADERS
+        pass <uint foo = 18446744073709551615ul;> {}
+    END_PASSES
+rescue RGSSError
+    error_occurred = true
+end
+System.puts(error_occurred ? 'Test 17 failed' : 'Test 17 passed')
+
+error_occurred = false
+begin
+    Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
+    END_SHADERS
+        pass <uint foo = 18446744073709551615lu;> {}
+    END_PASSES
+rescue RGSSError
+    error_occurred = true
+end
+System.puts(error_occurred ? 'Test 18 failed' : 'Test 18 passed')
+
+error_occurred = false
+begin
+    Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
+    END_SHADERS
+        pass <uint foo = 18446744073709551615UL;> {}
+    END_PASSES
+rescue RGSSError
+    error_occurred = true
+end
+System.puts(error_occurred ? 'Test 19 failed' : 'Test 19 passed')
+
+error_occurred = false
+begin
+    Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
+    END_SHADERS
+        pass <uint foo = 0xffffffffffffffffuL;> {}
+    END_PASSES
+rescue RGSSError
+    error_occurred = true
+end
+System.puts(error_occurred ? 'Test 20 failed' : 'Test 20 passed')
 
 # Hexadecimal and octal integer literals without a suffix must be less than 4294967296 (2 to the power of 32).
 # Hexadecimal and octal integer literals with a suffix must be less than 18446744073709551616 (2 to the power of 64).
@@ -176,7 +243,7 @@ begin
 rescue RGSSError
     error_occurred = true
 end
-System.puts(error_occurred ? 'Test 15 passed' : 'Test 15 failed')
+System.puts(error_occurred ? 'Test 21 passed' : 'Test 21 failed')
 
 error_occurred = false
 begin
@@ -187,7 +254,7 @@ begin
 rescue RGSSError
     error_occurred = true
 end
-System.puts(error_occurred ? 'Test 16 failed' : 'Test 16 passed')
+System.puts(error_occurred ? 'Test 22 failed' : 'Test 22 passed')
 
 error_occurred = false
 begin
@@ -198,7 +265,7 @@ begin
 rescue RGSSError
     error_occurred = true
 end
-System.puts(error_occurred ? 'Test 17 passed' : 'Test 17 failed')
+System.puts(error_occurred ? 'Test 23 passed' : 'Test 23 failed')
 
 error_occurred = false
 begin
@@ -209,7 +276,7 @@ begin
 rescue RGSSError
     error_occurred = true
 end
-System.puts(error_occurred ? 'Test 18 failed' : 'Test 18 passed')
+System.puts(error_occurred ? 'Test 24 failed' : 'Test 24 passed')
 
 error_occurred = false
 begin
@@ -220,7 +287,7 @@ begin
 rescue RGSSError
     error_occurred = true
 end
-System.puts(error_occurred ? 'Test 19 failed' : 'Test 19 passed')
+System.puts(error_occurred ? 'Test 25 failed' : 'Test 25 passed')
 
 error_occurred = false
 begin
@@ -231,7 +298,7 @@ begin
 rescue RGSSError
     error_occurred = true
 end
-System.puts(error_occurred ? 'Test 20 passed' : 'Test 20 failed')
+System.puts(error_occurred ? 'Test 26 passed' : 'Test 26 failed')
 
 error_occurred = false
 begin
@@ -242,7 +309,7 @@ begin
 rescue RGSSError
     error_occurred = true
 end
-System.puts(error_occurred ? 'Test 21 failed' : 'Test 21 passed')
+System.puts(error_occurred ? 'Test 27 failed' : 'Test 27 passed')
 
 error_occurred = false
 begin
@@ -253,7 +320,7 @@ begin
 rescue RGSSError
     error_occurred = true
 end
-System.puts(error_occurred ? 'Test 22 failed' : 'Test 22 passed')
+System.puts(error_occurred ? 'Test 28 failed' : 'Test 28 passed')
 
 error_occurred = false
 begin
@@ -264,79 +331,13 @@ begin
 rescue RGSSError
     error_occurred = true
 end
-System.puts(error_occurred ? 'Test 23 passed' : 'Test 23 failed')
-
-error_occurred = false
-begin
-    Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
-    END_SHADERS
-        pass <uint foo = 0xfffffffffffffffful;> {}
-    END_PASSES
-rescue RGSSError
-    error_occurred = true
-end
-System.puts(error_occurred ? 'Test 24 failed' : 'Test 24 passed')
-
-error_occurred = false
-begin
-    Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
-    END_SHADERS
-        pass <uint foo = 0xfffffffffffffffful;> {}
-    END_PASSES
-rescue RGSSError
-    error_occurred = true
-end
-System.puts(error_occurred ? 'Test 25 failed' : 'Test 25 passed')
-
-error_occurred = false
-begin
-    Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
-    END_SHADERS
-        pass <uint foo = 0xfffffffffffffffflu;> {}
-    END_PASSES
-rescue RGSSError
-    error_occurred = true
-end
-System.puts(error_occurred ? 'Test 26 failed' : 'Test 26 passed')
-
-error_occurred = false
-begin
-    Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
-    END_SHADERS
-        pass <uint foo = 0xffffffffffffffffUL;> {}
-    END_PASSES
-rescue RGSSError
-    error_occurred = true
-end
-System.puts(error_occurred ? 'Test 27 failed' : 'Test 27 passed')
-
-error_occurred = false
-begin
-    Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
-    END_SHADERS
-        pass <uint foo = 0xffffffffffffffffuL;> {}
-    END_PASSES
-rescue RGSSError
-    error_occurred = true
-end
-System.puts(error_occurred ? 'Test 28 failed' : 'Test 28 passed')
-
-error_occurred = false
-begin
-    Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
-    END_SHADERS
-        pass <uint foo = 040000000000;> {}
-    END_PASSES
-rescue RGSSError
-    error_occurred = true
-end
 System.puts(error_occurred ? 'Test 29 passed' : 'Test 29 failed')
 
 error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 037777777777;> {}
+        pass <uint foo = 0xfffffffffffffffful;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
@@ -347,18 +348,18 @@ error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 02000000000000000000000u;> {}
+        pass <uint foo = 0xfffffffffffffffful;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
 end
-System.puts(error_occurred ? 'Test 31 passed' : 'Test 31 failed')
+System.puts(error_occurred ? 'Test 31 failed' : 'Test 31 passed')
 
 error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 01777777777777777777777u;> {}
+        pass <uint foo = 0xfffffffffffffffflu;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
@@ -369,7 +370,7 @@ error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 01777777777777777777777U;> {}
+        pass <uint foo = 0xffffffffffffffffUL;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
@@ -380,29 +381,29 @@ error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 02000000000000000000000l;> {}
+        pass <uint foo = 0xffffffffffffffffuL;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
 end
-System.puts(error_occurred ? 'Test 34 passed' : 'Test 34 failed')
+System.puts(error_occurred ? 'Test 34 failed' : 'Test 34 passed')
 
 error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 01777777777777777777777l;> {}
+        pass <uint foo = 040000000000;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
 end
-System.puts(error_occurred ? 'Test 35 failed' : 'Test 35 passed')
+System.puts(error_occurred ? 'Test 35 passed' : 'Test 35 failed')
 
 error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 01777777777777777777777L;> {}
+        pass <uint foo = 037777777777;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
@@ -413,7 +414,7 @@ error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 02000000000000000000000ul;> {}
+        pass <uint foo = 02000000000000000000000u;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
@@ -424,7 +425,7 @@ error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 01777777777777777777777ul;> {}
+        pass <uint foo = 01777777777777777777777u;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
@@ -435,7 +436,7 @@ error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 01777777777777777777777ul;> {}
+        pass <uint foo = 01777777777777777777777U;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
@@ -446,18 +447,18 @@ error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 01777777777777777777777lu;> {}
+        pass <uint foo = 02000000000000000000000l;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
 end
-System.puts(error_occurred ? 'Test 40 failed' : 'Test 40 passed')
+System.puts(error_occurred ? 'Test 40 passed' : 'Test 40 failed')
 
 error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 01777777777777777777777UL;> {}
+        pass <uint foo = 01777777777777777777777l;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
@@ -468,9 +469,75 @@ error_occurred = false
 begin
     Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
     END_SHADERS
-        pass <uint foo = 01777777777777777777777uL;> {}
+        pass <uint foo = 01777777777777777777777L;> {}
     END_PASSES
 rescue RGSSError
     error_occurred = true
 end
 System.puts(error_occurred ? 'Test 42 failed' : 'Test 42 passed')
+
+error_occurred = false
+begin
+    Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
+    END_SHADERS
+        pass <uint foo = 02000000000000000000000ul;> {}
+    END_PASSES
+rescue RGSSError
+    error_occurred = true
+end
+System.puts(error_occurred ? 'Test 43 passed' : 'Test 43 failed')
+
+error_occurred = false
+begin
+    Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
+    END_SHADERS
+        pass <uint foo = 01777777777777777777777ul;> {}
+    END_PASSES
+rescue RGSSError
+    error_occurred = true
+end
+System.puts(error_occurred ? 'Test 44 failed' : 'Test 44 passed')
+
+error_occurred = false
+begin
+    Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
+    END_SHADERS
+        pass <uint foo = 01777777777777777777777ul;> {}
+    END_PASSES
+rescue RGSSError
+    error_occurred = true
+end
+System.puts(error_occurred ? 'Test 45 failed' : 'Test 45 passed')
+
+error_occurred = false
+begin
+    Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
+    END_SHADERS
+        pass <uint foo = 01777777777777777777777lu;> {}
+    END_PASSES
+rescue RGSSError
+    error_occurred = true
+end
+System.puts(error_occurred ? 'Test 46 failed' : 'Test 46 passed')
+
+error_occurred = false
+begin
+    Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
+    END_SHADERS
+        pass <uint foo = 01777777777777777777777UL;> {}
+    END_PASSES
+rescue RGSSError
+    error_occurred = true
+end
+System.puts(error_occurred ? 'Test 47 failed' : 'Test 47 passed')
+
+error_occurred = false
+begin
+    Graphics.add_shader(<<~END_SHADERS, <<~END_PASSES)
+    END_SHADERS
+        pass <uint foo = 01777777777777777777777uL;> {}
+    END_PASSES
+rescue RGSSError
+    error_occurred = true
+end
+System.puts(error_occurred ? 'Test 48 failed' : 'Test 48 passed')

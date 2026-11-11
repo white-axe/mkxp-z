@@ -37,6 +37,7 @@
 %define parse.lac full /* Required to avoid possibly incorrect error messages when `parse.error` is set to `detailed` */
 
 %code requires {
+    #include <cstdint>
     #include <string>
 
     namespace effectc_impl {
@@ -65,6 +66,8 @@
             {
                 // The name of the constant.
                 std::string name;
+
+                NamedConstant(std::string &&name);
             };
 
             struct Integer
@@ -72,19 +75,29 @@
                 // The integer value of the expression.
                 // This may be either a signed or unsigned integer.
                 // If signed, the integer is stored in two's complement representation.
-                uint64_t value;
+                uint32_t value;
+                // If true, the integer is signed. If false, the integer is unsigned.
+                bool is_signed;
+
+                Integer();
+                Integer(uint32_t value, bool is_signed);
             };
 
             struct FloatingPoint
             {
                 // The floating-point value of the expression.
                 double value;
+
+                FloatingPoint();
+                FloatingPoint(double value);
             };
 
             struct String
             {
                 // The string value of the expression.
                 std::string value;
+
+                String(std::string &&value);
             };
 
             struct Shader
@@ -108,6 +121,8 @@
 
                 // The name of the shader's main function.
                 std::string entry_point;
+
+                Shader(Type type, std::string &&entry_point);
             };
 
         private:
@@ -163,8 +178,8 @@
 
 %token <std::string> identifier "identifier"
 %token <std::string> type_name "type name"
-%token <uint64_t> integer_literal "integer literal"
-%token <double> floating_point_literal "floating-point literal"
+%token <effectc_impl::Value::Integer> integer_literal "integer literal"
+%token <effectc_impl::Value::FloatingPoint> floating_point_literal "floating-point literal"
 %token <std::string> string_literal "string literal"
 
 %token semicolon ";"
@@ -676,22 +691,22 @@ primary_expression
         $$ = std::move($2);
     }
     | identifier {
-        $$ = Value(Value::NamedConstant {std::move($1)});
+        $$ = Value::NamedConstant(std::move($1));
     }
     | integer_literal {
-        $$ = Value(Value::Integer {std::move($1)});
+        $$ = std::move($1);
     }
     | floating_point_literal {
-        $$ = Value(Value::FloatingPoint {std::move($1)});
+        $$ = std::move($1);
     }
     | string_literals {
-        $$ = Value(Value::String {std::move($1)});
+        $$ = Value::String(std::move($1));
     }
     | keyword_true {
-        $$ = Value(Value::Integer {1});
+        $$ = Value::Integer(1, true);
     }
     | keyword_false {
-        $$ = Value(Value::Integer {0});
+        $$ = Value::Integer(0, true);
     }
     | keyword_null {
         $$ = Value();
@@ -739,10 +754,7 @@ primary_expression
         if (it == table.end()) {
             ERROR(@2, "unsupported compiler target " + $2);
         }
-        $$ = Value(Value::Shader {
-            it->second,
-            std::move($3),
-        });
+        $$ = Value::Shader(it->second, std::move($3));
     }
     ;
 
@@ -812,6 +824,27 @@ using namespace effectc_impl;
 void Parser::error(const location &location, const std::string &message) {
     // TODO: the error message should go somewhere other than standard error
     std::cerr << "Error (" << location << "): " << message << std::endl;
+}
+
+Value::NamedConstant::NamedConstant(std::string &&name) : name(std::move(name)) {
+}
+
+Value::Integer::Integer() : Integer(0, true) {
+}
+
+Value::Integer::Integer(uint32_t value, bool is_signed) : value(value), is_signed(is_signed) {
+}
+
+Value::FloatingPoint::FloatingPoint() : FloatingPoint(0.0) {
+}
+
+Value::FloatingPoint::FloatingPoint(double value) : value(value) {
+}
+
+Value::String::String(std::string &&value) : value(std::move(value)) {
+}
+
+Value::Shader::Shader(Value::Shader::Type type, std::string &&entry_point) : type(type), entry_point(std::move(entry_point)) {
 }
 
 Value::Value() : type(Type::NULL_TYPE) {
