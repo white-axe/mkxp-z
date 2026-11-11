@@ -853,6 +853,10 @@ postfix_expression
         // TODO
         $$ = Value();
     }
+    | postfix_expression subscript {
+        // TODO
+        $$ = std::move($1);
+    }
     | postfix_expression operator_structure_reference identifier_or_type_name {
         // TODO
         $$ = std::move($1);
