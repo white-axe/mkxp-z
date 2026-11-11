@@ -805,7 +805,7 @@ unary_expression
     }
     | operator_logical_not cast_expression {
         if ($2.get_type() != Value::Type::INTEGER && $2.get_type() != Value::Type::FLOATING_POINT) {
-            ERROR(@2, std::string("cannot apply '!' operator to ") + type_name($2));
+            ERROR(@1, std::string("cannot apply '!' operator to ") + type_name($2));
         }
         if ($2.get_type() == Value::Type::INTEGER) {
             $$ = Value::Integer(!$2.as_integer().value, true);
@@ -815,19 +815,19 @@ unary_expression
     }
     | operator_not cast_expression {
         if ($2.get_type() != Value::Type::INTEGER) {
-            ERROR(@2, std::string("cannot apply '~' operator to ") + type_name($2));
+            ERROR(@1, std::string("cannot apply '~' operator to ") + type_name($2));
         }
         $$ = Value::Integer(~$2.as_integer().value, $2.as_integer().is_signed);
     }
     | operator_add cast_expression {
         if ($2.get_type() != Value::Type::INTEGER && $2.get_type() != Value::Type::FLOATING_POINT) {
-            ERROR(@2, std::string("cannot apply '+' operator to ") + type_name($2));
+            ERROR(@1, std::string("cannot apply '+' operator to ") + type_name($2));
         }
         $$ = std::move($2);
     }
     | operator_subtract cast_expression {
         if ($2.get_type() != Value::Type::INTEGER && $2.get_type() != Value::Type::FLOATING_POINT) {
-            ERROR(@2, std::string("cannot apply '-' operator to ") + type_name($2));
+            ERROR(@1, std::string("cannot apply '-' operator to ") + type_name($2));
         }
         if ($2.get_type() == Value::Type::INTEGER) {
             $$ = Value::Integer(-$2.as_integer().value, true);
