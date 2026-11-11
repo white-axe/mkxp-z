@@ -537,7 +537,7 @@ expression
         $$ = std::move($1);
     }
     | expression operator_comma assignment_expression {
-        $$ = std::move($1);
+        $$ = std::move($3);
     }
     ;
 
