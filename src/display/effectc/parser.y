@@ -182,6 +182,12 @@
         YYERROR; \
     } while (0)
 
+    #define ERROR_NOT_A_CONSTANT_EXPRESSION(symbol) do { \
+        /* TODO: non-constant expressions cause a syntax error when used in the subscript of an annotation or in a state assignment, but not inside of the initializer of an annotation */ \
+        (symbol) = Value::Integer(0, false); /* This is what FXC uses as the value for non-constant expressions inside of an annotation */ \
+        break; \
+    } while (0)
+
     static const char *type_name(const Value &value) {
         switch (value.get_type()) {
             case Value::Type::NULL_TYPE: return "null";
@@ -552,8 +558,7 @@ conditional_expression
         $$ = std::move($1);
     }
     | logical_or_expression operator_question_mark expression operator_colon conditional_expression {
-        // TODO: the conditional operator causes a syntax error when used in the index of an annotation or in a state assignment
-        $$ = Value::Integer(0, false); // Not a mistake. This is consistent with how FXC behaves.
+        ERROR_NOT_A_CONSTANT_EXPRESSION($$);
     }
     ;
 
@@ -762,16 +767,15 @@ multiplicative_expression
         if (!numeric_binary_operator_cast($1, $3)) {
             ERROR(@2, std::string("cannot apply '/' operator to ") + type_name($1) + " and " + type_name($3));
         }
-        // TODO: integer or floating-point division by zero causes a syntax error when used in the index of an annotation or in a state assignment
         if ($1.get_type() == Value::Type::INTEGER) {
             if ($3.as_integer().value == 0) {
-                $$ = Value::Integer(0, false); // Not a mistake. This is consistent with how FXC behaves.
+                ERROR_NOT_A_CONSTANT_EXPRESSION($$);
             } else {
                 $$ = Value::Integer($1.as_integer().is_signed ? (uint32_t)((int32_t)$1.as_integer().value / (int32_t)$3.as_integer().value) : $1.as_integer().value / $3.as_integer().value, $1.as_integer().is_signed);
             }
         } else {
             if ($3.as_floating_point().value == 0) {
-                $$ = Value::Integer(0, false); // Not a mistake. This is consistent with how FXC behaves.
+                ERROR_NOT_A_CONSTANT_EXPRESSION($$);
             } else {
                 $$ = Value::FloatingPoint($1.as_floating_point().value / $3.as_floating_point().value);
             }
@@ -781,16 +785,15 @@ multiplicative_expression
         if (!numeric_binary_operator_cast($1, $3)) {
             ERROR(@2, std::string("cannot apply '%' operator to ") + type_name($1) + " and " + type_name($3));
         }
-        // TODO: integer or floating-point modulo by zero causes a syntax error when used in the index of an annotation or in a state assignment
         if ($1.get_type() == Value::Type::INTEGER) {
             if ($3.as_integer().value == 0) {
-                $$ = Value::Integer(0, false); // Not a mistake. This is consistent with how FXC behaves.
+                ERROR_NOT_A_CONSTANT_EXPRESSION($$);
             } else {
                 $$ = Value::Integer($1.as_integer().is_signed ? (uint32_t)((int32_t)$1.as_integer().value % (int32_t)$3.as_integer().value) : $1.as_integer().value % $3.as_integer().value, $1.as_integer().is_signed);
             }
         } else {
             if ($3.as_floating_point().value == 0.) {
-                $$ = Value::Integer(0, false); // Not a mistake. This is consistent with how FXC behaves.
+                ERROR_NOT_A_CONSTANT_EXPRESSION($$);
             } else if (!std::isfinite($1.as_floating_point().value)) {
                 $$ = Value::FloatingPoint((double)NAN);
             } else {
