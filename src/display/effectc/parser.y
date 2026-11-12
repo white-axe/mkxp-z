@@ -699,6 +699,8 @@ state_assignment
             {"SpecularMaterialSource", {Value::Type::INTEGER, 0}},
             {"TweenFactor", {Value::Type::FLOATING_POINT, 0}},
             {"VertexBlend", {Value::Type::INTEGER, 0}},
+            // Sampler States
+            {"Sampler", {Value::Type::NULL_TYPE, 15}},
             // Sampler State States
             {"AddressU", {Value::Type::INTEGER, 15}},
             {"AddressV", {Value::Type::INTEGER, 15}},
