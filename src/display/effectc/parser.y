@@ -196,8 +196,19 @@
         break; \
     } while (0)
 
-    static const char *type_name(const Value &value) {
-        switch (value.get_type()) {
+    struct EffectState
+    {
+        // Type that this effect state can be assigned to.
+        Value::Type type;
+        // If nonzero, this effect state requires an index less than or equal to this value.
+        // If zero, this effect state doesn't have an index.
+        uint32_t maximum_index;
+        // If this effect state is a shader, the type of shader. Otherwise, unused.
+        Value::Shader::Type shader_type;
+    };
+
+    static const char *type_name(Value::Type type) {
+        switch (type) {
             case Value::Type::NULL_TYPE: return "null";
             case Value::Type::NAMED_CONSTANT: return "a named constant";
             case Value::Type::INTEGER: return "an integer";
@@ -206,6 +217,26 @@
             case Value::Type::SHADER: return "a shader";
             default: assert(!"unreachable"); break;
         }
+    }
+
+    static const char *type_name(const Value &value) {
+        return type_name(value.get_type());
+    }
+
+    static const char *shader_type_name(Value::Shader::Type type) {
+        switch (type) {
+            case Value::Shader::Type::COMPUTE: return "a compute shader";
+            case Value::Shader::Type::DOMAIN_: return "a domain shader";
+            case Value::Shader::Type::GEOMETRY: return "a geometry shader";
+            case Value::Shader::Type::HULL: return "a hull shader";
+            case Value::Shader::Type::PIXEL: return "a pixel shader";
+            case Value::Shader::Type::VERTEX: return "a vertex shader";
+            default: assert(!"unreachable"); break;
+        }
+    }
+
+    static const char *shader_type_name(Value &value) {
+        return shader_type_name(value.as_shader().type);
     }
 
     static bool logical_binary_operator_cast(Value &value1, Value &value2) {
@@ -442,15 +473,16 @@
 
 %token END 0 "end of file"
 
-%type <std::unordered_map<std::string, std::vector<uint8_t>>> passes
-%type <std::pair<std::string, std::vector<uint8_t>>> pass
+%type <std::unordered_map<std::string, std::unordered_map<std::string, effectc_impl::Value>>> passes
+%type <std::pair<std::string, std::unordered_map<std::string, effectc_impl::Value>>> pass
 
 %type <std::string> optional_identifier_or_type_name
 %type <std::string> identifier_or_type_name
 
-%type <std::vector<uint8_t>> state_assignments
-%type <std::vector<uint8_t>> state_assignment
+%type <std::unordered_map<std::string, effectc_impl::Value>> state_assignments
+%type <std::pair<std::string, effectc_impl::Value>> state_assignment
 
+%type <effectc_impl::Value> state_assignment_subscript
 %type <effectc_impl::Value> state_assignment_initializer
 
 %type <effectc_impl::Value> expression
@@ -477,12 +509,11 @@
 
 %%
 
-passes /* TODO: if there are no shaders, we need to compile the HLSL source code once to make sure it's syntactically valid */
+passes
     : %empty {
-        $$ = std::unordered_map<std::string, std::vector<uint8_t>>();
+        $$ = std::unordered_map<std::string, std::unordered_map<std::string, effectc_impl::Value>>();
     }
     | passes pass {
-        $$ = std::move($1);
         $$.emplace(std::move($2));
     }
     ;
@@ -555,54 +586,216 @@ trailing_comma
 
 state_assignments
     : %empty {
-        $$ = std::vector<uint8_t>();
+        $$ = std::unordered_map<std::string, effectc_impl::Value>();
     }
     | state_assignments state_assignment {
-        $$ = std::move($2);
+        $$.emplace(std::move($2));
     }
     ;
 
 state_assignment
     : identifier_or_type_name state_assignment_subscript operator_assign state_assignment_initializer semicolon {
-        if ($4.get_type() == Value::Type::NULL_TYPE) {
-            $$ = std::vector<uint8_t>();
-            break;
+        // See <https://github.com/MicrosoftDocs/win32/blob/9bcde4a0658c5b315366da6124466465bb25e5ee/desktop-src/direct3d9/effect-states.md> for a list of effect states
+        static const std::unordered_map<std::string, EffectState> table = {
+            // Light States
+            //{"LightAmbient", {float4, UINT32_MAX}},
+            {"LightAttenuation0", {Value::Type::FLOATING_POINT, UINT32_MAX}},
+            {"LightAttenuation1", {Value::Type::FLOATING_POINT, UINT32_MAX}},
+            {"LightAttenuation2", {Value::Type::FLOATING_POINT, UINT32_MAX}},
+            //{"LightDiffuse", {float4, UINT32_MAX}},
+            //{"LightDirection", {float3, UINT32_MAX}},
+            {"LightEnable", {Value::Type::INTEGER, UINT32_MAX}},
+            {"LightFalloff", {Value::Type::FLOATING_POINT, UINT32_MAX}},
+            {"LightPhi", {Value::Type::FLOATING_POINT, UINT32_MAX}},
+            //{"LightPosition", {float3, UINT32_MAX}},
+            {"LightRange", {Value::Type::FLOATING_POINT, UINT32_MAX}},
+            //{"LightSpecular", {float4, UINT32_MAX}},
+            {"LightTheta", {Value::Type::FLOATING_POINT, UINT32_MAX}},
+            {"LightType", {Value::Type::INTEGER, UINT32_MAX}},
+            // Material States
+            //{"MaterialAmbient", {float4, 0}},
+            //{"MaterialDiffuse", {float4, 0}},
+            //{"MaterialEmissive", {float4, 0}},
+            {"MaterialPower", {Value::Type::FLOATING_POINT, 0}},
+            //{"MaterialSpecular", {float4, 0}},
+            // Pixel Pipe Render States
+            {"AlphaBlendEnable", {Value::Type::INTEGER, 0}},
+            {"AlphaFunc", {Value::Type::INTEGER, 0}},
+            {"AlphaRef", {Value::Type::INTEGER, 0}},
+            {"AlphaTestEnable", {Value::Type::INTEGER, 0}},
+            {"BlendOp", {Value::Type::INTEGER, 0}},
+            {"ColorWriteEnable", {Value::Type::INTEGER, 0}},
+            {"DepthBias", {Value::Type::FLOATING_POINT, 0}},
+            {"DestBlend", {Value::Type::INTEGER, 0}},
+            {"DitherEnable", {Value::Type::INTEGER, 0}},
+            {"FillMode", {Value::Type::INTEGER, 0}},
+            {"LastPixel", {Value::Type::INTEGER, 0}},
+            {"ShadeMode", {Value::Type::INTEGER, 0}},
+            {"SlopeScaleDepthBias", {Value::Type::FLOATING_POINT, 0}},
+            {"SrcBlend", {Value::Type::INTEGER, 0}},
+            {"SRGBWriteEnable", {Value::Type::INTEGER, 0}},
+            {"StencilEnable", {Value::Type::INTEGER, 0}},
+            {"StencilFail", {Value::Type::INTEGER, 0}},
+            {"StencilFunc", {Value::Type::INTEGER, 0}},
+            {"StencilMask", {Value::Type::INTEGER, 0}},
+            {"StencilPass", {Value::Type::INTEGER, 0}},
+            {"StencilRef", {Value::Type::INTEGER, 0}},
+            {"StencilWriteMask", {Value::Type::INTEGER, 0}},
+            {"StencilZFail", {Value::Type::INTEGER, 0}},
+            {"TextureFactor", {Value::Type::INTEGER, 0}},
+            {"Wrap0", {Value::Type::INTEGER, 0}},
+            {"Wrap1", {Value::Type::INTEGER, 0}},
+            {"Wrap2", {Value::Type::INTEGER, 0}},
+            {"Wrap3", {Value::Type::INTEGER, 0}},
+            {"Wrap4", {Value::Type::INTEGER, 0}},
+            {"Wrap5", {Value::Type::INTEGER, 0}},
+            {"Wrap6", {Value::Type::INTEGER, 0}},
+            {"Wrap7", {Value::Type::INTEGER, 0}},
+            {"Wrap8", {Value::Type::INTEGER, 0}},
+            {"Wrap9", {Value::Type::INTEGER, 0}},
+            {"Wrap10", {Value::Type::INTEGER, 0}},
+            {"Wrap11", {Value::Type::INTEGER, 0}},
+            {"Wrap12", {Value::Type::INTEGER, 0}},
+            {"Wrap13", {Value::Type::INTEGER, 0}},
+            {"Wrap14", {Value::Type::INTEGER, 0}},
+            {"Wrap15", {Value::Type::INTEGER, 0}},
+            {"ZEnable", {Value::Type::INTEGER, 0}},
+            {"ZFunc", {Value::Type::INTEGER, 0}},
+            {"ZWriteEnable", {Value::Type::INTEGER, 0}},
+            // Vertex Pipe Render States
+            //{"Ambient", {float4, 0}},
+            {"AmbientMaterialSource", {Value::Type::INTEGER, 0}},
+            {"Clipping", {Value::Type::INTEGER, 0}},
+            {"ClipPlaneEnable", {Value::Type::INTEGER, 0}},
+            {"ColorVertex", {Value::Type::INTEGER, 0}},
+            {"CullMode", {Value::Type::INTEGER, 0}},
+            {"DiffuseMaterialSource", {Value::Type::INTEGER, 0}},
+            {"EmissiveMaterialSource", {Value::Type::INTEGER, 0}},
+            {"FogColor", {Value::Type::INTEGER, 0}},
+            {"FogDensity", {Value::Type::FLOATING_POINT, 0}},
+            {"FogEnable", {Value::Type::INTEGER, 0}},
+            {"FogEnd", {Value::Type::FLOATING_POINT, 0}},
+            {"FogStart", {Value::Type::FLOATING_POINT, 0}},
+            {"FogTableMode", {Value::Type::INTEGER, 0}},
+            {"FogVertexMode", {Value::Type::INTEGER, 0}},
+            {"IndexedVertexBlendEnable", {Value::Type::INTEGER, 0}},
+            {"Lighting", {Value::Type::INTEGER, 0}},
+            {"LocalViewer", {Value::Type::INTEGER, 0}},
+            {"MultiSampleAntialias", {Value::Type::INTEGER, 0}},
+            {"MultiSampleMask", {Value::Type::INTEGER, 0}},
+            {"NormalizeNormals", {Value::Type::INTEGER, 0}},
+            {"PatchSegments", {Value::Type::FLOATING_POINT, 0}},
+            {"PointScale_A", {Value::Type::FLOATING_POINT, 0}},
+            {"PointScale_B", {Value::Type::FLOATING_POINT, 0}},
+            {"PointScale_C", {Value::Type::FLOATING_POINT, 0}},
+            {"PointScaleEnable", {Value::Type::INTEGER, 0}},
+            {"PointSize", {Value::Type::FLOATING_POINT, 0}},
+            {"PointSize_Min", {Value::Type::FLOATING_POINT, 0}},
+            {"PointSize_Max", {Value::Type::FLOATING_POINT, 0}},
+            {"PointSpriteEnable", {Value::Type::INTEGER, 0}},
+            {"RangeFogEnable", {Value::Type::INTEGER, 0}},
+            {"SpecularEnable", {Value::Type::INTEGER, 0}},
+            {"SpecularMaterialSource", {Value::Type::INTEGER, 0}},
+            {"TweenFactor", {Value::Type::FLOATING_POINT, 0}},
+            {"VertexBlend", {Value::Type::INTEGER, 0}},
+            // Sampler State States
+            {"AddressU", {Value::Type::INTEGER, 15}},
+            {"AddressV", {Value::Type::INTEGER, 15}},
+            {"AddressW", {Value::Type::INTEGER, 15}},
+            {"BorderColor", {Value::Type::INTEGER, 15}},
+            {"MagFilter", {Value::Type::INTEGER, 15}},
+            {"MaxAnisotropy", {Value::Type::INTEGER, 15}},
+            {"MaxMipLevel", {Value::Type::INTEGER, 15}},
+            {"MinFilter", {Value::Type::INTEGER, 15}},
+            {"MipFilter", {Value::Type::INTEGER, 15}},
+            {"MipMapLodBias", {Value::Type::FLOATING_POINT, 15}},
+            {"SRGBTexture", {Value::Type::INTEGER, 0}},
+            // Shader States
+            {"PixelShader", {Value::Type::SHADER, 0, Value::Shader::Type::PIXEL}},
+            {"VertexShader", {Value::Type::SHADER, 0, Value::Shader::Type::VERTEX}},
+            // Shader Constant States
+            //{"PixelShaderConstant", {float[m[n]], 0}},
+            //{"PixelShaderConstant1", {float4, 0}},
+            //{"PixelShaderConstant2", {float4x2, 0}},
+            //{"PixelShaderConstant3", {float4x3, 0}},
+            //{"PixelShaderConstant4", {float4x4, 0}},
+            //{"PixelShaderConstantB", {bool[m[n]], 0}},
+            //{"PixelShaderConstantI", {int[m[n]], 0}},
+            //{"PixelShaderConstantF", {float[m[n]], 0}},
+            //{"VertexShaderConstant", {float[m[n]], 0}},
+            //{"VertexShaderConstant1", {float4, 0}},
+            //{"VertexShaderConstant2", {float4x2, 0}},
+            //{"VertexShaderConstant3", {float4x3, 0}},
+            //{"VertexShaderConstant4", {float4x4, 0}},
+            //{"VertexShaderConstantB", {bool[m[n]], 0}},
+            //{"VertexShaderConstantI", {int[m[n]], 0}},
+            //{"VertexShaderConstantF", {float[m[n]], 0}},
+            // Texture States
+            {"Texture", {Value::Type::NULL_TYPE, 7}},
+            // Texture State States
+            {"AlphaOp", {Value::Type::INTEGER, 7}},
+            {"AlphaArg0", {Value::Type::INTEGER, 7}},
+            {"AlphaArg1", {Value::Type::INTEGER, 7}},
+            {"AlphaArg2", {Value::Type::INTEGER, 7}},
+            {"ColorArg0", {Value::Type::INTEGER, 7}},
+            {"ColorArg1", {Value::Type::INTEGER, 7}},
+            {"ColorArg2", {Value::Type::INTEGER, 7}},
+            {"ColorOp", {Value::Type::INTEGER, 7}},
+            {"BumpEnvLScale", {Value::Type::FLOATING_POINT, 7}},
+            {"BumpEnvLOffset", {Value::Type::FLOATING_POINT, 7}},
+            {"BumpEnvMat00", {Value::Type::FLOATING_POINT, 7}},
+            {"BumpEnvMat01", {Value::Type::FLOATING_POINT, 7}},
+            {"BumpEnvMat10", {Value::Type::FLOATING_POINT, 7}},
+            {"BumpEnvMat11", {Value::Type::FLOATING_POINT, 7}},
+            {"ResultArg", {Value::Type::INTEGER, 7}},
+            {"TexCoordIndex", {Value::Type::INTEGER, 7}},
+            {"TextureTransformFlags", {Value::Type::INTEGER, 7}},
+            // Transform States
+            //{"ProjectionTransform", {float4x4, 0}},
+            //{"TextureTransform", {float4x4, 7}},
+            //{"ViewTransform", {float4x4, 0}},
+            //{"WorldTransform", {float4x4, 0}},
+        };
+        auto it = table.find($1);
+        if (it == table.end()) {
+            ERROR(@1, "invalid effect state " + $1);
         }
-        if ($4.get_type() != Value::Type::SHADER) {
-            ERROR(@4, std::string("expected a shader or NULL, got ") + type_name($4));
-        }
-        std::string errors;
-        if ($4.as_shader().type != Value::Shader::Type::VERTEX && $4.as_shader().type != Value::Shader::Type::PIXEL) {
-            ERROR(@4, std::string("unsupported shader type, must be a vertex shader or pixel shader"));
-        }
-        if (
-            !hlsl_to_spirv.compile(
-                $$,
-                errors,
-                hlsl_source_code,
-                $4.as_shader().entry_point.c_str(),
-                $4.as_shader().type == Value::Shader::Type::PIXEL ? HlslToSpirv::Stage::FRAGMENT : HlslToSpirv::Stage::VERTEX,
-                HlslToSpirv::Dialect::D3D9
-            )
-        ) {
-            std::string error_message = std::string("failed to compile shader function ") + $4.as_shader().entry_point + "():";
-            std::istringstream errors_stream(errors);
-            std::string errors_line;
-            while (std::getline(errors_stream, errors_line)) {
-                if (errors_line.empty()) {
-                    continue;
-                }
-                error_message += "\n    ";
-                error_message += errors_line;
+        if (it->second.maximum_index == 0) {
+            if ($2.get_type() != Value::Type::NULL_TYPE) {
+                ERROR(@2, $1 + " effect state cannot have an index");
             }
-            ERROR(@4, error_message);
+        } else {
+            if ($2.get_type() != Value::Type::INTEGER) {
+                ERROR(@1, $1 + " effect state requires an index, such as " + $1 + "[0]");
+            }
+            if ($2.as_integer().value > it->second.maximum_index) {
+                ERROR(@1, $1 + " effect state index must be less than or equal to " + std::to_string(it->second.maximum_index));
+            }
+            $1 += '[' + std::to_string(it->second.maximum_index) + ']';
         }
+        if ($4.get_type() != it->second.type) {
+            if ($4.get_type() == Value::Type::INTEGER && it->second.type == Value::Type::FLOATING_POINT) {
+                $4 = Value::FloatingPoint($4.as_integer().is_signed ? (double)(int32_t)$4.as_integer().value : (double)$4.as_integer().value);
+            } else if ($4.get_type() == Value::Type::FLOATING_POINT && it->second.type == Value::Type::INTEGER) {
+                $4 = Value::Integer(!std::isfinite($4.as_floating_point().value) ? INT32_MIN : (int32_t)$4.as_floating_point().value, true);
+            } else if ($4.get_type() != Value::Type::NULL_TYPE || it->second.type != Value::Type::SHADER) { // Shaders can be null
+                ERROR(@4, std::string("expected ") + type_name(it->second.type) + ", got " + type_name($4));
+            }
+        }
+        if ($4.get_type() == Value::Type::SHADER && $4.as_shader().type != it->second.type) {
+            ERROR(@4, std::string("expected ") + shader_type_name(it->second.shader_type) + ", got " + shader_type_name($4));
+        }
+        $$ = std::make_pair(std::move($1), std::move($4));
     }
     ;
 
 state_assignment_subscript
-    : %empty
-    | left_square_bracket integer_literal right_square_bracket
+    : %empty {
+        $$ = Value();
+    }
+    | left_square_bracket integer_literal right_square_bracket {
+        $$ = std::move($2);
+    }
     ;
 
 state_assignment_initializer
