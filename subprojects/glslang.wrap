@@ -5,4 +5,5 @@ source_hash = a6885b1631fd77c89cd689b939cf2b3032c5ec13ee99250270d34bcad1efc10c
 directory = glslang-vulkan-sdk-1.4.350.0
 method = cmake
 diff_files =
+    glslang-entry-point-not-found.patch,
     end-of-diff-files.patch

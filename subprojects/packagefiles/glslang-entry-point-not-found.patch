@@ -1,0 +1,13 @@
+# Promotes the "Entry point not found" error for compiling a HLSL shader where the entry point function is missing from a warning to an error.
+
+--- a/glslang/MachineIndependent/linkValidate.cpp
++++ b/glslang/MachineIndependent/linkValidate.cpp
+@@ -1582,7 +1582,7 @@ void TIntermediate::finalCheck(TInfoSink& infoSink, bool keepUncalled)
+         if (getSource() == EShSourceGlsl)
+             error(infoSink, "Missing entry point: Each stage requires one entry point");
+         else
+-            warn(infoSink, "Entry point not found");
++            error(infoSink, "Entry point not found");
+     }
+ 
+     // recursion and missing body checking
