@@ -63,7 +63,11 @@ HlslToSpirv &HlslToSpirv::operator=(HlslToSpirv &&other) noexcept {
     return *this;
 }
 
-bool HlslToSpirv::compile(std::vector<uint8_t> &spirv_output, std::string &error_messages, const char *hlsl_source_code, const char *entry_point, Stage stage, Dialect dialect) {
+extern thread_local int mkxp_custom_shaders_line_number_offset;
+
+bool HlslToSpirv::compile(std::vector<uint8_t> &spirv_output, std::string &error_messages, const char *hlsl_source_code, const char *entry_point, int line_number_offset, Stage stage, Dialect dialect) {
+    mkxp_custom_shaders_line_number_offset = line_number_offset;
+
     const glslang_input_t input = {
         GLSLANG_SOURCE_HLSL,
         stage == Stage::VERTEX ? GLSLANG_STAGE_VERTEX : GLSLANG_STAGE_FRAGMENT,

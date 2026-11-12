@@ -65,12 +65,13 @@ public:
      * error_messages: If compilation succeeds, this will be unchanged. Otherwise, this will be set to a string containing all compilation errors that occurred.
      * hlsl_source_code: The HLSL source code for the shader to be compiled.
      * entry_point: The name of the main function of the shader.
+     * line_number_offset: Offset to add to the line numbers in error messages. This can be useful if the HLSL source code contains some kind of preamble.
      * stage: The type of shader that we are compiling (e.g. a vertex shader or fragment shader).
      * dialect: What type of HLSL the source code is written in.
      *
      * Return value: `true` if compilation succeeded, otherwise `false`.
      */
-    bool compile(std::vector<uint8_t> &spirv_output, std::string &error_messages, const char *hlsl_source_code, const char *entry_point, Stage stage, Dialect dialect = Dialect::MODERN);
+    bool compile(std::vector<uint8_t> &spirv_output, std::string &error_messages, const char *hlsl_source_code, const char *entry_point, int line_number_offset, Stage stage, Dialect dialect = Dialect::MODERN);
 };
 
 #endif // HLSL_TO_SPIRV_H

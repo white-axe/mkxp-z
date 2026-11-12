@@ -1,0 +1,22 @@
+# Allows adding an offset to the line numbers in compiler error messages using the variable `mkxp_custom_shaders_line_number_offset`.
+
+--- a/glslang/MachineIndependent/Scan.h
++++ b/glslang/MachineIndependent/Scan.h
+@@ -37,7 +37,7 @@
+ #define _GLSLANG_SCAN_INCLUDED_
+ 
+ #include "Versions.h"
+-
++extern thread_local int mkxp_custom_shaders_line_number_offset;
+ namespace glslang {
+ 
+ // Use a global end-of-input character, so no translation is needed across
+@@ -240,7 +240,7 @@ protected:
+                 ++currentSource;
+                 if (currentSource < numSources) {
+                     loc[currentSource].string = loc[currentSource - 1].string + 1;
+-                    loc[currentSource].line = 1;
++                    loc[currentSource].line = (unsigned int)mkxp_custom_shaders_line_number_offset + 1u; mkxp_custom_shaders_line_number_offset = 0;
+                     loc[currentSource].column = 0;
+                 }
+             }
