@@ -158,9 +158,9 @@
 
             ~Value();
 
-            Value(const Value &other);
+            Value(const Value &other) = delete;
             Value(Value &&other) noexcept;
-            Value &operator=(const Value &other);
+            Value &operator=(const Value &other) = delete;
             Value &operator=(Value &&other) noexcept;
 
             static Value make_boolean(bool value);
@@ -1360,26 +1360,8 @@ Value::~Value() {
      dispose();
 }
 
-Value::Value(const Value &other) : type(Type::NULL_TYPE) {
-    *this = other;
-}
-
 Value::Value(Value &&other) noexcept : type(Type::NULL_TYPE) {
     *this = std::move(other);
-}
-
-Value &Value::operator=(const Value &other) {
-    dispose();
-    switch ((type = other.type)) {
-        case Type::NULL_TYPE: break;
-        case Type::NAMED_CONSTANT: new(&named_constant) NamedConstant(other.named_constant); break;
-        case Type::INTEGER: new(&integer) Integer(other.integer); break;
-        case Type::FLOATING_POINT: new(&floating_point) FloatingPoint(other.floating_point); break;
-        case Type::STRING: new(&string) String(other.string); break;
-        case Type::SHADER: new(&shader) Shader(other.shader); break;
-        default: assert(!"unreachable"); break;
-    }
-    return *this;
 }
 
 Value &Value::operator=(Value &&other) noexcept {
