@@ -1360,11 +1360,11 @@ Value::~Value() {
      dispose();
 }
 
-Value::Value(const Value &other) {
+Value::Value(const Value &other) : type(Type::NULL_TYPE) {
     *this = other;
 }
 
-Value::Value(Value &&other) noexcept {
+Value::Value(Value &&other) noexcept : type(Type::NULL_TYPE) {
     *this = std::move(other);
 }
 
