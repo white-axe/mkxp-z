@@ -24,6 +24,8 @@
 
 %define api.namespace {effectc_impl}
 %define api.parser.class {Parser}
+%parse-param {HlslToSpirv &hlsl_to_spirv}
+%parse-param {const char *hlsl_source_code}
 %parse-param {Lexer &lexer}
 %lex-param {Lexer &lexer}
 
@@ -42,6 +44,11 @@
 %code requires {
     #include <cstdint>
     #include <string>
+    #include <unordered_map>
+    #include <utility>
+    #include <vector>
+
+    #include "hlsl-to-spirv.h"
 
     namespace effectc_impl {
         class Lexer;
@@ -172,8 +179,7 @@
     #include <cassert>
     #include <cfenv>
     #include <cmath>
-    #include <unordered_map>
-    #include <utility>
+    #include <sstream>
 
     #include "effectc/impl.h"
 
@@ -436,6 +442,17 @@
 
 %token END 0 "end of file"
 
+%type <std::unordered_map<std::string, std::vector<uint8_t>>> passes
+%type <std::pair<std::string, std::vector<uint8_t>>> pass
+
+%type <std::string> optional_identifier_or_type_name
+%type <std::string> identifier_or_type_name
+
+%type <std::vector<uint8_t>> state_assignments
+%type <std::vector<uint8_t>> state_assignment
+
+%type <effectc_impl::Value> state_assignment_initializer
+
 %type <effectc_impl::Value> expression
 %type <effectc_impl::Value> assignment_expression
 %type <effectc_impl::Value> conditional_expression
@@ -460,23 +477,38 @@
 
 %%
 
-passes
-    : %empty
-    | passes pass
+passes /* TODO: if there are no shaders, we need to compile the HLSL source code once to make sure it's syntactically valid */
+    : %empty {
+        $$ = std::unordered_map<std::string, std::vector<uint8_t>>();
+    }
+    | passes pass {
+        $$ = std::move($1);
+        $$.emplace(std::move($2));
+    }
     ;
 
 pass
-    : keyword_pass optional_identifier_or_type_name annotations left_curly_brace state_assignments right_curly_brace
+    : keyword_pass optional_identifier_or_type_name annotations left_curly_brace state_assignments right_curly_brace {
+        $$ = std::make_pair(std::move($2), std::move($5));
+    }
     ;
 
 optional_identifier_or_type_name
-    : %empty
-    | identifier_or_type_name
+    : %empty {
+        $$ = std::string();
+    }
+    | identifier_or_type_name {
+        $$ = std::move($1);
+    }
     ;
 
 identifier_or_type_name
-    : identifier
-    | type_name
+    : identifier {
+        $$ = std::move($1);
+    }
+    | type_name {
+        $$ = std::move($1);
+    }
     ;
 
 annotations
@@ -522,12 +554,50 @@ trailing_comma
     ;
 
 state_assignments
-    : %empty
-    | state_assignments state_assignment
+    : %empty {
+        $$ = std::vector<uint8_t>();
+    }
+    | state_assignments state_assignment {
+        $$ = std::move($2);
+    }
     ;
 
 state_assignment
-    : identifier_or_type_name state_assignment_subscript operator_assign state_assignment_initializer semicolon
+    : identifier_or_type_name state_assignment_subscript operator_assign state_assignment_initializer semicolon {
+        if ($4.get_type() == Value::Type::NULL_TYPE) {
+            $$ = std::vector<uint8_t>();
+            break;
+        }
+        if ($4.get_type() != Value::Type::SHADER) {
+            ERROR(@4, std::string("expected a shader or NULL, got ") + type_name($4));
+        }
+        std::string errors;
+        if ($4.as_shader().type != Value::Shader::Type::VERTEX && $4.as_shader().type != Value::Shader::Type::PIXEL) {
+            ERROR(@4, std::string("unsupported shader type, must be a vertex shader or pixel shader"));
+        }
+        if (
+            !hlsl_to_spirv.compile(
+                $$,
+                errors,
+                hlsl_source_code,
+                $4.as_shader().entry_point.c_str(),
+                $4.as_shader().type == Value::Shader::Type::PIXEL ? HlslToSpirv::Stage::FRAGMENT : HlslToSpirv::Stage::VERTEX,
+                HlslToSpirv::Dialect::D3D9
+            )
+        ) {
+            std::string error_message = std::string("failed to compile shader function ") + $4.as_shader().entry_point + "():";
+            std::istringstream errors_stream(errors);
+            std::string errors_line;
+            while (std::getline(errors_stream, errors_line)) {
+                if (errors_line.empty()) {
+                    continue;
+                }
+                error_message += "\n    ";
+                error_message += errors_line;
+            }
+            ERROR(@4, error_message);
+        }
+    }
     ;
 
 state_assignment_subscript
@@ -536,8 +606,13 @@ state_assignment_subscript
     ;
 
 state_assignment_initializer
-    : expression
-    | list_initializer
+    : expression {
+        $$ = std::move($1);
+    }
+    | list_initializer {
+        // TODO
+        $$ = Value();
+    }
     ;
 
 expression
