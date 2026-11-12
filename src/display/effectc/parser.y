@@ -482,6 +482,7 @@
 %type <std::unordered_map<std::string, effectc_impl::Value>> state_assignments
 %type <std::pair<std::string, effectc_impl::Value>> state_assignment
 
+%type <std::string> state_assignment_name
 %type <effectc_impl::Value> state_assignment_subscript
 %type <effectc_impl::Value> state_assignment_initializer
 
@@ -594,7 +595,7 @@ state_assignments
     ;
 
 state_assignment
-    : identifier_or_type_name state_assignment_subscript operator_assign state_assignment_initializer semicolon {
+    : state_assignment_name state_assignment_subscript operator_assign state_assignment_initializer semicolon {
         // See <https://github.com/MicrosoftDocs/win32/blob/9bcde4a0658c5b315366da6124466465bb25e5ee/desktop-src/direct3d9/effect-states.md> for a list of effect states
         static const std::unordered_map<std::string, EffectState> table = {
             // Light States
@@ -786,6 +787,30 @@ state_assignment
             ERROR(@4, std::string("expected ") + shader_type_name(it->second.shader_type) + ", got " + shader_type_name($4));
         }
         $$ = std::make_pair(std::move($1), std::move($4));
+    }
+    ;
+
+state_assignment_name
+    : identifier_or_type_name {
+        $$ = std::move($1);
+    }
+    | keyword_compute_shader {
+        $$ = "ComputeShader";
+    }
+    | keyword_domain_shader {
+        $$ = "DomainShader";
+    }
+    | keyword_geometry_shader {
+        $$ = "GeometryShader";
+    }
+    | keyword_pixel_shader {
+        $$ = "PixelShader";
+    }
+    | keyword_sampler {
+        $$ = "sampler";
+    }
+    | keyword_vertex_shader {
+        $$ = "VertexShader";
     }
     ;
 
