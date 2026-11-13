@@ -787,11 +787,11 @@ state_assignment
             } else if ($4.get_type() == Value::Type::FLOATING_POINT && it->second.type == Value::Type::INTEGER) {
                 $4 = Value::Integer(!std::isfinite($4.as_floating_point().value) ? INT32_MIN : (int32_t)$4.as_floating_point().value, true);
             } else if ($4.get_type() != Value::Type::NULL_TYPE || it->second.type != Value::Type::SHADER) { // Shaders can be null
-                ERROR(@4, std::string("expected ") + type_name(it->second.type) + ", got " + type_name($4));
+                ERROR(@4, $1 + " effect state should be " + type_name(it->second.type) + ", but got " + type_name($4));
             }
         }
         if ($4.get_type() == Value::Type::SHADER && $4.as_shader().type != it->second.shader_type) {
-            ERROR(@4, std::string("expected ") + shader_type_name(it->second.shader_type) + ", got " + shader_type_name($4));
+            ERROR(@4, $1 + " effect state should be " + shader_type_name(it->second.shader_type) + ", but got " + shader_type_name($4));
         }
         $$ = std::make_pair(it->first, std::move($4));
     }
