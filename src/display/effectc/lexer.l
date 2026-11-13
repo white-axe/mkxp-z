@@ -19,13 +19,21 @@
  ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* Prepended to the beginning of the name of every symbol with external linkage so that if there are other Lex-based lexers in our codebase or in a library, their symbols don't clash with ours */
 %option prefix="effectc_impl_Lexer_"
 
-%option never-interactive
-%option nodefault
-%option nounistd
-%option noyywrap
+/* Instead of storing the lexer's state in global variables, store it in an object (`yyscan_t`); this allows more than one of this lexer to exist simultaneously, thus making it safe to have multiple lexers running concurrently in different threads */
 %option reentrant
+
+/* Removes the need to implement `yywrap()`, which is called to attempt to get the next source file upon reaching the end of the current source file, since we only have one source file */
+%option noyywrap
+
+/* If input is detected that doesn't match any rules, this makes the entire program abort to make it obvious that there's a problem with our code; without this, Flex adds a default rule that silently ignores all input that doesn't match any other rules */
+%option nodefault
+
+/* These two options remove the dependency on unistd.h, which Flex normally uses for `isatty()` to check if the user's terminal is interactive; we don't need this feature since we're not getting input from the terminal */
+%option nounistd
+%option never-interactive
 
 %{
     #include <cerrno>
