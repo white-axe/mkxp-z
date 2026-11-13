@@ -24,7 +24,9 @@
 
 %define api.namespace {effectc_impl}
 %define api.parser.class {Parser}
-%parse-param {HlslToSpirv &hlsl_to_spirv}
+%parse-param {std::unordered_map<std::string, std::unordered_map<std::string, effectc_impl::Value>> &passes_output}
+%parse-param {std::string &error_messages}
+%parse-param {HlslToSpirv &hlsl_to_spirv_compiler}
 %parse-param {const char *hlsl_source_code}
 %parse-param {Lexer &lexer}
 %lex-param {Lexer &lexer}
@@ -475,7 +477,6 @@
 
 %token END 0 "end of file"
 
-%type <std::unordered_map<std::string, std::unordered_map<std::string, effectc_impl::Value>>> passes
 %type <std::pair<std::string, std::unordered_map<std::string, effectc_impl::Value>>> pass
 
 %type <std::string> optional_identifier_or_type_name
@@ -513,11 +514,9 @@
 %%
 
 passes
-    : %empty {
-        $$ = std::unordered_map<std::string, std::unordered_map<std::string, effectc_impl::Value>>();
-    }
+    : %empty
     | passes pass {
-        $$.emplace(std::move($2));
+        passes_output.emplace(std::move($2));
     }
     ;
 
@@ -795,7 +794,7 @@ state_assignment
         if ($4.get_type() == Value::Type::SHADER && $4.as_shader().type != it->second.type) {
             ERROR(@4, std::string("expected ") + shader_type_name(it->second.shader_type) + ", got " + shader_type_name($4));
         }
-        $$ = std::make_pair(std::move($1), std::move($4));
+        $$ = std::make_pair(it->first, std::move($4));
     }
     ;
 
@@ -1335,8 +1334,9 @@ matrix_template
 %%
 
 void Parser::error(const location &location, const std::string &message) {
-    // TODO: the error message should go somewhere other than standard error
-    std::cerr << "Error (" << location << "): " << message << std::endl;
+    std::stringstream error;
+    error << location << ": " << message << std::endl;
+    error_messages += error.str();
 }
 
 Value::NamedConstant::NamedConstant(std::string &&name) : name(std::move(name)) {

@@ -36,7 +36,7 @@
 namespace effectc_impl {
     class Lexer {
     public:
-        Lexer();
+        Lexer(const char *source_code);
         ~Lexer();
         Lexer(const Lexer &other) = delete;
         Lexer(Lexer &&other) noexcept;
@@ -48,6 +48,7 @@ namespace effectc_impl {
 
     private:
         yyscan_t yyscanner;
+        YY_BUFFER_STATE buffer;
         Parser::location_type location;
         uint8_t continuation_length;
         bool check_for_overlong;

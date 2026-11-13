@@ -21,7 +21,9 @@
 
 %option prefix="effectc_impl_Lexer_"
 
+%option never-interactive
 %option nodefault
+%option nounistd
 %option noyywrap
 %option reentrant
 
@@ -999,14 +1001,21 @@ while {
 
 %%
 
-Lexer::Lexer() : location(nullptr), continuation_length(0), check_for_overlong(false), seen_carriage_return(false) {
+Lexer::Lexer(const char *source_code) : yyscanner(nullptr), buffer(nullptr), location(nullptr), continuation_length(0), check_for_overlong(false), seen_carriage_return(false) {
     if (yylex_init(&yyscanner) != 0) {
+        throw std::bad_alloc();
+    }
+    if ((buffer = yy_scan_string(source_code, yyscanner)) == nullptr) {
+        yylex_destroy(yyscanner);
         throw std::bad_alloc();
     }
 }
 
 Lexer::~Lexer() {
     if (yyscanner != nullptr) {
+        if (buffer != nullptr) {
+            yy_delete_buffer(buffer, yyscanner);
+        }
         yylex_destroy(yyscanner);
     }
 }
@@ -1018,6 +1027,8 @@ Lexer::Lexer(Lexer &&other) noexcept {
 Lexer &Lexer::operator=(Lexer &&other) noexcept {
     yyscanner = other.yyscanner;
     other.yyscanner = nullptr;
+    buffer = other.buffer;
+    other.buffer = nullptr;
     location = std::move(other.location);
     continuation_length = other.continuation_length;
     check_for_overlong = other.check_for_overlong;
