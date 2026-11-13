@@ -24,7 +24,7 @@
 
 %define api.namespace {effectc_impl}
 %define api.parser.class {Parser}
-%parse-param {std::unordered_map<std::string, std::unordered_map<std::string, effectc_impl::Value>> &passes_output}
+%parse-param {std::unordered_map<std::string, std::unordered_map<std::string, std::pair<class location, effectc_impl::Value>>> &passes_output}
 %parse-param {std::string &error_messages}
 %parse-param {Lexer &lexer}
 %lex-param {Lexer &lexer}
@@ -479,13 +479,13 @@
 
 %token END 0 "end of file"
 
-%type <std::pair<std::string, std::unordered_map<std::string, effectc_impl::Value>>> pass
+%type <std::pair<std::string, std::unordered_map<std::string, std::pair<class location, effectc_impl::Value>>>> pass
 
 %type <std::string> optional_identifier_or_type_name
 %type <std::string> identifier_or_type_name
 
-%type <std::unordered_map<std::string, effectc_impl::Value>> state_assignments
-%type <std::pair<std::string, effectc_impl::Value>> state_assignment
+%type <std::unordered_map<std::string, std::pair<class location, effectc_impl::Value>>> state_assignments
+%type <std::pair<std::string, std::pair<class location, effectc_impl::Value>>> state_assignment
 
 %type <std::string> state_assignment_name
 %type <effectc_impl::Value> state_assignment_subscript
@@ -590,7 +590,7 @@ trailing_comma
 
 state_assignments
     : %empty {
-        $$ = std::unordered_map<std::string, effectc_impl::Value>();
+        $$ = std::unordered_map<std::string, std::pair<class location, effectc_impl::Value>>();
     }
     | state_assignments state_assignment {
         $$.emplace(std::move($2));
@@ -796,7 +796,7 @@ state_assignment
         if ($4.get_type() == Value::Type::SHADER && $4.as_shader().type != it->second.shader_type) {
             ERROR(@4, $1 + " effect state should be " + shader_type_name(it->second.shader_type) + ", but got " + shader_type_name($4));
         }
-        $$ = std::make_pair(it->first, std::move($4));
+        $$ = std::make_pair(it->first, std::make_pair(std::move(@4), std::move($4)));
     }
     ;
 
