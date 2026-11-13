@@ -48,7 +48,7 @@ bool effectc::compile(std::string &error_messages, HlslToSpirv &hlsl_to_spirv_co
         for (size_t stage_index = 0; stage_index < sizeof stages / sizeof *stages; ++stage_index) {
             const std::pair<const char *, HlslToSpirv::Stage> &stage = stages[stage_index];
             auto it = pass.second.find(stage.first);
-            if (it == pass.second.end()) {
+            if (it == pass.second.end() || it->second.get_type() != Value::Type::SHADER) {
                 continue;
             }
 
