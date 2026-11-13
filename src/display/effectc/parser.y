@@ -790,7 +790,7 @@ state_assignment
                 ERROR(@4, std::string("expected ") + type_name(it->second.type) + ", got " + type_name($4));
             }
         }
-        if ($4.get_type() == Value::Type::SHADER && $4.as_shader().type != it->second.type) {
+        if ($4.get_type() == Value::Type::SHADER && $4.as_shader().type != it->second.shader_type) {
             ERROR(@4, std::string("expected ") + shader_type_name(it->second.shader_type) + ", got " + shader_type_name($4));
         }
         $$ = std::make_pair(it->first, std::move($4));
