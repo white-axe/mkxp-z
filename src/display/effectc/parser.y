@@ -26,8 +26,6 @@
 %define api.parser.class {Parser}
 %parse-param {std::unordered_map<std::string, std::unordered_map<std::string, effectc_impl::Value>> &passes_output}
 %parse-param {std::string &error_messages}
-%parse-param {HlslToSpirv &hlsl_to_spirv_compiler}
-%parse-param {const char *hlsl_source_code}
 %parse-param {Lexer &lexer}
 %lex-param {Lexer &lexer}
 
