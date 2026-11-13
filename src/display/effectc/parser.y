@@ -181,7 +181,6 @@
     #include <algorithm>
     #include <cassert>
     #include <cctype>
-    #include <cfenv>
     #include <cmath>
     #include <sstream>
 
