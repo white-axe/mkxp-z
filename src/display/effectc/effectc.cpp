@@ -27,6 +27,23 @@
 
 using namespace effectc_impl;
 
+std::string effectc_impl::format_location(const Parser::location_type location) {
+    std::stringstream formatted_location;
+    if (location.begin.filename != nullptr) {
+        formatted_location << "Error in " << location.begin.filename << ", on ";
+    } else {
+        formatted_location << "Error on ";
+    }
+    if (location.begin.line != location.end.line) {
+        formatted_location << "line " << location.begin.line << ", column " << location.begin.column << " to line " << location.end.line << ", column " << location.end.column;
+    } else if (location.begin.column != location.end.column) {
+        formatted_location << "line " << location.begin.line << ", columns " << location.begin.column << '-' << location.end.column;
+    } else {
+        formatted_location << "line " << location.begin.line << ", column " << location.begin.column;
+    }
+    return formatted_location.str();
+}
+
 bool effectc::compile(std::string &error_messages, HlslToSpirv &hlsl_to_spirv_compiler, SpirvOptimizer &optimizer, const char *shaders_source_code, const char *passes_source_code, int shaders_line_number_offset) {
     std::string errors;
     std::unordered_map<std::string, std::unordered_map<std::string, std::pair<Parser::location_type, Value>>> passes;
@@ -56,7 +73,7 @@ bool effectc::compile(std::string &error_messages, HlslToSpirv &hlsl_to_spirv_co
             std::vector<uint8_t> unoptimized_spirv;
             if (!hlsl_to_spirv_compiler.compile(unoptimized_spirv, errors, shaders_source_code, it->second.second.as_shader().entry_point.c_str(), shaders_line_number_offset, stage.second, HlslToSpirv::Dialect::D3D9)) {
                 std::stringstream formatted_errors;
-                formatted_errors << it->second.first << ": failed to compile shader " << it->second.second.as_shader().entry_point << "():";
+                formatted_errors << format_location(it->second.first) << ": failed to compile shader " << it->second.second.as_shader().entry_point << "():";
                 std::istringstream errors_stream(errors);
                 std::string errors_line;
                 while (std::getline(errors_stream, errors_line)) {
@@ -72,7 +89,7 @@ bool effectc::compile(std::string &error_messages, HlslToSpirv &hlsl_to_spirv_co
             std::vector<uint8_t> optimized_spirv; // TODO: do something with this
             if (!optimizer.optimize(optimized_spirv, unoptimized_spirv.data(), unoptimized_spirv.size())) {
                 std::stringstream formatted_errors;
-                formatted_errors << it->second.first << ": failed to compile shader " << it->second.second.as_shader().entry_point << "():";
+                formatted_errors << format_location(it->second.first) << ": failed to compile shader " << it->second.second.as_shader().entry_point << "():";
                 std::istringstream errors_stream(errors);
                 std::string errors_line;
                 while (std::getline(errors_stream, errors_line)) {

@@ -34,6 +34,8 @@
 #endif // FLEX_SCANNER
 
 namespace effectc_impl {
+    std::string format_location(const Parser::location_type location);
+
     class Lexer {
     public:
         Lexer(const char *source_code);

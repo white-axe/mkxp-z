@@ -1337,7 +1337,7 @@ matrix_template
 
 void Parser::error(const location &location, const std::string &message) {
     std::stringstream error;
-    error << location << ": " << message << std::endl;
+    error << format_location(location) << ": " << message << std::endl;
     error_messages += error.str();
 }
 
