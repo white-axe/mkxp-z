@@ -168,10 +168,15 @@
             static Value make_boolean(bool value);
 
             Value::Type get_type() const noexcept;
+            const Value::NamedConstant &as_named_constant() const;
             Value::NamedConstant &as_named_constant();
+            const Value::Integer &as_integer() const;
             Value::Integer &as_integer();
+            const Value::FloatingPoint &as_floating_point() const;
             Value::FloatingPoint &as_floating_point();
+            const Value::String &as_string() const;
             Value::String &as_string();
+            const Value::Shader &as_shader() const;
             Value::Shader &as_shader();
         };
     }
@@ -238,7 +243,7 @@
         }
     }
 
-    static const char *shader_type_name(Value &value) {
+    static const char *shader_type_name(const Value &value) {
         return shader_type_name(value.as_shader().type);
     }
 
@@ -1419,9 +1424,25 @@ Value::Type Value::get_type() const noexcept {
     return type;
 }
 
+const Value::NamedConstant &Value::as_named_constant() const {
+    if (type == Type::NAMED_CONSTANT) {
+        return named_constant;
+    } else {
+        throw std::bad_cast();
+    }
+}
+
 Value::NamedConstant &Value::as_named_constant() {
     if (type == Type::NAMED_CONSTANT) {
         return named_constant;
+    } else {
+        throw std::bad_cast();
+    }
+}
+
+const Value::Integer &Value::as_integer() const {
+    if (type == Type::INTEGER) {
+        return integer;
     } else {
         throw std::bad_cast();
     }
@@ -1435,6 +1456,14 @@ Value::Integer &Value::as_integer() {
     }
 }
 
+const Value::FloatingPoint &Value::as_floating_point() const {
+    if (type == Type::FLOATING_POINT) {
+        return floating_point;
+    } else {
+        throw std::bad_cast();
+    }
+}
+
 Value::FloatingPoint &Value::as_floating_point() {
     if (type == Type::FLOATING_POINT) {
         return floating_point;
@@ -1443,9 +1472,25 @@ Value::FloatingPoint &Value::as_floating_point() {
     }
 }
 
+const Value::String &Value::as_string() const {
+    if (type == Type::STRING) {
+        return string;
+    } else {
+        throw std::bad_cast();
+    }
+}
+
 Value::String &Value::as_string() {
     if (type == Type::STRING) {
         return string;
+    } else {
+        throw std::bad_cast();
+    }
+}
+
+const Value::Shader &Value::as_shader() const {
+    if (type == Type::SHADER) {
+        return shader;
     } else {
         throw std::bad_cast();
     }
