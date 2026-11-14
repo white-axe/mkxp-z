@@ -93,6 +93,10 @@ __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 bool mkxp_use_angle = true;
 #endif // MKXPZ_HAVE_ANGLE
 
+#ifdef MKXPZ_HAVE_CUSTOM_SHADERS
+thread_local int mkxp_custom_shaders_line_number_offset;
+#endif // MKXPZ_HAVE_CUSTOM_SHADERS
+
 static void rgssThreadError(RGSSThreadData *rtData, const std::string &msg);
 static void showInitError(const std::string &msg);
 
