@@ -593,6 +593,7 @@ state_assignments
         $$ = std::unordered_map<std::string, std::pair<class location, effectc_impl::Value>>();
     }
     | state_assignments state_assignment {
+        $$ = std::move($1);
         $$.emplace(std::move($2));
     }
     ;
