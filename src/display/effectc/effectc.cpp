@@ -46,7 +46,7 @@ std::string effectc_impl::format_location(const Parser::location_type &location)
     return formatted_location.str();
 }
 
-bool effectc::compile(std::string &error_messages, HlslToSpirv &hlsl_to_spirv_compiler, SpirvOptimizer &optimizer, const char *shaders_source_code, const char *passes_source_code, int shaders_line_number_offset) {
+bool Effectc::compile(std::string &error_messages, HlslToSpirv &hlsl_to_spirv_compiler, SpirvOptimizer &optimizer, const char *shaders_source_code, const char *passes_source_code, int shaders_line_number_offset) {
     std::string errors;
     std::unordered_map<std::string, std::unordered_map<std::string, std::pair<Parser::location_type, Value>>> passes;
 
