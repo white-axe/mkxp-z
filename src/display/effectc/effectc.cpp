@@ -27,7 +27,7 @@
 
 using namespace effectc_impl;
 
-std::string effectc_impl::format_location(const Parser::location_type location) {
+std::string effectc_impl::format_location(const Parser::location_type &location) {
     std::stringstream formatted_location;
     if (location.begin.filename != nullptr) {
         formatted_location << "Error in " << location.begin.filename << ", on ";
