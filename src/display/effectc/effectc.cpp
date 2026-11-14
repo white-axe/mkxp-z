@@ -19,6 +19,7 @@
  ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <limits>
 #include <sstream>
 #include <utility>
 
@@ -34,10 +35,11 @@ std::string effectc_impl::format_location(const Parser::location_type &location)
     } else {
         formatted_location << "Error on ";
     }
-    if (location.begin.line != location.end.line) {
-        formatted_location << "line " << location.begin.line << ", column " << location.begin.column << " to line " << location.end.line << ", column " << location.end.column;
-    } else if (location.begin.column != location.end.column) {
-        formatted_location << "line " << location.begin.line << ", columns " << location.begin.column << '-' << location.end.column;
+    decltype(location.end.column) end_column_minus_one = location.end.column > std::numeric_limits<decltype(location.end.column)>::min() ? location.end.column - 1 : std::numeric_limits<decltype(location.end.column)>::min();
+    if (location.begin.line < location.end.line) {
+        formatted_location << "line " << location.begin.line << ", column " << location.begin.column << " to line " << location.end.line << ", column " << end_column_minus_one;
+    } else if (location.begin.column < end_column_minus_one) {
+        formatted_location << "line " << location.begin.line << ", columns " << location.begin.column << '-' << end_column_minus_one;
     } else {
         formatted_location << "line " << location.begin.line << ", column " << location.begin.column;
     }
