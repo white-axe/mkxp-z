@@ -1279,8 +1279,8 @@ string_literals
         $$ = std::move($1);
     }
     | string_literals string_literal {
-        $1 += $2;
         $$ = std::move($1);
+        $$ += $2;
     }
     ;
 
