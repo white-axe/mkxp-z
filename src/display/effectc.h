@@ -65,13 +65,17 @@ public:
      * hlsl_to_spirv_compiler: Compiler to use to compile HLSL shaders to SPIR-V.
      * optimizer: Optimizer to use to optimize SPIR-V shaders.
      * spirv_to_glsl_compiler: Compiler to use to compile SPIR-V shaders to GLSL.
+     * default_vertex_shader: SPIR-V bytecode for the vertex shader to use for a pass if a pass doesn't specify one. Can be null, in which case there will be an error if a pass doesn't specify a vertex shader.
+     * default_vertex_shader_size: Length of `default_vertex_shader` in bytes.
+     * default_fragment_shader: SPIR-V bytecode for the fragment shader to use for a pass if a pass doesn't specify one. Can be null, in which case there will be an error if a pass doesn't specify a fragment shader.
+     * default_fragment_shader_size: Length of `default_vertex_shader` in bytes.
      * shaders_source_code: The HLSL source code for the shaders to be compiled.
      * passes_source_code: The HLSL source code for the passes describing the shaders to be compiled, as one or more Direct3D 9 passes; see <https://github.com/MicrosoftDocs/win32/blob/9bcde4a0658c5b315366da6124466465bb25e5ee/desktop-src/direct3d9/techniques-and-passes.md#passes>.
      * shaders_line_number_offset: Offset to add to the line numbers in error messages in the source code for the shaders. This can be useful if the source code for the shaders contains some kind of preamble.
      *
      * Return value: `true` if compilation succeeded, otherwise `false`.
      */
-    bool compile(std::string &error_messages, HlslToSpirv &hlsl_to_spirv_compiler, SpirvOptimizer &optimizer, SpirvToGlsl &spirv_to_glsl_compiler, const char *shaders_source_code, const char *passes_source_code, int shaders_line_number_offset);
+    bool compile(std::string &error_messages, HlslToSpirv &hlsl_to_spirv_compiler, SpirvOptimizer &optimizer, SpirvToGlsl &spirv_to_glsl_compiler, const uint8_t *default_vertex_shader, size_t default_vertex_shader_size, const uint8_t *default_fragment_shader, size_t default_fragment_shader_size, const char *shaders_source_code, const char *passes_source_code, int shaders_line_number_offset);
 };
 
 #endif // EFFECTC_H

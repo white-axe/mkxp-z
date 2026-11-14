@@ -82,6 +82,9 @@ Effectc::Program &Effectc::Program::operator=(Program &&other) noexcept {
 }
 
 #define COMPILE_ERROR do { \
+    if (it == pass.second.second.end() || it->second.second.get_type() != Value::Type::SHADER) { \
+        LINK_ERROR; \
+    } \
     std::stringstream formatted_errors; \
     formatted_errors << format_location(it->second.first) << ": failed to compile shader " << it->second.second.as_shader().entry_point << "():" << std::endl; \
     if (errors.empty()) { \
@@ -131,7 +134,7 @@ Effectc::Program &Effectc::Program::operator=(Program &&other) noexcept {
     } \
 } while (0)
 
-bool Effectc::compile(std::string &error_messages, HlslToSpirv &hlsl_to_spirv_compiler, SpirvOptimizer &optimizer, SpirvToGlsl &spirv_to_glsl_compiler, const char *shaders_source_code, const char *passes_source_code, int shaders_line_number_offset) {
+bool Effectc::compile(std::string &error_messages, HlslToSpirv &hlsl_to_spirv_compiler, SpirvOptimizer &optimizer, SpirvToGlsl &spirv_to_glsl_compiler, const uint8_t *default_vertex_shader, size_t default_vertex_shader_size, const uint8_t *default_fragment_shader, size_t default_fragment_shader_size, const char *shaders_source_code, const char *passes_source_code, int shaders_line_number_offset) {
     std::unordered_map<std::string, Program> new_programs;
 
     std::string errors;
@@ -158,19 +161,21 @@ bool Effectc::compile(std::string &error_messages, HlslToSpirv &hlsl_to_spirv_co
         for (size_t stage_index = 0; stage_index < sizeof stages / sizeof *stages; ++stage_index) {
             const std::pair<const char *, HlslToSpirv::Stage> &stage = stages[stage_index];
             auto it = pass.second.second.find(stage.first);
-            if (it == pass.second.second.end() || it->second.second.get_type() != Value::Type::SHADER) {
-                continue;
-            }
 
             uint32_t &shader_index = stage.second == HlslToSpirv::Stage::VERTEX ? program.vertex_shader_index : program.fragment_shader_index;
             std::string glsl;
 
             {
                 std::vector<uint8_t> optimized_spirv;
-                {
+                if (it != pass.second.second.end() && it->second.second.get_type() == Value::Type::SHADER) {
                     std::vector<uint8_t> unoptimized_spirv;
                     COMPILE_CHECK(hlsl_to_spirv_compiler.compile(unoptimized_spirv, errors, shaders_source_code, it->second.second.as_shader().entry_point.c_str(), shaders_line_number_offset, stage.second, HlslToSpirv::Dialect::D3D9));
                     COMPILE_CHECK(optimizer.optimize(optimized_spirv, unoptimized_spirv.data(), unoptimized_spirv.size()));
+                } else if ((stage.second == HlslToSpirv::Stage::VERTEX ? default_vertex_shader : default_fragment_shader) == nullptr) {
+                    errors = stage.second == HlslToSpirv::Stage::VERTEX ? "You must specify a vertex shader for this pass." : "You must specify a fragment shader for this pass.";
+                    COMPILE_ERROR;
+                } else {
+                    COMPILE_CHECK(optimizer.optimize(optimized_spirv, stage.second == HlslToSpirv::Stage::VERTEX ? default_vertex_shader : default_fragment_shader, stage.second == HlslToSpirv::Stage::VERTEX ? default_vertex_shader_size : default_fragment_shader_size));
                 }
                 COMPILE_CHECK(spirv_to_glsl_compiler.compile(glsl, program.ubos, program.uniforms, errors, optimized_spirv.data(), optimized_spirv.size(), 300, SpirvToGlsl::Dialect::GLSL_ES)); // TODO: automatically determine version and dialect
             }
@@ -190,12 +195,8 @@ bool Effectc::compile(std::string &error_messages, HlslToSpirv &hlsl_to_spirv_co
         }
 
         LINK_CHECK((program.program_index = gl.CreateProgram()) != 0);
-        if (program.vertex_shader_index != 0) {
-            gl.AttachShader(program.program_index, program.vertex_shader_index);
-        }
-        if (program.fragment_shader_index != 0) {
-            gl.AttachShader(program.program_index, program.fragment_shader_index);
-        }
+        gl.AttachShader(program.program_index, program.vertex_shader_index);
+        gl.AttachShader(program.program_index, program.fragment_shader_index);
         gl.LinkProgram(program.program_index);
         gl.GetProgramiv(program.program_index, GL_LINK_STATUS, &gl_status);
         if (gl_status != GL_TRUE) {
@@ -206,14 +207,10 @@ bool Effectc::compile(std::string &error_messages, HlslToSpirv &hlsl_to_spirv_co
             LINK_ERROR;
         }
 
-        if (program.fragment_shader_index != 0) {
-            gl.DeleteShader(program.fragment_shader_index);
-            program.fragment_shader_index = 0;
-        }
-        if (program.vertex_shader_index != 0) {
-            gl.DeleteShader(program.vertex_shader_index);
-            program.vertex_shader_index = 0;
-        }
+        gl.DeleteShader(program.fragment_shader_index);
+        program.fragment_shader_index = 0;
+        gl.DeleteShader(program.vertex_shader_index);
+        program.vertex_shader_index = 0;
 
         new_programs.emplace(pass.first, std::move(program));
     }
