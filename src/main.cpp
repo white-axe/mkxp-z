@@ -94,7 +94,12 @@ bool mkxp_use_angle = true;
 #endif // MKXPZ_HAVE_ANGLE
 
 #ifdef MKXPZ_HAVE_CUSTOM_SHADERS
-thread_local int mkxp_custom_shaders_line_number_offset;
+extern "C" int mkxp_custom_shaders_set_line_number_offset(int new_offset) {
+  static thread_local int offset;
+  int old_offset = offset;
+  offset = new_offset;
+  return old_offset;
+}
 #endif // MKXPZ_HAVE_CUSTOM_SHADERS
 
 static void rgssThreadError(RGSSThreadData *rtData, const std::string &msg);
