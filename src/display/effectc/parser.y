@@ -24,7 +24,7 @@
 
 %define api.namespace {effectc_impl}
 %define api.parser.class {Parser}
-%parse-param {std::unordered_map<std::string, std::unordered_map<std::string, std::pair<class location, effectc_impl::Value>>> &passes_output}
+%parse-param {std::unordered_map<std::string, std::pair<class location, std::unordered_map<std::string, std::pair<class location, effectc_impl::Value>>>> &passes_output}
 %parse-param {std::string &error_messages}
 %parse-param {Lexer &lexer}
 %lex-param {Lexer &lexer}
@@ -479,7 +479,7 @@
 
 %token END 0 "end of file"
 
-%type <std::pair<std::string, std::unordered_map<std::string, std::pair<class location, effectc_impl::Value>>>> pass
+%type <std::pair<std::string, std::pair<class location, std::unordered_map<std::string, std::pair<class location, effectc_impl::Value>>>>> pass
 
 %type <std::string> optional_identifier_or_type_name
 %type <std::string> identifier_or_type_name
@@ -524,7 +524,7 @@ passes
 
 pass
     : keyword_pass optional_identifier_or_type_name annotations left_curly_brace state_assignments right_curly_brace {
-        $$ = std::make_pair(std::move($2), std::move($5));
+        $$ = std::make_pair(std::move($2), std::make_pair(std::move(@$), std::move($5)));
     }
     ;
 
