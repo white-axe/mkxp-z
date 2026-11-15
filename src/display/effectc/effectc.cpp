@@ -47,7 +47,7 @@ std::string effectc_impl::format_location(const Parser::location_type &location)
     return formatted_location.str();
 }
 
-Effectc::Program::Program() : vertex_shader_index(0), fragment_shader_index(0), program_index(0) {
+Effectc::Program::Program() : vertex_shader_index(0), fragment_shader_index(0), program_index(0), is_default_vertex_shader(true), is_default_fragment_shader(true) {
     static_assert(sizeof vertex_shader_index == sizeof(GLuint), "vertex_shader_index should be the same size as GLuint, but it isn't");
     static_assert(sizeof fragment_shader_index == sizeof(GLuint), "fragment_shader_index should be the same size as GLuint, but it isn't");
     static_assert(sizeof program_index == sizeof(GLuint), "program_index should be the same size as GLuint, but it isn't");
@@ -76,6 +76,8 @@ Effectc::Program &Effectc::Program::operator=(Program &&other) noexcept {
     other.fragment_shader_index = 0;
     program_index = other.program_index;
     other.program_index = 0;
+    is_default_vertex_shader = other.is_default_vertex_shader;
+    is_default_fragment_shader = other.is_default_fragment_shader;
     ubos = std::move(other.ubos);
     uniforms = std::move(other.uniforms);
     return *this;
@@ -134,7 +136,21 @@ Effectc::Program &Effectc::Program::operator=(Program &&other) noexcept {
     } \
 } while (0)
 
-bool Effectc::compile(std::string &error_messages, HlslToSpirv &hlsl_to_spirv_compiler, SpirvOptimizer &optimizer, SpirvToGlsl &spirv_to_glsl_compiler, const uint8_t *default_vertex_shader, size_t default_vertex_shader_size, const uint8_t *default_fragment_shader, size_t default_fragment_shader_size, const char *shaders_source_code, const char *passes_source_code, int shaders_line_number_offset) {
+bool Effectc::compile(
+    std::string &error_messages,
+    HlslToSpirv &hlsl_to_spirv_compiler,
+    SpirvOptimizer &optimizer,
+    SpirvToGlsl &spirv_to_glsl_compiler,
+    const uint8_t *default_vertex_shader,
+    size_t default_vertex_shader_size,
+    bool override_vertex_shader,
+    const uint8_t *default_fragment_shader,
+    size_t default_fragment_shader_size,
+    bool override_fragment_shader,
+    const char *shaders_source_code,
+    const char *passes_source_code,
+    int shaders_line_number_offset
+) {
     std::unordered_map<std::string, Program> new_programs;
 
     std::string errors;
@@ -166,16 +182,21 @@ bool Effectc::compile(std::string &error_messages, HlslToSpirv &hlsl_to_spirv_co
             std::string glsl;
 
             {
+                bool have_default_shader = (stage.second == HlslToSpirv::Stage::VERTEX ? default_vertex_shader : default_fragment_shader) != nullptr;
+                bool override_shader = have_default_shader && (stage.second == HlslToSpirv::Stage::VERTEX ? override_vertex_shader : override_fragment_shader);
+                bool &is_default_shader = stage.second == HlslToSpirv::Stage::VERTEX ? program.is_default_vertex_shader : program.is_default_fragment_shader;
                 std::vector<uint8_t> optimized_spirv;
-                if (it != pass.second.second.end() && it->second.second.get_type() == Value::Type::SHADER) {
+                if (!override_shader && it != pass.second.second.end() && it->second.second.get_type() == Value::Type::SHADER) {
+                    is_default_shader = false;
                     std::vector<uint8_t> unoptimized_spirv;
                     COMPILE_CHECK(hlsl_to_spirv_compiler.compile(unoptimized_spirv, errors, shaders_source_code, it->second.second.as_shader().entry_point.c_str(), shaders_line_number_offset, stage.second, HlslToSpirv::Dialect::D3D9));
                     COMPILE_CHECK(optimizer.optimize(optimized_spirv, unoptimized_spirv.data(), unoptimized_spirv.size()));
-                } else if ((stage.second == HlslToSpirv::Stage::VERTEX ? default_vertex_shader : default_fragment_shader) == nullptr) {
+                } else if (have_default_shader) {
+                    is_default_shader = true;
+                    COMPILE_CHECK(optimizer.optimize(optimized_spirv, stage.second == HlslToSpirv::Stage::VERTEX ? default_vertex_shader : default_fragment_shader, stage.second == HlslToSpirv::Stage::VERTEX ? default_vertex_shader_size : default_fragment_shader_size));
+                } else {
                     errors = stage.second == HlslToSpirv::Stage::VERTEX ? "You must specify a vertex shader for this pass." : "You must specify a fragment shader for this pass.";
                     COMPILE_ERROR;
-                } else {
-                    COMPILE_CHECK(optimizer.optimize(optimized_spirv, stage.second == HlslToSpirv::Stage::VERTEX ? default_vertex_shader : default_fragment_shader, stage.second == HlslToSpirv::Stage::VERTEX ? default_vertex_shader_size : default_fragment_shader_size));
                 }
                 COMPILE_CHECK(spirv_to_glsl_compiler.compile(glsl, program.ubos, program.uniforms, errors, optimized_spirv.data(), optimized_spirv.size(), 300, SpirvToGlsl::Dialect::GLSL_ES)); // TODO: automatically determine version and dialect
             }
