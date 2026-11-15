@@ -192,17 +192,29 @@ bool SpirvToGlsl::compile(std::string &glsl_output, std::vector<Ubo> &ubos_outpu
                     case SPVC_BASETYPE_FP64: uniform_type = Uniform::Type::FP64; break;
                     default: uniform_type = Uniform::Type::UNKNOWN; break;
                 }
+                uint8_t vector_size = spvc_type_get_vector_size(type);
+                uint8_t columns = spvc_type_get_columns(type);
+                std::vector<uint32_t> array_dimensions = std::vector<uint32_t>(spvc_type_get_num_array_dimensions(type));
+                for (uint32_t array_dimension_index = 0; array_dimension_index < array_dimensions.size(); ++array_dimension_index) {
+                    array_dimensions[array_dimension_index] = spvc_type_get_array_dimension(type, array_dimension_index);
+                }
                 uniforms.emplace(
                     get_struct_member_name(struct_name_stack, uniform.name),
                     have_ubo_support
                         ? Uniform {
                             uniform_type,
+                            vector_size,
+                            columns,
+                            std::move(array_dimensions),
                             Uniform::Flavor::UBO,
                             ubo_index,
                             uniform.offset,
                         }
                         : Uniform {
                             uniform_type,
+                            vector_size,
+                            columns,
+                            std::move(array_dimensions),
                             Uniform::Flavor::PLAIN,
                             (uint32_t)uniforms.size(),
                             0,
