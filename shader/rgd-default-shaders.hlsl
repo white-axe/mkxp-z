@@ -12,7 +12,7 @@ struct PS_INPUT
 
 struct Attributes
 {
-    float4 position : POSITION0;
+    float4 position : SV_Position;
     PS_INPUT ps_input;
 };
 
