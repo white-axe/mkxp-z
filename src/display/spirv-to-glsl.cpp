@@ -87,6 +87,7 @@ bool SpirvToGlsl::compile(std::string &glsl_output, std::vector<Ubo> &ubos_outpu
         case Dialect::GLSL_ES:
             have_ubo_support = version >= 300;
             have_binding_support = version >= 310;
+            break;
     }
 
     spvc_parsed_ir ir;
@@ -97,6 +98,26 @@ bool SpirvToGlsl::compile(std::string &glsl_output, std::vector<Ubo> &ubos_outpu
 
     spvc_resources resources;
     CHECK(spvc_compiler_create_shader_resources(compiler, &resources));
+
+    // In some old GLSL versions, the names of the outputs for a stage must exactly match the names of the inputs for the following stage,
+    // so we mangle the names of inputs and outputs here to be based on their locations to ensure that they match.
+    SpvExecutionModel execution_model = spvc_compiler_get_execution_model(compiler);
+    if (execution_model != SpvExecutionModelVertex) {
+        const spvc_reflected_resource *input_list;
+        size_t input_list_size;
+        CHECK(spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_STAGE_INPUT, &input_list, &input_list_size));
+        for (size_t i = 0; i < input_list_size; ++i) {
+            spvc_compiler_set_name(compiler, input_list[i].id, (std::string("@varying") + std::to_string(spvc_compiler_get_decoration(compiler, input_list[i].id, SpvDecorationLocation))).c_str());
+        }
+    }
+    if (execution_model != SpvExecutionModelFragment) {
+        const spvc_reflected_resource *output_list;
+        size_t output_list_size;
+        CHECK(spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_STAGE_OUTPUT, &output_list, &output_list_size));
+        for (size_t i = 0; i < output_list_size; ++i) {
+            spvc_compiler_set_name(compiler, output_list[i].id, (std::string("@varying") + std::to_string(spvc_compiler_get_decoration(compiler, output_list[i].id, SpvDecorationLocation))).c_str());
+        }
+    }
 
     const spvc_reflected_resource *ubo_list;
     size_t ubo_list_size;
