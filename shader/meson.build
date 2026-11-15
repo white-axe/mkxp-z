@@ -42,6 +42,13 @@ if have_extra_shaders
     embedded_shaders += 'xbrz.frag'
 endif
 
+if have_custom_shaders
+    embedded_shaders += [
+        'rgd-default-shaders.hlsl',
+        'rgd-preamble.hlsl',
+    ]
+endif
+
 foreach shader : embedded_shaders
     global_dependencies += declare_dependency(sources: custom_target(
         '@0@.xxd'.format(shader),
