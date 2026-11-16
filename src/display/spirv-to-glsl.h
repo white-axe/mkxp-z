@@ -113,6 +113,27 @@ public:
         size_t offset;
     };
 
+    struct Texture
+    {
+        enum Type
+        {
+            // Unknown type.
+            UNKNOWN,
+            // 1-dimensional texture.
+            TEXTURE_1D,
+            // 2-dimensional texture.
+            TEXTURE_2D,
+            // 3-dimensional texture.
+            TEXTURE_3D,
+        };
+
+        // The type of texture this is, e.g. 1D or 2D.
+        Type type;
+        // The OpenGL texture unit that this texture should be bound to before the GLSL shader is run.
+        // For example, if this is 0, you should bind the texture to `GL_TEXTURE0`, and if this is 1, you should bind the texture to `GL_TEXTURE1`.
+        uint32_t texture_unit;
+    };
+
     enum Dialect
     {
         // GLSL for a desktop OpenGL implementation that supports the ARB_shading_language_420pack OpenGL extension
@@ -129,6 +150,7 @@ public:
      * glsl_output: If compilation succeeds, this will be set to the compiled GLSL shader. Otherwise this will be unchanged.
      * ubos_output: If compilation succeeds, this will be set to the list of descriptions of the uniform buffer objects (UBOs) used by the compiled GLSL shader. Otherwise this will be unchanged. If the combination of the GLSL version and dialect does not support UBOs, any UBOs used by the input SPIR-V shader will be automatically demoted to regular uniforms in the compiled GLSL shader for you, leaving the list of UBOs empty.
      * uniforms_output: If compilation succeeds, this will be set to a mapping from the names of uniform variables used by the compiled GLSL shader to their descriptions. Otherwise this will be unchanged.
+     * textures_output: If compilation succeeds, this will be set to a mapping from the names of textures used by the compiled GLSL shader to their descriptions. Otherwise this will be unchanged.
      * error_message: If compilation succeeds, this will be unchanged. Otherwise, this will be set to a string containing the compilation error.
      * spirv_input: Pointer to the input SPIR-V bytecode.
      * spirv_input_size: Length of the input SPIR-V bytecode in bytes.
@@ -137,7 +159,17 @@ public:
      *
      * Return value: `true` if compilation succeeded, otherwise `false`.
      */
-    bool compile(std::string &glsl_output, std::vector<Ubo> &ubos_output, std::unordered_map<std::string, Uniform> &uniforms_output, std::string &error_message, const uint8_t *spirv_input, size_t spirv_input_size, uint16_t version, Dialect dialect);
+    bool compile(
+        std::string &glsl_output,
+        std::vector<Ubo> &ubos_output,
+        std::unordered_map<std::string, Uniform> &uniforms_output,
+        std::unordered_map<std::string, Texture> &textures_output,
+        std::string &error_message,
+        const uint8_t *spirv_input,
+        size_t spirv_input_size,
+        uint16_t version,
+        Dialect dialect
+    );
 };
 
 #endif // SPIRV_TO_GLSL_H

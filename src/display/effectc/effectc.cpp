@@ -198,7 +198,18 @@ bool Effectc::compile(
                     errors = stage.second == HlslToSpirv::Stage::VERTEX ? "You must specify a vertex shader for this pass." : "You must specify a fragment shader for this pass.";
                     COMPILE_ERROR;
                 }
-                COMPILE_CHECK(spirv_to_glsl_compiler.compile(glsl, program.ubos, program.uniforms, errors, optimized_spirv.data(), optimized_spirv.size(), 300, SpirvToGlsl::Dialect::GLSL_ES)); // TODO: automatically determine version and dialect
+                // TODO: automatically determine version and dialect
+                COMPILE_CHECK(spirv_to_glsl_compiler.compile(
+                    glsl,
+                    program.ubos,
+                    program.uniforms,
+                    program.textures,
+                    errors,
+                    optimized_spirv.data(),
+                    optimized_spirv.size(),
+                    300,
+                    SpirvToGlsl::Dialect::GLSL_ES
+                ));
             }
 
             COMPILE_CHECK((shader_index = gl.CreateShader(stage.second == HlslToSpirv::Stage::VERTEX ? GL_VERTEX_SHADER : GL_FRAGMENT_SHADER)) != 0);

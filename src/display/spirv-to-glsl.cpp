@@ -66,7 +66,17 @@ static std::string get_struct_member_name(const std::vector<const char *> &struc
     } \
 } while (0)
 
-bool SpirvToGlsl::compile(std::string &glsl_output, std::vector<Ubo> &ubos_output, std::unordered_map<std::string, Uniform> &uniforms_output, std::string &error_message, const uint8_t *spirv_input, size_t spirv_input_size, uint16_t version, Dialect dialect) {
+bool SpirvToGlsl::compile(
+    std::string &glsl_output,
+    std::vector<Ubo> &ubos_output,
+    std::unordered_map<std::string, Uniform> &uniforms_output,
+    std::unordered_map<std::string, Texture> &textures_output,
+    std::string &error_message,
+    const uint8_t *spirv_input,
+    size_t spirv_input_size,
+    uint16_t version,
+    Dialect dialect
+) {
     assert((uintptr_t)spirv_input % (uintptr_t)alignof(uint32_t) == 0); // Should be true because memory allocated by malloc() should be sufficiently aligned for uint32_t
     if (spirv_input_size % 4 != 0) {
         error_message = "SPIR-V input size must be a multiple of 4";
@@ -246,6 +256,28 @@ bool SpirvToGlsl::compile(std::string &glsl_output, std::vector<Ubo> &ubos_outpu
         }
     }
 
+    const spvc_reflected_resource *texture_list;
+    size_t texture_list_size;
+    CHECK(spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_SAMPLED_IMAGE, &texture_list, &texture_list_size));
+    std::unordered_map<std::string, Texture> textures;
+    for (uint32_t texture_index = 0; texture_index < (uint32_t)texture_list_size; ++texture_index) {
+        spvc_type texture_type = spvc_compiler_get_type_handle(compiler, texture_list[texture_index].base_type_id);
+        Texture::Type type;
+        switch (spvc_type_get_image_dimension(texture_type)) {
+            case SpvDim1D: type = Texture::Type::TEXTURE_1D; break;
+            case SpvDim2D: type = Texture::Type::TEXTURE_2D; break;
+            case SpvDim3D: type = Texture::Type::TEXTURE_3D; break;
+            default: type = Texture::Type::UNKNOWN; break;
+        }
+        textures.emplace(
+            texture_list[texture_index].name,
+            Texture {
+                type,
+                have_binding_support ? (uint32_t)spvc_compiler_get_decoration(compiler, texture_list[texture_index].id, SpvDecorationBinding) : (uint32_t)textures.size(),
+            }
+        );
+    }
+
     spvc_compiler_options options;
     CHECK(spvc_compiler_create_compiler_options(compiler, &options));
     CHECK(spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_GLSL_VERSION, version));
@@ -260,6 +292,7 @@ bool SpirvToGlsl::compile(std::string &glsl_output, std::vector<Ubo> &ubos_outpu
     glsl_output = glsl;
     ubos_output = std::move(ubos);
     uniforms_output = std::move(uniforms);
+    textures_output = std::move(textures);
     spvc_context_release_allocations((spvc_context)context);
     return true;
 }
