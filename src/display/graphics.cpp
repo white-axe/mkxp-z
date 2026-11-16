@@ -1805,7 +1805,7 @@ void Graphics::rgdAddShader(const char *shaders, const char *passes) {
     std::string errors;
     std::string default_shaders_string;
     std::string shaders_string;
-    size_t num_preamble_lines = 0;
+    size_t preamble_size = 0;
 
     {
         std::string preamble((const char *)mkxp_shader_rgd_preamble_hlsl, mkxp_shader_rgd_preamble_hlsl_len);
@@ -1816,18 +1816,12 @@ void Graphics::rgdAddShader(const char *shaders, const char *passes) {
         static std::random_device random_device;
         preamble = std::regex_replace(preamble, std::regex("__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED"), "_" + std::to_string(random_device()));
 
-        // Count the number of lines in the preamble.
-        for (char character : preamble) {
-            if (character == '\n') {
-                ++num_preamble_lines;
-            }
-        }
-
         // If there isn't a newline at the end of the preamble, add one.
         if (!preamble.empty() && preamble.back() != '\n') {
             preamble.push_back('\n');
-            ++num_preamble_lines;
         }
+
+        preamble_size = preamble.size();
 
         default_shaders_string = preamble;
         shaders_string = std::move(preamble);
@@ -1841,7 +1835,7 @@ void Graphics::rgdAddShader(const char *shaders, const char *passes) {
         errors,
         default_shaders_string.c_str(),
         "vs_main",
-        -num_preamble_lines,
+        preamble_size,
         HlslToSpirv::Stage::VERTEX,
         HlslToSpirv::Dialect::D3D9
     ));
@@ -1850,7 +1844,7 @@ void Graphics::rgdAddShader(const char *shaders, const char *passes) {
         errors,
         default_shaders_string.c_str(),
         "ps_main",
-        -num_preamble_lines,
+        preamble_size,
         HlslToSpirv::Stage::VERTEX,
         HlslToSpirv::Dialect::D3D9
     ));
@@ -1870,7 +1864,7 @@ void Graphics::rgdAddShader(const char *shaders, const char *passes) {
         false,
         shaders_string.c_str(),
         passes,
-        -num_preamble_lines
+        preamble_size
     ));
 }
 #endif // MKXPZ_HAVE_CUSTOM_SHADERS

@@ -149,7 +149,7 @@ bool Effectc::compile(
     bool override_fragment_shader,
     const char *shaders_source_code,
     const char *passes_source_code,
-    int shaders_line_number_offset
+    size_t shaders_preamble_size
 ) {
     std::unordered_map<std::string, Program> new_programs;
 
@@ -189,7 +189,7 @@ bool Effectc::compile(
                 if (!override_shader && it != pass.second.second.end() && it->second.second.get_type() == Value::Type::SHADER) {
                     is_default_shader = false;
                     std::vector<uint8_t> unoptimized_spirv;
-                    COMPILE_CHECK(hlsl_to_spirv_compiler.compile(unoptimized_spirv, errors, shaders_source_code, it->second.second.as_shader().entry_point.c_str(), shaders_line_number_offset, stage.second, HlslToSpirv::Dialect::D3D9));
+                    COMPILE_CHECK(hlsl_to_spirv_compiler.compile(unoptimized_spirv, errors, shaders_source_code, it->second.second.as_shader().entry_point.c_str(), shaders_preamble_size, stage.second, HlslToSpirv::Dialect::D3D9));
                     COMPILE_CHECK(optimizer.optimize(optimized_spirv, unoptimized_spirv.data(), unoptimized_spirv.size()));
                 } else if (have_default_shader) {
                     is_default_shader = true;

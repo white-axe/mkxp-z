@@ -65,8 +65,23 @@ HlslToSpirv &HlslToSpirv::operator=(HlslToSpirv &&other) noexcept {
 
 extern "C" int mkxp_custom_shaders_set_line_number_offset(int);
 
-bool HlslToSpirv::compile(std::vector<uint8_t> &spirv_output, std::string &error_messages, const char *hlsl_source_code, const char *entry_point, int line_number_offset, Stage stage, Dialect dialect) {
-    mkxp_custom_shaders_set_line_number_offset(line_number_offset);
+bool HlslToSpirv::compile(
+    std::vector<uint8_t> &spirv_output,
+    std::string &error_messages,
+    const char *hlsl_source_code,
+    const char *entry_point,
+    size_t preamble_size,
+    Stage stage,
+    Dialect dialect
+) {
+    // glslang only considers line feeds to be newlines, so we don't count other types of newlines
+    size_t preamble_lines = 0;
+    for (size_t i = 0; i < preamble_size && hlsl_source_code[i] != 0; ++i) {
+        if (hlsl_source_code[i] == '\n') {
+            ++preamble_lines;
+        }
+    }
+    mkxp_custom_shaders_set_line_number_offset(-preamble_lines);
 
     const glslang_input_t input = {
         GLSLANG_SOURCE_HLSL,
