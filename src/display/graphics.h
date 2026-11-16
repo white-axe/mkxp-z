@@ -22,6 +22,10 @@
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 
+#include "effectc.h"
+#include "hlsl-to-spirv.h"
+#include "spirv-optimizer.h"
+#include "spirv-to-glsl.h"
 #include "util.h"
 
 class Scene;
@@ -97,6 +101,13 @@ public:
     
     void lock(bool force = false);
     void unlock(bool force = false);
+
+	void rgdAddShader(const char *shaders, const char *passes);
+
+	HlslToSpirv hlsl_to_spirv_compiler;
+	SpirvOptimizer optimizer;
+	SpirvToGlsl spirv_to_glsl_compiler;
+	Effectc effectc;
 
 private:
 	Graphics(RGSSThreadData *data);

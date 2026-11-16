@@ -393,6 +393,20 @@ RB_METHOD_GUARD(graphicsScreenshot)
 }
 RB_METHOD_GUARD_END
 
+RB_METHOD_GUARD(graphicsAddShader)
+{
+    RB_UNUSED_PARAM;
+
+    const char *shaders;
+    const char *passes;
+    rb_get_args(argc, argv, "zz", &shaders, &passes RB_ARG_END);
+
+    shState->graphics().rgdAddShader(shaders, passes);
+
+    return Qnil;
+}
+RB_METHOD_GUARD_END
+
 DEF_GRA_PROP_I(FrameRate)
 DEF_GRA_PROP_I(FrameCount)
 DEF_GRA_PROP_I(Brightness)
@@ -460,4 +474,6 @@ void graphicsBindingInit()
     INIT_GRA_PROP_BIND( IntegerScaling,   "integer_scaling"    );
     INIT_GRA_PROP_BIND( LastMileScaling,  "last_mile_scaling"  );
     INIT_GRA_PROP_BIND( Threadsafe,       "thread_safe"        );
+
+    _rb_define_module_function(module, "add_shader", graphicsAddShader);
 }

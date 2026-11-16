@@ -45,6 +45,11 @@
 #include "input.h"
 #include "sprite.h"
 
+#ifdef MKXPZ_HAVE_CUSTOM_SHADERS
+#  include "rgd-default-shaders.hlsl.xxd"
+#  include "rgd-preamble.hlsl.xxd"
+#endif // MKXPZ_HAVE_CUSTOM_SHADERS
+
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_timer.h>
@@ -66,6 +71,8 @@
 #include <time.h>
 #include <cmath>
 #include <climits>
+#include <random>
+#include <regex>
 
 
 #define DEF_SCREEN_W (rgssVer == 1 ? 640 : 544)
@@ -1195,7 +1202,7 @@ public:
     }
 };
 
-Graphics::Graphics(RGSSThreadData *data) {
+Graphics::Graphics(RGSSThreadData *data) : hlsl_to_spirv_compiler(SpirvToGlsl::TARGET), optimizer(SpirvToGlsl::TARGET) {
     p = new GraphicsPrivate(data);
     if (data->config.syncToRefreshrate) {
         p->frameRate = data->refreshRate;
@@ -1786,5 +1793,84 @@ void Graphics::unlock(bool force) {
 void Graphics::addDisposable(Disposable *d) { p->dispList.append(d->link); }
 
 void Graphics::remDisposable(Disposable *d) { p->dispList.remove(d->link); }
+
+#define COMPILE_CHECK(value) do { \
+    if (!(value)) { \
+        throw Exception(Exception::RGSSError, "%s", errors.c_str()); \
+    } \
+} while (0)
+
+void Graphics::rgdAddShader(const char *shaders, const char *passes) {
+    std::string errors;
+    std::string default_shaders_string;
+    std::string shaders_string;
+    size_t num_preamble_lines = 0;
+
+    {
+        std::string preamble((const char *)mkxp_shader_rgd_preamble_hlsl, mkxp_shader_rgd_preamble_hlsl_len);
+
+        // To prevent shaders from using uniforms that are not intended to be used by shaders,
+        // we replace the string `__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED` in the preamble with a randomly generated string.
+        // In case you're wondering, this string comes from <https://github.com/react/react/blob/v19.3.1/compiler/packages/react-compiler-runtime/src/index.ts#L15>.
+        static std::random_device random_device;
+        preamble = std::regex_replace(preamble, std::regex("__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED"), "_" + std::to_string(random_device()));
+
+        // Count the number of lines in the preamble.
+        for (char character : preamble) {
+            if (character == '\n') {
+                ++num_preamble_lines;
+            }
+        }
+
+        // If there isn't a newline at the end of the preamble, add one.
+        if (!preamble.empty() && preamble.back() != '\n') {
+            preamble.push_back('\n');
+            ++num_preamble_lines;
+        }
+
+        default_shaders_string = preamble;
+        shaders_string = std::move(preamble);
+    }
+
+    default_shaders_string.append((const char *)mkxp_shader_rgd_default_shaders_hlsl, mkxp_shader_rgd_default_shaders_hlsl_len);
+    std::vector<uint8_t> default_vertex_shader_spirv;
+    std::vector<uint8_t> default_fragment_shader_spirv;
+    COMPILE_CHECK(hlsl_to_spirv_compiler.compile(
+        default_vertex_shader_spirv,
+        errors,
+        default_shaders_string.c_str(),
+        "vs_main",
+        -num_preamble_lines,
+        HlslToSpirv::Stage::VERTEX,
+        HlslToSpirv::Dialect::D3D9
+    ));
+    COMPILE_CHECK(hlsl_to_spirv_compiler.compile(
+        default_fragment_shader_spirv,
+        errors,
+        default_shaders_string.c_str(),
+        "ps_main",
+        -num_preamble_lines,
+        HlslToSpirv::Stage::VERTEX,
+        HlslToSpirv::Dialect::D3D9
+    ));
+
+    shaders_string.append(shaders);
+
+    COMPILE_CHECK(effectc.compile(
+        errors,
+        hlsl_to_spirv_compiler,
+        optimizer,
+        spirv_to_glsl_compiler,
+        default_vertex_shader_spirv.data(),
+        default_vertex_shader_spirv.size(),
+        true,
+        default_fragment_shader_spirv.data(),
+        default_fragment_shader_spirv.size(),
+        false,
+        shaders_string.c_str(),
+        passes,
+        -num_preamble_lines
+    ));
+}
 
 #undef GRAPHICS_THREAD_LOCK
