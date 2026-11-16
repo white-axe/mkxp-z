@@ -352,7 +352,17 @@ if get_option('custom_shaders').allowed()
             foreach opt, val : cmake_override_options
                 spirv_cross_options.set_override_option(opt, val)
             endforeach
-            spirv_cross = cmake.subproject('spirv-cross', options: spirv_cross_options).dependency('spirv-cross-c')
+            spirv_cross = cmake.subproject('spirv-cross', options: spirv_cross_options)
+            spirv_cross = declare_dependency(dependencies: [
+                spirv_cross.dependency('spirv-cross-c'),
+                spirv_cross.dependency('spirv-cross-glsl'),
+                #spirv_cross.dependency('spirv-cross-hlsl'),
+                #spirv_cross.dependency('spirv-cross-msl'),
+                #spirv_cross.dependency('spirv-cross-cpp'),
+                #spirv_cross.dependency('spirv-cross-reflect'),
+                #spirv_cross.dependency('spirv-cross-util'),
+                spirv_cross.dependency('spirv-cross-core'),
+            ])
             meson.override_dependency('spirv-cross-c', spirv_cross, static: true)
             meson.override_dependency('spirv-cross-c-shared', spirv_cross, static: true)
         endif
