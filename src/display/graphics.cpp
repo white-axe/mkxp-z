@@ -1800,6 +1800,7 @@ void Graphics::remDisposable(Disposable *d) { p->dispList.remove(d->link); }
     } \
 } while (0)
 
+#ifdef MKXPZ_HAVE_CUSTOM_SHADERS
 void Graphics::rgdAddShader(const char *shaders, const char *passes) {
     std::string errors;
     std::string default_shaders_string;
@@ -1872,5 +1873,6 @@ void Graphics::rgdAddShader(const char *shaders, const char *passes) {
         -num_preamble_lines
     ));
 }
+#endif // MKXPZ_HAVE_CUSTOM_SHADERS
 
 #undef GRAPHICS_THREAD_LOCK

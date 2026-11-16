@@ -102,12 +102,14 @@ public:
     void lock(bool force = false);
     void unlock(bool force = false);
 
+#ifdef MKXPZ_HAVE_CUSTOM_SHADERS
 	void rgdAddShader(const char *shaders, const char *passes);
 
 	HlslToSpirv hlsl_to_spirv_compiler;
 	SpirvOptimizer optimizer;
 	SpirvToGlsl spirv_to_glsl_compiler;
 	Effectc effectc;
+#endif // MKXPZ_HAVE_CUSTOM_SHADERS
 
 private:
 	Graphics(RGSSThreadData *data);

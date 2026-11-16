@@ -393,6 +393,7 @@ RB_METHOD_GUARD(graphicsScreenshot)
 }
 RB_METHOD_GUARD_END
 
+#ifdef MKXPZ_HAVE_CUSTOM_SHADERS
 RB_METHOD_GUARD(graphicsAddShader)
 {
     RB_UNUSED_PARAM;
@@ -406,6 +407,7 @@ RB_METHOD_GUARD(graphicsAddShader)
     return Qnil;
 }
 RB_METHOD_GUARD_END
+#endif // MKXPZ_HAVE_CUSTOM_SHADERS
 
 DEF_GRA_PROP_I(FrameRate)
 DEF_GRA_PROP_I(FrameCount)
@@ -475,5 +477,7 @@ void graphicsBindingInit()
     INIT_GRA_PROP_BIND( LastMileScaling,  "last_mile_scaling"  );
     INIT_GRA_PROP_BIND( Threadsafe,       "thread_safe"        );
 
+#ifdef MKXPZ_HAVE_CUSTOM_SHADERS
     _rb_define_module_function(module, "add_shader", graphicsAddShader);
+#endif // MKXPZ_HAVE_CUSTOM_SHADERS
 }
