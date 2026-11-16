@@ -53,6 +53,6 @@ foreach shader : embedded_shaders
     global_dependencies += declare_dependency(sources: custom_target(
         '@0@.xxd'.format(shader),
         output: '@0@.xxd'.format(shader),
-        command: [embedtool, files(shader), '@OUTPUT@', 'mkxp_shader_@0@'.format(shader.replace('.', '_'))],
+        command: [embedtool, files(shader), '@OUTPUT@', 'mkxp_shader_@0@'.format(shader.replace('.', '_').replace('-', '_'))],
     ))
 endforeach
