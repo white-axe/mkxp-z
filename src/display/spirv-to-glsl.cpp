@@ -77,11 +77,11 @@ bool SpirvToGlsl::compile(std::string &glsl_output, std::vector<Ubo> &ubos_outpu
     bool have_binding_support;
     switch (dialect) {
         case Dialect::GLSL_WITH_420PACK:
-            have_ubo_support = version >= 140;
+            have_ubo_support = version >= 150; // Actually supported starting from GLSL 140, but SPIRV-Cross's UBO support for desktop GLSL 140 seems to be broken: Mesa throws the error "interface blocks with an instance name are not allowed in GLSL 1.40 (GLSL 1.50 or GLSL ES 3.00 required)" when trying to compile a desktop GLSL 140 shader created by SPIRV-Cross that uses UBOs
             have_binding_support = version >= 130;
             break;
         case Dialect::GLSL_WITHOUT_420PACK:
-            have_ubo_support = version >= 140;
+            have_ubo_support = version >= 150; // Actually supported starting from GLSL 140, but SPIRV-Cross's UBO support for desktop GLSL 140 seems to be broken: Mesa throws the error "interface blocks with an instance name are not allowed in GLSL 1.40 (GLSL 1.50 or GLSL ES 3.00 required)" when trying to compile a desktop GLSL 140 shader created by SPIRV-Cross that uses UBOs
             have_binding_support = version >= 420;
             break;
         case Dialect::GLSL_ES:
@@ -251,6 +251,7 @@ bool SpirvToGlsl::compile(std::string &glsl_output, std::vector<Ubo> &ubos_outpu
     CHECK(spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_GLSL_VERSION, version));
     CHECK(spvc_compiler_options_set_bool(options, SPVC_COMPILER_OPTION_GLSL_ES, dialect == Dialect::GLSL_ES ? SPVC_TRUE : SPVC_FALSE));
     CHECK(spvc_compiler_options_set_bool(options, SPVC_COMPILER_OPTION_GLSL_ENABLE_420PACK_EXTENSION, dialect == Dialect::GLSL_WITH_420PACK && have_binding_support));
+    CHECK(spvc_compiler_options_set_bool(options, SPVC_COMPILER_OPTION_GLSL_EMIT_UNIFORM_BUFFER_AS_PLAIN_UNIFORMS, !have_ubo_support));
     CHECK(spvc_compiler_install_compiler_options(compiler, options));
 
     const char *glsl;
