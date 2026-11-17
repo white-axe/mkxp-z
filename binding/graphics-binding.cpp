@@ -402,7 +402,7 @@ RB_METHOD_GUARD(graphicsAddShader)
     const char *passes;
     rb_get_args(argc, argv, "zz", &shaders, &passes RB_ARG_END);
 
-    shState->graphics().rgdAddShader(shaders, passes);
+    GFX_GUARD_EXC(shState->graphics().rgdAddShader(shaders, passes););
 
     return Qnil;
 }
