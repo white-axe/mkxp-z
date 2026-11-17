@@ -143,9 +143,10 @@ bool SpirvToGlsl::compile(
             spvc_type struct_type = spvc_compiler_get_type_handle(compiler, ubo_list[ubo_index].base_type_id);
             size_t size;
             CHECK(spvc_compiler_get_declared_struct_size(compiler, struct_type, &size));
+            spvc_compiler_set_decoration(compiler, ubo_list[ubo_index].id, SpvDecorationBinding, ubo_index);
             ubos.push_back({
                 size,
-                have_binding_support ? spvc_compiler_get_decoration(compiler, ubo_list[ubo_index].id, SpvDecorationBinding) : 0,
+                ubo_index,
             });
         }
     }
@@ -269,11 +270,12 @@ bool SpirvToGlsl::compile(
             case SpvDim3D: type = Texture::Type::TEXTURE_3D; break;
             default: type = Texture::Type::UNKNOWN; break;
         }
+        spvc_compiler_set_decoration(compiler, texture_list[texture_index].id, SpvDecorationBinding, texture_index);
         textures.emplace(
             texture_list[texture_index].name,
             Texture {
                 type,
-                have_binding_support ? (uint32_t)spvc_compiler_get_decoration(compiler, texture_list[texture_index].id, SpvDecorationBinding) : (uint32_t)textures.size(),
+                texture_index,
             }
         );
     }
