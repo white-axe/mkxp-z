@@ -51,9 +51,11 @@ Effectc::Program::Program() : vertex_shader_index(0), fragment_shader_index(0), 
     static_assert(sizeof vertex_shader_index == sizeof(GLuint), "vertex_shader_index should be the same size as GLuint, but it isn't");
     static_assert(sizeof fragment_shader_index == sizeof(GLuint), "fragment_shader_index should be the same size as GLuint, but it isn't");
     static_assert(sizeof program_index == sizeof(GLuint), "program_index should be the same size as GLuint, but it isn't");
+    static_assert(sizeof ubo_indices[0] == sizeof(GLuint), "ubo_indices[0] should be the same size as GLuint, but it isn't");
 }
 
 Effectc::Program::~Program() {
+    gl.DeleteBuffers(ubo_indices.size(), (const GLuint *)ubo_indices.data());
     if (program_index != 0) {
         gl.DeleteProgram((GLuint)program_index);
     }
@@ -79,6 +81,7 @@ Effectc::Program &Effectc::Program::operator=(Program &&other) noexcept {
     is_default_vertex_shader = other.is_default_vertex_shader;
     is_default_fragment_shader = other.is_default_fragment_shader;
     ubos = std::move(other.ubos);
+    ubo_indices = std::move(other.ubo_indices);
     uniforms = std::move(other.uniforms);
     textures = std::move(other.textures);
     return *this;
@@ -243,6 +246,22 @@ bool Effectc::compile(
         program.fragment_shader_index = 0;
         gl.DeleteShader(program.vertex_shader_index);
         program.vertex_shader_index = 0;
+
+        program.ubo_indices.resize(program.ubos.size(), 0);
+        gl.GenBuffers(program.ubo_indices.size(), (GLuint *)program.ubo_indices.data());
+        for (size_t i = 0; i < program.ubo_indices.size(); ++i) {
+            const SpirvToGlsl::Ubo &ubo = program.ubos[i];
+            GLuint ubo_index = (GLuint)program.ubo_indices[i];
+            LINK_CHECK(ubo_index != 0);
+            std::vector<uint8_t> zeros(ubo.size, 0);
+            while (gl.GetError() != GL_NO_ERROR) {}
+            gl.BindBuffer(GL_UNIFORM_BUFFER, ubo_index);
+            LINK_CHECK(gl.GetError() == GL_NO_ERROR);
+            gl.BufferData(GL_UNIFORM_BUFFER, ubo.size, zeros.data(), GL_STATIC_DRAW);
+            GLenum gl_error = gl.GetError();
+            gl.BindBuffer(GL_UNIFORM_BUFFER, 0);
+            LINK_CHECK(gl_error == GL_NO_ERROR);
+        }
 
         new_programs.emplace(pass.first, std::move(program));
     }

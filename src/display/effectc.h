@@ -41,6 +41,7 @@ private:
         bool is_default_vertex_shader;
         bool is_default_fragment_shader;
         std::vector<SpirvToGlsl::Ubo> ubos;
+        std::vector<uint32_t> ubo_indices;
         std::unordered_map<std::string, SpirvToGlsl::Uniform> uniforms;
         std::unordered_map<std::string, SpirvToGlsl::Texture> textures;
 
