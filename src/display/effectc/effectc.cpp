@@ -198,7 +198,6 @@ bool Effectc::compile(
                     errors = stage.second == HlslToSpirv::Stage::VERTEX ? "You must specify a vertex shader for this pass." : "You must specify a fragment shader for this pass.";
                     COMPILE_ERROR;
                 }
-                // TODO: automatically determine version and dialect
                 COMPILE_CHECK(spirv_to_glsl_compiler.compile(
                     glsl,
                     program.ubos,
@@ -207,8 +206,8 @@ bool Effectc::compile(
                     errors,
                     optimized_spirv.data(),
                     optimized_spirv.size(),
-                    300,
-                    SpirvToGlsl::Dialect::GLSL_ES
+                    gl.glsl_info.version,
+                    gl.glsl_info.es ? SpirvToGlsl::Dialect::GLSL_ES : gl.glsl_info.have_420pack ? SpirvToGlsl::Dialect::GLSL_WITH_420PACK : SpirvToGlsl::Dialect::GLSL_WITHOUT_420PACK
                 ));
             }
 

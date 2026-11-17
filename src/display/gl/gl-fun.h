@@ -215,6 +215,13 @@ struct GLFunctions
 	bool unpack_subimage;
 	bool npot_repeat;
 
+	struct
+	{
+		uint16_t version;
+		bool es;
+		bool have_420pack;
+	} glsl_info;
+
 #undef GL_FUN
 };
 

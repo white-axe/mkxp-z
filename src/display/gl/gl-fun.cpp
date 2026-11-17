@@ -198,4 +198,22 @@ void initGLFunctions()
     
     if (!gles || glMajor >= 3 || HAVE_EXT(OES_texture_npot))
         gl.npot_repeat = true;
+
+    const char *glslStr = (const char *)gl.GetString(GL_SHADING_LANGUAGE_VERSION);
+    unsigned char glslMajor, glslMinor;
+    if (sscanf(glslStr, "OpenGL ES GLSL ES %hhu.%hhu", &glslMajor, &glslMinor) == 2)
+    {
+        gl.glsl_info.es = true;
+        gl.glsl_info.have_420pack = false;
+    }
+    else if (sscanf(glslStr, "%hhu.%hhu", &glslMajor, &glslMinor) == 2)
+    {
+        gl.glsl_info.es = false;
+        gl.glsl_info.have_420pack = HAVE_EXT(ARB_shading_language_420pack);
+    }
+    else
+    {
+        throw Exception(Exception::MKXPError, "Failed to parse GLSL version string %s", glslStr);
+    }
+    gl.glsl_info.version = (uint16_t)100 * (uint16_t)glslMajor + (uint16_t)glslMinor;
 }
