@@ -80,6 +80,7 @@ Effectc::Program &Effectc::Program::operator=(Program &&other) noexcept {
     is_default_fragment_shader = other.is_default_fragment_shader;
     ubos = std::move(other.ubos);
     uniforms = std::move(other.uniforms);
+    textures = std::move(other.textures);
     return *this;
 }
 
