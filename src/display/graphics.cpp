@@ -1202,7 +1202,7 @@ public:
     }
 };
 
-Graphics::Graphics(RGSSThreadData *data) : hlsl_to_spirv_compiler(SpirvToGlsl::TARGET), optimizer(SpirvToGlsl::TARGET) {
+Graphics::Graphics(RGSSThreadData *data) : spirv_sink(SpirvSink::Backend::OPENGL_GLSL), hlsl_to_spirv_compiler(spirv_sink.target()) {
     p = new GraphicsPrivate(data);
     if (data->config.syncToRefreshrate) {
         p->frameRate = data->refreshRate;
@@ -1836,7 +1836,7 @@ void Graphics::rgdAddShader(const char *shaders, const char *passes) {
         default_shaders_string.c_str(),
         "vs_main",
         preamble_size,
-        HlslToSpirv::Stage::VERTEX,
+        SpirvExecutionModel::VERTEX,
         HlslToSpirv::Dialect::D3D9
     ));
     COMPILE_CHECK(hlsl_to_spirv_compiler.compile(
@@ -1845,17 +1845,19 @@ void Graphics::rgdAddShader(const char *shaders, const char *passes) {
         default_shaders_string.c_str(),
         "ps_main",
         preamble_size,
-        HlslToSpirv::Stage::VERTEX,
+        SpirvExecutionModel::VERTEX,
         HlslToSpirv::Dialect::D3D9
     ));
 
     shaders_string.append(shaders);
 
-    COMPILE_CHECK(effectc.compile(
+    // TODO: do something with this
+    std::unordered_map<std::string, SpirvSink::Program> programs;
+    COMPILE_CHECK(effectc::compile(
+        programs,
         errors,
         hlsl_to_spirv_compiler,
-        optimizer,
-        spirv_to_glsl_compiler,
+        spirv_sink,
         default_vertex_shader_spirv.data(),
         default_vertex_shader_spirv.size(),
         true,

@@ -105,10 +105,8 @@ public:
 #ifdef MKXPZ_HAVE_CUSTOM_SHADERS
 	void rgdAddShader(const char *shaders, const char *passes);
 
+	SpirvSink spirv_sink;
 	HlslToSpirv hlsl_to_spirv_compiler;
-	SpirvOptimizer optimizer;
-	SpirvToGlsl spirv_to_glsl_compiler;
-	Effectc effectc;
 #endif // MKXPZ_HAVE_CUSTOM_SHADERS
 
 private:

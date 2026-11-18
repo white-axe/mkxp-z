@@ -24,7 +24,6 @@
 #include <utility>
 
 #include "effectc.h"
-#include "gl-fun.h"
 #include "impl.h"
 
 using namespace effectc_impl;
@@ -45,46 +44,6 @@ std::string effectc_impl::format_location(const Parser::location_type &location)
         formatted_location << "line " << location.begin.line << ", column " << location.begin.column;
     }
     return formatted_location.str();
-}
-
-Effectc::Program::Program() : vertex_shader_index(0), fragment_shader_index(0), program_index(0), is_default_vertex_shader(true), is_default_fragment_shader(true) {
-    static_assert(sizeof vertex_shader_index == sizeof(GLuint), "vertex_shader_index should be the same size as GLuint, but it isn't");
-    static_assert(sizeof fragment_shader_index == sizeof(GLuint), "fragment_shader_index should be the same size as GLuint, but it isn't");
-    static_assert(sizeof program_index == sizeof(GLuint), "program_index should be the same size as GLuint, but it isn't");
-    static_assert(sizeof ubo_indices[0] == sizeof(GLuint), "ubo_indices[0] should be the same size as GLuint, but it isn't");
-}
-
-Effectc::Program::~Program() {
-    gl.DeleteBuffers(ubo_indices.size(), (const GLuint *)ubo_indices.data());
-    if (program_index != 0) {
-        gl.DeleteProgram((GLuint)program_index);
-    }
-    if (fragment_shader_index != 0) {
-        gl.DeleteShader((GLuint)fragment_shader_index);
-    }
-    if (vertex_shader_index != 0) {
-        gl.DeleteShader((GLuint)vertex_shader_index);
-    }
-}
-
-Effectc::Program::Program(Program &&other) noexcept {
-    *this = std::move(other);
-}
-
-Effectc::Program &Effectc::Program::operator=(Program &&other) noexcept {
-    vertex_shader_index = other.vertex_shader_index;
-    other.vertex_shader_index = 0;
-    fragment_shader_index = other.fragment_shader_index;
-    other.fragment_shader_index = 0;
-    program_index = other.program_index;
-    other.program_index = 0;
-    is_default_vertex_shader = other.is_default_vertex_shader;
-    is_default_fragment_shader = other.is_default_fragment_shader;
-    ubos = std::move(other.ubos);
-    ubo_indices = std::move(other.ubo_indices);
-    uniforms = std::move(other.uniforms);
-    textures = std::move(other.textures);
-    return *this;
 }
 
 #define COMPILE_ERROR do { \
@@ -140,11 +99,11 @@ Effectc::Program &Effectc::Program::operator=(Program &&other) noexcept {
     } \
 } while (0)
 
-bool Effectc::compile(
+bool effectc::compile(
+    std::unordered_map<std::string, SpirvSink::Program> &programs_output,
     std::string &error_messages,
     HlslToSpirv &hlsl_to_spirv_compiler,
-    SpirvOptimizer &optimizer,
-    SpirvToGlsl &spirv_to_glsl_compiler,
+    SpirvSink &sink,
     const uint8_t *default_vertex_shader,
     size_t default_vertex_shader_size,
     bool override_vertex_shader,
@@ -155,7 +114,7 @@ bool Effectc::compile(
     const char *passes_source_code,
     size_t shaders_preamble_size
 ) {
-    std::unordered_map<std::string, Program> new_programs;
+    std::unordered_map<std::string, SpirvSink::Program> new_programs;
 
     std::string errors;
     std::unordered_map<std::string, std::pair<Parser::location_type, std::unordered_map<std::string, std::pair<Parser::location_type, Value>>>> passes;
@@ -169,103 +128,58 @@ bool Effectc::compile(
         }
     }
 
+    std::vector<std::vector<uint8_t>> shaders;
+
     for (const auto &pass : passes) {
-        static const std::pair<const char *, HlslToSpirv::Stage> stages[] = {
-            {"VERTEXSHADER", HlslToSpirv::Stage::VERTEX},
-            {"PIXELSHADER", HlslToSpirv::Stage::FRAGMENT},
+        static const std::pair<const char *, SpirvExecutionModel> execution_models[] = {
+            {"VERTEXSHADER", SpirvExecutionModel::VERTEX},
+            {"PIXELSHADER", SpirvExecutionModel::FRAGMENT},
         };
 
-        Program program;
-        GLint gl_status;
+        for (size_t execution_model_index = 0; execution_model_index < sizeof execution_models / sizeof *execution_models; ++execution_model_index) {
+            const std::pair<const char *, SpirvExecutionModel> &execution_model = execution_models[execution_model_index];
+            auto it = pass.second.second.find(execution_model.first);
 
-        for (size_t stage_index = 0; stage_index < sizeof stages / sizeof *stages; ++stage_index) {
-            const std::pair<const char *, HlslToSpirv::Stage> &stage = stages[stage_index];
-            auto it = pass.second.second.find(stage.first);
+            bool have_default_shader = (execution_model.second == SpirvExecutionModel::VERTEX ? default_vertex_shader : default_fragment_shader) != nullptr;
+            bool override_shader = have_default_shader && (execution_model.second == SpirvExecutionModel::VERTEX ? override_vertex_shader : override_fragment_shader);
 
-            uint32_t &shader_index = stage.second == HlslToSpirv::Stage::VERTEX ? program.vertex_shader_index : program.fragment_shader_index;
-            std::string glsl;
-
-            {
-                bool have_default_shader = (stage.second == HlslToSpirv::Stage::VERTEX ? default_vertex_shader : default_fragment_shader) != nullptr;
-                bool override_shader = have_default_shader && (stage.second == HlslToSpirv::Stage::VERTEX ? override_vertex_shader : override_fragment_shader);
-                bool &is_default_shader = stage.second == HlslToSpirv::Stage::VERTEX ? program.is_default_vertex_shader : program.is_default_fragment_shader;
-                std::vector<uint8_t> optimized_spirv;
-                if (!override_shader && it != pass.second.second.end() && it->second.second.get_type() == Value::Type::SHADER) {
-                    is_default_shader = false;
-                    std::vector<uint8_t> unoptimized_spirv;
-                    COMPILE_CHECK(hlsl_to_spirv_compiler.compile(unoptimized_spirv, errors, shaders_source_code, it->second.second.as_shader().entry_point.c_str(), shaders_preamble_size, stage.second, HlslToSpirv::Dialect::D3D9));
-                    COMPILE_CHECK(optimizer.optimize(optimized_spirv, unoptimized_spirv.data(), unoptimized_spirv.size()));
-                } else if (have_default_shader) {
-                    is_default_shader = true;
-                    COMPILE_CHECK(optimizer.optimize(optimized_spirv, stage.second == HlslToSpirv::Stage::VERTEX ? default_vertex_shader : default_fragment_shader, stage.second == HlslToSpirv::Stage::VERTEX ? default_vertex_shader_size : default_fragment_shader_size));
-                } else {
-                    errors = stage.second == HlslToSpirv::Stage::VERTEX ? "You must specify a vertex shader for this pass." : "You must specify a fragment shader for this pass.";
-                    COMPILE_ERROR;
-                }
-                COMPILE_CHECK(spirv_to_glsl_compiler.compile(
-                    glsl,
-                    program.ubos,
-                    program.uniforms,
-                    program.textures,
+            if (!override_shader && it != pass.second.second.end() && it->second.second.get_type() == Value::Type::SHADER) {
+                std::vector<uint8_t> shader;
+                COMPILE_CHECK(hlsl_to_spirv_compiler.compile(
+                    shader,
                     errors,
-                    optimized_spirv.data(),
-                    optimized_spirv.size(),
-                    gl.glsl_info.version,
-                    gl.glsl_info.es ? SpirvToGlsl::Dialect::GLSL_ES : gl.glsl_info.have_420pack ? SpirvToGlsl::Dialect::GLSL_WITH_420PACK : SpirvToGlsl::Dialect::GLSL_WITHOUT_420PACK
+                    shaders_source_code,
+                    it->second.second.as_shader().entry_point.c_str(),
+                    shaders_preamble_size,
+                    execution_model.second,
+                    HlslToSpirv::Dialect::D3D9
                 ));
-            }
-
-            COMPILE_CHECK((shader_index = gl.CreateShader(stage.second == HlslToSpirv::Stage::VERTEX ? GL_VERTEX_SHADER : GL_FRAGMENT_SHADER)) != 0);
-            const char *glsl_c_str = glsl.c_str();
-            gl.ShaderSource(shader_index, 1, &glsl_c_str, nullptr);
-            gl.CompileShader(shader_index);
-            gl.GetShaderiv(shader_index, GL_COMPILE_STATUS, &gl_status);
-            if (gl_status != GL_TRUE) {
-                GLint log_length;
-                gl.GetShaderiv(shader_index, GL_INFO_LOG_LENGTH, &log_length);
-                errors.resize((size_t)log_length);
-                gl.GetShaderInfoLog(shader_index, log_length, nullptr, (GLchar *)&errors[0]);
+                shaders.emplace_back(std::move(shader));
+            } else if (have_default_shader) {
+                const uint8_t *shader_ptr = execution_model.second == SpirvExecutionModel::VERTEX ? default_vertex_shader : default_fragment_shader;
+                shaders.emplace_back(shader_ptr, shader_ptr + (execution_model.second == SpirvExecutionModel::VERTEX ? default_vertex_shader_size : default_fragment_shader_size));
+            } else {
+                errors = execution_model.second == SpirvExecutionModel::VERTEX ? "You must specify a vertex shader for this pass." : "You must specify a fragment shader for this pass.";
                 COMPILE_ERROR;
             }
         }
 
-        LINK_CHECK((program.program_index = gl.CreateProgram()) != 0);
-        gl.AttachShader(program.program_index, program.vertex_shader_index);
-        gl.AttachShader(program.program_index, program.fragment_shader_index);
-        gl.LinkProgram(program.program_index);
-        gl.GetProgramiv(program.program_index, GL_LINK_STATUS, &gl_status);
-        if (gl_status != GL_TRUE) {
-            GLint log_length;
-            gl.GetProgramiv(program.program_index, GL_INFO_LOG_LENGTH, &log_length);
-            errors.resize((size_t)log_length);
-            gl.GetProgramInfoLog(program.program_index, log_length, nullptr, (GLchar *)&errors[0]);
-            LINK_ERROR;
+        std::vector<std::pair<const uint8_t *, size_t>> shader_views(shaders.size());
+        for (size_t i = 0; i < shaders.size(); ++i) {
+            const std::vector<uint8_t> &shader = shaders[i];
+            shader_views[i] = std::make_pair(shader.data(), shader.size());
         }
-
-        gl.DeleteShader(program.fragment_shader_index);
-        program.fragment_shader_index = 0;
-        gl.DeleteShader(program.vertex_shader_index);
-        program.vertex_shader_index = 0;
-
-        program.ubo_indices.resize(program.ubos.size(), 0);
-        gl.GenBuffers(program.ubo_indices.size(), (GLuint *)program.ubo_indices.data());
-        for (size_t i = 0; i < program.ubo_indices.size(); ++i) {
-            const SpirvToGlsl::Ubo &ubo = program.ubos[i];
-            GLuint ubo_index = (GLuint)program.ubo_indices[i];
-            LINK_CHECK(ubo_index != 0);
-            std::vector<uint8_t> zeros(ubo.size, 0);
-            while (gl.GetError() != GL_NO_ERROR) {}
-            gl.BindBuffer(GL_UNIFORM_BUFFER, ubo_index);
-            LINK_CHECK(gl.GetError() == GL_NO_ERROR);
-            gl.BufferData(GL_UNIFORM_BUFFER, ubo.size, zeros.data(), GL_STATIC_DRAW);
-            GLenum gl_error = gl.GetError();
-            gl.BindBuffer(GL_UNIFORM_BUFFER, 0);
-            LINK_CHECK(gl_error == GL_NO_ERROR);
-        }
+        SpirvSink::Program program;
+        LINK_CHECK(sink.compile(
+            program,
+            errors,
+            shader_views.data(),
+            shader_views.size()
+        ));
 
         new_programs.emplace(pass.first, std::move(program));
     }
 
-    programs = std::move(new_programs);
+    programs_output = std::move(new_programs);
     return true;
 }

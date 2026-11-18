@@ -20,6 +20,7 @@
  */
 
 #include <cassert>
+#include <cctype>
 #include <cstring>
 #include <iterator>
 #include <sstream>
@@ -68,12 +69,12 @@ static std::string get_struct_member_name(const std::vector<const char *> &struc
 
 bool SpirvToGlsl::compile(
     std::string &glsl_output,
-    std::vector<Ubo> &ubos_output,
-    std::unordered_map<std::string, Uniform> &uniforms_output,
-    std::unordered_map<std::string, Texture> &textures_output,
+    SpirvShaderInfo &info_output,
     std::string &error_message,
     const uint8_t *spirv_input,
     size_t spirv_input_size,
+    const char *stage_input_cookie,
+    const char *stage_output_cookie,
     uint16_t version,
     Dialect dialect
 ) {
@@ -83,22 +84,24 @@ bool SpirvToGlsl::compile(
         return false;
     }
 
-    bool have_ubo_support;
+    bool have_uniform_buffer_support;
     bool have_binding_support;
     switch (dialect) {
         case Dialect::GLSL_WITH_420PACK:
-            have_ubo_support = version >= 150; // Actually supported starting from GLSL 140, but SPIRV-Cross's UBO support for desktop GLSL 140 seems to be broken: Mesa throws the error "interface blocks with an instance name are not allowed in GLSL 1.40 (GLSL 1.50 or GLSL ES 3.00 required)" when trying to compile a desktop GLSL 140 shader created by SPIRV-Cross that uses UBOs
+            have_uniform_buffer_support = version >= 150; // Actually supported starting from GLSL 140, but SPIRV-Cross's UBO support for desktop GLSL 140 seems to be broken: Mesa throws the error "interface blocks with an instance name are not allowed in GLSL 1.40 (GLSL 1.50 or GLSL ES 3.00 required)" when trying to compile a desktop GLSL 140 shader created by SPIRV-Cross that uses UBOs
             have_binding_support = version >= 130;
             break;
         case Dialect::GLSL_WITHOUT_420PACK:
-            have_ubo_support = version >= 150; // Actually supported starting from GLSL 140, but SPIRV-Cross's UBO support for desktop GLSL 140 seems to be broken: Mesa throws the error "interface blocks with an instance name are not allowed in GLSL 1.40 (GLSL 1.50 or GLSL ES 3.00 required)" when trying to compile a desktop GLSL 140 shader created by SPIRV-Cross that uses UBOs
+            have_uniform_buffer_support = version >= 150; // Actually supported starting from GLSL 140, but SPIRV-Cross's UBO support for desktop GLSL 140 seems to be broken: Mesa throws the error "interface blocks with an instance name are not allowed in GLSL 1.40 (GLSL 1.50 or GLSL ES 3.00 required)" when trying to compile a desktop GLSL 140 shader created by SPIRV-Cross that uses UBOs
             have_binding_support = version >= 420;
             break;
         case Dialect::GLSL_ES:
-            have_ubo_support = version >= 300;
+            have_uniform_buffer_support = version >= 300;
             have_binding_support = version >= 310;
             break;
     }
+
+    SpirvShaderInfo info;
 
     spvc_parsed_ir ir;
     CHECK(spvc_context_parse_spirv((spvc_context)context, (const SpvId *)spirv_input, spirv_input_size / 4, &ir));
@@ -113,40 +116,51 @@ bool SpirvToGlsl::compile(
     // so we mangle the names of inputs and outputs here to be based on their locations to ensure that they match.
     SpvExecutionModel execution_model = spvc_compiler_get_execution_model(compiler);
     if (execution_model != SpvExecutionModelVertex) {
+        std::string stage_input_cookie_string;
+        if (std::isdigit(stage_input_cookie[0])) {
+            stage_input_cookie_string = "_";
+        }
+        stage_input_cookie_string += stage_input_cookie;
+        stage_input_cookie_string += "_varying";
         const spvc_reflected_resource *input_list;
         size_t input_list_size;
         CHECK(spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_STAGE_INPUT, &input_list, &input_list_size));
         for (size_t i = 0; i < input_list_size; ++i) {
-            spvc_compiler_set_name(compiler, input_list[i].id, (std::string("@varying") + std::to_string(spvc_compiler_get_decoration(compiler, input_list[i].id, SpvDecorationLocation))).c_str());
+            spvc_compiler_set_name(compiler, input_list[i].id, (stage_input_cookie_string + std::to_string(spvc_compiler_get_decoration(compiler, input_list[i].id, SpvDecorationLocation))).c_str());
         }
     }
     if (execution_model != SpvExecutionModelFragment) {
+        std::string stage_output_cookie_string;
+        if (std::isdigit(stage_output_cookie[0])) {
+            stage_output_cookie_string = "_";
+        }
+        stage_output_cookie_string += stage_output_cookie;
+        stage_output_cookie_string += "_varying";
         const spvc_reflected_resource *output_list;
         size_t output_list_size;
         CHECK(spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_STAGE_OUTPUT, &output_list, &output_list_size));
         for (size_t i = 0; i < output_list_size; ++i) {
-            spvc_compiler_set_name(compiler, output_list[i].id, (std::string("@varying") + std::to_string(spvc_compiler_get_decoration(compiler, output_list[i].id, SpvDecorationLocation))).c_str());
+            spvc_compiler_set_name(compiler, output_list[i].id, (stage_output_cookie_string + std::to_string(spvc_compiler_get_decoration(compiler, output_list[i].id, SpvDecorationLocation))).c_str());
         }
     }
 
-    const spvc_reflected_resource *ubo_list;
-    size_t ubo_list_size;
-    CHECK(spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_UNIFORM_BUFFER, &ubo_list, &ubo_list_size));
+    const spvc_reflected_resource *uniform_buffer_list;
+    size_t uniform_buffer_list_size;
+    CHECK(spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_UNIFORM_BUFFER, &uniform_buffer_list, &uniform_buffer_list_size));
 
-    std::vector<Ubo> ubos;
-    if (have_ubo_support) {
-        if (!have_binding_support && ubo_list_size > 1) {
+    if (have_uniform_buffer_support) {
+        if (!have_binding_support && uniform_buffer_list_size > 1) {
             error_message = "This shader requires more than one uniform buffer, but this is not supported by your graphics driver";
             return false;
         }
-        for (uint32_t ubo_index = 0; ubo_index < (uint32_t)ubo_list_size; ++ubo_index) {
-            spvc_type struct_type = spvc_compiler_get_type_handle(compiler, ubo_list[ubo_index].base_type_id);
+        for (uint32_t uniform_buffer_index = 0; uniform_buffer_index < (uint32_t)uniform_buffer_list_size; ++uniform_buffer_index) {
+            spvc_type struct_type = spvc_compiler_get_type_handle(compiler, uniform_buffer_list[uniform_buffer_index].base_type_id);
             size_t size;
             CHECK(spvc_compiler_get_declared_struct_size(compiler, struct_type, &size));
-            spvc_compiler_set_decoration(compiler, ubo_list[ubo_index].id, SpvDecorationBinding, ubo_index);
-            ubos.push_back({
+            spvc_compiler_set_decoration(compiler, uniform_buffer_list[uniform_buffer_index].id, SpvDecorationBinding, uniform_buffer_index);
+            info.uniform_buffers.push_back({
                 size,
-                ubo_index,
+                uniform_buffer_index,
             });
         }
     }
@@ -156,7 +170,6 @@ bool SpirvToGlsl::compile(
         "gl_DefaultUniformBlock", // Default name of the default uniform buffer used by glslang's GLSL frontend
     };
     bool default_uniform_buffer_seen = false;
-    std::unordered_map<std::string, Uniform> uniforms;
     std::vector<const char *> struct_name_stack;
     struct UniformNode
     {
@@ -166,20 +179,20 @@ bool SpirvToGlsl::compile(
         size_t member_index;
     };
     std::vector<UniformNode> uniform_stack;
-    for (uint32_t ubo_index = 0; ubo_index < (uint32_t)ubo_list_size; ++ubo_index) {
-        const char *ubo_name = spvc_compiler_get_name(compiler, ubo_list[ubo_index].base_type_id);
+    for (uint32_t uniform_buffer_index = 0; uniform_buffer_index < (uint32_t)uniform_buffer_list_size; ++uniform_buffer_index) {
+        const char *uniform_buffer_name = spvc_compiler_get_name(compiler, uniform_buffer_list[uniform_buffer_index].base_type_id);
         if (!default_uniform_buffer_seen) {
             for (size_t j = 0; j < sizeof default_uniform_buffer_names / sizeof *default_uniform_buffer_names; ++j) {
-                if (std::strcmp(ubo_name, default_uniform_buffer_names[j]) == 0) {
+                if (std::strcmp(uniform_buffer_name, default_uniform_buffer_names[j]) == 0) {
                     default_uniform_buffer_seen = true;
-                    ubo_name = nullptr;
+                    uniform_buffer_name = nullptr;
                     break;
                 }
             }
         }
         uniform_stack.emplace_back(UniformNode {
-            ubo_name,
-            ubo_list[ubo_index].base_type_id,
+            uniform_buffer_name,
+            uniform_buffer_list[uniform_buffer_index].base_type_id,
             0,
             0,
         });
@@ -209,20 +222,20 @@ bool SpirvToGlsl::compile(
                     uniform_stack.pop_back();
                 }
             } else {
-                Uniform::Type uniform_type;
+                SpirvUniform::Type uniform_type;
                 switch (basetype) {
-                    case SPVC_BASETYPE_INT8: uniform_type = Uniform::Type::INT8; break;
-                    case SPVC_BASETYPE_UINT8: uniform_type = Uniform::Type::UINT8; break;
-                    case SPVC_BASETYPE_INT16: uniform_type = Uniform::Type::INT16; break;
-                    case SPVC_BASETYPE_UINT16: uniform_type = Uniform::Type::UINT16; break;
-                    case SPVC_BASETYPE_INT32: uniform_type = Uniform::Type::INT32; break;
-                    case SPVC_BASETYPE_UINT32: uniform_type = Uniform::Type::UINT32; break;
-                    case SPVC_BASETYPE_INT64: uniform_type = Uniform::Type::INT64; break;
-                    case SPVC_BASETYPE_UINT64: uniform_type = Uniform::Type::UINT64; break;
-                    case SPVC_BASETYPE_FP16: uniform_type = Uniform::Type::FP16; break;
-                    case SPVC_BASETYPE_FP32: uniform_type = Uniform::Type::FP32; break;
-                    case SPVC_BASETYPE_FP64: uniform_type = Uniform::Type::FP64; break;
-                    default: uniform_type = Uniform::Type::UNKNOWN; break;
+                    case SPVC_BASETYPE_INT8: uniform_type = SpirvUniform::Type::INT8; break;
+                    case SPVC_BASETYPE_UINT8: uniform_type = SpirvUniform::Type::UINT8; break;
+                    case SPVC_BASETYPE_INT16: uniform_type = SpirvUniform::Type::INT16; break;
+                    case SPVC_BASETYPE_UINT16: uniform_type = SpirvUniform::Type::UINT16; break;
+                    case SPVC_BASETYPE_INT32: uniform_type = SpirvUniform::Type::INT32; break;
+                    case SPVC_BASETYPE_UINT32: uniform_type = SpirvUniform::Type::UINT32; break;
+                    case SPVC_BASETYPE_INT64: uniform_type = SpirvUniform::Type::INT64; break;
+                    case SPVC_BASETYPE_UINT64: uniform_type = SpirvUniform::Type::UINT64; break;
+                    case SPVC_BASETYPE_FP16: uniform_type = SpirvUniform::Type::FP16; break;
+                    case SPVC_BASETYPE_FP32: uniform_type = SpirvUniform::Type::FP32; break;
+                    case SPVC_BASETYPE_FP64: uniform_type = SpirvUniform::Type::FP64; break;
+                    default: uniform_type = SpirvUniform::Type::UNKNOWN; break;
                 }
                 uint8_t vector_size = spvc_type_get_vector_size(type);
                 uint8_t columns = spvc_type_get_columns(type);
@@ -230,25 +243,25 @@ bool SpirvToGlsl::compile(
                 for (uint32_t array_dimension_index = 0; array_dimension_index < array_dimensions.size(); ++array_dimension_index) {
                     array_dimensions[array_dimension_index] = spvc_type_get_array_dimension(type, array_dimension_index);
                 }
-                uniforms.emplace(
+                info.uniforms.emplace(
                     get_struct_member_name(struct_name_stack, uniform.name),
-                    have_ubo_support
-                        ? Uniform {
+                    have_uniform_buffer_support
+                        ? SpirvUniform {
                             uniform_type,
                             vector_size,
                             columns,
                             std::move(array_dimensions),
-                            Uniform::Flavor::UBO,
-                            ubo_index,
+                            SpirvUniform::Flavor::UNIFORM_BUFFER,
+                            uniform_buffer_index,
                             uniform.offset,
                         }
-                        : Uniform {
+                        : SpirvUniform {
                             uniform_type,
                             vector_size,
                             columns,
                             std::move(array_dimensions),
-                            Uniform::Flavor::PLAIN,
-                            (uint32_t)uniforms.size(),
+                            SpirvUniform::Flavor::PLAIN,
+                            (uint32_t)info.uniforms.size(),
                             0,
                         }
                 );
@@ -260,20 +273,19 @@ bool SpirvToGlsl::compile(
     const spvc_reflected_resource *texture_list;
     size_t texture_list_size;
     CHECK(spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_SAMPLED_IMAGE, &texture_list, &texture_list_size));
-    std::unordered_map<std::string, Texture> textures;
     for (uint32_t texture_index = 0; texture_index < (uint32_t)texture_list_size; ++texture_index) {
         spvc_type texture_type = spvc_compiler_get_type_handle(compiler, texture_list[texture_index].base_type_id);
-        Texture::Type type;
+        SpirvTexture::Type type;
         switch (spvc_type_get_image_dimension(texture_type)) {
-            case SpvDim1D: type = Texture::Type::TEXTURE_1D; break;
-            case SpvDim2D: type = Texture::Type::TEXTURE_2D; break;
-            case SpvDim3D: type = Texture::Type::TEXTURE_3D; break;
-            default: type = Texture::Type::UNKNOWN; break;
+            case SpvDim1D: type = SpirvTexture::Type::TEXTURE_1D; break;
+            case SpvDim2D: type = SpirvTexture::Type::TEXTURE_2D; break;
+            case SpvDim3D: type = SpirvTexture::Type::TEXTURE_3D; break;
+            default: type = SpirvTexture::Type::UNKNOWN; break;
         }
         spvc_compiler_set_decoration(compiler, texture_list[texture_index].id, SpvDecorationBinding, texture_index);
-        textures.emplace(
+        info.textures.emplace(
             texture_list[texture_index].name,
-            Texture {
+            SpirvTexture {
                 type,
                 texture_index,
             }
@@ -285,16 +297,14 @@ bool SpirvToGlsl::compile(
     CHECK(spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_GLSL_VERSION, version));
     CHECK(spvc_compiler_options_set_bool(options, SPVC_COMPILER_OPTION_GLSL_ES, dialect == Dialect::GLSL_ES ? SPVC_TRUE : SPVC_FALSE));
     CHECK(spvc_compiler_options_set_bool(options, SPVC_COMPILER_OPTION_GLSL_ENABLE_420PACK_EXTENSION, dialect == Dialect::GLSL_WITH_420PACK && have_binding_support));
-    CHECK(spvc_compiler_options_set_bool(options, SPVC_COMPILER_OPTION_GLSL_EMIT_UNIFORM_BUFFER_AS_PLAIN_UNIFORMS, !have_ubo_support));
+    CHECK(spvc_compiler_options_set_bool(options, SPVC_COMPILER_OPTION_GLSL_EMIT_UNIFORM_BUFFER_AS_PLAIN_UNIFORMS, !have_uniform_buffer_support));
     CHECK(spvc_compiler_install_compiler_options(compiler, options));
 
     const char *glsl;
     CHECK(spvc_compiler_compile(compiler, &glsl));
 
     glsl_output = glsl;
-    ubos_output = std::move(ubos);
-    uniforms_output = std::move(uniforms);
-    textures_output = std::move(textures);
+    info_output = std::move(info);
     spvc_context_release_allocations((spvc_context)context);
     return true;
 }

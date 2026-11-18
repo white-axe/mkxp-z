@@ -28,19 +28,29 @@
 #include <glslang/Include/glslang_c_interface.h>
 #include <glslang/Public/resource_limits_c.h>
 
-static glslang_target_language_version_t get_target_language_version(SpirvOptimizer::Target target) {
+static glslang_target_language_version_t get_target_language_version(SpirvTarget target) {
     switch (target) {
-        case SpirvOptimizer::Target::SPIRV_1_0: return GLSLANG_TARGET_SPV_1_0;
-        case SpirvOptimizer::Target::SPIRV_1_1: return GLSLANG_TARGET_SPV_1_1;
-        case SpirvOptimizer::Target::SPIRV_1_2: return GLSLANG_TARGET_SPV_1_2;
-        case SpirvOptimizer::Target::SPIRV_1_3: return GLSLANG_TARGET_SPV_1_3;
-        case SpirvOptimizer::Target::SPIRV_1_4: return GLSLANG_TARGET_SPV_1_4;
-        case SpirvOptimizer::Target::SPIRV_1_5: return GLSLANG_TARGET_SPV_1_5;
-        case SpirvOptimizer::Target::SPIRV_1_6: return GLSLANG_TARGET_SPV_1_6;
+        case SpirvTarget::SPIRV_1_0: return GLSLANG_TARGET_SPV_1_0;
+        case SpirvTarget::SPIRV_1_1: return GLSLANG_TARGET_SPV_1_1;
+        case SpirvTarget::SPIRV_1_2: return GLSLANG_TARGET_SPV_1_2;
+        case SpirvTarget::SPIRV_1_3: return GLSLANG_TARGET_SPV_1_3;
+        case SpirvTarget::SPIRV_1_4: return GLSLANG_TARGET_SPV_1_4;
+        case SpirvTarget::SPIRV_1_5: return GLSLANG_TARGET_SPV_1_5;
+        case SpirvTarget::SPIRV_1_6: return GLSLANG_TARGET_SPV_1_6;
     }
 }
 
-HlslToSpirv::HlslToSpirv(SpirvOptimizer::Target target) : target(target), initialized(glslang_initialize_process()) {
+static glslang_stage_t get_stage(SpirvExecutionModel execution_model) {
+    switch (execution_model) {
+        case SpirvExecutionModel::VERTEX: return GLSLANG_STAGE_VERTEX;
+        case SpirvExecutionModel::TESSELLATION_CONTROL: return GLSLANG_STAGE_TESSCONTROL;
+        case SpirvExecutionModel::TESSELLATION_EVALUATION: return GLSLANG_STAGE_TESSEVALUATION;
+        case SpirvExecutionModel::GEOMETRY: return GLSLANG_STAGE_GEOMETRY;
+        case SpirvExecutionModel::FRAGMENT: return GLSLANG_STAGE_FRAGMENT;
+    }
+}
+
+HlslToSpirv::HlslToSpirv(SpirvTarget target) : target(target), initialized(glslang_initialize_process()) {
     if (!initialized) {
         throw Exception(Exception::MKXPError, "Failed to initialize glslang");
     }
@@ -71,7 +81,7 @@ bool HlslToSpirv::compile(
     const char *hlsl_source_code,
     const char *entry_point,
     size_t preamble_size,
-    Stage stage,
+        SpirvExecutionModel execution_model,
     Dialect dialect
 ) {
     // glslang only considers line feeds to be newlines, so we don't count other types of newlines
@@ -85,7 +95,7 @@ bool HlslToSpirv::compile(
 
     const glslang_input_t input = {
         GLSLANG_SOURCE_HLSL,
-        stage == Stage::VERTEX ? GLSLANG_STAGE_VERTEX : GLSLANG_STAGE_FRAGMENT,
+        get_stage(execution_model),
         GLSLANG_CLIENT_VULKAN,
         GLSLANG_TARGET_VULKAN_1_4,
         GLSLANG_TARGET_SPV,

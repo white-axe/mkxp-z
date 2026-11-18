@@ -26,29 +26,21 @@
 #include <string>
 #include <vector>
 
-#include "spirv-optimizer.h"
+#include "spirv.h"
 
 class HlslToSpirv
 {
 private:
-    SpirvOptimizer::Target target;
+    SpirvTarget target;
     bool initialized;
 
 public:
-    HlslToSpirv(SpirvOptimizer::Target target);
+    HlslToSpirv(SpirvTarget target);
     ~HlslToSpirv();
     HlslToSpirv(const HlslToSpirv &other) = delete;
     HlslToSpirv(HlslToSpirv &&other) noexcept;
     HlslToSpirv &operator=(const HlslToSpirv &other) = delete;
     HlslToSpirv &operator=(HlslToSpirv &&other) noexcept;
-
-    enum Stage
-    {
-        // Vertex shader
-        VERTEX,
-        // Fragment shader
-        FRAGMENT,
-    };
 
     enum Dialect
     {
@@ -66,7 +58,7 @@ public:
      * hlsl_source_code: The HLSL source code for the shader to be compiled.
      * entry_point: The name of the main function of the shader.
      * preamble_size: The number of bytes at the beginning of the HLSL source code that should be considered the "preamble". The line numbers in error messages will be adjusted to exclude the preamble.
-     * stage: The type of shader that we are compiling (e.g. a vertex shader or fragment shader).
+     * execution_model: The type of shader that we are compiling (e.g. a vertex shader or fragment shader).
      * dialect: What type of HLSL the source code is written in.
      *
      * Return value: `true` if compilation succeeded, otherwise `false`.
@@ -77,8 +69,8 @@ public:
         const char *hlsl_source_code,
         const char *entry_point,
         size_t preamble_size,
-        Stage stage,
-        Dialect dialect = Dialect::MODERN
+        SpirvExecutionModel execution_model,
+        Dialect dialect
     );
 };
 

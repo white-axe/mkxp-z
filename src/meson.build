@@ -1402,6 +1402,7 @@ main_source = files(
     have_custom_shaders ? [
         'display/hlsl-to-spirv.cpp',
         'display/spirv-optimizer.cpp',
+        'display/spirv-sink.cpp',
         'display/spirv-to-glsl.cpp',
     ] : [],
 )
