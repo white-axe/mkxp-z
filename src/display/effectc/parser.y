@@ -146,8 +146,6 @@
                 Value::Shader shader;
             };
 
-            void dispose() noexcept;
-
         public:
             Value();
             Value(Value::NamedConstant &&named_constant);
@@ -1381,7 +1379,7 @@ Value::Value(Value::String &&string) : type(Type::STRING), string(std::move(stri
 Value::Value(Value::Shader &&shader) : type(Type::SHADER), shader(std::move(shader)) {
 }
 
-void Value::dispose() noexcept {
+Value::~Value() {
     switch (type) {
         case Type::NULL_TYPE: break;
         case Type::NAMED_CONSTANT: named_constant.~NamedConstant(); break;
@@ -1389,29 +1387,23 @@ void Value::dispose() noexcept {
         case Type::FLOATING_POINT: floating_point.~FloatingPoint(); break;
         case Type::STRING: string.~String(); break;
         case Type::SHADER: shader.~Shader(); break;
-        default: assert(!"unreachable"); break;
     }
 }
 
-Value::~Value() {
-     dispose();
-}
-
-Value::Value(Value &&other) noexcept : type(Type::NULL_TYPE) {
-    *this = std::move(other);
-}
-
-Value &Value::operator=(Value &&other) noexcept {
-    dispose();
-    switch ((type = other.type)) {
+Value::Value(Value &&other) noexcept : type(other.type) {
+    switch (type) {
         case Type::NULL_TYPE: break;
         case Type::NAMED_CONSTANT: new(&named_constant) NamedConstant(std::move(other.named_constant)); break;
         case Type::INTEGER: new(&integer) Integer(std::move(other.integer)); break;
         case Type::FLOATING_POINT: new(&floating_point) FloatingPoint(std::move(other.floating_point)); break;
         case Type::STRING: new(&string) String(std::move(other.string)); break;
         case Type::SHADER: new(&shader) Shader(std::move(other.shader)); break;
-        default: assert(!"unreachable"); break;
     }
+}
+
+Value &Value::operator=(Value &&other) noexcept {
+    this->~Value();
+    new(this) Value(std::move(other));
     return *this;
 }
 

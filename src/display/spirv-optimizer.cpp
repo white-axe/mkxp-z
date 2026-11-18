@@ -58,17 +58,15 @@ SpirvOptimizer::~SpirvOptimizer() {
     }
 }
 
-SpirvOptimizer::SpirvOptimizer(SpirvOptimizer &&other) noexcept {
-    *this = std::move(other);
+SpirvOptimizer::SpirvOptimizer(SpirvOptimizer &&other) noexcept : optimizer(other.optimizer), validator_options(other.validator_options), optimizer_options(other.optimizer_options) {
+    other.optimizer = nullptr;
+    other.validator_options = nullptr;
+    other.optimizer_options = nullptr;
 }
 
 SpirvOptimizer &SpirvOptimizer::operator=(SpirvOptimizer &&other) noexcept {
-    optimizer = other.optimizer;
-    other.optimizer = nullptr;
-    validator_options = other.validator_options;
-    other.validator_options = nullptr;
-    optimizer_options = other.optimizer_options;
-    other.optimizer_options = nullptr;
+    this->~SpirvOptimizer();
+    new(this) SpirvOptimizer(std::move(other));
     return *this;
 }
 

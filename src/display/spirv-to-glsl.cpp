@@ -42,13 +42,13 @@ SpirvToGlsl::~SpirvToGlsl() {
     spvc_context_destroy((spvc_context)context);
 }
 
-SpirvToGlsl::SpirvToGlsl(SpirvToGlsl &&other) noexcept {
-    *this = std::move(other);
+SpirvToGlsl::SpirvToGlsl(SpirvToGlsl &&other) noexcept : context(other.context) {
+    other.context = nullptr;
 }
 
 SpirvToGlsl &SpirvToGlsl::operator=(SpirvToGlsl &&other) noexcept {
-    context = other.context;
-    other.context = nullptr;
+    this->~SpirvToGlsl();
+    new(this) SpirvToGlsl(std::move(other));
     return *this;
 }
 

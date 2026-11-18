@@ -62,14 +62,13 @@ HlslToSpirv::~HlslToSpirv() {
     }
 }
 
-HlslToSpirv::HlslToSpirv(HlslToSpirv &&other) noexcept {
-    *this = std::move(other);
+HlslToSpirv::HlslToSpirv(HlslToSpirv &&other) noexcept : target(other.target), initialized(other.initialized) {
+    other.initialized = false;
 }
 
 HlslToSpirv &HlslToSpirv::operator=(HlslToSpirv &&other) noexcept {
-    target = other.target;
-    initialized = other.initialized;
-    other.initialized = false;
+    this->~HlslToSpirv();
+    new(this) HlslToSpirv(std::move(other));
     return *this;
 }
 

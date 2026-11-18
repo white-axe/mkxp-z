@@ -1028,19 +1028,14 @@ Lexer::~Lexer() {
     }
 }
 
-Lexer::Lexer(Lexer &&other) noexcept {
-    *this = std::move(other);
+Lexer::Lexer(Lexer &&other) noexcept : yyscanner(other.yyscanner), buffer(other.buffer), location(std::move(other.location)), continuation_length(other.continuation_length), check_for_overlong(other.check_for_overlong), seen_carriage_return(other.seen_carriage_return) {
+    other.yyscanner = nullptr;
+    other.buffer = nullptr;
 }
 
 Lexer &Lexer::operator=(Lexer &&other) noexcept {
-    yyscanner = other.yyscanner;
-    other.yyscanner = nullptr;
-    buffer = other.buffer;
-    other.buffer = nullptr;
-    location = std::move(other.location);
-    continuation_length = other.continuation_length;
-    check_for_overlong = other.check_for_overlong;
-    seen_carriage_return = other.seen_carriage_return;
+    this->~Lexer();
+    new(this) Lexer(std::move(other));
     return *this;
 }
 
