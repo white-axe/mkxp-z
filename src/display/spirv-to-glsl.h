@@ -58,7 +58,6 @@ public:
      * Compiles SPIR-V bytecode to GLSL.
      *
      * glsl_output: If compilation succeeds, this will be set to the compiled GLSL shader. Otherwise this will be unchanged.
-     * info_output: If compilation succeeds, this will be set to a struct containing other information about the compiled GLSL shader. Otherwise this will be unchanged.
      * error_message: If compilation succeeds, this will be unchanged. Otherwise, this will be set to a string containing the compilation error.
      * spirv_input: Pointer to the input SPIR-V bytecode.
      * spirv_input_size: Length of the input SPIR-V bytecode in 32-bit words.
@@ -71,7 +70,6 @@ public:
      */
     bool compile(
         std::string &glsl_output,
-        SpirvShaderInfo &info_output,
         std::string &error_message,
         const uint32_t *spirv_input,
         size_t spirv_input_size,

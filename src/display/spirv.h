@@ -69,9 +69,9 @@ struct SpirvUniformBuffer
     uint32_t binding;
 };
 
-struct SpirvUniform
+struct SpirvType
 {
-    enum Type
+    enum ScalarType
     {
         // Unknown type.
         UNKNOWN,
@@ -99,6 +99,22 @@ struct SpirvUniform
         FP64,
     };
 
+    // The scalar type of this type.
+    ScalarType scalar_type;
+    // `vector_size` and `columns` can each either be 1, 2, 3 or 4.
+    // If both `vector_size` and `columns` are equal to 1, then this is a scalar type.
+    // If `vector_size` is greater than 1 and `columns` is equal to 1, then this is a vector of `type` with `vector_size` elements.
+    // If `columns` is greater than 1, then this is a matrix of `type` with `vector_size` rows and `columns` columns.
+    uint8_t vector_size, columns;
+    // True if this is a row-major matrix, false if this is not a matrix or is a column-major matrix.
+    bool is_row_major;
+    // If non-empty, this is an array, possibly multidimensional, with these dimensions.
+    // It's possible for a type to be both an array type and a matrix or vector type at the same time, in which case the type is an array of matrices/vectors, not a matrix/vector of arrays.
+    std::vector<uint32_t> array_dimensions;
+};
+
+struct SpirvUniform
+{
     enum Flavor
     {
         // This uniform is a member of a uniform buffer.
@@ -107,16 +123,8 @@ struct SpirvUniform
         PLAIN,
     };
 
-    // The scalar type of this uniform.
-    Type type;
-    // `vector_size` and `columns` can each either be 1, 2, 3 or 4.
-    // If both `vector_size` and `columns` are equal to 1, then this uniform is of scalar type.
-    // If `vector_size` is greater than 1 and `columns` is equal to 1, then this uniform is a vector of `type` with `vector_size` elements.
-    // If `columns` is greater than 1, then this uniform is a matrix of `type` with `vector_size` rows and `columns` columns.
-    uint8_t vector_size, columns;
-    // If non-empty, this uniform is an array, possibly multidimensional, with these dimensions.
-    // It's possible for a uniform to be both of array type and of matrix or vector type at the same time, in which case the uniform is an array of matrices/vectors, not a matrix/vector of arrays.
-    std::vector<uint32_t> array_dimensions;
+    // The type of this uniform.
+    SpirvType type;
     // Whether this uniform is a plain uniform or a member of a uniform buffer.
     Flavor flavor;
     // If this uniform is a member of a uniform buffer, this is the index of the uniform buffer within the `ubos_output` list of uniform buffers the shader requires.

@@ -19,8 +19,12 @@
  ** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <algorithm>
 #include <cassert>
+#include <cstring>
 #include <random>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "exception.h"
@@ -32,6 +36,91 @@
 static SpirvTarget get_target(SpirvSink::Backend backend) noexcept {
     switch (backend) {
         case SpirvSink::Backend::OPENGL_GLSL: return SpirvToGlsl::TARGET;
+    }
+}
+
+struct TypeSizeAndAlignment
+{
+    // Size of the type in bytes, including padding bytes.
+    uint32_t size;
+    // Alignment of the type in bytes.
+    uint32_t alignment;
+};
+
+static TypeSizeAndAlignment get_type_size_and_alignment(SpirvSink::Backend backend, const SpirvType &type) noexcept {
+    if (type.array_dimensions.empty()) {
+        if (type.columns == 1) {
+            if (type.vector_size == 1) { // Scalar
+                switch (type.scalar_type) {
+                    case SpirvType::ScalarType::INT8:
+                    case SpirvType::ScalarType::UINT8:
+                        return {1, 1};
+                    case SpirvType::ScalarType::INT16:
+                    case SpirvType::ScalarType::UINT16:
+                    case SpirvType::ScalarType::FP16:
+                        return {2, 2};
+                    case SpirvType::ScalarType::UNKNOWN:
+                    case SpirvType::ScalarType::INT32:
+                    case SpirvType::ScalarType::UINT32:
+                    case SpirvType::ScalarType::FP32:
+                        return {4, 4};
+                    case SpirvType::ScalarType::INT64:
+                    case SpirvType::ScalarType::UINT64:
+                    case SpirvType::ScalarType::FP64:
+                        return {8, 8};
+                }
+            } else { // Vector
+                SpirvType scalar_type = type;
+                scalar_type.vector_size = 1;
+                TypeSizeAndAlignment scalar_size_and_alignment = get_type_size_and_alignment(backend, scalar_type);
+                scalar_size_and_alignment.alignment *= type.vector_size == 3 ? 4 : type.vector_size; // A 3-component vector has its alignment rounded up to 4 components
+                scalar_size_and_alignment.size = scalar_size_and_alignment.alignment;
+                return scalar_size_and_alignment;
+            }
+        } else if (type.is_row_major) { // Row-major matrix
+            SpirvType vector_array_type = type;
+            vector_array_type.columns = 1;
+            vector_array_type.vector_size = type.columns;
+            vector_array_type.array_dimensions = {type.vector_size};
+            return get_type_size_and_alignment(backend, vector_array_type);
+        } else { // Column-major matrix
+            SpirvType vector_array_type = type;
+            vector_array_type.columns = 1;
+            vector_array_type.array_dimensions = {type.columns};
+            return get_type_size_and_alignment(backend, vector_array_type);
+        }
+    } else if (type.columns == 1) { // Array of scalars or vectors
+        uint32_t array_size = 1;
+        for (uint32_t dimension : type.array_dimensions) {
+            array_size *= dimension;
+        }
+        SpirvType vector_type = type;
+        vector_type.array_dimensions = {};
+        TypeSizeAndAlignment vector_size_and_alignment = get_type_size_and_alignment(backend, vector_type);
+        // Round the size and alignment of each element of the array up to the nearest multiple of 16
+        vector_size_and_alignment.size = (((uint64_t)vector_size_and_alignment.size + (uint64_t)15) & ~(uint64_t)15);
+        vector_size_and_alignment.alignment = (((uint64_t)vector_size_and_alignment.alignment + (uint64_t)15) & ~(uint64_t)15);
+        vector_size_and_alignment.size *= array_size;
+        return vector_size_and_alignment;
+    } else if (type.is_row_major) { // Array of row-major matrices
+        uint32_t array_size = 1;
+        for (uint32_t dimension : type.array_dimensions) {
+            array_size *= dimension;
+        }
+        SpirvType vector_array_type = type;
+        vector_array_type.columns = 1;
+        vector_array_type.vector_size = type.columns;
+        vector_array_type.array_dimensions = {array_size * type.vector_size};
+        return get_type_size_and_alignment(backend, vector_array_type);
+    } else { // Array of column-major matrices
+        uint32_t array_size = 1;
+        for (uint32_t dimension : type.array_dimensions) {
+            array_size *= dimension;
+        }
+        SpirvType vector_array_type = type;
+        vector_array_type.columns = 1;
+        vector_array_type.array_dimensions = {array_size * type.columns};
+        return get_type_size_and_alignment(backend, vector_array_type);
     }
 }
 
@@ -100,6 +189,138 @@ namespace {
     };
 }
 
+#define SPVC_CHECK(result) do { \
+    if ((result) != SPVC_SUCCESS) { \
+        error_message = spvc_context_get_last_error_string(context); \
+        spvc_context_release_allocations(context); \
+        return false; \
+    } \
+} while (0)
+
+static bool get_execution_model(SpirvExecutionModel &execution_model, std::string &error_message, spvc_context context, const uint32_t *shader, size_t shader_size) {
+    spvc_parsed_ir ir;
+    SPVC_CHECK(spvc_context_parse_spirv(context, (const SpvId *)shader, shader_size, &ir));
+
+    spvc_compiler compiler;
+    SPVC_CHECK(spvc_context_create_compiler(context, SPVC_BACKEND_NONE, ir, SPVC_CAPTURE_MODE_TAKE_OWNERSHIP, &compiler));
+
+    SpvExecutionModel compiler_execution_model = spvc_compiler_get_execution_model(compiler);
+
+    spvc_context_release_allocations(context);
+
+    switch (compiler_execution_model) {
+        case SpvExecutionModelVertex: execution_model = SpirvExecutionModel::VERTEX; break;
+        case SpvExecutionModelTessellationControl: execution_model = SpirvExecutionModel::TESSELLATION_CONTROL; break;
+        case SpvExecutionModelTessellationEvaluation: execution_model = SpirvExecutionModel::TESSELLATION_EVALUATION; break;
+        case SpvExecutionModelGeometry: execution_model = SpirvExecutionModel::GEOMETRY; break;
+        case SpvExecutionModelFragment: execution_model = SpirvExecutionModel::FRAGMENT; break;
+        default:
+            error_message = "Unsupported SPIR-V execution model " + std::to_string(execution_model);
+            return false;
+    }
+    return true;
+}
+
+static bool get_uniform_types(std::unordered_map<std::string, SpirvType> &uniform_types, std::string &error_message, spvc_context context, const uint32_t *shader, size_t shader_size) {
+    spvc_parsed_ir ir;
+    SPVC_CHECK(spvc_context_parse_spirv(context, (const SpvId *)shader, shader_size, &ir));
+
+    spvc_compiler compiler;
+    SPVC_CHECK(spvc_context_create_compiler(context, SPVC_BACKEND_NONE, ir, SPVC_CAPTURE_MODE_TAKE_OWNERSHIP, &compiler));
+
+    spvc_resources resources;
+    SPVC_CHECK(spvc_compiler_create_shader_resources(compiler, &resources));
+
+    const spvc_reflected_resource *uniform_buffer_list;
+    size_t uniform_buffer_list_size;
+    SPVC_CHECK(spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_UNIFORM_BUFFER, &uniform_buffer_list, &uniform_buffer_list_size));
+
+    static const char *const default_uniform_buffer_names[] = {
+        "$Global", // Default name of the default uniform buffer used by glslang's HLSL frontend
+        "gl_DefaultUniformBlock", // Default name of the default uniform buffer used by glslang's GLSL frontend
+    };
+    bool default_uniform_buffer_seen = false;
+    struct Node
+    {
+        const char *name;
+        spvc_type_id type_id;
+        size_t member_index;
+    };
+    std::vector<Node> stack;
+
+    for (uint32_t uniform_buffer_index = 0; uniform_buffer_index < (uint32_t)uniform_buffer_list_size; ++uniform_buffer_index) {
+        const char *uniform_buffer_name = spvc_compiler_get_name(compiler, uniform_buffer_list[uniform_buffer_index].base_type_id);
+        if (!default_uniform_buffer_seen) {
+            for (size_t j = 0; j < sizeof default_uniform_buffer_names / sizeof *default_uniform_buffer_names; ++j) {
+                if (std::strcmp(uniform_buffer_name, default_uniform_buffer_names[j]) == 0) {
+                    default_uniform_buffer_seen = true;
+                    uniform_buffer_name = nullptr;
+                    break;
+                }
+            }
+        }
+        stack.emplace_back(Node {
+            uniform_buffer_name,
+            uniform_buffer_list[uniform_buffer_index].base_type_id,
+            0,
+        });
+        while (!stack.empty()) {
+            Node &node = stack.back();
+            spvc_type type = spvc_compiler_get_type_handle(compiler, node.type_id);
+            spvc_basetype basetype = spvc_type_get_basetype(type);
+            if (basetype == SPVC_BASETYPE_STRUCT) {
+                if (node.member_index < (size_t)spvc_type_get_num_member_types(type)) {
+                    size_t member_index = node.member_index++;
+                    stack.emplace_back(Node {
+                        spvc_compiler_get_member_name(compiler, node.type_id, member_index),
+                        spvc_type_get_member_type(type, member_index),
+                        0,
+                    });
+                } else {
+                    stack.pop_back();
+                }
+            } else {
+                SpirvType uniform_type;
+                switch (basetype) {
+                    case SPVC_BASETYPE_INT8: uniform_type.scalar_type = SpirvType::ScalarType::INT8; break;
+                    case SPVC_BASETYPE_UINT8: uniform_type.scalar_type = SpirvType::ScalarType::UINT8; break;
+                    case SPVC_BASETYPE_INT16: uniform_type.scalar_type = SpirvType::ScalarType::INT16; break;
+                    case SPVC_BASETYPE_UINT16: uniform_type.scalar_type = SpirvType::ScalarType::UINT16; break;
+                    case SPVC_BASETYPE_INT32: uniform_type.scalar_type = SpirvType::ScalarType::INT32; break;
+                    case SPVC_BASETYPE_UINT32: uniform_type.scalar_type = SpirvType::ScalarType::UINT32; break;
+                    case SPVC_BASETYPE_INT64: uniform_type.scalar_type = SpirvType::ScalarType::INT64; break;
+                    case SPVC_BASETYPE_UINT64: uniform_type.scalar_type = SpirvType::ScalarType::UINT64; break;
+                    case SPVC_BASETYPE_FP16: uniform_type.scalar_type = SpirvType::ScalarType::FP16; break;
+                    case SPVC_BASETYPE_FP32: uniform_type.scalar_type = SpirvType::ScalarType::FP32; break;
+                    case SPVC_BASETYPE_FP64: uniform_type.scalar_type = SpirvType::ScalarType::FP64; break;
+                    default: uniform_type.scalar_type = SpirvType::ScalarType::UNKNOWN; break;
+                }
+                uniform_type.vector_size = spvc_type_get_vector_size(type);
+                uniform_type.columns = spvc_type_get_columns(type);
+                uniform_type.is_row_major = uniform_type.columns != 1 && spvc_compiler_get_decoration(compiler, node.type_id, SpvDecorationRowMajor) != 0;
+                uniform_type.array_dimensions = std::vector<uint32_t>(spvc_type_get_num_array_dimensions(type));
+                for (uint32_t array_dimension_index = 0; array_dimension_index < uniform_type.array_dimensions.size(); ++array_dimension_index) {
+                    uniform_type.array_dimensions[array_dimension_index] = spvc_type_get_array_dimension(type, array_dimension_index);
+                }
+                std::string uniform_name;
+                for (const Node &ancestor : stack) {
+                    if (ancestor.name != nullptr) {
+                        uniform_name += ancestor.name;
+                        if (&ancestor != &node) {
+                            uniform_name += '.';
+                        }
+                    }
+                }
+                uniform_types.emplace(std::move(uniform_name), std::move(uniform_type));
+                stack.pop_back();
+            }
+        }
+    }
+
+    spvc_context_release_allocations(context);
+    return true;
+}
+
 bool SpirvSink::compile(
     Program &program_output,
     std::string &error_message,
@@ -114,38 +335,14 @@ bool SpirvSink::compile(
         SpirvExecutionModel::FRAGMENT,
     };
     std::vector<const std::pair<const uint32_t *, size_t> *> shader_for_execution_model(sizeof execution_models / sizeof *execution_models, nullptr);
+    std::unordered_map<std::string, SpirvType> uniform_type_map;
 
     for (size_t shader_index = 0; shader_index < shaders_len; ++shader_index) {
         const std::pair<const uint32_t *, size_t> &shader = shaders[shader_index];
 
-        spvc_parsed_ir ir;
-        if (spvc_context_parse_spirv((spvc_context)context, (const SpvId *)shader.first, shader.second, &ir) != SPVC_SUCCESS) {
-            error_message = spvc_context_get_last_error_string((spvc_context)context);
-            spvc_context_release_allocations((spvc_context)context);
-            return false;
-        }
-
-        spvc_compiler compiler;
-        if (spvc_context_create_compiler((spvc_context)context, SPVC_BACKEND_NONE, ir, SPVC_CAPTURE_MODE_TAKE_OWNERSHIP, &compiler) != SPVC_SUCCESS) {
-            error_message = spvc_context_get_last_error_string((spvc_context)context);
-            spvc_context_release_allocations((spvc_context)context);
-            return false;
-        }
-
-        SpvExecutionModel compiler_execution_model = spvc_compiler_get_execution_model(compiler);
-
-        spvc_context_release_allocations((spvc_context)context);
-
         SpirvExecutionModel execution_model;
-        switch (compiler_execution_model) {
-            case SpvExecutionModelVertex: execution_model = SpirvExecutionModel::VERTEX; break;
-            case SpvExecutionModelTessellationControl: execution_model = SpirvExecutionModel::TESSELLATION_CONTROL; break;
-            case SpvExecutionModelTessellationEvaluation: execution_model = SpirvExecutionModel::TESSELLATION_EVALUATION; break;
-            case SpvExecutionModelGeometry: execution_model = SpirvExecutionModel::GEOMETRY; break;
-            case SpvExecutionModelFragment: execution_model = SpirvExecutionModel::FRAGMENT; break;
-            default:
-                error_message = "Unsupported SPIR-V execution model " + std::to_string(execution_model);
-                return false;
+        if (!get_execution_model(execution_model, error_message, (spvc_context)context, shader.first, shader.second)) {
+            return false;
         }
 
         size_t execution_model_index = get_execution_model_index(execution_models, sizeof execution_models / sizeof *execution_models, execution_model);
@@ -154,6 +351,10 @@ bool SpirvSink::compile(
             return false;
         }
         shader_for_execution_model[get_execution_model_index(execution_models, sizeof execution_models / sizeof *execution_models, execution_model)] = &shaders[shader_index];
+
+        if (!get_uniform_types(uniform_type_map, error_message, (spvc_context)context, shader.first, shader.second)) {
+            return false;
+        }
     }
 
     if (
@@ -163,6 +364,15 @@ bool SpirvSink::compile(
         error_message = "A vertex shader and a fragment shader must both be provided";
         return false;
     }
+
+    // Sort the uniform types in non-ascending order of alignment to optimize for the size of the uniform buffer
+    std::vector<std::pair<std::string, SpirvType>> uniform_types;
+    for (auto it = uniform_type_map.begin(); it != uniform_type_map.end(); it = uniform_type_map.erase(it)) {
+        uniform_types.emplace_back(it->first, std::move(it->second));
+    }
+    std::sort(uniform_types.begin(), uniform_types.end(), [this](const std::pair<std::string, SpirvType> &a, const std::pair<std::string, SpirvType> &b) {
+        return get_type_size_and_alignment(backend, a.second).alignment > get_type_size_and_alignment(backend, b.second).alignment;
+    });
 
     GlShaders gl_shaders;
 
@@ -176,15 +386,12 @@ bool SpirvSink::compile(
             continue;
         }
 
-        SpirvShaderInfo info;
-
         switch (backend) {
             case Backend::OPENGL_GLSL:
                 {
                     std::string glsl;
                     bool result = glsl_backend.compile(
                         glsl,
-                        info,
                         error_message,
                         shader->first,
                         shader->second,

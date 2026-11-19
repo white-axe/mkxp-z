@@ -53,11 +53,6 @@ private:
         SpirvToGlsl glsl_backend;
     };
 
-    class GlProgram
-    {
-
-    };
-
 public:
     class Program
     {

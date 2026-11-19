@@ -22,10 +22,7 @@
 #include <cassert>
 #include <cctype>
 #include <cstring>
-#include <iterator>
-#include <sstream>
 #include <vector>
-#include <unordered_map>
 #include <utility>
 
 #include "spirv-to-glsl.h"
@@ -54,13 +51,6 @@ SpirvToGlsl &SpirvToGlsl::operator=(SpirvToGlsl &&other) noexcept {
     return *this;
 }
 
-static std::string get_struct_member_name(const std::vector<const char *> &struct_name_stack, const char *struct_member_name) {
-    std::stringstream stringstream;
-    std::copy(struct_name_stack.begin(), struct_name_stack.end(), std::ostream_iterator<const char *>(stringstream, "."));
-    stringstream << (struct_member_name != nullptr ? struct_member_name : "");
-    return stringstream.str();
-}
-
 #define CHECK(result) do { \
     if ((result) != SPVC_SUCCESS) { \
         error_message = spvc_context_get_last_error_string((spvc_context)context); \
@@ -71,7 +61,6 @@ static std::string get_struct_member_name(const std::vector<const char *> &struc
 
 bool SpirvToGlsl::compile(
     std::string &glsl_output,
-    SpirvShaderInfo &info_output,
     std::string &error_message,
     const uint32_t *spirv_input,
     size_t spirv_input_size,
@@ -96,8 +85,6 @@ bool SpirvToGlsl::compile(
             have_binding_support = version >= 310;
             break;
     }
-
-    SpirvShaderInfo info;
 
     spvc_parsed_ir ir;
     CHECK(spvc_context_parse_spirv((spvc_context)context, (const SpvId *)spirv_input, spirv_input_size, &ir));
@@ -150,119 +137,7 @@ bool SpirvToGlsl::compile(
             return false;
         }
         for (uint32_t uniform_buffer_index = 0; uniform_buffer_index < (uint32_t)uniform_buffer_list_size; ++uniform_buffer_index) {
-            spvc_type struct_type = spvc_compiler_get_type_handle(compiler, uniform_buffer_list[uniform_buffer_index].base_type_id);
-            size_t size;
-            CHECK(spvc_compiler_get_declared_struct_size(compiler, struct_type, &size));
             spvc_compiler_set_decoration(compiler, uniform_buffer_list[uniform_buffer_index].id, SpvDecorationBinding, uniform_buffer_index);
-            info.uniform_buffers.push_back({
-                size,
-                uniform_buffer_index,
-            });
-        }
-    }
-
-    static const char *const default_uniform_buffer_names[] = {
-        "$Global", // Default name of the default uniform buffer used by glslang's HLSL frontend
-        "gl_DefaultUniformBlock", // Default name of the default uniform buffer used by glslang's GLSL frontend
-    };
-    bool default_uniform_buffer_seen = false;
-    std::vector<const char *> struct_name_stack;
-    struct UniformNode
-    {
-        const char *name;
-        spvc_type_id type_id;
-        size_t offset;
-        size_t member_index;
-    };
-    std::vector<UniformNode> uniform_stack;
-    for (uint32_t uniform_buffer_index = 0; uniform_buffer_index < (uint32_t)uniform_buffer_list_size; ++uniform_buffer_index) {
-        const char *uniform_buffer_name = spvc_compiler_get_name(compiler, uniform_buffer_list[uniform_buffer_index].base_type_id);
-        if (!default_uniform_buffer_seen) {
-            for (size_t j = 0; j < sizeof default_uniform_buffer_names / sizeof *default_uniform_buffer_names; ++j) {
-                if (std::strcmp(uniform_buffer_name, default_uniform_buffer_names[j]) == 0) {
-                    default_uniform_buffer_seen = true;
-                    uniform_buffer_name = nullptr;
-                    break;
-                }
-            }
-        }
-        uniform_stack.emplace_back(UniformNode {
-            uniform_buffer_name,
-            uniform_buffer_list[uniform_buffer_index].base_type_id,
-            0,
-            0,
-        });
-        while (!uniform_stack.empty()) {
-            UniformNode &uniform = uniform_stack.back();
-            spvc_type type = spvc_compiler_get_type_handle(compiler, uniform.type_id);
-            spvc_basetype basetype = spvc_type_get_basetype(type);
-            if (basetype == SPVC_BASETYPE_STRUCT) {
-                if (uniform.member_index < (size_t)spvc_type_get_num_member_types(type)) {
-                    unsigned int offset;
-                    size_t member_index = uniform.member_index;
-                    CHECK(spvc_compiler_type_struct_member_offset(compiler, type, uniform.member_index++, &offset));
-                    if (member_index == 0 && uniform.name != nullptr) {
-                        struct_name_stack.emplace_back(uniform.name);
-                    }
-                    uniform_stack.emplace_back(UniformNode {
-                        spvc_compiler_get_member_name(compiler, uniform.type_id, member_index),
-                        spvc_type_get_member_type(type, member_index),
-                        uniform.offset + (size_t)offset,
-                        0,
-                    });
-                } else {
-                    if (uniform.member_index > 0 && uniform.name != nullptr) {
-                        assert(struct_name_stack.back() == uniform.name);
-                        struct_name_stack.pop_back();
-                    }
-                    uniform_stack.pop_back();
-                }
-            } else {
-                SpirvUniform::Type uniform_type;
-                switch (basetype) {
-                    case SPVC_BASETYPE_INT8: uniform_type = SpirvUniform::Type::INT8; break;
-                    case SPVC_BASETYPE_UINT8: uniform_type = SpirvUniform::Type::UINT8; break;
-                    case SPVC_BASETYPE_INT16: uniform_type = SpirvUniform::Type::INT16; break;
-                    case SPVC_BASETYPE_UINT16: uniform_type = SpirvUniform::Type::UINT16; break;
-                    case SPVC_BASETYPE_INT32: uniform_type = SpirvUniform::Type::INT32; break;
-                    case SPVC_BASETYPE_UINT32: uniform_type = SpirvUniform::Type::UINT32; break;
-                    case SPVC_BASETYPE_INT64: uniform_type = SpirvUniform::Type::INT64; break;
-                    case SPVC_BASETYPE_UINT64: uniform_type = SpirvUniform::Type::UINT64; break;
-                    case SPVC_BASETYPE_FP16: uniform_type = SpirvUniform::Type::FP16; break;
-                    case SPVC_BASETYPE_FP32: uniform_type = SpirvUniform::Type::FP32; break;
-                    case SPVC_BASETYPE_FP64: uniform_type = SpirvUniform::Type::FP64; break;
-                    default: uniform_type = SpirvUniform::Type::UNKNOWN; break;
-                }
-                uint8_t vector_size = spvc_type_get_vector_size(type);
-                uint8_t columns = spvc_type_get_columns(type);
-                std::vector<uint32_t> array_dimensions = std::vector<uint32_t>(spvc_type_get_num_array_dimensions(type));
-                for (uint32_t array_dimension_index = 0; array_dimension_index < array_dimensions.size(); ++array_dimension_index) {
-                    array_dimensions[array_dimension_index] = spvc_type_get_array_dimension(type, array_dimension_index);
-                }
-                info.uniforms.emplace(
-                    get_struct_member_name(struct_name_stack, uniform.name),
-                    have_uniform_buffer_support
-                        ? SpirvUniform {
-                            uniform_type,
-                            vector_size,
-                            columns,
-                            std::move(array_dimensions),
-                            SpirvUniform::Flavor::UNIFORM_BUFFER,
-                            uniform_buffer_index,
-                            uniform.offset,
-                        }
-                        : SpirvUniform {
-                            uniform_type,
-                            vector_size,
-                            columns,
-                            std::move(array_dimensions),
-                            SpirvUniform::Flavor::PLAIN,
-                            (uint32_t)info.uniforms.size(),
-                            0,
-                        }
-                );
-                uniform_stack.pop_back();
-            }
         }
     }
 
@@ -270,22 +145,7 @@ bool SpirvToGlsl::compile(
     size_t texture_list_size;
     CHECK(spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_SAMPLED_IMAGE, &texture_list, &texture_list_size));
     for (uint32_t texture_index = 0; texture_index < (uint32_t)texture_list_size; ++texture_index) {
-        spvc_type texture_type = spvc_compiler_get_type_handle(compiler, texture_list[texture_index].base_type_id);
-        SpirvTexture::Type type;
-        switch (spvc_type_get_image_dimension(texture_type)) {
-            case SpvDim1D: type = SpirvTexture::Type::TEXTURE_1D; break;
-            case SpvDim2D: type = SpirvTexture::Type::TEXTURE_2D; break;
-            case SpvDim3D: type = SpirvTexture::Type::TEXTURE_3D; break;
-            default: type = SpirvTexture::Type::UNKNOWN; break;
-        }
         spvc_compiler_set_decoration(compiler, texture_list[texture_index].id, SpvDecorationBinding, texture_index);
-        info.textures.emplace(
-            texture_list[texture_index].name,
-            SpirvTexture {
-                type,
-                texture_index,
-            }
-        );
     }
 
     spvc_compiler_options options;
@@ -300,7 +160,6 @@ bool SpirvToGlsl::compile(
     CHECK(spvc_compiler_compile(compiler, &glsl));
 
     glsl_output = glsl;
-    info_output = std::move(info);
     spvc_context_release_allocations((spvc_context)context);
     return true;
 }
