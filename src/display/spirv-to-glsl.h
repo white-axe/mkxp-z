@@ -25,8 +25,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
-#include <unordered_map>
-#include <vector>
 
 #include "spirv.h"
 
@@ -63,7 +61,7 @@ public:
      * info_output: If compilation succeeds, this will be set to a struct containing other information about the compiled GLSL shader. Otherwise this will be unchanged.
      * error_message: If compilation succeeds, this will be unchanged. Otherwise, this will be set to a string containing the compilation error.
      * spirv_input: Pointer to the input SPIR-V bytecode.
-     * spirv_input_size: Length of the input SPIR-V bytecode in bytes.
+     * spirv_input_size: Length of the input SPIR-V bytecode in 32-bit words.
      * stage_input_cookie: Due to the limitations of old GLSL versions, you must provide an unpredictable string here, suitable for use in an identifier, that is the same as the `stage_output_cookie` used to compile the previous shader stage. This string is ignored for vertex shaders since there is no shader stage before the vertex stage.
      * stage_output_cookie: Due to the limitations of old GLSL versions, you must provide an unpredictable string here, suitable for use in an identifier, that is the same as the `stage_input_cookie` used to compile the next shader stage. Must not be the same as `stage_input_cookie`. This string is ignored for fragment shaders since there is no shader stage after the fragment stage.
      * version: The 3-digit GLSL version number, such as 460 for GLSL as used in OpenGL 4.6.
@@ -75,7 +73,7 @@ public:
         std::string &glsl_output,
         SpirvShaderInfo &info_output,
         std::string &error_message,
-        const uint8_t *spirv_input,
+        const uint32_t *spirv_input,
         size_t spirv_input_size,
         const char *stage_input_cookie,
         const char *stage_output_cookie,

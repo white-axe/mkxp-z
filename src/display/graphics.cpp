@@ -1828,8 +1828,8 @@ void Graphics::rgdAddShader(const char *shaders, const char *passes) {
     }
 
     default_shaders_string.append((const char *)mkxp_shader_rgd_default_shaders_hlsl, mkxp_shader_rgd_default_shaders_hlsl_len);
-    std::vector<uint8_t> default_vertex_shader_spirv;
-    std::vector<uint8_t> default_fragment_shader_spirv;
+    std::vector<uint32_t> default_vertex_shader_spirv;
+    std::vector<uint32_t> default_fragment_shader_spirv;
     COMPILE_CHECK(hlsl_to_spirv_compiler.compile(
         default_vertex_shader_spirv,
         errors,

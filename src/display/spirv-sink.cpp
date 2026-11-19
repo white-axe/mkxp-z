@@ -103,7 +103,7 @@ namespace {
 bool SpirvSink::compile(
     Program &program_output,
     std::string &error_message,
-    const std::pair<const uint8_t *, size_t> *shaders,
+    const std::pair<const uint32_t *, size_t> *shaders,
     size_t shaders_len
 ) {
     static const SpirvExecutionModel execution_models[] = {
@@ -113,19 +113,13 @@ bool SpirvSink::compile(
         SpirvExecutionModel::GEOMETRY,
         SpirvExecutionModel::FRAGMENT,
     };
-    std::vector<const std::pair<const uint8_t *, size_t> *> shader_for_execution_model(sizeof execution_models / sizeof *execution_models, nullptr);
+    std::vector<const std::pair<const uint32_t *, size_t> *> shader_for_execution_model(sizeof execution_models / sizeof *execution_models, nullptr);
 
     for (size_t shader_index = 0; shader_index < shaders_len; ++shader_index) {
-        const std::pair<const uint8_t *, size_t> &shader = shaders[shader_index];
-
-        assert((uintptr_t)shader.first % (uintptr_t)alignof(uint32_t) == 0); // Should be true because memory allocated by malloc() should be sufficiently aligned for uint32_t
-        if (shader.second % 4 != 0) {
-            error_message = "SPIR-V input size must be a multiple of 4";
-            return false;
-        }
+        const std::pair<const uint32_t *, size_t> &shader = shaders[shader_index];
 
         spvc_parsed_ir ir;
-        if (spvc_context_parse_spirv((spvc_context)context, (const SpvId *)shader.first, shader.second / 4, &ir) != SPVC_SUCCESS) {
+        if (spvc_context_parse_spirv((spvc_context)context, (const SpvId *)shader.first, shader.second, &ir) != SPVC_SUCCESS) {
             error_message = spvc_context_get_last_error_string((spvc_context)context);
             spvc_context_release_allocations((spvc_context)context);
             return false;
@@ -176,7 +170,7 @@ bool SpirvSink::compile(
     std::random_device::result_type cookie = random_device();
 
     for (size_t execution_model_index = 0, stage_index = 0; execution_model_index < sizeof execution_models / sizeof *execution_models; ++execution_model_index) {
-        const std::pair<const uint8_t *, size_t> *shader = shader_for_execution_model[execution_model_index];
+        const std::pair<const uint32_t *, size_t> *shader = shader_for_execution_model[execution_model_index];
         SpirvExecutionModel execution_model = execution_models[execution_model_index];
         if (shader == nullptr) {
             continue;

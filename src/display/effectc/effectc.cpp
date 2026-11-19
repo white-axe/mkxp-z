@@ -104,10 +104,10 @@ bool effectc::compile(
     std::string &error_messages,
     HlslToSpirv &hlsl_to_spirv_compiler,
     SpirvSink &sink,
-    const uint8_t *default_vertex_shader,
+    const uint32_t *default_vertex_shader,
     size_t default_vertex_shader_size,
     bool override_vertex_shader,
-    const uint8_t *default_fragment_shader,
+    const uint32_t *default_fragment_shader,
     size_t default_fragment_shader_size,
     bool override_fragment_shader,
     const char *shaders_source_code,
@@ -128,7 +128,7 @@ bool effectc::compile(
         }
     }
 
-    std::vector<std::vector<uint8_t>> shaders;
+    std::vector<std::vector<uint32_t>> shaders;
 
     for (const auto &pass : passes) {
         static const std::pair<const char *, SpirvExecutionModel> execution_models[] = {
@@ -144,7 +144,7 @@ bool effectc::compile(
             bool override_shader = have_default_shader && (execution_model.second == SpirvExecutionModel::VERTEX ? override_vertex_shader : override_fragment_shader);
 
             if (!override_shader && it != pass.second.second.end() && it->second.second.get_type() == Value::Type::SHADER) {
-                std::vector<uint8_t> shader;
+                std::vector<uint32_t> shader;
                 COMPILE_CHECK(hlsl_to_spirv_compiler.compile(
                     shader,
                     errors,
@@ -156,7 +156,7 @@ bool effectc::compile(
                 ));
                 shaders.emplace_back(std::move(shader));
             } else if (have_default_shader) {
-                const uint8_t *shader_ptr = execution_model.second == SpirvExecutionModel::VERTEX ? default_vertex_shader : default_fragment_shader;
+                const uint32_t *shader_ptr = execution_model.second == SpirvExecutionModel::VERTEX ? default_vertex_shader : default_fragment_shader;
                 shaders.emplace_back(shader_ptr, shader_ptr + (execution_model.second == SpirvExecutionModel::VERTEX ? default_vertex_shader_size : default_fragment_shader_size));
             } else {
                 errors = execution_model.second == SpirvExecutionModel::VERTEX ? "You must specify a vertex shader for this pass." : "You must specify a fragment shader for this pass.";
@@ -164,9 +164,9 @@ bool effectc::compile(
             }
         }
 
-        std::vector<std::pair<const uint8_t *, size_t>> shader_views(shaders.size());
+        std::vector<std::pair<const uint32_t *, size_t>> shader_views(shaders.size());
         for (size_t i = 0; i < shaders.size(); ++i) {
-            const std::vector<uint8_t> &shader = shaders[i];
+            const std::vector<uint32_t> &shader = shaders[i];
             shader_views[i] = std::make_pair(shader.data(), shader.size());
         }
         SpirvSink::Program program;

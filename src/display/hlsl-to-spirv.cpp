@@ -75,7 +75,7 @@ HlslToSpirv &HlslToSpirv::operator=(HlslToSpirv &&other) noexcept {
 extern "C" int mkxp_custom_shaders_set_line_number_offset(int);
 
 bool HlslToSpirv::compile(
-    std::vector<uint8_t> &spirv_output,
+    std::vector<uint32_t> &spirv_output,
     std::string &error_messages,
     const char *hlsl_source_code,
     const char *entry_point,
@@ -140,8 +140,9 @@ bool HlslToSpirv::compile(
     glslang_program_SPIRV_generate(program, input.stage);
     glslang_shader_delete(shader);
     spirv_output.clear();
-    const uint8_t *spirv = (const uint8_t *)glslang_program_SPIRV_get_ptr(program);
-    spirv_output = std::vector<uint8_t>(spirv, spirv + sizeof(unsigned int) * glslang_program_SPIRV_get_size(program));
+    static_assert(sizeof(*glslang_program_SPIRV_get_ptr(program)) == sizeof(uint32_t) && alignof(decltype(*glslang_program_SPIRV_get_ptr(program))) == alignof(uint32_t), "glslang_program_SPIRV_get_ptr() should return uint32_t, but it doesn't");
+    const uint32_t *spirv = (const uint32_t *)glslang_program_SPIRV_get_ptr(program);
+    spirv_output = std::vector<uint32_t>(spirv, spirv + glslang_program_SPIRV_get_size(program));
     glslang_program_delete(program);
     return true;
 }

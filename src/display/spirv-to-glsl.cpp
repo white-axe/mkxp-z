@@ -24,6 +24,8 @@
 #include <cstring>
 #include <iterator>
 #include <sstream>
+#include <vector>
+#include <unordered_map>
 #include <utility>
 
 #include "spirv-to-glsl.h"
@@ -71,19 +73,13 @@ bool SpirvToGlsl::compile(
     std::string &glsl_output,
     SpirvShaderInfo &info_output,
     std::string &error_message,
-    const uint8_t *spirv_input,
+    const uint32_t *spirv_input,
     size_t spirv_input_size,
     const char *stage_input_cookie,
     const char *stage_output_cookie,
     uint16_t version,
     Dialect dialect
 ) {
-    assert((uintptr_t)spirv_input % (uintptr_t)alignof(uint32_t) == 0); // Should be true because memory allocated by malloc() should be sufficiently aligned for uint32_t
-    if (spirv_input_size % 4 != 0) {
-        error_message = "SPIR-V input size must be a multiple of 4";
-        return false;
-    }
-
     bool have_uniform_buffer_support;
     bool have_binding_support;
     switch (dialect) {
@@ -104,7 +100,7 @@ bool SpirvToGlsl::compile(
     SpirvShaderInfo info;
 
     spvc_parsed_ir ir;
-    CHECK(spvc_context_parse_spirv((spvc_context)context, (const SpvId *)spirv_input, spirv_input_size / 4, &ir));
+    CHECK(spvc_context_parse_spirv((spvc_context)context, (const SpvId *)spirv_input, spirv_input_size, &ir));
 
     spvc_compiler compiler;
     CHECK(spvc_context_create_compiler((spvc_context)context, SPVC_BACKEND_GLSL, ir, SPVC_CAPTURE_MODE_TAKE_OWNERSHIP, &compiler));

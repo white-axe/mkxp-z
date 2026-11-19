@@ -64,7 +64,7 @@ public:
      * Return value: `true` if compilation succeeded, otherwise `false`.
      */
     bool compile(
-        std::vector<uint8_t> &spirv_output,
+        std::vector<uint32_t> &spirv_output,
         std::string &error_messages,
         const char *hlsl_source_code,
         const char *entry_point,

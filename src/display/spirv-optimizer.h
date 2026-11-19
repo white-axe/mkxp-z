@@ -49,11 +49,11 @@ public:
      *
      * spirv_output: If optimization is successful, this will be set to the optimized SPIR-V output. Otherwise this will be unchanged.
      * spirv_input: Pointer to the input SPIR-V bytecode.
-     * spirv_input_size: Length of the input SPIR-V bytecode in bytes.
+     * spirv_input_size: Length of the input SPIR-V bytecode in 32-bit words.
      *
      * Return value: `true` if optimization was successful, otherwise `false`.
      */
-    bool optimize(std::vector<uint8_t> &spirv_output, const uint8_t *spirv_input, size_t spirv_input_size);
+    bool optimize(std::vector<uint32_t> &spirv_output, const uint32_t *spirv_input, size_t spirv_input_size);
 };
 
 #endif // SPIRV_OPTIMIZER_H

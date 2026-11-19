@@ -70,18 +70,14 @@ SpirvOptimizer &SpirvOptimizer::operator=(SpirvOptimizer &&other) noexcept {
     return *this;
 }
 
-bool SpirvOptimizer::optimize(std::vector<uint8_t> &spirv_output, const uint8_t *spirv_input, size_t spirv_input_size) {
-    assert((uintptr_t)spirv_input % (uintptr_t)alignof(uint32_t) == 0); // Should be true because memory allocated by malloc() should be sufficiently aligned for uint32_t
-    if (spirv_input_size % 4 != 0) {
-        return false;
-    }
+bool SpirvOptimizer::optimize(std::vector<uint32_t> &spirv_output, const uint32_t *spirv_input, size_t spirv_input_size) {
     spv_binary_t *binary;
-    if (spvOptimizerRun((spv_optimizer_t *)optimizer, (const uint32_t *)spirv_input, spirv_input_size / 4, &binary, (spv_optimizer_options_t *)optimizer_options) != SPV_SUCCESS) {
+    if (spvOptimizerRun((spv_optimizer_t *)optimizer, (const uint32_t *)spirv_input, spirv_input_size, &binary, (spv_optimizer_options_t *)optimizer_options) != SPV_SUCCESS) {
         return false;
     }
     spirv_output.clear();
-    const uint8_t *spirv = (const uint8_t *)binary->code;
-    spirv_output = std::vector<uint8_t>(spirv, spirv + (size_t)4 * binary->wordCount);
+    const uint32_t *spirv = (const uint32_t *)binary->code;
+    spirv_output = std::vector<uint32_t>(spirv, spirv + binary->wordCount);
     spvBinaryDestroy(binary);
     return true;
 }
