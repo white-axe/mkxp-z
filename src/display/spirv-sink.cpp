@@ -215,7 +215,7 @@ static bool get_execution_model(SpirvExecutionModel &execution_model, std::strin
         case SpvExecutionModelGeometry: execution_model = SpirvExecutionModel::GEOMETRY; break;
         case SpvExecutionModelFragment: execution_model = SpirvExecutionModel::FRAGMENT; break;
         default:
-            error_message = "Unsupported SPIR-V execution model " + std::to_string(execution_model);
+            error_message = "Unsupported SPIR-V execution model " + std::to_string(compiler_execution_model);
             return false;
     }
     return true;
