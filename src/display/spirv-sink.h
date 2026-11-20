@@ -109,7 +109,7 @@ public:
      * program_output: If compilation succeeds, this will be set to the compiled shader program. Otherwise, this will be unchanged.
      * error_message: If compilation succeeds, this will be unchanged. Otherwise, this will be set to a string containing the compilation error.
      * shaders: For each SPIR-V shader, this contains the shader's SPIR-V bytecode and the length of the shader's SPIR-V bytecode in bytes.
-     * shaders_len: The length of `shaders` in 32-bit words.
+     * shaders_len: The length of `shaders`.
      *
      * Return value: `true` if compilation succeeded, otherwise `false`.
      */
