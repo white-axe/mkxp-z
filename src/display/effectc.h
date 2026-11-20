@@ -30,8 +30,6 @@
 namespace effectc {
     /* Compiles a Direct3D 9 effect. If successful, any shaders already present in this object will be deleted and replaced with the shaders from the newly compiled effect.
      *
-     * programs_output: If compilation succeeds, this will be set to a mapping between a pass name in the Direct3D 9 effect and the corresponding shader program. Otherwise, this will be unchanged.
-     * error_messages: If compilation succeeds, this will be unchanged. Otherwise, this will be set to a string containing all compilation errors that occurred.
      * hlsl_to_spirv_compiler: Compiler to use to compile HLSL shaders to SPIR-V.
      * sink: Compiler to use to compile SPIR-V programs.
      * default_vertex_shader: SPIR-V bytecode for the vertex shader to use for a pass if a pass doesn't specify one. Can be null, in which case there will be an error if a pass doesn't specify a vertex shader.
@@ -43,12 +41,12 @@ namespace effectc {
      * shaders_source_code: The HLSL source code for the shaders to be compiled.
      * passes_source_code: The HLSL source code for the passes describing the shaders to be compiled, as one or more Direct3D 9 passes; see <https://github.com/MicrosoftDocs/win32/blob/9bcde4a0658c5b315366da6124466465bb25e5ee/desktop-src/direct3d9/techniques-and-passes.md#passes>.
      * shaders_preamble_size: The number of bytes at the beginning of the source code for the shaders that should be considered the "preamble". The line numbers in shader error messages will be adjusted to exclude the preamble.
+     * programs_output: If compilation succeeds, this will be set to a mapping between a pass name in the Direct3D 9 effect and the corresponding shader program. Otherwise, this will be unchanged.
+     * error_messages: If compilation succeeds, this will be unchanged. Otherwise, this will be set to a string containing all compilation errors that occurred.
      *
      * Return value: `true` if compilation succeeded, otherwise `false`.
      */
     bool compile(
-        std::unordered_map<std::string, SpirvSink::Program> &programs_output,
-        std::string &error_messages,
         HlslToSpirv &hlsl_to_spirv_compiler,
         SpirvSink &sink,
         const uint32_t *default_vertex_shader,
@@ -59,7 +57,9 @@ namespace effectc {
         bool override_fragment_shader,
         const char *shaders_source_code,
         const char *passes_source_code,
-        size_t shaders_preamble_size
+        size_t shaders_preamble_size,
+        std::unordered_map<std::string, SpirvSink::Program> &programs_output,
+        std::string &error_messages
     );
 }
 

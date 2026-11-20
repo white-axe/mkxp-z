@@ -106,18 +106,18 @@ public:
      * Creates a shader program from SPIR-V shaders.
      * You must specify, at minimum, a vertex shader and a fragment shader.
      *
-     * program_output: If compilation succeeds, this will be set to the compiled shader program. Otherwise, this will be unchanged.
-     * error_message: If compilation succeeds, this will be unchanged. Otherwise, this will be set to a string containing the compilation error.
      * shaders: For each SPIR-V shader, this contains the shader's SPIR-V bytecode and the length of the shader's SPIR-V bytecode in bytes.
      * shaders_len: The length of `shaders`.
+     * program_output: If compilation succeeds, this will be set to the compiled shader program. Otherwise, this will be unchanged.
+     * error_message: If compilation succeeds, this will be unchanged. Otherwise, this will be set to a string containing the compilation error.
      *
      * Return value: `true` if compilation succeeded, otherwise `false`.
      */
     bool compile(
-        Program &program_output,
-        std::string &error_message,
         const std::pair<const uint32_t *, size_t> *shaders,
-        size_t shaders_len
+        size_t shaders_len,
+        Program &program_output,
+        std::string &error_message
     );
 };
 

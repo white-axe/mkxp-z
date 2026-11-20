@@ -197,31 +197,43 @@ namespace {
     } \
 } while (0)
 
-static bool get_execution_model(SpirvExecutionModel &execution_model, std::string &error_message, spvc_context context, const uint32_t *shader, size_t shader_size) {
+static bool get_execution_model(
+    spvc_context context,
+    const uint32_t *shader,
+    size_t shader_size,
+    SpirvExecutionModel &execution_model_output,
+    std::string &error_message
+) {
     spvc_parsed_ir ir;
     SPVC_CHECK(spvc_context_parse_spirv(context, (const SpvId *)shader, shader_size, &ir));
 
     spvc_compiler compiler;
     SPVC_CHECK(spvc_context_create_compiler(context, SPVC_BACKEND_NONE, ir, SPVC_CAPTURE_MODE_TAKE_OWNERSHIP, &compiler));
 
-    SpvExecutionModel compiler_execution_model = spvc_compiler_get_execution_model(compiler);
+    SpvExecutionModel execution_model = spvc_compiler_get_execution_model(compiler);
 
     spvc_context_release_allocations(context);
 
-    switch (compiler_execution_model) {
-        case SpvExecutionModelVertex: execution_model = SpirvExecutionModel::VERTEX; break;
-        case SpvExecutionModelTessellationControl: execution_model = SpirvExecutionModel::TESSELLATION_CONTROL; break;
-        case SpvExecutionModelTessellationEvaluation: execution_model = SpirvExecutionModel::TESSELLATION_EVALUATION; break;
-        case SpvExecutionModelGeometry: execution_model = SpirvExecutionModel::GEOMETRY; break;
-        case SpvExecutionModelFragment: execution_model = SpirvExecutionModel::FRAGMENT; break;
+    switch (execution_model) {
+        case SpvExecutionModelVertex: execution_model_output = SpirvExecutionModel::VERTEX; break;
+        case SpvExecutionModelTessellationControl: execution_model_output = SpirvExecutionModel::TESSELLATION_CONTROL; break;
+        case SpvExecutionModelTessellationEvaluation: execution_model_output = SpirvExecutionModel::TESSELLATION_EVALUATION; break;
+        case SpvExecutionModelGeometry: execution_model_output = SpirvExecutionModel::GEOMETRY; break;
+        case SpvExecutionModelFragment: execution_model_output = SpirvExecutionModel::FRAGMENT; break;
         default:
-            error_message = "Unsupported SPIR-V execution model " + std::to_string(compiler_execution_model);
+            error_message = "Unsupported SPIR-V execution model " + std::to_string(execution_model);
             return false;
     }
     return true;
 }
 
-static bool get_uniform_types(std::unordered_map<std::string, SpirvType> &uniform_types, std::string &error_message, spvc_context context, const uint32_t *shader, size_t shader_size) {
+static bool get_uniform_types(
+    spvc_context context,
+    const uint32_t *shader,
+    size_t shader_size,
+    std::unordered_map<std::string, SpirvType> &uniform_types_output,
+    std::string &error_message
+) {
     spvc_parsed_ir ir;
     SPVC_CHECK(spvc_context_parse_spirv(context, (const SpvId *)shader, shader_size, &ir));
 
@@ -311,7 +323,7 @@ static bool get_uniform_types(std::unordered_map<std::string, SpirvType> &unifor
                         }
                     }
                 }
-                uniform_types.emplace(std::move(uniform_name), std::move(uniform_type));
+                uniform_types_output.emplace(std::move(uniform_name), std::move(uniform_type));
                 stack.pop_back();
             }
         }
@@ -322,10 +334,10 @@ static bool get_uniform_types(std::unordered_map<std::string, SpirvType> &unifor
 }
 
 bool SpirvSink::compile(
-    Program &program_output,
-    std::string &error_message,
     const std::pair<const uint32_t *, size_t> *shaders,
-    size_t shaders_len
+    size_t shaders_len,
+    Program &program_output,
+    std::string &error_message
 ) {
     static const SpirvExecutionModel execution_models[] = {
         SpirvExecutionModel::VERTEX,
@@ -341,7 +353,13 @@ bool SpirvSink::compile(
         const std::pair<const uint32_t *, size_t> &shader = shaders[shader_index];
 
         SpirvExecutionModel execution_model;
-        if (!get_execution_model(execution_model, error_message, (spvc_context)context, shader.first, shader.second)) {
+        if (!get_execution_model(
+            (spvc_context)context,
+            shader.first,
+            shader.second,
+            execution_model,
+            error_message
+        )) {
             return false;
         }
 
@@ -352,7 +370,13 @@ bool SpirvSink::compile(
         }
         shader_for_execution_model[get_execution_model_index(execution_models, sizeof execution_models / sizeof *execution_models, execution_model)] = &shaders[shader_index];
 
-        if (!get_uniform_types(uniform_type_map, error_message, (spvc_context)context, shader.first, shader.second)) {
+        if (!get_uniform_types(
+            (spvc_context)context,
+            shader.first,
+            shader.second,
+            uniform_type_map,
+            error_message
+        )) {
             return false;
         }
     }
@@ -391,14 +415,14 @@ bool SpirvSink::compile(
                 {
                     std::string glsl;
                     bool result = glsl_backend.compile(
-                        glsl,
-                        error_message,
                         shader->first,
                         shader->second,
                         (std::to_string(cookie) + "_stage" + std::to_string(stage_index)).c_str(),
                         (std::to_string(cookie) + "_stage" + std::to_string(stage_index + 1)).c_str(),
                         gl.glsl_info.version,
-                        gl.glsl_info.es ? SpirvToGlsl::Dialect::GLSL_ES : gl.glsl_info.have_420pack ? SpirvToGlsl::Dialect::GLSL_WITH_420PACK : SpirvToGlsl::Dialect::GLSL_WITHOUT_420PACK
+                        gl.glsl_info.es ? SpirvToGlsl::Dialect::GLSL_ES : gl.glsl_info.have_420pack ? SpirvToGlsl::Dialect::GLSL_WITH_420PACK : SpirvToGlsl::Dialect::GLSL_WITHOUT_420PACK,
+                        glsl,
+                        error_message
                     );
                     if (!result) {
                         return false;

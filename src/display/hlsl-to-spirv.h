@@ -53,24 +53,24 @@ public:
     /*
      * Compiles a HLSL shader to SPIR-V.
      *
-     * spirv_output: If compilation succeeds, this will be set to the SPIR-V code that the HLSL compiled to. Otherwise this will be unchanged.
-     * error_messages: If compilation succeeds, this will be unchanged. Otherwise, this will be set to a string containing all compilation errors that occurred.
      * hlsl_source_code: The HLSL source code for the shader to be compiled.
      * entry_point: The name of the main function of the shader.
      * preamble_size: The number of bytes at the beginning of the HLSL source code that should be considered the "preamble". The line numbers in error messages will be adjusted to exclude the preamble.
      * execution_model: The type of shader that we are compiling (e.g. a vertex shader or fragment shader).
      * dialect: What type of HLSL the source code is written in.
+     * spirv_output: If compilation succeeds, this will be set to the SPIR-V code that the HLSL compiled to. Otherwise this will be unchanged.
+     * error_messages: If compilation succeeds, this will be unchanged. Otherwise, this will be set to a string containing all compilation errors that occurred.
      *
      * Return value: `true` if compilation succeeded, otherwise `false`.
      */
     bool compile(
-        std::vector<uint32_t> &spirv_output,
-        std::string &error_messages,
         const char *hlsl_source_code,
         const char *entry_point,
         size_t preamble_size,
         SpirvExecutionModel execution_model,
-        Dialect dialect
+        Dialect dialect,
+        std::vector<uint32_t> &spirv_output,
+        std::string &error_messages
     );
 };
 

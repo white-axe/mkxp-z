@@ -100,8 +100,6 @@ std::string effectc_impl::format_location(const Parser::location_type &location)
 } while (0)
 
 bool effectc::compile(
-    std::unordered_map<std::string, SpirvSink::Program> &programs_output,
-    std::string &error_messages,
     HlslToSpirv &hlsl_to_spirv_compiler,
     SpirvSink &sink,
     const uint32_t *default_vertex_shader,
@@ -112,7 +110,9 @@ bool effectc::compile(
     bool override_fragment_shader,
     const char *shaders_source_code,
     const char *passes_source_code,
-    size_t shaders_preamble_size
+    size_t shaders_preamble_size,
+    std::unordered_map<std::string, SpirvSink::Program> &programs_output,
+    std::string &error_messages
 ) {
     std::unordered_map<std::string, SpirvSink::Program> new_programs;
 
@@ -121,7 +121,11 @@ bool effectc::compile(
 
     {
         Lexer lexer(passes_source_code);
-        Parser parser(passes, errors, lexer);
+        Parser parser(
+            lexer,
+            passes,
+            errors
+        );
         if (parser.parse() != 0) {
             error_messages = std::move(errors);
             return false;
@@ -146,13 +150,13 @@ bool effectc::compile(
             if (!override_shader && it != pass.second.second.end() && it->second.second.get_type() == Value::Type::SHADER) {
                 std::vector<uint32_t> shader;
                 COMPILE_CHECK(hlsl_to_spirv_compiler.compile(
-                    shader,
-                    errors,
                     shaders_source_code,
                     it->second.second.as_shader().entry_point.c_str(),
                     shaders_preamble_size,
                     execution_model.second,
-                    HlslToSpirv::Dialect::D3D9
+                    HlslToSpirv::Dialect::D3D9,
+                    shader,
+                    errors
                 ));
                 shaders.emplace_back(std::move(shader));
             } else if (have_default_shader) {
@@ -171,10 +175,10 @@ bool effectc::compile(
         }
         SpirvSink::Program program;
         LINK_CHECK(sink.compile(
-            program,
-            errors,
             shader_views.data(),
-            shader_views.size()
+            shader_views.size(),
+            program,
+            errors
         ));
 
         new_programs.emplace(pass.first, std::move(program));

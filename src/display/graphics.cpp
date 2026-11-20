@@ -1831,22 +1831,22 @@ void Graphics::rgdAddShader(const char *shaders, const char *passes) {
     std::vector<uint32_t> default_vertex_shader_spirv;
     std::vector<uint32_t> default_fragment_shader_spirv;
     COMPILE_CHECK(hlsl_to_spirv_compiler.compile(
-        default_vertex_shader_spirv,
-        errors,
         default_shaders_string.c_str(),
         "vs_main",
         preamble_size,
         SpirvExecutionModel::VERTEX,
-        HlslToSpirv::Dialect::D3D9
+        HlslToSpirv::Dialect::D3D9,
+        default_vertex_shader_spirv,
+        errors
     ));
     COMPILE_CHECK(hlsl_to_spirv_compiler.compile(
-        default_fragment_shader_spirv,
-        errors,
         default_shaders_string.c_str(),
         "ps_main",
         preamble_size,
         SpirvExecutionModel::VERTEX,
-        HlslToSpirv::Dialect::D3D9
+        HlslToSpirv::Dialect::D3D9,
+        default_fragment_shader_spirv,
+        errors
     ));
 
     shaders_string.append(shaders);
@@ -1854,8 +1854,6 @@ void Graphics::rgdAddShader(const char *shaders, const char *passes) {
     // TODO: do something with this
     std::unordered_map<std::string, SpirvSink::Program> programs;
     COMPILE_CHECK(effectc::compile(
-        programs,
-        errors,
         hlsl_to_spirv_compiler,
         spirv_sink,
         default_vertex_shader_spirv.data(),
@@ -1866,7 +1864,9 @@ void Graphics::rgdAddShader(const char *shaders, const char *passes) {
         false,
         shaders_string.c_str(),
         passes,
-        preamble_size
+        preamble_size,
+        programs,
+        errors
     ));
 }
 #endif // MKXPZ_HAVE_CUSTOM_SHADERS

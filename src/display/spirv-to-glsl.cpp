@@ -22,7 +22,6 @@
 #include <cassert>
 #include <cctype>
 #include <cstring>
-#include <vector>
 #include <utility>
 
 #include "spirv-to-glsl.h"
@@ -60,14 +59,14 @@ SpirvToGlsl &SpirvToGlsl::operator=(SpirvToGlsl &&other) noexcept {
 } while (0)
 
 bool SpirvToGlsl::compile(
-    std::string &glsl_output,
-    std::string &error_message,
     const uint32_t *spirv_input,
     size_t spirv_input_size,
     const char *stage_input_cookie,
     const char *stage_output_cookie,
     uint16_t version,
-    Dialect dialect
+    Dialect dialect,
+    std::string &glsl_output,
+    std::string &error_message
 ) {
     bool have_uniform_buffer_support;
     bool have_binding_support;

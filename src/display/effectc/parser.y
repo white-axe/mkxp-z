@@ -24,10 +24,10 @@
 
 %define api.namespace {effectc_impl}
 %define api.parser.class {Parser}
+%lex-param {Lexer &lexer}
+%parse-param {Lexer &lexer}
 %parse-param {std::unordered_map<std::string, std::pair<class location, std::unordered_map<std::string, std::pair<class location, effectc_impl::Value>>>> &passes_output}
 %parse-param {std::string &error_messages}
-%parse-param {Lexer &lexer}
-%lex-param {Lexer &lexer}
 
 %locations /* Enables Bison's location API, which allows us to attach a location (line number and column number) to error messages */
 %define api.location.file none /* Disables generating location.hpp, which Bison does by default if the location API is enabled, since we don't need this file */
