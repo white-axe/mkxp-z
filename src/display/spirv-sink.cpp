@@ -980,18 +980,29 @@ static bool rewrite_shader_uniforms(
                     {
                         // Rewrite any instructions that try to read from one of the old uniform buffers such that they instead read from the merged uniform buffer
                         uint32_t base = parsed_instruction->words[3];
-                        if (!user_data.uniform_trie.children.count(base) && !user_data.pointers.count(base)) {
-                            user_data.shader_output.insert(user_data.shader_output.end(), parsed_instruction->words, parsed_instruction->words + parsed_instruction->num_words);
-                            break;
+                        const UniformTrieNode *node;
+                        {
+                            auto trie_it = user_data.uniform_trie.children.find(base);
+                            auto pointer_it = user_data.pointers.find(base);
+                            if (trie_it != user_data.uniform_trie.children.end()) {
+                                assert(pointer_it == user_data.pointers.end());
+                                node = trie_it->second.get();
+                            } else if (pointer_it != user_data.pointers.end()) {
+                                assert(trie_it == user_data.uniform_trie.children.end());
+                                node = &pointer_it->second;
+                            } else {
+                                // This instruction doesn't try to read one of the old uniform buffers, so pass this instruction through without doing anything
+                                user_data.shader_output.insert(user_data.shader_output.end(), parsed_instruction->words, parsed_instruction->words + parsed_instruction->num_words);
+                                break;
+                            }
                         }
-                        const UniformTrieNode *node = user_data.uniform_trie.children.count(base) ? user_data.uniform_trie.children.at(base).get() : &user_data.pointers.at(base);
                         std::vector<uint32_t> extra_chain_words;
                         for (size_t word_index = 4; word_index < parsed_instruction->num_words; ++word_index) {
                             uint32_t chain_word = parsed_instruction->words[word_index];
                             if (node->children.empty()) {
                                 extra_chain_words.push_back(chain_word);
                             } else {
-                                uint32_t constant = user_data.constants.at(parsed_instruction->words[word_index]);
+                                uint32_t constant = user_data.constants.at(chain_word);
                                 node = node->children.at(constant).get();
                             }
                         }
