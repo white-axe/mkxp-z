@@ -376,7 +376,6 @@ static bool get_uniforms(
             spvc_basetype basetype = spvc_type_get_basetype(type);
             if (basetype == SPVC_BASETYPE_STRUCT) {
                 if (spvc_type_get_num_array_dimensions(type) != 0) {
-                    // TODO: support arrays of structs
                     error_message = "Arrays of uniform structs are unsupported";
                     return false;
                 }
@@ -591,17 +590,33 @@ static bool rewrite_shader_uniforms(
 
     struct Data
     {
+        // SPIR-V version, encoded in the same way as it's supposed to appear in a SPIR-V module.
         uint32_t version;
+        // SPIR-V ID for a signed 32-bit integer type that we will use to define the constants used to access uniforms within our merged uniform buffer.
         uint32_t int32_type_id;
-        uint32_t new_uniform_buffer_id;
-        uint32_t new_uniform_buffer_type_id;
-        uint32_t new_uniform_buffer_pointer_id;
-        std::vector<uint32_t> new_uniform_buffer_member_index_ids;
-        std::vector<std::vector<uint32_t>> new_uniform_buffer_member_type_ids;
+        // SPIR-V ID for our merged uniform buffer.
+        uint32_t merged_uniform_buffer_id;
+        // SPIR-V ID for the struct type for our merged uniform buffer.
+        uint32_t merged_uniform_buffer_type_id;
+        // SPIR-V ID for a pointer type that points to the struct type for our merged uniform buffer.
+        uint32_t merged_uniform_buffer_pointer_id;
+        // For each uniform in our merged uniform buffer, this contains a SPIR-V ID for a constant used to access the corresponding uniform.
+        std::vector<uint32_t> merged_uniform_buffer_member_index_ids;
+        // For each uniform in our merged uniform buffer, this contains one or more SPIR-V IDs for the type of that uniform.
+        // For scalars, there is one ID.
+        // For vectors, there are two IDs: one for the scalar type of the uniform, followed by one for the uniform itself.
+        // For matrices, there are three IDs: one for the scalar type of the uniform, followed by one for the vector type of the columns of the uniform, followed by one for the uniform itself.
+        // For arrays, there are the IDs for the elements of the array, followed by a number of IDs equal to the number of dimensions of the array, representing the array types from least significant to most significant (i.e. the last of these IDs is the ID for the uniform itself).
+        std::vector<std::vector<uint32_t>> merged_uniform_buffer_member_type_ids;
+        // A map from the SPIR-V IDs of the integer constants defined in the SPIR-V module to the values of those constants.
         std::unordered_map<uint32_t, uint32_t> constants;
+        // A map from the SPIR-V IDs for pointer values that refer to some section of a uniform buffer to the uniform trie node for that pointer value.
         std::unordered_map<uint32_t, const UniformTrieNode &> pointers;
+        // True if we are in or past the debug section of the SPIR-V module, otherwise false.
         bool seen_debug_section;
+        // True if we are in or past the annotations section of the SPIR-V module, otherwise false.
         bool seen_annotation_section;
+        // True if we are in or past the types section of the SPIR-V module, otherwise false.
         bool seen_types_section;
         SpirvSink::Backend backend;
         const std::vector<std::pair<std::string, SpirvType>> &uniforms;
@@ -649,16 +664,16 @@ static bool rewrite_shader_uniforms(
 
             user_data.version = version;
 
-            // Allocate new IDs to use for the new uniform buffer.
+            // Allocate new IDs to use for the merged uniform buffer.
             // SPIR-V Tools's optimizer should already have compacted the existing IDs inside of the shader,
             // so we should have plenty of IDs to use.
             {
                 bool success = true;
                 success &= allocate_id(id_bound, user_data.int32_type_id);
-                success &= allocate_id(id_bound, user_data.new_uniform_buffer_id);
-                success &= allocate_id(id_bound, user_data.new_uniform_buffer_type_id);
-                success &= allocate_id(id_bound, user_data.new_uniform_buffer_pointer_id);
-                for (uint32_t &index_id : user_data.new_uniform_buffer_member_index_ids) {
+                success &= allocate_id(id_bound, user_data.merged_uniform_buffer_id);
+                success &= allocate_id(id_bound, user_data.merged_uniform_buffer_type_id);
+                success &= allocate_id(id_bound, user_data.merged_uniform_buffer_pointer_id);
+                for (uint32_t &index_id : user_data.merged_uniform_buffer_member_index_ids) {
                     success &= allocate_id(id_bound, index_id);
                 }
                 for (size_t i = 0; i < user_data.uniforms.size(); ++i) {
@@ -671,7 +686,7 @@ static bool rewrite_shader_uniforms(
                         ++num_type_ids;
                     }
                     num_type_ids += type.array_dimensions.size();
-                    std::vector<uint32_t> &type_ids = user_data.new_uniform_buffer_member_type_ids[i];
+                    std::vector<uint32_t> &type_ids = user_data.merged_uniform_buffer_member_type_ids[i];
                     type_ids = std::vector<uint32_t>(num_type_ids);
                     for (uint32_t &type_id : type_ids) {
                         success &= allocate_id(id_bound, type_id);
@@ -780,42 +795,42 @@ static bool rewrite_shader_uniforms(
             }
 
             if (is_start_of_debug_section) {
-                // Declare the name of our new uniform buffer
+                // Declare the name of our merged uniform buffer
                 push_instruction(user_data.shader_output, SpvOpName, num_string_literal_words("mkxpz_spirv_sink_uniforms") + 2); // Don't have to worry about name collisions; the SPIR-V to native shading language compiler will deal with it automatically
-                user_data.shader_output.push_back(user_data.new_uniform_buffer_id);
+                user_data.shader_output.push_back(user_data.merged_uniform_buffer_id);
                 push_string_literal(user_data.shader_output, "mkxpz_spirv_sink_uniforms");
 
-                // Declare the name of our new uniform buffer's type
+                // Declare the name of our merged uniform buffer's type
                 push_instruction(user_data.shader_output, SpvOpName, num_string_literal_words("mkxpz_spirv_sink_uniforms_t") + 2);
-                user_data.shader_output.push_back(user_data.new_uniform_buffer_type_id);
+                user_data.shader_output.push_back(user_data.merged_uniform_buffer_type_id);
                 push_string_literal(user_data.shader_output, "mkxpz_spirv_sink_uniforms_t");
 
-                // Declare the names of our new uniform buffer's fields
+                // Declare the names of our merged uniform buffer's fields
                 for (size_t i = 0; i < user_data.uniforms.size(); ++i) {
                     push_instruction(user_data.shader_output, SpvOpMemberName, num_string_literal_words(user_data.uniforms[i].first.c_str()) + 3);
-                    user_data.shader_output.push_back(user_data.new_uniform_buffer_type_id);
+                    user_data.shader_output.push_back(user_data.merged_uniform_buffer_type_id);
                     user_data.shader_output.push_back(i);
                     push_string_literal(user_data.shader_output, user_data.uniforms[i].first.c_str());
                 }
             }
 
             if (is_start_of_annotation_section) {
-                // Declare that our new uniform buffer's type is an interface block
+                // Declare that our merged uniform buffer's type is an interface block
                 push_instruction(user_data.shader_output, SpvOpDecorate, 3);
-                user_data.shader_output.push_back(user_data.new_uniform_buffer_type_id);
+                user_data.shader_output.push_back(user_data.merged_uniform_buffer_type_id);
                 user_data.shader_output.push_back(SpvDecorationBlock);
 
-                // Declare the linkage of our new uniform buffer
+                // Declare the linkage of our merged uniform buffer
                 push_instruction(user_data.shader_output, SpvOpDecorate, 4);
-                user_data.shader_output.push_back(user_data.new_uniform_buffer_id);
+                user_data.shader_output.push_back(user_data.merged_uniform_buffer_id);
                 user_data.shader_output.push_back(SpvDecorationBinding);
                 user_data.shader_output.push_back(0);
                 push_instruction(user_data.shader_output, SpvOpDecorate, 4);
-                user_data.shader_output.push_back(user_data.new_uniform_buffer_id);
+                user_data.shader_output.push_back(user_data.merged_uniform_buffer_id);
                 user_data.shader_output.push_back(SpvDecorationDescriptorSet);
                 user_data.shader_output.push_back(0);
 
-                // Declare the offsets for our new uniform buffer's fields
+                // Declare the offsets for our merged uniform buffer's fields
                 uint32_t offset = 0;
                 for (size_t uniform_index = 0; uniform_index < user_data.uniforms.size(); ++uniform_index) {
                     const SpirvType &type = user_data.uniforms[uniform_index].second;
@@ -827,7 +842,7 @@ static bool rewrite_shader_uniforms(
                     }
 
                     push_instruction(user_data.shader_output, SpvOpMemberDecorate, 5);
-                    user_data.shader_output.push_back(user_data.new_uniform_buffer_type_id);
+                    user_data.shader_output.push_back(user_data.merged_uniform_buffer_type_id);
                     user_data.shader_output.push_back(uniform_index);
                     user_data.shader_output.push_back(SpvDecorationOffset);
                     user_data.shader_output.push_back(offset);
@@ -835,12 +850,12 @@ static bool rewrite_shader_uniforms(
                     // If it's a matrix or array of matrices, also declare whether it's row-major or column-major and the matrix stride
                     if (type.columns != 1) {
                         push_instruction(user_data.shader_output, SpvOpMemberDecorate, 4);
-                        user_data.shader_output.push_back(user_data.new_uniform_buffer_type_id);
+                        user_data.shader_output.push_back(user_data.merged_uniform_buffer_type_id);
                         user_data.shader_output.push_back(uniform_index);
                         user_data.shader_output.push_back(type.is_row_major ? SpvDecorationRowMajor : SpvDecorationColMajor);
 
                         push_instruction(user_data.shader_output, SpvOpMemberDecorate, 5);
-                        user_data.shader_output.push_back(user_data.new_uniform_buffer_type_id);
+                        user_data.shader_output.push_back(user_data.merged_uniform_buffer_type_id);
                         user_data.shader_output.push_back(uniform_index);
                         user_data.shader_output.push_back(SpvDecorationMatrixStride);
                         user_data.shader_output.push_back(layout.matrix_stride);
@@ -848,7 +863,7 @@ static bool rewrite_shader_uniforms(
 
                     // If it's an array, also declare the array strides
                     if (!type.array_dimensions.empty()) {
-                        const std::vector<uint32_t> &type_ids = user_data.new_uniform_buffer_member_type_ids[uniform_index];
+                        const std::vector<uint32_t> &type_ids = user_data.merged_uniform_buffer_member_type_ids[uniform_index];
                         for (size_t dimension_index = 0; dimension_index < type.array_dimensions.size(); ++dimension_index) {
                             push_instruction(user_data.shader_output, SpvOpDecorate, 4);
                             user_data.shader_output.push_back(type_ids[type_ids.size() - dimension_index - 1]);
@@ -863,7 +878,7 @@ static bool rewrite_shader_uniforms(
             }
 
             if (is_start_of_types_section) {
-                // Declare a type for the constants for each member of our new uniform buffer
+                // Declare a type for the constants for each member of our merged uniform buffer
                 {
                     SpirvType type;
                     type.scalar_type = SpirvType::ScalarType::INT32;
@@ -873,36 +888,36 @@ static bool rewrite_shader_uniforms(
                     push_type(user_data.shader_output, type, {user_data.int32_type_id});
                 }
 
-                // Declare a constant for each member of our new uniform buffer
+                // Declare a constant for each member of our merged uniform buffer
                 for (size_t uniform_index = 0; uniform_index < user_data.uniforms.size(); ++uniform_index) {
                     push_instruction(user_data.shader_output, SpvOpConstant, 4);
                     user_data.shader_output.push_back(user_data.int32_type_id);
-                    user_data.shader_output.push_back(user_data.new_uniform_buffer_member_index_ids[uniform_index]);
+                    user_data.shader_output.push_back(user_data.merged_uniform_buffer_member_index_ids[uniform_index]);
                     user_data.shader_output.push_back(uniform_index);
                 }
 
-                // Declare a type for each member of our new uniform buffer
+                // Declare a type for each member of our merged uniform buffer
                 for (size_t i = 0; i < user_data.uniforms.size(); ++i) {
-                    push_type(user_data.shader_output, user_data.uniforms[i].second, user_data.new_uniform_buffer_member_type_ids[i]);
+                    push_type(user_data.shader_output, user_data.uniforms[i].second, user_data.merged_uniform_buffer_member_type_ids[i]);
                 }
 
-                // Declare a struct type for our new uniform buffer
+                // Declare a struct type for our merged uniform buffer
                 push_instruction(user_data.shader_output, SpvOpTypeStruct, (uint16_t)user_data.uniforms.size() + 2);
-                user_data.shader_output.push_back(user_data.new_uniform_buffer_type_id);
-                for (const std::vector<uint32_t> &type_ids : user_data.new_uniform_buffer_member_type_ids) {
+                user_data.shader_output.push_back(user_data.merged_uniform_buffer_type_id);
+                for (const std::vector<uint32_t> &type_ids : user_data.merged_uniform_buffer_member_type_ids) {
                     user_data.shader_output.push_back(type_ids.back());
                 }
 
-                // Declare a pointer type for our new uniform buffer
+                // Declare a pointer type for our merged uniform buffer
                 push_instruction(user_data.shader_output, SpvOpTypePointer, 4);
-                user_data.shader_output.push_back(user_data.new_uniform_buffer_pointer_id);
+                user_data.shader_output.push_back(user_data.merged_uniform_buffer_pointer_id);
                 user_data.shader_output.push_back(SpvStorageClassUniform);
-                user_data.shader_output.push_back(user_data.new_uniform_buffer_type_id);
+                user_data.shader_output.push_back(user_data.merged_uniform_buffer_type_id);
 
-                // Define the new uniform buffer
+                // Define the merged uniform buffer
                 push_instruction(user_data.shader_output, SpvOpVariable, 4);
-                user_data.shader_output.push_back(user_data.new_uniform_buffer_pointer_id);
-                user_data.shader_output.push_back(user_data.new_uniform_buffer_id);
+                user_data.shader_output.push_back(user_data.merged_uniform_buffer_pointer_id);
+                user_data.shader_output.push_back(user_data.merged_uniform_buffer_id);
                 user_data.shader_output.push_back(SpvStorageClassUniform);
             }
 
@@ -913,7 +928,7 @@ static bool rewrite_shader_uniforms(
                             user_data.shader_output.insert(user_data.shader_output.end(), parsed_instruction->words, parsed_instruction->words + parsed_instruction->num_words);
                             break;
                         }
-                        // Remove the old uniform buffers from the OpEntryPoint instruction and add our new uniform buffer to it
+                        // Remove the old uniform buffers from the OpEntryPoint instruction and add our merged uniform buffer to it
                         std::vector<uint32_t> interface;
                         uint16_t num_words = parsed_instruction->num_words;
                         for (uint16_t operand_index = 3; operand_index < parsed_instruction->num_operands; ++operand_index) {
@@ -925,7 +940,7 @@ static bool rewrite_shader_uniforms(
                                 interface.push_back(id);
                             }
                         }
-                        interface.push_back(user_data.new_uniform_buffer_id);
+                        interface.push_back(user_data.merged_uniform_buffer_id);
                         num_words += 1;
                         push_instruction(user_data.shader_output, SpvOpEntryPoint, num_words);
                         for (uint16_t operand_index = 0; operand_index < 3; ++operand_index) {
@@ -963,7 +978,7 @@ static bool rewrite_shader_uniforms(
                 case SpvOpAccessChain:
                 case SpvOpInBoundsAccessChain:
                     {
-                        // Rewrite any instructions that try to read from one of the old uniform buffers such that they instead read from the new uniform buffer
+                        // Rewrite any instructions that try to read from one of the old uniform buffers such that they instead read from the merged uniform buffer
                         uint32_t base = parsed_instruction->words[3];
                         if (!user_data.uniform_trie.children.count(base) && !user_data.pointers.count(base)) {
                             user_data.shader_output.insert(user_data.shader_output.end(), parsed_instruction->words, parsed_instruction->words + parsed_instruction->num_words);
@@ -988,8 +1003,8 @@ static bool rewrite_shader_uniforms(
                             push_instruction(user_data.shader_output, SpvOpInBoundsAccessChain, (uint16_t)extra_chain_words.size() + 5);
                             user_data.shader_output.push_back(result_type);
                             user_data.shader_output.push_back(result);
-                            user_data.shader_output.push_back(user_data.new_uniform_buffer_id);
-                            user_data.shader_output.push_back(user_data.new_uniform_buffer_member_index_ids[user_data.uniform_index_map.at(node->uniform_name)]);
+                            user_data.shader_output.push_back(user_data.merged_uniform_buffer_id);
+                            user_data.shader_output.push_back(user_data.merged_uniform_buffer_member_index_ids[user_data.uniform_index_map.at(node->uniform_name)]);
                             user_data.shader_output.insert(user_data.shader_output.end(), extra_chain_words.begin(), extra_chain_words.end());
                         }
                     }
