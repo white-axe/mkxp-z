@@ -228,7 +228,7 @@ bool SpirvTransform::transform(
             assert_no_instruction();
         }
 
-        if (_spirv_version > 0x00010100 && is_start_of_process_debug_section) {
+        if (_spirv_version >= 0x00010100 && is_start_of_process_debug_section) {
             if (!begin_process_debug_section(error_message)) {
                 return false;
             }
