@@ -314,11 +314,6 @@ static bool get_uniforms(
     size_t uniform_buffer_list_size;
     SPVC_CHECK(spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_UNIFORM_BUFFER, &uniform_buffer_list, &uniform_buffer_list_size));
 
-    static const char *const default_uniform_buffer_names[] = {
-        "$Global", // Default name of the default uniform buffer used by glslang's HLSL frontend
-        "gl_DefaultUniformBlock", // Default name of the default uniform buffer used by glslang's GLSL frontend
-    };
-    bool default_uniform_buffer_seen = false;
     struct Node
     {
         UniformTrieNode &trie_node;
@@ -329,16 +324,7 @@ static bool get_uniforms(
     std::vector<Node> stack;
 
     for (uint32_t uniform_buffer_index = 0; uniform_buffer_index < (uint32_t)uniform_buffer_list_size; ++uniform_buffer_index) {
-        const char *uniform_buffer_name = spvc_compiler_get_name(compiler, uniform_buffer_list[uniform_buffer_index].base_type_id);
-        if (!default_uniform_buffer_seen) {
-            for (size_t j = 0; j < sizeof default_uniform_buffer_names / sizeof *default_uniform_buffer_names; ++j) {
-                if (std::strcmp(uniform_buffer_name, default_uniform_buffer_names[j]) == 0) {
-                    default_uniform_buffer_seen = true;
-                    uniform_buffer_name = nullptr;
-                    break;
-                }
-            }
-        }
+        const char *uniform_buffer_name = spvc_compiler_get_name(compiler, uniform_buffer_list[uniform_buffer_index].id);
 
         uniform_trie_output.uniform_name.clear();
         stack.emplace_back(Node {
@@ -393,7 +379,7 @@ static bool get_uniforms(
                 }
                 std::string uniform_name;
                 for (const Node &ancestor : stack) {
-                    if (ancestor.name != nullptr) {
+                    if (ancestor.name[0] != 0) {
                         uniform_name += ancestor.name;
                         if (&ancestor != &node) {
                             uniform_name += '.';
