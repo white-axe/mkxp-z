@@ -311,6 +311,7 @@ static bool get_uniforms(
         UniformTrieNode &trie_node;
         const char *name;
         spvc_type_id type_id;
+        bool member_is_row_major;
         size_t member_index;
     };
     std::vector<Node> stack;
@@ -323,6 +324,7 @@ static bool get_uniforms(
             *uniform_trie_output.children.emplace(uniform_buffer_list[uniform_buffer_index].id, std::make_unique<UniformTrieNode>()).first->second,
             uniform_buffer_name,
             uniform_buffer_list[uniform_buffer_index].base_type_id,
+            false,
             0,
         });
 
@@ -341,6 +343,7 @@ static bool get_uniforms(
                         *node.trie_node.children.emplace(member_index, std::make_unique<UniformTrieNode>()).first->second,
                         spvc_compiler_get_member_name(compiler, node.type_id, member_index),
                         spvc_type_get_member_type(type, member_index),
+                        spvc_compiler_get_member_decoration(compiler, node.type_id, member_index, SpvDecorationRowMajor) != 0,
                         0,
                     });
                 } else {
@@ -364,7 +367,7 @@ static bool get_uniforms(
                 }
                 uniform_type.vector_size = spvc_type_get_vector_size(type);
                 uniform_type.columns = spvc_type_get_columns(type);
-                uniform_type.is_row_major = uniform_type.columns != 1 && spvc_compiler_get_decoration(compiler, node.type_id, SpvDecorationRowMajor) != 0;
+                uniform_type.is_row_major = uniform_type.columns != 1 && node.member_is_row_major;
                 uniform_type.array_dimensions = std::vector<uint32_t>(spvc_type_get_num_array_dimensions(type));
                 for (uint32_t array_dimension_index = 0; array_dimension_index < uniform_type.array_dimensions.size(); ++array_dimension_index) {
                     uniform_type.array_dimensions[array_dimension_index] = spvc_type_get_array_dimension(type, array_dimension_index);
