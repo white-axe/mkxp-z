@@ -55,14 +55,6 @@ static bool supports_column_major_matrices(SpirvSink::Backend backend) {
     }
 }
 
-// Returns whether or not the SPIR-V to native shading language compiler considers SPIR-V matrices
-// that aren't explicitly annotated with DecorationRowMajor or DecorationColMajor to be row-major.
-static bool matrices_are_row_major_by_default(SpirvSink::Backend backend) {
-    switch (backend) {
-        case SpirvSink::Backend::OPENGL_GLSL: return false;
-    }
-}
-
 struct TypeLayout
 {
     // Alignment of the type in bytes.
@@ -372,7 +364,7 @@ static bool get_uniforms(
                 }
                 uniform_type.vector_size = spvc_type_get_vector_size(type);
                 uniform_type.columns = spvc_type_get_columns(type);
-                uniform_type.is_row_major = uniform_type.columns != 1 && (matrices_are_row_major_by_default(backend) ? spvc_compiler_get_decoration(compiler, node.type_id, SpvDecorationColMajor) == 0 : spvc_compiler_get_decoration(compiler, node.type_id, SpvDecorationRowMajor) != 0);
+                uniform_type.is_row_major = uniform_type.columns != 1 && spvc_compiler_get_decoration(compiler, node.type_id, SpvDecorationRowMajor) != 0;
                 uniform_type.array_dimensions = std::vector<uint32_t>(spvc_type_get_num_array_dimensions(type));
                 for (uint32_t array_dimension_index = 0; array_dimension_index < uniform_type.array_dimensions.size(); ++array_dimension_index) {
                     uniform_type.array_dimensions[array_dimension_index] = spvc_type_get_array_dimension(type, array_dimension_index);
