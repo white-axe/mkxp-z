@@ -180,7 +180,7 @@ static TypeLayout get_type_layout(SpirvSink::Backend backend, const SpirvType &t
     }
 }
 
-SpirvSink::SpirvSink(Backend backend) : context(nullptr), backend(backend), optimizer(get_target(backend)) {
+SpirvSink::SpirvSink(Backend backend) : context(nullptr), backend(backend), legalization_transform(SpirvOptimizer::Type::LEGALIZATION), performance_transform(SpirvOptimizer::Type::PERFORMANCE) {
     if (spvc_context_create((spvc_context *)&context) != SPVC_SUCCESS) {
         throw Exception(Exception::MKXPError, "Failed to initialize SPIRV-Cross context");
     }
@@ -199,7 +199,7 @@ SpirvSink::~SpirvSink() {
     }
 }
 
-SpirvSink::SpirvSink(SpirvSink &&other) noexcept : context(other.context), backend(other.backend), optimizer(std::move(other.optimizer)) {
+SpirvSink::SpirvSink(SpirvSink &&other) noexcept : context(other.context), backend(other.backend), legalization_transform(std::move(other.legalization_transform)), performance_transform(std::move(other.performance_transform)) {
     other.context = nullptr;
     switch (backend) {
         case SpirvSink::Backend::OPENGL_GLSL: glsl_backend = std::move(other.glsl_backend); break;
@@ -760,18 +760,18 @@ bool SpirvSink::compile(
         SpirvExecutionModel::GEOMETRY,
         SpirvExecutionModel::FRAGMENT,
     };
-    std::vector<const std::pair<const uint32_t *, size_t> *> shader_for_execution_model(sizeof execution_models / sizeof *execution_models, nullptr);
+    std::vector<std::vector<uint32_t>> shader_for_execution_model(sizeof execution_models / sizeof *execution_models);
     std::unordered_map<std::string, SpirvType> uniform_map;
     std::vector<UniformTrieNode> uniform_trie_for_execution_model(sizeof execution_models / sizeof *execution_models);
 
     for (size_t shader_index = 0; shader_index < shaders_len; ++shader_index) {
-        const std::pair<const uint32_t *, size_t> &shader = shaders[shader_index];
+        const std::pair<const uint32_t *, size_t> &unlegalized_shader = shaders[shader_index];
 
         SpirvExecutionModel execution_model;
         if (!get_execution_model(
             (spvc_context)context,
-            shader.first,
-            shader.second,
+            unlegalized_shader.first,
+            unlegalized_shader.second,
             execution_model,
             error_message
         )) {
@@ -779,17 +779,26 @@ bool SpirvSink::compile(
         }
 
         size_t execution_model_index = get_execution_model_index(execution_models, sizeof execution_models / sizeof *execution_models, execution_model);
-        if (shader_for_execution_model[execution_model_index] != nullptr) {
+        if (!shader_for_execution_model[execution_model_index].empty()) {
             error_message = "At most one shader for each SPIR-V execution model can be provided";
             return false;
         }
-        shader_for_execution_model[get_execution_model_index(execution_models, sizeof execution_models / sizeof *execution_models, execution_model)] = &shaders[shader_index];
+
+        std::vector<uint32_t> &shader = shader_for_execution_model[get_execution_model_index(execution_models, sizeof execution_models / sizeof *execution_models, execution_model)];
+        if (!legalization_transform.transform(
+            unlegalized_shader.first,
+            unlegalized_shader.second,
+            shader,
+            error_message
+        )) {
+            return false;
+        }
 
         if (!get_uniforms(
             backend,
             (spvc_context)context,
-            shader.first,
-            shader.second,
+            shader.data(),
+            shader.size(),
             uniform_map,
             uniform_trie_for_execution_model[execution_model_index],
             error_message
@@ -799,8 +808,8 @@ bool SpirvSink::compile(
     }
 
     if (
-        shader_for_execution_model[get_execution_model_index(execution_models, sizeof execution_models / sizeof *execution_models, SpirvExecutionModel::VERTEX)] == nullptr
-            || shader_for_execution_model[get_execution_model_index(execution_models, sizeof execution_models / sizeof *execution_models, SpirvExecutionModel::FRAGMENT)] == nullptr
+        shader_for_execution_model[get_execution_model_index(execution_models, sizeof execution_models / sizeof *execution_models, SpirvExecutionModel::VERTEX)].empty()
+            || shader_for_execution_model[get_execution_model_index(execution_models, sizeof execution_models / sizeof *execution_models, SpirvExecutionModel::FRAGMENT)].empty()
     ) {
         error_message = "A vertex shader and a fragment shader must both be provided";
         return false;
@@ -817,26 +826,41 @@ bool SpirvSink::compile(
 
     GlShaders gl_shaders;
 
-    std::vector<std::vector<uint32_t>> normalized_shader_for_execution_model(shader_for_execution_model.size());
-
-    // We need to make sure all the shaders in our shader program have exactly the same set of uniforms,
-    // so replace all of the uniform buffers in each shader with one merged uniform buffer that contains all of the uniforms used in at least one shader.
     for (size_t execution_model_index = 0; execution_model_index < sizeof execution_models / sizeof *execution_models; ++execution_model_index) {
-        const std::pair<const uint32_t *, size_t> *shader = shader_for_execution_model[execution_model_index];
-        if (shader == nullptr) {
+        std::vector<uint32_t> &shader = shader_for_execution_model[execution_model_index];
+        if (shader.empty()) {
             continue;
         }
 
-        if (!rewrite_shader_uniforms(
-            backend,
-            shader->first,
-            shader->second,
-            uniforms,
-            uniform_trie_for_execution_model[execution_model_index],
-            normalized_shader_for_execution_model[execution_model_index],
-            error_message
-        )) {
-            return false;
+        // We need to make sure all the shaders in our shader program have exactly the same set of uniforms,
+        // so replace all of the uniform buffers in each shader with one merged uniform buffer that contains all of the uniforms used in at least one shader.
+        {
+            std::vector<uint32_t> output;
+            if (!rewrite_shader_uniforms(
+                backend,
+                shader.data(),
+                shader.size(),
+                uniforms,
+                uniform_trie_for_execution_model[execution_model_index],
+                output,
+                error_message
+            )) {
+                return false;
+            }
+            shader = std::move(output);
+        }
+
+        {
+            std::vector<uint32_t> output;
+            if (!performance_transform.transform(
+                shader.data(),
+                shader.size(),
+                output,
+                error_message
+            )) {
+                return false;
+            }
+            shader = std::move(output);
         }
     }
 
@@ -844,7 +868,7 @@ bool SpirvSink::compile(
     std::random_device::result_type cookie = random_device();
 
     for (size_t execution_model_index = 0, stage_index = 0; execution_model_index < sizeof execution_models / sizeof *execution_models; ++execution_model_index) {
-        const std::vector<uint32_t> shader = normalized_shader_for_execution_model[execution_model_index];
+        const std::vector<uint32_t> shader = shader_for_execution_model[execution_model_index];
         if (shader.empty()) {
             continue;
         }

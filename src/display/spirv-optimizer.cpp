@@ -22,28 +22,37 @@
 #include <cassert>
 #include <utility>
 
+#include "exception.h"
 #include "spirv-optimizer.h"
 
 #include <spirv-tools/libspirv.h>
 
-static spv_target_env get_target_env(SpirvTarget target) {
-    switch (target) {
-        case SpirvTarget::SPIRV_1_0: return SPV_ENV_UNIVERSAL_1_0;
-        case SpirvTarget::SPIRV_1_1: return SPV_ENV_UNIVERSAL_1_1;
-        case SpirvTarget::SPIRV_1_2: return SPV_ENV_UNIVERSAL_1_2;
-        case SpirvTarget::SPIRV_1_3: return SPV_ENV_UNIVERSAL_1_3;
-        case SpirvTarget::SPIRV_1_4: return SPV_ENV_UNIVERSAL_1_4;
-        case SpirvTarget::SPIRV_1_5: return SPV_ENV_UNIVERSAL_1_5;
-        case SpirvTarget::SPIRV_1_6: return SPV_ENV_UNIVERSAL_1_6;
+SpirvOptimizer::SpirvOptimizer(Type type) : optimizer(spvOptimizerCreate(SPV_ENV_UNIVERSAL_1_6)), validator_options(spvValidatorOptionsCreate()), optimizer_options(spvOptimizerOptionsCreate()) {
+    if (optimizer == nullptr || validator_options == nullptr || optimizer_options == nullptr) {
+        if (optimizer_options != nullptr) {
+            spvOptimizerOptionsDestroy((spv_optimizer_options_t *)optimizer_options);
+        }
+        if (validator_options != nullptr) {
+            spvValidatorOptionsDestroy((spv_validator_options_t *)validator_options);
+        }
+        if (optimizer != nullptr) {
+            spvOptimizerDestroy((spv_optimizer_t *)optimizer);
+        }
+        throw Exception(Exception::MKXPError, "Failed to initialize SPIR-V Tools optimizer");
     }
-}
 
-SpirvOptimizer::SpirvOptimizer(SpirvTarget target) : optimizer(spvOptimizerCreate(get_target_env(target))), validator_options(spvValidatorOptionsCreate()), optimizer_options(spvOptimizerOptionsCreate()) {
-    spvOptimizerRegisterLegalizationPasses((spv_optimizer_t *)optimizer);
-    spvOptimizerRegisterPerformancePasses((spv_optimizer_t *)optimizer);
-    spvValidatorOptionsSetBeforeHlslLegalization((spv_validator_options_t *)validator_options, true);
+    switch (type) {
+        case Type::LEGALIZATION:
+            spvOptimizerRegisterLegalizationPasses((spv_optimizer_t *)optimizer);
+            spvValidatorOptionsSetBeforeHlslLegalization((spv_validator_options_t *)validator_options, true);
+            break;
+        case Type::PERFORMANCE:
+            spvOptimizerRegisterPerformancePasses((spv_optimizer_t *)optimizer);
+            break;
+    }
+
     spvOptimizerOptionsSetValidatorOptions((spv_optimizer_options_t *)optimizer_options, (spv_validator_options_t *)validator_options);
-    spvOptimizerOptionsSetRunValidator((spv_optimizer_options_t *)optimizer_options, true);
+    spvOptimizerOptionsSetRunValidator((spv_optimizer_options_t *)optimizer_options, type == Type::LEGALIZATION); // TODO: always enable validation
 }
 
 SpirvOptimizer::~SpirvOptimizer() {
@@ -70,9 +79,24 @@ SpirvOptimizer &SpirvOptimizer::operator=(SpirvOptimizer &&other) noexcept {
     return *this;
 }
 
-bool SpirvOptimizer::optimize(std::vector<uint32_t> &spirv_output, const uint32_t *spirv_input, size_t spirv_input_size) {
+static thread_local std::string *consumer_sink;
+
+static void consumer(spv_message_level_t level, const char *source, const spv_position_t *position, const char *message) {
+    *consumer_sink = message;
+}
+
+bool SpirvOptimizer::transform(
+    const uint32_t *spirv_input,
+    size_t spirv_input_size,
+    std::vector<uint32_t> &spirv_output,
+    std::string &error_message
+) {
+    std::string error;
+    consumer_sink = &error;
+    spvOptimizerSetMessageConsumer((spv_optimizer_t *)optimizer, consumer);
     spv_binary_t *binary;
     if (spvOptimizerRun((spv_optimizer_t *)optimizer, (const uint32_t *)spirv_input, spirv_input_size, &binary, (spv_optimizer_options_t *)optimizer_options) != SPV_SUCCESS) {
+        error_message = std::move(error);
         return false;
     }
     spirv_output.clear();
