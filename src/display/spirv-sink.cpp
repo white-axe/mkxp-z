@@ -467,6 +467,10 @@ static bool rewrite_shader_uniforms(
         }
 
     private:
+        uint32_t maximum_supported_spirv_version() const noexcept override {
+            return 0x00010600;
+        }
+
         bool begin(std::string &error_message) override {
             if (!allocate_id(merged_uniform_buffer_id, error_message)) {
                 return false;
