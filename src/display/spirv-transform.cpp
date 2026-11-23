@@ -222,20 +222,39 @@ bool SpirvTransform::transform(
         }
 
         if (is_start_of_name_debug_section) {
+            if (!end_source_debug_section(error_message)) {
+                return false;
+            }
+            assert_no_instruction();
+
             if (!begin_name_debug_section(error_message)) {
                 return false;
             }
             assert_no_instruction();
         }
 
-        if (_spirv_version >= 0x00010100 && is_start_of_process_debug_section) {
-            if (!begin_process_debug_section(error_message)) {
+        if (is_start_of_process_debug_section) {
+            if (!end_name_debug_section(error_message)) {
                 return false;
             }
             assert_no_instruction();
+
+            if (_spirv_version >= 0x00010100) {
+                if (!begin_process_debug_section(error_message)) {
+                    return false;
+                }
+                assert_no_instruction();
+            }
         }
 
         if (is_start_of_annotation_section) {
+            if (_spirv_version >= 0x00010100) {
+                if (!end_process_debug_section(error_message)) {
+                    return false;
+                }
+                assert_no_instruction();
+            }
+
             // Declare the array strides for each extra type that is an array
             for (uint32_t extra_type_index = 0; extra_type_index < extra_types_size; ++extra_type_index) {
                 const SpirvType &type = extra_types[extra_type_index];
@@ -259,6 +278,11 @@ bool SpirvTransform::transform(
         }
 
         if (is_start_of_data_section) {
+            if (!end_annotation_section(error_message)) {
+                return false;
+            }
+            assert_no_instruction();
+
             // Declare each extra type
             for (uint32_t extra_type_index = 0; extra_type_index < extra_types_size; ++extra_type_index) {
                 push_type(extra_types[extra_type_index], raw_extra_type_ids[extra_type_index]);
@@ -272,6 +296,11 @@ bool SpirvTransform::transform(
         }
 
         if (is_start_of_code_section) {
+            if (!end_data_section(error_message)) {
+                return false;
+            }
+            assert_no_instruction();
+
             if (!begin_code_section(error_message)) {
                 return false;
             }
@@ -308,7 +337,15 @@ bool SpirvTransform::begin_source_debug_section(std::string &error_message) {
     return true;
 }
 
+bool SpirvTransform::end_source_debug_section(std::string &error_message) {
+    return true;
+}
+
 bool SpirvTransform::begin_name_debug_section(std::string &error_message) {
+    return true;
+}
+
+bool SpirvTransform::end_name_debug_section(std::string &error_message) {
     return true;
 }
 
@@ -316,11 +353,23 @@ bool SpirvTransform::begin_process_debug_section(std::string &error_message) {
     return true;
 }
 
+bool SpirvTransform::end_process_debug_section(std::string &error_message) {
+    return true;
+}
+
 bool SpirvTransform::begin_annotation_section(std::string &error_message) {
     return true;
 }
 
+bool SpirvTransform::end_annotation_section(std::string &error_message) {
+    return true;
+}
+
 bool SpirvTransform::begin_data_section(std::string &error_message) {
+    return true;
+}
+
+bool SpirvTransform::end_data_section(std::string &error_message) {
     return true;
 }
 

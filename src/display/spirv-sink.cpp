@@ -517,7 +517,7 @@ static bool rewrite_shader_uniforms(
             return true;
         }
 
-        bool begin_process_debug_section(std::string &error_message) override {
+        bool end_process_debug_section(std::string &error_message) override {
             begin_instruction(SpvOpModuleProcessed);
             push_string_literal("SpirvSink MergeUniformsTransform");
             end_instruction();

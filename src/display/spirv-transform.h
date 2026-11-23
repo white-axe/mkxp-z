@@ -81,9 +81,19 @@ private:
     virtual bool begin_source_debug_section(std::string &error_message);
 
     /*
+     * This gets run at the end of the part of the SPIR-V module's debug section that contains information about the source code of the shader.
+     */
+    virtual bool end_source_debug_section(std::string &error_message);
+
+    /*
      * This gets run at the beginning of the part of the SPIR-V module's debug section that contains information about the names of variables.
      */
     virtual bool begin_name_debug_section(std::string &error_message);
+
+    /*
+     * This gets run at the end of the part of the SPIR-V module's debug section that contains information about the names of variables.
+     */
+    virtual bool end_name_debug_section(std::string &error_message);
 
     /*
      * This gets run at the beginning of the part of the SPIR-V module's debug section that contains information about the processors that have been applied to the module.
@@ -91,14 +101,29 @@ private:
     virtual bool begin_process_debug_section(std::string &error_message);
 
     /*
+     * This gets run at the end of the part of the SPIR-V module's debug section that contains information about the processors that have been applied to the module.
+     */
+    virtual bool end_process_debug_section(std::string &error_message);
+
+    /*
      * This gets run at the beginning of the SPIR-V module's annotation section.
      */
     virtual bool begin_annotation_section(std::string &error_message);
 
     /*
+     * This gets run at the end of the SPIR-V module's annotation section.
+     */
+    virtual bool end_annotation_section(std::string &error_message);
+
+    /*
      * This gets run at the beginning of the SPIR-V module's types, constants and variables section.
      */
     virtual bool begin_data_section(std::string &error_message);
+
+    /*
+     * This gets run at the end of the SPIR-V module's types, constants and variables section.
+     */
+    virtual bool end_data_section(std::string &error_message);
 
     /*
      * This gets run at the beginning of the SPIR-V module's function declaration or function definition section.
