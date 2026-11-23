@@ -441,7 +441,7 @@ static bool rewrite_shader_uniforms(
         array_strides.emplace_back(get_type_layout(backend, type).array_strides);
     }
 
-    class Transform : public SpirvTransform
+    class MergeUniformsTransform : public SpirvTransform
     {
     private:
         SpirvSink::Backend backend;
@@ -463,7 +463,7 @@ static bool rewrite_shader_uniforms(
         std::unordered_map<uint32_t, const UniformTrieNode &> pointers;
 
     public:
-        Transform(SpirvSink::Backend backend, const std::vector<std::pair<std::string, SpirvType>> &uniforms, const std::unordered_map<std::string, uint32_t> &uniform_index_map, const UniformTrieNode &uniform_trie) : backend(backend), uniforms(uniforms), uniform_index_map(uniform_index_map), uniform_trie(uniform_trie) {
+        MergeUniformsTransform(SpirvSink::Backend backend, const std::vector<std::pair<std::string, SpirvType>> &uniforms, const std::unordered_map<std::string, uint32_t> &uniform_index_map, const UniformTrieNode &uniform_trie) : backend(backend), uniforms(uniforms), uniform_index_map(uniform_index_map), uniform_trie(uniform_trie) {
         }
 
     private:
@@ -492,7 +492,7 @@ static bool rewrite_shader_uniforms(
             return true;
         }
 
-        bool begin_debug_section(std::string &error_message) override {
+        bool begin_name_debug_section(std::string &error_message) override {
             // Declare the name of our merged uniform buffer
             begin_instruction(SpvOpName);
             push_word(merged_uniform_buffer_id);
@@ -508,11 +508,19 @@ static bool rewrite_shader_uniforms(
             // Declare the names of our merged uniform buffer's fields
             for (uint32_t uniform_index = 0; uniform_index < uniforms.size(); ++uniform_index) {
                 begin_instruction(SpvOpMemberName);
-                push_word(merged_uniform_buffer_id);
+                push_word(merged_uniform_buffer_type_id);
                 push_word(uniform_index);
                 push_string_literal(uniforms[uniform_index].first.c_str());
                 end_instruction();
             }
+
+            return true;
+        }
+
+        bool begin_process_debug_section(std::string &error_message) override {
+            begin_instruction(SpvOpModuleProcessed);
+            push_string_literal("SpirvSink MergeUniformsTransform");
+            end_instruction();
 
             return true;
         }
@@ -723,7 +731,7 @@ static bool rewrite_shader_uniforms(
         }
     };
 
-    return Transform {
+    return MergeUniformsTransform {
         backend,
         uniforms,
         uniform_index_map,

@@ -76,9 +76,19 @@ private:
     virtual bool begin(std::string &error_message);
 
     /*
-     * This gets run at the beginning of the SPIR-V module's debug section.
+     * This gets run at the beginning of the part of the SPIR-V module's debug section that contains information about the source code of the shader.
      */
-    virtual bool begin_debug_section(std::string &error_message);
+    virtual bool begin_source_debug_section(std::string &error_message);
+
+    /*
+     * This gets run at the beginning of the part of the SPIR-V module's debug section that contains information about the names of variables.
+     */
+    virtual bool begin_name_debug_section(std::string &error_message);
+
+    /*
+     * This gets run at the beginning of the part of the SPIR-V module's debug section that contains information about the processors that have been applied to the module.
+     */
+    virtual bool begin_process_debug_section(std::string &error_message);
 
     /*
      * This gets run at the beginning of the SPIR-V module's annotation section.

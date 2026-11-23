@@ -42,7 +42,9 @@ bool SpirvTransform::transform(
     instruction_index = 0;
 
     std::vector<std::vector<uint32_t>> raw_extra_type_ids;
-    bool seen_debug_section = false;
+    bool seen_source_debug_section = false;
+    bool seen_name_debug_section = false;
+    bool seen_process_debug_section = false;
     bool seen_annotation_section = false;
     bool seen_data_section = false;
     bool seen_code_section = false;
@@ -111,7 +113,9 @@ bool SpirvTransform::transform(
             return false;
         }
 
-        bool is_start_of_debug_section = false;
+        bool is_start_of_source_debug_section = false;
+        bool is_start_of_name_debug_section = false;
+        bool is_start_of_process_debug_section = false;
         bool is_start_of_annotation_section = false;
         bool is_start_of_data_section = false;
         bool is_start_of_code_section = false;
@@ -184,24 +188,48 @@ bool SpirvTransform::transform(
                     is_start_of_annotation_section = true;
                 }
 
+            case SpvOpModuleProcessed:
+                if (!seen_process_debug_section) {
+                    seen_process_debug_section = true;
+                    is_start_of_process_debug_section = true;
+                }
+
+            case SpvOpName:
+            case SpvOpMemberName:
+                if (!seen_name_debug_section) {
+                    seen_name_debug_section = true;
+                    is_start_of_name_debug_section = true;
+                }
+
             case SpvOpString:
             case SpvOpSourceExtension:
             case SpvOpSource:
             case SpvOpSourceContinued:
-            case SpvOpName:
-            case SpvOpMemberName:
-            case SpvOpModuleProcessed:
-                if (!seen_debug_section) {
-                    seen_debug_section = true;
-                    is_start_of_debug_section = true;
+                if (!seen_source_debug_section) {
+                    seen_source_debug_section = true;
+                    is_start_of_source_debug_section = true;
                 }
 
             default:
                 break;
         }
 
-        if (is_start_of_debug_section) {
-            if (!begin_debug_section(error_message)) {
+        if (is_start_of_source_debug_section) {
+            if (!begin_source_debug_section(error_message)) {
+                return false;
+            }
+            assert_no_instruction();
+        }
+
+        if (is_start_of_name_debug_section) {
+            if (!begin_name_debug_section(error_message)) {
+                return false;
+            }
+            assert_no_instruction();
+        }
+
+        if (_spirv_version > 0x00010100 && is_start_of_process_debug_section) {
+            if (!begin_process_debug_section(error_message)) {
                 return false;
             }
             assert_no_instruction();
@@ -276,7 +304,15 @@ bool SpirvTransform::begin(std::string &error_message) {
     return true;
 }
 
-bool SpirvTransform::begin_debug_section(std::string &error_message) {
+bool SpirvTransform::begin_source_debug_section(std::string &error_message) {
+    return true;
+}
+
+bool SpirvTransform::begin_name_debug_section(std::string &error_message) {
+    return true;
+}
+
+bool SpirvTransform::begin_process_debug_section(std::string &error_message) {
     return true;
 }
 
