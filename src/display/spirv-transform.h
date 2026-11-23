@@ -1,0 +1,124 @@
+/*
+** spirv-transform.h
+**
+** This file is part of mkxp.
+**
+** Copyright (C) 2026 The mkxp-z authors
+**
+** mkxp is free software: you can redistribute it and/or modify
+** it under the terms of the GNU General Public License as published by
+** the Free Software Foundation, either version 2 of the License, or
+** (at your option) any later version.
+**
+** mkxp is distributed in the hope that it will be useful,
+** but WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+** GNU General Public License for more details.
+**
+** You should have received a copy of the GNU General Public License
+** along with mkxp.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef SPIRV_TRANSFORM_H
+#define SPIRV_TRANSFORM_H
+
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <string>
+#include <vector>
+
+#include "spirv.h"
+
+class SpirvTransform
+{
+private:
+    std::vector<uint32_t> *transformed;
+    std::vector<uint32_t> *extra_type_ids;
+    uint32_t _spirv_version;
+    uint32_t id_bound;
+    size_t instruction_index;
+
+public:
+    /*
+     * Performs the transform on the input SPIR-V module.
+     *
+     * input: The input SPIR-V module.
+     * input_size: The size of the input SPIR-V module, in 32-bit words.
+     * extra_types: An array of additional SPIR-V types to add to the module. The type IDs of these new types can be retrieved via the `get_extra_type_ids()` method.
+     * extra_type_array_strides: An array of the array strides for the additional SPIR-V types to add to the module.
+     * extra_types_size: The number of additional SPIR-V types to add.
+     * output: If the transform succeeds, this will be set to the compiled shader program. Otherwise, this will be unchanged.
+     * error_message: If compilation succeeds, this will be unchanged. Otherwise, this will be set to a string containing the error that occurred.
+     *
+     * Return value: `true` if the transform succeeded, otherwise `false`.
+     */
+    bool transform(
+        const uint32_t *input,
+        size_t input_size,
+        const SpirvType *extra_types,
+        const std::vector<uint32_t> *extra_type_array_strides,
+        size_t extra_types_size,
+        std::vector<uint32_t> &output,
+        std::string &error_message
+    );
+
+private:
+    /*
+     * Returns the maximum SPIR-V version supported by this transform,
+     * encoded as a 32-bit word as it appears in the header of a SPIR-V module.
+     */
+    virtual uint32_t maximum_supported_spirv_version() const noexcept;
+
+    /*
+     * This gets run when the transform starts.
+     */
+    virtual bool begin(std::string &error_message);
+
+    /*
+     * This gets run at the beginning of the SPIR-V module's debug section.
+     */
+    virtual bool begin_debug_section(std::string &error_message);
+
+    /*
+     * This gets run at the beginning of the SPIR-V module's annotation section.
+     */
+    virtual bool begin_annotation_section(std::string &error_message);
+
+    /*
+     * This gets run at the beginning of the SPIR-V module's types, constants and variables section.
+     */
+    virtual bool begin_data_section(std::string &error_message);
+
+    /*
+     * This gets run at the beginning of the SPIR-V module's function declaration or function definition section.
+     */
+    virtual bool begin_code_section(std::string &error_message);
+
+    /*
+     * This gets run whenever an instruction is received.
+     */
+    virtual bool receive_instruction(uint16_t opcode, const uint32_t *words, uint16_t num_words, std::string &error_message);
+
+protected:
+    uint32_t spirv_version() const noexcept;
+    bool allocate_id(uint32_t &id_output, std::string &error_message);
+
+private:
+    void assert_have_instruction() const noexcept;
+    void assert_no_instruction() const noexcept;
+    void push_type(const SpirvType &type, std::vector<uint32_t> &type_ids);
+
+protected:
+    const std::vector<uint32_t> &get_extra_type_ids() const noexcept;
+    void begin_instruction(uint16_t opcode);
+    void end_instruction();
+    void push_word(uint32_t word);
+    template <class Iterator> void push_words(Iterator first, Iterator last) {
+        assert_have_instruction();
+        transformed->insert(transformed->end(), first, last);
+    }
+    void push_string_literal(const char *string);
+};
+
+#endif // SPIRV_TRANSFORM_H

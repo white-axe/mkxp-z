@@ -331,6 +331,9 @@ if get_option('custom_shaders').allowed()
         have_custom_shaders = true
         gplv3_features += 'Custom shaders'
         global_args += '-DMKXPZ_HAVE_CUSTOM_SHADERS'
+
+        spirv_headers = subproject('spirv-headers', default_options: meson_base_options).get_variable('spirv_headers')
+
         if not spirv_cross.found()
             spirv_cross_options = cmake.subproject_options()
             spirv_cross_options.add_cmake_defines(cmake_base_options + {
@@ -416,6 +419,7 @@ if get_option('custom_shaders').allowed()
         ])
 
         global_dependencies += [
+            spirv_headers,
             glslang,
             spirv_cross,
             spirv_tools,
@@ -1407,6 +1411,7 @@ main_source = files(
         'display/spirv-optimizer.cpp',
         'display/spirv-sink.cpp',
         'display/spirv-to-glsl.cpp',
+        'display/spirv-transform.cpp',
     ] : [],
 )
 

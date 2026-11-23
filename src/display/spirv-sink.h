@@ -43,8 +43,7 @@ public:
     };
 
 private:
-    void *spirv_cross_context;
-    void *spirv_tools_context;
+    void *context;
     Backend backend;
 
     SpirvOptimizer optimizer;
