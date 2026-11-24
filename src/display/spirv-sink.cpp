@@ -621,13 +621,10 @@ static bool rewrite_shader_uniforms(
 
                 // If it's an array whose type we need to declare ourselves later on, also declare the array strides
                 if (!uniform.second.type.array_dimensions.empty() && !uniform_type_map.count(uniform.first)) {
-                    uint32_t array_stride = get_scalar_type_logical_size(uniform.second.type.scalar_type);
-
                     // For multidimensional arrays, we don't really care what the array strides other than the most significant array stride are since
                     // if we need to declare this array type ourselves, it means the shader doesn't read this uniform at all,
                     // so just assign these array strides assuming the elements are tightly packed
-                    for (uint32_t dimension_index = 0; dimension_index < uniform.second.type.array_dimensions.size() - 1; ++dimension_index) {
-                        array_stride *= uniform.second.type.array_dimensions[dimension_index];
+                    for (uint32_t dimension_index = 0, array_stride = get_scalar_type_logical_size(uniform.second.type.scalar_type); dimension_index < uniform.second.type.array_dimensions.size() - 1; array_stride *= uniform.second.type.array_dimensions[dimension_index++]) {
                         begin_instruction(SpvOpDecorate);
                         push_word(uniform_array_type_ids[uniform_index][dimension_index]);
                         push_word(SpvDecorationArrayStride);
