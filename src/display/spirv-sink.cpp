@@ -922,9 +922,10 @@ static bool rewrite_shader_uniforms(
                     }
                     break;
 
-                // TODO: there are several more instructions that can read from uniform buffers
                 case SpvOpAccessChain:
                 case SpvOpInBoundsAccessChain:
+                case SpvOpPtrAccessChain:
+                case SpvOpInBoundsPtrAccessChain:
                     {
                         // Rewrite any instructions that try to read from one of the old uniform buffers such that they instead read from the merged uniform buffer
                         uint32_t base = words[2];
@@ -946,7 +947,10 @@ static bool rewrite_shader_uniforms(
                                 break;
                             }
                         }
-                        for (uint16_t word_index = 3; word_index < num_words; ++word_index) {
+                        // For OpPtrAccessChain and OpInBoundsPtrAccessChain, we just ignore the element operand
+                        // since the SPIR-V specification says when reading from a uniform buffer,
+                        // it's undefined behavior for the element operand for these two instructions to be nonzero.
+                        for (uint16_t word_index = opcode == SpvOpPtrAccessChain || opcode == SpvOpPtrAccessChain ? 4 : 3; word_index < num_words; ++word_index) {
                             uint32_t chain_word = words[word_index];
                             if (node->children.empty()) {
                                 push_word(chain_word);
@@ -954,7 +958,7 @@ static bool rewrite_shader_uniforms(
                                 uint32_t constant = constants.at(chain_word);
                                 node = node->children.at(constant).get();
                                 if (node->children.empty()) {
-                                    begin_instruction(SpvOpInBoundsAccessChain);
+                                    begin_instruction(SpvOpAccessChain);
                                     push_words(words, words + 2);
                                     push_word(merged_uniform_buffer_id);
                                     push_word(merged_uniform_buffer_index_ids[uniform_index_map.at(node->uniform_name)]);
