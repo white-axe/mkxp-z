@@ -670,6 +670,7 @@ static bool rewrite_shader_uniforms(
                     push_word(1);
                     end_instruction();
                     primitive_types.emplace(primitive_type, int32_type_id);
+                    primitive_types_reverse.emplace(int32_type_id, primitive_type);
                 }
             }
 
@@ -690,6 +691,7 @@ static bool rewrite_shader_uniforms(
                     push_word(0);
                     end_instruction();
                     primitive_types.emplace(primitive_type, uint32_type_id);
+                    primitive_types_reverse.emplace(uint32_type_id, primitive_type);
                 }
             }
 
