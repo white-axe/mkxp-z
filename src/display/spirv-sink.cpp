@@ -90,7 +90,7 @@ struct UniformPhysicalLayout
     // this is the matrix stride (i.e. the number of bytes between adjacent rows or columns, depending on if this matrix is row-major or column-major) of this uniform in memory.
     uint32_t physical_matrix_stride;
     // If this type is an array,
-    // these are the array strides of this uniform's in-memory representation, from most significant to least significant.
+    // these are the array strides of this uniform's in-memory representation, from least significant to most significant.
     std::vector<uint32_t> physical_array_strides;
 };
 
@@ -137,7 +137,7 @@ static UniformPhysicalLayout get_uniform_physical_layout(SpirvSink::Backend back
             UniformPhysicalLayout vector_array_layout = get_uniform_physical_layout(backend, vector_array);
             assert(vector_array_layout.physical_array_strides.size() == 1);
             vector_array_layout.is_physically_row_major = is_physically_row_major;
-            vector_array_layout.physical_matrix_stride = vector_array_layout.physical_array_strides.front();
+            vector_array_layout.physical_matrix_stride = vector_array_layout.physical_array_strides.back();
             vector_array_layout.physical_array_strides.clear();
             return vector_array_layout;
         }
@@ -177,7 +177,7 @@ static UniformPhysicalLayout get_uniform_physical_layout(SpirvSink::Backend back
         UniformPhysicalLayout vector_array_layout = get_uniform_physical_layout(backend, vector_array);
         assert(vector_array_layout.physical_array_strides.size() == 1);
         vector_array_layout.is_physically_row_major = is_physically_row_major;
-        vector_array_layout.physical_matrix_stride = vector_array_layout.physical_array_strides.front();
+        vector_array_layout.physical_matrix_stride = vector_array_layout.physical_array_strides.back();
         vector_array_layout.physical_array_strides.clear();
         return vector_array_layout;
     }
@@ -526,7 +526,7 @@ static bool rewrite_shader_uniforms(
                 std::vector<uint32_t> array_type_ids;
                 if (!uniform.second.type.array_dimensions.empty() && !uniform_type_map.count(uniform.first)) {
                     array_type_ids.reserve(uniform.second.type.array_dimensions.size());
-                    for (uint32_t i = 0; i < uniform.second.type.array_dimensions.size(); ++i) {
+                    for (uint32_t dimension_index = 0; dimension_index < uniform.second.type.array_dimensions.size(); ++dimension_index) {
                         if (!allocate_id(id, error_message)) {
                             return false;
                         }
@@ -626,10 +626,10 @@ static bool rewrite_shader_uniforms(
                     // For multidimensional arrays, we don't really care what the array strides other than the most significant array stride are since
                     // if we need to declare this array type ourselves, it means the shader doesn't read this uniform at all,
                     // so just assign these array strides assuming the elements are tightly packed
-                    for (uint32_t i = 0; i < uniform.second.type.array_dimensions.size() - 1; ++i) {
-                        array_stride *= uniform.second.type.array_dimensions[uniform.second.type.array_dimensions.size() - 1 - i];
+                    for (uint32_t dimension_index = 0; dimension_index < uniform.second.type.array_dimensions.size() - 1; ++dimension_index) {
+                        array_stride *= uniform.second.type.array_dimensions[dimension_index];
                         begin_instruction(SpvOpDecorate);
-                        push_word(uniform_array_type_ids[uniform_index][i]);
+                        push_word(uniform_array_type_ids[uniform_index][dimension_index]);
                         push_word(SpvDecorationArrayStride);
                         push_word(array_stride);
                         end_instruction();
@@ -645,7 +645,7 @@ static bool rewrite_shader_uniforms(
 
                 // Increase the offset by the logical size of this type
                 size_t logical_size = !uniform.second.type.array_dimensions.empty()
-                    ? uniform.second.type.array_dimensions.front() * uniform.second.logical_array_stride
+                    ? uniform.second.type.array_dimensions.back() * uniform.second.logical_array_stride
                     : uniform.second.type.columns != 1
                     ? (uniform.second.is_logically_row_major ? uniform.second.type.vector_size * uniform.second.logical_matrix_stride : uniform.second.type.columns * uniform.second.logical_matrix_stride)
                     : uniform.second.type.vector_size * get_scalar_type_logical_size(uniform.second.type.scalar_type);
@@ -778,7 +778,7 @@ static bool rewrite_shader_uniforms(
                     }
                 }
                 if (!uniform.type.array_dimensions.empty()) {
-                    for (uint32_t i = 0; i < uniform.type.array_dimensions.size(); ++i) {
+                    for (uint32_t dimension_index = 0; dimension_index < uniform.type.array_dimensions.size(); ++dimension_index) {
                         uint32_t constant_id;
                         if (!allocate_id(constant_id, error_message)) {
                             return false;
@@ -786,10 +786,10 @@ static bool rewrite_shader_uniforms(
                         begin_instruction(SpvOpConstant);
                         push_word(uint32_type_id);
                         push_word(constant_id);
-                        push_word(uniform.type.array_dimensions[uniform.type.array_dimensions.size() - 1 - i]);
+                        push_word(uniform.type.array_dimensions[dimension_index]);
                         end_instruction();
                         uint32_t element_type_id = uniform_type_id;
-                        uniform_type_id = uniform_array_type_ids[uniform_index][i];
+                        uniform_type_id = uniform_array_type_ids[uniform_index][dimension_index];
                         begin_instruction(SpvOpTypeArray);
                         push_word(uniform_type_id);
                         push_word(element_type_id);

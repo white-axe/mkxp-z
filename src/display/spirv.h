@@ -109,7 +109,7 @@ struct SpirvType
     // In particular, this means that all vectors will have more than one component and all matrices will have more than one row and more than one column.
     // The scalar type of a vector will always be an integer or floating-point type, and the scalar type of a matrix will always be a floating-point type.
     uint8_t vector_size, columns;
-    // If non-empty, this is an array, possibly multidimensional, with these dimensions.
+    // If non-empty, this is an array, possibly multidimensional, with these dimensions, from least significant to most significant.
     // It's possible for a type to be both an array type and a matrix or vector type at the same time, in which case the type is an array of matrices/vectors, not a matrix/vector of arrays.
     // All of the dimensions of an array will be greater than zero.
     std::vector<uint32_t> array_dimensions;
