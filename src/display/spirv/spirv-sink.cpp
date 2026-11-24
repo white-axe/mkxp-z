@@ -39,6 +39,70 @@
 #include <spirv/unified1/spirv.h>
 #include <spirv_cross_c.h>
 
+namespace {
+    struct Uniform
+    {
+        // The type of this uniform.
+        SpirvType type;
+        // If this uniform is a matrix or array of matrices,
+        // this is true if the uniform is declared as row-major in the SPIR-V module, or false otherwise.
+        // Might be different from whether or not the matrix is actually row-major in memory, since the graphics API might not support one of these two matrix memory layouts.
+        bool is_logically_row_major;
+        // If this uniform is a matrix or array of matrices,
+        // this is the matrix stride (i.e. the number of bytes between adjacent rows or columns, depending on if this matrix is row-major or column-major) of this uniform as declared in the SPIR-V module.
+        // Might be different from the physical matrix stride of this uniform in memory, since the graphics API might have alignment rules that need to be met.
+        uint32_t logical_matrix_stride;
+        // If this uniform is an array,
+        // this is the array stride (i.e. the number of bytes between adjacent elements of the array) of this uniform as declared in the SPIR-V module.
+        // If this uniform is a multidimensional array, this is the most significant array stride.
+        // Might be different from the physical array stride of this uniform in memory, since the graphics API might have alignment rules that need to be met.
+        uint32_t logical_array_stride;
+
+        bool operator==(const Uniform &other) const noexcept {
+            return (
+                type.scalar_type == other.type.scalar_type
+                    && type.vector_size == other.type.vector_size
+                    && type.columns == other.type.columns
+                    && type.array_dimensions == other.type.array_dimensions
+                    && is_logically_row_major == other.is_logically_row_major
+                    && logical_matrix_stride == other.logical_matrix_stride
+                    && logical_array_stride == other.logical_array_stride
+            );
+        }
+
+        bool operator!=(const Uniform &other) const noexcept {
+            return !(*this == other);
+        }
+    };
+
+    struct UniformPhysicalLayout
+    {
+        // Alignment of the in-memory representation of this uniform in bytes.
+        uint32_t physical_alignment;
+        // Size of the uniform's in-memory representation in bytes, including padding bytes.
+        // This is guaranteed to be a multiple of the alignment.
+        uint32_t physical_size;
+        // If this uniform is a matrix or array of matrices,
+        // this is true if the in-memory representation of this uniform is row-major, or false otherwise.
+        bool is_physically_row_major;
+        // If this uniform is a matrix or array of matrices,
+        // this is the matrix stride (i.e. the number of bytes between adjacent rows or columns, depending on if this matrix is row-major or column-major) of this uniform in memory.
+        uint32_t physical_matrix_stride;
+        // If this type is an array,
+        // these are the array strides of this uniform's in-memory representation, from least significant to most significant.
+        std::vector<uint32_t> physical_array_strides;
+    };
+
+    struct UniformTrieNode
+    {
+        // Maps an OpAccessChain index to the next node.
+        std::unordered_map<uint32_t, std::unique_ptr<UniformTrieNode>> children;
+        // If `children` is empty, this is the name of the uniform that this node refers to.
+        // Otherwise, this is empty.
+        std::string uniform_name;
+    };
+}
+
 static SpirvTarget get_target(SpirvSink::Backend backend) noexcept {
     switch (backend) {
         case SpirvSink::Backend::OPENGL_GLSL: return SpirvToGlsl::TARGET;
@@ -56,43 +120,6 @@ static bool supports_column_major_matrices(SpirvSink::Backend backend) {
         case SpirvSink::Backend::OPENGL_GLSL: return true;
     }
 }
-
-struct Uniform
-{
-    // The type of this uniform.
-    SpirvType type;
-    // If this uniform is a matrix or array of matrices,
-    // this is true if the uniform is declared as row-major in the SPIR-V module, or false otherwise.
-    // Might be different from whether or not the matrix is actually row-major in memory, since the graphics API might not support one of these two matrix memory layouts.
-    bool is_logically_row_major;
-    // If this uniform is a matrix or array of matrices,
-    // this is the matrix stride (i.e. the number of bytes between adjacent rows or columns, depending on if this matrix is row-major or column-major) of this uniform as declared in the SPIR-V module.
-    // Might be different from the physical matrix stride of this uniform in memory, since the graphics API might have alignment rules that need to be met.
-    uint32_t logical_matrix_stride;
-    // If this uniform is an array,
-    // this is the array stride (i.e. the number of bytes between adjacent elements of the array) of this uniform as declared in the SPIR-V module.
-    // If this uniform is a multidimensional array, this is the most significant array stride.
-    // Might be different from the physical array stride of this uniform in memory, since the graphics API might have alignment rules that need to be met.
-    uint32_t logical_array_stride;
-};
-
-struct UniformPhysicalLayout
-{
-    // Alignment of the in-memory representation of this uniform in bytes.
-    uint32_t physical_alignment;
-    // Size of the uniform's in-memory representation in bytes, including padding bytes.
-    // This is guaranteed to be a multiple of the alignment.
-    uint32_t physical_size;
-    // If this uniform is a matrix or array of matrices,
-    // this is true if the in-memory representation of this uniform is row-major, or false otherwise.
-    bool is_physically_row_major;
-    // If this uniform is a matrix or array of matrices,
-    // this is the matrix stride (i.e. the number of bytes between adjacent rows or columns, depending on if this matrix is row-major or column-major) of this uniform in memory.
-    uint32_t physical_matrix_stride;
-    // If this type is an array,
-    // these are the array strides of this uniform's in-memory representation, from least significant to most significant.
-    std::vector<uint32_t> physical_array_strides;
-};
 
 static UniformPhysicalLayout get_uniform_physical_layout(SpirvSink::Backend backend, const Uniform &uniform) noexcept {
     if (uniform.type.array_dimensions.empty()) {
@@ -286,15 +313,6 @@ static bool get_execution_model(
     return true;
 }
 
-struct UniformTrieNode
-{
-    // Maps an OpAccessChain index to the next node.
-    std::unordered_map<uint32_t, std::unique_ptr<UniformTrieNode>> children;
-    // If `children` is empty, this is the name of the uniform that this node refers to.
-    // Otherwise, this is empty.
-    std::string uniform_name;
-};
-
 static bool get_uniforms(
     SpirvSink::Backend backend,
     spvc_context context,
@@ -420,6 +438,14 @@ static bool get_uniforms(
                     }
                 }
                 node.trie_node.uniform_name = uniform_name;
+                {
+                    auto it = uniforms_output.find(uniform_name);
+                    if (it != uniforms_output.end() && it->second != uniform) {
+                        error_message = "Uniform '" + uniform_name + "' redeclared with a different type";
+                        spvc_context_release_allocations(context);
+                        return false;
+                    }
+                }
                 uniforms_output.emplace(uniform_name, std::move(uniform));
                 uniform_types_output.emplace(std::move(uniform_name), node.type_id);
                 stack.pop_back();
