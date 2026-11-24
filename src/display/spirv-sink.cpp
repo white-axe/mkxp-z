@@ -526,7 +526,7 @@ static bool rewrite_shader_uniforms(
                 std::vector<uint32_t> array_type_ids;
                 if (!uniform.second.type.array_dimensions.empty() && !uniform_type_map.count(uniform.first)) {
                     array_type_ids.reserve(uniform.second.type.array_dimensions.size());
-                    for (size_t i = 0; i < uniform.second.type.array_dimensions.size(); ++i) {
+                    for (uint32_t i = 0; i < uniform.second.type.array_dimensions.size(); ++i) {
                         if (!allocate_id(id, error_message)) {
                             return false;
                         }
@@ -626,7 +626,7 @@ static bool rewrite_shader_uniforms(
                     // For multidimensional arrays, we don't really care what the array strides other than the most significant array stride are since
                     // if we need to declare this array type ourselves, it means the shader doesn't read this uniform at all,
                     // so just assign these array strides assuming the elements are tightly packed
-                    for (size_t i = 0; i < uniform.second.type.array_dimensions.size() - 1; ++i) {
+                    for (uint32_t i = 0; i < uniform.second.type.array_dimensions.size() - 1; ++i) {
                         array_stride *= uniform.second.type.array_dimensions[uniform.second.type.array_dimensions.size() - 1 - i];
                         begin_instruction(SpvOpDecorate);
                         push_word(uniform_array_type_ids[uniform_index][i]);
@@ -778,7 +778,7 @@ static bool rewrite_shader_uniforms(
                     }
                 }
                 if (!uniform.type.array_dimensions.empty()) {
-                    for (size_t i = 0; i < uniform.type.array_dimensions.size(); ++i) {
+                    for (uint32_t i = 0; i < uniform.type.array_dimensions.size(); ++i) {
                         uint32_t constant_id;
                         if (!allocate_id(constant_id, error_message)) {
                             return false;
@@ -947,7 +947,7 @@ static bool rewrite_shader_uniforms(
                                 break;
                             }
                         }
-                        for (size_t word_index = 3; word_index < num_words; ++word_index) {
+                        for (uint16_t word_index = 3; word_index < num_words; ++word_index) {
                             uint32_t chain_word = words[word_index];
                             if (node->children.empty()) {
                                 push_word(chain_word);
