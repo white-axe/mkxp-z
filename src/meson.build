@@ -1340,7 +1340,7 @@ if get_option('cjk_fallback_font') == true
 endif
 
 if have_custom_shaders
-    subdir('display/effectc')
+    subdir('display/spirv')
 endif
 
 main_source = files(
@@ -1405,14 +1405,6 @@ main_source = files(
     'net/net.cpp',
 
     host_system == 'darwin' ? 'system/systemImplApple.mm' : 'system/systemImpl.cpp',
-
-    have_custom_shaders ? [
-        'display/hlsl-to-spirv.cpp',
-        'display/spirv-optimizer.cpp',
-        'display/spirv-sink.cpp',
-        'display/spirv-to-glsl.cpp',
-        'display/spirv-transform.cpp',
-    ] : [],
 )
 
 global_sources += main_source
