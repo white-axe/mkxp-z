@@ -641,7 +641,7 @@ static bool rewrite_shader_uniforms(
                 }
 
                 // Increase the offset by the logical size of this type
-                size_t logical_size = !uniform.second.type.array_dimensions.empty()
+                uint32_t logical_size = !uniform.second.type.array_dimensions.empty()
                     ? uniform.second.type.array_dimensions.back() * uniform.second.logical_array_stride
                     : uniform.second.type.columns != 1
                     ? (uniform.second.is_logically_row_major ? uniform.second.type.vector_size * uniform.second.logical_matrix_stride : uniform.second.type.columns * uniform.second.logical_matrix_stride)
