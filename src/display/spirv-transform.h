@@ -28,13 +28,10 @@
 #include <string>
 #include <vector>
 
-#include "spirv.h"
-
 class SpirvTransform
 {
 private:
     std::vector<uint32_t> *transformed;
-    std::vector<uint32_t> *extra_type_ids;
     uint32_t _spirv_version;
     uint32_t id_bound;
     size_t instruction_index;
@@ -45,9 +42,6 @@ public:
      *
      * input: The input SPIR-V module.
      * input_size: The size of the input SPIR-V module, in 32-bit words.
-     * extra_types: An array of additional SPIR-V types to add to the module. The type IDs of these new types can be retrieved via the `get_extra_type_ids()` method.
-     * extra_type_array_strides: An array of the array strides for the additional SPIR-V types to add to the module.
-     * extra_types_size: The number of additional SPIR-V types to add.
      * output: If the transform succeeds, this will be set to the compiled shader program. Otherwise, this will be unchanged.
      * error_message: If compilation succeeds, this will be unchanged. Otherwise, this will be set to a string containing the error that occurred.
      *
@@ -56,9 +50,6 @@ public:
     bool transform(
         const uint32_t *input,
         size_t input_size,
-        const SpirvType *extra_types,
-        const std::vector<uint32_t> *extra_type_array_strides,
-        size_t extra_types_size,
         std::vector<uint32_t> &output,
         std::string &error_message
     );
@@ -142,10 +133,8 @@ protected:
 private:
     void assert_have_instruction() const noexcept;
     void assert_no_instruction() const noexcept;
-    void push_type(const SpirvType &type, std::vector<uint32_t> &type_ids);
 
 protected:
-    const std::vector<uint32_t> &get_extra_type_ids() const noexcept;
     void begin_instruction(uint16_t opcode);
     void end_instruction();
     void push_word(uint32_t word);

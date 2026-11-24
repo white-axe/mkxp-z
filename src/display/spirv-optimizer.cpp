@@ -52,7 +52,7 @@ SpirvOptimizer::SpirvOptimizer(Type type) : optimizer(spvOptimizerCreate(SPV_ENV
     }
 
     spvOptimizerOptionsSetValidatorOptions((spv_optimizer_options_t *)optimizer_options, (spv_validator_options_t *)validator_options);
-    spvOptimizerOptionsSetRunValidator((spv_optimizer_options_t *)optimizer_options, type == Type::LEGALIZATION); // TODO: always enable validation
+    spvOptimizerOptionsSetRunValidator((spv_optimizer_options_t *)optimizer_options, true);
 }
 
 SpirvOptimizer::~SpirvOptimizer() {

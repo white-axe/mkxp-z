@@ -23,8 +23,10 @@
 #include <cassert>
 #include <cstdint>
 #include <cstring>
+#include <map>
 #include <memory>
 #include <random>
+#include <tuple>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -55,119 +57,128 @@ static bool supports_column_major_matrices(SpirvSink::Backend backend) {
     }
 }
 
-struct TypeLayout
+struct Uniform
 {
-    // Alignment of the type in bytes.
-    // This is guaranteed to be a power of 2.
-    uint32_t alignment;
-    // Size of the type in bytes, including padding bytes.
-    // This is guaranteed to be a multiple of the alignment of the type.
-    uint32_t size;
-    // If this type is a matrix or array of matrices, this is the matrix stride
-    // (i.e. the number of bytes between adjacent rows or columns, depending on how the matrix is arranged in memory).
-    // Otherwise, this is the same as the size of the type.
-    // The size of the type is guaranteed to be a multiple of this matrix stride.
-    uint32_t matrix_stride;
-    // If this type is an array, this is the array stride for each dimension
-    // (i.e. the number of bytes between adjacent subarrays).
-    // The size of the type is guaranteed to be a multiple of each array stride.
-    std::vector<uint32_t> array_strides;
+    // The type of this uniform.
+    SpirvType type;
+    // If this uniform is a matrix or array of matrices,
+    // this is true if the uniform is declared as row-major in the SPIR-V module, or false otherwise.
+    // Might be different from whether or not the matrix is actually row-major in memory, since the graphics API might not support one of these two matrix memory layouts.
+    bool is_logically_row_major;
+    // If this uniform is a matrix or array of matrices,
+    // this is the matrix stride (i.e. the number of bytes between adjacent rows or columns, depending on if this matrix is row-major or column-major) of this uniform as declared in the SPIR-V module.
+    // Might be different from the physical size of this uniform in memory, since the graphics API might have alignment rules that need to be met.
+    uint32_t logical_matrix_stride;
+    // If this uniform is an array,
+    // this is the array stride (i.e. the number of bytes between adjacent elements of the array) of this uniform as declared in the SPIR-V module.
+    // If this uniform is a multidimensional array, this is the most significant array stride.
+    // Might be different from the physical size of this uniform in memory, since the graphics API might have alignment rules that need to be met.
+    uint32_t logical_array_stride;
 };
 
-static TypeLayout get_type_layout(SpirvSink::Backend backend, const SpirvType &type) noexcept {
-    // If the underlying graphics API only supports one of the two possible matrix memory orderings,
-    // we have to use that supported ordering when computing the size and alignment.
-    // We still have to annotate the matrix as using the actual requested memory ordering even if it's unsupported,
-    // since the SPIR-V to native shading language compiler needs this information to correctly transpose matrix operations for unsupported matrix memory orderings.
-    bool is_row_major_in_memory;
-    if (type.columns == 1) {
-        is_row_major_in_memory = false;
-    } else if (type.is_row_major) {
-        is_row_major_in_memory = supports_row_major_matrices(backend);
-    } else {
-        is_row_major_in_memory = !supports_column_major_matrices(backend);
-    }
+struct UniformPhysicalLayout
+{
+    // Alignment of the in-memory representation of this uniform in bytes.
+    uint32_t physical_alignment;
+    // Size of the uniform's in-memory representation in bytes, including padding bytes.
+    // This is guaranteed to be a multiple of the alignment.
+    uint32_t physical_size;
+    // If this uniform is a matrix or array of matrices,
+    // this is true if the in-memory representation of this uniform is row-major, or false otherwise.
+    bool is_physically_row_major;
+    // If this uniform is a matrix or array of matrices,
+    // this is the matrix stride (i.e. the number of bytes between adjacent rows or columns, depending on if this matrix is row-major or column-major) of this uniform in memory.
+    uint32_t physical_matrix_stride;
+    // If this type is an array,
+    // these are the array strides of this uniform's in-memory representation, from most significant to least significant.
+    std::vector<uint32_t> physical_array_strides;
+};
 
-    if (type.array_dimensions.empty()) {
-        if (type.columns == 1) {
-            if (type.vector_size == 1) { // Scalar
-                switch (type.scalar_type) {
+static UniformPhysicalLayout get_uniform_physical_layout(SpirvSink::Backend backend, const Uniform &uniform) noexcept {
+    if (uniform.type.array_dimensions.empty()) {
+        if (uniform.type.columns == 1) {
+            if (uniform.type.vector_size == 1) { // Scalar
+                switch (uniform.type.scalar_type) {
                     case SpirvType::ScalarType::INT8:
                     case SpirvType::ScalarType::UINT8:
-                        return {1, 1, 1, std::vector<uint32_t>()};
+                        return {1, 1};
                     case SpirvType::ScalarType::INT16:
                     case SpirvType::ScalarType::UINT16:
                     case SpirvType::ScalarType::FP16:
-                        return {2, 2, 2, std::vector<uint32_t>()};
+                        return {2, 2};
                     case SpirvType::ScalarType::UNKNOWN:
                     case SpirvType::ScalarType::INT32:
                     case SpirvType::ScalarType::UINT32:
                     case SpirvType::ScalarType::FP32:
-                        return {4, 4, 4, std::vector<uint32_t>()};
+                        return {4, 4};
                     case SpirvType::ScalarType::INT64:
                     case SpirvType::ScalarType::UINT64:
                     case SpirvType::ScalarType::FP64:
-                        return {8, 8, 8, std::vector<uint32_t>()};
+                        return {8, 8};
                 }
             } else { // Vector
-                SpirvType scalar_type = type;
-                scalar_type.vector_size = 1;
-                TypeLayout scalar_layout = get_type_layout(backend, scalar_type);
-                scalar_layout.alignment *= type.vector_size == 3 ? 4 : type.vector_size; // A 3-component vector has its alignment rounded up to 4 components
-                scalar_layout.size = scalar_layout.alignment;
+                Uniform scalar = uniform;
+                scalar.type.vector_size = 1;
+                UniformPhysicalLayout scalar_layout = get_uniform_physical_layout(backend, scalar);
+                scalar_layout.physical_alignment *= uniform.type.vector_size == 3 ? 4 : uniform.type.vector_size; // A 3-component vector has its alignment rounded up to 4 components
+                scalar_layout.physical_size = scalar_layout.physical_size;
                 return scalar_layout;
             }
         } else { // Matrix
-            SpirvType vector_array_type = type;
-            vector_array_type.columns = 1;
-            if (is_row_major_in_memory) {
-                vector_array_type.vector_size = type.columns;
-                vector_array_type.array_dimensions = {type.vector_size};
+            Uniform vector_array = uniform;
+            vector_array.type.columns = 1;
+            bool is_physically_row_major = vector_array.is_logically_row_major ? supports_row_major_matrices(backend) : !supports_column_major_matrices(backend);
+            if (is_physically_row_major) {
+                vector_array.type.vector_size = uniform.type.columns;
+                vector_array.type.array_dimensions = {uniform.type.vector_size};
             } else {
-                vector_array_type.array_dimensions = {type.columns};
+                vector_array.type.array_dimensions = {uniform.type.columns};
             }
-            TypeLayout vector_array_layout = get_type_layout(backend, vector_array_type);
-            assert(vector_array_layout.array_strides.size() == 1);
-            vector_array_layout.matrix_stride = vector_array_layout.array_strides.front();
-            vector_array_layout.array_strides.clear();
+            UniformPhysicalLayout vector_array_layout = get_uniform_physical_layout(backend, vector_array);
+            assert(vector_array_layout.physical_array_strides.size() == 1);
+            vector_array_layout.is_physically_row_major = is_physically_row_major;
+            vector_array_layout.physical_matrix_stride = vector_array_layout.physical_array_strides.front();
+            vector_array_layout.physical_array_strides.clear();
             return vector_array_layout;
         }
-    } else if (type.columns == 1) { // Array of scalars or vectors
+    } else if (uniform.type.columns == 1) { // Array of scalars or vectors
         uint32_t array_size = 1;
-        for (uint32_t dimension : type.array_dimensions) {
+        for (uint32_t dimension : uniform.type.array_dimensions) {
             array_size *= dimension;
         }
-        SpirvType vector_type = type;
-        vector_type.array_dimensions = {};
-        TypeLayout vector_layout = get_type_layout(backend, vector_type);
+        Uniform vector = uniform;
+        vector.type.array_dimensions = {};
+        UniformPhysicalLayout vector_layout = get_uniform_physical_layout(backend, vector);
         // Round the alignment and size of each element of the array up to the nearest multiple of 16
-        vector_layout.alignment = (((uint64_t)vector_layout.alignment + (uint64_t)15) & ~(uint64_t)15);
-        vector_layout.size = (((uint64_t)vector_layout.size + (uint64_t)15) & ~(uint64_t)15);
-        vector_layout.size *= array_size;
-        assert(vector_layout.array_strides.empty());
-        uint32_t size = vector_layout.size;
-        for (uint32_t dimension : type.array_dimensions) {
+        vector_layout.physical_alignment = (((uint64_t)vector_layout.physical_alignment + (uint64_t)15) & ~(uint64_t)15);
+        vector_layout.physical_size = (((uint64_t)vector_layout.physical_size + (uint64_t)15) & ~(uint64_t)15);
+        vector_layout.physical_size *= array_size;
+        assert(vector_layout.physical_array_strides.empty());
+        uint32_t size = vector_layout.physical_size;
+        for (uint32_t dimension : uniform.type.array_dimensions) {
             size /= dimension;
-            vector_layout.array_strides.push_back(size);
+            vector_layout.physical_array_strides.push_back(size);
         }
         return vector_layout;
     } else { // Array of matrices
         uint32_t array_size = 1;
-        for (uint32_t dimension : type.array_dimensions) {
+        for (uint32_t dimension : uniform.type.array_dimensions) {
             array_size *= dimension;
         }
-        SpirvType vector_array_type = type;
-        vector_array_type.columns = 1;
-        if (is_row_major_in_memory) {
-            vector_array_type.vector_size = type.columns;
-            vector_array_type.array_dimensions = {array_size * type.vector_size};
+        Uniform vector_array = uniform;
+        vector_array.type.columns = 1;
+        bool is_physically_row_major = vector_array.is_logically_row_major ? supports_row_major_matrices(backend) : !supports_column_major_matrices(backend);
+        if (is_physically_row_major) {
+            vector_array.type.vector_size = uniform.type.columns;
+            vector_array.type.array_dimensions = {array_size * uniform.type.vector_size};
         } else {
-            vector_array_type.array_dimensions = {array_size * type.columns};
+            vector_array.type.array_dimensions = {array_size * uniform.type.columns};
         }
-        TypeLayout vector_array_layout = get_type_layout(backend, vector_array_type);
-        assert(vector_array_layout.array_strides.size() == 1);
-        vector_array_layout.matrix_stride = vector_array_layout.array_strides.front();
-        vector_array_layout.array_strides.clear();
+        UniformPhysicalLayout vector_array_layout = get_uniform_physical_layout(backend, vector_array);
+        assert(vector_array_layout.physical_array_strides.size() == 1);
+        vector_array_layout.is_physically_row_major = is_physically_row_major;
+        vector_array_layout.physical_matrix_stride = vector_array_layout.physical_array_strides.front();
+        vector_array_layout.physical_array_strides.clear();
         return vector_array_layout;
     }
 }
@@ -289,7 +300,8 @@ static bool get_uniforms(
     spvc_context context,
     const uint32_t *shader,
     size_t shader_size,
-    std::unordered_map<std::string, SpirvType> &uniforms_output,
+    std::unordered_map<std::string, Uniform> &uniforms_output,
+    std::unordered_map<std::string, uint32_t> &uniform_types_output,
     UniformTrieNode &uniform_trie_output,
     std::string &error_message
 ) {
@@ -311,7 +323,10 @@ static bool get_uniforms(
         UniformTrieNode &trie_node;
         const char *name;
         spvc_type_id type_id;
+        uint32_t member_size;
         bool member_is_row_major;
+        uint32_t member_matrix_stride;
+        uint32_t member_array_stride;
         size_t member_index;
     };
     std::vector<Node> stack;
@@ -326,6 +341,8 @@ static bool get_uniforms(
             uniform_buffer_list[uniform_buffer_index].base_type_id,
             false,
             0,
+            0,
+            0,
         });
 
         while (!stack.empty()) {
@@ -339,11 +356,26 @@ static bool get_uniforms(
                 }
                 if (node.member_index < (size_t)spvc_type_get_num_member_types(type)) {
                     size_t member_index = node.member_index++;
+                    size_t size;
+                    if (spvc_compiler_get_declared_struct_member_size(compiler, type, member_index, &size) != SPVC_SUCCESS) {
+                        error_message = "Failed to parse uniforms";
+                        return false;
+                    }
+                    uint32_t array_stride;
+                    if (spvc_type_get_num_array_dimensions(spvc_compiler_get_type_handle(compiler, spvc_type_get_member_type(type, member_index))) == 0) {
+                        array_stride = 0;
+                    } else if (spvc_compiler_type_struct_member_array_stride(compiler, type, member_index, &array_stride) != SPVC_SUCCESS) {
+                        error_message = "Failed to parse uniforms";
+                        return false;
+                    }
                     stack.emplace_back(Node {
                         *node.trie_node.children.emplace(member_index, std::make_unique<UniformTrieNode>()).first->second,
                         spvc_compiler_get_member_name(compiler, node.type_id, member_index),
                         spvc_type_get_member_type(type, member_index),
+                        (uint32_t)size,
                         spvc_compiler_get_member_decoration(compiler, node.type_id, member_index, SpvDecorationRowMajor) != 0,
+                        spvc_compiler_get_member_decoration(compiler, node.type_id, member_index, SpvDecorationMatrixStride),
+                        array_stride,
                         0,
                     });
                 } else {
@@ -367,11 +399,14 @@ static bool get_uniforms(
                 }
                 uniform_type.vector_size = spvc_type_get_vector_size(type);
                 uniform_type.columns = spvc_type_get_columns(type);
-                uniform_type.is_row_major = uniform_type.columns != 1 && node.member_is_row_major;
                 uniform_type.array_dimensions = std::vector<uint32_t>(spvc_type_get_num_array_dimensions(type));
                 for (uint32_t array_dimension_index = 0; array_dimension_index < uniform_type.array_dimensions.size(); ++array_dimension_index) {
                     uniform_type.array_dimensions[array_dimension_index] = spvc_type_get_array_dimension(type, array_dimension_index);
                 }
+                Uniform uniform = {std::move(uniform_type)};
+                uniform.is_logically_row_major = node.member_is_row_major;
+                uniform.logical_matrix_stride = node.member_matrix_stride;
+                uniform.logical_array_stride = node.member_array_stride;
                 std::string uniform_name;
                 for (const Node &ancestor : stack) {
                     if (ancestor.name[0] != 0) {
@@ -382,7 +417,8 @@ static bool get_uniforms(
                     }
                 }
                 node.trie_node.uniform_name = uniform_name;
-                uniforms_output.emplace(std::move(uniform_name), std::move(uniform_type));
+                uniforms_output.emplace(uniform_name, std::move(uniform));
+                uniform_types_output.emplace(std::move(uniform_name), node.type_id);
                 stack.pop_back();
             }
         }
@@ -392,11 +428,33 @@ static bool get_uniforms(
     return true;
 }
 
+static uint32_t get_scalar_type_logical_size(SpirvType::ScalarType scalar_type) noexcept {
+    switch (scalar_type) {
+        case SpirvType::INT8:
+        case SpirvType::UINT8:
+            return 1;
+        case SpirvType::INT16:
+        case SpirvType::UINT16:
+        case SpirvType::FP16:
+            return 2;
+        case SpirvType::UNKNOWN:
+        case SpirvType::INT32:
+        case SpirvType::UINT32:
+        case SpirvType::FP32:
+            return 4;
+        case SpirvType::INT64:
+        case SpirvType::UINT64:
+        case SpirvType::FP64:
+            return 8;
+    }
+}
+
 static bool rewrite_shader_uniforms(
     SpirvSink::Backend backend,
     const uint32_t *shader,
     size_t shader_size,
-    const std::vector<std::pair<std::string, SpirvType>> &uniforms,
+    const std::vector<std::pair<std::string, Uniform>> &uniforms,
+    const std::unordered_map<std::string, uint32_t> &uniform_type_map,
     const UniformTrieNode &uniform_trie,
     std::vector<uint32_t> &shader_output,
     std::string &error_message
@@ -406,27 +464,11 @@ static bool rewrite_shader_uniforms(
         uniform_index_map.emplace(uniforms[uniform_index].first, uniform_index);
     }
 
-    SpirvType int32_type;
-    int32_type.scalar_type = SpirvType::ScalarType::INT32;
-    int32_type.vector_size = 1;
-    int32_type.columns = 1;
-    int32_type.is_row_major = false;
-
-    std::vector<SpirvType> types;
-    for (const std::pair<std::string, SpirvType> &uniform : uniforms) {
-        types.emplace_back(uniform.second);
-    }
-    types.emplace_back(std::move(int32_type));
-    std::vector<std::vector<uint32_t>> array_strides;
-    for (const SpirvType &type : types) {
-        array_strides.emplace_back(get_type_layout(backend, type).array_strides);
-    }
-
     class MergeUniformsTransform : public SpirvTransform
     {
     private:
-        SpirvSink::Backend backend;
-        const std::vector<std::pair<std::string, SpirvType>> &uniforms;
+        const std::vector<std::pair<std::string, Uniform>> &uniforms;
+        const std::unordered_map<std::string, uint32_t> &uniform_type_map;
         const std::unordered_map<std::string, uint32_t> &uniform_index_map;
         const UniformTrieNode &uniform_trie;
 
@@ -438,13 +480,23 @@ static bool rewrite_shader_uniforms(
         uint32_t merged_uniform_buffer_pointer_type_id;
         // For each uniform in our merged uniform buffer, this contains a SPIR-V ID for a constant used to access the corresponding uniform.
         std::vector<uint32_t> merged_uniform_buffer_index_ids;
+        // For each uniform that is an array, this contains the IDs for the array types from least significant to most significant.
+        std::vector<std::vector<uint32_t>> uniform_array_type_ids;
         // A map from the SPIR-V IDs of the integer constants defined in the SPIR-V module to the values of those constants.
         std::unordered_map<uint32_t, uint32_t> constants;
         // A map from the SPIR-V IDs for pointer values that refer to some section of a uniform buffer to the uniform trie node for that pointer value.
         std::unordered_map<uint32_t, const UniformTrieNode &> pointers;
+        // A map from SPIR-V types to their SPIR-V IDs. The format of the key is as follows:
+        //   * First element: If the type is a matrix, the number of columns. Otherwise, 1.
+        //   * Second element: If the type is a matrix, the number of rows. Otherwise, if the type is a vector, the number of components. Otherwise, 1.
+        //   * Third element: 0 if the scalar type is an unsigned integer, 1 if the scalar type is a signed integer, 2 if the scalar type is a floating-point value.
+        //   * Fourth element: The width of the scalar type in bits.
+        std::map<std::tuple<uint8_t, uint8_t, uint8_t, uint32_t>, uint32_t> primitive_types;
+        // Reversed version of `primitive_types`.
+        std::unordered_map<uint32_t, std::tuple<uint8_t, uint8_t, uint8_t, uint32_t>> primitive_types_reverse;
 
     public:
-        MergeUniformsTransform(SpirvSink::Backend backend, const std::vector<std::pair<std::string, SpirvType>> &uniforms, const std::unordered_map<std::string, uint32_t> &uniform_index_map, const UniformTrieNode &uniform_trie) : backend(backend), uniforms(uniforms), uniform_index_map(uniform_index_map), uniform_trie(uniform_trie) {
+        MergeUniformsTransform(const std::vector<std::pair<std::string, Uniform>> &uniforms, const std::unordered_map<std::string, uint32_t> &uniform_type_map, const std::unordered_map<std::string, uint32_t> &uniform_index_map, const UniformTrieNode &uniform_trie) : uniforms(uniforms), uniform_type_map(uniform_type_map), uniform_index_map(uniform_index_map), uniform_trie(uniform_trie) {
         }
 
     private:
@@ -462,18 +514,32 @@ static bool rewrite_shader_uniforms(
             if (!allocate_id(merged_uniform_buffer_pointer_type_id, error_message)) {
                 return false;
             }
+            merged_uniform_buffer_index_ids.reserve(uniforms.size());
+            uniform_array_type_ids.reserve(uniforms.size());
             for (uint32_t uniform_index = 0; uniform_index < uniforms.size(); ++uniform_index) {
-                uint32_t index_id;
-                if (!allocate_id(index_id, error_message)) {
+                uint32_t id;
+                if (!allocate_id(id, error_message)) {
                     return false;
                 }
-                merged_uniform_buffer_index_ids.push_back(index_id);
+                merged_uniform_buffer_index_ids.push_back(id);
+                const std::pair<std::string, Uniform> uniform = uniforms[uniform_index];
+                std::vector<uint32_t> array_type_ids;
+                if (!uniform.second.type.array_dimensions.empty() && !uniform_type_map.count(uniform.first)) {
+                    array_type_ids.reserve(uniform.second.type.array_dimensions.size());
+                    for (size_t i = 0; i < uniform.second.type.array_dimensions.size(); ++i) {
+                        if (!allocate_id(id, error_message)) {
+                            return false;
+                        }
+                        array_type_ids.push_back(id);
+                    }
+                }
+                uniform_array_type_ids.emplace_back(std::move(array_type_ids));
             }
 
             return true;
         }
 
-        bool begin_name_debug_section(std::string &error_message) override {
+        bool end_name_debug_section(std::string &error_message) override {
             // Declare the name of our merged uniform buffer
             begin_instruction(SpvOpName);
             push_word(merged_uniform_buffer_id);
@@ -506,7 +572,7 @@ static bool rewrite_shader_uniforms(
             return true;
         }
 
-        bool begin_annotation_section(std::string &error_message) override {
+        bool end_annotation_section(std::string &error_message) override {
             // Declare that our merged uniform buffer's type is an interface block
             begin_instruction(SpvOpDecorate);
             push_word(merged_uniform_buffer_type_id);
@@ -528,13 +594,7 @@ static bool rewrite_shader_uniforms(
             // Declare the offsets for our merged uniform buffer's fields
             uint32_t offset = 0;
             for (uint32_t uniform_index = 0; uniform_index < uniforms.size(); ++uniform_index) {
-                const SpirvType &type = uniforms[uniform_index].second;
-                TypeLayout layout = get_type_layout(backend, type);
-
-                // Round the offset up to the nearest multiple of the alignment
-                if (offset % layout.alignment != 0) {
-                    offset += layout.alignment - offset % layout.alignment;
-                }
+                const std::pair<std::string, Uniform> &uniform = uniforms[uniform_index];
 
                 begin_instruction(SpvOpMemberDecorate);
                 push_word(merged_uniform_buffer_type_id);
@@ -544,42 +604,206 @@ static bool rewrite_shader_uniforms(
                 end_instruction();
 
                 // If it's a matrix or array of matrices, also declare whether it's row-major or column-major and the matrix stride
-                if (type.columns != 1) {
+                if (uniform.second.type.columns != 1) {
                     begin_instruction(SpvOpMemberDecorate);
                     push_word(merged_uniform_buffer_type_id);
                     push_word(uniform_index);
-                    push_word(type.is_row_major ? SpvDecorationRowMajor : SpvDecorationColMajor);
+                    push_word(uniform.second.is_logically_row_major ? SpvDecorationRowMajor : SpvDecorationColMajor);
                     end_instruction();
 
                     begin_instruction(SpvOpMemberDecorate);
                     push_word(merged_uniform_buffer_type_id);
                     push_word(uniform_index);
                     push_word(SpvDecorationMatrixStride);
-                    push_word(layout.matrix_stride);
+                    push_word(uniform.second.logical_matrix_stride);
                     end_instruction();
                 }
 
-                // Increase the offset by the size of this type
-                offset += layout.size;
+                // If it's an array whose type we need to declare ourselves later on, also declare the array strides
+                if (!uniform.second.type.array_dimensions.empty() && !uniform_type_map.count(uniform.first)) {
+                    uint32_t array_stride = get_scalar_type_logical_size(uniform.second.type.scalar_type);
+
+                    // For multidimensional arrays, we don't really care what the array strides other than the most significant array stride are since
+                    // if we need to declare this array type ourselves, it means the shader doesn't read this uniform at all,
+                    // so just assign these array strides assuming the elements are tightly packed
+                    for (size_t i = 0; i < uniform.second.type.array_dimensions.size() - 1; ++i) {
+                        array_stride *= uniform.second.type.array_dimensions[uniform.second.type.array_dimensions.size() - 1 - i];
+                        begin_instruction(SpvOpDecorate);
+                        push_word(uniform_array_type_ids[uniform_index][i]);
+                        push_word(SpvDecorationArrayStride);
+                        push_word(array_stride);
+                        end_instruction();
+                    }
+
+                    // The most significant array stride affects the logical size of this uniform, so it's important to get this to be the same in every shader
+                    begin_instruction(SpvOpDecorate);
+                    push_word(uniform_array_type_ids[uniform_index].back());
+                    push_word(SpvDecorationArrayStride);
+                    push_word(uniform.second.logical_array_stride);
+                    end_instruction();
+                }
+
+                // Increase the offset by the logical size of this type
+                size_t logical_size = !uniform.second.type.array_dimensions.empty()
+                    ? uniform.second.type.array_dimensions.front() * uniform.second.logical_array_stride
+                    : uniform.second.type.columns != 1
+                    ? (uniform.second.is_logically_row_major ? uniform.second.type.vector_size * uniform.second.logical_matrix_stride : uniform.second.type.columns * uniform.second.logical_matrix_stride)
+                    : uniform.second.type.vector_size * get_scalar_type_logical_size(uniform.second.type.scalar_type);
+                offset += logical_size;
             }
 
             return true;
         }
 
-        bool begin_data_section(std::string &error_message) override {
+        bool end_data_section(std::string &error_message) override {
+            // Declare a 32-bit signed integer type if there isn't already one declared, since this is the type of the indices for the members of our merged uniform buffer
+            uint32_t int32_type_id;
+            {
+                std::tuple<uint8_t, uint8_t, uint8_t, uint32_t> primitive_type = std::make_tuple(1, 1, 1, 32);
+                auto it = primitive_types.find(primitive_type);
+                if (it != primitive_types.end()) {
+                    int32_type_id = it->second;
+                } else {
+                    if (!allocate_id(int32_type_id, error_message)) {
+                        return false;
+                    }
+                    begin_instruction(SpvOpTypeInt);
+                    push_word(int32_type_id);
+                    push_word(32);
+                    push_word(1);
+                    end_instruction();
+                    primitive_types.emplace(primitive_type, int32_type_id);
+                }
+            }
+
+            // Declare a 32-bit unsigned integer type if there isn't already one declared, since this is the type of array dimensions
+            uint32_t uint32_type_id;
+            {
+                std::tuple<uint8_t, uint8_t, uint8_t, uint32_t> primitive_type = std::make_tuple(1, 1, 0, 32);
+                auto it = primitive_types.find(primitive_type);
+                if (it != primitive_types.end()) {
+                    uint32_type_id = it->second;
+                } else {
+                    if (!allocate_id(uint32_type_id, error_message)) {
+                        return false;
+                    }
+                    begin_instruction(SpvOpTypeInt);
+                    push_word(uint32_type_id);
+                    push_word(32);
+                    push_word(0);
+                    end_instruction();
+                    primitive_types.emplace(primitive_type, uint32_type_id);
+                }
+            }
+
             // Declare a constant for each member of our merged uniform buffer
             for (uint32_t uniform_index = 0; uniform_index < uniforms.size(); ++uniform_index) {
                 begin_instruction(SpvOpConstant);
-                push_word(get_extra_type_ids().back());
+                push_word(int32_type_id);
                 push_word(merged_uniform_buffer_index_ids[uniform_index]);
                 push_word(uniform_index);
                 end_instruction();
             }
 
+            // Declare the types for any uniforms whose types have not been declared yet
+            std::vector<uint32_t> uniform_type_ids;
+            uniform_type_ids.reserve(uniforms.size());
+            for (uint32_t uniform_index = 0; uniform_index < uniforms.size(); ++uniform_index) {
+                {
+                    auto it = uniform_type_map.find(uniforms[uniform_index].first);
+                    if (it != uniform_type_map.end()) {
+                        uniform_type_ids.push_back(it->second);
+                        continue;
+                    }
+                }
+                const Uniform &uniform = uniforms[uniform_index].second;
+                uint8_t scalar_kind;
+                switch (uniform.type.scalar_type) {
+                    case SpirvType::UNKNOWN:
+                    case SpirvType::UINT8:
+                    case SpirvType::UINT16:
+                    case SpirvType::UINT32:
+                    case SpirvType::UINT64:
+                        scalar_kind = 0;
+                        break;
+                    case SpirvType::INT8:
+                    case SpirvType::INT16:
+                    case SpirvType::INT32:
+                    case SpirvType::INT64:
+                        scalar_kind = 1;
+                        break;
+                    case SpirvType::FP16:
+                    case SpirvType::FP32:
+                    case SpirvType::FP64:
+                        scalar_kind = 2;
+                        break;
+                }
+                std::tuple<uint8_t, uint8_t, uint8_t, uint32_t> primitive_type = std::make_tuple(uniform.type.columns, uniform.type.vector_size, scalar_kind, 8 * get_scalar_type_logical_size(uniform.type.scalar_type));
+                uint32_t uniform_type_id;
+                auto it = primitive_types.find(primitive_type);
+                if (it != primitive_types.end()) {
+                    uniform_type_id = it->second;
+                } else {
+                    if (!allocate_id(uniform_type_id, error_message)) {
+                        return false;
+                    }
+                    begin_instruction(scalar_kind == 2 ? SpvOpTypeFloat : SpvOpTypeInt);
+                    push_word(uniform_type_id);
+                    push_word(8 * get_scalar_type_logical_size(uniform.type.scalar_type));
+                    if (scalar_kind != 2) {
+                        push_word(scalar_kind);
+                    }
+                    end_instruction();
+                    if (uniform.type.vector_size != 1) {
+                        uint32_t component_type_id = uniform_type_id;
+                        if (!allocate_id(uniform_type_id, error_message)) {
+                            return false;
+                        }
+                        begin_instruction(SpvOpTypeVector);
+                        push_word(uniform_type_id);
+                        push_word(component_type_id);
+                        push_word(uniform.type.vector_size);
+                        end_instruction();
+                    }
+                    if (uniform.type.columns != 1) {
+                        uint32_t vector_type_id = uniform_type_id;
+                        if (!allocate_id(uniform_type_id, error_message)) {
+                            return false;
+                        }
+                        begin_instruction(SpvOpTypeMatrix);
+                        push_word(uniform_type_id);
+                        push_word(vector_type_id);
+                        push_word(uniform.type.columns);
+                        end_instruction();
+                    }
+                }
+                if (!uniform.type.array_dimensions.empty()) {
+                    for (size_t i = 0; i < uniform.type.array_dimensions.size(); ++i) {
+                        uint32_t constant_id;
+                        if (!allocate_id(constant_id, error_message)) {
+                            return false;
+                        }
+                        begin_instruction(SpvOpConstant);
+                        push_word(uint32_type_id);
+                        push_word(constant_id);
+                        push_word(uniform.type.array_dimensions[uniform.type.array_dimensions.size() - 1 - i]);
+                        end_instruction();
+                        uint32_t element_type_id = uniform_type_id;
+                        uniform_type_id = uniform_array_type_ids[uniform_index][i];
+                        begin_instruction(SpvOpTypeArray);
+                        push_word(uniform_type_id);
+                        push_word(element_type_id);
+                        push_word(constant_id);
+                        end_instruction();
+                    }
+                }
+                uniform_type_ids.push_back(uniform_type_id);
+            }
+
             // Declare a struct type for our merged uniform buffer
             begin_instruction(SpvOpTypeStruct);
             push_word(merged_uniform_buffer_type_id);
-            push_words(get_extra_type_ids().begin(), get_extra_type_ids().begin() + uniforms.size());
+            push_words(uniform_type_ids.begin(), uniform_type_ids.end());
             end_instruction();
 
             // Declare a pointer type for our merged uniform buffer
@@ -589,7 +813,7 @@ static bool rewrite_shader_uniforms(
             push_word(merged_uniform_buffer_type_id);
             end_instruction();
 
-            // Define the merged uniform buffer
+            // Declare the merged uniform buffer
             begin_instruction(SpvOpVariable);
             push_word(merged_uniform_buffer_pointer_type_id);
             push_word(merged_uniform_buffer_id);
@@ -600,8 +824,53 @@ static bool rewrite_shader_uniforms(
         }
 
         bool receive_instruction(uint16_t opcode, const uint32_t *words, uint16_t num_words, std::string &error_message) override {
-            if (opcode == SpvOpConstant) {
-                constants.emplace(words[1], words[2]);
+            switch (opcode) {
+                case SpvOpConstant:
+                    constants.emplace(words[1], words[2]);
+                    break;
+
+                case SpvOpTypeInt:
+                    {
+                        std::tuple<uint8_t, uint8_t, uint8_t, uint32_t> primitive_type = std::make_tuple(1, 1, words[2], words[1]);
+                        primitive_types.emplace(primitive_type, words[0]);
+                        primitive_types_reverse.emplace(words[0], primitive_type);
+                    }
+                    break;
+
+                case SpvOpTypeFloat:
+                    {
+                        std::tuple<uint8_t, uint8_t, uint8_t, uint32_t> primitive_type = std::make_tuple(1, 1, 2, words[1]);
+                        primitive_types.emplace(primitive_type, words[0]);
+                        primitive_types_reverse.emplace(words[0], primitive_type);
+                    }
+                    break;
+
+                case SpvOpTypeVector:
+                    {
+                        auto it = primitive_types_reverse.find(words[1]);
+                        if (it == primitive_types_reverse.end()) {
+                            break;
+                        }
+                        std::tuple<uint8_t, uint8_t, uint8_t, uint32_t> primitive_type = std::make_tuple(1, words[2], std::get<2>(it->second), std::get<3>(it->second));
+                        primitive_types.emplace(primitive_type, words[0]);
+                        primitive_types_reverse.emplace(words[0], primitive_type);
+                    }
+                    break;
+
+                case SpvOpTypeMatrix:
+                    {
+                        auto it = primitive_types_reverse.find(words[1]);
+                        if (it == primitive_types_reverse.end()) {
+                            break;
+                        }
+                        std::tuple<uint8_t, uint8_t, uint8_t, uint32_t> primitive_type = std::make_tuple(words[2], std::get<1>(it->second), std::get<2>(it->second), std::get<3>(it->second));
+                        primitive_types.emplace(primitive_type, words[0]);
+                        primitive_types_reverse.emplace(words[0], primitive_type);
+                    }
+                    break;
+
+                default:
+                    break;
             }
 
             switch (opcode) {
@@ -713,16 +982,13 @@ static bool rewrite_shader_uniforms(
     };
 
     return MergeUniformsTransform {
-        backend,
         uniforms,
+        uniform_type_map,
         uniform_index_map,
         uniform_trie,
     }.transform(
         shader,
         shader_size,
-        types.data(),
-        array_strides.data(),
-        types.size(),
         shader_output,
         error_message
     );
@@ -742,7 +1008,8 @@ bool SpirvSink::compile(
         SpirvExecutionModel::FRAGMENT,
     };
     std::vector<std::vector<uint32_t>> shader_for_execution_model(sizeof execution_models / sizeof *execution_models);
-    std::unordered_map<std::string, SpirvType> uniform_map;
+    std::unordered_map<std::string, Uniform> uniform_map;
+    std::vector<std::unordered_map<std::string, uint32_t>> uniform_type_map_for_execution_model(sizeof execution_models / sizeof *execution_models);
     std::vector<UniformTrieNode> uniform_trie_for_execution_model(sizeof execution_models / sizeof *execution_models);
 
     for (size_t shader_index = 0; shader_index < shaders_len; ++shader_index) {
@@ -781,6 +1048,7 @@ bool SpirvSink::compile(
             shader.data(),
             shader.size(),
             uniform_map,
+            uniform_type_map_for_execution_model[execution_model_index],
             uniform_trie_for_execution_model[execution_model_index],
             error_message
         )) {
@@ -797,12 +1065,12 @@ bool SpirvSink::compile(
     }
 
     // Sort the uniforms in non-ascending order of alignment to optimize for the size of the merged uniform buffer.
-    std::vector<std::pair<std::string, SpirvType>> uniforms;
+    std::vector<std::pair<std::string, Uniform>> uniforms;
     for (auto it = uniform_map.begin(); it != uniform_map.end(); it = uniform_map.erase(it)) {
         uniforms.emplace_back(it->first, std::move(it->second));
     }
-    std::sort(uniforms.begin(), uniforms.end(), [this](const std::pair<std::string, SpirvType> &a, const std::pair<std::string, SpirvType> &b) {
-        return get_type_layout(backend, a.second).alignment > get_type_layout(backend, b.second).alignment;
+    std::sort(uniforms.begin(), uniforms.end(), [this](const std::pair<std::string, Uniform> &a, const std::pair<std::string, Uniform> &b) {
+        return get_uniform_physical_layout(backend, a.second).physical_alignment > get_uniform_physical_layout(backend, b.second).physical_alignment;
     });
 
     GlShaders gl_shaders;
@@ -822,6 +1090,7 @@ bool SpirvSink::compile(
                 shader.data(),
                 shader.size(),
                 uniforms,
+                uniform_type_map_for_execution_model[execution_model_index],
                 uniform_trie_for_execution_model[execution_model_index],
                 output,
                 error_message

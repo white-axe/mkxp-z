@@ -29,19 +29,13 @@
 bool SpirvTransform::transform(
     const uint32_t *input,
     size_t input_size,
-    const SpirvType *extra_types,
-    const std::vector<uint32_t> *extra_type_array_strides,
-    size_t extra_types_size,
     std::vector<uint32_t> &output,
     std::string &error_message
 ) {
     std::vector<uint32_t> _transformed;
     transformed = &_transformed;
-    std::vector<uint32_t> _extra_type_ids;
-    extra_type_ids = &_extra_type_ids;
     instruction_index = 0;
 
-    std::vector<std::vector<uint32_t>> raw_extra_type_ids;
     bool seen_source_debug_section = false;
     bool seen_name_debug_section = false;
     bool seen_process_debug_section = false;
@@ -73,32 +67,6 @@ bool SpirvTransform::transform(
     }
 
     _transformed.insert(_transformed.end(), input, input + 5);
-
-    _extra_type_ids.reserve(extra_types_size);
-    raw_extra_type_ids.reserve(extra_types_size);
-    for (uint32_t extra_type_index = 0; extra_type_index < extra_types_size; ++extra_type_index) {
-        const SpirvType &type = extra_types[extra_type_index];
-        uint32_t num_type_ids = 1;
-        if (type.vector_size != 1) {
-            ++num_type_ids;
-        }
-        if (type.columns != 1) {
-            ++num_type_ids;
-        }
-        num_type_ids += type.array_dimensions.size();
-        std::vector<uint32_t> type_ids;
-        type_ids.reserve(num_type_ids);
-        for (uint32_t i = 0; i < num_type_ids; ++i) {
-            uint32_t type_id;
-            if (!allocate_id(type_id, error_message)) {
-                return false;
-            }
-            type_ids.push_back(type_id);
-        }
-        _extra_type_ids.push_back(type_ids.back());
-        raw_extra_type_ids.emplace_back(std::move(type_ids));
-    }
-    assert_no_instruction();
 
     if (!begin(error_message)) {
         return false;
@@ -255,22 +223,6 @@ bool SpirvTransform::transform(
                 assert_no_instruction();
             }
 
-            // Declare the array strides for each extra type that is an array
-            for (uint32_t extra_type_index = 0; extra_type_index < extra_types_size; ++extra_type_index) {
-                const SpirvType &type = extra_types[extra_type_index];
-                if (!type.array_dimensions.empty()) {
-                    const std::vector<uint32_t> &type_ids = raw_extra_type_ids[extra_type_index];
-                    for (size_t dimension_index = 0; dimension_index < type.array_dimensions.size(); ++dimension_index) {
-                        begin_instruction(SpvOpDecorate);
-                        push_word(type_ids[type_ids.size() - dimension_index - 1]);
-                        push_word(SpvDecorationArrayStride);
-                        push_word(extra_type_array_strides[extra_type_index][dimension_index]);
-                        end_instruction();
-                    }
-                }
-            }
-            assert_no_instruction();
-
             if (!begin_annotation_section(error_message)) {
                 return false;
             }
@@ -280,12 +232,6 @@ bool SpirvTransform::transform(
         if (is_start_of_data_section) {
             if (!end_annotation_section(error_message)) {
                 return false;
-            }
-            assert_no_instruction();
-
-            // Declare each extra type
-            for (uint32_t extra_type_index = 0; extra_type_index < extra_types_size; ++extra_type_index) {
-                push_type(extra_types[extra_type_index], raw_extra_type_ids[extra_type_index]);
             }
             assert_no_instruction();
 
@@ -403,132 +349,6 @@ void SpirvTransform::assert_have_instruction() const noexcept {
 
 void SpirvTransform::assert_no_instruction() const noexcept {
     assert(instruction_index == 0);
-}
-
-void SpirvTransform::push_type(const SpirvType &type, std::vector<uint32_t> &type_ids) {
-    if (type.array_dimensions.empty()) {
-        uint32_t type_id = type_ids.back();
-        type_ids.pop_back();
-        if (type.columns == 1) {
-            if (type.vector_size == 1) { // Scalar
-                switch (type.scalar_type) {
-                    case SpirvType::ScalarType::INT8:
-                        begin_instruction(SpvOpTypeInt);
-                        push_word(type_id);
-                        push_word(8); // width
-                        push_word(1); // signedness
-                        end_instruction();
-                        break;
-                    case SpirvType::ScalarType::UINT8:
-                        begin_instruction(SpvOpTypeInt);
-                        push_word(type_id);
-                        push_word(8); // width
-                        push_word(0); // signedness
-                        end_instruction();
-                        break;
-                    case SpirvType::ScalarType::INT16:
-                        begin_instruction(SpvOpTypeInt);
-                        push_word(type_id);
-                        push_word(16); // width
-                        push_word(1); // signedness
-                        end_instruction();
-                        break;
-                    case SpirvType::ScalarType::UINT16:
-                        begin_instruction(SpvOpTypeInt);
-                        push_word(type_id);
-                        push_word(16); // width
-                        push_word(0); // signedness
-                        end_instruction();
-                        break;
-                    case SpirvType::ScalarType::INT32:
-                        begin_instruction(SpvOpTypeInt);
-                        push_word(type_id);
-                        push_word(32); // width
-                        push_word(1); // signedness
-                        end_instruction();
-                        break;
-                    case SpirvType::ScalarType::UNKNOWN:
-                    case SpirvType::ScalarType::UINT32:
-                        begin_instruction(SpvOpTypeInt);
-                        push_word(type_id);
-                        push_word(32); // width
-                        push_word(0); // signedness
-                        end_instruction();
-                        break;
-                    case SpirvType::ScalarType::INT64:
-                        begin_instruction(SpvOpTypeInt);
-                        push_word(type_id);
-                        push_word(64); // width
-                        push_word(1); // signedness
-                        end_instruction();
-                        break;
-                    case SpirvType::ScalarType::UINT64:
-                        begin_instruction(SpvOpTypeInt);
-                        push_word(type_id);
-                        push_word(64); // width
-                        push_word(0); // signedness
-                        end_instruction();
-                        break;
-                    case SpirvType::ScalarType::FP16:
-                        begin_instruction(SpvOpTypeFloat);
-                        push_word(type_id);
-                        push_word(16); // width
-                        end_instruction();
-                        break;
-                    case SpirvType::ScalarType::FP32:
-                        begin_instruction(SpvOpTypeFloat);
-                        push_word(type_id);
-                        push_word(32); // width
-                        end_instruction();
-                        break;
-                    case SpirvType::ScalarType::FP64:
-                        begin_instruction(SpvOpTypeFloat);
-                        push_word(type_id);
-                        push_word(64); // width
-                        end_instruction();
-                        break;
-                }
-            } else { // Vector
-                uint32_t scalar_type_id = type_ids.back();
-                SpirvType scalar_type = type;
-                scalar_type.vector_size = 1;
-                push_type(scalar_type, type_ids);
-                begin_instruction(SpvOpTypeVector);
-                push_word(type_id);
-                push_word(scalar_type_id);
-                push_word(type.vector_size);
-                end_instruction();
-            }
-        } else { // Matrix
-            uint32_t vector_type_id = type_ids.back();
-            SpirvType vector_type = type;
-            vector_type.columns = 1;
-            push_type(vector_type, type_ids);
-            begin_instruction(SpvOpTypeMatrix);
-            push_word(type_id);
-            push_word(vector_type_id);
-            push_word(type.columns);
-            end_instruction();
-        }
-    } else { // Array
-        std::vector<uint32_t> array_type_ids(type_ids.begin() + (type_ids.size() - type.array_dimensions.size()), type_ids.end());
-        type_ids.resize(type_ids.size() - type.array_dimensions.size());
-        uint32_t element_type_id = type_ids.back();
-        SpirvType element_type = type;
-        element_type.array_dimensions.clear();
-        push_type(element_type, type_ids);
-        for (size_t dimension_index = 0; dimension_index < type.array_dimensions.size(); ++dimension_index) {
-            begin_instruction(SpvOpTypeArray);
-            push_word(array_type_ids[array_type_ids.size() - type.array_dimensions.size() + dimension_index]);
-            push_word(dimension_index == 0 ? element_type_id : array_type_ids[array_type_ids.size() - type.array_dimensions.size() + dimension_index - 1]);
-            push_word(type.array_dimensions[type.array_dimensions.size() - dimension_index - 1]);
-            end_instruction();
-        }
-    }
-}
-
-const std::vector<uint32_t> &SpirvTransform::get_extra_type_ids() const noexcept {
-    return *extra_type_ids;
 }
 
 void SpirvTransform::begin_instruction(uint16_t opcode) {
