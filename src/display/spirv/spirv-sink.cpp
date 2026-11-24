@@ -314,7 +314,6 @@ static bool get_execution_model(
 }
 
 static bool get_uniforms(
-    SpirvSink::Backend backend,
     spvc_context context,
     const uint32_t *shader,
     size_t shader_size,
@@ -484,7 +483,6 @@ static uint32_t get_scalar_type_logical_size(SpirvType::ScalarType scalar_type) 
 }
 
 static bool rewrite_shader_uniforms(
-    SpirvSink::Backend backend,
     const uint32_t *shader,
     size_t shader_size,
     const std::vector<std::pair<std::string, Uniform>> &uniforms,
@@ -1080,7 +1078,6 @@ bool SpirvSink::compile(
         }
 
         if (!get_uniforms(
-            backend,
             (spvc_context)context,
             shader.data(),
             shader.size(),
@@ -1123,7 +1120,6 @@ bool SpirvSink::compile(
         {
             std::vector<uint32_t> output;
             if (!rewrite_shader_uniforms(
-                backend,
                 shader.data(),
                 shader.size(),
                 uniforms,
