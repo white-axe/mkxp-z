@@ -352,6 +352,7 @@ static bool get_uniforms(
             if (basetype == SPVC_BASETYPE_STRUCT) {
                 if (spvc_type_get_num_array_dimensions(type) != 0) {
                     error_message = "Arrays of uniform structs are unsupported";
+                    spvc_context_release_allocations(context);
                     return false;
                 }
                 if (node.member_index < (size_t)spvc_type_get_num_member_types(type)) {
@@ -359,6 +360,7 @@ static bool get_uniforms(
                     size_t size;
                     if (spvc_compiler_get_declared_struct_member_size(compiler, type, member_index, &size) != SPVC_SUCCESS) {
                         error_message = "Failed to parse uniforms";
+                        spvc_context_release_allocations(context);
                         return false;
                     }
                     uint32_t array_stride;
@@ -366,6 +368,7 @@ static bool get_uniforms(
                         array_stride = 0;
                     } else if (spvc_compiler_type_struct_member_array_stride(compiler, type, member_index, &array_stride) != SPVC_SUCCESS) {
                         error_message = "Failed to parse uniforms";
+                        spvc_context_release_allocations(context);
                         return false;
                     }
                     stack.emplace_back(Node {
