@@ -438,6 +438,11 @@ static bool get_uniforms(
                     }
                 }
                 node.trie_node.uniform_name = uniform_name;
+                if (uniform_name.empty()) {
+                    error_message = "All uniforms must have a name";
+                    spvc_context_release_allocations(context);
+                    return false;
+                }
                 {
                     auto it = uniforms_output.find(uniform_name);
                     if (it != uniforms_output.end() && it->second != uniform) {
