@@ -67,12 +67,12 @@ struct Uniform
     bool is_logically_row_major;
     // If this uniform is a matrix or array of matrices,
     // this is the matrix stride (i.e. the number of bytes between adjacent rows or columns, depending on if this matrix is row-major or column-major) of this uniform as declared in the SPIR-V module.
-    // Might be different from the physical size of this uniform in memory, since the graphics API might have alignment rules that need to be met.
+    // Might be different from the physical matrix stride of this uniform in memory, since the graphics API might have alignment rules that need to be met.
     uint32_t logical_matrix_stride;
     // If this uniform is an array,
     // this is the array stride (i.e. the number of bytes between adjacent elements of the array) of this uniform as declared in the SPIR-V module.
     // If this uniform is a multidimensional array, this is the most significant array stride.
-    // Might be different from the physical size of this uniform in memory, since the graphics API might have alignment rules that need to be met.
+    // Might be different from the physical array stride of this uniform in memory, since the graphics API might have alignment rules that need to be met.
     uint32_t logical_array_stride;
 };
 
