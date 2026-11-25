@@ -46,6 +46,7 @@
 #include "sprite.h"
 
 #ifdef MKXPZ_HAVE_CUSTOM_SHADERS
+#  include "effectc.h"
 #  include "rgd-default-shaders.hlsl.xxd"
 #  include "rgd-preamble.hlsl.xxd"
 #endif // MKXPZ_HAVE_CUSTOM_SHADERS

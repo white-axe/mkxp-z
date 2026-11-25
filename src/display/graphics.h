@@ -22,11 +22,12 @@
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 
-#include "effectc.h"
-#include "hlsl-to-spirv.h"
-#include "spirv-optimizer.h"
-#include "spirv-to-glsl.h"
 #include "util.h"
+
+#ifdef MKXPZ_HAVE_CUSTOM_SHADERS
+#  include "hlsl-to-spirv.h"
+#  include "spirv-sink.h"
+#endif // MKXPZ_HAVE_CUSTOM_SHADERS
 
 class Scene;
 class Bitmap;
