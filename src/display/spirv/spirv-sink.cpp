@@ -641,7 +641,7 @@ static bool retarget_spirv_version(
                             }
                             end_instruction();
                         } else if (source_version() < 0x00010400 && target_version() >= 0x00010400) {
-                            // Insert every global variable into the OpEntryPoint interface we're transforming from SPIR-V < 1.4 to SPIR-V >= 1.4
+                            // Insert every global variable into the OpEntryPoint interface if we're transforming from SPIR-V < 1.4 to SPIR-V >= 1.4
                             begin_instruction(opcode);
                             uint16_t word_index = 2;
                             while ((words[word_index] & 0xff000000) != 0) {
