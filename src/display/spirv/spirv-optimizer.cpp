@@ -40,13 +40,31 @@ SpirvOptimizer::SpirvOptimizer(Type type) : optimizer(spvOptimizerCreate(SPV_ENV
         throw Exception(Exception::MKXPError, "Failed to initialize SPIR-V Tools optimizer");
     }
 
+    bool success = false;
     switch (type) {
         case Type::LEGALIZATION:
-            spvOptimizerRegisterLegalizationPasses((spv_optimizer_t *)optimizer);
+            {
+                static const char *const flags[] = {
+                    "--legalize-hlsl",
+                };
+                success = spvOptimizerRegisterPassesFromFlagsWhilePreservingTheInterface((spv_optimizer_t *)optimizer, (const char **)flags, sizeof flags / sizeof *flags);
+            }
             break;
         case Type::PERFORMANCE:
-            spvOptimizerRegisterPerformancePasses((spv_optimizer_t *)optimizer);
+            {
+                static const char *const flags[] = {
+                    "-O",
+                };
+                success = spvOptimizerRegisterPassesFromFlagsWhilePreservingTheInterface((spv_optimizer_t *)optimizer, (const char **)flags, sizeof flags / sizeof *flags);
+            }
             break;
+    }
+    if (!success) {
+        spvOptimizerOptionsDestroy((spv_optimizer_options_t *)optimizer_options);
+        optimizer_options = nullptr;
+        spvOptimizerDestroy((spv_optimizer_t *)optimizer);
+        optimizer = nullptr;
+        throw Exception(Exception::MKXPError, "Failed to initialize SPIR-V Tools optimizer");
     }
 
     spvOptimizerOptionsSetRunValidator((spv_optimizer_options_t *)optimizer_options, false);
