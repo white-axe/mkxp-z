@@ -22,9 +22,27 @@
 #include <cstring>
 #include <utility>
 
+// _byteswap_ulong
+#ifdef _MSC_VER
+#  include <stdlib.h>
+#endif // _MSC_VER
+
 #include "spirv-transform.h"
 
 #include <spirv/unified1/spirv.h>
+
+static uint32_t byteswap_word(uint32_t word) {
+#ifdef _MSC_VER
+    static_assert(sizeof(unsigned long) == sizeof(uint32_t), "unsigned long should be 32 bits");
+    return (uint32_t)_byteswap_ulong((unsigned long)word);
+#else
+    return __builtin_bswap32(word);
+#endif // _MSC_VAR
+}
+
+static uint32_t maybe_byteswap_word(uint32_t word, bool needs_byteswap) {
+    return needs_byteswap ? byteswap_word(word) : word;
+}
 
 bool SpirvTransform::transform(
     const uint32_t *input,
@@ -36,6 +54,8 @@ bool SpirvTransform::transform(
     transformed = &_transformed;
     instruction_index = 0;
 
+    bool needs_byteswap;
+
     bool seen_source_debug_section = false;
     bool seen_name_debug_section = false;
     bool seen_process_debug_section = false;
@@ -43,25 +63,38 @@ bool SpirvTransform::transform(
     bool seen_data_section = false;
     bool seen_code_section = false;
 
-    if (input_size < 5 || input[0] != SpvMagicNumber) {
+    if (input_size < 5) {
         error_message = "Invalid SPIR-V module";
         return false;
     }
+
+    {
+        uint32_t magic = input[0];
+        if (magic == SpvMagicNumber) {
+            needs_byteswap = false;
+        } else if (magic == byteswap_word(SpvMagicNumber)) {
+            needs_byteswap = true;
+        } else {
+            error_message = "Invalid SPIR-V module";
+            return false;
+        }
+    }
+
+    _spirv_version = maybe_byteswap_word(input[1], needs_byteswap);
 
     // The newest SPIR-V version that we support right now is SPIR-V 1.6.
     // Newer SPIR-V versions, if any are released,
     // may have additional instructions that are allowed in each section of the SPIR-V module,
     // which would break our detection for where the beginning of each section is,
     // so we need to explicitly check the version.
-    if (input[1] > 0x00010600) {
+    if (_spirv_version > 0x00010600) {
         error_message = "Unsupported SPIR-V version";
         return false;
     }
 
-    _spirv_version = input[1];
-    id_bound = input[3];
+    id_bound = maybe_byteswap_word(input[3], needs_byteswap);
 
-    if (input[1] > maximum_supported_spirv_version()) {
+    if (_spirv_version > maximum_supported_spirv_version()) {
         error_message = "Unsupported SPIR-V version";
         return false;
     }
@@ -74,8 +107,13 @@ bool SpirvTransform::transform(
     assert_no_instruction();
 
     for (size_t word_index = 5; word_index < input_size;) {
-        uint16_t opcode = input[word_index];
-        uint16_t instruction_size = input[word_index] >> 16;
+        uint16_t opcode;
+        uint16_t instruction_size;
+        {
+            uint32_t word = maybe_byteswap_word(input[word_index], needs_byteswap);
+            opcode = word;
+            instruction_size = word >> 16;
+        }
         if (instruction_size == 0 || word_index + (size_t)instruction_size < word_index || word_index + (size_t)instruction_size > input_size) {
             error_message = "Invalid SPIR-V module";
             return false;
@@ -253,13 +291,33 @@ bool SpirvTransform::transform(
             assert_no_instruction();
         }
 
-        if (!receive_instruction(
-            opcode,
-            input + (word_index + 1),
-            instruction_size - 1,
-            error_message
-        )) {
-            return false;
+        {
+            const uint32_t *words = input + (word_index + 1);
+            uint16_t num_words = instruction_size - 1;
+            if (needs_byteswap) {
+                std::vector<uint32_t> byteswapped_input;
+                byteswapped_input.reserve(num_words);
+                for (uint16_t i = 0; i < num_words; ++i) {
+                    byteswapped_input.push_back(byteswap_word(words[i]));
+                }
+                if (!receive_instruction(
+                    opcode,
+                    byteswapped_input.data(),
+                    byteswapped_input.size(),
+                    error_message
+                )) {
+                    return false;
+                }
+            } else {
+                if (!receive_instruction(
+                    opcode,
+                    words,
+                    num_words,
+                    error_message
+                )) {
+                    return false;
+                }
+            }
         }
         assert_no_instruction();
 
