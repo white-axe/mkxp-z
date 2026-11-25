@@ -1405,6 +1405,14 @@ bool SpirvSink::compile(
     for (size_t shader_index = 0; shader_index < shaders_len; ++shader_index) {
         const std::pair<const uint32_t *, size_t> &shader = shaders[shader_index];
 
+        if (!validator.validate(
+            shader.first,
+            shader.second,
+            error_message
+        )) {
+            return false;
+        }
+
         SpirvExecutionModel execution_model;
         if (!get_execution_model(
             (spvc_context)context,
@@ -1419,14 +1427,6 @@ bool SpirvSink::compile(
         size_t execution_model_index = get_execution_model_index(execution_models, sizeof execution_models / sizeof *execution_models, execution_model);
         if (untransformed_shader_for_execution_model[execution_model_index] != nullptr) {
             error_message = "At most one shader for each SPIR-V execution model can be provided";
-            return false;
-        }
-
-        if (!validator.validate(
-            shader.first,
-            shader.second,
-            error_message
-        )) {
             return false;
         }
 
