@@ -674,6 +674,28 @@ static bool retarget_spirv_version(
                     }
                     break;
 
+                case SpvOpLessOrGreater:
+                    // This instruction is replaced with SpvOpFOrdNotEqual after SPIR-V 1.5
+                    if (target_version() > 0x00010500) {
+                        begin_instruction(SpvOpFOrdNotEqual);
+                    } else {
+                        begin_instruction(opcode);
+                    }
+                    push_words(words, words + num_words);
+                    end_instruction();
+                    break;
+
+                case SpvOpAtomicCompareExchangeWeak:
+                    // This instruction is replaced with SpvOpAtomicCompareExchange after SPIR-V 1.3
+                    if (target_version() > 0x00010300) {
+                        begin_instruction(SpvOpAtomicCompareExchange);
+                    } else {
+                        begin_instruction(opcode);
+                    }
+                    push_words(words, words + num_words);
+                    end_instruction();
+                    break;
+
                 default:
                     begin_instruction(opcode);
                     push_words(words, words + num_words);
