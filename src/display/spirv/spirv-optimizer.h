@@ -31,7 +31,6 @@ class SpirvOptimizer
 {
 private:
     void *optimizer;
-    void *validator_options;
     void *optimizer_options;
 
 public:

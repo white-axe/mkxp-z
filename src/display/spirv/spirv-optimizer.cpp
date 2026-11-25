@@ -27,16 +27,15 @@
 
 #include <spirv-tools/libspirv.h>
 
-SpirvOptimizer::SpirvOptimizer(Type type) : optimizer(spvOptimizerCreate(SPV_ENV_UNIVERSAL_1_6)), validator_options(spvValidatorOptionsCreate()), optimizer_options(spvOptimizerOptionsCreate()) {
-    if (optimizer == nullptr || validator_options == nullptr || optimizer_options == nullptr) {
+SpirvOptimizer::SpirvOptimizer(Type type) : optimizer(spvOptimizerCreate(SPV_ENV_UNIVERSAL_1_6)), optimizer_options(spvOptimizerOptionsCreate()) {
+    if (optimizer == nullptr || optimizer_options == nullptr) {
         if (optimizer_options != nullptr) {
             spvOptimizerOptionsDestroy((spv_optimizer_options_t *)optimizer_options);
-        }
-        if (validator_options != nullptr) {
-            spvValidatorOptionsDestroy((spv_validator_options_t *)validator_options);
+            optimizer_options = nullptr;
         }
         if (optimizer != nullptr) {
             spvOptimizerDestroy((spv_optimizer_t *)optimizer);
+            optimizer = nullptr;
         }
         throw Exception(Exception::MKXPError, "Failed to initialize SPIR-V Tools optimizer");
     }
@@ -44,32 +43,26 @@ SpirvOptimizer::SpirvOptimizer(Type type) : optimizer(spvOptimizerCreate(SPV_ENV
     switch (type) {
         case Type::LEGALIZATION:
             spvOptimizerRegisterLegalizationPasses((spv_optimizer_t *)optimizer);
-            spvValidatorOptionsSetBeforeHlslLegalization((spv_validator_options_t *)validator_options, true);
             break;
         case Type::PERFORMANCE:
             spvOptimizerRegisterPerformancePasses((spv_optimizer_t *)optimizer);
             break;
     }
 
-    spvOptimizerOptionsSetValidatorOptions((spv_optimizer_options_t *)optimizer_options, (spv_validator_options_t *)validator_options);
-    spvOptimizerOptionsSetRunValidator((spv_optimizer_options_t *)optimizer_options, true);
+    spvOptimizerOptionsSetRunValidator((spv_optimizer_options_t *)optimizer_options, false);
 }
 
 SpirvOptimizer::~SpirvOptimizer() {
     if (optimizer_options != nullptr) {
         spvOptimizerOptionsDestroy((spv_optimizer_options_t *)optimizer_options);
     }
-    if (validator_options != nullptr) {
-        spvValidatorOptionsDestroy((spv_validator_options_t *)validator_options);
-    }
     if (optimizer != nullptr) {
         spvOptimizerDestroy((spv_optimizer_t *)optimizer);
     }
 }
 
-SpirvOptimizer::SpirvOptimizer(SpirvOptimizer &&other) noexcept : optimizer(other.optimizer), validator_options(other.validator_options), optimizer_options(other.optimizer_options) {
+SpirvOptimizer::SpirvOptimizer(SpirvOptimizer &&other) noexcept : optimizer(other.optimizer), optimizer_options(other.optimizer_options) {
     other.optimizer = nullptr;
-    other.validator_options = nullptr;
     other.optimizer_options = nullptr;
 }
 

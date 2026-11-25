@@ -32,6 +32,7 @@
 #include "spirv.h"
 #include "spirv-optimizer.h"
 #include "spirv-to-glsl.h"
+#include "spirv-validator.h"
 
 class SpirvSink
 {
@@ -46,6 +47,7 @@ private:
     void *context;
     Backend backend;
 
+    SpirvValidator validator;
     SpirvOptimizer optimizer;
 
     union

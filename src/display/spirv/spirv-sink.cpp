@@ -229,7 +229,7 @@ SpirvSink::~SpirvSink() {
     }
 }
 
-SpirvSink::SpirvSink(SpirvSink &&other) noexcept : context(other.context), backend(other.backend), optimizer(std::move(other.optimizer)) {
+SpirvSink::SpirvSink(SpirvSink &&other) noexcept : context(other.context), backend(other.backend), optimizer(std::move(other.optimizer)), validator(std::move(other.validator)) {
     other.context = nullptr;
     switch (backend) {
         case SpirvSink::Backend::OPENGL_GLSL: glsl_backend = std::move(other.glsl_backend); break;
@@ -1422,6 +1422,14 @@ bool SpirvSink::compile(
             return false;
         }
 
+        if (!validator.validate(
+            shader.first,
+            shader.second,
+            error_message
+        )) {
+            return false;
+        }
+
         if (!get_uniforms(
             (spvc_context)context,
             shader.first,
@@ -1496,6 +1504,14 @@ bool SpirvSink::compile(
             return false;
         }
 
+        if (!validator.validate(
+            shader.data(),
+            shader.size(),
+            error_message
+        )) {
+            return false;
+        }
+
         // This transform remaps the texture units of textures so that the textures are assigned texture units sequentially,
         // in order to eliminate issues where two textures are assigned the same texture unit.
         //
@@ -1516,6 +1532,14 @@ bool SpirvSink::compile(
                 return false;
             }
             shader = std::move(output);
+        }
+
+        if (!validator.validate(
+            shader.data(),
+            shader.size(),
+            error_message
+        )) {
+            return false;
         }
 
         {

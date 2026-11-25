@@ -10,4 +10,5 @@ global_sources += files(
     'spirv-sink.cpp',
     'spirv-to-glsl.cpp',
     'spirv-transform.cpp',
+    'spirv-validator.cpp',
 )
