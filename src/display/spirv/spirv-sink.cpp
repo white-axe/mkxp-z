@@ -539,11 +539,11 @@ static bool retarget_spirv_version(
     class GetPointersTransform : public SpirvTransform
     {
     private:
-        std::vector<uint32_t> &global_pointer_ids;
+        std::vector<uint32_t> &non_io_global_pointer_ids;
         std::unordered_set<uint32_t> &io_pointer_ids;
 
     public:
-        GetPointersTransform(std::vector<uint32_t> &global_pointer_ids, std::unordered_set<uint32_t> &io_pointer_ids) : global_pointer_ids(global_pointer_ids), io_pointer_ids(io_pointer_ids) {
+        GetPointersTransform(std::vector<uint32_t> &non_io_global_pointer_ids, std::unordered_set<uint32_t> &io_pointer_ids) : non_io_global_pointer_ids(non_io_global_pointer_ids), io_pointer_ids(io_pointer_ids) {
         }
 
     private:
@@ -554,11 +554,10 @@ static bool retarget_spirv_version(
         bool receive_instruction(uint16_t opcode, const uint32_t *words, uint16_t num_words, std::string &error_message) override {
             switch (opcode) {
                 case SpvOpVariable:
-                    if (words[2] != SpvStorageClassFunction) {
-                        global_pointer_ids.push_back(words[1]);
-                    }
                     if (words[2] == SpvStorageClassInput || words[2] == SpvStorageClassOutput) {
                         io_pointer_ids.insert(words[1]);
+                    } else if (words[2] != SpvStorageClassFunction) {
+                        non_io_global_pointer_ids.push_back(words[1]);
                     }
                     break;
 
@@ -570,12 +569,12 @@ static bool retarget_spirv_version(
         }
     };
 
-    std::vector<uint32_t> global_pointer_ids;
+    std::vector<uint32_t> non_io_global_pointer_ids;
     std::unordered_set<uint32_t> io_pointer_ids;
     {
         std::vector<uint32_t> dummy;
         if (!GetPointersTransform {
-            global_pointer_ids,
+            non_io_global_pointer_ids,
             io_pointer_ids,
         }.transform(
             shader,
@@ -593,11 +592,11 @@ static bool retarget_spirv_version(
         uint32_t _target_version;
         bool allow_version_upgrade;
         bool allow_version_downgrade;
-        const std::vector<uint32_t> &global_pointer_ids;
+        const std::vector<uint32_t> &non_io_global_pointer_ids;
         const std::unordered_set<uint32_t> &io_pointer_ids;
 
     public:
-        RetargetSpirvVersionTransform(uint32_t target_version, bool allow_version_upgrade, bool allow_version_downgrade, const std::vector<uint32_t> &global_pointer_ids, const std::unordered_set<uint32_t> &io_pointer_ids) : _target_version(target_version), allow_version_upgrade(allow_version_upgrade), allow_version_downgrade(allow_version_downgrade), global_pointer_ids(global_pointer_ids), io_pointer_ids(io_pointer_ids) {
+        RetargetSpirvVersionTransform(uint32_t target_version, bool allow_version_upgrade, bool allow_version_downgrade, const std::vector<uint32_t> &non_io_global_pointer_ids, const std::unordered_set<uint32_t> &io_pointer_ids) : _target_version(target_version), allow_version_upgrade(allow_version_upgrade), allow_version_downgrade(allow_version_downgrade), non_io_global_pointer_ids(non_io_global_pointer_ids), io_pointer_ids(io_pointer_ids) {
         }
 
     private:
@@ -649,7 +648,14 @@ static bool retarget_spirv_version(
                             }
                             ++word_index;
                             push_words(words, words + word_index);
-                            push_words(global_pointer_ids.begin(), global_pointer_ids.end());
+                            for (std::unordered_set<uint32_t> interface; word_index < num_words; ++word_index) {
+                                uint32_t id = words[word_index];
+                                if (!interface.count(id)) { // Remove duplicates, as these are not allowed starting from SPIR-V 1.4
+                                    push_word(id);
+                                    interface.insert(id);
+                                }
+                            }
+                            push_words(non_io_global_pointer_ids.begin(), non_io_global_pointer_ids.end());
                             end_instruction();
                         } else {
                             begin_instruction(opcode);
@@ -674,7 +680,7 @@ static bool retarget_spirv_version(
         target_version,
         allow_version_upgrade,
         allow_version_downgrade,
-        global_pointer_ids,
+        non_io_global_pointer_ids,
         io_pointer_ids,
     }.transform(
         shader,
