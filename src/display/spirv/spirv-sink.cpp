@@ -461,6 +461,44 @@ static bool get_uniforms(
     return true;
 }
 
+static bool get_textures(
+    spvc_context context,
+    const uint32_t *shader,
+    size_t shader_size,
+    std::unordered_map<std::string, SpirvTexture::Type> &textures_output,
+    std::unordered_map<std::string, uint32_t> &texture_ids_output,
+    std::string &error_message
+) {
+    spvc_parsed_ir ir;
+    SPVC_CHECK(spvc_context_parse_spirv(context, (const SpvId *)shader, shader_size, &ir));
+
+    spvc_compiler compiler;
+    SPVC_CHECK(spvc_context_create_compiler(context, SPVC_BACKEND_NONE, ir, SPVC_CAPTURE_MODE_TAKE_OWNERSHIP, &compiler));
+
+    spvc_resources resources;
+    SPVC_CHECK(spvc_compiler_create_shader_resources(compiler, &resources));
+
+    const spvc_reflected_resource *texture_list;
+    size_t texture_list_size;
+    SPVC_CHECK(spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_SAMPLED_IMAGE, &texture_list, &texture_list_size));
+
+    for (uint32_t texture_index = 0; texture_index < (uint32_t)texture_list_size; ++texture_index) {
+        spvc_type texture_type = spvc_compiler_get_type_handle(compiler, texture_list[texture_index].base_type_id);
+        SpirvTexture::Type type;
+        switch (spvc_type_get_image_dimension(texture_type)) {
+            case SpvDim1D: type = SpirvTexture::Type::TEXTURE_1D; break;
+            case SpvDim2D: type = SpirvTexture::Type::TEXTURE_2D; break;
+            case SpvDim3D: type = SpirvTexture::Type::TEXTURE_3D; break;
+            default: type = SpirvTexture::Type::UNKNOWN; break;
+        }
+        textures_output.emplace(texture_list[texture_index].name, type);
+        texture_ids_output.emplace(texture_list[texture_index].name, texture_list[texture_index].id);
+    }
+
+    spvc_context_release_allocations(context);
+    return true;
+}
+
 static uint32_t get_scalar_type_logical_size(SpirvType::ScalarType scalar_type) noexcept {
     switch (scalar_type) {
         case SpirvType::INT8:
@@ -1029,6 +1067,320 @@ static bool rewrite_shader_uniforms(
     );
 }
 
+static bool rewrite_shader_textures(
+    const uint32_t *shader,
+    size_t shader_size,
+    const std::vector<std::pair<std::string, SpirvTexture::Type>> &textures,
+    const std::unordered_map<std::string, uint32_t> &texture_id_map,
+    std::vector<uint32_t> &shader_output,
+    std::string &error_message
+) {
+    std::unordered_map<uint32_t, std::string> texture_id_map_reverse;
+    for (const auto &texture : texture_id_map) {
+        texture_id_map_reverse.emplace(texture.second, texture.first);
+    }
+
+    class RemapTexturesTransform : public SpirvTransform
+    {
+    private:
+        const std::vector<std::pair<std::string, SpirvTexture::Type>> &textures;
+        const std::unordered_map<std::string, uint32_t> &texture_id_map;
+        const std::unordered_map<uint32_t, std::string> &texture_id_map_reverse;
+
+        // SPIR-V IDs for our remapped textures.
+        std::vector<uint32_t> remapped_texture_ids;
+        // SPIR-V ID of the void type.
+        uint32_t void_type_id;
+        // A map from SPIR-V image types of void sampled type to their SPIR-V IDs.
+        // The format of the key is the 7 operands of OpTypeImage other than the sample type (which is the void type).
+        std::map<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t>, uint32_t> void_image_type_ids;
+        // A map from SPIR-V IDs of images to the SPIR-V IDs of their corresponding sampled image types.
+        std::unordered_map<uint32_t, uint32_t> sampled_image_type_ids;
+        // A map from SPIR-V IDs of pointers of uniform constant storage class to the SPIR-V IDs of their pointed-to types.
+        std::unordered_map<uint32_t, uint32_t> uniform_constant_pointer_type_ids;
+        // A map from SPIR-V IDs of variables of uniform constant storage class to their pointer type IDs.
+        std::unordered_map<uint32_t, uint32_t> uniform_constant_pointer_ids;
+
+    public:
+        RemapTexturesTransform(const std::vector<std::pair<std::string, SpirvTexture::Type>> &textures, const std::unordered_map<std::string, uint32_t> &texture_id_map, const std::unordered_map<uint32_t, std::string> &texture_id_map_reverse) : textures(textures), texture_id_map(texture_id_map), texture_id_map_reverse(texture_id_map_reverse), void_type_id(0) {
+        }
+
+    private:
+        uint32_t maximum_supported_spirv_version() const noexcept override {
+            return 0x00010600;
+        }
+
+        bool begin(std::string &error_message) override {
+            remapped_texture_ids.reserve(textures.size());
+            for (const std::pair<std::string, SpirvTexture::Type> &texture : textures) {
+                uint32_t id;
+                auto it = texture_id_map.find(texture.first);
+                if (it != texture_id_map.end()) {
+                    id = it->second;
+                } else {
+                    if (!allocate_id(id, error_message)) {
+                        return false;
+                    }
+                }
+                remapped_texture_ids.push_back(id);
+            }
+
+            return true;
+        }
+
+        bool end_name_debug_section(std::string &error_message) override {
+            // Declare the names of our remapped textures
+            for (uint32_t texture_index = 0; texture_index < textures.size(); ++texture_index) {
+                const std::pair<std::string, SpirvTexture::Type> &texture = textures[texture_index];
+                uint32_t texture_id = remapped_texture_ids[texture_index];
+
+                begin_instruction(SpvOpName);
+                push_word(texture_id);
+                push_string_literal(texture.first.c_str());
+                end_instruction();
+            }
+
+            return true;
+        }
+
+        bool end_process_debug_section(std::string &error_message) override {
+            begin_instruction(SpvOpModuleProcessed);
+            push_string_literal("SpirvSink RemapTexturesTransform");
+            end_instruction();
+
+            return true;
+        }
+
+        bool end_annotation_section(std::string &error_message) override {
+            // Declare the linkages of our remapped textures
+            for (uint32_t texture_index = 0; texture_index < textures.size(); ++texture_index) {
+                uint32_t texture_id = remapped_texture_ids[texture_index];
+
+                begin_instruction(SpvOpDecorate);
+                push_word(texture_id);
+                push_word(SpvDecorationBinding);
+                push_word(texture_index);
+                end_instruction();
+
+                begin_instruction(SpvOpDecorate);
+                push_word(texture_id);
+                push_word(SpvDecorationDescriptorSet);
+                push_word(0);
+                end_instruction();
+            }
+
+            return true;
+        }
+
+        bool end_data_section(std::string &error_message) override {
+            // Declare the void type if it hasn't already been declared
+            if (void_type_id == 0) {
+                if (!allocate_id(void_type_id, error_message)) {
+                    return false;
+                }
+                begin_instruction(SpvOpTypeVoid);
+                push_word(void_type_id);
+                end_instruction();
+            }
+
+            for (uint32_t texture_index = 0; texture_index < textures.size(); ++texture_index) {
+                const std::pair<std::string, SpirvTexture::Type> &texture = textures[texture_index];
+                uint32_t texture_id = remapped_texture_ids[texture_index];
+
+                // For any remapped textures whose types have not been declared yet, declare their types
+                uint32_t texture_type_id;
+                if (texture_id_map_reverse.count(texture_id)) {
+                    texture_type_id = uniform_constant_pointer_type_ids.at(uniform_constant_pointer_ids.at(texture_id));
+                } else {
+                    uint32_t dimensionality;
+                    switch (texture.second) {
+                        case SpirvTexture::Type::TEXTURE_1D:
+                            dimensionality = SpvDim1D;
+                            break;
+                        case SpirvTexture::Type::UNKNOWN:
+                        case SpirvTexture::Type::TEXTURE_2D:
+                            dimensionality = SpvDim2D;
+                            break;
+                        case SpirvTexture::Type::TEXTURE_3D:
+                            dimensionality = SpvDim3D;
+                            break;
+                    }
+                    std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t> image_type = std::make_tuple(dimensionality, 0, 0, 0, 1, SpvImageFormatUnknown, SpvAccessQualifierMax);
+                    uint32_t image_type_id;
+                    {
+                        auto it = void_image_type_ids.find(image_type);
+                        if (it != void_image_type_ids.end()) {
+                            image_type_id = it->second;
+                        } else {
+                            if (!allocate_id(image_type_id, error_message)) {
+                                return false;
+                            }
+                            begin_instruction(SpvOpTypeImage);
+                            push_word(image_type_id);
+                            push_word(void_type_id);
+                            push_word(std::get<0>(image_type));
+                            push_word(std::get<1>(image_type));
+                            push_word(std::get<2>(image_type));
+                            push_word(std::get<3>(image_type));
+                            push_word(std::get<4>(image_type));
+                            push_word(std::get<5>(image_type));
+                            if (std::get<6>(image_type) != SpvAccessQualifierMax) {
+                                push_word(std::get<6>(image_type));
+                            }
+                            end_instruction();
+                            void_image_type_ids.emplace(image_type, image_type_id);
+                        }
+                    }
+                    {
+                        auto it = sampled_image_type_ids.find(image_type_id);
+                        if (it != sampled_image_type_ids.end()) {
+                            texture_type_id = it->second;
+                        } else {
+                            if (!allocate_id(texture_type_id, error_message)) {
+                                return false;
+                            }
+                            begin_instruction(SpvOpTypeSampledImage);
+                            push_word(texture_type_id);
+                            push_word(image_type_id);
+                            end_instruction();
+                            sampled_image_type_ids.emplace(image_type_id, texture_type_id);
+                        }
+                    }
+                }
+
+                // For any remapped textures whose pointer types have not been declared yet, declare their pointer types
+                uint32_t texture_pointer_type_id;
+                auto texture_pointer_type_it = uniform_constant_pointer_type_ids.find(texture_type_id);
+                if (texture_pointer_type_it != uniform_constant_pointer_type_ids.end()) {
+                    texture_pointer_type_id = texture_pointer_type_it->second;
+                } else {
+                    if (!allocate_id(texture_pointer_type_id, error_message)) {
+                        return false;
+                    }
+                    begin_instruction(SpvOpTypePointer);
+                    push_word(texture_pointer_type_id);
+                    push_word(SpvStorageClassUniformConstant);
+                    push_word(texture_type_id);
+                    end_instruction();
+                    uniform_constant_pointer_type_ids.emplace(texture_type_id, texture_pointer_type_id);
+                }
+
+                // Declare our remapped textures
+                begin_instruction(SpvOpVariable);
+                push_word(texture_pointer_type_id);
+                push_word(texture_id);
+                push_word(SpvStorageClassUniformConstant);
+                end_instruction();
+            }
+
+            return true;
+        }
+
+        bool receive_instruction(uint16_t opcode, const uint32_t *words, uint16_t num_words, std::string &error_message) override {
+            switch (opcode) {
+                case SpvOpTypeVoid:
+                    void_type_id = words[0];
+                    break;
+
+                case SpvOpTypeImage:
+                    if (words[1] == void_type_id) {
+                        void_image_type_ids.emplace(std::make_tuple(words[2], words[3], words[4], words[5], words[6], words[7], num_words > 8 ? words[8] : SpvAccessQualifierMax), words[0]);
+                    }
+                    break;
+
+                case SpvOpTypeSampledImage:
+                    sampled_image_type_ids.emplace(words[1], words[0]);
+                    break;
+
+                case SpvOpTypePointer:
+                    if (words[1] == SpvStorageClassUniformConstant) {
+                        uniform_constant_pointer_type_ids.emplace(words[0], words[2]);
+                    }
+                    break;
+
+                case SpvOpVariable:
+                    if (words[2] == SpvStorageClassUniformConstant) {
+                        uniform_constant_pointer_ids.emplace(words[1], words[0]);
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+
+            switch (opcode) {
+                case SpvOpEntryPoint:
+                    {
+                        if (spirv_version() < 0x00010400) { // Textures are only declared in the OpEntryPoint instruction in SPIR-V 1.4 and later
+                            begin_instruction(opcode);
+                            push_words(words, words + num_words);
+                            end_instruction();
+                            break;
+                        }
+                        // Remove the old textures from the OpEntryPoint instruction and add our remapped textures to it
+                        begin_instruction(opcode);
+                        uint16_t word_index = 2;
+                        while ((words[word_index] & 0xff000000) != 0) {
+                            ++word_index;
+                        }
+                        ++word_index;
+                        push_words(words, words + word_index);
+                        push_words(remapped_texture_ids.begin(), remapped_texture_ids.end());
+                        for (; word_index < num_words; ++word_index) {
+                            uint32_t id = words[word_index];
+                            if (!texture_id_map_reverse.count(id)) {
+                                push_word(id);
+                            }
+                        }
+                        end_instruction();
+                    }
+                    break;
+
+                case SpvOpVariable:
+                    // Remove the declarations of the old textures
+                    if (!texture_id_map_reverse.count(words[1])) {
+                        begin_instruction(opcode);
+                        push_words(words, words + num_words);
+                        end_instruction();
+                    }
+                    break;
+
+                case SpvOpName:
+                case SpvOpDecorate:
+                case SpvOpGroupDecorate:
+                case SpvOpDecorateId:
+                case SpvOpDecorateString:
+                    // Remove debug information and annotations from the old textures
+                    if (!texture_id_map_reverse.count(words[0])) {
+                        begin_instruction(opcode);
+                        push_words(words, words + num_words);
+                        end_instruction();
+                    }
+                    break;
+
+                default:
+                    begin_instruction(opcode);
+                    push_words(words, words + num_words);
+                    end_instruction();
+                    break;
+            }
+
+            return true;
+        }
+    };
+
+    return RemapTexturesTransform {
+        textures,
+        texture_id_map,
+        texture_id_map_reverse,
+    }.transform(
+        shader,
+        shader_size,
+        shader_output,
+        error_message
+    );
+}
+
 bool SpirvSink::compile(
     const std::pair<const uint32_t *, size_t> *shaders,
     size_t shaders_len,
@@ -1046,6 +1398,8 @@ bool SpirvSink::compile(
     std::unordered_map<std::string, Uniform> uniform_map;
     std::vector<std::unordered_map<std::string, uint32_t>> uniform_type_map_for_execution_model(sizeof execution_models / sizeof *execution_models);
     std::vector<UniformTrieNode> uniform_trie_for_execution_model(sizeof execution_models / sizeof *execution_models);
+    std::unordered_map<std::string, SpirvTexture::Type> texture_map;
+    std::vector<std::unordered_map<std::string, uint32_t>> texture_id_map_for_execution_model(sizeof execution_models / sizeof *execution_models);
 
     for (size_t shader_index = 0; shader_index < shaders_len; ++shader_index) {
         const std::pair<const uint32_t *, size_t> &unlegalized_shader = shaders[shader_index];
@@ -1088,6 +1442,17 @@ bool SpirvSink::compile(
         )) {
             return false;
         }
+
+        if (!get_textures(
+            (spvc_context)context,
+            shader.data(),
+            shader.size(),
+            texture_map,
+            texture_id_map_for_execution_model[execution_model_index],
+            error_message
+        )) {
+            return false;
+        }
     }
 
     if (
@@ -1100,12 +1465,20 @@ bool SpirvSink::compile(
 
     // Sort the uniforms in non-ascending order of alignment to optimize for the size of the merged uniform buffer.
     std::vector<std::pair<std::string, Uniform>> uniforms;
+    uniforms.reserve(uniform_map.size());
     for (auto it = uniform_map.begin(); it != uniform_map.end(); it = uniform_map.erase(it)) {
         uniforms.emplace_back(it->first, std::move(it->second));
     }
     std::sort(uniforms.begin(), uniforms.end(), [this](const std::pair<std::string, Uniform> &a, const std::pair<std::string, Uniform> &b) {
         return get_uniform_physical_layout(backend, a.second).physical_alignment > get_uniform_physical_layout(backend, b.second).physical_alignment;
     });
+
+    // The merged textures are in an arbitrary order.
+    std::vector<std::pair<std::string, SpirvTexture::Type>> textures;
+    textures.reserve(texture_map.size());
+    for (auto it = texture_map.begin(); it != texture_map.end(); it = texture_map.erase(it)) {
+        textures.emplace_back(it->first, std::move(it->second));
+    }
 
     GlShaders gl_shaders;
 
@@ -1125,6 +1498,28 @@ bool SpirvSink::compile(
                 uniforms,
                 uniform_type_map_for_execution_model[execution_model_index],
                 uniform_trie_for_execution_model[execution_model_index],
+                output,
+                error_message
+            )) {
+                return false;
+            }
+            shader = std::move(output);
+        }
+
+        // This transform remaps the texture units of textures so that the textures are assigned texture units sequentially,
+        // in order to eliminate issues where two textures are assigned the same texture unit.
+        //
+        // Additionally, certain old GLSL versions don't support explicitly specifying texture units for textures,
+        // and simply assign the texture units sequentially in the order that the textures are declared in the GLSL source code.
+        // Therefore, we also make sure every texture used in at least one shader is declared in every shader,
+        // so that there are no "gaps" in the texture units in any of the shaders if we're compiling from SPIR-V to one of these old GLSL versions.
+        {
+            std::vector<uint32_t> output;
+            if (!rewrite_shader_textures(
+                shader.data(),
+                shader.size(),
+                textures,
+                texture_id_map_for_execution_model[execution_model_index],
                 output,
                 error_message
             )) {
