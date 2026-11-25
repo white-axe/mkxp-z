@@ -23,11 +23,14 @@
 #include <cassert>
 #include <cstdint>
 #include <cstring>
+#include <iomanip>
 #include <map>
 #include <memory>
 #include <random>
+#include <sstream>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -101,12 +104,6 @@ namespace {
         // Otherwise, this is empty.
         std::string uniform_name;
     };
-}
-
-static SpirvTarget get_target(SpirvSink::Backend backend) noexcept {
-    switch (backend) {
-        case SpirvSink::Backend::OPENGL_GLSL: return SpirvToGlsl::TARGET;
-    }
 }
 
 static bool supports_row_major_matrices(SpirvSink::Backend backend) {
@@ -240,10 +237,6 @@ SpirvSink &SpirvSink::operator=(SpirvSink &&other) noexcept {
     this->~SpirvSink();
     new(this) SpirvSink(std::move(other));
     return *this;
-}
-
-SpirvTarget SpirvSink::target() const noexcept {
-    return get_target(backend);
 }
 
 static size_t get_execution_model_index(const SpirvExecutionModel *execution_models, size_t execution_models_len, SpirvExecutionModel execution_model) noexcept {
@@ -534,6 +527,163 @@ static uint32_t get_scalar_type_logical_size(SpirvType::ScalarType scalar_type) 
     }
 }
 
+static bool retarget_spirv_version(
+    const uint32_t *shader,
+    size_t shader_size,
+    uint32_t target_version,
+    bool allow_version_upgrade,
+    bool allow_version_downgrade,
+    std::vector<uint32_t> &shader_output,
+    std::string &error_message
+) {
+    class GetPointersTransform : public SpirvTransform
+    {
+    private:
+        std::vector<uint32_t> &global_pointer_ids;
+        std::unordered_set<uint32_t> &io_pointer_ids;
+
+    public:
+        GetPointersTransform(std::vector<uint32_t> &global_pointer_ids, std::unordered_set<uint32_t> &io_pointer_ids) : global_pointer_ids(global_pointer_ids), io_pointer_ids(io_pointer_ids) {
+        }
+
+    private:
+        uint32_t maximum_supported_source_version() const noexcept override {
+            return 0x00010600;
+        }
+
+        bool receive_instruction(uint16_t opcode, const uint32_t *words, uint16_t num_words, std::string &error_message) override {
+            switch (opcode) {
+                case SpvOpVariable:
+                    if (words[2] != SpvStorageClassFunction) {
+                        global_pointer_ids.push_back(words[1]);
+                    }
+                    if (words[2] == SpvStorageClassInput || words[2] == SpvStorageClassOutput) {
+                        io_pointer_ids.insert(words[1]);
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+
+            return true;
+        }
+    };
+
+    std::vector<uint32_t> global_pointer_ids;
+    std::unordered_set<uint32_t> io_pointer_ids;
+    {
+        std::vector<uint32_t> dummy;
+        if (!GetPointersTransform {
+            global_pointer_ids,
+            io_pointer_ids,
+        }.transform(
+            shader,
+            shader_size,
+            dummy,
+            error_message
+        )) {
+            return false;
+        }
+    }
+
+    class RetargetSpirvVersionTransform : public SpirvTransform
+    {
+    private:
+        uint32_t _target_version;
+        bool allow_version_upgrade;
+        bool allow_version_downgrade;
+        const std::vector<uint32_t> &global_pointer_ids;
+        const std::unordered_set<uint32_t> &io_pointer_ids;
+
+    public:
+        RetargetSpirvVersionTransform(uint32_t target_version, bool allow_version_upgrade, bool allow_version_downgrade, const std::vector<uint32_t> &global_pointer_ids, const std::unordered_set<uint32_t> &io_pointer_ids) : _target_version(target_version), allow_version_upgrade(allow_version_upgrade), allow_version_downgrade(allow_version_downgrade), global_pointer_ids(global_pointer_ids), io_pointer_ids(io_pointer_ids) {
+        }
+
+    private:
+        uint32_t maximum_supported_source_version() const noexcept override {
+            return 0x00010600;
+        }
+
+        uint32_t override_target_version() const noexcept override {
+            uint32_t _source_version = source_version();
+            return (allow_version_upgrade && _target_version > _source_version) || (allow_version_downgrade && _target_version < _source_version) ? _target_version : _source_version;
+        }
+
+        bool end_process_debug_section(std::string &error_message) override {
+            begin_instruction(SpvOpModuleProcessed);
+            std::stringstream str;
+            str << "SpirvSink RetargetSpirvVersionTransform (source version: 0x" << std::hex << std::setw(8) << std::setfill('0') << source_version() << "; target version: 0x" << std::hex << std::setw(8) << std::setfill('0') << target_version() << ")";
+            push_string_literal(str.str().c_str());
+            end_instruction();
+
+            return true;
+        }
+
+        bool receive_instruction(uint16_t opcode, const uint32_t *words, uint16_t num_words, std::string &error_message) override {
+            switch (opcode) {
+                case SpvOpEntryPoint:
+                    {
+                        if (source_version() >= 0x00010400 && target_version() < 0x00010400) {
+                            // Remove variables that are not of input or output storage class from the OpEntryPoint interface if we're transforming from SPIR-V >= 1.4 to SPIR-V < 1.4
+                            begin_instruction(opcode);
+                            uint16_t word_index = 2;
+                            while ((words[word_index] & 0xff000000) != 0) {
+                                ++word_index;
+                            }
+                            ++word_index;
+                            push_words(words, words + word_index);
+                            for (; word_index < num_words; ++word_index) {
+                                uint32_t id = words[word_index];
+                                if (io_pointer_ids.count(id)) {
+                                    push_word(id);
+                                }
+                            }
+                            end_instruction();
+                        } else if (source_version() < 0x00010400 && target_version() >= 0x00010400) {
+                            // Insert every global variable into the OpEntryPoint interface we're transforming from SPIR-V < 1.4 to SPIR-V >= 1.4
+                            begin_instruction(opcode);
+                            uint16_t word_index = 2;
+                            while ((words[word_index] & 0xff000000) != 0) {
+                                ++word_index;
+                            }
+                            ++word_index;
+                            push_words(words, words + word_index);
+                            push_words(global_pointer_ids.begin(), global_pointer_ids.end());
+                            end_instruction();
+                        } else {
+                            begin_instruction(opcode);
+                            push_words(words, words + num_words);
+                            end_instruction();
+                        }
+                    }
+                    break;
+
+                default:
+                    begin_instruction(opcode);
+                    push_words(words, words + num_words);
+                    end_instruction();
+                    break;
+            }
+
+            return true;
+        }
+    };
+
+    return RetargetSpirvVersionTransform {
+        target_version,
+        allow_version_upgrade,
+        allow_version_downgrade,
+        global_pointer_ids,
+        io_pointer_ids,
+    }.transform(
+        shader,
+        shader_size,
+        shader_output,
+        error_message
+    );
+}
+
 static bool rewrite_shader_uniforms(
     const uint32_t *shader,
     size_t shader_size,
@@ -584,7 +734,7 @@ static bool rewrite_shader_uniforms(
         }
 
     private:
-        uint32_t maximum_supported_spirv_version() const noexcept override {
+        uint32_t maximum_supported_source_version() const noexcept override {
             return 0x00010600;
         }
 
@@ -959,7 +1109,7 @@ static bool rewrite_shader_uniforms(
             switch (opcode) {
                 case SpvOpEntryPoint:
                     {
-                        if (spirv_version() < 0x00010400) { // Uniforms are only declared in the OpEntryPoint instruction in SPIR-V 1.4 and later
+                        if (target_version() < 0x00010400) { // Uniforms are only declared in the OpEntryPoint instruction in SPIR-V 1.4 and later
                             begin_instruction(opcode);
                             push_words(words, words + num_words);
                             end_instruction();
@@ -1120,7 +1270,7 @@ static bool rewrite_shader_textures(
         }
 
     private:
-        uint32_t maximum_supported_spirv_version() const noexcept override {
+        uint32_t maximum_supported_source_version() const noexcept override {
             return 0x00010600;
         }
 
@@ -1325,7 +1475,7 @@ static bool rewrite_shader_textures(
             switch (opcode) {
                 case SpvOpEntryPoint:
                     {
-                        if (spirv_version() < 0x00010400) { // Textures are only declared in the OpEntryPoint instruction in SPIR-V 1.4 and later
+                        if (target_version() < 0x00010400) { // Textures are only declared in the OpEntryPoint instruction in SPIR-V 1.4 and later
                             begin_instruction(opcode);
                             push_words(words, words + num_words);
                             end_instruction();
@@ -1408,8 +1558,7 @@ bool SpirvSink::compile(
         SpirvExecutionModel::GEOMETRY,
         SpirvExecutionModel::FRAGMENT,
     };
-    std::vector<const std::pair<const uint32_t *, size_t> *> untransformed_shader_for_execution_model(sizeof execution_models / sizeof *execution_models, nullptr);
-    std::vector<std::vector<uint32_t>> transformed_shader_for_execution_model(sizeof execution_models / sizeof *execution_models);
+    std::vector<std::vector<uint32_t>> shader_for_execution_model(sizeof execution_models / sizeof *execution_models);
     std::unordered_map<std::string, Uniform> uniform_map;
     std::vector<std::unordered_map<std::string, uint32_t>> uniform_type_map_for_execution_model(sizeof execution_models / sizeof *execution_models);
     std::vector<UniformTrieNode> uniform_trie_for_execution_model(sizeof execution_models / sizeof *execution_models);
@@ -1417,11 +1566,11 @@ bool SpirvSink::compile(
     std::vector<std::unordered_map<std::string, uint32_t>> texture_id_map_for_execution_model(sizeof execution_models / sizeof *execution_models);
 
     for (size_t shader_index = 0; shader_index < shaders_len; ++shader_index) {
-        const std::pair<const uint32_t *, size_t> &shader = shaders[shader_index];
+        const std::pair<const uint32_t *, size_t> &untransformed_shader = shaders[shader_index];
 
         if (!validator.validate(
-            shader.first,
-            shader.second,
+            untransformed_shader.first,
+            untransformed_shader.second,
             error_message
         )) {
             return false;
@@ -1430,8 +1579,8 @@ bool SpirvSink::compile(
         SpirvExecutionModel execution_model;
         if (!get_execution_model(
             (spvc_context)context,
-            shader.first,
-            shader.second,
+            untransformed_shader.first,
+            untransformed_shader.second,
             execution_model,
             error_message
         )) {
@@ -1439,15 +1588,37 @@ bool SpirvSink::compile(
         }
 
         size_t execution_model_index = get_execution_model_index(execution_models, sizeof execution_models / sizeof *execution_models, execution_model);
-        if (untransformed_shader_for_execution_model[execution_model_index] != nullptr) {
+        if (!shader_for_execution_model[execution_model_index].empty()) {
             error_message = "At most one shader for each SPIR-V execution model can be provided";
+            return false;
+        }
+
+        std::vector<uint32_t> &shader = shader_for_execution_model[execution_model_index];
+
+        if (!retarget_spirv_version(
+            untransformed_shader.first,
+            untransformed_shader.second,
+            0x00010600,
+            true,
+            true,
+            shader,
+            error_message
+        )) {
+            return false;
+        }
+
+        if (!validator.validate(
+            shader.data(),
+            shader.size(),
+            error_message
+        )) {
             return false;
         }
 
         if (!get_uniforms(
             (spvc_context)context,
-            shader.first,
-            shader.second,
+            shader.data(),
+            shader.size(),
             uniform_map,
             uniform_type_map_for_execution_model[execution_model_index],
             uniform_trie_for_execution_model[execution_model_index],
@@ -1458,21 +1629,19 @@ bool SpirvSink::compile(
 
         if (!get_textures(
             (spvc_context)context,
-            shader.first,
-            shader.second,
+            shader.data(),
+            shader.size(),
             texture_map,
             texture_id_map_for_execution_model[execution_model_index],
             error_message
         )) {
             return false;
         }
-
-        untransformed_shader_for_execution_model[execution_model_index] = &shader;
     }
 
     if (
-        untransformed_shader_for_execution_model[get_execution_model_index(execution_models, sizeof execution_models / sizeof *execution_models, SpirvExecutionModel::VERTEX)] == nullptr
-            || untransformed_shader_for_execution_model[get_execution_model_index(execution_models, sizeof execution_models / sizeof *execution_models, SpirvExecutionModel::FRAGMENT)] == nullptr
+        shader_for_execution_model[get_execution_model_index(execution_models, sizeof execution_models / sizeof *execution_models, SpirvExecutionModel::VERTEX)].empty()
+            || shader_for_execution_model[get_execution_model_index(execution_models, sizeof execution_models / sizeof *execution_models, SpirvExecutionModel::FRAGMENT)].empty()
     ) {
         error_message = "A vertex shader and a fragment shader must both be provided";
         return false;
@@ -1498,24 +1667,27 @@ bool SpirvSink::compile(
     GlShaders gl_shaders;
 
     for (size_t execution_model_index = 0; execution_model_index < sizeof execution_models / sizeof *execution_models; ++execution_model_index) {
-        const std::pair<const uint32_t *, size_t> *untransformed_shader = untransformed_shader_for_execution_model[execution_model_index];
-        if (untransformed_shader == nullptr) {
+        std::vector<uint32_t> &shader = shader_for_execution_model[execution_model_index];
+        if (shader.empty()) {
             continue;
         }
-        std::vector<uint32_t> &shader = transformed_shader_for_execution_model[execution_model_index];
 
         // We need to make sure all the shaders in our shader program have exactly the same set of uniforms,
         // so replace all of the uniform buffers in each shader with one merged uniform buffer that contains all of the uniforms used in at least one shader.
-        if (!rewrite_shader_uniforms(
-            untransformed_shader->first,
-            untransformed_shader->second,
-            uniforms,
-            uniform_type_map_for_execution_model[execution_model_index],
-            uniform_trie_for_execution_model[execution_model_index],
-            shader,
-            error_message
-        )) {
-            return false;
+        {
+            std::vector<uint32_t> output;
+            if (!rewrite_shader_uniforms(
+                shader.data(),
+                shader.size(),
+                uniforms,
+                uniform_type_map_for_execution_model[execution_model_index],
+                uniform_trie_for_execution_model[execution_model_index],
+                output,
+                error_message
+            )) {
+                return false;
+            }
+            shader = std::move(output);
         }
 
         if (!validator.validate(
@@ -1568,13 +1740,51 @@ bool SpirvSink::compile(
             }
             shader = std::move(output);
         }
+
+        if (!validator.validate(
+            shader.data(),
+            shader.size(),
+            error_message
+        )) {
+            return false;
+        }
+
+        // If the underlying graphics API's maximum supported SPIR-V version is less than the one that we're using,
+        // downgrade the SPIR-V version.
+        {
+            uint32_t target;
+            switch (backend) {
+                case Backend::OPENGL_GLSL: target = glsl_backend.TARGET; break;
+            }
+            std::vector<uint32_t> output;
+            if (!retarget_spirv_version(
+                shader.data(),
+                shader.size(),
+                target,
+                false,
+                true,
+                output,
+                error_message
+            )) {
+                return false;
+            }
+            shader = std::move(output);
+        }
+
+        if (!validator.validate(
+            shader.data(),
+            shader.size(),
+            error_message
+        )) {
+            return false;
+        }
     }
 
     static std::random_device random_device;
     std::random_device::result_type cookie = random_device();
 
     for (size_t execution_model_index = 0, stage_index = 0; execution_model_index < sizeof execution_models / sizeof *execution_models; ++execution_model_index) {
-        const std::vector<uint32_t> &shader = transformed_shader_for_execution_model[execution_model_index];
+        const std::vector<uint32_t> &shader = shader_for_execution_model[execution_model_index];
         if (shader.empty()) {
             continue;
         }

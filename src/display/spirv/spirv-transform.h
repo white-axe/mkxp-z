@@ -32,7 +32,8 @@ class SpirvTransform
 {
 private:
     std::vector<uint32_t> *transformed;
-    uint32_t _spirv_version;
+    uint32_t _source_version;
+    uint32_t _target_version;
     uint32_t id_bound;
     size_t instruction_index;
 
@@ -59,7 +60,13 @@ private:
      * Returns the maximum SPIR-V version supported by this transform,
      * encoded as a 32-bit word as it appears in the header of a SPIR-V module.
      */
-    virtual uint32_t maximum_supported_spirv_version() const noexcept;
+    virtual uint32_t maximum_supported_source_version() const noexcept;
+
+    /*
+     * Returns the target SPIR-V version that this transform outputs,
+     * encoded as a 32-bit word as it appears in the header of a SPIR-V module.
+     */
+    virtual uint32_t override_target_version() const noexcept;
 
     /*
      * This gets run when the transform starts.
@@ -127,7 +134,8 @@ private:
     virtual bool receive_instruction(uint16_t opcode, const uint32_t *words, uint16_t num_words, std::string &error_message);
 
 protected:
-    uint32_t spirv_version() const noexcept;
+    uint32_t source_version() const noexcept;
+    uint32_t target_version() const noexcept;
     bool allocate_id(uint32_t &id_output, std::string &error_message);
 
 private:

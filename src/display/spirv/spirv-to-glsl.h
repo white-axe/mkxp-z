@@ -26,8 +26,6 @@
 #include <cstdint>
 #include <string>
 
-#include "spirv.h"
-
 class SpirvToGlsl
 {
 private:
@@ -35,7 +33,7 @@ private:
 
 public:
     // Maximum SPIR-V target supported by this compiler backend.
-    static constexpr SpirvTarget TARGET = SpirvTarget::SPIRV_1_6;
+    static constexpr uint32_t TARGET = 0x00010600;
 
     SpirvToGlsl();
     ~SpirvToGlsl();

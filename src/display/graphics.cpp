@@ -1202,7 +1202,7 @@ public:
     }
 };
 
-Graphics::Graphics(RGSSThreadData *data) : spirv_sink(SpirvSink::Backend::OPENGL_GLSL), hlsl_to_spirv_compiler(spirv_sink.target()) {
+Graphics::Graphics(RGSSThreadData *data) : spirv_sink(SpirvSink::Backend::OPENGL_GLSL) {
     p = new GraphicsPrivate(data);
     if (data->config.syncToRefreshrate) {
         p->frameRate = data->refreshRate;

@@ -33,11 +33,10 @@ class HlslToSpirv
 {
 private:
     SpirvOptimizer legalizer;
-    SpirvTarget target;
     bool initialized;
 
 public:
-    HlslToSpirv(SpirvTarget target);
+    HlslToSpirv();
     ~HlslToSpirv();
     HlslToSpirv(const HlslToSpirv &other) = delete;
     HlslToSpirv(HlslToSpirv &&other) noexcept;

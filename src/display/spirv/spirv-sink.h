@@ -100,11 +100,6 @@ public:
     SpirvSink &operator=(SpirvSink &&other) noexcept;
 
     /*
-     * Returns the maximum SPIR-V target that this sink supports.
-     */
-    SpirvTarget target() const noexcept;
-
-    /*
      * Creates a shader program from SPIR-V shaders.
      * You must specify, at minimum, a vertex shader and a fragment shader.
      *

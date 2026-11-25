@@ -80,26 +80,30 @@ bool SpirvTransform::transform(
         }
     }
 
-    _spirv_version = maybe_byteswap_word(input[1], needs_byteswap);
+    _target_version = _source_version = maybe_byteswap_word(input[1], needs_byteswap);
 
     // The newest SPIR-V version that we support right now is SPIR-V 1.6.
     // Newer SPIR-V versions, if any are released,
     // may have additional instructions that are allowed in each section of the SPIR-V module,
     // which would break our detection for where the beginning of each section is,
     // so we need to explicitly check the version.
-    if (_spirv_version > 0x00010600) {
+    if (_source_version > 0x00010600) {
         error_message = "Unsupported SPIR-V version";
         return false;
     }
 
     id_bound = maybe_byteswap_word(input[3], needs_byteswap);
 
-    if (_spirv_version > maximum_supported_spirv_version()) {
+    if (_source_version > maximum_supported_source_version()) {
         error_message = "Unsupported SPIR-V version";
         return false;
     }
 
-    _transformed.insert(_transformed.end(), input, input + 5);
+    _target_version = override_target_version();
+
+    _transformed.push_back(input[0]);
+    _transformed.push_back(_target_version);
+    _transformed.insert(_transformed.end(), input + 2, input + 5);
 
     if (!begin(error_message)) {
         return false;
@@ -245,7 +249,7 @@ bool SpirvTransform::transform(
             }
             assert_no_instruction();
 
-            if (_spirv_version >= 0x00010100) {
+            if (target_version() >= 0x00010100) {
                 if (!begin_process_debug_section(error_message)) {
                     return false;
                 }
@@ -254,7 +258,7 @@ bool SpirvTransform::transform(
         }
 
         if (is_start_of_annotation_section) {
-            if (_spirv_version >= 0x00010100) {
+            if (target_version() >= 0x00010100) {
                 if (!end_process_debug_section(error_message)) {
                     return false;
                 }
@@ -329,8 +333,12 @@ bool SpirvTransform::transform(
     return true;
 }
 
-uint32_t SpirvTransform::maximum_supported_spirv_version() const noexcept {
+uint32_t SpirvTransform::maximum_supported_source_version() const noexcept {
     return UINT32_MAX;
+}
+
+uint32_t SpirvTransform::override_target_version() const noexcept {
+    return source_version();
 }
 
 bool SpirvTransform::begin(std::string &error_message) {
@@ -388,8 +396,12 @@ bool SpirvTransform::receive_instruction(uint16_t opcode, const uint32_t *words,
     return true;
 }
 
-uint32_t SpirvTransform::spirv_version() const noexcept {
-    return _spirv_version;
+uint32_t SpirvTransform::source_version() const noexcept {
+    return _source_version;
+}
+
+uint32_t SpirvTransform::target_version() const noexcept {
+    return _target_version;
 }
 
 bool SpirvTransform::allocate_id(uint32_t &id_output, std::string &error_message) {

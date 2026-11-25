@@ -28,18 +28,6 @@
 #include <glslang/Include/glslang_c_interface.h>
 #include <glslang/Public/resource_limits_c.h>
 
-static glslang_target_language_version_t get_target_language_version(SpirvTarget target) {
-    switch (target) {
-        case SpirvTarget::SPIRV_1_0: return GLSLANG_TARGET_SPV_1_0;
-        case SpirvTarget::SPIRV_1_1: return GLSLANG_TARGET_SPV_1_1;
-        case SpirvTarget::SPIRV_1_2: return GLSLANG_TARGET_SPV_1_2;
-        case SpirvTarget::SPIRV_1_3: return GLSLANG_TARGET_SPV_1_3;
-        case SpirvTarget::SPIRV_1_4: return GLSLANG_TARGET_SPV_1_4;
-        case SpirvTarget::SPIRV_1_5: return GLSLANG_TARGET_SPV_1_5;
-        case SpirvTarget::SPIRV_1_6: return GLSLANG_TARGET_SPV_1_6;
-    }
-}
-
 static glslang_stage_t get_stage(SpirvExecutionModel execution_model) {
     switch (execution_model) {
         case SpirvExecutionModel::VERTEX: return GLSLANG_STAGE_VERTEX;
@@ -50,7 +38,7 @@ static glslang_stage_t get_stage(SpirvExecutionModel execution_model) {
     }
 }
 
-HlslToSpirv::HlslToSpirv(SpirvTarget target) : legalizer(SpirvOptimizer::Type::LEGALIZATION), target(target), initialized(glslang_initialize_process()) {
+HlslToSpirv::HlslToSpirv() : legalizer(SpirvOptimizer::Type::LEGALIZATION), initialized(glslang_initialize_process()) {
     if (!initialized) {
         throw Exception(Exception::MKXPError, "Failed to initialize glslang");
     }
@@ -62,7 +50,7 @@ HlslToSpirv::~HlslToSpirv() {
     }
 }
 
-HlslToSpirv::HlslToSpirv(HlslToSpirv &&other) noexcept : legalizer(std::move(other.legalizer)), target(other.target), initialized(other.initialized) {
+HlslToSpirv::HlslToSpirv(HlslToSpirv &&other) noexcept : legalizer(std::move(other.legalizer)), initialized(other.initialized) {
     other.initialized = false;
 }
 
@@ -98,7 +86,7 @@ bool HlslToSpirv::compile(
         GLSLANG_CLIENT_VULKAN,
         GLSLANG_TARGET_VULKAN_1_4,
         GLSLANG_TARGET_SPV,
-        get_target_language_version(target),
+        GLSLANG_TARGET_SPV_1_6,
         hlsl_source_code,
         0,
         GLSLANG_NO_PROFILE,
