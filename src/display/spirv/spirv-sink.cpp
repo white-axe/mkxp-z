@@ -665,6 +665,15 @@ static bool retarget_spirv_version(
                     }
                     break;
 
+                case SpvOpModuleProcessed:
+                    // This instruction is only supported starting from SPIR-V 1.1
+                    if (target_version() >= 0x00010100) {
+                        begin_instruction(opcode);
+                        push_words(words, words + num_words);
+                        end_instruction();
+                    }
+                    break;
+
                 default:
                     begin_instruction(opcode);
                     push_words(words, words + num_words);
