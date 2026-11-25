@@ -959,13 +959,13 @@ static bool rewrite_shader_uniforms(
                         }
                         ++word_index;
                         push_words(words, words + word_index);
-                        push_word(merged_uniform_buffer_id);
                         for (; word_index < num_words; ++word_index) {
                             uint32_t id = words[word_index];
                             if (!uniform_trie.children.count(id)) {
                                 push_word(id);
                             }
                         }
+                        push_word(merged_uniform_buffer_id);
                         end_instruction();
                     }
                     break;
@@ -1325,13 +1325,13 @@ static bool rewrite_shader_textures(
                         }
                         ++word_index;
                         push_words(words, words + word_index);
-                        push_words(remapped_texture_ids.begin(), remapped_texture_ids.end());
                         for (; word_index < num_words; ++word_index) {
                             uint32_t id = words[word_index];
                             if (!texture_id_map_reverse.count(id)) {
                                 push_word(id);
                             }
                         }
+                        push_words(remapped_texture_ids.begin(), remapped_texture_ids.end());
                         end_instruction();
                     }
                     break;
