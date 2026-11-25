@@ -1546,7 +1546,7 @@ bool SpirvSink::compile(
     std::random_device::result_type cookie = random_device();
 
     for (size_t execution_model_index = 0, stage_index = 0; execution_model_index < sizeof execution_models / sizeof *execution_models; ++execution_model_index) {
-        const std::vector<uint32_t> shader = shader_for_execution_model[execution_model_index];
+        const std::vector<uint32_t> &shader = shader_for_execution_model[execution_model_index];
         if (shader.empty()) {
             continue;
         }
