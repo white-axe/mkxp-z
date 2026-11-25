@@ -126,27 +126,6 @@ bool SpirvToGlsl::compile(
         }
     }
 
-    const spvc_reflected_resource *uniform_buffer_list;
-    size_t uniform_buffer_list_size;
-    CHECK(spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_UNIFORM_BUFFER, &uniform_buffer_list, &uniform_buffer_list_size));
-
-    if (have_uniform_buffer_support) {
-        if (!have_binding_support && uniform_buffer_list_size > 1) {
-            error_message = "This shader requires more than one uniform buffer, but this is not supported by your graphics driver";
-            return false;
-        }
-        for (uint32_t uniform_buffer_index = 0; uniform_buffer_index < (uint32_t)uniform_buffer_list_size; ++uniform_buffer_index) {
-            spvc_compiler_set_decoration(compiler, uniform_buffer_list[uniform_buffer_index].id, SpvDecorationBinding, uniform_buffer_index);
-        }
-    }
-
-    const spvc_reflected_resource *texture_list;
-    size_t texture_list_size;
-    CHECK(spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_SAMPLED_IMAGE, &texture_list, &texture_list_size));
-    for (uint32_t texture_index = 0; texture_index < (uint32_t)texture_list_size; ++texture_index) {
-        spvc_compiler_set_decoration(compiler, texture_list[texture_index].id, SpvDecorationBinding, texture_index);
-    }
-
     spvc_compiler_options options;
     CHECK(spvc_compiler_create_compiler_options(compiler, &options));
     CHECK(spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_GLSL_VERSION, version));
