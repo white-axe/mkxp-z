@@ -491,8 +491,22 @@ static bool get_textures(
             case SpvDim3D: type = SpirvTexture::Type::TEXTURE_3D; break;
             default: type = SpirvTexture::Type::UNKNOWN; break;
         }
-        textures_output.emplace(texture_list[texture_index].name, type);
-        texture_ids_output.emplace(texture_list[texture_index].name, texture_list[texture_index].id);
+        const char *texture_name = texture_list[texture_index].name;
+        if (texture_name[0] == 0) {
+            error_message = "All textures must have a name";
+            spvc_context_release_allocations(context);
+            return false;
+        }
+        {
+            auto it = textures_output.find(texture_name);
+            if (it != textures_output.end() && it->second != type) {
+                error_message = "Texture '" + std::string(texture_name) + "' redeclared with a different type";
+                spvc_context_release_allocations(context);
+                return false;
+            }
+        }
+        textures_output.emplace(texture_name, type);
+        texture_ids_output.emplace(texture_name, texture_list[texture_index].id);
     }
 
     spvc_context_release_allocations(context);
