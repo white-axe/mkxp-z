@@ -1109,12 +1109,6 @@ static bool rewrite_shader_uniforms(
             switch (opcode) {
                 case SpvOpEntryPoint:
                     {
-                        if (target_version() < 0x00010400) { // Uniforms are only declared in the OpEntryPoint instruction in SPIR-V 1.4 and later
-                            begin_instruction(opcode);
-                            push_words(words, words + num_words);
-                            end_instruction();
-                            break;
-                        }
                         // Remove the old uniform buffers from the OpEntryPoint instruction and add our merged uniform buffer to it
                         begin_instruction(opcode);
                         uint16_t word_index = 2;
@@ -1475,12 +1469,6 @@ static bool rewrite_shader_textures(
             switch (opcode) {
                 case SpvOpEntryPoint:
                     {
-                        if (target_version() < 0x00010400) { // Textures are only declared in the OpEntryPoint instruction in SPIR-V 1.4 and later
-                            begin_instruction(opcode);
-                            push_words(words, words + num_words);
-                            end_instruction();
-                            break;
-                        }
                         // Remove the old textures from the OpEntryPoint instruction and add our remapped textures to it
                         begin_instruction(opcode);
                         uint16_t word_index = 2;
