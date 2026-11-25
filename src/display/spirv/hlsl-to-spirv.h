@@ -27,10 +27,12 @@
 #include <vector>
 
 #include "spirv.h"
+#include "spirv-optimizer.h"
 
 class HlslToSpirv
 {
 private:
+    SpirvOptimizer legalizer;
     SpirvTarget target;
     bool initialized;
 

@@ -46,8 +46,7 @@ private:
     void *context;
     Backend backend;
 
-    SpirvOptimizer legalization_transform;
-    SpirvOptimizer performance_transform;
+    SpirvOptimizer optimizer;
 
     union
     {

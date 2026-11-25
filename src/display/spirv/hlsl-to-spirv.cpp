@@ -50,7 +50,7 @@ static glslang_stage_t get_stage(SpirvExecutionModel execution_model) {
     }
 }
 
-HlslToSpirv::HlslToSpirv(SpirvTarget target) : target(target), initialized(glslang_initialize_process()) {
+HlslToSpirv::HlslToSpirv(SpirvTarget target) : legalizer(SpirvOptimizer::Type::LEGALIZATION), target(target), initialized(glslang_initialize_process()) {
     if (!initialized) {
         throw Exception(Exception::MKXPError, "Failed to initialize glslang");
     }
@@ -62,7 +62,7 @@ HlslToSpirv::~HlslToSpirv() {
     }
 }
 
-HlslToSpirv::HlslToSpirv(HlslToSpirv &&other) noexcept : target(other.target), initialized(other.initialized) {
+HlslToSpirv::HlslToSpirv(HlslToSpirv &&other) noexcept : legalizer(std::move(other.legalizer)), target(other.target), initialized(other.initialized) {
     other.initialized = false;
 }
 
@@ -139,10 +139,17 @@ bool HlslToSpirv::compile(
 
     glslang_program_SPIRV_generate(program, input.stage);
     glslang_shader_delete(shader);
-    spirv_output.clear();
+
     static_assert(sizeof(*glslang_program_SPIRV_get_ptr(program)) == sizeof(uint32_t) && alignof(decltype(*glslang_program_SPIRV_get_ptr(program))) == alignof(uint32_t), "glslang_program_SPIRV_get_ptr() should return uint32_t, but it doesn't");
     const uint32_t *spirv = (const uint32_t *)glslang_program_SPIRV_get_ptr(program);
-    spirv_output = std::vector<uint32_t>(spirv, spirv + glslang_program_SPIRV_get_size(program));
+    size_t size = glslang_program_SPIRV_get_size(program);
+
+    bool result = legalizer.transform(
+        spirv,
+        size,
+        spirv_output,
+        error_messages
+    );
     glslang_program_delete(program);
-    return true;
+    return result;
 }
