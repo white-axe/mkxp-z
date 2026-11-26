@@ -1337,7 +1337,6 @@ static bool rewrite_shader_uniforms(
 
                 case SpvOpName:
                 case SpvOpDecorate:
-                case SpvOpGroupDecorate:
                 case SpvOpDecorateId:
                 case SpvOpDecorateString:
                     // Remove debug information and annotations from the old uniform buffers
@@ -1346,6 +1345,18 @@ static bool rewrite_shader_uniforms(
                         push_words(words, words + num_words);
                         end_instruction();
                     }
+                    break;
+
+                case SpvOpGroupDecorate:
+                    // Remove annotations from the old uniform buffers
+                    begin_instruction(opcode);
+                    push_word(words[0]);
+                    for (uint16_t word_index = 1; word_index < num_words; ++word_index) {
+                        if (!uniform_trie.children.count(words[word_index])) {
+                            push_word(words[word_index]);
+                        }
+                    }
+                    end_instruction();
                     break;
 
                 case SpvOpAccessChain:
@@ -1697,7 +1708,6 @@ static bool rewrite_shader_textures(
 
                 case SpvOpName:
                 case SpvOpDecorate:
-                case SpvOpGroupDecorate:
                 case SpvOpDecorateId:
                 case SpvOpDecorateString:
                     // Remove debug information and annotations from the old textures
@@ -1706,6 +1716,18 @@ static bool rewrite_shader_textures(
                         push_words(words, words + num_words);
                         end_instruction();
                     }
+                    break;
+
+                case SpvOpGroupDecorate:
+                    // Remove annotations from the old textures
+                    begin_instruction(opcode);
+                    push_word(words[0]);
+                    for (uint16_t word_index = 1; word_index < num_words; ++word_index) {
+                        if (!texture_id_map_reverse.count(words[word_index])) {
+                            push_word(words[word_index]);
+                        }
+                    }
+                    end_instruction();
                     break;
 
                 default:
