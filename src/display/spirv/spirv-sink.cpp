@@ -536,14 +536,21 @@ static bool retarget_spirv_version(
     std::vector<uint32_t> &shader_output,
     std::string &error_message
 ) {
-    class GetPointersTransform : public SpirvTransform
+    class GetVariablesAndTypesTransform : public SpirvTransform
     {
     private:
-        std::vector<uint32_t> &non_io_global_pointer_ids;
-        std::unordered_set<uint32_t> &io_pointer_ids;
-
+        // SPIR-V IDs of global variables whose storage classes are not Input or Output.
+        std::vector<uint32_t> &non_io_global_variable_ids;
+        // SPIR-V IDs of global variables whose storage classes are Input or Output.
+        std::unordered_set<uint32_t> &io_variable_ids;
+        // SPIR-V IDs of pointer types of StorageBuffer storage class.
+        std::unordered_set<uint32_t> &storage_buffer_pointer_type_ids;
+        // SPIR-V IDs of types that are pointed to by at least one pointer of StorageBuffer storage class.
+        std::unordered_set<uint32_t> &storage_buffer_type_ids;
+        // SPIR-V IDs that are struct types.
+        std::unordered_set<uint32_t> &struct_type_ids;
     public:
-        GetPointersTransform(std::vector<uint32_t> &non_io_global_pointer_ids, std::unordered_set<uint32_t> &io_pointer_ids) : non_io_global_pointer_ids(non_io_global_pointer_ids), io_pointer_ids(io_pointer_ids) {
+        GetVariablesAndTypesTransform(std::vector<uint32_t> &non_io_global_variable_ids, std::unordered_set<uint32_t> &io_variable_ids, std::unordered_set<uint32_t> &storage_buffer_pointer_type_ids, std::unordered_set<uint32_t> &storage_buffer_type_ids, std::unordered_set<uint32_t> &struct_type_ids) : non_io_global_variable_ids(non_io_global_variable_ids), io_variable_ids(io_variable_ids), storage_buffer_pointer_type_ids(storage_buffer_pointer_type_ids), storage_buffer_type_ids(storage_buffer_type_ids), struct_type_ids(struct_type_ids) {
         }
 
     private:
@@ -555,10 +562,23 @@ static bool retarget_spirv_version(
             switch (opcode) {
                 case SpvOpVariable:
                     if (words[2] == SpvStorageClassInput || words[2] == SpvStorageClassOutput) {
-                        io_pointer_ids.insert(words[1]);
+                        io_variable_ids.insert(words[1]);
                     } else if (words[2] != SpvStorageClassFunction) {
-                        non_io_global_pointer_ids.push_back(words[1]);
+                        non_io_global_variable_ids.push_back(words[1]);
                     }
+                    break;
+
+                case SpvOpTypePointer:
+                    if (words[1] == SpvStorageClassStorageBuffer) {
+                        storage_buffer_pointer_type_ids.insert(words[0]);
+                    }
+                    break;
+
+                case SpvOpTypeStruct:
+                    if (words[1] == SpvStorageClassStorageBuffer) {
+                        storage_buffer_type_ids.insert(words[0]);
+                    }
+                    struct_type_ids.insert(words[0]);
                     break;
 
                 default:
@@ -569,13 +589,19 @@ static bool retarget_spirv_version(
         }
     };
 
-    std::vector<uint32_t> non_io_global_pointer_ids;
-    std::unordered_set<uint32_t> io_pointer_ids;
+    std::vector<uint32_t> non_io_global_variable_ids;
+    std::unordered_set<uint32_t> io_variable_ids;
+    std::unordered_set<uint32_t> storage_buffer_pointer_type_ids;
+    std::unordered_set<uint32_t> storage_buffer_type_ids;
+    std::unordered_set<uint32_t> struct_type_ids;
     {
         std::vector<uint32_t> dummy;
-        if (!GetPointersTransform {
-            non_io_global_pointer_ids,
-            io_pointer_ids,
+        if (!GetVariablesAndTypesTransform {
+            non_io_global_variable_ids,
+            io_variable_ids,
+            storage_buffer_pointer_type_ids,
+            storage_buffer_type_ids,
+            struct_type_ids,
         }.transform(
             shader,
             shader_size,
@@ -592,11 +618,19 @@ static bool retarget_spirv_version(
         uint32_t _target_version;
         bool allow_version_upgrade;
         bool allow_version_downgrade;
-        const std::vector<uint32_t> &non_io_global_pointer_ids;
-        const std::unordered_set<uint32_t> &io_pointer_ids;
+        const std::vector<uint32_t> &non_io_global_variable_ids;
+        const std::unordered_set<uint32_t> &io_variable_ids;
+        const std::unordered_set<uint32_t> &storage_buffer_pointer_type_ids;
+        const std::unordered_set<uint32_t> &storage_buffer_type_ids;
+        const std::unordered_set<uint32_t> &struct_type_ids;
+
+        // SPIR-V IDs with a Block decoration.
+        std::unordered_set<uint32_t> block_ids;
+        // SPIR-V IDs with a BufferBlock decoration.
+        std::unordered_set<uint32_t> buffer_block_ids;
 
     public:
-        RetargetSpirvVersionTransform(uint32_t target_version, bool allow_version_upgrade, bool allow_version_downgrade, const std::vector<uint32_t> &non_io_global_pointer_ids, const std::unordered_set<uint32_t> &io_pointer_ids) : _target_version(target_version), allow_version_upgrade(allow_version_upgrade), allow_version_downgrade(allow_version_downgrade), non_io_global_pointer_ids(non_io_global_pointer_ids), io_pointer_ids(io_pointer_ids) {
+        RetargetSpirvVersionTransform(uint32_t target_version, bool allow_version_upgrade, bool allow_version_downgrade, const std::vector<uint32_t> &non_io_global_variable_ids, const std::unordered_set<uint32_t> &io_variable_ids, const std::unordered_set<uint32_t> &storage_buffer_pointer_type_ids, const std::unordered_set<uint32_t> &storage_buffer_type_ids, const std::unordered_set<uint32_t> &struct_type_ids) : _target_version(target_version), allow_version_upgrade(allow_version_upgrade), allow_version_downgrade(allow_version_downgrade), non_io_global_variable_ids(non_io_global_variable_ids), io_variable_ids(io_variable_ids), storage_buffer_pointer_type_ids(storage_buffer_pointer_type_ids), storage_buffer_type_ids(storage_buffer_type_ids), struct_type_ids(struct_type_ids) {
         }
 
     private:
@@ -619,7 +653,68 @@ static bool retarget_spirv_version(
             return true;
         }
 
+        bool end_annotation_section(std::string &error_message) override {
+            if (source_version() <= 0x00010300 && target_version() > 0x00010300) {
+                // BufferBlock decoration with Uniform storage class in SPIR-V <= 1.3 corresponds to Block decoration with StorageBuffer storage class in SPIR-V > 1.3,
+                // so redeclare all BufferBlock decorations on struct types as Block decorations instead when transforming from SPIR-V <= 1.3 to SPIR-V > 1.3.
+                for (uint32_t id : buffer_block_ids) {
+                    if (!struct_type_ids.count(id)) { // We have to check if the old decoration was declared on a struct type since it may instead have been declared on a decoration group created via OpDecorationGroup
+                        continue;
+                    }
+                    begin_instruction(SpvOpDecorate);
+                    push_word(id);
+                    push_word(SpvDecorationBlock);
+                    end_instruction();
+                }
+            } else if (source_version() > 0x00010300 && target_version() <= 0x00010300) {
+                // BufferBlock decoration with Uniform storage class in SPIR-V <= 1.3 corresponds to Block decoration with StorageBuffer storage class in SPIR-V > 1.3,
+                // so redeclare all Block decorations on struct types with at least one pointer of StorageBuffer storage class as BufferBlock decorations instead when transforming from SPIR-V <= 1.3 to SPIR-V > 1.3.
+                // There is a possible corner case that can happen here, where a struct type in the source SPIR-V module has a pointer of Uniform storage class and another pointer of StorageBuffer storage class:
+                //     OpDecorate %1 Block
+                //     %1 = OpTypeStruct
+                //     %2 = OpTypePointer Uniform %1
+                //     %3 = OpTypePointer StorageBuffer %1
+                //     %4 = OpVariable %2 Uniform
+                //     %5 = OpVariable %3 StorageBuffer
+                // This transform will produce an invalid output SPIR-V module if the input SPIR-V module does this and reads from both variables %4 and %5.
+                // However, we can ignore this possibility because generators that generate SPIR-V from a source language will most likely not produce this type of SPIR-V code:
+                // if you have a uniform buffer and a storage buffer with the same members, the generator will produce two separate struct types with the same members instead of one struct type.
+                for (uint32_t id : block_ids) {
+                    if (!struct_type_ids.count(id)) { // We have to check if the old decoration was declared on a struct type since it may instead have been declared on a decoration group created via OpDecorationGroup
+                        continue;
+                    }
+                    begin_instruction(SpvOpDecorate);
+                    push_word(id);
+                    push_word(storage_buffer_type_ids.count(id) ? SpvDecorationBufferBlock : SpvDecorationBlock);
+                    end_instruction();
+                }
+            }
+
+            return true;
+        }
+
         bool receive_instruction(uint16_t opcode, const uint32_t *words, uint16_t num_words, std::string &error_message) override {
+            switch (opcode) {
+                case SpvOpDecorate:
+                    if (words[1] == SpvDecorationBlock) {
+                        block_ids.insert(words[0]);
+                    } else if (words[1] == SpvDecorationBufferBlock) {
+                        buffer_block_ids.insert(words[0]);
+                    }
+                    break;
+
+                case SpvOpGroupDecorate:
+                    if (block_ids.count(words[0])) {
+                        block_ids.insert(words + 1, words + num_words);
+                    } else if (buffer_block_ids.count(words[0])) {
+                        buffer_block_ids.insert(words + 1, words + num_words);
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+
             switch (opcode) {
                 case SpvOpEntryPoint:
                     {
@@ -634,7 +729,7 @@ static bool retarget_spirv_version(
                             push_words(words, words + word_index);
                             for (; word_index < num_words; ++word_index) {
                                 uint32_t id = words[word_index];
-                                if (io_pointer_ids.count(id)) {
+                                if (io_variable_ids.count(id)) {
                                     push_word(id);
                                 }
                             }
@@ -655,7 +750,7 @@ static bool retarget_spirv_version(
                                     interface.insert(id);
                                 }
                             }
-                            push_words(non_io_global_pointer_ids.begin(), non_io_global_pointer_ids.end());
+                            push_words(non_io_global_variable_ids.begin(), non_io_global_variable_ids.end());
                             end_instruction();
                         } else {
                             begin_instruction(opcode);
@@ -668,6 +763,69 @@ static bool retarget_spirv_version(
                 case SpvOpModuleProcessed:
                     // This instruction is only supported starting from SPIR-V 1.1
                     if (target_version() >= 0x00010100) {
+                        begin_instruction(opcode);
+                        push_words(words, words + num_words);
+                        end_instruction();
+                    }
+                    break;
+
+                case SpvOpDecorate:
+                    // BufferBlock decoration with Uniform storage class in SPIR-V <= 1.3 corresponds to Block decoration with StorageBuffer storage class in SPIR-V > 1.3,
+                    // so remove all BufferBlock decorations when transforming from SPIR-V <= 1.3 to SPIR-V > 1.3 and
+                    // remove all Block decorations when transforming from SPIR-V > 1.3 to SPIR-V <= 1.3,
+                    // as we're going to redeclare them later
+                    if (!(
+                        (source_version() <= 0x00010300 && target_version() > 0x00010300 && words[1] == SpvDecorationBufferBlock)
+                            || (source_version() > 0x00010300 && target_version() <= 0x00010300 && words[1] == SpvDecorationBlock)
+                    )) {
+                        begin_instruction(opcode);
+                        push_words(words, words + num_words);
+                        end_instruction();
+                    }
+                    break;
+
+                case SpvOpTypePointer:
+                    if (source_version() <= 0x00010300 && target_version() > 0x00010300 && words[1] == SpvStorageClassUniform && storage_buffer_pointer_type_ids.count(words[0])) {
+                        // BufferBlock decoration with Uniform storage class in SPIR-V <= 1.3 corresponds to Block decoration with StorageBuffer storage class in SPIR-V > 1.3,
+                        // so change all pointer types of Uniform storage class with a BufferBlock decoration to have StorageBuffer storage class instead when transforming from SPIR-V <= 1.3 to SPIR-V > 1.3
+                        begin_instruction(opcode);
+                        push_word(words[0]);
+                        push_word(SpvStorageClassStorageBuffer);
+                        push_word(words[2]);
+                        end_instruction();
+                    } else if (source_version() > 0x00010300 && target_version() <= 0x00010300 && words[1] == SpvStorageClassStorageBuffer) {
+                        // BufferBlock decoration with Uniform storage class in SPIR-V <= 1.3 corresponds to Block decoration with StorageBuffer storage class in SPIR-V > 1.3,
+                        // so change all pointer types of StorageBuffer storage class to have Uniform storage class instead when transforming from SPIR-V > 1.3 to SPIR-V <= 1.3
+                        begin_instruction(opcode);
+                        push_word(words[0]);
+                        push_word(SpvStorageClassUniform);
+                        push_word(words[2]);
+                        end_instruction();
+                    } else {
+                        begin_instruction(opcode);
+                        push_words(words, words + num_words);
+                        end_instruction();
+                    }
+                    break;
+
+                case SpvOpVariable:
+                    if (source_version() <= 0x00010300 && target_version() > 0x00010300 && words[2] == SpvStorageClassUniform && storage_buffer_pointer_type_ids.count(words[0])) {
+                        // BufferBlock decoration with Uniform storage class in SPIR-V <= 1.3 corresponds to Block decoration with StorageBuffer storage class in SPIR-V > 1.3,
+                        // so change all variables of Uniform storage class with a BufferBlock decoration to have StorageBuffer storage class instead when transforming from SPIR-V <= 1.3 to SPIR-V > 1.3
+                        begin_instruction(opcode);
+                        push_words(words, words + 2);
+                        push_word(SpvStorageClassStorageBuffer);
+                        push_words(words + 3, words + num_words);
+                        end_instruction();
+                    } else if (source_version() > 0x00010300 && target_version() <= 0x00010300 && words[2] == SpvStorageClassStorageBuffer) {
+                        // BufferBlock decoration with Uniform storage class in SPIR-V <= 1.3 corresponds to Block decoration with StorageBuffer storage class in SPIR-V > 1.3,
+                        // so change all variables of StorageBuffer storage class to have Uniform storage class instead when transforming from SPIR-V > 1.3 to SPIR-V <= 1.3
+                        begin_instruction(opcode);
+                        push_words(words, words + 2);
+                        push_word(SpvStorageClassUniform);
+                        push_words(words + 3, words + num_words);
+                        end_instruction();
+                    } else {
                         begin_instruction(opcode);
                         push_words(words, words + num_words);
                         end_instruction();
@@ -711,8 +869,11 @@ static bool retarget_spirv_version(
         target_version,
         allow_version_upgrade,
         allow_version_downgrade,
-        non_io_global_pointer_ids,
-        io_pointer_ids,
+        non_io_global_variable_ids,
+        io_variable_ids,
+        storage_buffer_type_ids,
+        storage_buffer_pointer_type_ids,
+        struct_type_ids,
     }.transform(
         shader,
         shader_size,
