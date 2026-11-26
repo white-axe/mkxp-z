@@ -833,7 +833,7 @@ static bool retarget_spirv_version(
                     break;
 
                 case SpvOpLessOrGreater:
-                    // This instruction is replaced with SpvOpFOrdNotEqual after SPIR-V 1.5
+                    // This instruction is replaced with OpFOrdNotEqual after SPIR-V 1.5
                     if (target_version() > 0x00010500) {
                         begin_instruction(SpvOpFOrdNotEqual);
                     } else {
@@ -844,7 +844,7 @@ static bool retarget_spirv_version(
                     break;
 
                 case SpvOpAtomicCompareExchangeWeak:
-                    // This instruction is replaced with SpvOpAtomicCompareExchange after SPIR-V 1.3
+                    // This instruction is replaced with OpAtomicCompareExchange after SPIR-V 1.3
                     if (target_version() > 0x00010300) {
                         begin_instruction(SpvOpAtomicCompareExchange);
                     } else {
