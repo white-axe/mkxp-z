@@ -23,61 +23,23 @@
 #include <cassert>
 #include <cstdint>
 #include <cstring>
-#include <iomanip>
-#include <map>
 #include <memory>
 #include <random>
-#include <sstream>
-#include <tuple>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
 #include "exception.h"
 #include "gl-fun.h"
 #include "spirv-sink.h"
-#include "spirv-transform.h"
+#include "spirv/merge-uniforms.h"
+#include "spirv/remap-textures.h"
+#include "spirv/retarget-spirv-version.h"
 
 #include <spirv/unified1/spirv.h>
 #include <spirv_cross_c.h>
 
 namespace {
-    struct Uniform
-    {
-        // The type of this uniform.
-        SpirvType type;
-        // If this uniform is a matrix or array of matrices,
-        // this is true if the uniform is declared as row-major in the SPIR-V module, or false otherwise.
-        // Might be different from whether or not the matrix is actually row-major in memory, since the graphics API might not support one of these two matrix memory layouts.
-        bool is_logically_row_major;
-        // If this uniform is a matrix or array of matrices,
-        // this is the matrix stride (i.e. the number of bytes between adjacent rows or columns, depending on if this matrix is row-major or column-major) of this uniform as declared in the SPIR-V module.
-        // Might be different from the physical matrix stride of this uniform in memory, since the graphics API might have alignment rules that need to be met.
-        uint32_t logical_matrix_stride;
-        // If this uniform is an array,
-        // this is the array stride (i.e. the number of bytes between adjacent elements of the array) of this uniform as declared in the SPIR-V module.
-        // If this uniform is a multidimensional array, this is the most significant array stride.
-        // Might be different from the physical array stride of this uniform in memory, since the graphics API might have alignment rules that need to be met.
-        uint32_t logical_array_stride;
-
-        bool operator==(const Uniform &other) const noexcept {
-            return (
-                type.scalar_type == other.type.scalar_type
-                    && type.vector_size == other.type.vector_size
-                    && type.columns == other.type.columns
-                    && type.array_dimensions == other.type.array_dimensions
-                    && is_logically_row_major == other.is_logically_row_major
-                    && logical_matrix_stride == other.logical_matrix_stride
-                    && logical_array_stride == other.logical_array_stride
-            );
-        }
-
-        bool operator!=(const Uniform &other) const noexcept {
-            return !(*this == other);
-        }
-    };
-
     struct UniformPhysicalLayout
     {
         // Alignment of the in-memory representation of this uniform in bytes.
@@ -95,15 +57,6 @@ namespace {
         // these are the array strides of this uniform's in-memory representation, from least significant to most significant.
         std::vector<uint32_t> physical_array_strides;
     };
-
-    struct UniformTrieNode
-    {
-        // Maps an OpAccessChain index to the next node.
-        std::unordered_map<uint32_t, std::unique_ptr<UniformTrieNode>> children;
-        // If `children` is empty, this is the name of the uniform that this node refers to.
-        // Otherwise, this is empty.
-        std::string uniform_name;
-    };
 }
 
 static bool supports_row_major_matrices(SpirvSink::Backend backend) {
@@ -118,7 +71,7 @@ static bool supports_column_major_matrices(SpirvSink::Backend backend) {
     }
 }
 
-static UniformPhysicalLayout get_uniform_physical_layout(SpirvSink::Backend backend, const Uniform &uniform) noexcept {
+static UniformPhysicalLayout get_uniform_physical_layout(SpirvSink::Backend backend, const mkxp_spirv_utils::merge_uniforms_detail::Uniform &uniform) noexcept {
     if (uniform.type.array_dimensions.empty()) {
         if (uniform.type.columns == 1) {
             if (uniform.type.vector_size == 1) { // Scalar
@@ -141,7 +94,7 @@ static UniformPhysicalLayout get_uniform_physical_layout(SpirvSink::Backend back
                         return {8, 8};
                 }
             } else { // Vector
-                Uniform scalar = uniform;
+                mkxp_spirv_utils::merge_uniforms_detail::Uniform scalar = uniform;
                 scalar.type.vector_size = 1;
                 UniformPhysicalLayout scalar_layout = get_uniform_physical_layout(backend, scalar);
                 scalar_layout.physical_alignment *= uniform.type.vector_size == 3 ? 4 : uniform.type.vector_size; // A 3-component vector has its alignment rounded up to 4 components
@@ -149,7 +102,7 @@ static UniformPhysicalLayout get_uniform_physical_layout(SpirvSink::Backend back
                 return scalar_layout;
             }
         } else { // Matrix
-            Uniform vector_array = uniform;
+            mkxp_spirv_utils::merge_uniforms_detail::Uniform vector_array = uniform;
             vector_array.type.columns = 1;
             bool is_physically_row_major = vector_array.is_logically_row_major ? supports_row_major_matrices(backend) : !supports_column_major_matrices(backend);
             if (is_physically_row_major) {
@@ -170,7 +123,7 @@ static UniformPhysicalLayout get_uniform_physical_layout(SpirvSink::Backend back
         for (uint32_t dimension : uniform.type.array_dimensions) {
             array_size *= dimension;
         }
-        Uniform vector = uniform;
+        mkxp_spirv_utils::merge_uniforms_detail::Uniform vector = uniform;
         vector.type.array_dimensions = {};
         UniformPhysicalLayout vector_layout = get_uniform_physical_layout(backend, vector);
         // Round the alignment and size of each element of the array up to the nearest multiple of 16
@@ -189,7 +142,7 @@ static UniformPhysicalLayout get_uniform_physical_layout(SpirvSink::Backend back
         for (uint32_t dimension : uniform.type.array_dimensions) {
             array_size *= dimension;
         }
-        Uniform vector_array = uniform;
+        mkxp_spirv_utils::merge_uniforms_detail::Uniform vector_array = uniform;
         vector_array.type.columns = 1;
         bool is_physically_row_major = vector_array.is_logically_row_major ? supports_row_major_matrices(backend) : !supports_column_major_matrices(backend);
         if (is_physically_row_major) {
@@ -310,9 +263,9 @@ static bool get_uniforms(
     spvc_context context,
     const uint32_t *shader,
     size_t shader_size,
-    std::unordered_map<std::string, Uniform> &uniforms_output,
+    std::unordered_map<std::string, mkxp_spirv_utils::merge_uniforms_detail::Uniform> &uniforms_output,
     std::unordered_map<std::string, uint32_t> &uniform_types_output,
-    UniformTrieNode &uniform_trie_output,
+    mkxp_spirv_utils::merge_uniforms_detail::UniformTrieNode &uniform_trie_output,
     std::string &error_message
 ) {
     spvc_parsed_ir ir;
@@ -330,7 +283,7 @@ static bool get_uniforms(
 
     struct Node
     {
-        UniformTrieNode &trie_node;
+        mkxp_spirv_utils::merge_uniforms_detail::UniformTrieNode &trie_node;
         const char *name;
         spvc_type_id type_id;
         uint32_t member_size;
@@ -346,7 +299,7 @@ static bool get_uniforms(
 
         uniform_trie_output.uniform_name.clear();
         stack.emplace_back(Node {
-            *uniform_trie_output.children.emplace(uniform_buffer_list[uniform_buffer_index].id, std::make_unique<UniformTrieNode>()).first->second,
+            *uniform_trie_output.children.emplace(uniform_buffer_list[uniform_buffer_index].id, std::make_unique<mkxp_spirv_utils::merge_uniforms_detail::UniformTrieNode>()).first->second,
             uniform_buffer_name,
             uniform_buffer_list[uniform_buffer_index].base_type_id,
             false,
@@ -382,7 +335,7 @@ static bool get_uniforms(
                         return false;
                     }
                     stack.emplace_back(Node {
-                        *node.trie_node.children.emplace(member_index, std::make_unique<UniformTrieNode>()).first->second,
+                        *node.trie_node.children.emplace(member_index, std::make_unique<mkxp_spirv_utils::merge_uniforms_detail::UniformTrieNode>()).first->second,
                         spvc_compiler_get_member_name(compiler, node.type_id, member_index),
                         spvc_type_get_member_type(type, member_index),
                         (uint32_t)size,
@@ -416,7 +369,7 @@ static bool get_uniforms(
                 for (uint32_t array_dimension_index = 0; array_dimension_index < uniform_type.array_dimensions.size(); ++array_dimension_index) {
                     uniform_type.array_dimensions[array_dimension_index] = spvc_type_get_array_dimension(type, array_dimension_index);
                 }
-                Uniform uniform = {std::move(uniform_type)};
+                mkxp_spirv_utils::merge_uniforms_detail::Uniform uniform = {std::move(uniform_type)};
                 uniform.is_logically_row_major = node.member_is_row_major;
                 uniform.logical_matrix_stride = node.member_matrix_stride;
                 uniform.logical_array_stride = node.member_array_stride;
@@ -506,1252 +459,30 @@ static bool get_textures(
     return true;
 }
 
-static uint32_t get_scalar_type_logical_size(SpirvType::ScalarType scalar_type) noexcept {
-    switch (scalar_type) {
-        case SpirvType::INT8:
-        case SpirvType::UINT8:
-            return 1;
-        case SpirvType::INT16:
-        case SpirvType::UINT16:
-        case SpirvType::FP16:
-            return 2;
-        case SpirvType::UNKNOWN:
-        case SpirvType::INT32:
-        case SpirvType::UINT32:
-        case SpirvType::FP32:
-            return 4;
-        case SpirvType::INT64:
-        case SpirvType::UINT64:
-        case SpirvType::FP64:
-            return 8;
-    }
-}
-
-static bool retarget_spirv_version(
-    const uint32_t *shader,
-    size_t shader_size,
-    uint32_t target_version,
-    bool allow_version_upgrade,
-    bool allow_version_downgrade,
-    std::vector<uint32_t> &shader_output,
-    std::string &error_message
-) {
-    class GetVariablesAndTypesTransform : public SpirvTransform
-    {
-    private:
-        // SPIR-V IDs of global variables whose storage classes are not Input or Output.
-        std::vector<uint32_t> &non_io_global_variable_ids;
-        // SPIR-V IDs of global variables whose storage classes are Input or Output.
-        std::unordered_set<uint32_t> &io_variable_ids;
-        // SPIR-V IDs of pointer types of StorageBuffer storage class.
-        std::unordered_set<uint32_t> &storage_buffer_pointer_type_ids;
-        // SPIR-V IDs of types that are pointed to by at least one pointer of StorageBuffer storage class.
-        std::unordered_set<uint32_t> &storage_buffer_type_ids;
-        // SPIR-V IDs that are struct types.
-        std::unordered_set<uint32_t> &struct_type_ids;
-    public:
-        GetVariablesAndTypesTransform(std::vector<uint32_t> &non_io_global_variable_ids, std::unordered_set<uint32_t> &io_variable_ids, std::unordered_set<uint32_t> &storage_buffer_pointer_type_ids, std::unordered_set<uint32_t> &storage_buffer_type_ids, std::unordered_set<uint32_t> &struct_type_ids) : non_io_global_variable_ids(non_io_global_variable_ids), io_variable_ids(io_variable_ids), storage_buffer_pointer_type_ids(storage_buffer_pointer_type_ids), storage_buffer_type_ids(storage_buffer_type_ids), struct_type_ids(struct_type_ids) {
-        }
-
-    private:
-        uint32_t maximum_supported_source_version() const noexcept override {
-            return 0x00010600;
-        }
-
-        bool receive_instruction(uint16_t opcode, const uint32_t *words, uint16_t num_words, std::string &error_message) override {
-            switch (opcode) {
-                case SpvOpVariable:
-                    if (words[2] == SpvStorageClassInput || words[2] == SpvStorageClassOutput) {
-                        io_variable_ids.insert(words[1]);
-                    } else if (words[2] != SpvStorageClassFunction) {
-                        non_io_global_variable_ids.push_back(words[1]);
-                    }
-                    break;
-
-                case SpvOpTypePointer:
-                    if (words[1] == SpvStorageClassStorageBuffer) {
-                        storage_buffer_pointer_type_ids.insert(words[0]);
-                    }
-                    break;
-
-                case SpvOpTypeStruct:
-                    if (words[1] == SpvStorageClassStorageBuffer) {
-                        storage_buffer_type_ids.insert(words[0]);
-                    }
-                    struct_type_ids.insert(words[0]);
-                    break;
-
-                default:
-                    break;
-            }
-
-            return true;
-        }
-    };
-
-    std::vector<uint32_t> non_io_global_variable_ids;
-    std::unordered_set<uint32_t> io_variable_ids;
-    std::unordered_set<uint32_t> storage_buffer_pointer_type_ids;
-    std::unordered_set<uint32_t> storage_buffer_type_ids;
-    std::unordered_set<uint32_t> struct_type_ids;
-    {
-        std::vector<uint32_t> dummy;
-        if (!GetVariablesAndTypesTransform {
-            non_io_global_variable_ids,
-            io_variable_ids,
-            storage_buffer_pointer_type_ids,
-            storage_buffer_type_ids,
-            struct_type_ids,
-        }.transform(
-            shader,
-            shader_size,
-            dummy,
-            error_message
-        )) {
-            return false;
-        }
-    }
-
-    class RetargetSpirvVersionTransform : public SpirvTransform
-    {
-    private:
-        uint32_t _target_version;
-        bool allow_version_upgrade;
-        bool allow_version_downgrade;
-        const std::vector<uint32_t> &non_io_global_variable_ids;
-        const std::unordered_set<uint32_t> &io_variable_ids;
-        const std::unordered_set<uint32_t> &storage_buffer_pointer_type_ids;
-        const std::unordered_set<uint32_t> &storage_buffer_type_ids;
-        const std::unordered_set<uint32_t> &struct_type_ids;
-
-        // SPIR-V IDs with a Block decoration.
-        std::unordered_set<uint32_t> block_ids;
-        // SPIR-V IDs with a BufferBlock decoration.
-        std::unordered_set<uint32_t> buffer_block_ids;
-
-    public:
-        RetargetSpirvVersionTransform(uint32_t target_version, bool allow_version_upgrade, bool allow_version_downgrade, const std::vector<uint32_t> &non_io_global_variable_ids, const std::unordered_set<uint32_t> &io_variable_ids, const std::unordered_set<uint32_t> &storage_buffer_pointer_type_ids, const std::unordered_set<uint32_t> &storage_buffer_type_ids, const std::unordered_set<uint32_t> &struct_type_ids) : _target_version(target_version), allow_version_upgrade(allow_version_upgrade), allow_version_downgrade(allow_version_downgrade), non_io_global_variable_ids(non_io_global_variable_ids), io_variable_ids(io_variable_ids), storage_buffer_pointer_type_ids(storage_buffer_pointer_type_ids), storage_buffer_type_ids(storage_buffer_type_ids), struct_type_ids(struct_type_ids) {
-        }
-
-    private:
-        uint32_t maximum_supported_source_version() const noexcept override {
-            return 0x00010600;
-        }
-
-        uint32_t override_target_version() const noexcept override {
-            uint32_t _source_version = source_version();
-            return (allow_version_upgrade && _target_version > _source_version) || (allow_version_downgrade && _target_version < _source_version) ? _target_version : _source_version;
-        }
-
-        bool end_process_debug_section(std::string &error_message) override {
-            begin_instruction(SpvOpModuleProcessed);
-            std::stringstream str;
-            str << "SpirvSink RetargetSpirvVersionTransform (source version: 0x" << std::hex << std::setw(8) << std::setfill('0') << source_version() << "; target version: 0x" << std::hex << std::setw(8) << std::setfill('0') << target_version() << ")";
-            push_string_literal(str.str().c_str());
-            end_instruction();
-
-            return true;
-        }
-
-        bool end_annotation_section(std::string &error_message) override {
-            if (source_version() <= 0x00010300 && target_version() > 0x00010300) {
-                // BufferBlock decoration with Uniform storage class in SPIR-V <= 1.3 corresponds to Block decoration with StorageBuffer storage class in SPIR-V > 1.3,
-                // so redeclare all BufferBlock decorations on struct types as Block decorations instead when transforming from SPIR-V <= 1.3 to SPIR-V > 1.3.
-                for (uint32_t id : buffer_block_ids) {
-                    if (!struct_type_ids.count(id)) { // We have to check if the old decoration was declared on a struct type since it may instead have been declared on a decoration group created via OpDecorationGroup
-                        continue;
-                    }
-                    begin_instruction(SpvOpDecorate);
-                    push_word(id);
-                    push_word(SpvDecorationBlock);
-                    end_instruction();
-                }
-            } else if (source_version() > 0x00010300 && target_version() <= 0x00010300) {
-                // BufferBlock decoration with Uniform storage class in SPIR-V <= 1.3 corresponds to Block decoration with StorageBuffer storage class in SPIR-V > 1.3,
-                // so redeclare all Block decorations on struct types with at least one pointer of StorageBuffer storage class as BufferBlock decorations instead when transforming from SPIR-V <= 1.3 to SPIR-V > 1.3.
-                // There is a possible corner case that can happen here, where a struct type in the source SPIR-V module has a pointer of Uniform storage class and another pointer of StorageBuffer storage class:
-                //     OpDecorate %1 Block
-                //     %1 = OpTypeStruct
-                //     %2 = OpTypePointer Uniform %1
-                //     %3 = OpTypePointer StorageBuffer %1
-                //     %4 = OpVariable %2 Uniform
-                //     %5 = OpVariable %3 StorageBuffer
-                // This transform will produce an invalid output SPIR-V module if the input SPIR-V module does this and reads from both variables %4 and %5.
-                // However, we can ignore this possibility because generators that generate SPIR-V from a source language will most likely not produce this type of SPIR-V code:
-                // if you have a uniform buffer and a storage buffer with the same members, the generator will produce two separate struct types with the same members instead of one struct type.
-                for (uint32_t id : block_ids) {
-                    if (!struct_type_ids.count(id)) { // We have to check if the old decoration was declared on a struct type since it may instead have been declared on a decoration group created via OpDecorationGroup
-                        continue;
-                    }
-                    begin_instruction(SpvOpDecorate);
-                    push_word(id);
-                    push_word(storage_buffer_type_ids.count(id) ? SpvDecorationBufferBlock : SpvDecorationBlock);
-                    end_instruction();
-                }
-            }
-
-            return true;
-        }
-
-        bool receive_instruction(uint16_t opcode, const uint32_t *words, uint16_t num_words, std::string &error_message) override {
-            switch (opcode) {
-                case SpvOpDecorate:
-                    if (words[1] == SpvDecorationBlock) {
-                        block_ids.insert(words[0]);
-                    } else if (words[1] == SpvDecorationBufferBlock) {
-                        buffer_block_ids.insert(words[0]);
-                    }
-                    break;
-
-                case SpvOpGroupDecorate:
-                    if (block_ids.count(words[0])) {
-                        block_ids.insert(words + 1, words + num_words);
-                    } else if (buffer_block_ids.count(words[0])) {
-                        buffer_block_ids.insert(words + 1, words + num_words);
-                    }
-                    break;
-
-                default:
-                    break;
-            }
-
-            switch (opcode) {
-                case SpvOpEntryPoint:
-                    {
-                        if (source_version() >= 0x00010400 && target_version() < 0x00010400) {
-                            // Remove variables that are not of input or output storage class from the OpEntryPoint interface if we're transforming from SPIR-V >= 1.4 to SPIR-V < 1.4
-                            begin_instruction(opcode);
-                            uint16_t word_index = 2;
-                            while ((words[word_index] & 0xff000000) != 0) {
-                                ++word_index;
-                            }
-                            ++word_index;
-                            push_words(words, words + word_index);
-                            for (; word_index < num_words; ++word_index) {
-                                uint32_t id = words[word_index];
-                                if (io_variable_ids.count(id)) {
-                                    push_word(id);
-                                }
-                            }
-                            end_instruction();
-                        } else if (source_version() < 0x00010400 && target_version() >= 0x00010400) {
-                            // Insert every global variable into the OpEntryPoint interface if we're transforming from SPIR-V < 1.4 to SPIR-V >= 1.4
-                            begin_instruction(opcode);
-                            uint16_t word_index = 2;
-                            while ((words[word_index] & 0xff000000) != 0) {
-                                ++word_index;
-                            }
-                            ++word_index;
-                            push_words(words, words + word_index);
-                            for (std::unordered_set<uint32_t> interface; word_index < num_words; ++word_index) {
-                                uint32_t id = words[word_index];
-                                if (!interface.count(id)) { // Remove duplicates, as these are not allowed starting from SPIR-V 1.4
-                                    push_word(id);
-                                    interface.insert(id);
-                                }
-                            }
-                            push_words(non_io_global_variable_ids.begin(), non_io_global_variable_ids.end());
-                            end_instruction();
-                        } else {
-                            begin_instruction(opcode);
-                            push_words(words, words + num_words);
-                            end_instruction();
-                        }
-                    }
-                    break;
-
-                case SpvOpModuleProcessed:
-                    // This instruction is only supported starting from SPIR-V 1.1
-                    if (target_version() >= 0x00010100) {
-                        begin_instruction(opcode);
-                        push_words(words, words + num_words);
-                        end_instruction();
-                    }
-                    break;
-
-                case SpvOpDecorate:
-                    // BufferBlock decoration with Uniform storage class in SPIR-V <= 1.3 corresponds to Block decoration with StorageBuffer storage class in SPIR-V > 1.3,
-                    // so remove all BufferBlock decorations when transforming from SPIR-V <= 1.3 to SPIR-V > 1.3 and
-                    // remove all Block decorations when transforming from SPIR-V > 1.3 to SPIR-V <= 1.3,
-                    // as we're going to redeclare them later
-                    if (!(
-                        (source_version() <= 0x00010300 && target_version() > 0x00010300 && words[1] == SpvDecorationBufferBlock)
-                            || (source_version() > 0x00010300 && target_version() <= 0x00010300 && words[1] == SpvDecorationBlock)
-                    )) {
-                        begin_instruction(opcode);
-                        push_words(words, words + num_words);
-                        end_instruction();
-                    }
-                    break;
-
-                case SpvOpTypePointer:
-                    if (source_version() <= 0x00010300 && target_version() > 0x00010300 && words[1] == SpvStorageClassUniform && storage_buffer_pointer_type_ids.count(words[0])) {
-                        // BufferBlock decoration with Uniform storage class in SPIR-V <= 1.3 corresponds to Block decoration with StorageBuffer storage class in SPIR-V > 1.3,
-                        // so change all pointer types of Uniform storage class with a BufferBlock decoration to have StorageBuffer storage class instead when transforming from SPIR-V <= 1.3 to SPIR-V > 1.3
-                        begin_instruction(opcode);
-                        push_word(words[0]);
-                        push_word(SpvStorageClassStorageBuffer);
-                        push_word(words[2]);
-                        end_instruction();
-                    } else if (source_version() > 0x00010300 && target_version() <= 0x00010300 && words[1] == SpvStorageClassStorageBuffer) {
-                        // BufferBlock decoration with Uniform storage class in SPIR-V <= 1.3 corresponds to Block decoration with StorageBuffer storage class in SPIR-V > 1.3,
-                        // so change all pointer types of StorageBuffer storage class to have Uniform storage class instead when transforming from SPIR-V > 1.3 to SPIR-V <= 1.3
-                        begin_instruction(opcode);
-                        push_word(words[0]);
-                        push_word(SpvStorageClassUniform);
-                        push_word(words[2]);
-                        end_instruction();
-                    } else {
-                        begin_instruction(opcode);
-                        push_words(words, words + num_words);
-                        end_instruction();
-                    }
-                    break;
-
-                case SpvOpVariable:
-                    if (source_version() <= 0x00010300 && target_version() > 0x00010300 && words[2] == SpvStorageClassUniform && storage_buffer_pointer_type_ids.count(words[0])) {
-                        // BufferBlock decoration with Uniform storage class in SPIR-V <= 1.3 corresponds to Block decoration with StorageBuffer storage class in SPIR-V > 1.3,
-                        // so change all variables of Uniform storage class with a BufferBlock decoration to have StorageBuffer storage class instead when transforming from SPIR-V <= 1.3 to SPIR-V > 1.3
-                        begin_instruction(opcode);
-                        push_words(words, words + 2);
-                        push_word(SpvStorageClassStorageBuffer);
-                        push_words(words + 3, words + num_words);
-                        end_instruction();
-                    } else if (source_version() > 0x00010300 && target_version() <= 0x00010300 && words[2] == SpvStorageClassStorageBuffer) {
-                        // BufferBlock decoration with Uniform storage class in SPIR-V <= 1.3 corresponds to Block decoration with StorageBuffer storage class in SPIR-V > 1.3,
-                        // so change all variables of StorageBuffer storage class to have Uniform storage class instead when transforming from SPIR-V > 1.3 to SPIR-V <= 1.3
-                        begin_instruction(opcode);
-                        push_words(words, words + 2);
-                        push_word(SpvStorageClassUniform);
-                        push_words(words + 3, words + num_words);
-                        end_instruction();
-                    } else {
-                        begin_instruction(opcode);
-                        push_words(words, words + num_words);
-                        end_instruction();
-                    }
-                    break;
-
-                case SpvOpLessOrGreater:
-                    // This instruction is replaced with OpFOrdNotEqual after SPIR-V 1.5
-                    if (target_version() > 0x00010500) {
-                        begin_instruction(SpvOpFOrdNotEqual);
-                    } else {
-                        begin_instruction(opcode);
-                    }
-                    push_words(words, words + num_words);
-                    end_instruction();
-                    break;
-
-                case SpvOpAtomicCompareExchangeWeak:
-                    // This instruction is replaced with OpAtomicCompareExchange after SPIR-V 1.3
-                    if (target_version() > 0x00010300) {
-                        begin_instruction(SpvOpAtomicCompareExchange);
-                    } else {
-                        begin_instruction(opcode);
-                    }
-                    push_words(words, words + num_words);
-                    end_instruction();
-                    break;
-
-                default:
-                    begin_instruction(opcode);
-                    push_words(words, words + num_words);
-                    end_instruction();
-                    break;
-            }
-
-            return true;
-        }
-    };
-
-    return RetargetSpirvVersionTransform {
-        target_version,
-        allow_version_upgrade,
-        allow_version_downgrade,
-        non_io_global_variable_ids,
-        io_variable_ids,
-        storage_buffer_type_ids,
-        storage_buffer_pointer_type_ids,
-        struct_type_ids,
-    }.transform(
-        shader,
-        shader_size,
-        shader_output,
-        error_message
-    );
-}
-
-static bool rewrite_shader_uniforms(
-    const uint32_t *shader,
-    size_t shader_size,
-    const std::vector<std::pair<std::string, Uniform>> &uniforms,
-    const std::unordered_map<std::string, uint32_t> &uniform_type_map,
-    const UniformTrieNode &uniform_trie,
-    std::vector<uint32_t> &shader_output,
-    std::string &error_message
-) {
-    std::unordered_map<std::string, uint32_t> uniform_index_map;
-    for (uint32_t uniform_index = 0; uniform_index < uniforms.size(); ++uniform_index) {
-        uniform_index_map.emplace(uniforms[uniform_index].first, uniform_index);
-    }
-
-    class MergeUniformsTransform : public SpirvTransform
-    {
-    private:
-        const std::vector<std::pair<std::string, Uniform>> &uniforms;
-        const std::unordered_map<std::string, uint32_t> &uniform_type_map;
-        const std::unordered_map<std::string, uint32_t> &uniform_index_map;
-        const UniformTrieNode &uniform_trie;
-
-        // SPIR-V ID for our merged uniform buffer.
-        uint32_t merged_uniform_buffer_id;
-        // SPIR-V ID for the struct type for our merged uniform buffer.
-        uint32_t merged_uniform_buffer_type_id;
-        // SPIR-V ID for a pointer type that points to the struct type for our merged uniform buffer.
-        uint32_t merged_uniform_buffer_pointer_type_id;
-        // For each uniform in our merged uniform buffer, this contains a SPIR-V ID for a constant used to access the corresponding uniform.
-        std::vector<uint32_t> merged_uniform_buffer_index_ids;
-        // For each uniform that is an array, this contains the IDs for the array types from least significant to most significant.
-        std::vector<std::vector<uint32_t>> uniform_array_type_ids;
-        // A map from the SPIR-V IDs of the integer constants defined in the SPIR-V module to the values of those constants.
-        std::unordered_map<uint32_t, uint32_t> constants;
-        // A map from the SPIR-V IDs for pointer values that refer to some section of a uniform buffer to the uniform trie node for that pointer value.
-        std::unordered_map<uint32_t, const UniformTrieNode &> pointers;
-        // A map from SPIR-V types to their SPIR-V IDs. The format of the key is as follows:
-        //   * First element: If the type is a matrix, the number of columns. Otherwise, 1.
-        //   * Second element: If the type is a matrix, the number of rows. Otherwise, if the type is a vector, the number of components. Otherwise, 1.
-        //   * Third element: 0 if the scalar type is an unsigned integer, 1 if the scalar type is a signed integer, 2 if the scalar type is a floating-point value.
-        //   * Fourth element: The width of the scalar type in bits.
-        std::map<std::tuple<uint8_t, uint8_t, uint8_t, uint32_t>, uint32_t> primitive_types;
-        // Reversed version of `primitive_types`.
-        std::unordered_map<uint32_t, std::tuple<uint8_t, uint8_t, uint8_t, uint32_t>> primitive_types_reverse;
-
-    public:
-        MergeUniformsTransform(const std::vector<std::pair<std::string, Uniform>> &uniforms, const std::unordered_map<std::string, uint32_t> &uniform_type_map, const std::unordered_map<std::string, uint32_t> &uniform_index_map, const UniformTrieNode &uniform_trie) : uniforms(uniforms), uniform_type_map(uniform_type_map), uniform_index_map(uniform_index_map), uniform_trie(uniform_trie) {
-        }
-
-    private:
-        uint32_t maximum_supported_source_version() const noexcept override {
-            return 0x00010600;
-        }
-
-        bool begin(std::string &error_message) override {
-            if (!allocate_id(merged_uniform_buffer_id, error_message)) {
-                return false;
-            }
-            if (!allocate_id(merged_uniform_buffer_type_id, error_message)) {
-                return false;
-            }
-            if (!allocate_id(merged_uniform_buffer_pointer_type_id, error_message)) {
-                return false;
-            }
-            merged_uniform_buffer_index_ids.reserve(uniforms.size());
-            uniform_array_type_ids.reserve(uniforms.size());
-            for (uint32_t uniform_index = 0; uniform_index < uniforms.size(); ++uniform_index) {
-                uint32_t id;
-                if (!allocate_id(id, error_message)) {
-                    return false;
-                }
-                merged_uniform_buffer_index_ids.push_back(id);
-                const std::pair<std::string, Uniform> uniform = uniforms[uniform_index];
-                std::vector<uint32_t> array_type_ids;
-                if (!uniform.second.type.array_dimensions.empty() && !uniform_type_map.count(uniform.first)) {
-                    array_type_ids.reserve(uniform.second.type.array_dimensions.size());
-                    for (uint32_t dimension_index = 0; dimension_index < uniform.second.type.array_dimensions.size(); ++dimension_index) {
-                        if (!allocate_id(id, error_message)) {
-                            return false;
-                        }
-                        array_type_ids.push_back(id);
-                    }
-                }
-                uniform_array_type_ids.emplace_back(std::move(array_type_ids));
-            }
-
-            return true;
-        }
-
-        bool end_name_debug_section(std::string &error_message) override {
-            // Declare the name of our merged uniform buffer
-            begin_instruction(SpvOpName);
-            push_word(merged_uniform_buffer_id);
-            push_string_literal("mkxpz_spirv_sink_uniforms"); // Don't have to worry about name collisions; the SPIR-V to native shading language compiler will deal with it automatically
-            end_instruction();
-
-            // Declare the name of our merged uniform buffer's type
-            begin_instruction(SpvOpName);
-            push_word(merged_uniform_buffer_type_id);
-            push_string_literal("mkxpz_spirv_sink_uniforms_t");
-            end_instruction();
-
-            // Declare the names of our merged uniform buffer's fields
-            for (uint32_t uniform_index = 0; uniform_index < uniforms.size(); ++uniform_index) {
-                begin_instruction(SpvOpMemberName);
-                push_word(merged_uniform_buffer_type_id);
-                push_word(uniform_index);
-                push_string_literal(uniforms[uniform_index].first.c_str());
-                end_instruction();
-            }
-
-            return true;
-        }
-
-        bool end_process_debug_section(std::string &error_message) override {
-            begin_instruction(SpvOpModuleProcessed);
-            push_string_literal("SpirvSink MergeUniformsTransform");
-            end_instruction();
-
-            return true;
-        }
-
-        bool end_annotation_section(std::string &error_message) override {
-            // Declare that our merged uniform buffer's type is an interface block
-            begin_instruction(SpvOpDecorate);
-            push_word(merged_uniform_buffer_type_id);
-            push_word(SpvDecorationBlock);
-            end_instruction();
-
-            // Declare the linkage of our merged uniform buffer
-            begin_instruction(SpvOpDecorate);
-            push_word(merged_uniform_buffer_id);
-            push_word(SpvDecorationBinding);
-            push_word(0);
-            end_instruction();
-            begin_instruction(SpvOpDecorate);
-            push_word(merged_uniform_buffer_id);
-            push_word(SpvDecorationDescriptorSet);
-            push_word(0);
-            end_instruction();
-
-            // Declare the offsets for our merged uniform buffer's fields
-            uint32_t offset = 0;
-            for (uint32_t uniform_index = 0; uniform_index < uniforms.size(); ++uniform_index) {
-                const std::pair<std::string, Uniform> &uniform = uniforms[uniform_index];
-
-                begin_instruction(SpvOpMemberDecorate);
-                push_word(merged_uniform_buffer_type_id);
-                push_word(uniform_index);
-                push_word(SpvDecorationOffset);
-                push_word(offset);
-                end_instruction();
-
-                // If it's a matrix or array of matrices, also declare whether it's row-major or column-major and the matrix stride
-                if (uniform.second.type.columns != 1) {
-                    begin_instruction(SpvOpMemberDecorate);
-                    push_word(merged_uniform_buffer_type_id);
-                    push_word(uniform_index);
-                    push_word(uniform.second.is_logically_row_major ? SpvDecorationRowMajor : SpvDecorationColMajor);
-                    end_instruction();
-
-                    begin_instruction(SpvOpMemberDecorate);
-                    push_word(merged_uniform_buffer_type_id);
-                    push_word(uniform_index);
-                    push_word(SpvDecorationMatrixStride);
-                    push_word(uniform.second.logical_matrix_stride);
-                    end_instruction();
-                }
-
-                // If it's an array whose type we need to declare ourselves later on, also declare the array strides
-                if (!uniform.second.type.array_dimensions.empty() && !uniform_type_map.count(uniform.first)) {
-                    // For multidimensional arrays, we don't really care what the array strides other than the most significant array stride are since
-                    // if we need to declare this array type ourselves, it means the shader doesn't read this uniform at all,
-                    // so just assign these array strides assuming the elements are tightly packed
-                    for (uint32_t dimension_index = 0, array_stride = get_scalar_type_logical_size(uniform.second.type.scalar_type); dimension_index < uniform.second.type.array_dimensions.size() - 1; array_stride *= uniform.second.type.array_dimensions[dimension_index++]) {
-                        begin_instruction(SpvOpDecorate);
-                        push_word(uniform_array_type_ids[uniform_index][dimension_index]);
-                        push_word(SpvDecorationArrayStride);
-                        push_word(array_stride);
-                        end_instruction();
-                    }
-
-                    // The most significant array stride affects the logical size of this uniform, so it's important to get this to be the same in every shader
-                    begin_instruction(SpvOpDecorate);
-                    push_word(uniform_array_type_ids[uniform_index].back());
-                    push_word(SpvDecorationArrayStride);
-                    push_word(uniform.second.logical_array_stride);
-                    end_instruction();
-                }
-
-                // Increase the offset by the logical size of this type
-                uint32_t logical_size = !uniform.second.type.array_dimensions.empty()
-                    ? uniform.second.type.array_dimensions.back() * uniform.second.logical_array_stride
-                    : uniform.second.type.columns != 1
-                    ? (uniform.second.is_logically_row_major ? uniform.second.type.vector_size * uniform.second.logical_matrix_stride : uniform.second.type.columns * uniform.second.logical_matrix_stride)
-                    : uniform.second.type.vector_size * get_scalar_type_logical_size(uniform.second.type.scalar_type);
-                offset += logical_size;
-            }
-
-            return true;
-        }
-
-        bool end_data_section(std::string &error_message) override {
-            // Declare a 32-bit signed integer type if there isn't already one declared, since this is the type of the indices for the members of our merged uniform buffer
-            uint32_t int32_type_id;
-            {
-                std::tuple<uint8_t, uint8_t, uint8_t, uint32_t> primitive_type = std::make_tuple(1, 1, 1, 32);
-                auto it = primitive_types.find(primitive_type);
-                if (it != primitive_types.end()) {
-                    int32_type_id = it->second;
-                } else {
-                    if (!allocate_id(int32_type_id, error_message)) {
-                        return false;
-                    }
-                    begin_instruction(SpvOpTypeInt);
-                    push_word(int32_type_id);
-                    push_word(32);
-                    push_word(1);
-                    end_instruction();
-                    primitive_types.emplace(primitive_type, int32_type_id);
-                    primitive_types_reverse.emplace(int32_type_id, primitive_type);
-                }
-            }
-
-            // Declare a 32-bit unsigned integer type if there isn't already one declared, since this is the type of array dimensions
-            uint32_t uint32_type_id;
-            {
-                std::tuple<uint8_t, uint8_t, uint8_t, uint32_t> primitive_type = std::make_tuple(1, 1, 0, 32);
-                auto it = primitive_types.find(primitive_type);
-                if (it != primitive_types.end()) {
-                    uint32_type_id = it->second;
-                } else {
-                    if (!allocate_id(uint32_type_id, error_message)) {
-                        return false;
-                    }
-                    begin_instruction(SpvOpTypeInt);
-                    push_word(uint32_type_id);
-                    push_word(32);
-                    push_word(0);
-                    end_instruction();
-                    primitive_types.emplace(primitive_type, uint32_type_id);
-                    primitive_types_reverse.emplace(uint32_type_id, primitive_type);
-                }
-            }
-
-            // Declare a constant for each member of our merged uniform buffer
-            for (uint32_t uniform_index = 0; uniform_index < uniforms.size(); ++uniform_index) {
-                begin_instruction(SpvOpConstant);
-                push_word(int32_type_id);
-                push_word(merged_uniform_buffer_index_ids[uniform_index]);
-                push_word(uniform_index);
-                end_instruction();
-            }
-
-            // Declare the types for any uniforms whose types have not been declared yet
-            std::vector<uint32_t> uniform_type_ids;
-            uniform_type_ids.reserve(uniforms.size());
-            for (uint32_t uniform_index = 0; uniform_index < uniforms.size(); ++uniform_index) {
-                {
-                    auto it = uniform_type_map.find(uniforms[uniform_index].first);
-                    if (it != uniform_type_map.end()) {
-                        uniform_type_ids.push_back(it->second);
-                        continue;
-                    }
-                }
-                const Uniform &uniform = uniforms[uniform_index].second;
-                uint8_t scalar_kind;
-                switch (uniform.type.scalar_type) {
-                    case SpirvType::UNKNOWN:
-                    case SpirvType::UINT8:
-                    case SpirvType::UINT16:
-                    case SpirvType::UINT32:
-                    case SpirvType::UINT64:
-                        scalar_kind = 0;
-                        break;
-                    case SpirvType::INT8:
-                    case SpirvType::INT16:
-                    case SpirvType::INT32:
-                    case SpirvType::INT64:
-                        scalar_kind = 1;
-                        break;
-                    case SpirvType::FP16:
-                    case SpirvType::FP32:
-                    case SpirvType::FP64:
-                        scalar_kind = 2;
-                        break;
-                }
-                std::tuple<uint8_t, uint8_t, uint8_t, uint32_t> primitive_type = std::make_tuple(uniform.type.columns, uniform.type.vector_size, scalar_kind, 8 * get_scalar_type_logical_size(uniform.type.scalar_type));
-                uint32_t uniform_type_id;
-                auto it = primitive_types.find(primitive_type);
-                if (it != primitive_types.end()) {
-                    uniform_type_id = it->second;
-                } else {
-                    if (!allocate_id(uniform_type_id, error_message)) {
-                        return false;
-                    }
-                    begin_instruction(scalar_kind == 2 ? SpvOpTypeFloat : SpvOpTypeInt);
-                    push_word(uniform_type_id);
-                    push_word(8 * get_scalar_type_logical_size(uniform.type.scalar_type));
-                    if (scalar_kind != 2) {
-                        push_word(scalar_kind);
-                    }
-                    end_instruction();
-                    if (uniform.type.vector_size != 1) {
-                        uint32_t component_type_id = uniform_type_id;
-                        if (!allocate_id(uniform_type_id, error_message)) {
-                            return false;
-                        }
-                        begin_instruction(SpvOpTypeVector);
-                        push_word(uniform_type_id);
-                        push_word(component_type_id);
-                        push_word(uniform.type.vector_size);
-                        end_instruction();
-                    }
-                    if (uniform.type.columns != 1) {
-                        uint32_t vector_type_id = uniform_type_id;
-                        if (!allocate_id(uniform_type_id, error_message)) {
-                            return false;
-                        }
-                        begin_instruction(SpvOpTypeMatrix);
-                        push_word(uniform_type_id);
-                        push_word(vector_type_id);
-                        push_word(uniform.type.columns);
-                        end_instruction();
-                    }
-                }
-                if (!uniform.type.array_dimensions.empty()) {
-                    for (uint32_t dimension_index = 0; dimension_index < uniform.type.array_dimensions.size(); ++dimension_index) {
-                        uint32_t constant_id;
-                        if (!allocate_id(constant_id, error_message)) {
-                            return false;
-                        }
-                        begin_instruction(SpvOpConstant);
-                        push_word(uint32_type_id);
-                        push_word(constant_id);
-                        push_word(uniform.type.array_dimensions[dimension_index]);
-                        end_instruction();
-                        uint32_t element_type_id = uniform_type_id;
-                        uniform_type_id = uniform_array_type_ids[uniform_index][dimension_index];
-                        begin_instruction(SpvOpTypeArray);
-                        push_word(uniform_type_id);
-                        push_word(element_type_id);
-                        push_word(constant_id);
-                        end_instruction();
-                    }
-                }
-                uniform_type_ids.push_back(uniform_type_id);
-            }
-
-            // Declare a struct type for our merged uniform buffer
-            begin_instruction(SpvOpTypeStruct);
-            push_word(merged_uniform_buffer_type_id);
-            push_words(uniform_type_ids.begin(), uniform_type_ids.end());
-            end_instruction();
-
-            // Declare a pointer type for our merged uniform buffer
-            begin_instruction(SpvOpTypePointer);
-            push_word(merged_uniform_buffer_pointer_type_id);
-            push_word(SpvStorageClassUniform);
-            push_word(merged_uniform_buffer_type_id);
-            end_instruction();
-
-            // Declare the merged uniform buffer
-            begin_instruction(SpvOpVariable);
-            push_word(merged_uniform_buffer_pointer_type_id);
-            push_word(merged_uniform_buffer_id);
-            push_word(SpvStorageClassUniform);
-            end_instruction();
-
-            return true;
-        }
-
-        bool receive_instruction(uint16_t opcode, const uint32_t *words, uint16_t num_words, std::string &error_message) override {
-            switch (opcode) {
-                case SpvOpConstant:
-                    constants.emplace(words[1], words[2]);
-                    break;
-
-                case SpvOpTypeInt:
-                    {
-                        std::tuple<uint8_t, uint8_t, uint8_t, uint32_t> primitive_type = std::make_tuple(1, 1, words[2], words[1]);
-                        primitive_types.emplace(primitive_type, words[0]);
-                        primitive_types_reverse.emplace(words[0], primitive_type);
-                    }
-                    break;
-
-                case SpvOpTypeFloat:
-                    {
-                        std::tuple<uint8_t, uint8_t, uint8_t, uint32_t> primitive_type = std::make_tuple(1, 1, 2, words[1]);
-                        primitive_types.emplace(primitive_type, words[0]);
-                        primitive_types_reverse.emplace(words[0], primitive_type);
-                    }
-                    break;
-
-                case SpvOpTypeVector:
-                    {
-                        auto it = primitive_types_reverse.find(words[1]);
-                        if (it == primitive_types_reverse.end()) {
-                            break;
-                        }
-                        std::tuple<uint8_t, uint8_t, uint8_t, uint32_t> primitive_type = std::make_tuple(1, words[2], std::get<2>(it->second), std::get<3>(it->second));
-                        primitive_types.emplace(primitive_type, words[0]);
-                        primitive_types_reverse.emplace(words[0], primitive_type);
-                    }
-                    break;
-
-                case SpvOpTypeMatrix:
-                    {
-                        auto it = primitive_types_reverse.find(words[1]);
-                        if (it == primitive_types_reverse.end()) {
-                            break;
-                        }
-                        std::tuple<uint8_t, uint8_t, uint8_t, uint32_t> primitive_type = std::make_tuple(words[2], std::get<1>(it->second), std::get<2>(it->second), std::get<3>(it->second));
-                        primitive_types.emplace(primitive_type, words[0]);
-                        primitive_types_reverse.emplace(words[0], primitive_type);
-                    }
-                    break;
-
-                default:
-                    break;
-            }
-
-            switch (opcode) {
-                case SpvOpEntryPoint:
-                    {
-                        // Remove the old uniform buffers from the OpEntryPoint instruction and add our merged uniform buffer to it
-                        begin_instruction(opcode);
-                        uint16_t word_index = 2;
-                        while ((words[word_index] & 0xff000000) != 0) {
-                            ++word_index;
-                        }
-                        ++word_index;
-                        push_words(words, words + word_index);
-                        for (; word_index < num_words; ++word_index) {
-                            uint32_t id = words[word_index];
-                            if (!uniform_trie.children.count(id)) {
-                                push_word(id);
-                            }
-                        }
-                        push_word(merged_uniform_buffer_id);
-                        end_instruction();
-                    }
-                    break;
-
-                case SpvOpVariable:
-                    // Remove the declarations of the old uniform buffers
-                    if (!uniform_trie.children.count(words[1])) {
-                        begin_instruction(opcode);
-                        push_words(words, words + num_words);
-                        end_instruction();
-                    }
-                    break;
-
-                case SpvOpName:
-                case SpvOpDecorate:
-                case SpvOpDecorateId:
-                case SpvOpDecorateString:
-                    // Remove debug information and annotations from the old uniform buffers
-                    if (!uniform_trie.children.count(words[0])) {
-                        begin_instruction(opcode);
-                        push_words(words, words + num_words);
-                        end_instruction();
-                    }
-                    break;
-
-                case SpvOpGroupDecorate:
-                    // Remove annotations from the old uniform buffers
-                    begin_instruction(opcode);
-                    push_word(words[0]);
-                    for (uint16_t word_index = 1; word_index < num_words; ++word_index) {
-                        if (!uniform_trie.children.count(words[word_index])) {
-                            push_word(words[word_index]);
-                        }
-                    }
-                    end_instruction();
-                    break;
-
-                case SpvOpAccessChain:
-                case SpvOpInBoundsAccessChain:
-                case SpvOpPtrAccessChain:
-                case SpvOpInBoundsPtrAccessChain:
-                    {
-                        // Rewrite any instructions that try to read from one of the old uniform buffers such that they instead read from the merged uniform buffer
-                        uint32_t base = words[2];
-                        const UniformTrieNode *node;
-                        {
-                            auto trie_it = uniform_trie.children.find(base);
-                            auto pointer_it = pointers.find(base);
-                            if (trie_it != uniform_trie.children.end()) {
-                                assert(pointer_it == pointers.end());
-                                node = trie_it->second.get();
-                            } else if (pointer_it != pointers.end()) {
-                                assert(trie_it == uniform_trie.children.end());
-                                node = &pointer_it->second;
-                            } else {
-                                // This instruction doesn't try to read one of the old uniform buffers, so pass this instruction through without doing anything
-                                begin_instruction(opcode);
-                                push_words(words, words + num_words);
-                                end_instruction();
-                                break;
-                            }
-                        }
-                        // For OpPtrAccessChain and OpInBoundsPtrAccessChain, we just ignore the element operand
-                        // since the SPIR-V specification says when reading from a uniform buffer,
-                        // it's undefined behavior for the element operand for these two instructions to be nonzero.
-                        for (uint16_t word_index = opcode == SpvOpPtrAccessChain || opcode == SpvOpPtrAccessChain ? 4 : 3; word_index < num_words; ++word_index) {
-                            uint32_t chain_word = words[word_index];
-                            if (node->children.empty()) {
-                                push_word(chain_word);
-                            } else {
-                                uint32_t constant = constants.at(chain_word);
-                                node = node->children.at(constant).get();
-                                if (node->children.empty()) {
-                                    begin_instruction(SpvOpAccessChain);
-                                    push_words(words, words + 2);
-                                    push_word(merged_uniform_buffer_id);
-                                    push_word(merged_uniform_buffer_index_ids[uniform_index_map.at(node->uniform_name)]);
-                                }
-                            }
-                        }
-                        if (node->children.empty()) {
-                            end_instruction();
-                        } else {
-                            pointers.emplace(words[1], *node);
-                        }
-                    }
-                    break;
-
-                default:
-                    begin_instruction(opcode);
-                    push_words(words, words + num_words);
-                    end_instruction();
-                    break;
-            }
-
-            return true;
-        }
-    };
-
-    return MergeUniformsTransform {
-        uniforms,
-        uniform_type_map,
-        uniform_index_map,
-        uniform_trie,
-    }.transform(
-        shader,
-        shader_size,
-        shader_output,
-        error_message
-    );
-}
-
-static bool rewrite_shader_textures(
-    const uint32_t *shader,
-    size_t shader_size,
-    const std::vector<std::pair<std::string, SpirvTexture::Type>> &textures,
-    const std::unordered_map<std::string, uint32_t> &texture_id_map,
-    std::vector<uint32_t> &shader_output,
-    std::string &error_message
-) {
-    std::unordered_map<uint32_t, std::string> texture_id_map_reverse;
-    for (const auto &texture : texture_id_map) {
-        texture_id_map_reverse.emplace(texture.second, texture.first);
-    }
-
-    class RemapTexturesTransform : public SpirvTransform
-    {
-    private:
-        const std::vector<std::pair<std::string, SpirvTexture::Type>> &textures;
-        const std::unordered_map<std::string, uint32_t> &texture_id_map;
-        const std::unordered_map<uint32_t, std::string> &texture_id_map_reverse;
-
-        // SPIR-V IDs for our remapped textures.
-        std::vector<uint32_t> remapped_texture_ids;
-        // SPIR-V ID of the void type.
-        uint32_t void_type_id;
-        // A map from SPIR-V image types of void sampled type to their SPIR-V IDs.
-        // The format of the key is the 7 operands of OpTypeImage other than the sample type (which is the void type).
-        std::map<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t>, uint32_t> void_image_type_ids;
-        // A map from SPIR-V IDs of images to the SPIR-V IDs of their corresponding sampled image types.
-        std::unordered_map<uint32_t, uint32_t> sampled_image_type_ids;
-        // A map from SPIR-V IDs of pointers of uniform constant storage class to the SPIR-V IDs of their pointed-to types.
-        std::unordered_map<uint32_t, uint32_t> uniform_constant_pointer_type_ids;
-        // A map from SPIR-V IDs of variables of uniform constant storage class to their pointer type IDs.
-        std::unordered_map<uint32_t, uint32_t> uniform_constant_pointer_ids;
-
-    public:
-        RemapTexturesTransform(const std::vector<std::pair<std::string, SpirvTexture::Type>> &textures, const std::unordered_map<std::string, uint32_t> &texture_id_map, const std::unordered_map<uint32_t, std::string> &texture_id_map_reverse) : textures(textures), texture_id_map(texture_id_map), texture_id_map_reverse(texture_id_map_reverse), void_type_id(0) {
-        }
-
-    private:
-        uint32_t maximum_supported_source_version() const noexcept override {
-            return 0x00010600;
-        }
-
-        bool begin(std::string &error_message) override {
-            remapped_texture_ids.reserve(textures.size());
-            for (const std::pair<std::string, SpirvTexture::Type> &texture : textures) {
-                uint32_t id;
-                auto it = texture_id_map.find(texture.first);
-                if (it != texture_id_map.end()) {
-                    id = it->second;
-                } else {
-                    if (!allocate_id(id, error_message)) {
-                        return false;
-                    }
-                }
-                remapped_texture_ids.push_back(id);
-            }
-
-            return true;
-        }
-
-        bool end_name_debug_section(std::string &error_message) override {
-            // Declare the names of our remapped textures
-            for (uint32_t texture_index = 0; texture_index < textures.size(); ++texture_index) {
-                const std::pair<std::string, SpirvTexture::Type> &texture = textures[texture_index];
-                uint32_t texture_id = remapped_texture_ids[texture_index];
-
-                begin_instruction(SpvOpName);
-                push_word(texture_id);
-                push_string_literal(texture.first.c_str());
-                end_instruction();
-            }
-
-            return true;
-        }
-
-        bool end_process_debug_section(std::string &error_message) override {
-            begin_instruction(SpvOpModuleProcessed);
-            push_string_literal("SpirvSink RemapTexturesTransform");
-            end_instruction();
-
-            return true;
-        }
-
-        bool end_annotation_section(std::string &error_message) override {
-            // Declare the linkages of our remapped textures
-            for (uint32_t texture_index = 0; texture_index < textures.size(); ++texture_index) {
-                uint32_t texture_id = remapped_texture_ids[texture_index];
-
-                begin_instruction(SpvOpDecorate);
-                push_word(texture_id);
-                push_word(SpvDecorationBinding);
-                push_word(texture_index);
-                end_instruction();
-
-                begin_instruction(SpvOpDecorate);
-                push_word(texture_id);
-                push_word(SpvDecorationDescriptorSet);
-                push_word(0);
-                end_instruction();
-            }
-
-            return true;
-        }
-
-        bool end_data_section(std::string &error_message) override {
-            // Declare the void type if it hasn't already been declared
-            if (void_type_id == 0) {
-                if (!allocate_id(void_type_id, error_message)) {
-                    return false;
-                }
-                begin_instruction(SpvOpTypeVoid);
-                push_word(void_type_id);
-                end_instruction();
-            }
-
-            for (uint32_t texture_index = 0; texture_index < textures.size(); ++texture_index) {
-                const std::pair<std::string, SpirvTexture::Type> &texture = textures[texture_index];
-                uint32_t texture_id = remapped_texture_ids[texture_index];
-
-                // For any remapped textures whose types have not been declared yet, declare their types
-                uint32_t texture_type_id;
-                if (texture_id_map_reverse.count(texture_id)) {
-                    texture_type_id = uniform_constant_pointer_type_ids.at(uniform_constant_pointer_ids.at(texture_id));
-                } else {
-                    uint32_t dimensionality;
-                    switch (texture.second) {
-                        case SpirvTexture::Type::TEXTURE_1D:
-                            dimensionality = SpvDim1D;
-                            break;
-                        case SpirvTexture::Type::UNKNOWN:
-                        case SpirvTexture::Type::TEXTURE_2D:
-                            dimensionality = SpvDim2D;
-                            break;
-                        case SpirvTexture::Type::TEXTURE_3D:
-                            dimensionality = SpvDim3D;
-                            break;
-                    }
-                    std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t> image_type = std::make_tuple(dimensionality, 0, 0, 0, 1, SpvImageFormatUnknown, SpvAccessQualifierMax);
-                    uint32_t image_type_id;
-                    {
-                        auto it = void_image_type_ids.find(image_type);
-                        if (it != void_image_type_ids.end()) {
-                            image_type_id = it->second;
-                        } else {
-                            if (!allocate_id(image_type_id, error_message)) {
-                                return false;
-                            }
-                            begin_instruction(SpvOpTypeImage);
-                            push_word(image_type_id);
-                            push_word(void_type_id);
-                            push_word(std::get<0>(image_type));
-                            push_word(std::get<1>(image_type));
-                            push_word(std::get<2>(image_type));
-                            push_word(std::get<3>(image_type));
-                            push_word(std::get<4>(image_type));
-                            push_word(std::get<5>(image_type));
-                            if (std::get<6>(image_type) != SpvAccessQualifierMax) {
-                                push_word(std::get<6>(image_type));
-                            }
-                            end_instruction();
-                            void_image_type_ids.emplace(image_type, image_type_id);
-                        }
-                    }
-                    {
-                        auto it = sampled_image_type_ids.find(image_type_id);
-                        if (it != sampled_image_type_ids.end()) {
-                            texture_type_id = it->second;
-                        } else {
-                            if (!allocate_id(texture_type_id, error_message)) {
-                                return false;
-                            }
-                            begin_instruction(SpvOpTypeSampledImage);
-                            push_word(texture_type_id);
-                            push_word(image_type_id);
-                            end_instruction();
-                            sampled_image_type_ids.emplace(image_type_id, texture_type_id);
-                        }
-                    }
-                }
-
-                // For any remapped textures whose pointer types have not been declared yet, declare their pointer types
-                uint32_t texture_pointer_type_id;
-                auto texture_pointer_type_it = uniform_constant_pointer_type_ids.find(texture_type_id);
-                if (texture_pointer_type_it != uniform_constant_pointer_type_ids.end()) {
-                    texture_pointer_type_id = texture_pointer_type_it->second;
-                } else {
-                    if (!allocate_id(texture_pointer_type_id, error_message)) {
-                        return false;
-                    }
-                    begin_instruction(SpvOpTypePointer);
-                    push_word(texture_pointer_type_id);
-                    push_word(SpvStorageClassUniformConstant);
-                    push_word(texture_type_id);
-                    end_instruction();
-                    uniform_constant_pointer_type_ids.emplace(texture_type_id, texture_pointer_type_id);
-                }
-
-                // Declare our remapped textures
-                begin_instruction(SpvOpVariable);
-                push_word(texture_pointer_type_id);
-                push_word(texture_id);
-                push_word(SpvStorageClassUniformConstant);
-                end_instruction();
-            }
-
-            return true;
-        }
-
-        bool receive_instruction(uint16_t opcode, const uint32_t *words, uint16_t num_words, std::string &error_message) override {
-            switch (opcode) {
-                case SpvOpTypeVoid:
-                    void_type_id = words[0];
-                    break;
-
-                case SpvOpTypeImage:
-                    if (words[1] == void_type_id) {
-                        void_image_type_ids.emplace(std::make_tuple(words[2], words[3], words[4], words[5], words[6], words[7], num_words > 8 ? words[8] : SpvAccessQualifierMax), words[0]);
-                    }
-                    break;
-
-                case SpvOpTypeSampledImage:
-                    sampled_image_type_ids.emplace(words[1], words[0]);
-                    break;
-
-                case SpvOpTypePointer:
-                    if (words[1] == SpvStorageClassUniformConstant) {
-                        uniform_constant_pointer_type_ids.emplace(words[0], words[2]);
-                    }
-                    break;
-
-                case SpvOpVariable:
-                    if (words[2] == SpvStorageClassUniformConstant) {
-                        uniform_constant_pointer_ids.emplace(words[1], words[0]);
-                    }
-                    break;
-
-                default:
-                    break;
-            }
-
-            switch (opcode) {
-                case SpvOpEntryPoint:
-                    {
-                        // Remove the old textures from the OpEntryPoint instruction and add our remapped textures to it
-                        begin_instruction(opcode);
-                        uint16_t word_index = 2;
-                        while ((words[word_index] & 0xff000000) != 0) {
-                            ++word_index;
-                        }
-                        ++word_index;
-                        push_words(words, words + word_index);
-                        for (; word_index < num_words; ++word_index) {
-                            uint32_t id = words[word_index];
-                            if (!texture_id_map_reverse.count(id)) {
-                                push_word(id);
-                            }
-                        }
-                        push_words(remapped_texture_ids.begin(), remapped_texture_ids.end());
-                        end_instruction();
-                    }
-                    break;
-
-                case SpvOpVariable:
-                    // Remove the declarations of the old textures
-                    if (!texture_id_map_reverse.count(words[1])) {
-                        begin_instruction(opcode);
-                        push_words(words, words + num_words);
-                        end_instruction();
-                    }
-                    break;
-
-                case SpvOpName:
-                case SpvOpDecorate:
-                case SpvOpDecorateId:
-                case SpvOpDecorateString:
-                    // Remove debug information and annotations from the old textures
-                    if (!texture_id_map_reverse.count(words[0])) {
-                        begin_instruction(opcode);
-                        push_words(words, words + num_words);
-                        end_instruction();
-                    }
-                    break;
-
-                case SpvOpGroupDecorate:
-                    // Remove annotations from the old textures
-                    begin_instruction(opcode);
-                    push_word(words[0]);
-                    for (uint16_t word_index = 1; word_index < num_words; ++word_index) {
-                        if (!texture_id_map_reverse.count(words[word_index])) {
-                            push_word(words[word_index]);
-                        }
-                    }
-                    end_instruction();
-                    break;
-
-                default:
-                    begin_instruction(opcode);
-                    push_words(words, words + num_words);
-                    end_instruction();
-                    break;
-            }
-
-            return true;
-        }
-    };
-
-    return RemapTexturesTransform {
-        textures,
-        texture_id_map,
-        texture_id_map_reverse,
-    }.transform(
-        shader,
-        shader_size,
-        shader_output,
-        error_message
-    );
-}
+#define TRANSFORM_DETAIL(transform, spirv_input, spirv_input_size, spirv_output, error_message, ...) do { \
+    std::vector<uint32_t> _spirv_output; \
+    if ( \
+        !(transform)( \
+            (spirv_input), \
+            (spirv_input_size), \
+            __VA_ARGS__ \
+            _spirv_output, \
+            (error_message) \
+        ) \
+            || !validator.validate( \
+                _spirv_output.data(), \
+                _spirv_output.size(), \
+                (error_message) \
+            ) \
+    ) { \
+        (error_message) = #transform " at " __FILE__ " line " + std::to_string(__LINE__) + " failed: " + (error_message); \
+        return false; \
+    } \
+    (spirv_output) = std::move(_spirv_output); \
+} while (0)
+
+#define TRANSFORM_INPUT(transform, ...) TRANSFORM_DETAIL(transform, untransformed_shader.first, untransformed_shader.second, shader, error_message, __VA_ARGS__)
+#define TRANSFORM(transform, ...) TRANSFORM_DETAIL(transform, shader.data(), shader.size(), shader, error_message, __VA_ARGS__)
 
 bool SpirvSink::compile(
     const std::pair<const uint32_t *, size_t> *shaders,
@@ -1767,9 +498,9 @@ bool SpirvSink::compile(
         SpirvExecutionModel::FRAGMENT,
     };
     std::vector<std::vector<uint32_t>> shader_for_execution_model(sizeof execution_models / sizeof *execution_models);
-    std::unordered_map<std::string, Uniform> uniform_map;
+    std::unordered_map<std::string, mkxp_spirv_utils::merge_uniforms_detail::Uniform> uniform_map;
     std::vector<std::unordered_map<std::string, uint32_t>> uniform_type_map_for_execution_model(sizeof execution_models / sizeof *execution_models);
-    std::vector<UniformTrieNode> uniform_trie_for_execution_model(sizeof execution_models / sizeof *execution_models);
+    std::vector<mkxp_spirv_utils::merge_uniforms_detail::UniformTrieNode> uniform_trie_for_execution_model(sizeof execution_models / sizeof *execution_models);
     std::unordered_map<std::string, SpirvTexture::Type> texture_map;
     std::vector<std::unordered_map<std::string, uint32_t>> texture_id_map_for_execution_model(sizeof execution_models / sizeof *execution_models);
 
@@ -1803,25 +534,12 @@ bool SpirvSink::compile(
 
         std::vector<uint32_t> &shader = shader_for_execution_model[execution_model_index];
 
-        if (!retarget_spirv_version(
-            untransformed_shader.first,
-            untransformed_shader.second,
+        TRANSFORM_INPUT(
+            mkxp_spirv_utils::retarget_spirv_version,
             0x00010600,
             true,
             true,
-            shader,
-            error_message
-        )) {
-            return false;
-        }
-
-        if (!validator.validate(
-            shader.data(),
-            shader.size(),
-            error_message
-        )) {
-            return false;
-        }
+        );
 
         if (!get_uniforms(
             (spvc_context)context,
@@ -1856,12 +574,12 @@ bool SpirvSink::compile(
     }
 
     // Sort the uniforms in non-ascending order of alignment to optimize for the size of the merged uniform buffer.
-    std::vector<std::pair<std::string, Uniform>> uniforms;
+    std::vector<std::pair<std::string, mkxp_spirv_utils::merge_uniforms_detail::Uniform>> uniforms;
     uniforms.reserve(uniform_map.size());
     for (auto it = uniform_map.begin(); it != uniform_map.end(); it = uniform_map.erase(it)) {
         uniforms.emplace_back(it->first, std::move(it->second));
     }
-    std::sort(uniforms.begin(), uniforms.end(), [this](const std::pair<std::string, Uniform> &a, const std::pair<std::string, Uniform> &b) {
+    std::sort(uniforms.begin(), uniforms.end(), [this](const std::pair<std::string, mkxp_spirv_utils::merge_uniforms_detail::Uniform> &a, const std::pair<std::string, mkxp_spirv_utils::merge_uniforms_detail::Uniform> &b) {
         return get_uniform_physical_layout(backend, a.second).physical_alignment > get_uniform_physical_layout(backend, b.second).physical_alignment;
     });
 
@@ -1880,112 +598,35 @@ bool SpirvSink::compile(
             continue;
         }
 
-        // We need to make sure all the shaders in our shader program have exactly the same set of uniforms,
-        // so replace all of the uniform buffers in each shader with one merged uniform buffer that contains all of the uniforms used in at least one shader.
-        {
-            std::vector<uint32_t> output;
-            if (!rewrite_shader_uniforms(
-                shader.data(),
-                shader.size(),
-                uniforms,
-                uniform_type_map_for_execution_model[execution_model_index],
-                uniform_trie_for_execution_model[execution_model_index],
-                output,
-                error_message
-            )) {
-                return false;
-            }
-            shader = std::move(output);
-        }
+        TRANSFORM(
+            mkxp_spirv_utils::merge_uniforms,
+            uniforms,
+            uniform_type_map_for_execution_model[execution_model_index],
+            uniform_trie_for_execution_model[execution_model_index],
+        );
 
-        if (!validator.validate(
-            shader.data(),
-            shader.size(),
-            error_message
-        )) {
-            return false;
-        }
+        TRANSFORM(
+            mkxp_spirv_utils::remap_textures,
+            textures,
+            texture_id_map_for_execution_model[execution_model_index],
+        );
 
-        // This transform remaps the texture units of textures so that the textures are assigned texture units sequentially,
-        // in order to eliminate issues where two textures are assigned the same texture unit.
-        //
-        // Additionally, certain old GLSL versions don't support explicitly specifying texture units for textures,
-        // and simply assign the texture units sequentially in the order that the textures are declared in the GLSL source code.
-        // Therefore, we also make sure every texture used in at least one shader is declared in every shader,
-        // so that there are no "gaps" in the texture units in any of the shaders if we're compiling from SPIR-V to one of these old GLSL versions.
-        {
-            std::vector<uint32_t> output;
-            if (!rewrite_shader_textures(
-                shader.data(),
-                shader.size(),
-                textures,
-                texture_id_map_for_execution_model[execution_model_index],
-                output,
-                error_message
-            )) {
-                return false;
-            }
-            shader = std::move(output);
-        }
-
-        if (!validator.validate(
-            shader.data(),
-            shader.size(),
-            error_message
-        )) {
-            return false;
-        }
-
-        {
-            std::vector<uint32_t> output;
-            if (!optimizer.transform(
-                shader.data(),
-                shader.size(),
-                output,
-                error_message
-            )) {
-                return false;
-            }
-            shader = std::move(output);
-        }
-
-        if (!validator.validate(
-            shader.data(),
-            shader.size(),
-            error_message
-        )) {
-            return false;
-        }
+        TRANSFORM(
+            optimizer.transform,
+        );
 
         // If the underlying graphics API's maximum supported SPIR-V version is less than the one that we're using,
         // downgrade the SPIR-V version.
-        {
-            uint32_t target;
-            switch (backend) {
-                case Backend::OPENGL_GLSL: target = glsl_backend.TARGET; break;
-            }
-            std::vector<uint32_t> output;
-            if (!retarget_spirv_version(
-                shader.data(),
-                shader.size(),
-                target,
-                false,
-                true,
-                output,
-                error_message
-            )) {
-                return false;
-            }
-            shader = std::move(output);
+        uint32_t target;
+        switch (backend) {
+            case Backend::OPENGL_GLSL: target = glsl_backend.TARGET; break;
         }
-
-        if (!validator.validate(
-            shader.data(),
-            shader.size(),
-            error_message
-        )) {
-            return false;
-        }
+        TRANSFORM(
+            mkxp_spirv_utils::retarget_spirv_version,
+            target,
+            false,
+            true,
+        );
     }
 
     static std::random_device random_device;

@@ -53,6 +53,8 @@ public:
     /*
      * Optimizes SPIR-V bytecode.
      *
+     * You must check the validity of the input SPIR-V module yourself before passing it to this function; it's undefined behavior to pass an invalid SPIR-V module to this function.
+     *
      * spirv_input: Pointer to the input SPIR-V bytecode.
      * spirv_input_size: Length of the input SPIR-V bytecode in 32-bit words.
      * spirv_output: If optimization is successful, this will be set to the optimized SPIR-V output. Otherwise this will be unchanged.

@@ -55,6 +55,8 @@ public:
     /*
      * Compiles SPIR-V bytecode to GLSL.
      *
+     * You must check the validity of the input SPIR-V module yourself before passing it to this function; it's undefined behavior to pass an invalid SPIR-V module to this function.
+     *
      * spirv_input: Pointer to the input SPIR-V bytecode.
      * spirv_input_size: Length of the input SPIR-V bytecode in 32-bit words.
      * stage_input_cookie: Due to the limitations of old GLSL versions, you must provide an unpredictable string here, suitable for use in an identifier, that is the same as the `stage_output_cookie` used to compile the previous shader stage. This string is ignored for vertex shaders since there is no shader stage before the vertex stage.

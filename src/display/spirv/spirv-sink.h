@@ -103,6 +103,8 @@ public:
      * Creates a shader program from SPIR-V shaders.
      * You must specify, at minimum, a vertex shader and a fragment shader.
      *
+     * This function will check the input SPIR-V modules for validity and throw an error if the input SPIR-V shaders are invalid, so it's fine if they're possibly invalid.
+     *
      * shaders: For each SPIR-V shader, this contains the shader's SPIR-V bytecode and the length of the shader's SPIR-V bytecode in bytes.
      * shaders_len: The length of `shaders`.
      * program_output: If compilation succeeds, this will be set to the compiled shader program. Otherwise, this will be unchanged.
