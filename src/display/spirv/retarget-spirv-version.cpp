@@ -199,7 +199,7 @@ bool mkxp_spirv_utils::retarget_spirv_version(
                 }
             } else if (source_version() > 0x00010300 && target_version() <= 0x00010300) {
                 // BufferBlock decoration with Uniform storage class in SPIR-V <= 1.3 corresponds to Block decoration with StorageBuffer storage class in SPIR-V > 1.3,
-                // so redeclare all Block decorations on struct types with at least one pointer of StorageBuffer storage class as BufferBlock decorations instead when transforming from SPIR-V <= 1.3 to SPIR-V > 1.3.
+                // so redeclare all Block decorations on struct types with at least one pointer of StorageBuffer storage class as BufferBlock decorations instead when transforming from SPIR-V > 1.3 to SPIR-V <= 1.3.
                 // There is a possible corner case that can happen here, where a struct type in the source SPIR-V module has a pointer of Uniform storage class and another pointer of StorageBuffer storage class:
                 //     OpDecorate %1 Block
                 //     %1 = OpTypeStruct
