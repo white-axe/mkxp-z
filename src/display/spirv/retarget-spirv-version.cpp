@@ -248,46 +248,44 @@ bool mkxp_spirv_utils::retarget_spirv_version(
 
             switch (opcode) {
                 case SpvOpEntryPoint:
-                    {
-                        if (source_version() >= 0x00010400 && target_version() < 0x00010400) {
-                            // Remove variables that are not of input or output storage class from the OpEntryPoint interface if we're transforming from SPIR-V >= 1.4 to SPIR-V < 1.4
-                            begin_instruction(opcode);
-                            uint16_t word_index = 2;
-                            while ((words[word_index] & 0xff000000) != 0) {
-                                ++word_index;
-                            }
+                    if (source_version() >= 0x00010400 && target_version() < 0x00010400) {
+                        // Remove variables that are not of input or output storage class from the OpEntryPoint interface if we're transforming from SPIR-V >= 1.4 to SPIR-V < 1.4
+                        begin_instruction(opcode);
+                        uint16_t word_index = 2;
+                        while ((words[word_index] & 0xff000000) != 0) {
                             ++word_index;
-                            push_words(words, words + word_index);
-                            for (; word_index < num_words; ++word_index) {
-                                uint32_t id = words[word_index];
-                                if (io_variable_ids.count(id)) {
-                                    push_word(id);
-                                }
-                            }
-                            end_instruction();
-                        } else if (source_version() < 0x00010400 && target_version() >= 0x00010400) {
-                            // Insert every global variable into the OpEntryPoint interface if we're transforming from SPIR-V < 1.4 to SPIR-V >= 1.4
-                            begin_instruction(opcode);
-                            uint16_t word_index = 2;
-                            while ((words[word_index] & 0xff000000) != 0) {
-                                ++word_index;
-                            }
-                            ++word_index;
-                            push_words(words, words + word_index);
-                            for (std::unordered_set<uint32_t> interface; word_index < num_words; ++word_index) {
-                                uint32_t id = words[word_index];
-                                if (!interface.count(id)) { // Remove duplicates, as these are not allowed starting from SPIR-V 1.4
-                                    push_word(id);
-                                    interface.insert(id);
-                                }
-                            }
-                            push_words(non_io_global_variable_ids.begin(), non_io_global_variable_ids.end());
-                            end_instruction();
-                        } else {
-                            begin_instruction(opcode);
-                            push_words(words, words + num_words);
-                            end_instruction();
                         }
+                        ++word_index;
+                        push_words(words, words + word_index);
+                        for (; word_index < num_words; ++word_index) {
+                            uint32_t id = words[word_index];
+                            if (io_variable_ids.count(id)) {
+                                push_word(id);
+                            }
+                        }
+                        end_instruction();
+                    } else if (source_version() < 0x00010400 && target_version() >= 0x00010400) {
+                        // Insert every global variable into the OpEntryPoint interface if we're transforming from SPIR-V < 1.4 to SPIR-V >= 1.4
+                        begin_instruction(opcode);
+                        uint16_t word_index = 2;
+                        while ((words[word_index] & 0xff000000) != 0) {
+                            ++word_index;
+                        }
+                        ++word_index;
+                        push_words(words, words + word_index);
+                        for (std::unordered_set<uint32_t> interface; word_index < num_words; ++word_index) {
+                            uint32_t id = words[word_index];
+                            if (!interface.count(id)) { // Remove duplicates, as these are not allowed starting from SPIR-V 1.4
+                                push_word(id);
+                                interface.insert(id);
+                            }
+                        }
+                        push_words(non_io_global_variable_ids.begin(), non_io_global_variable_ids.end());
+                        end_instruction();
+                    } else {
+                        begin_instruction(opcode);
+                        push_words(words, words + num_words);
+                        end_instruction();
                     }
                     break;
 
