@@ -57,6 +57,12 @@ public:
 
 private:
     /*
+     * Returns the minimum SPIR-V version supported by this transform,
+     * encoded as a 32-bit word as it appears in the header of a SPIR-V module.
+     */
+    virtual uint32_t minimum_supported_source_version() const noexcept;
+
+    /*
      * Returns the maximum SPIR-V version supported by this transform,
      * encoded as a 32-bit word as it appears in the header of a SPIR-V module.
      */

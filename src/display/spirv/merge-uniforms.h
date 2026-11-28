@@ -69,9 +69,6 @@ namespace mkxp_spirv_utils {
      *
      * You must check the validity of the input SPIR-V module yourself before passing it to this function; it's undefined behavior to pass an invalid SPIR-V module to this function.
      *
-     * Assumes the input SPIR-V version is at least SPIR-V 1.4.
-     * It's not undefined behavior to pass a SPIR-V module with an earlier SPIR-V version to this function, but the output SPIR-V module might be invalid in this case.
-     *
      * spirv_input: Pointer to the input SPIR-V bytecode.
      * spirv_input_size: Length of the input SPIR-V bytecode in 32-bit words.
      * uniforms: A list of uniforms that appear in at least one SPIR-V module in the entire program. All of the uniform buffers in this SPIR-V module will be replaced with one uniform buffer with these uniforms, in the order given in this list, as members, so you may want to sort the uniforms in such a way that minimizes the size of this uniform buffer.

@@ -123,6 +123,10 @@ bool mkxp_spirv_utils::merge_uniforms(
         }
 
     private:
+        uint32_t minimum_supported_source_version() const noexcept override {
+            return 0x00010400;
+        }
+
         uint32_t maximum_supported_source_version() const noexcept override {
             return 0x00010600;
         }

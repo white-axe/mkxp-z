@@ -20,6 +20,8 @@
  */
 
 #include <cstring>
+#include <iomanip>
+#include <sstream>
 #include <utility>
 
 // _byteswap_ulong
@@ -88,15 +90,23 @@ bool SpirvTransform::transform(
     // which would break our detection for where the beginning of each section is,
     // so we need to explicitly check the version.
     if (_source_version > 0x00010600) {
-        error_message = "Unsupported SPIR-V version";
+        std::stringstream str;
+        str << "Unsupported SPIR-V version 0x" << std::hex << std::setw(8) << std::setfill('0') << _source_version << "; versions later than SPIR-V 1.6 are currently unsupported";
+        error_message = str.str();
         return false;
     }
 
     id_bound = maybe_byteswap_word(input[3], needs_byteswap);
 
-    if (_source_version > maximum_supported_source_version()) {
-        error_message = "Unsupported SPIR-V version";
-        return false;
+    {
+        uint32_t minimum = minimum_supported_source_version();
+        uint32_t maximum = maximum_supported_source_version();
+        if (_source_version < minimum || _source_version > maximum) {
+            std::stringstream str;
+            str << "Unsupported SPIR-V version 0x" << std::hex << std::setw(8) << std::setfill('0') << _source_version << "; must be greater than or equal to 0x" << std::hex << std::setw(8) << std::setfill('0') << minimum << " and less than or equal to 0x" << std::hex << std::setw(8) << std::setfill('0') << maximum;
+            error_message = str.str();
+            return false;
+        }
     }
 
     _target_version = override_target_version();
@@ -331,6 +341,10 @@ bool SpirvTransform::transform(
     _transformed[3] = id_bound;
     output = std::move(_transformed);
     return true;
+}
+
+uint32_t SpirvTransform::minimum_supported_source_version() const noexcept {
+    return 0x00010000;
 }
 
 uint32_t SpirvTransform::maximum_supported_source_version() const noexcept {
