@@ -72,7 +72,7 @@ namespace mkxp_spirv_utils {
      * spirv_input: Pointer to the input SPIR-V bytecode.
      * spirv_input_size: Length of the input SPIR-V bytecode in 32-bit words.
      * uniforms: A list of uniforms that appear in at least one SPIR-V module in the entire program. All of the uniform buffers in this SPIR-V module will be replaced with one uniform buffer with these uniforms, in the order given in this list, as members, so you may want to sort the uniforms in such a way that minimizes the size of this uniform buffer.
-     * uniform_id_map: For each uniform that appears in this SPIR-V module, this is a mapping from the name of the uniform to the SPIR-V ID for its type.
+     * uniform_type_map: For each uniform that appears in this SPIR-V module, this is a mapping from the name of the uniform to the SPIR-V ID for its type.
      * uniform_trie: The root node of this trie contains one child for each uniform buffer in this SPIR-V module, keyed by the SPIR-V ID of the uniform buffer. The children of the root node are tries that contain the OpAccessChain index chain to reach each uniform in that uniform buffer. The leaf nodes contain the names of the uniforms.
      * spirv_output: If the transform is successful, this will be set to the transformed SPIR-V output. Otherwise this will be unchanged.
      * error_message: If the transform is successful, this will be unchanged. Otherwise, this will be set to a string containing the error that occurred.
